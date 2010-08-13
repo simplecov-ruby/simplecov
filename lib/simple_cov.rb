@@ -1,4 +1,6 @@
 module SimpleCov
+  class CoverageDataError < StandardError; end;
+  
   class << self
     def filters
       @filters ||= []

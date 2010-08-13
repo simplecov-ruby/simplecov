@@ -42,4 +42,12 @@ class TestSourceFile < Test::Unit::TestCase
       assert_equal 90.0, @source_file.covered_percent
     end
   end
+  
+  context "A source file initialized with unmatching coverage data count" do
+    should "raise an SimpleCov::CoverageDataError" do
+      assert_raise SimpleCov::CoverageDataError do
+        SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 5, 1, 1, 1, nil, nil, 1, 0, nil, nil])
+      end
+    end
+  end
 end
