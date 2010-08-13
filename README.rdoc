@@ -14,4 +14,4 @@ Description goes here.
 
 == Copyright
 
-Copyright (c) 2010 "Christoph. See LICENSE for details.
+Copyright (c) 2010 Christoph Olszowka. See LICENSE for details.
