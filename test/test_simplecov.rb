@@ -89,4 +89,22 @@ class TestSourceFileLine < Test::Unit::TestCase
       assert !@line.missed?
     end
   end
+  
+  should "raise ArgumentError when initialized with invalid src" do
+    assert_raise ArgumentError do
+      SimpleCov::SourceFile::Line.new(:symbol, 5, 3)
+    end
+  end
+  
+  should "raise ArgumentError when initialized with invalid line_number" do
+    assert_raise ArgumentError do
+      SimpleCov::SourceFile::Line.new("some source", "five", 3)
+    end
+  end
+  
+  should "raise ArgumentError when initialized with invalid coverage" do
+    assert_raise ArgumentError do
+      SimpleCov::SourceFile::Line.new("some source", 5, "three")
+    end
+  end
 end

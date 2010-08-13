@@ -1,5 +1,10 @@
 module SimpleCov
   class SourceFile
+    # Representation of a single line in a source file including
+    # this specific line's source code, line_number and code coverage,
+    # with the coverage being either nil (coverage not applicable, e.g. comment
+    # line), 0 (line not covered) or >1 (the amount of times the line was 
+    # executed)
     class Line
       attr_reader :src, :line_number, :coverage
       # Lets grab some fancy aliases, shall we?
@@ -8,15 +13,18 @@ module SimpleCov
       alias_method :number, :line_number
     
       def initialize(src, line_number, coverage)
+        raise ArgumentError, "Only String accepted for source" unless src.kind_of?(String)
+        raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.kind_of?(Fixnum)
+        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) or coverage.nil?
         @src, @line_number, @coverage = src, line_number, coverage
       end
     
       def missed?
-        coverage.kind_of?(Fixnum) and coverage == 0
+        not never? and coverage == 0
       end
     
       def covered?
-        coverage.kind_of?(Fixnum) and coverage > 0
+        not never? and coverage > 0
       end
     
       def never?
