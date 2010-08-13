@@ -33,11 +33,11 @@ module SimpleCov
     end
   
     attr_reader :filename, :coverage, :src, :lines
+    alias_method :source, :src
+    alias_method :source_lines, :lines
   
     def initialize(filename, coverage)
-      @filename = filename
-      @coverage = coverage.freeze
-      @src = File.readlines(filename)
+      @filename, @coverage, @src = filename, coverage, File.readlines(filename)
       @lines = []
       coverage.each_with_index do |coverage, i|
         @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage)
