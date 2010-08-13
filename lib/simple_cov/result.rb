@@ -1,6 +1,7 @@
 module SimpleCov
   class Result    
     attr_reader :original_result, :files
+    alias_method :source_files, :files
 
     def initialize(original_result)
       @original_result = original_result.freeze
