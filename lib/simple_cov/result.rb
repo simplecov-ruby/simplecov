@@ -12,11 +12,13 @@ module SimpleCov
     def filenames
       files.map(&:filename)
     end
+    
+    def covered_percent
+      files.map(&:covered_percent).inject(:+) / files.count.to_f
+    end
   
     def filter!
-      SimpleCov.filters.each do |filter|
-        @files = files.reject {|source_file| filter.call(source_file) }
-      end
+      @files = SimpleCov.apply_filters(files)
     end
   end
 end

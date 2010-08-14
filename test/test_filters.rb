@@ -34,4 +34,40 @@ class TestFilters < Test::Unit::TestCase
       assert !SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'sample.rb'}).passes?(@source_file)
     end
   end
+  
+  context "with no filters set up and a basic source file in an array" do
+    setup do
+      SimpleCov.filters = []
+      @files = [SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])]
+    end
+    
+    should "return 0 items after executing SimpleCov.apply_filters on files when using a 'sample' string filter" do
+      SimpleCov.add_filter "sample"
+      assert_equal 0, SimpleCov.apply_filters(@files).count
+    end
+    
+    should "return 0 items after executing SimpleCov.apply_filters on files when using a 'test/fixtures/' string filter" do
+      SimpleCov.add_filter "test/fixtures"
+      assert_equal 0, SimpleCov.apply_filters(@files).count
+    end
+    
+    should "return 1 item after executing SimpleCov.apply_filters on files when using a 'fooo' string filter" do
+      SimpleCov.add_filter "fooo"
+      assert_equal 1, SimpleCov.apply_filters(@files).count
+    end
+    
+    should "return 0 items after executing SimpleCov.apply_filters on files when using a block filter that returns true" do
+      SimpleCov.add_filter do |src_file|
+        true
+      end
+      assert_equal 0, SimpleCov.apply_filters(@files).count
+    end
+    
+    should "return 1 item after executing SimpleCov.apply_filters on files when using an always-false block filter" do
+      SimpleCov.add_filter do |src_file|
+        false
+      end
+      assert_equal 1, SimpleCov.apply_filters(@files).count
+    end
+  end
 end
