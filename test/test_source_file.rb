@@ -26,6 +26,10 @@ class TestSourceFile < Test::Unit::TestCase
       assert @source_file.lines.all? {|l| l.instance_of?(SimpleCov::SourceFile::Line)}
     end
     
+    should "have 'class Foo' as line(2).source" do
+      assert_equal "class Foo\n", @source_file.line(2).source
+    end
+    
     should "return lines number 2, 3, 4, 7 for covered_lines" do
       assert_equal [2, 3, 4, 7], @source_file.covered_lines.map(&:line)
     end

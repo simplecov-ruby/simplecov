@@ -48,6 +48,10 @@ module SimpleCov
         @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage)
       end
     end
+    
+    def line(number)
+      lines[number-1]
+    end
   
     def covered_percent
       return 100.0 if lines.length == 0
