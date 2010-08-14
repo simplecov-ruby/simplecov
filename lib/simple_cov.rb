@@ -3,9 +3,17 @@ module SimpleCov
   class CoverageDataError < StandardError; end;
   
   class << self
-    attr_writer :filters
+    attr_writer :filters, :groups
     def filters
       @filters ||= []
+    end
+    
+    def groups
+      @groups ||= {}
+    end
+    
+    def configure(&block)
+      instance_exec(&block)
     end
     
     #
@@ -23,24 +31,47 @@ module SimpleCov
     #   on how to define your own filter classes
     #
     def add_filter(filter_argument=nil, &filter_proc)
+      filters << parse_filter(filter_argument, &filter_proc)
+    end
+    
+    def add_group(group_name, filter_argument=nil, &filter_proc)
+      groups[group_name] = parse_filter(filter_argument, &filter_proc)
+    end
+    
+    #
+    # The actal filter processor. Not meant for direct use
+    #
+    def parse_filter(filter_argument=nil, &filter_proc)
       if filter_argument.kind_of?(SimpleCov::Filter)
-        filters << filter_argument
+        filter_argument
       elsif filter_argument.kind_of?(String)
-        filters << StringFilter.new(filter_argument)
+        StringFilter.new(filter_argument)
       elsif filter_proc
-        filters << BlockFilter.new(filter_proc)
+        BlockFilter.new(filter_proc)
       else
         raise ArgumentError, "Please specify either a string or a block to filter with"
-      end
+      end      
     end
     
     # Applies the configured filters on the given array of SimpleCov::SourceFile items
-    def apply_filters(files)
+    def filtered(files)
       result = files.clone
       filters.each do |filter|
         result = result.select {|source_file| filter.passes?(source_file) }
       end
       result
+    end
+    
+    # Applies the configured groups on the given array of SimpleCov::SourceFile items
+    def grouped(files)
+      grouped = {}
+      grouped_files = []
+      groups.each do |name, filter|
+        grouped[name] = files.select {|source_file| !filter.passes?(source_file)}
+        grouped_files += grouped[name]
+      end
+      grouped["Other Files"] = files.reject {|source_file| grouped_files.include?(source_file)}
+      grouped
     end
   end
 end

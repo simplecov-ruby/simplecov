@@ -41,33 +41,33 @@ class TestFilters < Test::Unit::TestCase
       @files = [SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])]
     end
     
-    should "return 0 items after executing SimpleCov.apply_filters on files when using a 'sample' string filter" do
+    should "return 0 items after executing SimpleCov.filtered on files when using a 'sample' string filter" do
       SimpleCov.add_filter "sample"
-      assert_equal 0, SimpleCov.apply_filters(@files).count
+      assert_equal 0, SimpleCov.filtered(@files).count
     end
     
-    should "return 0 items after executing SimpleCov.apply_filters on files when using a 'test/fixtures/' string filter" do
+    should "return 0 items after executing SimpleCov.filtered on files when using a 'test/fixtures/' string filter" do
       SimpleCov.add_filter "test/fixtures"
-      assert_equal 0, SimpleCov.apply_filters(@files).count
+      assert_equal 0, SimpleCov.filtered(@files).count
     end
     
-    should "return 1 item after executing SimpleCov.apply_filters on files when using a 'fooo' string filter" do
+    should "return 1 item after executing SimpleCov.filtered on files when using a 'fooo' string filter" do
       SimpleCov.add_filter "fooo"
-      assert_equal 1, SimpleCov.apply_filters(@files).count
+      assert_equal 1, SimpleCov.filtered(@files).count
     end
     
-    should "return 0 items after executing SimpleCov.apply_filters on files when using a block filter that returns true" do
+    should "return 0 items after executing SimpleCov.filtered on files when using a block filter that returns true" do
       SimpleCov.add_filter do |src_file|
         true
       end
-      assert_equal 0, SimpleCov.apply_filters(@files).count
+      assert_equal 0, SimpleCov.filtered(@files).count
     end
     
-    should "return 1 item after executing SimpleCov.apply_filters on files when using an always-false block filter" do
+    should "return 1 item after executing SimpleCov.filtered on files when using an always-false block filter" do
       SimpleCov.add_filter do |src_file|
         false
       end
-      assert_equal 1, SimpleCov.apply_filters(@files).count
+      assert_equal 1, SimpleCov.filtered(@files).count
     end
   end
 end

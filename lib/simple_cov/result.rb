@@ -13,12 +13,18 @@ module SimpleCov
       files.map(&:filename)
     end
     
+    def groups
+      @groups ||= SimpleCov.grouped(files)
+    end
+    
     def covered_percent
       files.map(&:covered_percent).inject(:+) / files.count.to_f
     end
+    
+    private
   
     def filter!
-      @files = SimpleCov.apply_filters(files)
+      @files = SimpleCov.filtered(files)
     end
   end
 end
