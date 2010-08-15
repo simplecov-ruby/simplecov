@@ -1,3 +1,5 @@
+require 'helper'
+
 class TestResult < Test::Unit::TestCase
   context "With a (mocked) Coverage.result" do
     setup do
