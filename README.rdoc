@@ -7,7 +7,7 @@ taken into account) and grouping (to check coverage on your Rails models for ins
 Though it ships with a basic formatter, it isn't particularily useful by itself, so you're going to need a dedicated
 formatter library - check out simple_cov-html for that!
 
-Thanks too Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
+Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
 for this!
 
 == Example config for Rails 3 (using HTML formatter)
