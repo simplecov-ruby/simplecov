@@ -40,7 +40,7 @@ Now, when running rake test you'll get a coverage/ folder inside your app's root
 
 == TODO
 * Improve on tests (integration tests)
-* Add adapters, so i.e. SimpleCov.start 'rails' becomes possible and uses the above presets without the neccessity for custom coverage
+* Add adapters, so i.e. SimpleCov.start 'rails' becomes possible and uses the above presets without the neccessity for manual config
 
 == Note on Patches/Pull Requests
  
