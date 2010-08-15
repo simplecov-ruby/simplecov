@@ -3,6 +3,7 @@ class TestFilters < Test::Unit::TestCase
     setup do
       SimpleCov.filters = []
       SimpleCov.groups = {}
+      SimpleCov.formatter = nil
       @original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
           source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
           source_fixture('app/controllers/sample_controller.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
@@ -63,6 +64,14 @@ class TestFilters < Test::Unit::TestCase
       
       should "have sample_controller.rb in 'Controllers' group" do
         assert_equal 'sample_controller.rb', File.basename(@result.groups['Controllers'].first.filename)
+      end
+      
+      context "and simple formatter being used" do
+        setup {SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter}
+        
+        should "return a formatted string with result.format!" do
+          assert_equal String, @result.format!.class
+        end
       end
     end
   

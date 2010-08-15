@@ -3,14 +3,15 @@ module SimpleCov
   class CoverageDataError < StandardError; end;
   
   class << self
-    attr_writer :filters, :groups, :formatters
+    attr_writer :filters, :groups, :formatter
     attr_accessor :running, :result
     def filters
       @filters ||= []
     end
     
-    def formatters
-      @formatters ||= []
+    def formatter
+      raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
+      @formatter
     end
     
     def groups
@@ -96,6 +97,7 @@ end
 require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
+require 'simple_cov/formatter'
 
 at_exit do
   if result = SimpleCov.result

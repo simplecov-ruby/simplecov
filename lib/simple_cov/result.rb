@@ -22,9 +22,7 @@ module SimpleCov
     end
     
     def format!
-      SimpleCov.formatters.each do |formatter|
-        formatter.format(self)
-      end
+      SimpleCov.formatter.new.format(self)
     end
     
     private

@@ -4,4 +4,4 @@ module SimpleCov
   end
 end
 
-require 'formatter/simple_formatter'
+require 'simple_cov/formatter/simple_formatter'
