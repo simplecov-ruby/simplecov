@@ -54,8 +54,8 @@ class TestFilters < Test::Unit::TestCase
         @result = SimpleCov::Result.new(@original_result)
       end
       
-      should "have 4 groups" do
-        assert_equal 4, @result.groups.length
+      should "have 3 groups" do
+        assert_equal 3, @result.groups.length
       end
       
       should "have user.rb in 'Models' group" do

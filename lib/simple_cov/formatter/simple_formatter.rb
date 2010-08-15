@@ -10,6 +10,7 @@ class SimpleCov::Formatter::SimpleFormatter
       end
       output << "\n"
     end
+    puts output
     output
   end
 end

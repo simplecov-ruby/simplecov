@@ -22,8 +22,15 @@ module SimpleCov
       instance_exec(&block)
     end
     
-    def start
+    def at_exit(&block)
+      return Proc.new {} unless running
+      @at_exit = block if block_given?
+      @at_exit ||= Proc.new { SimpleCov.result.format! }
+    end
+    
+    def start(&block)
       Coverage.start
+      configure(&block) if block_given?
       @result = nil
       self.running = true
     end
@@ -88,19 +95,21 @@ module SimpleCov
         grouped[name] = files.select {|source_file| !filter.passes?(source_file)}
         grouped_files += grouped[name]
       end
-      grouped["Other Files"] = files.reject {|source_file| grouped_files.include?(source_file)}
+      if (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
+        grouped["Other Files"] = other_files
+      end
       grouped
     end
   end
 end
 
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
 require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
 require 'simple_cov/formatter'
 
+SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
 at_exit do
-  if result = SimpleCov.result
-    result.format!
-  end
+  SimpleCov.at_exit.call
 end
