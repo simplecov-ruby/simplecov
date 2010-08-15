@@ -1,4 +1,4 @@
-class TestFilters < Test::Unit::TestCase
+class TestResult < Test::Unit::TestCase
   context "With a (mocked) Coverage.result" do
     setup do
       SimpleCov.filters = []
@@ -25,8 +25,8 @@ class TestFilters < Test::Unit::TestCase
         assert_equal @result.files, @result.source_files
       end
       
-      should "have 93.3 covered percent" do
-        assert_equal 93.3, @result.covered_percent.round(1)
+      should "have 86.7 covered percent" do
+        assert_equal 86.7, @result.covered_percent.round(1)
       end
     end
     
@@ -39,8 +39,8 @@ class TestFilters < Test::Unit::TestCase
         assert_equal 2, SimpleCov::Result.new(@original_result).source_files.length
       end
       
-      should "have 90 covered percent" do
-        assert_equal 90, SimpleCov::Result.new(@original_result).covered_percent
+      should "have 80 covered percent" do
+        assert_equal 80, SimpleCov::Result.new(@original_result).covered_percent
       end
     end
     

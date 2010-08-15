@@ -42,8 +42,8 @@ class TestSourceFile < Test::Unit::TestCase
       assert_equal [1, 5, 6, 9, 10], @source_file.never_lines.map(&:line)
     end
     
-    should "have 90% covered_percent" do
-      assert_equal 90.0, @source_file.covered_percent
+    should "have 80% covered_percent" do
+      assert_equal 80.0, @source_file.covered_percent
     end
   end
   

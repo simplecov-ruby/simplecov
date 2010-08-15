@@ -55,7 +55,7 @@ module SimpleCov
   
     def covered_percent
       return 100.0 if lines.length == 0
-      (covered_lines.count + never_lines.count) * 100 / lines.count.to_f
+      (covered_lines.count) * 100 / (lines.count-never_lines.count).to_f
     end
   
     def covered_lines
