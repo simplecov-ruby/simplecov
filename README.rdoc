@@ -41,6 +41,8 @@ Now, when running rake test you'll get a coverage/ folder inside your app's root
 == TODO
 * Improve on tests (integration tests)
 * Add adapters, so i.e. SimpleCov.start 'rails' becomes possible and uses the above presets without the neccessity for manual config
+* Allow dumping and importing of results
+* Allow merging of discrete results (so cucumber & default tests can be analyzed together, i.e.)
 
 == Note on Patches/Pull Requests
  

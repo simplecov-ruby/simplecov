@@ -108,6 +108,7 @@ require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
 require 'simple_cov/formatter'
+require 'simple_cov/merge_helpers'
 
 SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
 at_exit do
