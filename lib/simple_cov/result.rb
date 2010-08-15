@@ -21,6 +21,12 @@ module SimpleCov
       files.map(&:covered_percent).inject(:+) / files.count.to_f
     end
     
+    def format!
+      SimpleCov.formatters.each do |formatter|
+        formatter.format(self)
+      end
+    end
+    
     private
   
     def filter!

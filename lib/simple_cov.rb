@@ -3,9 +3,14 @@ module SimpleCov
   class CoverageDataError < StandardError; end;
   
   class << self
-    attr_writer :filters, :groups
+    attr_writer :filters, :groups, :formatters
+    attr_accessor :running, :result
     def filters
       @filters ||= []
+    end
+    
+    def formatters
+      @formatters ||= []
     end
     
     def groups
@@ -14,6 +19,18 @@ module SimpleCov
     
     def configure(&block)
       instance_exec(&block)
+    end
+    
+    def start
+      Coverage.start
+      @result = nil
+      self.running = true
+    end
+    
+    def result
+      @result ||= SimpleCov::Result.new(Coverage.result) if running
+    ensure
+      self.running = false
     end
     
     #
@@ -79,3 +96,9 @@ end
 require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
+
+at_exit do
+  if result = SimpleCov.result
+    result.format!
+  end
+end
