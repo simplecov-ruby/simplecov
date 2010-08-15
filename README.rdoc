@@ -1,6 +1,46 @@
 = simplecov
 
-Description goes here.
+SimpleCov is a code coverage analysis tool for Ruby 1.9. It makes use of Ruby's built-in Coverage library, wrapping
+it's results in a object-oriented manner. It also adds some sugar like filtering (so the coverage of used gems is not
+taken into account) and grouping (to check coverage on your Rails models for instance).
+
+Though it ships with a basic formatter, it isn't particularily useful by itself, so you're going to need a dedicated
+formatter library - check out simple_cov-html for that!
+
+Thanks too Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
+for this!
+
+== Example config for Rails 3 (using HTML formatter)
+
+Update your Gemfile with this and do a bundle install:
+  group :test do
+    gem 'simple_cov', '>= 0.1.0'
+    gem 'simple_cov-html', '>= 0.1.0'
+  end
+
+Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
+
+  require 'simple_cov'
+  SimpleCov.start do
+    add_filter do |src|
+      !(src.filename =~ /^#{Dir.getwd}/)
+    end
+  
+    add_filter '/test/'
+  
+    add_group 'Controllers', 'app/controllers'
+    add_group 'Models', 'app/models'
+    add_group 'Helpers', 'app/helpers'
+    add_group 'Configs', 'config/'
+    add_group 'Libraries', 'lib'
+    add_group 'Plugins', 'vendor/plugins'
+  end
+
+Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
+
+== TODO
+* Improve on tests (integration tests)
+* Add adapters, so i.e. SimpleCov.start 'rails' becomes possible and uses the above presets without the neccessity for custom coverage
 
 == Note on Patches/Pull Requests
  
