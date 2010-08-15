@@ -5,7 +5,7 @@ module SimpleCov
 
     def initialize(original_result)
       @original_result = original_result.freeze
-      @files = original_result.map {|filename, coverage| SimpleCov::SourceFile.new(filename, coverage)}
+      @files = original_result.map {|filename, coverage| SimpleCov::SourceFile.new(filename, coverage)}.sort_by(&:filename)
       filter!
     end
   
