@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simple_cov}
-  s.version = "0.0.0"
+  s.version = "0.0.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
      "lib/simple_cov/formatter/simple_formatter.rb",
      "lib/simple_cov/result.rb",
      "lib/simple_cov/source_file.rb",
+     "simple_cov.gemspec",
      "test/fixtures/app/controllers/sample_controller.rb",
      "test/fixtures/app/models/user.rb",
      "test/fixtures/sample.rb",
