@@ -38,11 +38,6 @@ module SimpleCov
   
     def initialize(filename, coverage)
       @filename, @coverage, @src = filename, coverage, File.readlines(filename)
-      
-      if coverage.count != src.length and coverage.count != src.length - 1
-        #raise SimpleCov::CoverageDataError, "The amount of coverage lines does not match the line count in the source file!" 
-      end
-      
       @lines = []
       coverage.each_with_index do |coverage, i|
         @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage)
