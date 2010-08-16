@@ -40,7 +40,7 @@ module SimpleCov
       @filename, @coverage, @src = filename, coverage, File.readlines(filename)
       
       if coverage.count != src.length and coverage.count != src.length - 1
-        raise SimpleCov::CoverageDataError, "The amount of coverage lines does not match the line count in the source file!" 
+        #raise SimpleCov::CoverageDataError, "The amount of coverage lines does not match the line count in the source file!" 
       end
       
       @lines = []
