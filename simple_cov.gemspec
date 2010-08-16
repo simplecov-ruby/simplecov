@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simple_cov}
-  s.version = "0.1.0"
+  s.version = "0.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
-  s.date = %q{2010-08-15}
+  s.date = %q{2010-08-16}
   s.description = %q{Makes ruby 1.9's code coverage library's results more accessible in an object-oriented manner and adds some sugar on top}
   s.email = %q{christoph at olszowka.de}
   s.extra_rdoc_files = [
@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
      "lib/simple_cov/filter.rb",
      "lib/simple_cov/formatter.rb",
      "lib/simple_cov/formatter/simple_formatter.rb",
+     "lib/simple_cov/merge_helpers.rb",
      "lib/simple_cov/result.rb",
      "lib/simple_cov/source_file.rb",
      "simple_cov.gemspec",
@@ -35,6 +36,7 @@ Gem::Specification.new do |s|
      "test/fixtures/sample.rb",
      "test/helper.rb",
      "test/test_filters.rb",
+     "test/test_merge_helpers.rb",
      "test/test_result.rb",
      "test/test_source_file.rb",
      "test/test_source_file_line.rb"
@@ -50,6 +52,7 @@ Gem::Specification.new do |s|
      "test/fixtures/sample.rb",
      "test/helper.rb",
      "test/test_filters.rb",
+     "test/test_merge_helpers.rb",
      "test/test_result.rb",
      "test/test_source_file.rb",
      "test/test_source_file_line.rb"
