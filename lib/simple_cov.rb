@@ -33,6 +33,14 @@ module SimpleCov
     end
     
     #
+    # Returns the project name - currently assuming the last dirname in
+    # the SimpleCov.root is this
+    #
+    def project_name
+      File.basename(root.split('/').last).capitalize.gsub('_', ' ')
+    end
+    
+    #
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
     #
     def filtered(files)
