@@ -14,35 +14,19 @@ for this!
 
 Update your Gemfile with this and do a bundle install:
   group :test do
-    gem 'simple_cov', '>= 0.1.0'
-    gem 'simple_cov-html', '>= 0.1.0'
+    gem 'simple_cov', '>= 0.2.0'
+    gem 'simple_cov-html', '>= 0.2.0'
   end
 
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
 
   require 'simple_cov'
-  SimpleCov.start do
-    add_filter do |src|
-      !(src.filename =~ /^#{Dir.getwd}/)
-    end
-  
-    add_filter '/test/'
-  
-    add_group 'Controllers', 'app/controllers'
-    add_group 'Models', 'app/models'
-    add_group 'Helpers', 'app/helpers'
-    add_group 'Configs', 'config/'
-    add_group 'Libraries', 'lib'
-    add_group 'Plugins', 'vendor/plugins'
-  end
+  SimpleCov.start 'rails'
 
 Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
 
 == TODO
 * Improve on tests (integration tests)
-* Add adapters, so i.e. SimpleCov.start 'rails' becomes possible and uses the above presets without the neccessity for manual config
-* Allow dumping and importing of results
-* Allow merging of discrete results (so cucumber & default tests can be analyzed together, i.e.)
 
 == Note on Patches/Pull Requests
  
