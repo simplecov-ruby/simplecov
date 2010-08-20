@@ -30,6 +30,35 @@ class TestResult < Test::Unit::TestCase
       should "have 86.7 covered percent" do
         assert_equal 86.7, @result.covered_percent.round(1)
       end
+      
+      context "dumped with to_yaml" do
+        setup { @yaml = @result.to_yaml }
+        should("be a string") { assert_equal String, @yaml.class }
+        
+        context "loaded back with from_yaml" do
+          setup { @dumped_result = SimpleCov::Result.from_yaml(@yaml) }
+          
+          should "have 3 source files" do
+            assert_equal @result.source_files.count, @dumped_result.source_files.count
+          end
+          
+          should "have the same covered_percent" do
+            assert_equal @result.covered_percent, @dumped_result.covered_percent
+          end
+          
+          should "have the same created_at" do
+            assert_equal @result.created_at, @dumped_result.created_at
+          end
+          
+          should "have the same command_name" do
+            assert_equal @result.command_name, @dumped_result.command_name
+          end
+          
+          should "have the same original_result" do
+            assert_equal @result.original_result, @dumped_result.original_result
+          end
+        end
+      end
     end
     
     context "with some filters set up" do

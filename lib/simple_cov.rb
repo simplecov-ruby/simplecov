@@ -18,6 +18,8 @@ module SimpleCov
       require 'coverage'
       load_adapter(adapter) unless adapter.nil?
       Coverage.start
+      puts "Script: #{$0.inspect}"
+      puts "Args: '#{$*.inspect}' or #{ARGV.inspect}"
       configure(&block) if block_given?
       @result = nil
       self.running = true
