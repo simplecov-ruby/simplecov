@@ -34,25 +34,34 @@ module SimpleCov
       @created_at ||= Time.now
     end
     
-    # Stores the command name for this result (based upon command line args)
-    # (currently only a plain SHA1)
+    # The command name that launched this result. 
+    # Retrieved from SimpleCov.command_name
     def command_name
-      Digest::SHA1.hexdigest("#{$0} #{ARGV.join(" ")}")
+      @command_name ||= SimpleCov.command_name
+    end
+    
+    # Returns a hash representation of this Result
+    def to_hash
+      {command_name => {:original_result => original_result.reject {|filename, result| !filenames.include?(filename) }, :created_at => created_at}}
     end
     
     # Returns a yaml dump of this result, which then can be reloaded using SimpleCov::Result.from_yaml
     def to_yaml
-      {command_name => {:original_result => original_result, :created_at => created_at}}.to_yaml
+      to_hash.to_yaml
     end
     
-    # Loads a SimpleCov::Result#to_yaml dump
-    def self.from_yaml(yaml)
-      require 'pp'
-      command_name, data = YAML.load(yaml).first
+    # Loads a SimpleCov::Result#to_hash dump
+    def self.from_hash(hash)
+      command_name, data = hash.first
       result = SimpleCov::Result.new(data[:original_result])
       result.command_name = command_name
       result.created_at = data[:created_at]
       result
+    end
+    
+    # Loads a SimpleCov::Result#to_yaml dump
+    def self.from_yaml(yaml)
+      from_hash(YAML.load(yaml))
     end
     
     private

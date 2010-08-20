@@ -45,6 +45,13 @@ module SimpleCov::Configuration
     @filters ||= []
   end
   
+  # The name of the command currently running. It is used for result merging and defaults 
+  # to the command line arguments the current test suite is running on.
+  # You can specify it manually with SimpleCov.command_name("test:units")
+  def command_name(name=nil)
+    @name ||= (name.nil? ? ARGV.join(" ") : name)
+  end
+  
   #
   # Gets or sets the configured formatter.
   #
@@ -97,9 +104,35 @@ module SimpleCov::Configuration
   #   end
   #
   def at_exit(&block)
-    return Proc.new {} unless running
+    return Proc.new {} unless running or block_given?
     @at_exit = block if block_given?
     @at_exit ||= Proc.new { SimpleCov.result.format! }
+  end
+  
+  #
+  # Defines whether to use result merging so all your test suites (test:units, test:functionals, cucumber, ...)
+  # are joined and combined into a single coverage report
+  #
+  def use_merging(use=nil)
+    @use_merging = use unless use.nil? # Set if param given
+    @use_merging = true if @use_merging != false
+  end
+  
+  #
+  # Defines them maximum age (in seconds) of a resultset to still be included in merged results.
+  # i.e. If you run cucumber features, then later rake test, if the stored cucumber resultset is 
+  # more seconds ago than specified here, it won't be taken into account when merging (and is also
+  # purged from the resultset cache)
+  #
+  # Of course, this only applies when merging is active (e.g. SimpleCov.use_merging is not false!)
+  #
+  # Default is 600 seconds (10 minutes)
+  #
+  # Configure with SimpleCov.merge_timeout(3600) # 1hr
+  #
+  def merge_timeout(seconds=nil)
+    @merge_timeout = seconds if !seconds.nil? and seconds.kind_of?(Fixnum)
+    @merge_timeout ||= 600
   end
   
   #

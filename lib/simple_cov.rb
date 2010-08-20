@@ -18,8 +18,6 @@ module SimpleCov
       require 'coverage'
       load_adapter(adapter) unless adapter.nil?
       Coverage.start
-      puts "Script: #{$0.inspect}"
-      puts "Args: '#{$*.inspect}' or #{ARGV.inspect}"
       configure(&block) if block_given?
       @result = nil
       self.running = true
@@ -30,6 +28,14 @@ module SimpleCov
     #
     def result
       @result ||= SimpleCov::Result.new(Coverage.result) if running
+      # If we're using merging of results, store the current result
+      # first, then merge the results and return them
+      if use_merging
+        SimpleCov::ResultMerger.store_result(@result) if @result
+        return SimpleCov::ResultMerger.merged_result
+      else
+        return @result
+      end
     ensure
       self.running = false
     end
@@ -87,6 +93,7 @@ require 'simple_cov/result'
 require 'simple_cov/filter'
 require 'simple_cov/formatter'
 require 'simple_cov/merge_helpers'
+require 'simple_cov/result_merger'
 
 # Default configuration
 SimpleCov.configure do
