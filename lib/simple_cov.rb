@@ -52,8 +52,8 @@ module SimpleCov
         grouped[name] = files.select {|source_file| !filter.passes?(source_file)}
         grouped_files += grouped[name]
       end
-      if (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
-        grouped["Other Files"] = other_files
+      if groups.length > 0 and (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
+        grouped["Ungrouped"] = other_files
       end
       grouped
     end
@@ -69,7 +69,16 @@ require 'simple_cov/filter'
 require 'simple_cov/formatter'
 require 'simple_cov/merge_helpers'
 
-SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+# Default configuration
+SimpleCov.configure do
+  formatter SimpleCov::Formatter::SimpleFormatter
+  
+  # Exclude all files outside of simplecov root
+  add_filter do |src|
+    !(src.filename =~ /^#{SimpleCov.root}/)
+  end
+end
+
 at_exit do
   SimpleCov.at_exit.call
 end

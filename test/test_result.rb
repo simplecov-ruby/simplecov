@@ -96,8 +96,8 @@ class TestResult < Test::Unit::TestCase
         end
       end
 
-      should "have sample.rb in 'Other Files' group" do
-        assert_equal 'sample.rb', File.basename(@result.groups['Other Files'].first.filename)
+      should "have sample.rb in 'Ungrouped' group" do
+        assert_equal 'sample.rb', File.basename(@result.groups['Ungrouped'].first.filename)
       end
     end
   end
