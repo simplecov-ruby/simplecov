@@ -14,7 +14,7 @@ module SimpleCov::Configuration
   #
   def root(root=nil)
     return @root if @root and root.nil?
-    @root = (root || Dir.getwd)
+    @root = File.expand_path(root || Dir.getwd)
   end
   
   #
@@ -62,6 +62,13 @@ module SimpleCov::Configuration
   #
   def groups
     @groups ||= {}
+  end
+  
+  #
+  # Returns the hash of available adapters
+  #
+  def adapters
+    @adapters ||= SimpleCov::Adapters.new
   end
   
   #

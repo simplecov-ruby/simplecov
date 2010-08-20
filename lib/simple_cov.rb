@@ -10,12 +10,13 @@ module SimpleCov
     #
     # TODO: Explain config! Add default adapters!
     #
-    def start(&block)
+    def start(adapter=nil, &block)
       unless "1.9".respond_to?(:encoding)
         warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9 - no coverage analysis will happen"
         return false
       end
       require 'coverage'
+      load_adapter(adapter) unless adapter.nil?
       Coverage.start
       configure(&block) if block_given?
       @result = nil
@@ -57,12 +58,20 @@ module SimpleCov
       end
       grouped
     end
+    
+    # 
+    # Applies the adapter of given name on SimpleCov configuration
+    #
+    def load_adapter(name)
+      adapters.load(name)
+    end
   end
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
 require 'simple_cov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
+require 'simple_cov/adapters'
 require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
@@ -72,11 +81,8 @@ require 'simple_cov/merge_helpers'
 # Default configuration
 SimpleCov.configure do
   formatter SimpleCov::Formatter::SimpleFormatter
-  
-  # Exclude all files outside of simplecov root
-  add_filter do |src|
-    !(src.filename =~ /^#{SimpleCov.root}/)
-  end
+  # Exclude files outside of SimpleCov.root
+  load_adapter 'root_filter'
 end
 
 at_exit do
