@@ -1,40 +1,30 @@
-require 'coverage'
 module SimpleCov
   class CoverageDataError < StandardError; end;
+  VERSION = File.read(File.join(File.dirname(__FILE__), '../VERSION'))
   
   class << self
-    attr_writer :filters, :groups, :formatter
-    attr_accessor :running, :result
-    def filters
-      @filters ||= []
-    end
+    attr_accessor :running, :result # TODO: Remove result?
     
-    def formatter
-      raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
-      @formatter
-    end
-    
-    def groups
-      @groups ||= {}
-    end
-    
-    def configure(&block)
-      instance_exec(&block)
-    end
-    
-    def at_exit(&block)
-      return Proc.new {} unless running
-      @at_exit = block if block_given?
-      @at_exit ||= Proc.new { SimpleCov.result.format! }
-    end
-    
+    #
+    # Sets up SimpleCov to run against your project.
+    #
+    # TODO: Explain config! Add default adapters!
+    #
     def start(&block)
+      unless "1.9".respond_to?(:encoding)
+        warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9 - no coverage analysis will happen"
+        return false
+      end
+      require 'coverage'
       Coverage.start
       configure(&block) if block_given?
       @result = nil
       self.running = true
     end
     
+    #
+    # Returns the result for the currntly runnig coverage run
+    #
     def result
       @result ||= SimpleCov::Result.new(Coverage.result) if running
     ensure
@@ -42,43 +32,8 @@ module SimpleCov
     end
     
     #
-    # Add a filter to the processing chain.
-    # There are three ways to define a filter:
-    # 
-    # * as a String that will then be matched against all source files' file paths,
-    #   SimpleCov.add_filter 'app/models' # will reject all your models
-    # * as a block which will be passed the source file in question and should either
-    #   return a true or false value, depending on whether the file should be removed
-    #   SimpleCov.add_filter do |src_file|
-    #     File.basename(src_file.filename) == 'environment.rb'
-    #   end # Will exclude environment.rb files from the results
-    # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
-    #   on how to define your own filter classes
+    # Applies the configured filters to the given array of SimpleCov::SourceFile items
     #
-    def add_filter(filter_argument=nil, &filter_proc)
-      filters << parse_filter(filter_argument, &filter_proc)
-    end
-    
-    def add_group(group_name, filter_argument=nil, &filter_proc)
-      groups[group_name] = parse_filter(filter_argument, &filter_proc)
-    end
-    
-    #
-    # The actal filter processor. Not meant for direct use
-    #
-    def parse_filter(filter_argument=nil, &filter_proc)
-      if filter_argument.kind_of?(SimpleCov::Filter)
-        filter_argument
-      elsif filter_argument.kind_of?(String)
-        StringFilter.new(filter_argument)
-      elsif filter_proc
-        BlockFilter.new(filter_proc)
-      else
-        raise ArgumentError, "Please specify either a string or a block to filter with"
-      end      
-    end
-    
-    # Applies the configured filters on the given array of SimpleCov::SourceFile items
     def filtered(files)
       result = files.clone
       filters.each do |filter|
@@ -87,7 +42,9 @@ module SimpleCov
       result
     end
     
-    # Applies the configured groups on the given array of SimpleCov::SourceFile items
+    #
+    # Applies the configured groups to the given array of SimpleCov::SourceFile items
+    #
     def grouped(files)
       grouped = {}
       grouped_files = []
@@ -104,6 +61,8 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
+require 'simple_cov/configuration'
+SimpleCov.send :extend, SimpleCov::Configuration
 require 'simple_cov/source_file'
 require 'simple_cov/result'
 require 'simple_cov/filter'
