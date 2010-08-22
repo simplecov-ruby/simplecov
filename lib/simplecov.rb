@@ -85,15 +85,15 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
-require 'simple_cov/configuration'
+require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
-require 'simple_cov/adapters'
-require 'simple_cov/source_file'
-require 'simple_cov/result'
-require 'simple_cov/filter'
-require 'simple_cov/formatter'
-require 'simple_cov/merge_helpers'
-require 'simple_cov/result_merger'
+require 'simplecov/adapters'
+require 'simplecov/source_file'
+require 'simplecov/result'
+require 'simplecov/filter'
+require 'simplecov/formatter'
+require 'simplecov/merge_helpers'
+require 'simplecov/result_merger'
 
 # Default configuration
 SimpleCov.configure do

@@ -4,11 +4,11 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    gem.name = "simple_cov"
-    gem.summary = %Q{Makes ruby 1.9's code coverage library's results more accessible in an object-oriented manner and adds some sugar on top}
-    gem.description = %Q{Makes ruby 1.9's code coverage library's results more accessible in an object-oriented manner and adds some sugar on top}
+    gem.name = "simplecov"
+    gem.summary = %Q{Code coverage for Ruby 1.9}
+    gem.description = %Q{Code coverage for Ruby 1.9}
     gem.email = "christoph at olszowka.de"
-    gem.homepage = "http://github.com/colszowka/simple_cov"
+    gem.homepage = "http://github.com/colszowka/simplecov"
     gem.authors = ["Christoph Olszowka"]
     gem.add_development_dependency "shoulda", "= 2.10.3"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
