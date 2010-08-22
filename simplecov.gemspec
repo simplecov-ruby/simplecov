@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simplecov}
-  s.version = "0.2.0"
+  s.version = "0.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
      "lib/simplecov/result_merger.rb",
      "lib/simplecov/source_file.rb",
      "simple_cov.gemspec",
+     "simplecov.gemspec",
      "test/fixtures/app/controllers/sample_controller.rb",
      "test/fixtures/app/models/user.rb",
      "test/fixtures/resultset1.rb",
