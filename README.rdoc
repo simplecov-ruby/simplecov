@@ -14,8 +14,8 @@ for this!
 
 Update your Gemfile with this and do a bundle install:
   group :test do
-    gem 'simple_cov', '>= 0.2.0'
-    gem 'simple_cov-html', '>= 0.2.0'
+    gem 'simplecov', '>= 0.2.0'
+    gem 'simplecov-html', '>= 0.2.0'
   end
 
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
