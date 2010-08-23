@@ -5,8 +5,8 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "simplecov"
-    gem.summary = %Q{Code coverage for Ruby 1.9}
-    gem.description = %Q{Code coverage for Ruby 1.9}
+    gem.summary = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
+    gem.description = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
     gem.email = "christoph at olszowka.de"
     gem.homepage = "http://github.com/colszowka/simplecov"
     gem.authors = ["Christoph Olszowka"]
