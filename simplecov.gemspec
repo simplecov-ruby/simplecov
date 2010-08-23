@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simplecov}
-  s.version = "0.3.0"
+  s.version = "0.3.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
-  s.date = %q{2010-08-22}
+  s.date = %q{2010-08-23}
   s.description = %q{Code coverage for Ruby 1.9}
   s.email = %q{christoph at olszowka.de}
   s.extra_rdoc_files = [
