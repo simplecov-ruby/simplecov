@@ -1,9 +1,9 @@
 #
 # Adaptars are glorified SimpleCov configuration procs that can be easily 
 # loaded using SimpleCov.start :rails and defined using
-# SimpleCov.adapters.define :foo do
-#   # SimpleCov configuration here, same as in 
-# end
+#   SimpleCov.adapters.define :foo do
+#     # SimpleCov configuration here, same as in  SimpleCov.configure
+#   end
 #
 class SimpleCov::Adapters < Hash
   # 
@@ -19,7 +19,7 @@ class SimpleCov::Adapters < Hash
   end
   
   #
-  # Applies the adapter of given name
+  # Applies the adapter of given name on SimpleCov.configure
   #
   def load(name)
     name = name.to_sym

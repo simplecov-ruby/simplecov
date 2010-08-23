@@ -1,6 +1,6 @@
 module SimpleCov
+  # TODO: Documentation on how to build your own formatters
   module Formatter
-    
   end
 end
 

@@ -1,4 +1,5 @@
 module SimpleCov::ArrayMergeHelper
+  # Merges an array of coverage results with self
   def merge_resultset(array)
     new_array = []
     
@@ -20,6 +21,7 @@ module SimpleCov::ArrayMergeHelper
 end
 
 module SimpleCov::HashMergeHelper
+  # Merges the given Coverage.result hash with self
   def merge_resultset(hash)
     new_resultset = {}
     (self.keys + hash.keys).each do |filename|

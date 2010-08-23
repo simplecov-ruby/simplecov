@@ -1,15 +1,26 @@
 require 'yaml'
+#
+# Singleton that is responsible for caching, loading and merging
+# SimpleCov::Results into a single result for coverage analysis based
+# upon multiple test suites.
+#
 module SimpleCov::ResultMerger
   class << self
+    # The path to the resultset.yml cache file
     def resultset_path
       File.join(SimpleCov.coverage_path, 'resultset.yml')
     end
     
+    # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       return {} unless File.exist?(resultset_path)
       YAML.load(File.read(resultset_path))
     end
     
+    # Gets the resultset hash and re-creates all included instances
+    # of SimpleCov::Result from that.
+    # All results that are above the SimpleCov.merge_timeout will be
+    # dropped. Returns an array of SimpleCov::Result items.
     def results
       results = []
       resultset.each do |command_name, data| 
@@ -22,6 +33,11 @@ module SimpleCov::ResultMerger
       results
     end
     
+    #
+    # Gets all SimpleCov::Results from cache, merges them and produces a new
+    # SimpleCov::Result with merged coverage data and the command_name 
+    # for the result consisting of a join on all source result's names
+    #
     def merged_result
       merged = {}
       results.each do |result|
@@ -33,6 +49,7 @@ module SimpleCov::ResultMerger
       result
     end
     
+    # Saves the given SimpleCov::Result in the resultset cache
     def store_result(result)
       new_set = resultset
       command_name, data = result.to_hash.first

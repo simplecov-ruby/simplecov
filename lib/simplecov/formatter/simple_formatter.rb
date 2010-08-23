@@ -1,4 +1,8 @@
+#
+# A ridiculously simple formatter for SimpleCov results.
+#
 class SimpleCov::Formatter::SimpleFormatter
+  # Takes a SimpleCov::Result and generates a string out of it
   def format(result)
     output = ""
     result.groups.each do |name, files|
