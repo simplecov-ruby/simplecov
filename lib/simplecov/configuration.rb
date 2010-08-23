@@ -79,14 +79,15 @@ module SimpleCov::Configuration
   end
   
   #
-  # Configure SimpleCov using a block:
+  # Allows you to configure simplecov in a block instead of prepending SimpleCov to all config methods
+  # you're calling.
   #
   # SimpleCov.configure do
   #   add_filter 'foobar'
   # end
   #
-  # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a lot of configure
-  # options.
+  # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a buchn of configure
+  # options at once.
   #
   def configure(&block)
     instance_exec(&block)
@@ -107,6 +108,16 @@ module SimpleCov::Configuration
     return Proc.new {} unless running or block_given?
     @at_exit = block if block_given?
     @at_exit ||= Proc.new { SimpleCov.result.format! }
+  end
+  
+  #
+  # Returns the project name - currently assuming the last dirname in
+  # the SimpleCov.root is this.
+  #
+  def project_name(new_name=nil)
+    return @project_name if @project_name and new_name.nil?
+    @project_name = new_name if new_name.kind_of?(String)
+    @project_name ||= File.basename(root.split('/').last).capitalize.gsub('_', ' ')
   end
   
   #
@@ -153,6 +164,11 @@ module SimpleCov::Configuration
     filters << parse_filter(filter_argument, &filter_proc)
   end
   
+  #
+  # Define a group for files. Works similar to add_filter, only that the first
+  # argument is the desired group name and files PASSING the filter end up in the group
+  # (while filters exclude when the filter is applicable).
+  #
   def add_group(group_name, filter_argument=nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
   end

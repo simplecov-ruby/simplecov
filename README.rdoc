@@ -213,6 +213,25 @@ adapter and customize it so you can reuse it in unit tests and cucumber features
   # test/test_helper.rb
   require 'simplecov_custom_adapter'
   SimpleCov.start 'myadapter'
+  
+== Customizing exit behaviour
+
+You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
+
+  SimpleCov.at_exit do
+    SimpleCov.result.format!
+  end
+  
+Above is the default behaviour. Do whatever you like instead!
+
+== Using your own formatter
+
+You can use your own formatter with: 
+
+  SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
+
+When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result" 
+being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 == Configuration options
 
