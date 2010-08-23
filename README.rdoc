@@ -132,7 +132,7 @@ line arguments it is currently running on. This works fine, though the test suit
 won't be easy to recognize. 
 
 Thus, if you want nicely labeled test suites, you have to give Simplecov a cue what the name of the currently running
-test suite is. You can do so by specifiyng SimpleCov.command_name in one test file that is part of your specific suite.
+test suite is. You can do so by specifying SimpleCov.command_name in one test file that is part of your specific suite.
 
 So, in order to get proper suite names in a Rails app (yeah, sorry for being Rails biased, but everyone knows what
 the structure of those projects is. You can apply this accordingly to the RSpecs for your Outlook-WebDAV-Calendar-Sync gem), 
@@ -207,8 +207,11 @@ adapter and customize it so you can reuse it in unit tests and cucumber features
   end
   
   # features/support/env.rb
+  require 'simplecov_custom_adapter'
   SimpleCov.start 'myadapter'
+  
   # test/test_helper.rb
+  require 'simplecov_custom_adapter'
   SimpleCov.start 'myadapter'
 
 == Configuration options
