@@ -26,6 +26,12 @@ Then, add the following to your Rails test/test_helper.rb (right at the top, lin
 
 Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
 
+== Example output
+
+For the Devise Ruby gem (some tests were removed, they just have too awesome test coverage...)
+
+http://img.skitch.com/20100823-n9f52i3ty3qa7cqj33rafghrtc.png
+
 == Configuration
 
 Configuration settings can be applied in three formats.
