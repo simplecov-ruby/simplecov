@@ -45,11 +45,19 @@ module SimpleCov::Configuration
     @filters ||= []
   end
   
-  # The name of the command currently running. It is used for result merging and defaults 
-  # to the command line arguments the current test suite is running on.
-  # You can specify it manually with SimpleCov.command_name("test:units")
+  # The name of the command (a.k.a. Test Suite) currently running. Used for result
+  # merging and caching. It first tries to make a guess based upon the command line
+  # arguments the current test suite is running on and should automatically detect
+  # unit tests, functional tests, integration tests, rpsec and cucumber and label
+  # them properly. If it fails to recognize the current command, the command name
+  # is set to the shell command that the current suite is running on.
+  #
+  # You can specify it manually with SimpleCov.command_name("test:units") - please
+  # also check out the corresponding section in README.rdoc
   def command_name(name=nil)
-    @name ||= (name.nil? ? ARGV.join(" ") : name)
+    @name = name unless name.nil?
+    @name ||= SimpleCov::CommandGuesser.guess("#{$0} #{ARGV.join(" ")}")
+    @name
   end
   
   #

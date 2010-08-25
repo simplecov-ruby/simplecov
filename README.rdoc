@@ -133,28 +133,29 @@ There are two things to note here though:
 
 === Test suite names
 
-First, simplecov by itself does not really know about "test suites" and thus makes a guess based upon the command
-line arguments it is currently running on. This works fine, though the test suites used for your coverage report
-won't be easy to recognize. 
+Simplecov tries to guess the name of the currently running test suite based upon the shell command the tests are running
+on (from v0.3.2+). This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
+that invoked the test suite as a command name.
 
-Thus, if you want nicely labeled test suites, you have to give Simplecov a cue what the name of the currently running
-test suite is. You can do so by specifying SimpleCov.command_name in one test file that is part of your specific suite.
+If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the 
+name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is 
+part of your specific suite.
 
-So, in order to get proper suite names in a Rails app (yeah, sorry for being Rails biased, but everyone knows what
-the structure of those projects is. You can apply this accordingly to the RSpecs for your Outlook-WebDAV-Calendar-Sync gem), 
+So, to customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
+the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem), 
 you could do something like this:
 
   # test/unit/some_test.rb
-  SimpleCov.command_name 'Unit Tests'
+  SimpleCov.command_name 'test:units'
   
   # test/functionals/some_controller_test.rb
-  SimpleCov.command_name "Functional Tests"
+  SimpleCov.command_name "test:functionals"
   
   # test/integration/some_integration_test.rb
-  SimpleCov.command_name "Integration Tests"
+  SimpleCov.command_name "test:integration"
   
   # features/steps/web_steps.rb
-  SimpleCov.command_name "Cucumber Features"
+  SimpleCov.command_name "features"
   
 Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in 
 some_test.rb is fair enough.

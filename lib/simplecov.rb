@@ -105,6 +105,7 @@ require 'simplecov/filter'
 require 'simplecov/formatter'
 require 'simplecov/merge_helpers'
 require 'simplecov/result_merger'
+require 'simplecov/command_guesser'
 
 # Default configuration
 SimpleCov.configure do
