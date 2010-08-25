@@ -37,6 +37,8 @@ end
 
 SimpleCov.adapters.define 'rails' do
   add_filter '/test/'
+  add_filter '/features/'
+  add_filter '/spec/'
   add_filter '/config/'
   
   add_group 'Controllers', 'app/controllers'
