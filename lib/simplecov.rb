@@ -106,10 +106,11 @@ require 'simplecov/formatter'
 require 'simplecov/merge_helpers'
 require 'simplecov/result_merger'
 require 'simplecov/command_guesser'
+require 'simplecov-html'
 
 # Default configuration
 SimpleCov.configure do
-  formatter SimpleCov::Formatter::SimpleFormatter
+  formatter SimpleCov::Formatter::HTMLFormatter
   # Exclude files outside of SimpleCov.root
   load_adapter 'root_filter'
 end

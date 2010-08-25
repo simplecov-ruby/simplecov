@@ -10,6 +10,7 @@ begin
     gem.email = "christoph at olszowka.de"
     gem.homepage = "http://github.com/colszowka/simplecov"
     gem.authors = ["Christoph Olszowka"]
+    gem.add_dependency 'simplecov-html', ">= 0.3.5"
     gem.add_development_dependency "shoulda", "= 2.10.3"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
