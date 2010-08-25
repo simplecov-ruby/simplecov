@@ -31,6 +31,17 @@ For the Devise Ruby gem (some tests were removed, they just have too awesome tes
 
 http://img.skitch.com/20100823-n9f52i3ty3qa7cqj33rafghrtc.png
 
+== Usage with Cucumber and RSpec (name your framework)
+
+Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
+config to the very top of your Cucumber/RSpec/whatever setup file.
+
+Just add the setup snippet at the very(!) top of features/support/env.rb (for Cucumber) or spec/spec_helper.rb (for RSpec).
+Other test frameworks should work accordingly.
+
+  require 'simplecov'
+  SimpleCov.start 'rails'
+
 == Configuration
 
 Configuration settings can be applied in three formats.
