@@ -8,20 +8,19 @@ In most cases, you'll want overall coverage results for your projects, including
 etc. Simplecov automatically takes care of this by caching and then merging results when generating reports, so your
 coverage report gives you a more accurate report on the blank spots in your test coverage.
 
-Though a very simple formatter for printing the coverage results comes bundled with the simplecov gem, this is more
-for explaining the basic usage of formatters if you want to build your own. To get a pretty HTML-page with your results, 
-you will want to use the simplecov-html gem (http://github.com/colszowka/simplecov-html).
+The official formatter of SimpleCov is packaged as a separate gem called simplecov-html and will be installed automatically
+when you do gem install simplecov. You can find it at http://github.com/colszowka/simplecov-html
 
 == Basic usage
 
 Update your Gemfile with this and do a bundle install:
   group :test do
-    gem 'simplecov-html', '>= 0.3.0' # Will install simplecov as a dependency
+    gem 'simplecov', '>= 0.3.2' # Will install simplecov-html as a dependency
   end
 
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
 
-  require 'simplecov-html'
+  require 'simplecov'
   SimpleCov.start 'rails'
 
 Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
