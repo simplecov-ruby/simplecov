@@ -1,3 +1,4 @@
+require 'fileutils'
 #
 # Bundles the configuration options used for SimpleCov. All methods
 # defined here are usable from SimpleCov directly. Please check out
@@ -34,7 +35,7 @@ module SimpleCov::Configuration
   #
   def coverage_path
     coverage_path = File.join(root, coverage_dir)
-    system "mkdir -p '#{coverage_path}'"
+    FileUtils.mkdir_p coverage_path
     coverage_path
   end
   
