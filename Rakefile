@@ -12,7 +12,7 @@ begin
     gem.authors = ["Christoph Olszowka"]
     gem.add_dependency 'simplecov-html', ">= 0.3.7"
     gem.add_development_dependency "shoulda", "= 2.10.3"
-    gem.add_development_dependency "rspec", ">= 2.0.0.beta.20"
+    gem.add_development_dependency "rspec", "~> 2.0.0.beta.20"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
   Jeweler::GemcutterTasks.new
