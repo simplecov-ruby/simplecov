@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simplecov}
-  s.version = "0.3.3"
+  s.version = "0.3.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
-  s.date = %q{2010-08-26}
+  s.date = %q{2010-09-03}
   s.description = %q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
   s.email = %q{christoph at olszowka.de}
   s.extra_rdoc_files = [
@@ -37,6 +37,10 @@ Gem::Specification.new do |s|
      "simplecov.gemspec",
      "test/fixtures/app/controllers/sample_controller.rb",
      "test/fixtures/app/models/user.rb",
+     "test/fixtures/frameworks/rspec_bad.rb",
+     "test/fixtures/frameworks/rspec_good.rb",
+     "test/fixtures/frameworks/testunit_bad.rb",
+     "test/fixtures/frameworks/testunit_good.rb",
      "test/fixtures/resultset1.rb",
      "test/fixtures/resultset2.rb",
      "test/fixtures/sample.rb",
@@ -45,6 +49,7 @@ Gem::Specification.new do |s|
      "test/test_filters.rb",
      "test/test_merge_helpers.rb",
      "test/test_result.rb",
+     "test/test_return_codes.rb",
      "test/test_source_file.rb",
      "test/test_source_file_line.rb"
   ]
@@ -56,6 +61,10 @@ Gem::Specification.new do |s|
   s.test_files = [
     "test/fixtures/app/controllers/sample_controller.rb",
      "test/fixtures/app/models/user.rb",
+     "test/fixtures/frameworks/rspec_bad.rb",
+     "test/fixtures/frameworks/rspec_good.rb",
+     "test/fixtures/frameworks/testunit_bad.rb",
+     "test/fixtures/frameworks/testunit_good.rb",
      "test/fixtures/resultset1.rb",
      "test/fixtures/resultset2.rb",
      "test/fixtures/sample.rb",
@@ -64,6 +73,7 @@ Gem::Specification.new do |s|
      "test/test_filters.rb",
      "test/test_merge_helpers.rb",
      "test/test_result.rb",
+     "test/test_return_codes.rb",
      "test/test_source_file.rb",
      "test/test_source_file_line.rb"
   ]
@@ -75,13 +85,16 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<simplecov-html>, [">= 0.3.7"])
       s.add_development_dependency(%q<shoulda>, ["= 2.10.3"])
+      s.add_development_dependency(%q<rspec>, [">= 2.0.0.beta.20"])
     else
       s.add_dependency(%q<simplecov-html>, [">= 0.3.7"])
       s.add_dependency(%q<shoulda>, ["= 2.10.3"])
+      s.add_dependency(%q<rspec>, [">= 2.0.0.beta.20"])
     end
   else
     s.add_dependency(%q<simplecov-html>, [">= 0.3.7"])
     s.add_dependency(%q<shoulda>, ["= 2.10.3"])
+    s.add_dependency(%q<rspec>, [">= 2.0.0.beta.20"])
   end
 end
 
