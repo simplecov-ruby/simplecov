@@ -92,6 +92,7 @@ module SimpleCov
     def load_adapter(name)
       adapters.load(name)
     end
+    
   end
 end
 
@@ -116,5 +117,8 @@ SimpleCov.configure do
 end
 
 at_exit do
+  # Store the exit status of the test run since it goes away after calling the at_exit proc...
+  @exit_status = $!.status if $!.is_a?(SystemExit)
   SimpleCov.at_exit.call
+  exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
 end
