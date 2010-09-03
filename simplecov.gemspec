@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.authors = ["Christoph Olszowka"]
   s.date = %q{2010-09-03}
   s.description = %q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
-  s.email = %q{christoph at olszowka.de}
+  s.email = %q{christoph at olszowka de}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
