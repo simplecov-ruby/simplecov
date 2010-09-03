@@ -15,7 +15,7 @@ when you do gem install simplecov. You can find it at http://github.com/colszowk
 
 Update your Gemfile with this and do a bundle install:
   group :test do
-    gem 'simplecov', '>= 0.3.2' # Will install simplecov-html as a dependency
+    gem 'simplecov', '>= 0.3.3', :require => false # Will install simplecov-html as a dependency
   end
 
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
