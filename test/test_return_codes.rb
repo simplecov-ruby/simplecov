@@ -16,7 +16,7 @@ class TestReturnCodes < Test::Unit::TestCase
     end
     
     should "have return code 0 when running rspec_good.rb" do
-      `ruby rspec_good.rb`
+      `rspec rspec_good.rb`
       assert_equal 0, $?.exitstatus
     end
     
@@ -26,7 +26,7 @@ class TestReturnCodes < Test::Unit::TestCase
     end
     
     should "have return code 1 when running rspec_bad.rb" do
-      `ruby rspec_bad.rb`
+      `rspec rspec_bad.rb`
       assert_equal 1, $?.exitstatus
     end
     
