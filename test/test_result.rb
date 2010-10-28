@@ -27,8 +27,9 @@ class TestResult < Test::Unit::TestCase
         assert_equal @result.files, @result.source_files
       end
       
-      should "have 86.7 covered percent" do
-        assert_equal 86.7, @result.covered_percent.round(1)
+      should "have accurate covered percent" do
+        # in our fixture, there are 13 covered line (result in 1) in all 15 relevant line (result in non-nil)
+        assert_equal 100.0*13/15, @result.covered_percent
       end
       
       context "dumped with to_yaml" do
