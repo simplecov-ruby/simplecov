@@ -36,10 +36,19 @@ module SimpleCov
     end
     
     # The overall percentual coverage for this result
-    #
-    # FIXME: Kind of inaccurate - should use LOC instead of Files count!
     def covered_percent
-      files.map(&:covered_percent).inject(:+) / files.count.to_f
+      missed_lines, covered_lines = 0, 0
+      @files.each do |file|
+        original_result[file.filename].each do |line_result|
+          case line_result
+          when 0
+            missed_lines += 1
+          when 1
+            covered_lines += 1
+          end
+        end
+      end
+      100.0 * covered_lines / (missed_lines + covered_lines)
     end
     
     # Applies the configured SimpleCov.formatter on this result
