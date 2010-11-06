@@ -270,10 +270,19 @@ Then configure the formatter to use the new merger:
 Apart from the direct companion simplecov-html (https://github.com/colszowka/simplecov-html), there are other formatters
 available:
 
-  * *simplecov_rcov* by Fernando Guillen (https://github.com/fguillen/simplecov-rcov)
-    "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
-  * simplecov_csv by Fernando Guillen (https://github.com/fguillen/simplecov-csv)
-    "CSV formatter for SimpleCov code coverage tool for ruby 1.9+"
+==== simplecov_rcov 
+by Fernando Guillen 
+
+https://github.com/fguillen/simplecov-rcov
+
+"The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
+
+==== simplecov_csv 
+by Fernando Guillen 
+
+https://github.com/fguillen/simplecov-csv
+
+CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
 == Configuration options
 
