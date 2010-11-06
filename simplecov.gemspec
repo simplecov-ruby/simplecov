@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{simplecov}
-  s.version = "0.3.6"
+  s.version = "0.3.7"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Christoph Olszowka"]
-  s.date = %q{2010-09-16}
+  s.date = %q{2010-11-06}
   s.description = %q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
   s.email = %q{christoph at olszowka de}
   s.extra_rdoc_files = [
@@ -19,6 +19,9 @@ Gem::Specification.new do |s|
   s.files = [
     ".document",
      ".gitignore",
+     ".rvmrc",
+     "Gemfile",
+     "Gemfile.lock",
      "LICENSE",
      "README.rdoc",
      "Rakefile",
@@ -85,18 +88,18 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<simplecov-html>, [">= 0.3.7"])
       s.add_development_dependency(%q<shoulda>, ["= 2.10.3"])
-      s.add_development_dependency(%q<rspec>, ["~> 2.0.0.beta.20"])
+      s.add_development_dependency(%q<rspec>, ["~> 2.0.0"])
       s.add_development_dependency(%q<jeweler>, ["= 1.4.0"])
     else
       s.add_dependency(%q<simplecov-html>, [">= 0.3.7"])
       s.add_dependency(%q<shoulda>, ["= 2.10.3"])
-      s.add_dependency(%q<rspec>, ["~> 2.0.0.beta.20"])
+      s.add_dependency(%q<rspec>, ["~> 2.0.0"])
       s.add_dependency(%q<jeweler>, ["= 1.4.0"])
     end
   else
     s.add_dependency(%q<simplecov-html>, [">= 0.3.7"])
     s.add_dependency(%q<shoulda>, ["= 2.10.3"])
-    s.add_dependency(%q<rspec>, ["~> 2.0.0.beta.20"])
+    s.add_dependency(%q<rspec>, ["~> 2.0.0"])
     s.add_dependency(%q<jeweler>, ["= 1.4.0"])
   end
 end
