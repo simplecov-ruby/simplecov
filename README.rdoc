@@ -250,6 +250,31 @@ You can use your own formatter with:
 When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result" 
 being an instance of SimpleCov::Result. Do whatever your wish with that!
 
+== Using multiple formatters
+
+There is currently no built-in support for this, but you could help yourself with a wrapper class:
+
+  class SimpleCov::Formatter::MergedFormatter
+    def format(result)
+       SimpleCov::Formatter::HTMLFormatter.new.format(result)
+       SimpleCov::Formatter::CSVFormatter.new.format(result)
+    end
+  end
+
+Then configure the formatter to use the new merger:
+
+  SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
+  
+== Available formatters
+
+Apart from the direct companion simplecov-html (https://github.com/colszowka/simplecov-html), there are other formatters
+available:
+
+  * *simplecov_rcov* by Fernando Guillen (https://github.com/fguillen/simplecov-rcov)
+    "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
+  * simplecov_csv by Fernando Guillen (https://github.com/fguillen/simplecov-csv)
+    "CSV formatter for SimpleCov code coverage tool for ruby 1.9+"
+
 == Configuration options
 
 === SimpleCov.root '/some/path/to/coverage'
