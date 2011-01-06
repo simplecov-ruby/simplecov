@@ -304,7 +304,24 @@ Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-co
 for this!
 
 == TODO
+
 * Improve on tests (integration tests)
+
+== Developer notes
+
+The test suite is built for execution on multiple versions of Ruby to ensure that SimpleCov keeps quiet on Ruby 1.8.
+
+RVM is used for that, and let me tell you that you probably want to install it if you haven't yet.
+
+To invoke the test suite on multiple rubies, install the dev bundle using
+  
+  rake multitest:bundle
+  
+and then you should be ready to launch the tests:
+
+  rake multitest
+  
+The ruby versions used for testing can be found in the Rakefile.
 
 == Note on Patches/Pull Requests
  
@@ -318,4 +335,4 @@ for this!
 
 == Copyright
 
-Copyright (c) 2010 Christoph Olszowka. See LICENSE for details.
+Copyright (c) 2010-2011 Christoph Olszowka. See LICENSE for details.
