@@ -4,6 +4,8 @@ module ShouldaMacros
   # The given strings will be regexp-matched against RUBY_VERSION
   # 
   def on_ruby(*ruby_versions)
-    yield if ruby_versions.any? {|v| RUBY_VERSION =~ /#{v}/ }
+    context "On Ruby #{RUBY_VERSION}" do
+      yield
+    end if ruby_versions.any? {|v| RUBY_VERSION =~ /#{v}/ }
   end
 end
