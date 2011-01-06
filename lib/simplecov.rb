@@ -5,9 +5,6 @@ module SimpleCov
   # Indicates invalid coverage data
   class CoverageDataError < StandardError; end;
   
-  # The version of the simplecov gem
-  VERSION = File.read(File.join(File.dirname(__FILE__), '../VERSION'))
-  
   class << self
     attr_accessor :running#, :result # TODO: Remove result?
     

@@ -1,3 +1,9 @@
+PATH
+  remote: .
+  specs:
+    simplecov (0.3.8)
+      simplecov-html (>= 0.3.7)
+
 GEM
   remote: http://rubygems.org/
   specs:
@@ -31,4 +37,5 @@ DEPENDENCIES
   jeweler (= 1.4.0)
   rspec (~> 2.0.0)
   shoulda (= 2.10.3)
+  simplecov!
   simplecov-html (>= 0.3.7)
