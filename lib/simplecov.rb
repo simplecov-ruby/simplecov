@@ -113,6 +113,9 @@ require 'simplecov/formatter'
 require 'simplecov/merge_helpers'
 require 'simplecov/result_merger'
 require 'simplecov/command_guesser'
+require 'simplecov/version'
+
+# Load formatter gem
 require 'simplecov-html'
 
 # Default configuration

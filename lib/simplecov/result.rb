@@ -6,7 +6,7 @@ module SimpleCov
   # A simplecov code coverage result, initialized from the Hash Ruby 1.9's built-in coverage
   # library generates (Coverage.result).
   #
-  class Result    
+  class Result
     # Returns the original Coverage.result used for this instance of SimpleCov::Result
     attr_reader :original_result
     # Returns all files that are applicable to this result (sans filters!) as instances of SimpleCov::SourceFile. Aliased as :source_files
