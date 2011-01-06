@@ -1,21 +1,22 @@
-= simplecov
+= SimpleCov
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing it's results much easier by providing a clean API to filter, group, merge, format
-and display those results, thus giving you a complete code coverage suite with just a couple lines of code.
+and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of 
+code.
 
 In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features
 etc. Simplecov automatically takes care of this by caching and then merging results when generating reports, so your
-coverage report gives you a more accurate report on the blank spots in your test coverage.
+report actually covers coverage across your test suites and thereby gives you a better picture of blank spots.
 
-The official formatter of SimpleCov is packaged as a separate gem called simplecov-html and will be installed automatically
-when you do gem install simplecov. You can find it at http://github.com/colszowka/simplecov-html
+The official formatter of SimpleCov is packaged as a separate gem called simplecov-html but will be installed and configured
+automatically when you launch SimpleCov. If you're curious, you can find it at http://github.com/colszowka/simplecov-html
 
 == Basic usage
 
 Update your Gemfile with this and do a bundle install:
   group :test do
-    gem 'simplecov', '>= 0.3.5', :require => false # Will install simplecov-html as a dependency
+    gem 'simplecov', '>= 0.3.8', :require => false # Will install simplecov-html as a dependency
   end
 
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
