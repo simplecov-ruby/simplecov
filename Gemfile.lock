@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    simplecov (0.3.8)
+    simplecov (0.3.9)
       simplecov-html (>= 0.3.7)
 
 GEM
