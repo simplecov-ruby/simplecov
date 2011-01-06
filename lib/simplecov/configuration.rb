@@ -99,6 +99,7 @@ module SimpleCov::Configuration
   # options at once.
   #
   def configure(&block)
+    return false unless SimpleCov.usable?
     instance_exec(&block)
   end
   
