@@ -22,6 +22,7 @@ GEM
     simplecov-html (0.3.8)
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES

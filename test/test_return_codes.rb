@@ -3,7 +3,7 @@ require 'helper'
 # Make sure that exit codes of tests are propagated properly when using
 # simplecov. See github issue #5
 class TestReturnCodes < Test::Unit::TestCase
-  on_ruby '1.9' do
+  on_ruby '1.8', '1.9' do
     context "Inside fixtures/frameworks" do
       setup do
         @current_dir = Dir.getwd
@@ -21,14 +21,14 @@ class TestReturnCodes < Test::Unit::TestCase
         assert_equal 0, $?.exitstatus
       end
     
-      should "have return code 1 when running testunit_bad.rb" do
+      should "have non-0 return code when running testunit_bad.rb" do
         `ruby testunit_bad.rb`
-        assert_equal 1, $?.exitstatus
+        assert_not_equal 0, $?.exitstatus
       end
     
       should "have return code 1 when running rspec_bad.rb" do
         `rspec rspec_bad.rb`
-        assert_equal 1, $?.exitstatus
+        assert_not_equal 0, $?.exitstatus
       end
     
       teardown do
