@@ -32,9 +32,11 @@ task :multitest do
     puts "Invoking rake test on #{ruby_version}", "="*40
     
     if ruby_version =~ /jruby/
-      puts "JRuby in Ruby 1.9 mode", "="*40
-      system "rvm #{ruby_version} exec 'ruby --1.9 -S rake test'"
-      results["#{ruby_version}-1.9"] = $?.exitstatus == 0
+      if 1 == 2 # Skip jruby in 1.9 mode for now - it doesn't have the coverage module...
+        puts "JRuby in Ruby 1.9 mode", "="*40
+        system "rvm #{ruby_version} exec 'ruby --1.9 -S rake test'"
+        results["#{ruby_version}-1.9"] = $?.exitstatus == 0
+      end
       
       puts "JRuby in Ruby 1.8 mode", "="*40
       system "rvm #{ruby_version} rake test"
