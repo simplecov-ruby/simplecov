@@ -50,5 +50,7 @@ task :multitest do
   results.each do |ruby, success|
     puts "#{ruby.ljust(18)}: #{success ? 'Passed' : 'Failed'}"
   end
+  
+  exit 1 if results.any? {|rb, success| !success}
 end
 
