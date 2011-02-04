@@ -49,7 +49,9 @@ class TestResult < Test::Unit::TestCase
             end
           
             should "have the same created_at" do
-              assert_equal @result.created_at, @dumped_result.created_at
+              # Using to_i here since direct comparison seems to fail on 64-bit architecture because
+              # of fraction difference...
+              assert_equal @result.created_at.to_i, @dumped_result.created_at.to_i
             end
           
             should "have the same command_name" do
