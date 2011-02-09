@@ -314,15 +314,7 @@ The test suite is built for execution on multiple versions of Ruby to ensure tha
 
 RVM is used for that, and let me tell you that you probably want to install it if you haven't yet.
 
-To invoke the test suite on multiple rubies, install the dev bundle using
-  
-  rake multitest:bundle
-  
-and then you should be ready to launch the tests:
-
-  rake multitest
-  
-The ruby versions used for testing can be found in the Rakefile.
+In CI, SimpleCov is built against 1.8.7, REE, 1.9.1, 1.9.2 and JRuby 1.6
 
 == Note on Patches/Pull Requests
  
