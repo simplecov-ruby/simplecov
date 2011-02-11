@@ -22,9 +22,12 @@ Update your Gemfile with this and do a bundle install:
 Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
 
   require 'simplecov'
-  SimpleCov.start 'rails'
+  SimpleCov.start
 
 Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
+
+If you're making a Rails application, SimpleCov comes with a built-in adaptor (see below) for it, so you could use
++SimpleCov.start('rails')+ instead to get some handy tabs in the output webpage.
 
 == Example output
 
