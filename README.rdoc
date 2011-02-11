@@ -26,8 +26,8 @@ Then, add the following to your Rails test/test_helper.rb (right at the top, lin
 
 Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
 
-If you're making a Rails application, SimpleCov comes with a built-in adaptor (see below) for it which will give you handy
-tabs in the output webpage for your Comtrollers, Views, Models, etc. To use it the first two lines of your test_helper should
+If you're making a Rails application, SimpleCov comes with a built-in adapter (see below) for it which will give you handy
+tabs in the output webpage for your Controllers, Views, Models, etc. To use it, the first two lines of your test_helper should
 be like this:
 
   require 'simplecov'
