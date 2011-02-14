@@ -15,20 +15,19 @@ automatically when you launch SimpleCov. If you're curious, you can find it at h
 == Basic usage
 
 Update your Gemfile with this and do a bundle install:
-  group :test do
-    gem 'simplecov', '>= 0.3.8', :require => false # Will install simplecov-html as a dependency
-  end
 
-Then, add the following to your Rails test/test_helper.rb (right at the top, line 00):
+  gem 'simplecov', '>= 0.4.0', :require => false, :group => :test
+
+Then, add the following to your test/test_helper.rb (right at the top, line 00) or spec_helper.rb or cucumber env.rb or whatever
+test framework you prefer, really - just make sure simplecov is loaded and started BEFORE your app code is loaded:
 
   require 'simplecov'
   SimpleCov.start
 
-Now, when running rake test you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
+Now, when running tests you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
 
-If you're making a Rails application, SimpleCov comes with a built-in adapter (see below) for it which will give you handy
-tabs in the output webpage for your Controllers, Views, Models, etc. To use it, the first two lines of your test_helper should
-be like this:
+If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
+for it which will give you handy tabs in the output webpage for your Controllers, Views, Models, etc. To use it, the first two lines of your test_helper should be like this:
 
   require 'simplecov'
   SimpleCov.start 'rails'
@@ -39,7 +38,7 @@ For the Devise Ruby gem (some tests were removed, they just have too awesome tes
 
 http://img.skitch.com/20100823-n9f52i3ty3qa7cqj33rafghrtc.png
 
-== Usage with Cucumber and RSpec (name your framework)
+== Usage with Cucumber, RSpec, (name your framework)
 
 Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
 config to the very top of your Cucumber/RSpec/whatever setup file.
@@ -49,6 +48,9 @@ Other test frameworks should work accordingly.
 
   require 'simplecov'
   SimpleCov.start 'rails'
+  
+You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
+care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
 
 == Configuration
 
