@@ -48,7 +48,13 @@ module SimpleCov
           end
         end
       end
-      100.0 * covered_lines / (missed_lines + covered_lines)
+      
+      total = (missed_lines + covered_lines)
+      if total.zero?
+        0
+      else
+        100.0 * covered_lines / total        
+      end
     end
     
     # Applies the configured SimpleCov.formatter on this result
