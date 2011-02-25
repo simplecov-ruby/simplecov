@@ -51,12 +51,9 @@ module SimpleCov
         end
       end
       
-      total = (missed_lines + covered_lines)
-      if total.zero?
-        0
-      else
-        100.0 * covered_lines / total        
-      end
+      total_lines = (missed_lines + covered_lines)
+      # Make sure that weird rounding error from #15, #23 and #24 does not occur again!
+      total.zero? ? 0 : 100.0 * covered_lines / total        
     end
     
     # Applies the configured SimpleCov.formatter on this result
