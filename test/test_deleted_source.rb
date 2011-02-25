@@ -1,5 +1,7 @@
 require 'helper'
 
+# Test to verify correct handling of deleted files,
+# see issue #9 on github
 class TestDeletedSource < Test::Unit::TestCase
   on_ruby '1.8', '1.9' do
     context "A source file which is subsequently deleted" do
