@@ -1,4 +1,5 @@
 .bundle
+Gemfile.lock
 
 ## MAC OS
 .DS_Store
