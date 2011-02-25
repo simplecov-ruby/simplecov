@@ -21,7 +21,9 @@ module SimpleCov
     # coverage data)
     def initialize(original_result)
       @original_result = original_result.freeze
-      @files = original_result.map {|filename, coverage| SimpleCov::SourceFile.new(filename, coverage)}.sort_by(&:filename)
+      @files = original_result.map {|filename, coverage|
+        SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
+      }.compact.sort_by(&:filename)
       filter!
     end
   
