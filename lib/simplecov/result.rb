@@ -39,21 +39,37 @@ module SimpleCov
     
     # The overall percentual coverage for this result
     def covered_percent
-      missed_lines, covered_lines = 0, 0
-      @files.each do |file|
-        original_result[file.filename].each do |line_result|
-          case line_result
-          when 0
-            missed_lines += 1
-          when 1
-            covered_lines += 1
-          end
-        end
-      end
-      
-      total_lines = (missed_lines + covered_lines)
       # Make sure that weird rounding error from #15, #23 and #24 does not occur again!
       total_lines.zero? ? 0 : 100.0 * covered_lines / total_lines
+    end
+    
+    # Returns the count of lines that are covered
+    def covered_lines
+      return @covered_lines if @covered_lines
+      @covered_lines = 0
+      @files.each do |file|
+        original_result[file.filename].each do |line_result|
+          @covered_lines += 1 if line_result and line_result > 0
+        end
+      end
+      @covered_lines
+    end
+    
+    # Returns the count of missed lines
+    def missed_lines
+      return @missed_lines if @missed_lines
+      @missed_lines = 0
+      @files.each do |file|
+        original_result[file.filename].each do |line_result|
+          @missed_lines += 1 if line_result == 0
+        end
+      end
+      @missed_lines
+    end
+    
+    # Total count of relevant lines (covered + missed)
+    def total_lines
+      @total_lines ||= (covered_lines + missed_lines)
     end
     
     # Applies the configured SimpleCov.formatter on this result
