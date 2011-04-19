@@ -2,6 +2,24 @@ require 'digest/sha1'
 require 'yaml'
 
 module SimpleCov
+  # :nodoc:
+  class FileWhitelist < Array
+    attr_writer :include_all_files
+
+    def initialize
+      @include_all_files = true
+    end
+
+    def include_all_files
+      @include_all_files && count == 0
+    end
+
+    def include?(arg)
+      return super unless include_all_files
+      true
+    end
+  end
+
   #
   # A simplecov code coverage result, initialized from the Hash Ruby 1.9's built-in coverage
   # library generates (Coverage.result).
@@ -25,6 +43,7 @@ module SimpleCov
       @files = original_result.map {|filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       }.compact.sort_by(&:filename)
+      @file_whitelist = FileWhitelist.new
       filter!
     end
 
@@ -42,7 +61,8 @@ module SimpleCov
     # the coverage of a particular module / class / directory rather than the whole project.
     # Must be an array of SimpleCov::SourceFile objects.
     def file_whitelist=(file_wl)
-      reset_file_whitelist!
+      @file_whitelist.clear
+      @file_whitelist.include_all_files = false
       begin
         filenames = file_wl.map(&:filename)
         filenames.each do |filename|
@@ -50,7 +70,7 @@ module SimpleCov
         end
       rescue NoMethodError => err
         if err.message =~ /undefined method `filename'/
-          raise ArgumentError "argument must be an array of SimpleCov::SourceFile objects"
+          raise ArgumentError, "argument must be an array of SimpleCov::SourceFile objects"
         else
           raise err
         end
@@ -58,8 +78,9 @@ module SimpleCov
     end
 
     # Reset the file whitelist to 'all files' (except any you are filtering)
-    def reset_file_whitelist!
-      @file_whitelist = []
+    def reset_file_whitelist
+      @file_whitelist.clear
+      @file_whitelist.include_all_files = true
     end
 
     # The overall percentual coverage for this result

@@ -9,11 +9,7 @@ SimpleCov.coverage_dir('tmp/coverage')
 
 class Test::Unit::TestCase
   def source_fixture(filename)
-    File.expand_path relative_source_fixture(filename)
-  end
-
-  def relative_source_fixture(filename)
-    File.join(File.dirname(__FILE__), 'fixtures', filename)
+    File.expand_path(File.join(File.dirname(__FILE__), 'fixtures', filename))
   end
 
   # Keep 1.8-rubies from complaining about missing tests in each file that covers only 1.9 functionality

@@ -65,34 +65,23 @@ class TestResult < Test::Unit::TestCase
         end
       end
 
-      context "with a non-empty file whitelist" do
+      context "with a file whitelist" do
         setup do
           original_result = {source_fixture('sample.rb') => [nil, 0, 1, 0, nil, nil, 0, 0, nil, nil],
             source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
             source_fixture('app/controllers/sample_controller.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
           @result = SimpleCov::Result.new(original_result)
-          @result.file_whitelist = [relative_source_fixture("app/models/user.rb"),
-            relative_source_fixture("app/controllers/sample_controller.rb")]
+          @result.file_whitelist = @result.files[0..1]
         end
 
         should "have 80% coverage" do
           assert_equal 100.0*8/10, @result.covered_percent
         end
 
-        context "that has been initialized by a hash" do
-          setup do @result.file_whitelist = {
-            relative_source_fixture("sample.rb") => true }
-          end
-
-          should "have 20% coverage" do
-            assert_equal 100.0*1/5, @result.covered_percent
-          end
-        end
-
         context "that has been reset" do
-          setup { @result.reset_file_whitelist! }
+          setup { @result.reset_file_whitelist }
 
-          should "have 60% coverage" do
+          should "have 60% coverage because all files are included again" do
             assert_equal 100.0*9/15, @result.covered_percent
           end
         end
