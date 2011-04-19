@@ -2,17 +2,6 @@ require 'digest/sha1'
 require 'yaml'
 
 module SimpleCov
-  # :nodoc:
-  class FileWhitelist < Array
-    def include?(arg)
-      if count > 0
-        super
-      else
-        true
-      end
-    end
-  end
-
   #
   # A simplecov code coverage result, initialized from the Hash Ruby 1.9's built-in coverage
   # library generates (Coverage.result).
@@ -36,7 +25,6 @@ module SimpleCov
       @files = original_result.map {|filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       }.compact.sort_by(&:filename)
-      @file_whitelist = FileWhitelist.new
       filter!
     end
 
@@ -52,29 +40,26 @@ module SimpleCov
 
     # Set the list of files to include in subsequent coverage calculations. This is useful for determining
     # the coverage of a particular module / class / directory rather than the whole project.
-    # The value can be a hash of filename -> bool mappings (filename is the key; truthy values get added
-    # to the whitelist), a simple array of filenames, or a single filename string.
+    # Must be an array of SimpleCov::SourceFile objects.
     def file_whitelist=(file_wl)
       reset_file_whitelist!
-      if file_wl.is_a? Hash
-        # hash of file -> bool mappings (true means the file is on the whitelist)
-        file_wl.each_pair do |key, value|
-          @file_whitelist << File.expand_path(key) if !!value
+      begin
+        filenames = file_wl.map(&:filename)
+        filenames.each do |filename|
+          @file_whitelist << filename
         end
-      elsif file_wl.respond_to? :each
-        # array-like substance
-        file_wl.each do |path|
-          @file_whitelist << File.expand_path(path)
+      rescue NoMethodError => err
+        if err.message =~ /undefined method `filename'/
+          raise ArgumentError "argument must be an array of SimpleCov::SourceFile objects"
+        else
+          raise err
         end
-      elsif file_wl.is_a? String
-        # one string
-        @file_whitelist << File.expand_path(file_wl)
       end
     end
 
     # Reset the file whitelist to 'all files' (except any you are filtering)
     def reset_file_whitelist!
-      @file_whitelist.clear
+      @file_whitelist = []
     end
 
     # The overall percentual coverage for this result
@@ -85,36 +70,33 @@ module SimpleCov
 
     # Returns the count of lines that are covered
     def covered_lines
-      return @covered_lines if @covered_lines
-      @covered_lines = 0
+      covered_lines = 0
       @files.select { |f|
         @file_whitelist.include? f.filename
       }.each do |file|
         original_result[file.filename].each do |line_result|
-          @covered_lines += 1 if line_result and line_result > 0
+          covered_lines += 1 if line_result and line_result > 0
         end
       end
-      @covered_lines
+      covered_lines
     end
 
     # Returns the count of missed lines
     def missed_lines
-      return @missed_lines if @missed_lines
-      @missed_lines = 0
+      missed_lines = 0
       @files.select { |f|
         @file_whitelist.include? f.filename
       }.each do |file|
         original_result[file.filename].each do |line_result|
-          @missed_lines += 1 if line_result == 0
+          missed_lines += 1 if line_result == 0
         end
       end
-      @missed_lines
+      missed_lines
     end
 
     # Total count of relevant lines (covered + missed)
     def total_lines
-      @total_lines = Hash.new if @total_lines.nil?
-      @total_lines[@file_whitelist] ||= (covered_lines + missed_lines)
+      covered_lines + missed_lines
     end
 
     # Applies the configured SimpleCov.formatter on this result
