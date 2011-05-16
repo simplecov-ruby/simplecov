@@ -1,4 +1,4 @@
-require 'yaml'
+require 'psych'
 #
 # Singleton that is responsible for caching, loading and merging
 # SimpleCov::Results into a single result for coverage analysis based
@@ -14,7 +14,7 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       return {} unless File.exist?(resultset_path)
-      YAML.load(File.read(resultset_path)) || {}
+      Psych.load(File.read(resultset_path)) || {}
     end
     
     # Gets the resultset hash and re-creates all included instances

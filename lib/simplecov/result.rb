@@ -1,5 +1,5 @@
 require 'digest/sha1'
-require 'yaml'
+require 'psych'
 
 module SimpleCov
   #
@@ -109,7 +109,7 @@ module SimpleCov
     
     # Loads a SimpleCov::Result#to_yaml dump
     def self.from_yaml(yaml)
-      from_hash(YAML.load(yaml))
+      from_hash(Psych.load(yaml))
     end
     
     private
