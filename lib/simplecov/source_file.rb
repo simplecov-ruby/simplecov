@@ -16,31 +16,38 @@ module SimpleCov
       attr_reader :line_number
       # The coverage data for this line: either nil (never), 0 (missed) or >=1 (times covered)
       attr_reader :coverage
+      # Whether this line was skipped
+      attr_reader :skipped
+
       # Lets grab some fancy aliases, shall we?
       alias_method :source, :src
       alias_method :line, :line_number
       alias_method :number, :line_number
     
-      def initialize(src, line_number, coverage)
+      def initialize(src, line_number, coverage, skipped = false)
         raise ArgumentError, "Only String accepted for source" unless src.kind_of?(String)
         raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.kind_of?(Fixnum)
         raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) or coverage.nil?
-        @src, @line_number, @coverage = src, line_number, coverage
+        @src, @line_number, @coverage, @skipped = src, line_number, coverage, skipped
       end
     
       # Returns true if this is a line that should have been covered, but was not
       def missed?
-        not never? and coverage == 0
+        not never? and not skipped? and coverage == 0
       end
     
       # Returns true if this is a line that has been covered
       def covered?
-        not never? and coverage > 0
+        not never? and not skipped? and coverage > 0
       end
     
       # Returns true if this line is not relevant for coverage
       def never?
-        coverage.nil?
+        not skipped? and coverage.nil?
+      end
+
+      def skipped?
+	    @skipped
       end
     end
   
@@ -54,6 +61,7 @@ module SimpleCov
   
     def initialize(filename, coverage)
       @filename, @coverage, @src = filename, coverage, File.readlines(filename)
+      @skipped_line_numbers = process_skipped_lines
     end
     
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
@@ -63,7 +71,7 @@ module SimpleCov
       # Initialize lines
       @lines = []
       coverage.each_with_index do |coverage, i|
-        @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage)
+        @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage, @skipped_line_numbers.include?(i + 1))
       end
       @lines
     end
@@ -77,7 +85,7 @@ module SimpleCov
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
       return 100.0 if lines.length == 0 or lines.length == never_lines.count
-      (covered_lines.count) * 100 / (lines.count-never_lines.count).to_f
+      (covered_lines.count) * 100 / (lines.count-never_lines.count-skipped_lines.count).to_f
     end
   
     # Returns all covered lines as SimpleCov::SourceFile::Line
@@ -96,5 +104,23 @@ module SimpleCov
     def never_lines
       @never_lines ||= lines.select {|c| c.never? }
     end
+
+    # Returns all lines that were skipped as SimpleCov::SourceFile::Line instances
+    def skipped_lines
+      @skipped_lines ||= lines.select {|c| c.skipped? }
+    end
+
+    def process_skipped_lines
+	  skipped_line_numbers = []
+	  skipping = false
+	  @src.each_with_index do |line, i|
+		if line =~ /^\s*#\:nocov\:/
+			skipping = !skipping
+		else
+			skipped_line_numbers << i + 1 if skipping
+		end
+	  end
+	  skipped_line_numbers
+	end
   end
 end

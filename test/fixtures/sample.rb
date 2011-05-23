@@ -7,4 +7,10 @@ class Foo
   def bar
     @foo
   end
+
+  #:nocov:
+  def skipped
+	@foo * 2
+  end
+  #:nocov:
 end
