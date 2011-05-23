@@ -4,7 +4,7 @@ class TestSourceFile < Test::Unit::TestCase
   on_ruby '1.9' do
     context "A source file initialized with some coverage data" do
       setup do
-        @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
+        @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil])
       end
     
       should "have a filename" do
@@ -19,8 +19,8 @@ class TestSourceFile < Test::Unit::TestCase
         assert_equal @source_file.source_lines, @source_file.lines
       end
     
-      should "have 10 source lines" do
-        assert_equal 10, @source_file.lines.count
+      should "have 16 source lines" do
+        assert_equal 16, @source_file.lines.count
       end
     
       should "have all source lines of type SimpleCov::SourceFile::Line" do
@@ -39,8 +39,12 @@ class TestSourceFile < Test::Unit::TestCase
         assert_equal [8], @source_file.missed_lines.map(&:line)
       end
     
-      should "return lines number 1, 5, 6, 9, 10 for never_lines" do
-        assert_equal [1, 5, 6, 9, 10], @source_file.never_lines.map(&:line)
+      should "return lines number 1, 5, 6, 9, 10, 11, 15, 16 for never_lines" do
+        assert_equal [1, 5, 6, 9, 10, 11, 15, 16], @source_file.never_lines.map(&:line)
+      end
+
+      should "return line numbers 12, 13, 14 for skipped_lines" do
+        assert_equal [12, 13, 14], @source_file.skipped_lines.map(&:line)
       end
     
       should "have 80% covered_percent" do
