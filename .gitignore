@@ -3,6 +3,7 @@ Gemfile.lock
 
 ## MAC OS
 .DS_Store
+.document
 
 ## TEXTMATE
 *.tmproj
