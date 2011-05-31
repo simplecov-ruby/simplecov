@@ -1,4 +1,4 @@
-= SimpleCov
+= SimpleCov http://travis-ci.org/colszowka/simplecov.png
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing it's results much easier by providing a clean API to filter, group, merge, format
@@ -317,13 +317,17 @@ for this!
 
 * Improve on tests (integration tests)
 
-== Developer notes
+== Ruby version compatibility
 
-The test suite is built for execution on multiple versions of Ruby to ensure that SimpleCov keeps quiet on Ruby 1.8.
+http://travis-ci.org/colszowka/simplecov.png
 
-RVM is used for that, and let me tell you that you probably want to install it if you haven't yet.
+Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
+including Rubinius and JRuby, in {continuous integration}[http://travis-ci.org/colszowka/simplecov], but this happens only to
+ensure that SimpleCov does not make your test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future
+depends solely on whether those Ruby interpreters add the coverage library. 
 
-In CI, SimpleCov is built against 1.8.7, REE, 1.9.1, 1.9.2 and JRuby 1.6
+SimpleCov is built in {continuous integration}[http://travis-ci.org/colszowka/simplecov] on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
+rbx and jruby.
 
 == Note on Patches/Pull Requests
  
