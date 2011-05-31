@@ -17,6 +17,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'simplecov-html', "~> 0.4.4"
   s.add_development_dependency "shoulda", "2.10.3"
   s.add_development_dependency "rspec", "~> 2.0.0"
+  s.add_development_dependency "rake"
+  s.add_development_dependency "bundler", "~> 1.0.14"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
