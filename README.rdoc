@@ -312,17 +312,7 @@ CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
 == Configuration options
 
-=== SimpleCov.root '/some/path/to/coverage'
-
-The root directory for the project coverage is being generated for. This defaults to the current working directory
-and should be just fine. Note that by default, all files outside of root will be filtered and thus not included in your
-coverage report, so you'll probably rarely want to adjust this setting other than specifying an absolute path here.
-
-=== SimpleCov.coverage_dir 'coverage'
-
-The name of the subdirectory of root that coverage will be generated to. Defaults to 'coverage'.
-
-=== ...TODO...
+Please have a look at our documentation[http://rubydoc.info/gems/simplecov/frames], specifically the Configuration class.
 
 == Kudos
 
