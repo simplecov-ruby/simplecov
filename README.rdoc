@@ -74,6 +74,22 @@ Using a block and automatically starting the coverage:
   
 Most times, you'll want to use the latter, so loading and setting up simplecov is in one place at the top of your test helper.
 
+== Running coverage only on demand
+
+The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was 
+only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
+it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
+
+Because of this, SimpleCov has no explicit built-in mechanism to run coverage only on demand.
+
+However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
+
+  SimpleCov.start if ENV["COVERAGE"]
+  
+Then, SimpleCov will only run if you execute your tests like this:
+
+  $ COVERAGE=true rake test
+
 == Filters
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all files
