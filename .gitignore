@@ -21,6 +21,7 @@ tmtags
 coverage
 rdoc
 pkg
+tmp
 
 ## PROJECT::SPECIFIC
 

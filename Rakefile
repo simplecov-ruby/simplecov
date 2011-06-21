@@ -9,3 +9,6 @@ Rake::TestTask.new(:test) do |test|
 end
 
 task :default => :test
+
+require 'cucumber/rake/task'
+Cucumber::Rake::Task.new
