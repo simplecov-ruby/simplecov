@@ -1,5 +1,5 @@
 #
-# Adaptars are glorified SimpleCov configuration procs that can be easily 
+# Adapters are glorified SimpleCov configuration procs that can be easily 
 # loaded using SimpleCov.start :rails and defined using
 #   SimpleCov.adapters.define :foo do
 #     # SimpleCov configuration here, same as in  SimpleCov.configure
