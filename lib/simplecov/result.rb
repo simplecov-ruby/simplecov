@@ -45,19 +45,16 @@ module SimpleCov
     
     # The multiple of coverage for this result
     def covered_strength
-      @covered_strength = (
-        c = 0
-        m = 0
-        @files.each do |file|
-          original_result[file.filename].each do |line_result|
-            if line_result
-              c += 1
-              c += line_result
-            end
+      return @covered_strength if @convered_strength
+      m = 0
+      @files.each do |file|
+        original_result[file.filename].each do |line_result|
+          if line_result
+            m += line_result
           end
         end
-        m.to_f / c
-      )
+      end
+      @covered_strength = m.to_f / total_lines
     end
 
     # Returns the count of lines that are covered
