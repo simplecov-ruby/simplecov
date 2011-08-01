@@ -1,3 +1,4 @@
+require 'psych'
 require 'yaml'
 #
 # Singleton that is responsible for caching, loading and merging
