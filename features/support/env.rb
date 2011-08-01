@@ -3,6 +3,11 @@ require 'bundler'
 Bundler.setup
 require 'aruba'
 
+unless RUBY_VERSION =~ /1\.9/
+  puts "Sorry, Cucumber features are only meant to run on Ruby 1.9 for now :("
+  exit 0
+end
+
 Before do
   this_dir = File.dirname(__FILE__)
   in_current_dir do
