@@ -2,9 +2,10 @@ require 'helper'
 
 class TestSourceFile < Test::Unit::TestCase
   on_ruby '1.9' do
+    COVERAGE_FOR_SAMPLE_RB = [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil]
     context "A source file initialized with some coverage data" do
       setup do
-        @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil])
+        @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), COVERAGE_FOR_SAMPLE_RB)
       end
     
       should "have a filename" do
@@ -49,6 +50,25 @@ class TestSourceFile < Test::Unit::TestCase
     
       should "have 80% covered_percent" do
         assert_equal 80.0, @source_file.covered_percent
+      end
+    end
+
+    context "Simulating potential Ruby 1.9 defect -- see Issue #56" do
+      setup do
+        @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), COVERAGE_FOR_SAMPLE_RB + [nil])
+      end
+
+      should "have 16 source lines regardless of extra data in coverage array" do
+        # Do not litter test output with known warning
+        capture_stderr { assert_equal 16, @source_file.lines.count }
+      end
+
+      should "print a warning to stderr if coverage array contains more data than lines in the file" do
+        captured_output = capture_stderr do
+          @source_file.lines
+        end
+
+        assert_match /^Warning: coverage data provided/, captured_output
       end
     end
   end
