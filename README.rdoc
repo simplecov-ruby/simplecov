@@ -1,5 +1,9 @@
 = SimpleCov http://travis-ci.org/colszowka/simplecov.png
 
+* Source code: https://github.com/colszowka/simplecov
+* API documentation: http://rubydoc.info/gems/simplecov/frames
+* Rubygems: http://rubygems.org/gems/simplecov
+
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing it's results much easier by providing a clean API to filter, group, merge, format
 and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of 
