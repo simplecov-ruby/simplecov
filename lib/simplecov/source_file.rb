@@ -68,10 +68,16 @@ module SimpleCov
     # and thus including coverage data. Aliased as :source_lines
     def lines
       return @lines unless @lines.nil?
+
+      # Warning to identify condition from Issue #56
+      if coverage.size > src.size
+        $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
+      end
+
       # Initialize lines
       @lines = []
-      coverage.each_with_index do |coverage, i|
-        @lines << SimpleCov::SourceFile::Line.new(src[i], i+1, coverage, @skipped_line_numbers.include?(i + 1))
+      src.each_with_index do |src, i|
+        @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i], @skipped_line_numbers.include?(i + 1))
       end
       @lines
     end
