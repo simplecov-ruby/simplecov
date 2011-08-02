@@ -19,7 +19,7 @@ Feature:
       class Test::Unit::TestCase
       end
       """
-    When I successfully run "bundle exec rake test"
+    When I successfully run `bundle exec rake test`
     Then the stdout should contain "Coverage report generated for Unit Tests"
     And the following files should exist:
       | coverage/index.html    |
