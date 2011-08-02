@@ -24,3 +24,4 @@ Feature:
     And the following files should exist:
       | coverage/index.html    |
       | coverage/resultset.yml |
+    And I should see foo
