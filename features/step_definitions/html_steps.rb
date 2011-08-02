@@ -1,10 +1,60 @@
-# See http://robots.thoughtbot.com/post/8087279685/use-capybara-on-any-html-fragment-or-page
-def page
-  in_current_dir do
-    Capybara::Node::Simple.new(File.read('coverage/index.html'))
+module WithinHelpers
+  def with_scope(locator)
+    locator ? within(locator) { yield } : yield
+  end
+end
+World(WithinHelpers)
+
+When /^I open the coverage report$/ do
+  visit '/'
+end
+
+Given /^(?:|I )am on (.+)$/ do |path|
+  visit path
+end
+
+When /^(?:|I )go to (.+)$/ do |path|
+  visit path
+end
+
+When /^(?:|I )press "([^"]*)"(?: within "([^"]*)")?$/ do |button, selector|
+  with_scope(selector) do
+    click_button(button)
   end
 end
 
-Then /^I should see foo$/ do
-  page.should have_content("All Files")
+When /^(?:|I )follow "([^"]*)"(?: within "([^"]*)")?$/ do |link, selector|
+  with_scope(selector) do
+    click_link(link)
+  end
+end
+
+Then /^(?:|I )should see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
+  with_scope(selector) do
+    page.should have_content(text)
+  end
+end
+
+Then /^(?:|I )should see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
+  regexp = Regexp.new(regexp)
+  with_scope(selector) do
+    page.should have_xpath('//*', :text => regexp)
+  end
+end
+
+Then /^(?:|I )should not see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
+  with_scope(selector) do
+    page.should have_no_content(text)
+  end
+end
+
+Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
+  regexp = Regexp.new(regexp)
+  with_scope(selector) do
+    page.should have_no_xpath('//*', :text => regexp)
+  end
+end
+
+Then /^show me the page$/ do
+  save_and_open_page
 end

@@ -1,5 +1,5 @@
 unless RUBY_VERSION =~ /1\.9/
-  puts "Sorry, Cucumber features are only meant to run on Ruby 1.9 for now :("
+  $stderr.puts "Sorry, Cucumber features are only meant to run on Ruby 1.9 for now :("
   exit 0
 end
 
@@ -7,7 +7,12 @@ require 'rubygems'
 require 'bundler'
 Bundler.setup
 require 'aruba/cucumber'
-require 'capybara'
+require 'capybara/cucumber'
+
+Capybara.app = lambda {|env| 
+  [200, {'Content-Type' => 'text/html'}, 
+    [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project', 'coverage/index.html'))]]
+}
 
 Before do
   this_dir = File.dirname(__FILE__)

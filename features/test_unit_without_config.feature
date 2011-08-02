@@ -24,4 +24,7 @@ Feature:
     And the following files should exist:
       | coverage/index.html    |
       | coverage/resultset.yml |
-    And I should see foo
+    
+    When I open the coverage report
+    Then I should see "All Files" within "#content #AllFiles h2"
+    And I should see "./lib/faked_project.rb" within ".source_files h3"
