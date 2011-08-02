@@ -3,7 +3,7 @@ Feature:
   Simply adding the basic simplecov lines to a project should get 
   the user a coverage report
 
-  Scenario: 
+  Scenario:
     Given I cd to "project"
     Given a file named "test/test_helper.rb" with:
       """
@@ -19,6 +19,7 @@ Feature:
       class Test::Unit::TestCase
       end
       """
+      
     When I successfully run `bundle exec rake test`
     Then the stdout should contain "Coverage report generated for Unit Tests"
     And the following files should exist:
