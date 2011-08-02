@@ -26,5 +26,9 @@ Feature:
       | coverage/resultset.yml |
     
     When I open the coverage report
-    Then I should see "All Files" within "#content #AllFiles h2"
-    And I should see "./lib/faked_project.rb" within ".source_files h3"
+    Then I should see the groups:
+      |      name | coverage |
+      | All Files |   100.0% |
+      
+    And I should see the source files:
+      | ./lib/faked_project.rb |
