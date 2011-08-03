@@ -1,21 +1,21 @@
-@test_unit
+@rspec
 Feature:
 
   Defining some groups and filters should give a corresponding
-  coverage report that respects those settings after running tests
+  coverage report that respects those settings after running rspec
 
   Scenario:
     Given I cd to "project"
-    Given a file named "test/simplecov_config.rb" with:
+    Given a file named "spec/simplecov_config.rb" with:
       """
       require 'simplecov'
       SimpleCov.start do
         add_group 'Libs', 'lib/faked_project/'
-        add_filter '/test/'
+        add_filter '/spec/'
       end
       """
       
-    When I successfully run `bundle exec rake test`
+    When I successfully run `bundle exec rspec spec`
     Then a coverage report should have been generated
 
     Given I open the coverage report
