@@ -20,9 +20,9 @@ module SimpleCov
     # coverage data)
     def initialize(original_result)
       @original_result = original_result.freeze
-      @files = original_result.map {|filename, coverage|
+      @files = original_result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
-      }.compact.sort_by(&:filename)
+      end.compact.sort_by(&:filename)
       filter!
     end
   
@@ -82,21 +82,16 @@ module SimpleCov
     end
     
     # The command name that launched this result.
-    # Retrieved from SimpleCov.command_name
+    # Delegated to SimpleCov.command_name if not set manually
     def command_name
       @command_name ||= SimpleCov.command_name
     end
     
     # Returns a hash representation of this Result that can be used for marshalling it into YAML
     def to_hash
-      {command_name => {:coverage => original_result.reject {|filename, result| !filenames.include?(filename) }, :timestamp => created_at.to_i}}
+      {command_name => {"coverage" => original_result.reject {|filename, result| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
     end
-    
-    # Returns a json dump of this result, which then can be reloaded using SimpleCov::Result.from_json
-    def to_json
-      JSON.pretty_generate(to_hash)
-    end
-    
+      
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       command_name, data = hash.first
@@ -104,11 +99,6 @@ module SimpleCov
       result.command_name = command_name
       result.created_at = Time.at(data["timestamp"])
       result
-    end
-    
-    # Loads a SimpleCov::Result#to_json dump
-    def self.from_json(json)
-      from_hash(JSON.parse(json))
     end
     
     private

@@ -12,8 +12,20 @@ module SimpleCov::ResultMerger
     
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
-      return {} unless File.exist?(resultset_path)
-      JSON.parse(File.read(resultset_path)) || {}
+      if stored_data
+        JSON.parse(stored_data)
+      else
+        {}
+      end
+    end
+    
+    # Returns the contents of the resultset cache as a string or if the file is missing or empty nil
+    def stored_data
+      if File.exist?(resultset_path) and stored_data = File.read(resultset_path) and stored_data.length >= 2
+        stored_data
+      else
+        nil
+      end
     end
     
     # Gets the resultset hash and re-creates all included instances

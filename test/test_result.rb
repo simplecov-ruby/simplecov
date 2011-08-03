@@ -33,12 +33,12 @@ class TestResult < Test::Unit::TestCase
           assert_equal 100.0*13/15, @result.covered_percent
         end
       
-        context "dumped with to_yaml" do
-          setup { @yaml = @result.to_yaml }
-          should("be a string") { assert_equal String, @yaml.class }
+        context "dumped with to_hash" do
+          setup { @hash = @result.to_hash }
+          should("be a hash") { assert_equal Hash, @hash.class }
         
           context "loaded back with from_yaml" do
-            setup { @dumped_result = SimpleCov::Result.from_yaml(@yaml) }
+            setup { @dumped_result = SimpleCov::Result.from_hash(@hash) }
           
             should "have 3 source files" do
               assert_equal @result.source_files.count, @dumped_result.source_files.count
@@ -48,9 +48,7 @@ class TestResult < Test::Unit::TestCase
               assert_equal @result.covered_percent, @dumped_result.covered_percent
             end
           
-            should "have the same created_at" do
-              # Using to_i here since direct comparison seems to fail on 64-bit architecture because
-              # of fraction difference...
+            should "have the same timestamp" do
               assert_equal @result.created_at.to_i, @dumped_result.created_at.to_i
             end
           
