@@ -19,7 +19,7 @@ Feature:
     Then a coverage report should have been generated
 
     Given I open the coverage report
-    And I should see the groups:
+    Then I should see the groups:
       | name      | coverage | files |
       | All Files | 89.74%   | 4     |
       | Libs      | 87.5%    | 3     |

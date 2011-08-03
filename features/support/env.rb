@@ -15,7 +15,7 @@ Capybara.app = lambda {|env|
 }
 
 Before do
-  @aruba_timeout_seconds = 7
+  @aruba_timeout_seconds = 20
   this_dir = File.dirname(__FILE__)
   in_current_dir do
     FileUtils.rm_rf 'project'
