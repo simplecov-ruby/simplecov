@@ -12,7 +12,7 @@ module SimpleCov::CommandGuesser
         "Unit Tests"
       when /cucumber/, /features/
         "Cucumber Features"
-      when /#{'spec/'}/
+      when /spec/
         "RSpec"
       else
         return command

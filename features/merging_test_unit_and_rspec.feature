@@ -26,12 +26,20 @@ Feature:
       
     When I successfully run `bundle exec rake test`
     Then a coverage report should have been generated
+
+    Given I open the coverage report
+    Then the report should be based upon:
+      | Unit Tests |
     
     When I successfully run `bundle exec rspec spec`
     Then a coverage report should have been generated
 
     Given I open the coverage report
-    Then I should see the groups:
+    Then the report should be based upon:
+      | Unit Tests |
+      | RSpec      |
+      
+    And I should see the groups:
       | name      | coverage | files |
       | All Files | 92.31%   | 4     |
       

@@ -20,3 +20,11 @@ Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |cov
       | #{coverage_dir}/resultset.yml |
   } 
 end
+
+Then /^the report should be based upon:$/ do |table|
+  frameworks = table.raw.flatten
+  steps %Q{
+    Then the output should contain "Coverage report generated for #{frameworks.join(", ")}"
+    And I should see "using #{frameworks.join(", ")}" within "#footer"
+  }
+end

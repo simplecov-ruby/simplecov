@@ -33,3 +33,6 @@ Feature:
       # loaded by Rake, and only there test_helper is required, which then loads simplecov
       # and triggers tracking of all other loaded files! Solution for this would be to
       # configure simplecov in this first test instead of test_helper.
+
+    And the report should be based upon:
+      | Unit Tests |
