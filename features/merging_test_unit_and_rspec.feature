@@ -36,8 +36,8 @@ Feature:
 
     Given I open the coverage report
     Then the report should be based upon:
-      | Unit Tests |
       | RSpec      |
+      | Unit Tests |
       
     And I should see the groups:
       | name      | coverage | files |

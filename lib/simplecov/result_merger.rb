@@ -45,7 +45,7 @@ module SimpleCov::ResultMerger
       end
       result = SimpleCov::Result.new(merged)
       # Specify the command name
-      result.command_name = results.map(&:command_name).join(", ")
+      result.command_name = results.map(&:command_name).sort.join(", ")
       result
     end
     
