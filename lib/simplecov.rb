@@ -134,3 +134,7 @@ at_exit do
   SimpleCov.at_exit.call
   exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
 end
+
+# Autoload config from .simplecov
+config_path = File.join(SimpleCov.root, '.simplecov')
+load config_path if File.exist?(config_path)
