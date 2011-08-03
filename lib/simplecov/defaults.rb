@@ -8,13 +8,18 @@ SimpleCov.adapters.define 'root_filter' do
   end
 end
 
-SimpleCov.adapters.define 'rails' do
+SimpleCov.adapters.define 'test_frameworks' do
   add_filter '/test/'
   add_filter '/features/'
   add_filter '/spec/'
+  add_filter '/autotest/'
+end
+
+SimpleCov.adapters.define 'rails' do
+  load_adapter 'test_frameworks'
+  
   add_filter '/config/'
   add_filter '/db/'
-  add_filter '/autotest/'
   add_filter '/vendor/bundle/'
   
   add_group 'Controllers', 'app/controllers'
