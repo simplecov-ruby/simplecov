@@ -23,17 +23,11 @@ Feature: Custom names for individual test suites
       end
       """
       
-    When I successfully run `bundle exec rake test`
-    Then a coverage report should have been generated
-
-    Given I open the coverage report
+    When I open the coverage report generated with `bundle exec rake test`
     Then the report should be based upon:
       | I'm in UR Unitz |
     
-    When I successfully run `bundle exec rspec spec`
-    Then a coverage report should have been generated
-
-    Given I open the coverage report
+    When I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | Dreck macht Speck |
       | I'm in UR Unitz   |

@@ -30,10 +30,7 @@ Feature:
       """
       
     When I successfully run `bundle exec rake test`
-    And I successfully run `bundle exec rspec spec`
-    Then a coverage report should have been generated
-
-    Given I open the coverage report
+    And I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec      |
       | Unit Tests |

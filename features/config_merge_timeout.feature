@@ -29,17 +29,11 @@ Feature:
       end
       """
       
-    When I successfully run `bundle exec rake test`
-    Then a coverage report should have been generated
-
-    Given I open the coverage report
+    When I open the coverage report generated with `bundle exec rake test`
     Then the report should be based upon:
       | Unit Tests |
     
-    When I successfully run `bundle exec rspec spec`
-    Then a coverage report should have been generated
-      
-    Given I open the coverage report
+    When I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec |
 

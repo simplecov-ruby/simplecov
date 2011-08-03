@@ -24,10 +24,7 @@ Feature: Sophisticated grouping and filtering on Test/Unit
       end
       """
 
-    When I successfully run `bundle exec rake test`
-    Then a coverage report should have been generated
-
-    Given I open the coverage report
+    When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
       | All Files | 100.0%   | 1     |

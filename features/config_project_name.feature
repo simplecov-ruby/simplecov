@@ -15,10 +15,7 @@ Feature:
       SimpleCov.start
       """
       
-    When I successfully run `bundle exec rake test`
-    Then a coverage report should have been generated
-
-    When I open the coverage report
+    When I open the coverage report generated with `bundle exec rake test`
     Then I should see "Code coverage for Project"
   
   Scenario: Custom name
@@ -28,8 +25,5 @@ Feature:
       SimpleCov.start { project_name "Superfancy 2.0" }
       """
     
-    When I successfully run `bundle exec rake test`
-    Then a coverage report should have been generated
-
-    When I open the coverage report
+    When I open the coverage report generated with `bundle exec rake test`
     Then I should see "Code coverage for Superfancy 2.0"
