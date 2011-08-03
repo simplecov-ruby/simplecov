@@ -12,8 +12,8 @@ Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |cove
     Then the output should contain "Coverage report generated"
     And a directory named "#{coverage_dir}" should exist
     And the following files should exist:
-      | #{coverage_dir}/index.html    |
-      | #{coverage_dir}/.resultset.yml |
+      | #{coverage_dir}/index.html      |
+      | #{coverage_dir}/.resultset.json |
   }
 end
 
@@ -23,8 +23,8 @@ Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |cov
     Then the output should not contain "Coverage report generated"
     And a directory named "#{coverage_dir}" should not exist
     And the following files should not exist:
-      | #{coverage_dir}/index.html    |
-      | #{coverage_dir}/.resultset.yml |
+      | #{coverage_dir}/index.html      |
+      | #{coverage_dir}/.resultset.json |
   } 
 end
 

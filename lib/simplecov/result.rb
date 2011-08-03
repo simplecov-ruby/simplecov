@@ -1,5 +1,4 @@
 require 'digest/sha1'
-require 'yaml'
 
 module SimpleCov
   #
@@ -90,26 +89,26 @@ module SimpleCov
     
     # Returns a hash representation of this Result that can be used for marshalling it into YAML
     def to_hash
-      {command_name => {:original_result => original_result.reject {|filename, result| !filenames.include?(filename) }, :created_at => created_at}}
+      {command_name => {:original_result => original_result.reject {|filename, result| !filenames.include?(filename) }, :created_at => created_at.to_i}}
     end
     
-    # Returns a yaml dump of this result, which then can be reloaded using SimpleCov::Result.from_yaml
-    def to_yaml
-      to_hash.to_yaml
+    # Returns a json dump of this result, which then can be reloaded using SimpleCov::Result.from_json
+    def to_json
+      JSON.pretty_generate(to_hash)
     end
     
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       command_name, data = hash.first
-      result = SimpleCov::Result.new(data[:original_result])
+      result = SimpleCov::Result.new(data["original_result"])
       result.command_name = command_name
-      result.created_at = data[:created_at]
+      result.created_at = Time.at(data["created_at"])
       result
     end
     
-    # Loads a SimpleCov::Result#to_yaml dump
-    def self.from_yaml(yaml)
-      from_hash(YAML.load(yaml))
+    # Loads a SimpleCov::Result#to_json dump
+    def self.from_json(json)
+      from_hash(JSON.parse(json))
     end
     
     private

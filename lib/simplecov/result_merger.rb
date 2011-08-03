@@ -1,4 +1,3 @@
-require 'yaml'
 #
 # Singleton that is responsible for caching, loading and merging
 # SimpleCov::Results into a single result for coverage analysis based
@@ -8,13 +7,13 @@ module SimpleCov::ResultMerger
   class << self
     # The path to the resultset.yml cache file
     def resultset_path
-      File.join(SimpleCov.coverage_path, '.resultset.yml')
+      File.join(SimpleCov.coverage_path, '.resultset.json')
     end
     
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       return {} unless File.exist?(resultset_path)
-      YAML.load(File.read(resultset_path)) || {}
+      JSON.parse(File.read(resultset_path)) || {}
     end
     
     # Gets the resultset hash and re-creates all included instances
@@ -55,7 +54,7 @@ module SimpleCov::ResultMerger
       command_name, data = result.to_hash.first
       new_set[command_name] = data
       File.open(resultset_path, "w+") do |f|
-        f.puts new_set.to_yaml
+        f.puts JSON.pretty_generate(new_set)
       end
       true
     end
