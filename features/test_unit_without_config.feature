@@ -1,7 +1,7 @@
 Feature:
 
   Simply adding the basic simplecov lines to a project should get 
-  the user a coverage report
+  the user a coverage report after running `rake test`
 
   Scenario:
     Given I cd to "project"
@@ -14,7 +14,7 @@ Feature:
     When I successfully run `bundle exec rake test`
     Then a coverage report should have been generated
 
-    When I open the coverage report
+    Given I open the coverage report
     Then I should see the groups:
       |      name | coverage |
       | All Files |   95.65% |
@@ -26,3 +26,8 @@ Feature:
       | ./lib/faked_project/meta_magic.rb |  100.0 % |
       | ./test/meta_magic_test.rb         |  100.0 % |
       | ./test/some_class_test.rb         |  100.0 % |
+      
+      # Note: faked_test.rb is not appearing here since that's the first unit test file
+      # loaded by Rake, and only there test_helper is required, which then loads simplecov
+      # and triggers tracking of all other loaded files! Solution for this would be to
+      # configure simplecov in this first test instead of test_helper.
