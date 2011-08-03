@@ -9,14 +9,19 @@ module GroupHelpers
 end
 World(GroupHelpers)
 
+
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
   # Given group names should be the same number than those rendered in report
   expected_groups.count.should == available_groups.count
 
   # Verify each of the expected groups has a file list container and corresponding title and coverage number
+  # as well as the correct number of links to files.
   expected_groups.each do |group|
     with_scope "#content ##{group["name"].gsub(/[^a-z]/i, '')}.file_list_container" do
+      file_count_in_group = page.all('a.src_link').count
+      file_count_in_group.should == group["files"].to_i
+      
       with_scope "h2" do
         page.should have_content(group["name"])
         page.should have_content(group["coverage"])

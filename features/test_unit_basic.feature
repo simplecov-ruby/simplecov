@@ -16,8 +16,8 @@ Feature:
 
     Given I open the coverage report
     Then I should see the groups:
-      |      name | coverage |
-      | All Files |   95.65% |
+      |      name | coverage | files |
+      | All Files |   95.65% |     5 |
       
     And I should see the source files:
       |                              name | coverage |
