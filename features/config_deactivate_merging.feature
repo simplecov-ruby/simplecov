@@ -27,7 +27,7 @@ Feature:
       
     When I successfully run `bundle exec rake test`
     Then a file named "coverage/index.html" should exist
-      But a file named "coverage/.resultset.yml" should not exist
+      But a file named "coverage/.resultset.json" should not exist
 
     Given I open the coverage report
     Then the report should be based upon:
@@ -35,7 +35,7 @@ Feature:
     
     When I successfully run `bundle exec rspec spec`
     Then a file named "coverage/index.html" should exist
-      But a file named "coverage/.resultset.yml" should not exist
+      But a file named "coverage/.resultset.json" should not exist
       
     Given I open the coverage report
     Then the report should be based upon:
