@@ -2,3 +2,4 @@ source :rubygems
 
 gem 'simplecov', :path => '../../../'
 gem 'rake'
+gem 'rspec', '>= 2.6.0'
