@@ -32,5 +32,5 @@ Feature: Sophisticated grouping and filtering on Test/Unit
       | By string | 100.0%   | 1     |
 
     And I should see the source files:
-      | name                              | coverage |
-      | ./lib/faked_project/meta_magic.rb | 100.0 %  |
+      | name                            | coverage |
+      | lib/faked_project/meta_magic.rb | 100.0 %  |

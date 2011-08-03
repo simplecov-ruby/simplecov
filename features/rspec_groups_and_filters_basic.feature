@@ -23,8 +23,8 @@ Feature:
       | Ungrouped | 100.0%   | 1     |
       
     And I should see the source files:
-      | name                                      | coverage |
-      | ./lib/faked_project.rb                    | 100.0 %  |
-      | ./lib/faked_project/some_class.rb         | 81.82 %  |
-      | ./lib/faked_project/framework_specific.rb | 75.0 %   |
-      | ./lib/faked_project/meta_magic.rb         | 100.0 %  |
+      | name                                    | coverage |
+      | lib/faked_project.rb                    | 100.0 %  |
+      | lib/faked_project/some_class.rb         | 81.82 %  |
+      | lib/faked_project/framework_specific.rb | 75.0 %   |
+      | lib/faked_project/meta_magic.rb         | 100.0 %  |
