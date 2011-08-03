@@ -18,6 +18,7 @@ Before do
   @aruba_timeout_seconds = 7
   this_dir = File.dirname(__FILE__)
   in_current_dir do
+    FileUtils.rm_rf 'project'
     FileUtils.cp_r File.join(this_dir, '../../test/faked_project/'), 'project'
   end
 end
