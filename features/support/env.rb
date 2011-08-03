@@ -9,6 +9,7 @@ Bundler.setup
 require 'aruba/cucumber'
 require 'capybara/cucumber'
 
+# Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
 Capybara.app = lambda {|env| 
   [200, {'Content-Type' => 'text/html'}, 
     [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project', 'coverage/index.html'))]]
@@ -17,18 +18,9 @@ Capybara.app = lambda {|env|
 Before do
   @aruba_timeout_seconds = 20
   this_dir = File.dirname(__FILE__)
+  # Clean up and create blank state for fake project
   in_current_dir do
     FileUtils.rm_rf 'project'
     FileUtils.cp_r File.join(this_dir, '../../test/faked_project/'), 'project'
-  end
-end
-
-if RUBY_VERSION > '1.9.1'
-  Before do
-    set_env('RUBYOPT', '-I.:../../lib')
-  end
-elsif RUBY_PLATFORM == 'java'
-  Before do
-    set_env('RUBYOPT', '-I../../lib -rubygems')
   end
 end
