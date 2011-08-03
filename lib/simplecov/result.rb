@@ -89,7 +89,7 @@ module SimpleCov
     
     # Returns a hash representation of this Result that can be used for marshalling it into YAML
     def to_hash
-      {command_name => {:original_result => original_result.reject {|filename, result| !filenames.include?(filename) }, :created_at => created_at.to_i}}
+      {command_name => {:coverage => original_result.reject {|filename, result| !filenames.include?(filename) }, :timestamp => created_at.to_i}}
     end
     
     # Returns a json dump of this result, which then can be reloaded using SimpleCov::Result.from_json
@@ -100,9 +100,9 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       command_name, data = hash.first
-      result = SimpleCov::Result.new(data["original_result"])
+      result = SimpleCov::Result.new(data["coverage"])
       result.command_name = command_name
-      result.created_at = Time.at(data["created_at"])
+      result.created_at = Time.at(data["timestamp"])
       result
     end
     
