@@ -323,10 +323,6 @@ Please have a look at our documentation[http://rubydoc.info/gems/simplecov/frame
 Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
 for this!
 
-== TODO
-
-* Improve on tests (integration tests)
-
 == Ruby version compatibility
 
 http://travis-ci.org/colszowka/simplecov.png
