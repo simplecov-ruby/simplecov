@@ -25,7 +25,7 @@ Feature:
     Given a file named "test/simplecov_config.rb" with:
       """
       require 'simplecov'
-      SimpleCov.start { project_name "Superfancy 2.0"}
+      SimpleCov.start { project_name "Superfancy 2.0" }
       """
     
     When I successfully run `bundle exec rake test`
