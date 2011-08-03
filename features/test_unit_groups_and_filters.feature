@@ -1,3 +1,4 @@
+@test_unit
 Feature:
 
   Defining some groups and filters should give a corresponding
