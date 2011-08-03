@@ -8,7 +8,7 @@ module SimpleCov::ResultMerger
   class << self
     # The path to the resultset.yml cache file
     def resultset_path
-      File.join(SimpleCov.coverage_path, 'resultset.yml')
+      File.join(SimpleCov.coverage_path, '.resultset.yml')
     end
     
     # Loads the cached resultset from YAML and returns it as a Hash
