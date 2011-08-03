@@ -5,19 +5,10 @@ Feature:
 
   Scenario:
     Given I cd to "project"
-    Given a file named "test/test_helper.rb" with:
+    Given a file named "test/simplecov_config.rb" with:
       """
-      require 'rubygems'
-      require 'bundler/setup'
-      
       require 'simplecov'
       SimpleCov.start
-      
-      require 'faked_project'
-      require 'test/unit'
-
-      class Test::Unit::TestCase
-      end
       """
       
     When I successfully run `bundle exec rake test`
