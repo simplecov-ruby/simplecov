@@ -19,13 +19,14 @@ Feature:
 
     Given I open the coverage report
     And I should see the groups:
-      |      name | coverage | files |
-      | All Files |   93.33% |     3 |
-      |      Libs |   91.67% |     2 |
-      | Ungrouped |   100.0% |     1 |
+      | name      | coverage | files |
+      | All Files | 89.74%   | 4     |
+      | Libs      | 87.5%    | 3     |
+      | Ungrouped | 100.0%   | 1     |
       
     And I should see the source files:
-      |                              name | coverage |
-      | ./lib/faked_project.rb            |  100.0 % |
-      | ./lib/faked_project/some_class.rb |  81.82 % |
-      | ./lib/faked_project/meta_magic.rb |  100.0 % |
+      | name                                      | coverage |
+      | ./lib/faked_project.rb                    | 100.0 %  |
+      | ./lib/faked_project/some_class.rb         | 81.82 %  |
+      | ./lib/faked_project/framework_specific.rb | 75.0 %   |
+      | ./lib/faked_project/meta_magic.rb         | 100.0 %  |
