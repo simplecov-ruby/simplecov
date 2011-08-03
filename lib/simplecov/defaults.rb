@@ -1,6 +1,29 @@
 # Load default formatter gem
 require 'simplecov-html'
 
+SimpleCov.adapters.define 'root_filter' do
+  # Exclude all files outside of simplecov root
+  add_filter do |src|
+    !(src.filename =~ /^#{SimpleCov.root}/)
+  end
+end
+
+SimpleCov.adapters.define 'rails' do
+  add_filter '/test/'
+  add_filter '/features/'
+  add_filter '/spec/'
+  add_filter '/config/'
+  add_filter '/db/'
+  add_filter '/autotest/'
+  add_filter '/vendor/bundle/'
+  
+  add_group 'Controllers', 'app/controllers'
+  add_group 'Models', 'app/models'
+  add_group 'Helpers', 'app/helpers'
+  add_group 'Libraries', 'lib'
+  add_group 'Plugins', 'vendor/plugins'
+end
+
 # Default configuration
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
