@@ -29,7 +29,12 @@ Feature:
     When I open the coverage report
     Then I should see the groups:
       |      name | coverage |
-      | All Files |   100.0% |
+      | All Files |   95.65% |
       
     And I should see the source files:
-      | ./lib/faked_project.rb |
+      |                              name | coverage |
+      | ./lib/faked_project.rb            |  100.0 % |
+      | ./lib/faked_project/some_class.rb |  81.82 % |
+      | ./lib/faked_project/meta_magic.rb |  100.0 % |
+      | ./test/meta_magic_test.rb         |  100.0 % |
+      | ./test/some_class_test.rb         |  100.0 % |
