@@ -12,11 +12,8 @@ Feature:
       """
       
     When I successfully run `bundle exec rake test`
-    Then the stdout should contain "Coverage report generated for Unit Tests"
-    And the following files should exist:
-      | coverage/index.html    |
-      | coverage/resultset.yml |
-    
+    Then a coverage report should have been generated
+
     When I open the coverage report
     Then I should see the groups:
       |      name | coverage |
