@@ -1,20 +1,22 @@
 
-Then "a coverage report should have been generated" do
+Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
+  coverage_dir ||= 'coverage'
   steps %Q{
     Then the output should contain "Coverage report generated"
-    And a directory named "coverage" should exist
+    And a directory named "#{coverage_dir}" should exist
     And the following files should exist:
-      | coverage/index.html    |
-      | coverage/resultset.yml |
+      | #{coverage_dir}/index.html    |
+      | #{coverage_dir}/resultset.yml |
   }
 end
 
-Then "no coverage report should have been generated" do
+Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
+  coverage_dir ||= 'coverage'
   steps %Q{
     Then the output should not contain "Coverage report generated"
-    And a directory named "coverage" should not exist
+    And a directory named "#{coverage_dir}" should not exist
     And the following files should not exist:
-      | coverage/index.html    |
-      | coverage/resultset.yml |
+      | #{coverage_dir}/index.html    |
+      | #{coverage_dir}/resultset.yml |
   } 
 end

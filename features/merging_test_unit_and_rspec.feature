@@ -1,4 +1,4 @@
-@test_unit @rspec
+@test_unit @rspec @merging
 Feature:
 
   Test suites like RSpec and Test/Unit should be merged automatically
