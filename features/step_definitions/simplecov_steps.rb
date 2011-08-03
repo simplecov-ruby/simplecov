@@ -1,3 +1,10 @@
+When /^I open the coverage report generated with `([^`]+)`$/ do |command|
+  steps %Q{
+    When I successfully run `#{command}`
+    Then a coverage report should have been generated
+    When I open the coverage report
+  }
+end
 
 Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
   coverage_dir ||= 'coverage'
@@ -28,3 +35,4 @@ Then /^the report should be based upon:$/ do |table|
     And I should see "using #{frameworks.join(", ")}" within "#footer"
   }
 end
+
