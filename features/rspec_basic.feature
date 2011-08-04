@@ -15,12 +15,12 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 92.16%   | 6     |
+      | All Files | 90.91%   | 6     |
       
     And I should see the source files:
       | name                                    | coverage |
       | lib/faked_project.rb                    | 100.0 %  |
-      | lib/faked_project/some_class.rb         | 81.82 %  |
+      | lib/faked_project/some_class.rb         | 80.0 %  |
       | lib/faked_project/framework_specific.rb | 75.0 %   |
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
       | spec/meta_magic_spec.rb                 | 100.0 %  |

@@ -1,5 +1,6 @@
 class SomeClass
   attr_reader :label
+  attr_accessor :some_attr
   
   def initialize(label)
     @label = label
@@ -18,5 +19,11 @@ class SomeClass
     
   rescue => err
     false
+  end
+  
+  private
+  
+  def uncovered
+    "private method"
   end
 end
