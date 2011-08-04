@@ -13,6 +13,7 @@ Feature:
       """
       
     When I open the coverage report generated with `bundle exec rake test`
+    Then print the page
     Then I should see the groups:
       | name      | coverage | files |
       | All Files | 91.53%   | 6     |
