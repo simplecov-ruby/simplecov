@@ -91,9 +91,21 @@ module SimpleCov
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
       return 100.0 if lines.length == 0 or lines.length == never_lines.count
-      (covered_lines.count) * 100 / (lines.count-never_lines.count-skipped_lines.count).to_f
+      (covered_lines.count) * 100 / (lines.count - never_lines.count - skipped_lines.count).to_f
     end
   
+    #
+    def covered_strength
+      return 0 if lines.length == 0 or lines.length == never_lines.count
+      lines_strength = 0
+      lines.each do |c|
+        lines_strength += c.coverage if c.coverage
+      end
+      effective_lines_count = (lines.count - never_lines.count - skipped_lines.count).to_f
+      strength = lines_strength / effective_lines_count 
+      round_float(strength, 1)
+    end
+
     # Returns all covered lines as SimpleCov::SourceFile::Line
     def covered_lines
       @covered_lines ||= lines.select {|c| c.covered? }
@@ -117,16 +129,24 @@ module SimpleCov
     end
 
     def process_skipped_lines
-	  skipped_line_numbers = []
-	  skipping = false
-	  @src.each_with_index do |line, i|
-		if line =~ /^\s*#\:nocov\:/
-			skipping = !skipping
-		else
-			skipped_line_numbers << i + 1 if skipping
-		end
+      skipped_line_numbers = []
+      skipping = false
+      @src.each_with_index do |line, i|
+        if line =~ /^\s*#\:nocov\:/
+	        skipping = !skipping
+        else
+	        skipped_line_numbers << i + 1 if skipping
+        end
+      end
+	    skipped_line_numbers
 	  end
-	  skipped_line_numbers
-	end
+
+    private
+
+    # ruby 1.9 could use Float#round(places) instead
+    def round_float(float, places)
+      factor = (10 * places).to_f
+      (float * factor).round / factor
+    end
   end
 end
