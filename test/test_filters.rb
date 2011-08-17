@@ -56,7 +56,7 @@ class TestFilters < Test::Unit::TestCase
         SimpleCov.add_filter "fooo"
         assert_equal 1, SimpleCov.filtered(@files).count
       end
-    
+      
       should "return 0 items after executing SimpleCov.filtered on files when using a block filter that returns true" do
         SimpleCov.add_filter do |src_file|
           true
@@ -69,6 +69,11 @@ class TestFilters < Test::Unit::TestCase
           false
         end
         assert_equal 1, SimpleCov.filtered(@files).count
+      end
+      
+      should "return a FileList after filtering" do
+        SimpleCov.add_filter "fooo"
+        assert_equal SimpleCov::FileList, SimpleCov.filtered(@files).class
       end
     end
   end

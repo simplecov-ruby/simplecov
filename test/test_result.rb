@@ -23,6 +23,11 @@ class TestResult < Test::Unit::TestCase
           assert_equal 3, @result.source_files.count
           assert @result.source_files.all? {|s| s.instance_of?(SimpleCov::SourceFile)}, "Not alL instances are of SimpleCov::SourceFile type"
         end
+        
+        should "return an instance of SimpleCov::FileList for source_files and files" do
+          assert_equal SimpleCov::FileList, @result.source_files.class
+          assert_equal SimpleCov::FileList, @result.files.class
+        end
     
         should "have files equal to source_files" do
           assert_equal @result.files, @result.source_files
@@ -129,6 +134,12 @@ class TestResult < Test::Unit::TestCase
 
         should "have sample.rb in 'Ungrouped' group" do
           assert_equal 'sample.rb', File.basename(@result.groups['Ungrouped'].first.filename)
+        end
+        
+        should "return all groups as instances of SimpleCov::FileList" do
+          @result.groups.each do |name, files|
+            assert_equal SimpleCov::FileList, files.class
+          end
         end
       end
     end

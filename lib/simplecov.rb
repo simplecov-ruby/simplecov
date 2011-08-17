@@ -64,7 +64,7 @@ module SimpleCov
       filters.each do |filter|
         result = result.select {|source_file| filter.passes?(source_file) }
       end
-      result
+      SimpleCov::FileList.new result
     end
     
     #
@@ -74,11 +74,11 @@ module SimpleCov
       grouped = {}
       grouped_files = []
       groups.each do |name, filter|
-        grouped[name] = files.select {|source_file| !filter.passes?(source_file)}
+        grouped[name] = SimpleCov::FileList.new(files.select {|source_file| !filter.passes?(source_file)})
         grouped_files += grouped[name]
       end
       if groups.length > 0 and (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
-        grouped["Ungrouped"] = other_files
+        grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
       end
       grouped
     end
@@ -110,6 +110,7 @@ require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
 require 'simplecov/adapters'
 require 'simplecov/source_file'
+require 'simplecov/file_list'
 require 'simplecov/result'
 require 'simplecov/filter'
 require 'simplecov/formatter'
