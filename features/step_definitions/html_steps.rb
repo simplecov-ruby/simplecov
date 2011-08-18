@@ -35,7 +35,7 @@ Then /^I should see the source files:$/ do |table|
   expected_files.length.should == available_source_files.count
   
   # Find all filenames and their coverage present in coverage report
-  files = available_source_files.map {|f| {"name" => f.find('h3').text, "coverage" => f.find('thead span').text} }
+  files = available_source_files.map {|f| {"name" => f.find('h3').text, "coverage" => f.find('.header span').text} }
 
   files.sort_by {|hsh| hsh["name"] }.should == expected_files.sort_by {|hsh| hsh["name"] }
 end
