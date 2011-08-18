@@ -116,7 +116,7 @@ module SimpleCov
     def missed_lines
       @missed_lines ||= lines.select {|c| c.missed? }
     end
-  
+    
     # Returns all lines that are not relevant for coverage as
     # SimpleCov::SourceFile::Line instances
     def never_lines
@@ -127,19 +127,24 @@ module SimpleCov
     def skipped_lines
       @skipped_lines ||= lines.select {|c| c.skipped? }
     end
+    
+    # Returns the number of relevant lines (covered + missed)
+    def lines_of_code
+      covered_lines.count + missed_lines.count
+    end
 
     def process_skipped_lines
       skipped_line_numbers = []
       skipping = false
       @src.each_with_index do |line, i|
         if line =~ /^\s*#\:nocov\:/
-	        skipping = !skipping
+          skipping = !skipping
         else
-	        skipped_line_numbers << i + 1 if skipping
+          skipped_line_numbers << i + 1 if skipping
         end
       end
-	    skipped_line_numbers
-	  end
+      skipped_line_numbers
+    end
 
     private
 
