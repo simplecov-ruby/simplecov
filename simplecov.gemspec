@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "simplecov"
   
-  s.add_dependency 'simplecov-html', "~> 0.4.4"
+  s.add_dependency 'simplecov-html', "~> 0.5.0"
   s.add_development_dependency "aruba", ">= 0.4.5"
   s.add_development_dependency "capybara", "~> 1.0.0"
   s.add_development_dependency "cucumber", "~> 1.0.0"
