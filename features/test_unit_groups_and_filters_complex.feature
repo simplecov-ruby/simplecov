@@ -6,7 +6,7 @@ Feature: Sophisticated grouping and filtering on Test/Unit
   and potentially weird conditions to remove files from the report or add them
   to specific groups.
 
-  Scenario: 
+  Scenario:
     Given I cd to "project"
     Given a file named "test/simplecov_config.rb" with:
       """

@@ -2,11 +2,11 @@ module SimpleCov::ArrayMergeHelper
   # Merges an array of coverage results with self
   def merge_resultset(array)
     new_array = []
-    
+
     self.each_with_index do |element, i|
       new_array[i] = element
     end
-    
+
     array.each_with_index do |element, i|
       if element.nil? and new_array[i].nil?
         new_array[i] = nil
@@ -27,7 +27,7 @@ module SimpleCov::HashMergeHelper
     (self.keys + hash.keys).each do |filename|
       new_resultset[filename] = []
     end
-    
+
     new_resultset.each do |filename, data|
       new_resultset[filename] = (self[filename] || []).merge_resultset(hash[filename] || [])
     end

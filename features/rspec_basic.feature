@@ -1,7 +1,7 @@
 @rspec
 Feature:
 
-  Simply adding the basic simplecov lines to a project should get 
+  Simply adding the basic simplecov lines to a project should get
   the user a coverage report after running `rspec`
 
   Scenario:
@@ -11,12 +11,12 @@ Feature:
       require 'simplecov'
       SimpleCov.start
       """
-      
+
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
       | All Files | 90.91%   | 6     |
-      
+
     And I should see the source files:
       | name                                    | coverage |
       | lib/faked_project.rb                    | 100.0 %  |
@@ -25,7 +25,7 @@ Feature:
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
       | spec/meta_magic_spec.rb                 | 100.0 %  |
       | spec/some_class_spec.rb                 | 100.0 %  |
-      
+
       # Note: faked_spec.rb is not appearing here since that's the first unit test file
       # loaded by Rake, and only there test_helper is required, which then loads simplecov
       # and triggers tracking of all other loaded files! Solution for this would be to

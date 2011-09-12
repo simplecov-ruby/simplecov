@@ -11,15 +11,15 @@ class Test18FallBacks < Test::Unit::TestCase
     should "return false when calling SimpleCov.start" do
       assert_equal false, SimpleCov.start
     end
-    
+
     should "return false when calling SimpleCov.start with a block" do
       assert_equal false, SimpleCov.start { raise "Shouldn't reach this!?" }
     end
-    
+
     should "return false when calling SimpleCov.configure with a block" do
       assert_equal false, SimpleCov.configure { raise "Shouldn't reach this!?" }
     end
-    
+
     should "allow to define an adapter" do
       begin
         SimpleCov.adapters.define 'testadapter' do
