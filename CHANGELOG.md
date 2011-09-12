@@ -1,5 +1,12 @@
+v0.5.2 (2011-09-12)
+===================
+
+  * Another fix for a bug in JSON processing introduced with MultiJSON in 0.5.1
+    (see https://github.com/colszowka/simplecov/pull/75, thanks @sferik)
+
 v0.5.1 (2011-09-12)
 ===================
+**Note: Yanked 2011-09-12 because the MultiJSON-patch had a crucial bug**
 
   * Fix for invalid gemspec dependency string (see https://github.com/colszowka/simplecov/pull/70,
     http://blog.rubygems.org/2011/08/31/shaving-the-yaml-yacc.html, thanks @jspradlin)

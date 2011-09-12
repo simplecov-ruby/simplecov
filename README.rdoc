@@ -21,7 +21,7 @@ automatically when you launch SimpleCov. If you're curious, you can find it at h
 
 Update your Gemfile with this and do a bundle install:
 
-  gem 'simplecov', '>= 0.4.0', :require => false, :group => :test
+  gem 'simplecov', '>= 0.5.2', :require => false, :group => :test
 
 Then, add the following to your test/test_helper.rb (right at the top, line 00) or spec_helper.rb or cucumber env.rb or whatever
 test framework you prefer, really - just make sure simplecov is loaded and started BEFORE your app code is loaded:
