@@ -71,7 +71,7 @@ module SimpleCov::ResultMerger
         if defined? ::JSON
           f.puts JSON.pretty_generate(new_set)
         else
-          f.puts new_set
+          f.puts MultiJson.encode(new_set)
         end
       end
       true

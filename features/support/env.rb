@@ -3,7 +3,6 @@ unless RUBY_VERSION =~ /1\.9/
   exit 0
 end
 
-require 'rubygems'
 require 'bundler'
 Bundler.setup
 require 'aruba/cucumber'

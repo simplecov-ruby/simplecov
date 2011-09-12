@@ -1,5 +1,3 @@
-require 'rubygems'
-
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
@@ -118,8 +116,6 @@ require 'simplecov/merge_helpers'
 require 'simplecov/result_merger'
 require 'simplecov/command_guesser'
 require 'simplecov/version'
-
-autoload :JSON, 'json'
 
 # Load default config
 require 'simplecov/defaults'
