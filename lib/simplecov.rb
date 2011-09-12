@@ -117,7 +117,5 @@ require 'simplecov/result_merger'
 require 'simplecov/command_guesser'
 require 'simplecov/version'
 
-autoload :JSON, 'json'
-
 # Load default config
 require 'simplecov/defaults'
