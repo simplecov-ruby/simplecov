@@ -17,7 +17,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     And I should see the groups:
       | name      | coverage | files |
-      | All Files | 88.37%   | 4     |
+      | All Files | 88.1%    | 4     |
       | Libs      | 86.11%   | 3     |
       | Ungrouped | 100.0%   | 1     |
 

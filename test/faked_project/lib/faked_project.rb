@@ -4,8 +4,8 @@ class FakedProject
   end
 end
 
-require 'faked_project/some_class'
-require 'faked_project/meta_magic'
-require 'faked_project/framework_specific'
+Dir[File.join(File.dirname(__FILE__), 'faked_project/*.rb')].each do |file|
+  require file # Require all source files in project dynamically so we can inject some stuff depending on test situation
+end
 
 FakedProject.send :include, MetaMagic
