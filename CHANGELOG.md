@@ -5,8 +5,8 @@ v0.5.1 (2011-09-12)
     http://blog.rubygems.org/2011/08/31/shaving-the-yaml-yacc.html, thanks @jspradlin)
     
   * Added JSON in the form of the multi_json gem as dependency for those cases when built-in JSON
-    is unavailable (see https://github.com/colszowka/simplecov/issues/72 and  
-    https://github.com/colszowka/simplecov/pull/74, thanks @sferik)
+    is unavailable (see https://github.com/colszowka/simplecov/issues/72 
+    and https://github.com/colszowka/simplecov/pull/74, thanks @sferik)
 
 v0.5.0 (2011-09-09)
 ===================
