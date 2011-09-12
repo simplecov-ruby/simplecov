@@ -12,6 +12,7 @@ Gem::Specification.new do |gem|
   gem.description = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
   gem.summary     = gem.description
 
+  gem.add_dependency 'multi_json', '~> 1.0.3'
   gem.add_dependency 'simplecov-html', '~> 0.5.0'
   gem.add_development_dependency 'aruba', '~> 0.4'
   gem.add_development_dependency 'capybara', '~> 1.0'
