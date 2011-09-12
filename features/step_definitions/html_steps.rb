@@ -2,7 +2,7 @@ module GroupHelpers
   def available_groups
     all('#content .file_list_container')
   end
-  
+
   def available_source_files
     all('.source_files .source_table')
   end
@@ -21,7 +21,7 @@ Then /^I should see the groups:$/ do |table|
     with_scope "#content ##{group["name"].gsub(/[^a-z]/i, '')}.file_list_container" do
       file_count_in_group = page.all('a.src_link').count
       file_count_in_group.should == group["files"].to_i
-      
+
       with_scope "h2" do
         page.should have_content(group["name"])
         page.should have_content(group["coverage"])
@@ -33,7 +33,7 @@ end
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
   expected_files.length.should == available_source_files.count
-  
+
   # Find all filenames and their coverage present in coverage report
   files = available_source_files.map {|f| {"name" => f.find('h3').text, "coverage" => f.find('.header span').text} }
 

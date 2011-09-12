@@ -25,7 +25,7 @@ Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |cov
     And the following files should not exist:
       | #{coverage_dir}/index.html      |
       | #{coverage_dir}/.resultset.json |
-  } 
+  }
 end
 
 Then /^the report should be based upon:$/ do |table|

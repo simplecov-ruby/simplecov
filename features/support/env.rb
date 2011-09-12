@@ -10,8 +10,8 @@ require 'aruba/cucumber'
 require 'capybara/cucumber'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
-Capybara.app = lambda {|env| 
-  [200, {'Content-Type' => 'text/html'}, 
+Capybara.app = lambda {|env|
+  [200, {'Content-Type' => 'text/html'},
     [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project', 'coverage/index.html'))]]
 }
 

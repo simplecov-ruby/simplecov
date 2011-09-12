@@ -17,11 +17,11 @@ end
 
 SimpleCov.adapters.define 'rails' do
   load_adapter 'test_frameworks'
-  
+
   add_filter '/config/'
   add_filter '/db/'
   add_filter '/vendor/bundle/'
-  
+
   add_group 'Controllers', 'app/controllers'
   add_group 'Models', 'app/models'
   add_group 'Helpers', 'app/helpers'

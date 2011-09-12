@@ -1,12 +1,12 @@
 #
-# Adapters are glorified SimpleCov configuration procs that can be easily 
+# Adapters are glorified SimpleCov configuration procs that can be easily
 # loaded using SimpleCov.start :rails and defined using
 #   SimpleCov.adapters.define :foo do
 #     # SimpleCov configuration here, same as in  SimpleCov.configure
 #   end
 #
 class SimpleCov::Adapters < Hash
-  # 
+  #
   # Define a SimpleCov adapter:
   #   SimpleCov.adapters.define 'rails' do
   #     # Same as SimpleCov.configure do .. here
@@ -17,7 +17,7 @@ class SimpleCov::Adapters < Hash
     raise "SimpleCov Adapter '#{name}' is already defined" unless self[name].nil?
     self[name] = blk
   end
-  
+
   #
   # Applies the adapter of given name on SimpleCov.configure
   #

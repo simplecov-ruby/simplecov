@@ -14,16 +14,16 @@ Feature:
       require 'simplecov'
       SimpleCov.start
       """
-      
+
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see "Code coverage for Project"
-  
+
   Scenario: Custom name
     Given a file named "test/simplecov_config.rb" with:
       """
       require 'simplecov'
       SimpleCov.start { project_name "Superfancy 2.0" }
       """
-    
+
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see "Code coverage for Superfancy 2.0"

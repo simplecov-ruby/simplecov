@@ -9,7 +9,7 @@ Feature:
   Scenario: No config at all
     When I successfully run `bundle exec rake test`
     Then no coverage report should have been generated
-    
+
   Scenario: Configured, but not started
     Given a file named "test/simplecov_config.rb" with:
       """

@@ -7,7 +7,7 @@
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
-and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of 
+and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
 
 In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features
@@ -53,7 +53,7 @@ Other test frameworks should work accordingly.
 
   require 'simplecov'
   SimpleCov.start 'rails'
-  
+
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
 care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
 
@@ -64,7 +64,7 @@ Configuration settings can be applied in three formats.
 The 'direct' way:
 
   SimpleCov.some_config_option 'foo'
-  
+
 Using a block:
 
   SimpleCov.configure do
@@ -76,12 +76,12 @@ Using a block and automatically starting the coverage:
   SimpleCov.start do
     some_config_option 'foo'
   end
-  
+
 Most times, you'll want to use the latter, so loading and setting up simplecov is in one place at the top of your test helper.
 
 == Running coverage only on demand
 
-The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was 
+The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
 only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
 it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
 
@@ -90,7 +90,7 @@ Because of this, SimpleCov has no explicit built-in mechanism to run coverage on
 However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
 
   SimpleCov.start if ENV["COVERAGE"]
-  
+
 Then, SimpleCov will only run if you execute your tests like this:
 
   $ COVERAGE=true rake test
@@ -102,7 +102,7 @@ OUTSIDE of your project's root directory - otherwise you'd end up with a billion
 gems you are using.
 
 Of course you can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
-report. 
+report.
 
 === Defining custom filters
 
@@ -110,13 +110,13 @@ You can currently define a filter using either a String (that will then be Regex
 a block or by passing in your own Filter class.
 
 ==== String filter
-  
+
   SimpleCov.start do
     add_filter "/test/"
   end
-  
+
 This simple string filter will remove all files that match "/test/" in their path.
-  
+
 ==== Block filter
 
   SimpleCov.start do
@@ -124,11 +124,11 @@ This simple string filter will remove all files that match "/test/" in their pat
       source_file.lines.count < 5
     end
   end
-  
+
 Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be removed
 from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to learn about the
 methods available to you. In the above example, the filter will remove all files that have less then 5 lines of code.
-  
+
 ==== Custom filter class
 
   class LineFilter < SimpleCov::Filter
@@ -136,9 +136,9 @@ methods available to you. In the above example, the filter will remove all files
       source_file.lines.count < filter_argument
     end
   end
-  
+
   SimpleCov.add_filter LineFilter.new(5)
-  
+
 Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'passes?(source_file)'. When running
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
@@ -178,27 +178,27 @@ Simplecov tries to guess the name of the currently running test suite based upon
 on (from v0.3.2+). This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
 that invoked the test suite as a command name.
 
-If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the 
-name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is 
+If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the
+name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is
 part of your specific suite.
 
 So, to customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
-the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem), 
+the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
   # test/unit/some_test.rb
   SimpleCov.command_name 'test:units'
-  
+
   # test/functionals/some_controller_test.rb
   SimpleCov.command_name "test:functionals"
-  
+
   # test/integration/some_integration_test.rb
   SimpleCov.command_name "test:integration"
-  
+
   # features/steps/web_steps.rb
   SimpleCov.command_name "features"
-  
-Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in 
+
+Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is fair enough.
 
 simplecov-html prints the used test suites in the footer of the generated coverage report.
@@ -216,32 +216,32 @@ You can deactivate merging altogether with "SimpleCov.use_merging false".
 
 By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
 root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'adapters',
-or define your own. 
+or define your own.
 
-You can then pass the name of the adapter to be used as the first argument to SimpleCov.start. For example, simplecov 
+You can then pass the name of the adapter to be used as the first argument to SimpleCov.start. For example, simplecov
 comes bundled with a 'rails' adapter. It looks somewhat like this:
 
   SimpleCov.adapters.define 'rails' do
     add_filter '/test/'
     add_filter '/config/'
-  
+
     add_group 'Controllers', 'app/controllers'
     add_group 'Models', 'app/models'
     add_group 'Helpers', 'app/helpers'
     add_group 'Libraries', 'lib'
     add_group 'Plugins', 'vendor/plugins'
   end
-  
+
 As you can see, it's just a glorified SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
 
   SimpleCov.start 'rails'
-  
+
     OR
 
   SimpleCov.start 'rails' do
     # additional config here
   end
-  
+
 === Custom adapters
 
 You can load additional adapters with the SimpleCov.load_adapter('xyz') method. This allows you to build upon an existing
@@ -253,15 +253,15 @@ adapter and customize it so you can reuse it in unit tests and cucumber features
     load_adapter 'rails'
     add_filter 'vendor' # Don't include vendored stuff
   end
-  
+
   # features/support/env.rb
   require 'simplecov_custom_adapter'
   SimpleCov.start 'myadapter'
-  
+
   # test/test_helper.rb
   require 'simplecov_custom_adapter'
   SimpleCov.start 'myadapter'
-  
+
 == Customizing exit behaviour
 
 You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
@@ -269,16 +269,16 @@ You can define what simplecov should do when your test suite finishes by customi
   SimpleCov.at_exit do
     SimpleCov.result.format!
   end
-  
+
 Above is the default behaviour. Do whatever you like instead!
 
 == Using your own formatter
 
-You can use your own formatter with: 
+You can use your own formatter with:
 
   SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 
-When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result" 
+When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result"
 being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 == Using multiple formatters
@@ -295,21 +295,21 @@ There is currently no built-in support for this, but you could help yourself wit
 Then configure the formatter to use the new merger:
 
   SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
-  
+
 == Available formatters
 
 Apart from the direct companion simplecov-html (https://github.com/colszowka/simplecov-html), there are other formatters
 available:
 
-==== simplecov_rcov 
-by Fernando Guillen 
+==== simplecov_rcov
+by Fernando Guillen
 
 https://github.com/fguillen/simplecov-rcov
 
 "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
 
-==== simplecov_csv 
-by Fernando Guillen 
+==== simplecov_csv
+by Fernando Guillen
 
 https://github.com/fguillen/simplecov-csv
 
@@ -331,7 +331,7 @@ http://travis-ci.org/colszowka/simplecov.png
 Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
 including Rubinius and JRuby, in {continuous integration}[http://travis-ci.org/colszowka/simplecov], but this happens only to
 ensure that SimpleCov does not make your test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future
-depends solely on whether those Ruby interpreters add the coverage library. 
+depends solely on whether those Ruby interpreters add the coverage library.
 
 SimpleCov is built in {continuous integration}[http://travis-ci.org/colszowka/simplecov] on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
 rbx and jruby.

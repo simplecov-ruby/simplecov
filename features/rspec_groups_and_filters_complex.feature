@@ -5,7 +5,7 @@ Feature: Sophisticated grouping and filtering on RSpec
   Blocks get each SimpleCov::SourceFile instance passed an can use arbitrary
   and potentially weird conditions to remove files from the report or add them
   to specific groups.
-  
+
   Scenario:
     Given I cd to "project"
     Given a file named "spec/simplecov_config.rb" with:

@@ -6,10 +6,10 @@ require 'rubygems'
 module SimpleCov
   # Indicates invalid coverage data
   class CoverageDataError < StandardError; end;
-  
+
   class << self
     attr_accessor :running#, :result # TODO: Remove result?
-    
+
     #
     # Sets up SimpleCov to run against your project.
     # You can optionally specify an adapter to use as well as configuration with a block:
@@ -29,7 +29,7 @@ module SimpleCov
     #
     def start(adapter=nil, &block)
       return false unless SimpleCov.usable?
-      
+
       require 'coverage'
       load_adapter(adapter) unless adapter.nil?
       Coverage.start
@@ -37,7 +37,7 @@ module SimpleCov
       @result = nil
       self.running = true
     end
-    
+
     #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
@@ -55,7 +55,7 @@ module SimpleCov
     ensure
       self.running = false
     end
-    
+
     #
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
     #
@@ -66,7 +66,7 @@ module SimpleCov
       end
       SimpleCov::FileList.new result
     end
-    
+
     #
     # Applies the configured groups to the given array of SimpleCov::SourceFile items
     #
@@ -82,14 +82,14 @@ module SimpleCov
       end
       grouped
     end
-    
-    # 
+
+    #
     # Applies the adapter of given name on SimpleCov configuration
     #
     def load_adapter(name)
       adapters.load(name)
     end
-    
+
     #
     # Checks whether we're on a proper version of ruby (1.9+) and returns false if this is not the case,
     # also printing an appropriate warning

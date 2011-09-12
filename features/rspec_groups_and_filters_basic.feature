@@ -14,14 +14,14 @@ Feature:
         add_filter '/spec/'
       end
       """
-      
+
     When I open the coverage report generated with `bundle exec rspec spec`
     And I should see the groups:
       | name      | coverage | files |
       | All Files | 88.37%   | 4     |
       | Libs      | 86.11%   | 3     |
       | Ungrouped | 100.0%   | 1     |
-      
+
     And I should see the source files:
       | name                                    | coverage |
       | lib/faked_project.rb                    | 100.0 %  |

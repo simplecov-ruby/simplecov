@@ -6,11 +6,11 @@ module FrameworkSpecific
     def cucumber
       "Only tested in Cucumber"
     end
-    
+
     def rspec
       "Only tested in RSpec"
     end
-    
+
     def test_unit
       "Only tested in Test/Unit"
     end

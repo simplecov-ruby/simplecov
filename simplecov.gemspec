@@ -1,29 +1,28 @@
-# -*- encoding: utf-8 -*-
-$:.push File.expand_path("../lib", __FILE__)
-require "simplecov/version"
+# encoding: utf-8
+$:.push File.expand_path('../lib', __FILE__)
+require 'simplecov/version'
 
-Gem::Specification.new do |s|
-  s.name        = "simplecov"
-  s.version     = SimpleCov::VERSION
-  s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Christoph Olszowka"]
-  s.email       = ["christoph at olszowka de"]
-  s.homepage    = "http://github.com/colszowka/simplecov"
-  s.summary     = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
-  s.description = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
+Gem::Specification.new do |gem|
+  gem.name        = 'simplecov'
+  gem.version     = SimpleCov::VERSION
+  gem.platform    = Gem::Platform::RUBY
+  gem.authors     = ["Christoph Olszowka"]
+  gem.email       = ['christoph at olszowka de']
+  gem.homepage    = 'http://github.com/colszowka/simplecov'
+  gem.description = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
+  gem.summary     = gem.description
 
-  s.rubyforge_project = "simplecov"
-  
-  s.add_dependency 'simplecov-html', "~> 0.5.0"
-  s.add_development_dependency "aruba", ">= 0.4.5"
-  s.add_development_dependency "capybara", "~> 1.0.0"
-  s.add_development_dependency "cucumber", "~> 1.0.0"
-  s.add_development_dependency "rake", "<= 0.9.0" # This is required since 0.9.1 breaks compatibility with Ruby 1.8.6...
-  s.add_development_dependency "rspec", ">= 2.6.0"
-  s.add_development_dependency "shoulda", "~> 2.10.3"
+  gem.add_dependency 'multi_json', '~> 1.0.3'
+  gem.add_dependency 'simplecov-html', '~> 0.5.0'
+  gem.add_development_dependency 'aruba', '~> 0.4'
+  gem.add_development_dependency 'capybara', '~> 1.0'
+  gem.add_development_dependency 'cucumber', '~> 1.0'
+  gem.add_development_dependency 'rake', '~> 0.8'
+  gem.add_development_dependency 'rspec', '~> 2.6'
+  gem.add_development_dependency 'shoulda', '~> 2.10'
 
-  s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
-  s.require_paths = ["lib"]
+  gem.files         = `git ls-files`.split("\n")
+  gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
+  gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
+  gem.require_paths = ['lib']
 end
