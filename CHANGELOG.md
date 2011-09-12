@@ -10,6 +10,7 @@ v0.5.1 (2011-09-12)
 
 v0.5.0 (2011-09-09)
 ===================
+**Note: Yanked 2011-09-09 because of trouble with the gemspec.**
 
   * JSON is now used instead of YAML for resultset caching (used for merging). Should resolve
     a lot of problems people used to have because of YAML parser errors.
