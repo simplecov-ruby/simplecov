@@ -18,17 +18,17 @@ Feature:
       SimpleCov.adapters.define 'custom_command' do
         command_name "Adapter Command"
       end
-      
+
       SimpleCov.start do
         load_adapter 'test_frameworks'
         load_adapter 'custom_command'
       end
       """
-      
+
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see "4 files in total."
     And I should see "using Adapter Command" within "#footer"
-    
+
   Scenario: Using existing adapter in custom adapter and supplying adapter to start command
     Given a file named ".simplecov" with:
       """

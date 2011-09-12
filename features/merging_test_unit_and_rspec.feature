@@ -23,20 +23,20 @@ Feature:
         add_filter 'spec.rb'
       end
       """
-      
+
     When I open the coverage report generated with `bundle exec rake test`
     Then the report should be based upon:
       | Unit Tests |
-    
+
     When I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec      |
       | Unit Tests |
-      
+
     And I should see the groups:
       | name      | coverage | files |
       | All Files | 90.7%    | 4     |
-      
+
     And I should see the source files:
       | name                                    | coverage |
       | lib/faked_project.rb                    | 100.0 %  |

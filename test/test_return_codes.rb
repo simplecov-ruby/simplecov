@@ -15,22 +15,22 @@ class TestReturnCodes < Test::Unit::TestCase
         `ruby testunit_good.rb`
         assert_equal 0, $?.exitstatus
       end
-    
+
       should "have return code 0 when running rspec_good.rb" do
         `rspec rspec_good.rb`
         assert_equal 0, $?.exitstatus
       end
-    
+
       should "have non-0 return code when running testunit_bad.rb" do
         `ruby testunit_bad.rb`
         assert_not_equal 0, $?.exitstatus
       end
-    
+
       should "have return code 1 when running rspec_bad.rb" do
         `rspec rspec_bad.rb`
         assert_not_equal 0, $?.exitstatus
       end
-    
+
       teardown do
         Dir.chdir(@current_dir)
       end

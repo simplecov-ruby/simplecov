@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.description = %Q{Code coverage for Ruby 1.9 with a powerful configuration library and automatic merging of coverage across test suites}
 
   s.rubyforge_project = "simplecov"
-  
+
   s.add_dependency 'simplecov-html', "~> 0.5.0"
   s.add_development_dependency "aruba", ">= 0.4.5"
   s.add_development_dependency "capybara", "~> 1.0.0"
