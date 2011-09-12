@@ -5,8 +5,7 @@ Feature:
   the user a coverage report after running `cucumber features`
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "features/support/simplecov_config.rb" with:
+    Given SimpleCov for Cucumber is configured with:
       """
       require 'simplecov'
       SimpleCov.start

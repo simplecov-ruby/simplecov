@@ -5,11 +5,9 @@ Feature:
   If this is not sufficient for you, you can specify a custom name using
   SimpleCov.project_name('xyz')
 
-  Background:
-    Given I cd to "project"
 
   Scenario: Guessed name
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start
@@ -19,7 +17,7 @@ Feature:
     Then I should see "Code coverage for Project"
 
   Scenario: Custom name
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start { project_name "Superfancy 2.0" }

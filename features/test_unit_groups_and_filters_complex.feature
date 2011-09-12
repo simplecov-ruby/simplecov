@@ -7,8 +7,7 @@ Feature: Sophisticated grouping and filtering on Test/Unit
   to specific groups.
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do

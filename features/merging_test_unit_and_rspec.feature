@@ -6,8 +6,7 @@ Feature:
   the joined results of all test suites that are using SimpleCov.
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
@@ -15,7 +14,7 @@ Feature:
         add_filter 'spec.rb'
       end
       """
-    And a file named "spec/simplecov_config.rb" with:
+    And SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       SimpleCov.start do

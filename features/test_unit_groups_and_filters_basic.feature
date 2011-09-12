@@ -5,8 +5,7 @@ Feature:
   coverage report that respects those settings after running tests
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do

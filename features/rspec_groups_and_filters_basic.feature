@@ -5,8 +5,7 @@ Feature:
   coverage report that respects those settings after running rspec
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "spec/simplecov_config.rb" with:
+    Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       SimpleCov.start do

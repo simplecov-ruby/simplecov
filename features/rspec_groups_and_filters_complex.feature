@@ -7,8 +7,7 @@ Feature: Sophisticated grouping and filtering on RSpec
   to specific groups.
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "spec/simplecov_config.rb" with:
+    Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       SimpleCov.start do

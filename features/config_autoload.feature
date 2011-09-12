@@ -12,7 +12,6 @@ Feature:
   by doing a 'require "simplecov"'
 
   Scenario:
-    Given I cd to "project"
     Given a file named ".simplecov" with:
       """
       SimpleCov.start do
@@ -20,11 +19,11 @@ Feature:
         add_filter 'spec.rb'
       end
       """
-    And a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       """
-    And a file named "spec/simplecov_config.rb" with:
+    Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       """

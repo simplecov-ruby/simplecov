@@ -23,4 +23,5 @@ Before do
     FileUtils.rm_rf 'project'
     FileUtils.cp_r File.join(this_dir, '../../test/faked_project/'), 'project'
   end
+  Given 'I cd to "project"'
 end

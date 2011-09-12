@@ -9,15 +9,14 @@ Feature:
   output directories instead (see SimpleCov.coverage_dir), but it is possible :)
 
   Scenario:
-    Given I cd to "project"
-    Given a file named "test/simplecov_config.rb" with:
+    Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
         use_merging false
       end
       """
-    And a file named "spec/simplecov_config.rb" with:
+    Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
