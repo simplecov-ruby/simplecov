@@ -1,5 +1,3 @@
-require 'rubygems'
-
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #

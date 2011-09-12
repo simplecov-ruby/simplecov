@@ -1,7 +1,5 @@
-require 'rubygems'
 require 'bundler/setup'
 require 'simplecov'
-
 require 'test/unit'
 require 'shoulda'
 
