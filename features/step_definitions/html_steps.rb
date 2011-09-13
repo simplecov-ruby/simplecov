@@ -40,3 +40,6 @@ Then /^I should see the source files:$/ do |table|
   files.sort_by {|hsh| hsh["name"] }.should == expected_files.sort_by {|hsh| hsh["name"] }
 end
 
+Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
+  expected_count.to_i.should == all(".source_table ol li.skip").count
+end
