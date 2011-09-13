@@ -1,3 +1,15 @@
+v0.5.3 (2011-09-13)
+===================
+
+  * Fix for encoding issues that came from the nocov processing mechanism
+    (see https://github.com/colszowka/simplecov/issues/71)
+  * :nocov: lines are now actually being reflected in the HTML report and are marked in yellow.
+    
+  * Introduced SimpleCov::SourceFile::Line#status method that returns the coverage status
+    as a string for this line - made SimpleCov::HTML use that.
+  * Refactored nocov processing and made it configurable using SimpleCov.ncov_token (or it's
+    alias SimpleCov.skip_token)
+
 v0.5.2 (2011-09-12)
 ===================
 
