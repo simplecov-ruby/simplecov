@@ -10,6 +10,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
+[Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
 [Changelog]: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md "Project Changelog"
 [Rubygem]: http://rubygems.org/gems/simplecov "SimpleCov @ rubygems.org"
 [Continuous Integration]: http://travis-ci.org/colszowka/simplecov "SimpleCov is built around the clock by travis-ci.org"
@@ -28,26 +29,36 @@ report actually covers coverage across your test suites and thereby gives you a 
 The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
 automatically when you launch SimpleCov. If you're curious, you can find it at [on Github, too][simplecov-html]
 
-Basic usage
------------
 
-Update your `Gemfile` with this and do a `bundle install`:
 
-    gem 'simplecov', '>= 0.5.3', :require => false, :group => :test
+Getting started
+---------------
 
-Then, add the following to your `test/test_helper.rb` (right at the top, line 00) or `spec_helper.rb` or cucumber `env.rb` or whatever
-test framework you prefer, really - just make sure simplecov is loaded and started BEFORE your app code is loaded:
+1. Add SimpleCov to your `Gemfile` with and `bundle install`:
+      
+        gem 'simplecov', :require => false, :group => :test
 
-    require 'simplecov'
-    SimpleCov.start
+2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (or `spec_helper.rb`, cucumber `env.rb`, or whatever
+   your preferred test framework uses).
 
-After your test suite ran, open up the newly created `coverage/index.html` in your browser and check out what you've missed so far.
+        require 'simplecov'
+        SimpleCov.start
+
+        # Previous content of test helper now starts here
+        
+      **Note:** If SimpleCov starts after your application code is already loaded (via require), it won't be able to track your files and their coverage!       
+      The `SimpleCov.start` **must** be issued **before any of your application code is required!**
+
+3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far. 
 
 If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
-for it which will give you handy tabs in the output webpage for your Controllers, Views, Models, etc. To use it, the first two lines of your test_helper should be like this:
+which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of 
+your test_helper should be like this:
 
     require 'simplecov'
     SimpleCov.start 'rails'
+
+
 
 ## Example output
 
@@ -60,8 +71,9 @@ for it which will give you handy tabs in the output webpage for your Controllers
 
 ![SimpleCov source file detail view](http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png)
 
-Use it with any framework!
---------------------------
+
+
+## Use it with any framework!
 
 Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
 config to the very top of your Cucumber/RSpec/whatever setup file.
@@ -75,48 +87,52 @@ Other test frameworks should work accordingly, whatever their setup file may be:
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
 care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
 
-Configuration
--------------
 
-Configuration settings can be applied in three formats.
 
-The 'direct' way:
+## Configuring SimpleCov
 
-    SimpleCov.some_config_option 'foo'
+[Configuration] settings can be applied in three formats, which are completely equivalent:
 
-Using a block:
+* The most common way is to configure it directly in your start block:
 
-    SimpleCov.configure do
-      some_config_option 'foo'
+        SimpleCov.start do
+          some_config_option 'foo'
+        end
+
+* You can also set all configuration options directly:
+
+        SimpleCov.some_config_option 'foo'
+
+* If you do not want to start coverage immediately after launch or want to add additional configuration later on in a concise way, use:
+
+        SimpleCov.configure do
+          some_config_option 'foo'
+        end
+        
+Please check out the [Configuration] API documentation to find out what you can customize.
+
+
+## Using .simplecov for centralized config
+
+If you use SimpleCov to merge multiple test suite results (i.e. Test/Unit and Cucumber) into a single report, you'd normally have to
+set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
+
+To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the `require 'simplecov'` in each
+test setup helper and move the `SimpleCov.start` code with all your custom config options into `.simplecov`:
+
+    # test/test_helper.rb
+    require 'simplecov'
+    
+    # features/support/env.rb
+    require 'simplecov'
+    
+    # .simplecov
+    SimpleCov.start 'rails' do
+      # any custom configs like groups and filters can be here at a central place
     end
 
-Using a block and automatically starting the coverage:
 
-    SimpleCov.start do
-      some_config_option 'foo'
-    end
-
-Most times, you'll want to use the latter, so loading and setting up simplecov is in one place at the top of your test helper.
-
-Running coverage only on demand
--------------------------------
-
-The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
-only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
-it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
-
-Because of this, SimpleCov has no explicit built-in mechanism to run coverage only on demand.
-
-However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
-
-    SimpleCov.start if ENV["COVERAGE"]
-
-Then, SimpleCov will only run if you execute your tests like this:
-
-    $ COVERAGE=true rake test
-
-Filters
--------
+## Filters
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all files
 OUTSIDE of your project's root directory - otherwise you'd end up with a billion of coverage reports for source files in the
@@ -164,6 +180,7 @@ Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter an
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
 
+
 ## Groups
 
 You can separate your source files into groups. For example, in a rails app, you'll want to have separate listings for
@@ -196,7 +213,7 @@ There are two things to note here though:
 ### Test suite names
 
 Simplecov tries to guess the name of the currently running test suite based upon the shell command the tests are running
-on (from v0.3.2+). This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
+on. This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
 that invoked the test suite as a command name.
 
 If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the
@@ -216,7 +233,7 @@ you could do something like this:
     # test/integration/some_integration_test.rb
     SimpleCov.command_name "test:integration"
 
-    # features/steps/web_steps.rb
+    # features/support/env.rb
     SimpleCov.command_name "features"
 
 Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
@@ -232,6 +249,23 @@ raise (or lower) it by specifying `SimpleCov.merge_timeout 3600` (1 hour), or, i
 just "merge_timeout 3600".
 
 You can deactivate merging altogether with `SimpleCov.use_merging false`.
+
+
+## Running coverage only on demand
+
+The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
+only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
+it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
+
+Because of this, SimpleCov has no explicit built-in mechanism to run coverage only on demand.
+
+However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
+
+    SimpleCov.start if ENV["COVERAGE"]
+
+Then, SimpleCov will only run if you execute your tests like this:
+
+    $ COVERAGE=true rake test
 
 
 ## Adapters
@@ -296,6 +330,7 @@ You can define what simplecov should do when your test suite finishes by customi
 
 Above is the default behaviour. Do whatever you like instead!
 
+
 ## Using your own formatter
 
 You can use your own formatter with:
@@ -304,6 +339,7 @@ You can use your own formatter with:
 
 When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result"
 being an instance of SimpleCov::Result. Do whatever your wish with that!
+
 
 ## Using multiple formatters
 
@@ -335,14 +371,7 @@ available:
 
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
-## Configuration options
 
-Please have a look at our documentation[http://rubydoc.info/gems/simplecov/frames], specifically the Configuration class.
-
-## Kudos
-
-Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
-for this!
 
 ## Ruby version compatibility
 
@@ -353,8 +382,9 @@ including Rubinius and JRuby, in [Continuous Integration], but this happens only
 test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby 
 interpreters add the coverage library.
 
-SimpleCov is built in [Continuous Integration] on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
-rbx and jruby.
+SimpleCov is built in [Continuous Integration] on 1.8.7, ree, 1.9.2, 1.9.3.
+
+
 
 ## Contributions
 
@@ -371,6 +401,12 @@ If you wont to contribute, please:
   * Make your feature addition or bug fix.
   * Add tests for it. This is important so I don't break it in a future version unintentionally.
   * Send me a pull request on Github.
+
+## Kudos
+
+Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
+for this!
+    
 
 ## Copyright
 
