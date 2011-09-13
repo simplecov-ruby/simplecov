@@ -38,15 +38,15 @@ Getting started
       
         gem 'simplecov', :require => false, :group => :test
 
-2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (or `spec_helper.rb`, cucumber `env.rb`, or whatever
-   your preferred test framework uses).
+2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (*or `spec_helper.rb`, cucumber `env.rb`, or whatever
+   your preferred test framework uses*):
 
         require 'simplecov'
         SimpleCov.start
 
         # Previous content of test helper now starts here
         
-      **Note:** If SimpleCov starts after your application code is already loaded (via require), it won't be able to track your files and their coverage!       
+      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to track your files and their coverage!       
       The `SimpleCov.start` **must** be issued **before any of your application code is required!**
 
 3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far. 
