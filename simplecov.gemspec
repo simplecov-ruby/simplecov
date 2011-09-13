@@ -16,7 +16,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'simplecov-html', '~> 0.5.3'
   gem.add_development_dependency 'aruba', '~> 0.4'
   gem.add_development_dependency 'capybara', '~> 1.0'
-  gem.add_development_dependency 'cucumber', '~> 1.0'
+  gem.add_development_dependency 'cucumber', '~> 1.0.5'
   gem.add_development_dependency 'rake', '~> 0.8'
   gem.add_development_dependency 'rspec', '~> 2.6'
   gem.add_development_dependency 'shoulda', '~> 2.10'
