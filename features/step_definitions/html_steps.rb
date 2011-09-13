@@ -41,5 +41,5 @@ Then /^I should see the source files:$/ do |table|
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
-  expected_count.to_i.should == all(".source_table ol li.skip").count
+  all(".source_table ol li.skipped").count.should == expected_count.to_i
 end
