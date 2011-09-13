@@ -1,16 +1,20 @@
-SimpleCov
+SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration]
 =========
+*Code coverage for Ruby 1.9*
 
-Code coverage for Ruby 1.9
+  * [Source Code]
+  * [API documentation]
+  * [Changelog]
+  * [Rubygem]
+  * [Continuous Integration]
+  
+[Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
+[API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
+[Changelog]: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md "Project Changelog"
+[Rubygem]: http://rubygems.org/gems/simplecov "SimpleCov @ rubygems.org"
+[Continuous Integration]: http://travis-ci.org/colszowka/simplecov "SimpleCov is built around the clock by travis-ci.org"
+[simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
 
-[![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
-
-
-  * Source code: https://github.com/colszowka/simplecov
-  * API documentation: http://rubydoc.info/gems/simplecov/frames
-  * Changelog: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md
-  * Rubygems: http://rubygems.org/gems/simplecov
-  * Continouous Integration: http://travis-ci.org/colszowka/simplecov
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
@@ -21,8 +25,8 @@ In most cases, you'll want overall coverage results for your projects, including
 etc. Simplecov automatically takes care of this by caching and then merging results when generating reports, so your
 report actually covers coverage across your test suites and thereby gives you a better picture of blank spots.
 
-The official formatter of SimpleCov is packaged as a separate gem called simplecov-html but will be installed and configured
-automatically when you launch SimpleCov. If you're curious, you can find it at http://github.com/colszowka/simplecov-html
+The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
+automatically when you launch SimpleCov. If you're curious, you can find it at [on Github, too][simplecov-html]
 
 Basic usage
 -----------
@@ -218,7 +222,7 @@ you could do something like this:
 Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is fair enough.
 
-simplecov-html prints the used test suites in the footer of the generated coverage report.
+[simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
 ### Timeout for merge
 
@@ -318,20 +322,16 @@ Then configure the formatter to use the new merger:
 
 ## Available formatters
 
-Apart from the direct companion simplecov-html (https://github.com/colszowka/simplecov-html), there are other formatters
+Apart from the direct companion [simplecov-html], there are other formatters
 available:
 
-#### simplecov_rcov
-by Fernando Guillen
-
-https://github.com/fguillen/simplecov-rcov
+### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
+*by Fernando Guillen*
 
 "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
 
-#### simplecov_csv
-by Fernando Guillen
-
-https://github.com/fguillen/simplecov-csv
+#### [simplecov-csv](https://github.com/fguillen/simplecov-csv)
+*by Fernando Guillen*
 
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
@@ -349,11 +349,11 @@ for this!
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
 
 Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
-including Rubinius and JRuby, in [continuous integration](http://travis-ci.org/colszowka/simplecov), but this happens only to
-ensure that SimpleCov does not make your test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future
-depends solely on whether those Ruby interpreters add the coverage library.
+including Rubinius and JRuby, in [Continuous Integration], but this happens only to ensure that SimpleCov does not make your 
+test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby 
+interpreters add the coverage library.
 
-SimpleCov is built in [continuous integration](http://travis-ci.org/colszowka/simplecov) on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
+SimpleCov is built in [Continuous Integration] on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
 rbx and jruby.
 
 ## Contributions
