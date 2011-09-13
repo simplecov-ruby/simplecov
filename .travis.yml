@@ -5,5 +5,5 @@ rvm:
   - 1.9.2
   - 1.9.3
   - ree
-  - rbx
-#  - jruby
+#  - rbx # Fails currently because of broken gemspec in Cucumber
+#  - jruby # Has trouble installing on travis-ci right now
