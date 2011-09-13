@@ -1,11 +1,14 @@
 require 'helper'
 
 class TestSourceFileLine < Test::Unit::TestCase
+
+  
   on_ruby '1.9' do
     context "A source line" do
       setup do
         @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)
       end
+      subject { @line }
 
       should 'return "# the ruby source" as src' do
         assert_equal '# the ruby source', @line.src
@@ -23,72 +26,63 @@ class TestSourceFileLine < Test::Unit::TestCase
         assert_equal @line.line_number, @line.line
         assert_equal @line.line_number, @line.number
       end
+      
+      context "flagged as skipped!" do
+        setup { @line.skipped! }
+        
+        should_not_be :covered?
+        should_be :skipped?
+        should_not_be :missed?
+        should_not_be :never?
+      end
     end
-
+    
     context "A source line with coverage" do
       setup do
         @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)
       end
+      subject { @line }
 
       should "have coverage of 3" do
         assert_equal 3, @line.coverage
       end
 
-      should "be covered?" do
-        assert @line.covered?
-      end
-
-      should "not be never?" do
-        assert !@line.never?
-      end
-
-      should "not be missed?" do
-        assert !@line.missed?
-      end
+      should_be :covered?
+      should_not_be :skipped?
+      should_not_be :missed?
+      should_not_be :never?
     end
 
     context "A source line without coverage" do
       setup do
         @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 0)
       end
+      subject { @line }
 
       should "have coverage of 0" do
         assert_equal 0, @line.coverage
       end
 
-      should "not be covered?" do
-        assert !@line.covered?
-      end
-
-      should "not be never?" do
-        assert !@line.never?
-      end
-
-      should "be missed?" do
-        assert @line.missed?
-      end
+      should_not_be :covered?
+      should_not_be :skipped?
+      should_be :missed?
+      should_not_be :never?
     end
 
     context "A source line with no code" do
       setup do
         @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, nil)
       end
+      subject { @line }
 
       should "have nil coverage" do
         assert_nil @line.coverage
       end
 
-      should "not be covered?" do
-        assert !@line.covered?
-      end
-
-      should "be never?" do
-        assert @line.never?
-      end
-
-      should "not be missed?" do
-        assert !@line.missed?
-      end
+      should_not_be :covered?
+      should_not_be :skipped?
+      should_not_be :missed?
+      should_be :never?
     end
 
     should "raise ArgumentError when initialized with invalid src" do

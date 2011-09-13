@@ -13,6 +13,7 @@ class Test::Unit::TestCase
   # Keep 1.8-rubies from complaining about missing tests in each file that covers only 1.9 functionality
   def default_test
   end
+  
 end
 
 require 'shoulda_macros'
