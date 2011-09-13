@@ -1,10 +1,16 @@
-= SimpleCov http://travis-ci.org/colszowka/simplecov.png
+SimpleCov
+=========
 
-* Source code: https://github.com/colszowka/simplecov
-* API documentation: http://rubydoc.info/gems/simplecov/frames
-* Changelog: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md
-* Rubygems: http://rubygems.org/gems/simplecov
-* Continouous Integration: http://travis-ci.org/colszowka/simplecov
+Code coverage for Ruby 1.9
+
+[![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
+
+
+  * Source code: https://github.com/colszowka/simplecov
+  * API documentation: http://rubydoc.info/gems/simplecov/frames
+  * Changelog: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md
+  * Rubygems: http://rubygems.org/gems/simplecov
+  * Continouous Integration: http://travis-ci.org/colszowka/simplecov
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
@@ -18,71 +24,78 @@ report actually covers coverage across your test suites and thereby gives you a 
 The official formatter of SimpleCov is packaged as a separate gem called simplecov-html but will be installed and configured
 automatically when you launch SimpleCov. If you're curious, you can find it at http://github.com/colszowka/simplecov-html
 
-== Basic usage
+Basic usage
+-----------
 
-Update your Gemfile with this and do a bundle install:
+Update your `Gemfile` with this and do a `bundle install`:
 
-  gem 'simplecov', '>= 0.5.3', :require => false, :group => :test
+    gem 'simplecov', '>= 0.5.3', :require => false, :group => :test
 
-Then, add the following to your test/test_helper.rb (right at the top, line 00) or spec_helper.rb or cucumber env.rb or whatever
+Then, add the following to your `test/test_helper.rb` (right at the top, line 00) or `spec_helper.rb` or cucumber `env.rb` or whatever
 test framework you prefer, really - just make sure simplecov is loaded and started BEFORE your app code is loaded:
 
-  require 'simplecov'
-  SimpleCov.start
+    require 'simplecov'
+    SimpleCov.start
 
-Now, when running tests you'll get a coverage/ folder inside your app's root where you can browse your code coverage.
+After your test suite ran, open up the newly created `coverage/index.html` in your browser and check out what you've missed so far.
 
 If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
 for it which will give you handy tabs in the output webpage for your Controllers, Views, Models, etc. To use it, the first two lines of your test_helper should be like this:
 
-  require 'simplecov'
-  SimpleCov.start 'rails'
+    require 'simplecov'
+    SimpleCov.start 'rails'
 
-== Example output
+## Example output
 
-<b>Coverage results report, fully browsable locally with sorting and much more:</b>
-http://colszowka.github.com/simplecov/devise_result-0.5.3.png
+**Coverage results report, fully browsable locally with sorting and much more:**
 
-<b>Source file coverage details view:</b>
-http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png
+![SimpleCov coverage report](http://colszowka.github.com/simplecov/devise_result-0.5.3.png)
 
-== Use it with any framework!
+
+**Source file coverage details view:**
+
+![SimpleCov source file detail view](http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png)
+
+Use it with any framework!
+--------------------------
 
 Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
 config to the very top of your Cucumber/RSpec/whatever setup file.
 
-Add the setup code to the <b>top</b> of +features/support/env.rb+ (for Cucumber) or +spec/spec_helper.rb+ (for RSpec).
+Add the setup code to the **top** of `features/support/env.rb` (for Cucumber) or `spec/spec_helper.rb` (for RSpec).
 Other test frameworks should work accordingly, whatever their setup file may be:
 
-  require 'simplecov'
-  SimpleCov.start 'rails'
+    require 'simplecov'
+    SimpleCov.start 'rails'
 
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
 care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
 
-== Configuration
+Configuration
+-------------
 
 Configuration settings can be applied in three formats.
 
 The 'direct' way:
 
-  SimpleCov.some_config_option 'foo'
+    SimpleCov.some_config_option 'foo'
 
 Using a block:
 
-  SimpleCov.configure do
-    some_config_option 'foo'
-  end
+    SimpleCov.configure do
+      some_config_option 'foo'
+    end
 
 Using a block and automatically starting the coverage:
 
-  SimpleCov.start do
-    some_config_option 'foo'
-  end
+    SimpleCov.start do
+      some_config_option 'foo'
+    end
 
 Most times, you'll want to use the latter, so loading and setting up simplecov is in one place at the top of your test helper.
 
-== Running coverage only on demand
+Running coverage only on demand
+-------------------------------
 
 The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
 only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
@@ -92,13 +105,14 @@ Because of this, SimpleCov has no explicit built-in mechanism to run coverage on
 
 However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
 
-  SimpleCov.start if ENV["COVERAGE"]
+    SimpleCov.start if ENV["COVERAGE"]
 
 Then, SimpleCov will only run if you execute your tests like this:
 
-  $ COVERAGE=true rake test
+    $ COVERAGE=true rake test
 
-== Filters
+Filters
+-------
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all files
 OUTSIDE of your project's root directory - otherwise you'd end up with a billion of coverage reports for source files in the
@@ -107,46 +121,46 @@ gems you are using.
 Of course you can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
 report.
 
-=== Defining custom filters
+### Defining custom filters
 
 You can currently define a filter using either a String (that will then be Regexp-matched against each source file's path),
 a block or by passing in your own Filter class.
 
-==== String filter
+#### String filter
 
-  SimpleCov.start do
-    add_filter "/test/"
-  end
+    SimpleCov.start do
+      add_filter "/test/"
+    end
 
 This simple string filter will remove all files that match "/test/" in their path.
 
-==== Block filter
+#### Block filter
 
-  SimpleCov.start do
-    add_filter do |source_file|
-      source_file.lines.count < 5
+    SimpleCov.start do
+      add_filter do |source_file|
+        source_file.lines.count < 5
+      end
     end
-  end
 
 Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be removed
 from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to learn about the
 methods available to you. In the above example, the filter will remove all files that have less then 5 lines of code.
 
-==== Custom filter class
+#### Custom filter class
 
-  class LineFilter < SimpleCov::Filter
-    def passes?(source_file)
-      source_file.lines.count < filter_argument
+    class LineFilter < SimpleCov::Filter
+      def passes?(source_file)
+        source_file.lines.count < filter_argument
+      end
     end
-  end
 
-  SimpleCov.add_filter LineFilter.new(5)
+    SimpleCov.add_filter LineFilter.new(5)
 
 Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'passes?(source_file)'. When running
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
 
-== Groups
+## Groups
 
 You can separate your source files into groups. For example, in a rails app, you'll want to have separate listings for
 Models, Controllers, Helpers, Libs and Plugins. Group definition works similar to Filters (and indeed also accepts custom
@@ -155,16 +169,16 @@ which exclude files from results when the filter results in a true value.
 
 Add your groups with:
 
-  SimpleCov.start do
-    add_group "Models", "app/models"
-    add_group "Controllers", "app/controllers"
-    add_group "Long files" do |src_file|
-      src_file.lines.count > 100
+    SimpleCov.start do
+      add_group "Models", "app/models"
+      add_group "Controllers", "app/controllers"
+      add_group "Long files" do |src_file|
+        src_file.lines.count > 100
+      end
+      add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
     end
-    add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
-  end
 
-== Merging results
+## Merging results
 
 Normally, you want to have your coverage analyzed across ALL of your test suites, right?
 
@@ -175,7 +189,7 @@ coverage report.
 
 There are two things to note here though:
 
-=== Test suite names
+### Test suite names
 
 Simplecov tries to guess the name of the currently running test suite based upon the shell command the tests are running
 on (from v0.3.2+). This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
@@ -189,33 +203,34 @@ So, to customize the suite names on a Rails app (yeah, sorry for being Rails bia
 the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
-  # test/unit/some_test.rb
-  SimpleCov.command_name 'test:units'
+    # test/unit/some_test.rb
+    SimpleCov.command_name 'test:units'
 
-  # test/functionals/some_controller_test.rb
-  SimpleCov.command_name "test:functionals"
+    # test/functionals/some_controller_test.rb
+    SimpleCov.command_name "test:functionals"
 
-  # test/integration/some_integration_test.rb
-  SimpleCov.command_name "test:integration"
+    # test/integration/some_integration_test.rb
+    SimpleCov.command_name "test:integration"
 
-  # features/steps/web_steps.rb
-  SimpleCov.command_name "features"
+    # features/steps/web_steps.rb
+    SimpleCov.command_name "features"
 
 Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is fair enough.
 
 simplecov-html prints the used test suites in the footer of the generated coverage report.
 
-=== Timeout for merge
+### Timeout for merge
 
 Of course, your cached coverage data is likely to become invalid at some point. Thus, result sets that are older than
 SimpleCov.merge_timeout will not be used any more. By default, the timeout is 600 seconds (10 minutes), and you can
-raise (or lower) it by specifying SimpleCov.merge_timeout 3600 (1 hour), or, inside a configure/start block, with
+raise (or lower) it by specifying `SimpleCov.merge_timeout 3600` (1 hour), or, inside a configure/start block, with
 just "merge_timeout 3600".
 
-You can deactivate merging altogether with "SimpleCov.use_merging false".
+You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
-== Adapters
+
+## Adapters
 
 By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
 root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'adapters',
@@ -224,129 +239,131 @@ or define your own.
 You can then pass the name of the adapter to be used as the first argument to SimpleCov.start. For example, simplecov
 comes bundled with a 'rails' adapter. It looks somewhat like this:
 
-  SimpleCov.adapters.define 'rails' do
-    add_filter '/test/'
-    add_filter '/config/'
+    SimpleCov.adapters.define 'rails' do
+      add_filter '/test/'
+      add_filter '/config/'
 
-    add_group 'Controllers', 'app/controllers'
-    add_group 'Models', 'app/models'
-    add_group 'Helpers', 'app/helpers'
-    add_group 'Libraries', 'lib'
-    add_group 'Plugins', 'vendor/plugins'
-  end
+      add_group 'Controllers', 'app/controllers'
+      add_group 'Models', 'app/models'
+      add_group 'Helpers', 'app/helpers'
+      add_group 'Libraries', 'lib'
+      add_group 'Plugins', 'vendor/plugins'
+    end
 
 As you can see, it's just a glorified SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
 
-  SimpleCov.start 'rails'
+    SimpleCov.start 'rails'
 
-    OR
+**OR**
 
-  SimpleCov.start 'rails' do
-    # additional config here
-  end
+    SimpleCov.start 'rails' do
+      # additional config here
+    end
 
-=== Custom adapters
+### Custom adapters
 
 You can load additional adapters with the SimpleCov.load_adapter('xyz') method. This allows you to build upon an existing
 adapter and customize it so you can reuse it in unit tests and cucumber features, for example.
 
-  # lib/simplecov_custom_adapter.rb
-  require 'simplecov'
-  SimpleCov.adapters.define 'myadapter' do
-    load_adapter 'rails'
-    add_filter 'vendor' # Don't include vendored stuff
-  end
+    # lib/simplecov_custom_adapter.rb
+    require 'simplecov'
+    SimpleCov.adapters.define 'myadapter' do
+      load_adapter 'rails'
+      add_filter 'vendor' # Don't include vendored stuff
+    end
 
-  # features/support/env.rb
-  require 'simplecov_custom_adapter'
-  SimpleCov.start 'myadapter'
+    # features/support/env.rb
+    require 'simplecov_custom_adapter'
+    SimpleCov.start 'myadapter'
 
-  # test/test_helper.rb
-  require 'simplecov_custom_adapter'
-  SimpleCov.start 'myadapter'
+    # test/test_helper.rb
+    require 'simplecov_custom_adapter'
+    SimpleCov.start 'myadapter'
 
-== Customizing exit behaviour
+
+
+## Customizing exit behaviour
 
 You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
 
-  SimpleCov.at_exit do
-    SimpleCov.result.format!
-  end
+    SimpleCov.at_exit do
+      SimpleCov.result.format!
+    end
 
 Above is the default behaviour. Do whatever you like instead!
 
-== Using your own formatter
+## Using your own formatter
 
 You can use your own formatter with:
 
-  SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
+    SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 
 When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result"
 being an instance of SimpleCov::Result. Do whatever your wish with that!
 
-== Using multiple formatters
+## Using multiple formatters
 
 There is currently no built-in support for this, but you could help yourself with a wrapper class:
 
-  class SimpleCov::Formatter::MergedFormatter
-    def format(result)
-       SimpleCov::Formatter::HTMLFormatter.new.format(result)
-       SimpleCov::Formatter::CSVFormatter.new.format(result)
+    class SimpleCov::Formatter::MergedFormatter
+      def format(result)
+         SimpleCov::Formatter::HTMLFormatter.new.format(result)
+         SimpleCov::Formatter::CSVFormatter.new.format(result)
+      end
     end
-  end
 
 Then configure the formatter to use the new merger:
 
-  SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
+    SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
 
-== Available formatters
+## Available formatters
 
 Apart from the direct companion simplecov-html (https://github.com/colszowka/simplecov-html), there are other formatters
 available:
 
-==== simplecov_rcov
+#### simplecov_rcov
 by Fernando Guillen
 
 https://github.com/fguillen/simplecov-rcov
 
 "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
 
-==== simplecov_csv
+#### simplecov_csv
 by Fernando Guillen
 
 https://github.com/fguillen/simplecov-csv
 
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
-== Configuration options
+## Configuration options
 
 Please have a look at our documentation[http://rubydoc.info/gems/simplecov/frames], specifically the Configuration class.
 
-== Kudos
+## Kudos
 
 Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
 for this!
 
-== Ruby version compatibility
+## Ruby version compatibility
 
-http://travis-ci.org/colszowka/simplecov.png
+[![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
 
 Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
-including Rubinius and JRuby, in {continuous integration}[http://travis-ci.org/colszowka/simplecov], but this happens only to
+including Rubinius and JRuby, in [continuous integration](http://travis-ci.org/colszowka/simplecov), but this happens only to
 ensure that SimpleCov does not make your test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future
 depends solely on whether those Ruby interpreters add the coverage library.
 
-SimpleCov is built in {continuous integration}[http://travis-ci.org/colszowka/simplecov] on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
+SimpleCov is built in [continuous integration](http://travis-ci.org/colszowka/simplecov) on 1.8.6, 1.8.7, 1.9.2, ree, ruby-head,
 rbx and jruby.
 
-== Contributions
+## Contributions
 
 To fetch & test the library for development, do:
 
-  $ git clone https://github.com/colszowka/simplecov
-  $ cd simplecov
-  $ bundle
-  $ bundle exec rake test && bundle exec cucumber features
+    $ git clone https://github.com/colszowka/simplecov
+    $ cd simplecov
+    $ bundle
+    $ bundle exec rake test && bundle exec cucumber features
 
 If you wont to contribute, please:
 
@@ -355,6 +372,6 @@ If you wont to contribute, please:
   * Add tests for it. This is important so I don't break it in a future version unintentionally.
   * Send me a pull request on Github.
 
-== Copyright
+## Copyright
 
 Copyright (c) 2010-2011 Christoph Olszowka. See LICENSE for details.
