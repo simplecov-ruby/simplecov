@@ -34,6 +34,7 @@ class TestSourceFileLine < Test::Unit::TestCase
         should_be :skipped?
         should_not_be :missed?
         should_not_be :never?
+        should_have :status, 'skipped'
       end
     end
     
@@ -51,6 +52,7 @@ class TestSourceFileLine < Test::Unit::TestCase
       should_not_be :skipped?
       should_not_be :missed?
       should_not_be :never?
+      should_have :status, 'covered'
     end
 
     context "A source line without coverage" do
@@ -67,6 +69,7 @@ class TestSourceFileLine < Test::Unit::TestCase
       should_not_be :skipped?
       should_be :missed?
       should_not_be :never?
+      should_have :status, 'missed'
     end
 
     context "A source line with no code" do
@@ -83,6 +86,7 @@ class TestSourceFileLine < Test::Unit::TestCase
       should_not_be :skipped?
       should_not_be :missed?
       should_be :never?
+      should_have :status, 'never'
     end
 
     should "raise ArgumentError when initialized with invalid src" do

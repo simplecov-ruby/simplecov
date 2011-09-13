@@ -20,4 +20,10 @@ module ShouldaMacros
       assert_equal false, subject.send(boolean_flag)
     end
   end
+  
+  def should_have(attr_name, expectation)
+    should "have #{attr_name} == #{expectation.inspect}" do
+      assert_equal expectation, subject.send(attr_name)
+    end
+  end
 end

@@ -57,6 +57,15 @@ module SimpleCov
       def skipped?
 	      !!skipped
       end
+      
+      # The status of this line - either covered, missed, skipped or never. Useful i.e. for direct use 
+      # as a css class in report generation
+      def status
+        return 'skipped' if skipped?
+        return 'never' if never?
+        return 'missed' if missed?
+        return 'covered' if covered?
+      end
     end
 
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
