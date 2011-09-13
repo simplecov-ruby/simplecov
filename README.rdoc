@@ -39,11 +39,11 @@ for it which will give you handy tabs in the output webpage for your Controllers
 
 == Example output
 
+<b>Coverage results report, fully browsable locally with sorting and much more:</b>
 http://colszowka.github.com/simplecov/devise_result-0.5.3.png
-<b>Coverage results report, fully browsable locally with sorting and much more</b>
 
+<b>Source file coverage details view:</b>
 http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png
-<b>Source file coverage details view</b>
 
 == Usage with Cucumber, RSpec, (name your framework)
 
