@@ -7,7 +7,8 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   * [Changelog]
   * [Rubygem]
   * [Continuous Integration]
-  
+
+[Coverage]: http://www.ruby-doc.org/ruby-1.9/classes/Coverage.html "API doc for Ruby 1.9's Coverage library"
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
@@ -17,17 +18,17 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 [simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
 
 
-SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses 1.9's built-in Coverage library to gather code
+SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses [1.9's built-in Coverage][Coverage] library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
 and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
 
 In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features
-etc. Simplecov automatically takes care of this by caching and then merging results when generating reports, so your
-report actually covers coverage across your test suites and thereby gives you a better picture of blank spots.
+etc. SimpleCov automatically takes care of this by caching and then merging results when generating reports, so your
+report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
 The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
-automatically when you launch SimpleCov. If you're curious, you can find it at [on Github, too][simplecov-html]
+automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html]
 
 
 
