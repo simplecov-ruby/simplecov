@@ -39,9 +39,11 @@ for it which will give you handy tabs in the output webpage for your Controllers
 
 == Example output
 
-For the Devise Ruby gem (some tests were removed, they just have too awesome test coverage...)
+http://colszowka.github.com/simplecov/devise_result-0.5.3.png
+*Coverage results report, fully browsable locally with sorting and much more*
 
-http://img.skitch.com/20100823-n9f52i3ty3qa7cqj33rafghrtc.png
+http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png
+*Source file coverage details view*
 
 == Usage with Cucumber, RSpec, (name your framework)
 
