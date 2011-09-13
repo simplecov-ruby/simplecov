@@ -45,13 +45,13 @@ http://colszowka.github.com/simplecov/devise_result-0.5.3.png
 <b>Source file coverage details view:</b>
 http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png
 
-== Usage with Cucumber, RSpec, (name your framework)
+== Use it with any framework!
 
 Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
 config to the very top of your Cucumber/RSpec/whatever setup file.
 
-Just add the setup snippet at the very(!) top of features/support/env.rb (for Cucumber) or spec/spec_helper.rb (for RSpec).
-Other test frameworks should work accordingly.
+Add the setup code to the <b>top</b> of +features/support/env.rb+ (for Cucumber) or +spec/spec_helper.rb+ (for RSpec).
+Other test frameworks should work accordingly, whatever their setup file may be:
 
   require 'simplecov'
   SimpleCov.start 'rails'
