@@ -36,10 +36,14 @@ SimpleCov.configure do
   # Exclude files outside of SimpleCov.root
   load_adapter 'root_filter'
 end
-
 at_exit do
   # Store the exit status of the test run since it goes away after calling the at_exit proc...
-  @exit_status = $!.status if $!.is_a?(SystemExit)
+  if $! #was an exception thrown?
+    #if it was a SystemExit, use the accompanying status
+    #otherwise set a non-zero status representing termination by some other exception
+    #(see github issue 41)
+    @exit_status = $!.is_a?(SystemExit) ? $!.status : 1
+  end
   SimpleCov.at_exit.call
   exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
 end
