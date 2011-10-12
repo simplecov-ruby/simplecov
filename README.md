@@ -28,7 +28,7 @@ etc. SimpleCov automatically takes care of this by caching and then merging resu
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
 The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
-automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html]
+automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html].
 
 
 
@@ -170,14 +170,14 @@ methods available to you. In the above example, the filter will remove all files
 #### Custom filter class
 
     class LineFilter < SimpleCov::Filter
-      def passes?(source_file)
+      def matches?(source_file)
         source_file.lines.count < filter_argument
       end
     end
 
     SimpleCov.add_filter LineFilter.new(5)
 
-Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'passes?(source_file)'. When running
+Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'matches?(source_file)'. When running
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
 
