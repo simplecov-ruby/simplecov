@@ -1,11 +1,14 @@
 v0.5.4 (2011-10-12)
 ===================
 
-  * Do not give exit code 0 when there are exceptions prior to tests (see #41, thanks @nbogie)
+  * Do not give exit code 0 when there are exceptions prior to tests 
+    (see https://github.com/colszowka/simplecov/issues/41, thanks @nbogie)
   * The API for building custom filter classes is now more obvious, using #matches? instead of #passes? too. 
-    (see #85, thanks @robinroestenburg)
-  * Mailers are now part of the Rails adapter as their own group (see #79, thanks @geetarista)
-  * Removed fix for JRuby 1.6 RC1 float bug because it's been fixed (see #86)
+    (see https://github.com/colszowka/simplecov/issues/85, thanks @robinroestenburg)
+  * Mailers are now part of the Rails adapter as their own group (see 
+    https://github.com/colszowka/simplecov/issues/79, thanks @geetarista)
+  * Removed fix for JRuby 1.6 RC1 float bug because it's been fixed 
+    (see https://github.com/colszowka/simplecov/issues/86)
 
 v0.5.3 (2011-09-13)
 ===================
