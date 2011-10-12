@@ -103,7 +103,6 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
-require 'simplecov/jruby_float_fix'
 require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
 require 'simplecov/adapters'
