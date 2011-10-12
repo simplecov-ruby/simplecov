@@ -9,6 +9,7 @@ v0.5.4 (2011-10-12)
     https://github.com/colszowka/simplecov/issues/79, thanks @geetarista)
   * Removed fix for JRuby 1.6 RC1 float bug because it's been fixed 
     (see https://github.com/colszowka/simplecov/issues/86)
+  * Readme formatted in Markdown :)
 
 v0.5.3 (2011-09-13)
 ===================
