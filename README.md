@@ -35,7 +35,7 @@ automatically when you launch SimpleCov. If you're curious, you can find it [on 
 Getting started
 ---------------
 
-1. Add SimpleCov to your `Gemfile` with and `bundle install`:
+1. Add SimpleCov to your `Gemfile` and `bundle install`:
       
         gem 'simplecov', :require => false, :group => :test
 
