@@ -7,32 +7,32 @@ class TestFilters < Test::Unit::TestCase
         @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
       end
 
-      should "pass a new SimpleCov::StringFilter 'foobar'" do
-        assert SimpleCov::StringFilter.new('foobar').passes?(@source_file)
+      should "not match a new SimpleCov::StringFilter 'foobar'" do
+        assert !SimpleCov::StringFilter.new('foobar').matches?(@source_file)
       end
 
-      should "pass a new SimpleCov::StringFilter 'some/path'" do
-        assert SimpleCov::StringFilter.new('some/path').passes?(@source_file)
+      should "not match a new SimpleCov::StringFilter 'some/path'" do
+        assert !SimpleCov::StringFilter.new('some/path').matches?(@source_file)
       end
 
-      should "not pass a new SimpleCov::StringFilter 'test/fixtures'" do
-        assert !SimpleCov::StringFilter.new('test/fixtures').passes?(@source_file)
+      should "match a new SimpleCov::StringFilter 'test/fixtures'" do
+        assert SimpleCov::StringFilter.new('test/fixtures').matches?(@source_file)
       end
 
-      should "not pass a new SimpleCov::StringFilter 'test/fixtures/sample.rb'" do
-        assert !SimpleCov::StringFilter.new('test/fixtures/sample.rb').passes?(@source_file)
+      should "match a new SimpleCov::StringFilter 'test/fixtures/sample.rb'" do
+        assert SimpleCov::StringFilter.new('test/fixtures/sample.rb').matches?(@source_file)
       end
 
-      should "not pass a new SimpleCov::StringFilter 'sample.rb'" do
-        assert !SimpleCov::StringFilter.new('sample.rb').passes?(@source_file)
+      should "match a new SimpleCov::StringFilter 'sample.rb'" do
+        assert SimpleCov::StringFilter.new('sample.rb').matches?(@source_file)
       end
 
-      should "pass a new SimpleCov::BlockFilter that is not applicable" do
-        assert SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'foo.rb'}).passes?(@source_file)
+      should "not match a new SimpleCov::BlockFilter that is not applicable" do
+        assert !SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'foo.rb'}).matches?(@source_file)
       end
 
-      should "not pass a new SimpleCov::BlockFilter that is applicable" do
-        assert !SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'sample.rb'}).passes?(@source_file)
+      should "match a new SimpleCov::BlockFilter that is applicable" do
+        assert SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'sample.rb'}).matches?(@source_file)
       end
     end
 
