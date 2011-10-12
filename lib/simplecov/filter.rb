@@ -16,7 +16,7 @@ module SimpleCov
       @filter_argument = filter_argument
     end
 
-    def passes?(source_file)
+    def matches?(source_file)
       raise "The base filter class is not intended for direct use"
     end
   end
@@ -24,16 +24,16 @@ module SimpleCov
   class StringFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring)
-    def passes?(source_file)
-      !(source_file.filename =~ /#{filter_argument}/)
+    def matches?(source_file)
+      (source_file.filename =~ /#{filter_argument}/)
     end
   end
 
   class BlockFilter < SimpleCov::Filter
     # Returns true if the block given when initializing this filter with BlockFilter.new {|src_file| ... }
     # returns true for the given source file.
-    def passes?(source_file)
-      !filter_argument.call(source_file)
+    def matches?(source_file)
+      filter_argument.call(source_file)
     end
   end
 end

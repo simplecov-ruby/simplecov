@@ -60,7 +60,7 @@ module SimpleCov
     def filtered(files)
       result = files.clone
       filters.each do |filter|
-        result = result.select {|source_file| filter.passes?(source_file) }
+        result = result.reject {|source_file| filter.matches?(source_file) }
       end
       SimpleCov::FileList.new result
     end
@@ -72,7 +72,7 @@ module SimpleCov
       grouped = {}
       grouped_files = []
       groups.each do |name, filter|
-        grouped[name] = SimpleCov::FileList.new(files.select {|source_file| !filter.passes?(source_file)})
+        grouped[name] = SimpleCov::FileList.new(files.select {|source_file| filter.matches?(source_file)})
         grouped_files += grouped[name]
       end
       if groups.length > 0 and (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
