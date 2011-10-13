@@ -7,3 +7,7 @@ rvm:
   - ree
 #  - rbx # Fails currently because of broken gemspec in Cucumber
 #  - jruby # Has trouble installing on travis-ci right now
+notifications:
+  email:
+    on_success: always
+    on_failure: always
