@@ -15,6 +15,6 @@ class TestCommandGuesser < Test::Unit::TestCase
     should_guess_command_name "Integration Tests", '/some/path/test/integration/foo_bar_controller_test.rb'
     should_guess_command_name "Cucumber Features", 'features', 'cucumber', 'cucumber features'
     should_guess_command_name "RSpec", '/some/path/spec/foo.rb'
-    should_guess_command_name "some_arbitrary_command with arguments", 'some_arbitrary_command with arguments'
+    should_guess_command_name "Unit Tests", 'some_arbitrary_command with arguments' # Because Test::Unit const is defined!
   end
 end
