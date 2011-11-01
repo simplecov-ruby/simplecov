@@ -15,7 +15,14 @@ module SimpleCov::CommandGuesser
       when /spec/
         "RSpec"
       else
-        return command
+        # If the command regexps fail, let's try checking defined constants.
+        if defined?(RSpec)
+          return "RSpec"
+        elsif defined?(Test::Unit)
+          return "Unit Tests"
+        else
+          return command
+        end
     end
   end
 end
