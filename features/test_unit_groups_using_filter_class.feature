@@ -2,9 +2,9 @@
 Feature: Grouping on Test/Unit using a custom filter class
 
   Next to passing a block or a string to define a group, you can also pass
-  a filter class. The filter class inherits from SimpleCov::Filter and 
-  must implement the matches? method, which is used to determine whether 
-  or not a file should be added to the group. 
+  a filter class. The filter class inherits from SimpleCov::Filter and
+  must implement the matches? method, which is used to determine whether
+  or not a file should be added to the group.
 
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
@@ -31,7 +31,7 @@ Feature: Grouping on Test/Unit using a custom filter class
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project/framework_specific.rb | 75.0 %   | 
+      | lib/faked_project/framework_specific.rb | 75.0 %   |
       | lib/faked_project/some_class.rb         | 80.0 %   |
       | lib/faked_project.rb                    | 100.0 %  |
       | lib/faked_project/meta_magic.rb         | 100.0 %  |

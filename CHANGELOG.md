@@ -1,13 +1,13 @@
 v0.5.4 (2011-10-12)
 ===================
 
-  * Do not give exit code 0 when there are exceptions prior to tests 
+  * Do not give exit code 0 when there are exceptions prior to tests
     (see https://github.com/colszowka/simplecov/issues/41, thanks @nbogie)
-  * The API for building custom filter classes is now more obvious, using #matches? instead of #passes? too. 
+  * The API for building custom filter classes is now more obvious, using #matches? instead of #passes? too.
     (see https://github.com/colszowka/simplecov/issues/85, thanks @robinroestenburg)
-  * Mailers are now part of the Rails adapter as their own group (see 
+  * Mailers are now part of the Rails adapter as their own group (see
     https://github.com/colszowka/simplecov/issues/79, thanks @geetarista)
-  * Removed fix for JRuby 1.6 RC1 float bug because it's been fixed 
+  * Removed fix for JRuby 1.6 RC1 float bug because it's been fixed
     (see https://github.com/colszowka/simplecov/issues/86)
   * Readme formatted in Markdown :)
 
@@ -17,10 +17,10 @@ v0.5.3 (2011-09-13)
   * Fix for encoding issues that came from the nocov processing mechanism
     (see https://github.com/colszowka/simplecov/issues/71)
   * :nocov: lines are now actually being reflected in the HTML report and are marked in yellow.
-  
+
   * The Favicon in the HTML report is now determined by the overall coverage and will have the color
     that the coverage percentage gets as a css class to immediately indicate coverage status on first sight.
-    
+
   * Introduced SimpleCov::SourceFile::Line#status method that returns the coverage status
     as a string for this line - made SimpleCov::HTML use that.
   * Refactored nocov processing and made it configurable using SimpleCov.ncov_token (or it's
@@ -38,9 +38,9 @@ v0.5.1 (2011-09-12)
 
   * Fix for invalid gemspec dependency string (see https://github.com/colszowka/simplecov/pull/70,
     http://blog.rubygems.org/2011/08/31/shaving-the-yaml-yacc.html, thanks @jspradlin)
-    
+
   * Added JSON in the form of the multi_json gem as dependency for those cases when built-in JSON
-    is unavailable (see https://github.com/colszowka/simplecov/issues/72 
+    is unavailable (see https://github.com/colszowka/simplecov/issues/72
     and https://github.com/colszowka/simplecov/pull/74, thanks @sferik)
 
 v0.5.0 (2011-09-09)

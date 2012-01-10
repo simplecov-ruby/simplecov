@@ -36,7 +36,7 @@ Getting started
 ---------------
 
 1. Add SimpleCov to your `Gemfile` and `bundle install`:
-      
+
         gem 'simplecov', :require => false, :group => :test
 
 2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (*or `spec_helper.rb`, cucumber `env.rb`, or whatever
@@ -46,14 +46,14 @@ Getting started
         SimpleCov.start
 
         # Previous content of test helper now starts here
-        
-      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to track your files and their coverage!       
+
+      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to track your files and their coverage!
       The `SimpleCov.start` **must** be issued **before any of your application code is required!**
 
-3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far. 
+3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
 
 If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
-which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of 
+which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
     require 'simplecov'
@@ -109,7 +109,7 @@ care what kind of framework it is running in, it just looks at what code is bein
         SimpleCov.configure do
           some_config_option 'foo'
         end
-        
+
 Please check out the [Configuration] API documentation to find out what you can customize.
 
 
@@ -123,10 +123,10 @@ test setup helper and move the `SimpleCov.start` code with all your custom confi
 
     # test/test_helper.rb
     require 'simplecov'
-    
+
     # features/support/env.rb
     require 'simplecov'
-    
+
     # .simplecov
     SimpleCov.start 'rails' do
       # any custom configs like groups and filters can be here at a central place
@@ -379,8 +379,8 @@ CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
 
 Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
-including Rubinius and JRuby, in [Continuous Integration], but this happens only to ensure that SimpleCov does not make your 
-test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby 
+including Rubinius and JRuby, in [Continuous Integration], but this happens only to ensure that SimpleCov does not make your
+test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby
 interpreters add the coverage library.
 
 SimpleCov is built in [Continuous Integration] on 1.8.7, ree, 1.9.2, 1.9.3.
@@ -407,7 +407,7 @@ If you wont to contribute, please:
 
 Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
 for this!
-    
+
 
 ## Copyright
 

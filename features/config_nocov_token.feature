@@ -3,7 +3,7 @@ Feature:
 
   Code wrapped in # :nocov: will be ignored by coverage reports.
   The name of the token can be configured with SimpleCov.nocov_token or SimpleCov.skip_token
-  
+
   Scenario: Custom nocov token using nocov_token
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -12,7 +12,7 @@ Feature:
         nocov_token 'skippit'
       end
       """
-      
+
     Given a file named "lib/faked_project/nocov.rb" with:
       """
       class SourceCodeWithNocov
@@ -40,7 +40,7 @@ Feature:
 
     And the report should be based upon:
       | Unit Tests |
-      
+
   Scenario: Custom nocov token using skip_token
     Given SimpleCov for Test/Unit is configured with:
       """

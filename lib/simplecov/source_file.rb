@@ -46,7 +46,7 @@ module SimpleCov
       def never?
         not skipped? and coverage.nil?
       end
-      
+
       # Flags this line as skipped
       def skipped!
         @skipped = true
@@ -57,8 +57,8 @@ module SimpleCov
       def skipped?
 	      !!skipped
       end
-      
-      # The status of this line - either covered, missed, skipped or never. Useful i.e. for direct use 
+
+      # The status of this line - either covered, missed, skipped or never. Useful i.e. for direct use
       # as a css class in report generation
       def status
         return 'skipped' if skipped?
