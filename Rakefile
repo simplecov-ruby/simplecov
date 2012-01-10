@@ -10,7 +10,7 @@ Rake::TestTask.new(:test) do |test|
   test.verbose = true
 end
 
-task :default => :test
-
 require 'cucumber/rake/task'
 Cucumber::Rake::Task.new
+
+task :default => [:test, :cucumber]
