@@ -117,7 +117,7 @@ class TestResult < Test::Unit::TestCase
         setup do
           SimpleCov.configure do
             add_group 'Models', 'app/models'
-            add_group 'Controllers', 'app/controllers'
+            add_group 'Controllers', ['app/controllers/']
           end
           @result = SimpleCov::Result.new(@original_result)
         end
