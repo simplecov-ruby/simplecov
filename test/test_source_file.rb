@@ -71,5 +71,16 @@ class TestSourceFile < Test::Unit::TestCase
         assert_match /^Warning: coverage data provided/, captured_output
       end
     end
+
+    context "Encoding" do
+      should "handle utf-8 encoded source files" do
+        source_file = SimpleCov::SourceFile.new(source_fixture('utf-8.rb'), [nil, nil, 1])
+
+        assert_nothing_raised do
+          source_file.process_skipped_lines!
+        end
+      end
+    end
+
   end
 end
