@@ -72,7 +72,8 @@ module SimpleCov
 
     # Returns the count of missed lines
     def missed_lines
-      return @missed_lines if @missed_lines
+      return @missed_lines if instance_variable_defined?(:@missed_lines)
+
       @missed_lines = 0
       @files.each do |file|
         original_result[file.filename].each do |line_result|
