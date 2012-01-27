@@ -3,7 +3,7 @@ Feature:
 
   Files with unicode in their source should be no problem at all for
   generating a proper coverage report.
-  
+
   Background:
     Given SimpleCov for Test/Unit is configured with:
       """

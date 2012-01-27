@@ -72,9 +72,9 @@ module SimpleCov::Configuration
     raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
     @formatter
   end
-  
+
   #
-  # Certain code blocks (i.e. Ruby-implementation specific code) can be excluded from 
+  # Certain code blocks (i.e. Ruby-implementation specific code) can be excluded from
   # the coverage metrics by wrapping it inside # :nocov: comment blocks. The nocov token
   # can be configured to be any other string using this.
   #
