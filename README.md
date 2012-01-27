@@ -94,20 +94,20 @@ care what kind of framework it is running in, it just looks at what code is bein
 <tr><th>Framework</th><th>Notes</th><th>Issue #</th></tr>
 <tr>
  <td>
-   **Test/Unit 2**
+   <b>Test/Unit 2</b>
  </td>
  <td>
   Test Unit 2 used to mess with ARGV, leading to failure to detect the test process name in SimpleCov.
   Releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
  </td>
  <td>
-  [SimpleCov #45](https://github.com/colszowka/simplecov/issues/45),
-  [Test/Unit #12](https://github.com/test-unit/test-unit/pull/12)
+  <a href="https://github.com/colszowka/simplecov/issues/45">SimpleCov #45</a> & 
+  <a href="https://github.com/test-unit/test-unit/pull/12">Test/Unit #12</a>
  </td>
 </tr>
 <tr>
  <td>
-   **Spork**
+   <b>Spork</b>
  </td>
  <td>
   SimpleCov currently does not correctly cope with the way Spork (and similar forking testing tools) 
