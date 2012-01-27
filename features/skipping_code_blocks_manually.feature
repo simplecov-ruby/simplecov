@@ -3,7 +3,7 @@ Feature:
 
   When code is wrapped in :nocov: comment blocks, it does not count
   against the coverage numbers.
-  
+
   Background:
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -34,12 +34,12 @@ Feature:
       | lib/faked_project/framework_specific.rb | 75.0 %   |
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
       | lib/faked_project/nocov.rb              | 100.0 %  |
-      
+
     And there should be 5 skipped lines in the source files
 
     And the report should be based upon:
       | Unit Tests |
-      
+
   Scenario: Number of spaces should not mix up nocov results
     Given a file named "lib/faked_project/nocov.rb" with:
       """

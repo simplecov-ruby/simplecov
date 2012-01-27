@@ -2,7 +2,7 @@ require 'helper'
 
 class TestSourceFileLine < Test::Unit::TestCase
 
-  
+
   on_ruby '1.9' do
     context "A source line" do
       setup do
@@ -26,10 +26,10 @@ class TestSourceFileLine < Test::Unit::TestCase
         assert_equal @line.line_number, @line.line
         assert_equal @line.line_number, @line.number
       end
-      
+
       context "flagged as skipped!" do
         setup { @line.skipped! }
-        
+
         should_not_be :covered?
         should_be :skipped?
         should_not_be :missed?
@@ -37,7 +37,7 @@ class TestSourceFileLine < Test::Unit::TestCase
         should_have :status, 'skipped'
       end
     end
-    
+
     context "A source line with coverage" do
       setup do
         @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)

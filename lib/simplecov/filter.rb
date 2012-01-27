@@ -19,7 +19,7 @@ module SimpleCov
     def matches?(source_file)
       raise "The base filter class is not intended for direct use"
     end
-    
+
     def passes?(source_file)
       warn "DEPRECATION: SimpleCov::Filter#passes?(x) has been renamed to #matches?. Please update your custom filters accordingly!"
       matches?(source_file)

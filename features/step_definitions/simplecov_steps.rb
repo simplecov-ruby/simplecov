@@ -12,7 +12,7 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
     else
       raise ArgumentError, "Could not identify test framework #{framework}!"
   end
-  
+
   steps %Q{
     Given a file named "#{framework_dir}/simplecov_config.rb" with:
       """
