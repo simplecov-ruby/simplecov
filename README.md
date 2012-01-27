@@ -90,6 +90,9 @@ care what kind of framework it is running in, it just looks at what code is bein
 
 ### Notes on specific frameworks and test utilities
 
+For some frameworks and testing tools there are quirks and problems you might want to know about if you want 
+to use SimpleCov with them. Here's an overview of the known ones:
+
 <table>
 <tr><th>Framework</th><th>Notes</th><th>Issue #</th></tr>
 <tr>
@@ -98,7 +101,7 @@ care what kind of framework it is running in, it just looks at what code is bein
  </td>
  <td>
   Test Unit 2 used to mess with ARGV, leading to failure to detect the test process name in SimpleCov.
-  Releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
+  <code>test-unit</code> releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
  </td>
  <td>
   <a href="https://github.com/colszowka/simplecov/issues/45">SimpleCov #45</a> & 
@@ -117,6 +120,18 @@ care what kind of framework it is running in, it just looks at what code is bein
  </td>
  <td>
   <a href="https://github.com/colszowka/simplecov/issues/42">SimpleCov #42</a>
+ </td>
+</tr>
+<tr>
+ <td>
+   <b>parallel_tests</b>
+ </td>
+ <td>
+  SimpleCov does not detect parallel_test automatically yet but can be taught to do so
+  with a simple workaround explained at Issue #64.
+ </td>
+ <td>
+  <a href="https://github.com/colszowka/simplecov/issues/64">SimpleCov #64</a>
  </td>
 </tr>
 </table>
