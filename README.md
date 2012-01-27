@@ -93,7 +93,9 @@ care what kind of framework it is running in, it just looks at what code is bein
 <table>
 <tr><th>Framework</th><th>Notes</th><th>Issue #</th></tr>
 <tr>
- <td>**Test/Unit 2**</td>
+ <td>
+   **Test/Unit 2**
+ </td>
  <td>
   Test Unit 2 used to mess with ARGV, leading to failure to detect the test process name in SimpleCov.
   Releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
@@ -104,7 +106,9 @@ care what kind of framework it is running in, it just looks at what code is bein
  </td>
 </tr>
 <tr>
- <td>**Spork**</td>
+ <td>
+   **Spork**
+ </td>
  <td>
   SimpleCov currently does not correctly cope with the way Spork (and similar forking testing tools) 
   works. With the right configuration this might be resolvable. 
@@ -112,7 +116,7 @@ care what kind of framework it is running in, it just looks at what code is bein
   without spork when you want a coverage report.
  </td>
  <td>
-  [SimpleCov #42](https://github.com/colszowka/simplecov/issues/42)
+  <a href="https://github.com/colszowka/simplecov/issues/42">SimpleCov #42</a>
  </td>
 </tr>
 </table>
@@ -438,4 +442,4 @@ for this!
 
 ## Copyright
 
-Copyright (c) 2010-2011 Christoph Olszowka. See LICENSE for details.
+Copyright (c) 2010-2012 Christoph Olszowka. See LICENSE for details.
