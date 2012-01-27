@@ -44,7 +44,8 @@ module SimpleCov
 
     # The multiple of coverage for this result
     def covered_strength
-      return @covered_strength if @convered_strength
+      return @covered_strength if instance_variable_defined?(:@covered_strength)
+
       m = 0
       @files.each do |file|
         original_result[file.filename].each do |line_result|
