@@ -58,7 +58,8 @@ module SimpleCov
 
     # Returns the count of lines that are covered
     def covered_lines
-      return @covered_lines if @covered_lines
+      return @covered_lines if instance_variable_defined?(:@covered_lines)
+
       @covered_lines = 0
       @files.each do |file|
         original_result[file.filename].each do |line_result|
