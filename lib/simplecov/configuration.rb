@@ -24,8 +24,7 @@ module SimpleCov::Configuration
   # Configure with SimpleCov.coverage_dir('cov')
   #
   def coverage_dir(dir=nil)
-    return @coverage_dir if @coverage_dir and dir.nil?
-    @coverage_dir = (dir || 'coverage')
+    @coverage_dir ||= (dir || 'coverage')
   end
 
   #
