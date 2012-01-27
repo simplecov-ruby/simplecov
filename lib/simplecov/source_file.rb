@@ -80,23 +80,24 @@ module SimpleCov
       @filename, @coverage, @src = filename, coverage, File.readlines(filename)
     end
 
-    # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
-    # and thus including coverage data. Aliased as :source_lines
-    def lines
-      return @lines unless @lines.nil?
-
+    def extract_source_lines
       # Warning to identify condition from Issue #56
       if coverage.size > src.size
         $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
       end
 
       # Initialize lines
-      @lines = []
+      source_lines = []
       src.each_with_index do |src, i|
-        @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i])
+        source_lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i])
       end
-      process_skipped_lines!
-      @lines
+      return process_skipped_lines(source_lines)
+    end
+
+    # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
+    # and thus including coverage data. Aliased as :source_lines
+    def lines
+      @lines ||= extract_source_lines
     end
     alias_method :source_lines, :lines
 
@@ -151,7 +152,7 @@ module SimpleCov
 
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
     # as skipped.
-    def process_skipped_lines!
+    def process_skipped_lines(lines)
       skipping = false
       lines.each do |line|
         if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
@@ -160,6 +161,7 @@ module SimpleCov
           line.skipped! if skipping
         end
       end
+      return lines
     end
 
     private
