@@ -137,7 +137,8 @@ module SimpleCov::Configuration
   # the SimpleCov.root is this.
   #
   def project_name(new_name=nil)
-    return @project_name if @project_name and new_name.nil?
+    return @project_name if instance_variable_defined?(:@project_name) && new_name.nil?
+
     @project_name = new_name if new_name.kind_of?(String)
     @project_name ||= File.basename(root.split('/').last).capitalize.gsub('_', ' ')
   end
