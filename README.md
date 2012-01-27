@@ -134,6 +134,18 @@ to use SimpleCov with them. Here's an overview of the known ones:
   <a href="https://github.com/colszowka/simplecov/issues/64">SimpleCov #64</a>
  </td>
 </tr>
+<tr>
+ <td>
+   <b>Riot</b>
+ </td>
+ <td>
+  A user has reported problems with the coverage report using the riot framework. If you experience
+  similar trouble please follow up on the related Github issue.
+ </td>
+ <td>
+  <a href="https://github.com/colszowka/simplecov/issues/80">SimpleCov #80</a>
+ </td>
+</tr>
 </table>
 
 ## Configuring SimpleCov
