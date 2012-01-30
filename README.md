@@ -52,14 +52,16 @@ Getting started
 
 3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
 
+4. Add the following to your `.gitignore` file to ensure that coverage results are not tracked by Git (optional):
+
+        coverage
+
 If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
 which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
     require 'simplecov'
     SimpleCov.start 'rails'
-
-
 
 ## Example output
 
