@@ -7,6 +7,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   * [Changelog]
   * [Rubygem]
   * [Continuous Integration]
+  * IRC #simplecov on Freenode
 
 [Coverage]: http://www.ruby-doc.org/ruby-1.9/classes/Coverage.html "API doc for Ruby 1.9's Coverage library"
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
