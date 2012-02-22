@@ -195,6 +195,8 @@ module SimpleCov::Configuration
   def add_group(group_name, filter_argument=nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
   end
+  
+  private
 
   #
   # The actal filter processor. Not meant for direct use
