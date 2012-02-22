@@ -1,3 +1,19 @@
+v0.6.0 (2012-02-22)
+===================
+
+  * [FEATURE] Auto-magic `rake simplecov` task for rails
+    (see https://github.com/colszowka/simplecov/pull/83, thanks @sunaku)
+  * [BUGFIX] Treat source files as UTF-8 to avoid encoding errors
+    (see https://github.com/colszowka/simplecov/pull/103, thanks @joeyates)
+  * [BUGFIX] Store the invoking terminal command right after loading so they are safe from
+    other libraries tampering with ARGV. Among other makes automatic Rails test suite splitting
+    (Unit/Functional/Integration) work with recent rake versions again
+    (see https://github.com/colszowka/simplecov/issues/110)
+  * [FEATURE] If guessing command name from the terminal command fails, try guessing from defined constants
+    (see https://github.com/colszowka/simplecov/commit/37afca54ef503c33d888e910f950b3b943cb9a6c)
+  * Some refactorings and cleanups as usual. Please refer to the github compare view for a full
+    list of changes: https://github.com/colszowka/simplecov/compare/v0.5.4...v0.6.0
+
 v0.5.4 (2011-10-12)
 ===================
 
