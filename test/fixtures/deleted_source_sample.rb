@@ -1,6 +1,6 @@
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', '..'))
 require 'lib/simplecov'
-SimpleCov.start
+SimpleCov.start { command_name "Test" }
 
 dir = File.expand_path(File.dirname(__FILE__))
 file = File.join(dir, "generated_buddha.rb")

@@ -5,7 +5,8 @@ class TestCommandGuesser < Test::Unit::TestCase
     def self.should_guess_command_name(expectation, *argv)
       argv.each do |args|
         should "return '#{expectation}' for '#{args}'" do
-          assert_equal expectation, SimpleCov::CommandGuesser.guess(args)
+          SimpleCov::CommandGuesser.original_run_command = args
+          assert_equal expectation, SimpleCov::CommandGuesser.guess
         end
       end
     end

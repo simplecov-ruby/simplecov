@@ -57,10 +57,10 @@ module SimpleCov::Configuration
   # also check out the corresponding section in README.rdoc
   def command_name(name=nil)
     @name = name unless name.nil?
-    @name ||= SimpleCov::CommandGuesser.guess("#{$0} #{ARGV.join(" ")}")
+    @name ||= SimpleCov::CommandGuesser.guess
     @name
   end
-
+  
   #
   # Gets or sets the configured formatter.
   #

@@ -36,6 +36,10 @@ SimpleCov.configure do
   # Exclude files outside of SimpleCov.root
   load_adapter 'root_filter'
 end
+
+# Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
+SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(" ")}"
+
 at_exit do
   # Store the exit status of the test run since it goes away after calling the at_exit proc...
   if $! #was an exception thrown?
