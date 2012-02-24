@@ -1,3 +1,8 @@
+v0.6.1 (2012-02-24)
+
+  * [BUGFIX] Don't force-load Railtie on Rails < 3. Fixes regression introduced with
+    #83. See https://github.com/colszowka/simplecov/issues/113
+
 v0.6.0 (2012-02-22)
 ===================
 
