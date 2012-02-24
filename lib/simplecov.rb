@@ -119,5 +119,5 @@ require 'simplecov/version'
 # Load default config
 require 'simplecov/defaults'
 
-# Load Rails integration
-require 'simplecov/railtie' if defined? Rails
+# Load Rails integration (only for Rails 3, see #113)
+require 'simplecov/railtie' if defined? Rails::Railtie
