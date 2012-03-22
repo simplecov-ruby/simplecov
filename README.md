@@ -117,13 +117,12 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Spork</b>
  </td>
  <td>
-  SimpleCov currently does not correctly cope with the way Spork (and similar forking testing tools) 
-  works. With the right configuration this might be resolvable. 
-  To make sure your coverage is reported correctly you probably should fall back to running your test suite
-  without spork when you want a coverage report.
+  Because of the how Spork works internally (using preforking) there used to be trouble when using SimpleCov
+  with it, but that apparently has been resolved with a specific configuration strategy. See
+  <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a> comment.
  </td>
  <td>
-  <a href="https://github.com/colszowka/simplecov/issues/42">SimpleCov #42</a>
+  <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">SimpleCov #42</a>
  </td>
 </tr>
 <tr>
