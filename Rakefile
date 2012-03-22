@@ -8,6 +8,7 @@ Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
   test.test_files = FileList['test/test_*.rb']
   test.verbose = true
+  test.warning = true
 end
 
 require 'cucumber/rake/task'
