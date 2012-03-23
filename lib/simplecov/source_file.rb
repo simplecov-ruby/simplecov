@@ -84,7 +84,7 @@ module SimpleCov
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
     # and thus including coverage data. Aliased as :source_lines
     def lines
-      return @lines unless @lines.nil?
+      return @lines if defined? @lines
 
       # Warning to identify condition from Issue #56
       if coverage.size > src.size

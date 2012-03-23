@@ -58,7 +58,7 @@ module SimpleCov
 
     # Returns the count of lines that are covered
     def covered_lines
-      return @covered_lines if @covered_lines
+      return @covered_lines if defined? @covered_lines
       @covered_lines = 0
       @files.each do |file|
         original_result[file.filename].each do |line_result|
@@ -70,7 +70,7 @@ module SimpleCov
 
     # Returns the count of missed lines
     def missed_lines
-      return @missed_lines if @missed_lines
+      return @missed_lines if defined? @missed_lines
       @missed_lines = 0
       @files.each do |file|
         original_result[file.filename].each do |line_result|
