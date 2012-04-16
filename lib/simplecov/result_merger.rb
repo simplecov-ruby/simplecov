@@ -15,7 +15,7 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
-        MultiJson.decode(stored_data)
+        MultiJson.load(stored_data)
       else
         {}
       end
