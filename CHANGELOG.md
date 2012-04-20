@@ -1,3 +1,8 @@
+v0.6.2 (2012-04-20)
+
+  * Updated to latest version of MultiJSON and it's new API (thanks to @sferik and @ronen).
+    See https://github.com/colszowka/simplecov/pull/122
+
 v0.6.1 (2012-02-24)
 ===================
 
