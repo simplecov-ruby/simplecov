@@ -28,3 +28,7 @@ capybara*.html
 
 .yardoc
 doc
+
+## PERSONAL PREFERENCE
+
+.rvmrc
