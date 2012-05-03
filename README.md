@@ -434,6 +434,153 @@ available:
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
 
+## Usage when tests involve gathering coverage of external processes
+
+(Needs rewriting into a more generic form)
+
+Parts of the tests of [Fig](https://github.com/mfoemmel/fig) involve running
+the command as an external process and checking that the output and exit code
+are the expected values.  The problem is that, with a standard setup, coverage
+won't be gathered for the code exercised by the test because SimpleCov won't be
+loaded into the `fig` process.
+
+The basic idea is to use SimpleCov's run merging by using it in the standard
+way with RSpec and by loading it into `fig` as well.  Since there are multiple
+things wanting to use SimpleCov in the same way, we start with putting the
+common parts in `.simplecov`:
+
+    # Common configuration for SimpleCov for both RSpec and bin/fig.
+
+    SimpleCov.merge_timeout 2 * 60 * 60 # 2 hours
+
+    # Need a custom filter because bin/fig gets run with a different current
+    # directory.
+    class FigFileFilter < SimpleCov::Filter
+      def matches?(source_file)
+        return source_file.filename =~ %r<\bspec\b>
+      end
+    end
+    SimpleCov.add_filter(FigFileFilter.new(nil))
+
+Handling the RSpec parts of coverage follows the standard pattern at the top of
+`spec/spec_helper.rb`:
+
+    if ENV['FIG_COVERAGE']
+      require 'simplecov' # note that .simplecov will be loaded here.
+
+      SimpleCov.start
+    end
+
+Getting SimpleCov into the `fig` process isn't as straightforward.  The first
+issue is that, within the tests, `fig` is not run in the current directory,
+which is where SimpleCov wants to find things by default.  We can tell
+SimpleCov where to find/put things by setting `SimpleCov.root`; the problem is
+telling `fig` what the root should be.  This is done by passing in an
+environment variable.  Again in `spec/spec_helper.rb`:
+
+    ENV['FIG_COVERAGE_ROOT_DIRECTORY'] =
+      File.expand_path(File.dirname(__FILE__) + '/..')
+
+For reasons discussed later, we also need to give `fig` a unique run
+identifier; this is done via another environment variable.  There's a utility
+function in `spec/spec_helper.rb` used by all the tests to run `fig` that
+returns stdout, stderr, and the exit code.  It basically looks like this:
+
+    $fig_run_count = 0 # Nasty, nasty global.
+
+    def fig(...)
+      $fig_run_count += 1
+      ENV['FIG_COVERAGE_RUN_COUNT'] = $fig_run_count.to_s
+
+      Dir.chdir current_directory do
+        ...
+      end
+    end
+
+In addition to `fig` there's also a `fig-debug` program that we want the same
+SimpleCov behavior in.  But there's also the issue of getting SimpleCov loaded
+as soon as possible, which means before even the rest of the Fig code has been
+loaded.  To work around that, the setup code is put into a separate file and
+loaded at the top of `fig` and `fig-debug`, prior to even setting up
+`$LOAD_PATH`:
+
+    #!/usr/bin/env ruby
+
+    if ENV['FIG_COVERAGE']
+      require File.expand_path(
+        File.join(
+          File.dirname(__FILE__), %w< .. lib fig command coveragesupport.rb >
+        )
+      )
+    end
+
+    $LOAD_PATH << File.expand_path(File.join(File.dirname(__FILE__), %w< .. lib > ))
+
+The big outstanding issue is that, in order for SimpleCov to merge the coverage
+from multiple runs of `fig`, it needs a unique identifier for each run.  This
+is done via `SimpleCov.command_name`.  The straightforward thing to do would be
+
+    SimpleCov.command_name ARGV.join(' ')
+
+The issue is that `fig` gets run multiple times with the same command-line
+within some tests, let alone in the same test suite.  This is where the
+`FIG_COVERAGE_RUN_COUNT` environment variable above comes into play:
+
+    SimpleCov.command_name(
+      "fig run #{ENV['FIG_COVERAGE_RUN_COUNT']} (#{ARGV.join(' ')})"
+    )
+
+The full `coveragesupport.rb`:
+
+    # This is not a normal module/class.  It contains code to be run by bin/fig and
+    # bin/fig-debug when doing coverage.
+
+    # Depends upon setup done by spec/spec_helper.rb.
+    if ! ENV['FIG_COVERAGE_RUN_COUNT'] || ! ENV['FIG_COVERAGE_ROOT_DIRECTORY']
+      $stderr.puts \
+        'FIG_COVERAGE_RUN_COUNT or FIG_COVERAGE_ROOT_DIRECTORY not set. Cannot do coverage correctly.'
+      exit 1
+    end
+
+    require 'simplecov'
+
+    # Normal load of .simplecov does not work because SimpleCov assumes that
+    # everything is relative to the current directory.  The manipulation of
+    # SimpleCov.root below takes care of most things, but that doesn't affect
+    # .simplecov handling done in the "require 'simplecov'" above.
+    load File.expand_path(
+      File.join(ENV['FIG_COVERAGE_ROOT_DIRECTORY'], '.simplecov')
+    )
+
+    # We may run the identical fig command-line multiple times, so we need to give
+    # additional value to make the run name unique.
+    SimpleCov.command_name(
+      "fig run #{ENV['FIG_COVERAGE_RUN_COUNT']} (#{ARGV.join(' ')})"
+    )
+    SimpleCov.root ENV['FIG_COVERAGE_ROOT_DIRECTORY']
+
+    SimpleCov.at_exit do
+      # Have to invoke result() in order to get coverage data saved.
+      #
+      # Default at_exit() further invokes format():
+      #
+      #    1) We save time by not doing it on each fig run and let the rspec run
+      #       handle that.
+      #    2) The formatter emits a message to stdout, which screws up tests of
+      #       the fig output.
+      SimpleCov.result
+    end
+
+    SimpleCov.start
+
+There is one last issue: `fig` uses `Kernel.exec`, which means that SimpleCov
+does not have a chance to save its state through standard Ruby `at_exit`
+behavior.  So, when an `exec` is about to happen, `fig` runs
+
+    if ENV['FIG_COVERAGE']
+      SimpleCov.at_exit.call
+    end
+
 
 ## Ruby version compatibility
 
