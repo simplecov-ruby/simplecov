@@ -32,7 +32,8 @@ Feature:
     Then the report should be based upon:
       | Unit Tests |
 
-    When I open the coverage report generated with `bundle exec rspec spec`
+    When I wait for 2 seconds
+    And I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec |
 

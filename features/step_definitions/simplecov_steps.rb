@@ -59,3 +59,8 @@ Then /^the report should be based upon:$/ do |table|
   }
 end
 
+# This is neccessary to ensure timing-dependant tests like the merge timeout
+# do not fail on powerful machines.
+When /^I wait for (\d+) seconds$/ do |seconds|
+  sleep seconds.to_i
+end
