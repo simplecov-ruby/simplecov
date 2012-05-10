@@ -109,7 +109,9 @@ module SimpleCov
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
       return 100.0 if lines.length == 0 or lines.length == never_lines.count
-      (covered_lines.count) * 100 / (lines.count - never_lines.count - skipped_lines.count).to_f
+      relevant_lines = lines.count - never_lines.count - skipped_lines.count
+      return 0 if relevant_lines == 0
+      (covered_lines.count) * 100 / relevant_lines.to_f
     end
 
     def covered_strength
@@ -119,6 +121,7 @@ module SimpleCov
         lines_strength += c.coverage if c.coverage
       end
       effective_lines_count = (lines.count - never_lines.count - skipped_lines.count).to_f
+      return 0 if effective_lines_count == 0
       strength = lines_strength / effective_lines_count
       round_float(strength, 1)
     end
