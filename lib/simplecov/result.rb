@@ -44,6 +44,7 @@ module SimpleCov
 
     # The multiple of coverage for this result
     def covered_strength
+      return 0 if total_lines.zero?
       return @covered_strength if @covered_strength
       m = 0
       @files.each do |file|
