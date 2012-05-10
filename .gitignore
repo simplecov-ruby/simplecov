@@ -23,6 +23,7 @@ rdoc
 pkg
 tmp
 capybara*.html
+.rvmrc
 
 ## PROJECT::SPECIFIC
 
