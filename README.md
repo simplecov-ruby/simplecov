@@ -94,7 +94,7 @@ care what kind of framework it is running in, it just looks at what code is bein
 
 ### Notes on specific frameworks and test utilities
 
-For some frameworks and testing tools there are quirks and problems you might want to know about if you want 
+For some frameworks and testing tools there are quirks and problems you might want to know about if you want
 to use SimpleCov with them. Here's an overview of the known ones:
 
 <table>
@@ -108,7 +108,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
   <code>test-unit</code> releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
  </td>
  <td>
-  <a href="https://github.com/colszowka/simplecov/issues/45">SimpleCov #45</a> & 
+  <a href="https://github.com/colszowka/simplecov/issues/45">SimpleCov #45</a> &
   <a href="https://github.com/test-unit/test-unit/pull/12">Test/Unit #12</a>
  </td>
 </tr>
@@ -452,12 +452,16 @@ SimpleCov is built in [Continuous Integration] on 1.8.7, ree, 1.9.2, 1.9.3.
 
 To fetch & test the library for development, do:
 
-    $ git clone https://github.com/colszowka/simplecov
+    $ git clone https://github.com/colszowka/simplecov.git
     $ cd simplecov
     $ bundle
-    $ bundle exec rake test && bundle exec cucumber features
+    $ rake appraisal:install
+    $ rake appraisal
 
-If you wont to contribute, please:
+For more information on the appraisal gem (for testing against multiple gem dependency versions), please see
+https://github.com/thoughtbot/appraisal/
+
+If you want to contribute, please:
 
   * Fork the project.
   * Make your feature addition or bug fix.

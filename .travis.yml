@@ -1,6 +1,8 @@
-script: "bundle exec rake test && bundle exec cucumber features"
+script:
+  - bundle
+  - rake appraisal:install
+  - rake appraisal
 rvm:
-#  - 1.8.6 # Has trouble with rake 0.9+ :(
   - 1.8.7
   - 1.9.2
   - 1.9.3
