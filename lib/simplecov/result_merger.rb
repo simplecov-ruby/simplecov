@@ -15,7 +15,12 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
-        MultiJson.load(stored_data)
+        # Detect and use available MultiJson API - it changed in v1.3
+        if MultiJson.respond_to?(:adapter)
+          MultiJson.load(stored_data)
+        else
+          MultiJson.decode(stored_data)
+        end
       else
         {}
       end
@@ -71,7 +76,12 @@ module SimpleCov::ResultMerger
         if defined? ::JSON
           f.puts JSON.pretty_generate(new_set)
         else
-          f.puts MultiJson.dump(new_set)
+          # Detect and use available MultiJson API - it changed in v1.3
+          if MultiJson.respond_to?(:adapter)
+            f.puts MultiJson.dump(new_set)
+          else
+            f.puts MultiJson.encode(new_set)
+          end
         end
       end
       true
