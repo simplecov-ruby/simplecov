@@ -134,8 +134,7 @@ v0.5.0, 2011-09-09 ([changes](https://github.com/colszowka/simplecov/compare/v0.
 
   * Full compatibility with Ruby 1.9.3.preview1
 
-HTML Formatter:
----------------
+### HTML Formatter:
 
   * The display of source files has been improved a lot. Weird scrolling trouble, out-of-scope line hit counts
     and such should be a thing of the past. Also, it is prettier now.
