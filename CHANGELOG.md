@@ -1,5 +1,18 @@
+v0.6.4 (2012-05-10)
+===================
+
+  * [BUGFIX] Encoding issues with ISO-8859-encoded source files fixed.
+    See https://github.com/colszowka/simplecov/pull/117. (thanks to @Deradon)
+  * [BUGFIX] Ensure ZeroDivisionErrors won't occur when calculating the coverage result, which previously
+    could happen in certain cases. See https://github.com/colszowka/simplecov/pull/128. (thanks to @japgolly)
+  * [REFACTORING] Changed a couple instance variable lookups so SimpleCov does not cause a lot of warnings when
+    running ruby at a higher warning level. See https://github.com/colszowka/simplecov/issues/106 and
+    https://github.com/colszowka/simplecov/pull/119. (thanks to @mvz and @gioele)
+
+
 v0.6.3 (2012-05-10)
 ===================
+https://github.com/colszowka/simplecov/compare/v0.6.2...v0.6.3
 
   * Modified the API-changes for newer multi_json versions introduced with #122 and v0.6.2 so
     they are backwards-compatible with older multi_json gems in order to avoid simplecov polluting
@@ -12,7 +25,7 @@ v0.6.2 (2012-04-20)
 ===================
 **Note: Yanked 2012-05-10 because of backwards-incompatibilty of the updated multi_json api**
 
-  * Updated to latest version of MultiJSON and its new API (thanks to @sferik and @ronen).
+  * [Updated to latest version of MultiJSON and its new API (thanks to @sferik and @ronen).
     See https://github.com/colszowka/simplecov/pull/122
 
 v0.6.1 (2012-02-24)
