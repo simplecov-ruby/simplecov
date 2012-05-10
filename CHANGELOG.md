@@ -22,7 +22,6 @@ v0.6.3, 2012-05-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.
 
 v0.6.2, 2012-04-20 ([changes](https://github.com/colszowka/simplecov/compare/v0.6.1...v0.6.2))
 -------------------
-**Note: Yanked 2012-05-10 because of backwards-incompatibilty of the updated multi_json api**
 
   * [Updated to latest version of MultiJSON and its new API (thanks to @sferik and @ronen).
     See https://github.com/colszowka/simplecov/pull/122
