@@ -48,7 +48,7 @@ module SimpleCov
         SimpleCov::ResultMerger.store_result(@result) if @result
         return SimpleCov::ResultMerger.merged_result
       else
-        return @result
+        return @result if defined? @result
       end
     ensure
       self.running = false

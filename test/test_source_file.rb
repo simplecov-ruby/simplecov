@@ -68,7 +68,7 @@ class TestSourceFile < Test::Unit::TestCase
           @source_file.lines
         end
 
-        assert_match /^Warning: coverage data provided/, captured_output
+        assert_match(/^Warning: coverage data provided/, captured_output)
       end
     end
 
