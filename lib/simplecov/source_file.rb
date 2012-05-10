@@ -110,20 +110,29 @@ module SimpleCov
     def covered_percent
       return 100.0 if lines.length == 0 or lines.length == never_lines.count
       relevant_lines = lines.count - never_lines.count - skipped_lines.count
-      return 0 if relevant_lines == 0
-      (covered_lines.count) * 100 / relevant_lines.to_f
+      if relevant_lines == 0
+        0
+      else
+        (covered_lines.count) * 100 / relevant_lines.to_f
+      end
     end
 
     def covered_strength
       return 0 if lines.length == 0 or lines.length == never_lines.count
+
       lines_strength = 0
       lines.each do |c|
         lines_strength += c.coverage if c.coverage
       end
+
       effective_lines_count = (lines.count - never_lines.count - skipped_lines.count).to_f
-      return 0 if effective_lines_count == 0
-      strength = lines_strength / effective_lines_count
-      round_float(strength, 1)
+
+      if effective_lines_count == 0
+        0
+      else
+        strength = lines_strength / effective_lines_count
+        round_float(strength, 1)
+      end
     end
 
     # Returns all covered lines as SimpleCov::SourceFile::Line
