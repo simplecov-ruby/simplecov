@@ -469,9 +469,7 @@ If you want to contribute, please:
 
 ## Kudos
 
-Thanks to Aaron Patterson (http://engineering.attinteractive.com/2010/08/code-coverage-in-ruby-1-9/) for the original idea
-for this!
-
+Thanks to Aaron Patterson for the original idea for this!
 
 ## Copyright
 
