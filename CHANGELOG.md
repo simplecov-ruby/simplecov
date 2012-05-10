@@ -14,7 +14,7 @@ v0.6.3 (2012-05-10)
 ===================
 https://github.com/colszowka/simplecov/compare/v0.6.2...v0.6.3
 
-  * Modified the API-changes for newer multi_json versions introduced with #122 and v0.6.2 so
+  * [BUGFIX] Modified the API-changes for newer multi_json versions introduced with #122 and v0.6.2 so
     they are backwards-compatible with older multi_json gems in order to avoid simplecov polluting
     the multi_json minimum version requirement for entire applications.
     See https://github.com/colszowka/simplecov/issues/132
