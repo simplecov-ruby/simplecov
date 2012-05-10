@@ -1,5 +1,16 @@
+v0.6.3 (2012-05-10)
+===================
+
+  * Modified the API-changes for newer multi_json versions introduced with #122 and v0.6.2 so
+    they are backwards-compatible with older multi_json gems in order to avoid simplecov polluting
+    the multi_json minimum version requirement for entire applications.
+    See https://github.com/colszowka/simplecov/issues/132
+  * Added appraisal gem to the test setup in order to run the test suite against both 1.0 and 1.3
+    multi_json gems and ensure the above actually works :)
+
 v0.6.2 (2012-04-20)
 ===================
+**Note: Yanked 2012-05-10 because of backwards-incompatibilty of the updated multi_json api**
 
   * Updated to latest version of MultiJSON and its new API (thanks to @sferik and @ronen).
     See https://github.com/colszowka/simplecov/pull/122
