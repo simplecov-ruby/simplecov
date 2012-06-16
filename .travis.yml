@@ -1,3 +1,5 @@
+before_install:
+  - echo "yes" | gem uninstall json
 script:
   - bundle
   - rake appraisal:install
