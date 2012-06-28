@@ -1,6 +1,8 @@
 SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.png)][Dependencies]
 =========
-*Code coverage for Ruby 1.9*
+**Code coverage for Ruby 1.9**
+
+*(by that guy who also does [Ruby Toolbox](https://www.ruby-toolbox.com), [@TheDeadSerious](https://twitter.com/thedeadserious))*
 
   * [Source Code]
   * [API documentation]
