@@ -18,7 +18,6 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 [Dependencies]: https://gemnasium.com/colszowka/simplecov "SimpleCov dependencies on Gemnasium"
 [simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
 
-
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses [1.9's built-in Coverage][Coverage] library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
 and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
