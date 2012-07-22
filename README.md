@@ -390,6 +390,17 @@ You can define what simplecov should do when your test suite finishes by customi
 
 Above is the default behaviour. Do whatever you like instead!
 
+### Minimum coverage
+
+You can define the minimum coverage percentage expected. SimpleCov will return non-zero if unmet.
+
+    SimpleCov.minimum_coverage = 90
+
+### Maximum coverage drop
+
+You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.
+
+    SimpleCov.maximum_coverage_drop = 5
 
 ## Using your own formatter
 
