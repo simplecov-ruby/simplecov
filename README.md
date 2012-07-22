@@ -51,7 +51,7 @@ Getting started
       The `SimpleCov.start` **must** be issued **before any of your application code is required!**
       
       Therefore if you are doing something like JSON API testing where you want to see all code exected by the `rails server`,
-      and not just code executed in your actula test files you'll want to put something like this into the top of `script/rails`:
+      and not just code executed in your actual test files, you'll want to put something like this into the top of `script/rails`:
  
         if ENV['RAILS_ENV'] == 'test'
           require 'simplecov'
