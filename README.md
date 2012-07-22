@@ -49,7 +49,18 @@ Getting started
 
       **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to track your files and their coverage!
       The `SimpleCov.start` **must** be issued **before any of your application code is required!**
-
+      
+      Therefore if you are doing something like JSON API testing where you want to see all code exected by the `rails server`,
+      and not just code executed in your actula test files you'll want to put something like this into the top of `script/rails`:
+ 
+        ``` ruby
+        if ENV['RAILS_ENV'] == 'test'
+          require 'simplecov'
+          SimpleCov.start 'rails'
+          puts "required simplecov"
+        end
+        ```
+        
 3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
 
 4. Add the following to your `.gitignore` file to ensure that coverage results are not tracked by Git (optional):
