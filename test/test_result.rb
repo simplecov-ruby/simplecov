@@ -21,7 +21,7 @@ class TestResult < Test::Unit::TestCase
 
         should "have 3 source files" do
           assert_equal 3, @result.source_files.count
-          assert @result.source_files.all? {|s| s.instance_of?(SimpleCov::SourceFile)}, "Not alL instances are of SimpleCov::SourceFile type"
+          assert @result.source_files.all? {|s| s.instance_of?(SimpleCov::SourceFile)}, "Not all instances are of SimpleCov::SourceFile type"
         end
 
         should "return an instance of SimpleCov::FileList for source_files and files" do

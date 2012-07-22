@@ -10,7 +10,7 @@ class Foo
 
   #:nocov:
   def skipped
-	@foo * 2
+    @foo * 2
   end
   #:nocov:
 end
