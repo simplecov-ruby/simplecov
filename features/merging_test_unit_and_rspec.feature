@@ -34,7 +34,7 @@ Feature:
 
     And I should see the groups:
       | name      | coverage | files |
-      | All Files | 90.48%    | 4     |
+      | All Files | 90.48%   | 4     |
 
     And I should see the source files:
       | name                                    | coverage |
