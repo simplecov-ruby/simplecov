@@ -12,6 +12,9 @@ rvm:
   - ree
   - rbx-18mode
   - jruby-18mode
+matrix:
+  allow_failures:
+    - rvm: ruby-head
 notifications:
   email:
     on_success: always
