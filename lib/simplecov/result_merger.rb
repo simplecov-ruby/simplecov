@@ -7,7 +7,7 @@ require 'multi_json'
 #
 module SimpleCov::ResultMerger
   class << self
-    # The path to the resultset.yml cache file
+    # The path to the .resultset.json cache file
     def resultset_path
       File.join(SimpleCov.coverage_path, '.resultset.json')
     end

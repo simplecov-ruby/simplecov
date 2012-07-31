@@ -60,7 +60,7 @@ module SimpleCov::Configuration
     @name ||= SimpleCov::CommandGuesser.guess
     @name
   end
-  
+
   #
   # Gets or sets the configured formatter.
   #
@@ -108,7 +108,7 @@ module SimpleCov::Configuration
   #   add_filter 'foobar'
   # end
   #
-  # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a buchn of configure
+  # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a bunch of configure
   # options at once.
   #
   def configure(&block)
@@ -165,7 +165,7 @@ module SimpleCov::Configuration
   # Configure with SimpleCov.merge_timeout(3600) # 1hr
   #
   def merge_timeout(seconds=nil)
-    @merge_timeout = seconds if !seconds.nil? and seconds.kind_of?(Fixnum)
+    @merge_timeout = seconds if seconds.kind_of?(Fixnum)
     @merge_timeout ||= 600
   end
 
@@ -195,7 +195,7 @@ module SimpleCov::Configuration
   def add_group(group_name, filter_argument=nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
   end
-  
+
   private
 
   #
