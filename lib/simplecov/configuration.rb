@@ -138,7 +138,7 @@ module SimpleCov::Configuration
   # the SimpleCov.root is this.
   #
   def project_name(new_name=nil)
-    return @project_name if @project_name and new_name.nil?
+    return @project_name if defined? @project_name and @project_name and new_name.nil?
     @project_name = new_name if new_name.kind_of?(String)
     @project_name ||= File.basename(root.split('/').last).capitalize.gsub('_', ' ')
   end
@@ -148,8 +148,8 @@ module SimpleCov::Configuration
   # are joined and combined into a single coverage report
   #
   def use_merging(use=nil)
-    @use_merging = use unless use.nil? # Set if param given
-    @use_merging = true if @use_merging != false
+    @use_merging = use unless use.nil?
+    @use_merging = true unless defined? @use_merging and @use_merging == false
   end
 
   #
