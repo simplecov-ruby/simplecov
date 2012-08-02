@@ -1,5 +1,3 @@
-require 'multi_json'
-
 #
 # Singleton that is responsible for caching, loading and merging
 # SimpleCov::Results into a single result for coverage analysis based
@@ -15,12 +13,7 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
-        # Detect and use available MultiJson API - it changed in v1.3
-        if MultiJson.respond_to?(:adapter)
-          MultiJson.load(stored_data)
-        else
-          MultiJson.decode(stored_data)
-        end
+        SimpleCov::JSON.parse(stored_data)
       else
         {}
       end
@@ -73,16 +66,7 @@ module SimpleCov::ResultMerger
       command_name, data = result.to_hash.first
       new_set[command_name] = data
       File.open(resultset_path, "w+") do |f|
-        if defined? ::JSON
-          f.puts JSON.pretty_generate(new_set)
-        else
-          # Detect and use available MultiJson API - it changed in v1.3
-          if MultiJson.respond_to?(:adapter)
-            f.puts MultiJson.dump(new_set)
-          else
-            f.puts MultiJson.encode(new_set)
-          end
-        end
+        f.puts SimpleCov::JSON.dump(new_set)
       end
       true
     end

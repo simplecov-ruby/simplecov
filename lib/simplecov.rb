@@ -55,6 +55,14 @@ module SimpleCov
     end
 
     #
+    # Returns nil if the result has not been computed
+    # Otherwise, returns the result
+    #
+    def result?
+      defined? @result and @result
+    end
+
+    #
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
     #
     def filtered(files)
@@ -105,12 +113,15 @@ end
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
 require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
+require 'simplecov/exit_codes'
+require 'simplecov/json'
 require 'simplecov/adapters'
 require 'simplecov/source_file'
 require 'simplecov/file_list'
 require 'simplecov/result'
 require 'simplecov/filter'
 require 'simplecov/formatter'
+require 'simplecov/last_run'
 require 'simplecov/merge_helpers'
 require 'simplecov/result_merger'
 require 'simplecov/command_guesser'
