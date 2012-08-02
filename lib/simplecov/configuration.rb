@@ -170,6 +170,28 @@ module SimpleCov::Configuration
   end
 
   #
+  # Defines the minimum overall coverage required for the testsuite to pass.
+  # SimpleCov will return non-zero if the current coverage is below this threshold.
+  #
+  # Default is 0% (disabled)
+  #
+  def minimum_coverage(coverage=nil)
+    @minimum_coverage = coverage if coverage.kind_of?(Fixnum)
+    @minimum_coverage ||= 0
+  end
+
+  #
+  # Defines the maximum coverage drop at once allowed for the testsuite to pass.
+  # SimpleCov will return non-zero if the coverage decreases by more than this threshold.
+  #
+  # Default is 100% (disabled)
+  #
+  def maximum_coverage_drop(coverage_drop=nil)
+    @maximum_coverage_drop = coverage_drop if coverage_drop.kind_of?(Fixnum)
+    @maximum_coverage_drop ||= 100
+  end
+
+  #
   # Add a filter to the processing chain.
   # There are three ways to define a filter:
   #
