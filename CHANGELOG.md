@@ -1,3 +1,13 @@
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.6.4...master))
+-------------------
+
+  * [FEATURE] The new `maximum_coverage_drop` and `minimum_coverage` now allow you to fail your build when the
+    coverage dropped by more than what you allowed or is below a minimum value required.
+    See https://github.com/colszowka/simplecov/pull/151, https://github.com/colszowka/simplecov/issues/11, 
+    https://github.com/colszowka/simplecov/issues/90, and https://github.com/colszowka/simplecov/issues/96 (thanks to @infertux)
+  * [REFACTORING] A few more ruby warnings removed. See https://github.com/colszowka/simplecov/issues/106 and
+    https://github.com/colszowka/simplecov/pull/139. (thanks to @lukejahnke)
+
 v0.6.4, 2012-05-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.6.3...v0.6.4))
 -------------------
 
