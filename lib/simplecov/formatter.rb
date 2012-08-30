@@ -5,3 +5,4 @@ module SimpleCov
 end
 
 require 'simplecov/formatter/simple_formatter'
+require 'simplecov/formatter/multi_formatter'
