@@ -9,7 +9,12 @@ class SimpleCov::Formatter::MultiFormatter
 
   def format(result)
     formatters.map do |formatter|
-      formatter.new.format(result)
+      begin
+        formatter.new.format(result)
+      rescue => e
+        STDERR.puts("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
+        nil
+      end
     end
   end
 
