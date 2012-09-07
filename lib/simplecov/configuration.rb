@@ -192,6 +192,14 @@ module SimpleCov::Configuration
   end
 
   #
+  # Refuses any coverage drop. That is, coverage is only allowed to increase.
+  # SimpleCov will return non-zero if the coverage decreases.
+  #
+  def refuse_coverage_drop
+    maximum_coverage_drop 0
+  end
+
+  #
   # Add a filter to the processing chain.
   # There are three ways to define a filter:
   #
