@@ -52,15 +52,17 @@ at_exit do
   SimpleCov.at_exit.call
 
   if SimpleCov.result? # Result has been computed
+    covered_percent = SimpleCov.result.covered_percent.round(2)
+
     if @exit_status.to_i == 0 # No other errors
-      @exit_status = if SimpleCov.result.covered_percent < SimpleCov.minimum_coverage
+      @exit_status = if covered_percent < SimpleCov.minimum_coverage
         $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%)." % \
-                     [SimpleCov.result.covered_percent, SimpleCov.minimum_coverage]
+                     [covered_percent, SimpleCov.minimum_coverage]
 
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
 
       elsif (last_run = SimpleCov::LastRun.read)
-        diff = last_run['result']['covered_percent'] - SimpleCov.result.covered_percent
+        diff = last_run['result']['covered_percent'] - covered_percent
         if diff > SimpleCov.maximum_coverage_drop
           $stderr.puts "Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%)." % \
                        [diff, SimpleCov.maximum_coverage_drop]
@@ -71,7 +73,7 @@ at_exit do
     end
 
     metrics = {
-      :result => { :covered_percent => SimpleCov.result.covered_percent }
+      :result => { :covered_percent => covered_percent }
     }
     SimpleCov::LastRun.write(metrics)
   end

@@ -176,8 +176,7 @@ module SimpleCov::Configuration
   # Default is 0% (disabled)
   #
   def minimum_coverage(coverage=nil)
-    @minimum_coverage = coverage if coverage.kind_of?(Fixnum)
-    @minimum_coverage ||= 0
+    @minimum_coverage ||= (coverage || 0).to_f.round(2)
   end
 
   #
@@ -187,8 +186,7 @@ module SimpleCov::Configuration
   # Default is 100% (disabled)
   #
   def maximum_coverage_drop(coverage_drop=nil)
-    @maximum_coverage_drop = coverage_drop if coverage_drop.kind_of?(Fixnum)
-    @maximum_coverage_drop ||= 100
+    @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
   end
 
   #
