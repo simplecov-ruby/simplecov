@@ -414,18 +414,12 @@ being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 ## Using multiple formatters
 
-There is currently no built-in support for this, but you could help yourself with a wrapper class:
+Configure the formatter to use built-in MultiFormatter:
 
-    class SimpleCov::Formatter::MergedFormatter
-      def format(result)
-         SimpleCov::Formatter::HTMLFormatter.new.format(result)
-         SimpleCov::Formatter::CSVFormatter.new.format(result)
-      end
-    end
-
-Then configure the formatter to use the new merger:
-
-    SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
+    SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+      SimpleCov::Formatter::HTMLFormatter,
+      SimpleCov::Formatter::CSVFormatter,
+    ]
 
 ## Available formatters
 

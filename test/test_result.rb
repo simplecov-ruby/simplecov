@@ -111,6 +111,21 @@ class TestResult < Test::Unit::TestCase
             assert_equal String, @result.format!.class
           end
         end
+
+        context "and multi formatter being used" do
+          setup do
+            SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+              SimpleCov::Formatter::SimpleFormatter,
+              SimpleCov::Formatter::SimpleFormatter,
+            ]
+          end
+
+          should "return an array containing formatted string with result.format!" do
+            formated = @result.format!
+            assert_equal 2, formated.count
+            assert_equal String, formated.first.class
+          end
+        end
       end
 
       context "with groups set up that do not match all files" do
