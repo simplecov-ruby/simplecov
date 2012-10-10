@@ -417,6 +417,12 @@ You can define the maximum coverage drop percentage at once. SimpleCov will retu
 
     SimpleCov.maximum_coverage_drop 5
 
+### Refuse dropping coverage
+
+You can also entirely refuse dropping coverage between test runs:
+
+    SimpleCov.refuse_coverage_drop
+
 ## Using your own formatter
 
 You can use your own formatter with:
@@ -429,7 +435,7 @@ being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 ## Using multiple formatters
 
-Configure the formatter to use built-in MultiFormatter:
+If you want to use multiple result formats, as of SimpleCov 0.7.0 you can use the built-in MultiFormatter:
 
     SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
       SimpleCov::Formatter::HTMLFormatter,
