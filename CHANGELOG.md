@@ -2,11 +2,20 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.6.4...ma
 -------------------
 
   * [FEATURE] The new `maximum_coverage_drop` and `minimum_coverage` now allow you to fail your build when the
-    coverage dropped by more than what you allowed or is below a minimum value required.
-    See https://github.com/colszowka/simplecov/pull/151, https://github.com/colszowka/simplecov/issues/11, 
+    coverage dropped by more than what you allowed or is below a minimum value required. Also, `refuse_coverage_drop` disallows
+    any coverage drops between test runs.
+    See https://github.com/colszowka/simplecov/pull/151, https://github.com/colszowka/simplecov/issues/11,
     https://github.com/colszowka/simplecov/issues/90, and https://github.com/colszowka/simplecov/issues/96 (thanks to @infertux)
+  * [FEATURE] SimpleCov now ships with a built-in MultiFormatter which allows the easy usage of multiple result formatters at
+    the same time without the need to write custom wrapper code.
+    See https://github.com/colszowka/simplecov/pull/158 (thanks to @nikitug)
+  * [BUGFIX] The usage of digits, hyphens and underscores in group names could lead to broken tab navigation
+    in the default simplecov-html reports. See https://github.com/colszowka/simplecov-html/pull/14 (thanks to @ebelgarts)
   * [REFACTORING] A few more ruby warnings removed. See https://github.com/colszowka/simplecov/issues/106 and
     https://github.com/colszowka/simplecov/pull/139. (thanks to @lukejahnke)
+  * A [Pledgie button](https://github.com/colszowka/simplecov/commit/63cfa99f8658fa5cc66a38c83b3195fdf71b9e93) for those that
+    feel generous :)
+  * The usual bunch of README fixes and documentation tweaks. Thanks to everyone who contributed those!
 
 v0.6.4, 2012-05-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.6.3...v0.6.4))
 -------------------
