@@ -162,6 +162,18 @@ to use SimpleCov with them. Here's an overview of the known ones:
   <a href="https://github.com/colszowka/simplecov/issues/80">SimpleCov #80</a>
  </td>
 </tr>
+<tr>
+ <td>
+   <b>RubyMine</b>
+ </td>
+ <td>
+  The <a href="https://www.jetbrains.com/ruby/">RubyMine IDE</a> has built-in support for SimpleCov's coverage reports,
+  though you might need to explicitly set the output root using `SimpleCov.root('foo/bar/baz')`
+ </td>
+ <td>
+  <a href="https://github.com/colszowka/simplecov/issues/95">SimpleCov #95</a>
+ </td>
+</tr>
 </table>
 
 ## Configuring SimpleCov
