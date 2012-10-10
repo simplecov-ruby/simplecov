@@ -1,4 +1,7 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.6.4...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
+-------------------
+
+v0.7.0, 2012-10-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.6.4...v0.7.0))
 -------------------
 
   * [FEATURE] The new `maximum_coverage_drop` and `minimum_coverage` now allow you to fail your build when the
