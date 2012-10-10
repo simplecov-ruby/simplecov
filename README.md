@@ -452,7 +452,7 @@ available:
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
 #### [simplecov-vim](https://github.com/nyarly/Simplecov-Vim)
-*by Judson Lester
+*by Judson Lester*
 
 A formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
 
