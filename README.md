@@ -50,18 +50,21 @@ Getting started
 
         # Previous content of test helper now starts here
 
-      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to track your files and their coverage!
-      The `SimpleCov.start` **must** be issued **before any of your application code is required!**
-      
-      Therefore if you are doing something like JSON API testing where you want to see all code exected by the `rails server`,
-      and not just code executed in your actual test files, you'll want to put something like this into the top of `script/rails`:
- 
+      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to
+      track your files and their coverage! The `SimpleCov.start` **must** be issued **before any of your application code
+      is required!**
+
+      SimpleCov must be running in the process that you want the code coverage analysis to happen on. When testing a server
+      process (i.e. a JSON API endpoint) via a separate test process (i.e. when using Selenium) where you want to see all
+      code executed by the `rails server`, and not just code executed in your actual test files, you'll want to add something
+      like this to the top of `script/rails`:
+
         if ENV['RAILS_ENV'] == 'test'
           require 'simplecov'
           SimpleCov.start 'rails'
           puts "required simplecov"
         end
-        
+
 3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
 
 4. Add the following to your `.gitignore` file to ensure that coverage results are not tracked by Git (optional):
