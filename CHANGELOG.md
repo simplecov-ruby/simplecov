@@ -1,6 +1,16 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
 -------------------
 
+v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
+-------------------
+
+  * [BUGFIX] The gem packages of 0.7.0 (both simplecov and simplecov-html) pushed to Rubygems had some file
+    permission issues, leading to problems when installing SimpleCov in a root/system Rubygems install and then
+    trying to use it as a normal user (see https://github.com/colszowka/simplecov/issues/171, thanks @envygeeks
+    for bringing it up). The gem build process has been changed to always enforce proper permissions before packaging
+    to avoid this issue in the future.
+
+
 v0.7.0, 2012-10-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.6.4...v0.7.0))
 -------------------
 
