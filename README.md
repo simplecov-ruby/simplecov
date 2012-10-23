@@ -6,6 +6,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   * [API documentation]
   * [Changelog]
   * [Rubygem]
+  * [Mailing List]
   * [Continuous Integration]
 
 [Coverage]: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby 1.9's Coverage library"
@@ -17,6 +18,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 [Continuous Integration]: http://travis-ci.org/colszowka/simplecov "SimpleCov is built around the clock by travis-ci.org"
 [Dependencies]: https://gemnasium.com/colszowka/simplecov "SimpleCov dependencies on Gemnasium"
 [simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
+[Mailing List]: https://groups.google.com/forum/#!forum/simplecov "Open mailing list for discussion and announcements on Google Groups"
 [Pledgie]: http://www.pledgie.com/campaigns/18379
 
 [![You can support the development of SimpleCov via Pledgie - thanks for your help](http://www.pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
