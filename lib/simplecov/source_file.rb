@@ -114,7 +114,7 @@ module SimpleCov
       if relevant_lines == 0
         0
       else
-        (covered_lines.count) * 100 / relevant_lines.to_f
+        (covered_lines.count) * 100.0 / relevant_lines.to_f
       end
     end
 
