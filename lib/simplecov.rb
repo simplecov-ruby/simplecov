@@ -29,6 +29,7 @@ module SimpleCov
       return false unless SimpleCov.usable?
 
       require 'coverage'
+      require 'simplecov/jruby16_fix'
       load_adapter(adapter) unless adapter.nil?
       Coverage.start
       configure(&block) if block_given?

@@ -24,3 +24,10 @@ Before do
   end
   step 'I cd to "project"'
 end
+
+# Workaround for https://github.com/cucumber/aruba/pull/125
+Aruba.configure do |config|
+  config.before_cmd do
+    set_env('JRUBY_OPTS', '-X-C --1.9')
+  end
+end
