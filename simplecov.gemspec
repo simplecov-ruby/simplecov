@@ -14,8 +14,9 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency 'multi_json', '~> 1.0'
   gem.add_dependency 'simplecov-html', '~> 0.7.1'
+
   gem.add_development_dependency 'aruba'
-  gem.add_development_dependency 'capybara'
+  gem.add_development_dependency 'capybara', '~> 1.0'
   gem.add_development_dependency 'appraisal'
   gem.add_development_dependency 'cucumber', '>= 1.1.4'
   gem.add_development_dependency 'rake'
