@@ -26,15 +26,20 @@ module SimpleCov
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
     def start(adapter=nil, &block)
-      return false unless SimpleCov.usable?
+      if SimpleCov.usable?
+        unless defined? Coverage
+          require 'coverage'
+          require 'simplecov/jruby16_fix'
+        end
 
-      require 'coverage'
-      require 'simplecov/jruby16_fix'
-      load_adapter(adapter) unless adapter.nil?
-      Coverage.start
-      configure(&block) if block_given?
-      @result = nil
-      self.running = true
+        load_adapter(adapter) if adapter
+        configure(&block) if block_given?
+        @result = nil
+        self.running = true
+        Coverage.start
+      else
+        warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
+      end
     end
 
     #
@@ -102,11 +107,7 @@ module SimpleCov
     # also printing an appropriate warning
     #
     def usable?
-      unless "1.9".respond_to?(:encoding)
-        warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
-        return false
-      end
-      true
+      "1.9".respond_to?(:encoding)
     end
   end
 end
