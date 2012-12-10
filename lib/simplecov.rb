@@ -39,6 +39,7 @@ module SimpleCov
         Coverage.start
       else
         warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
+        false
       end
     end
 
