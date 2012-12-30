@@ -1,6 +1,8 @@
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
+require 'lockfile'
+
 module SimpleCov
   # Indicates invalid coverage data
   class CoverageDataError < StandardError; end;
@@ -52,8 +54,12 @@ module SimpleCov
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
-        SimpleCov::ResultMerger.store_result(@result) if @result
-        return SimpleCov::ResultMerger.merged_result
+        lockfile = ::Lockfile.new ResultMerger.resultset_path + '.lockfile'
+
+        lockfile.lock do
+          SimpleCov::ResultMerger.store_result(@result) if @result
+          return SimpleCov::ResultMerger.merged_result
+        end
       else
         return @result if defined? @result
       end
