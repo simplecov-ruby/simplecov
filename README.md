@@ -476,6 +476,11 @@ CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
 A formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
 
+#### [simplecov-single_file_reporter](https://github.com/grosser/simplecov-single_file_reporter)
+*by [Michael Grosser](http://grosser.it)*
+
+A formatter that prints the coverage of the file under test when you run a single test file.
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
