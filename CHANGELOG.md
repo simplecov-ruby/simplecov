@@ -1,6 +1,8 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
 -------------------
 
+  * [FEATURE] Automatically detect the usage of parallel_tests.
+    See https://github.com/colszowka/simplecov/issues/64
   * [FEATURE] Adds support for Rails 4 command guessing.
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
