@@ -497,4 +497,4 @@ Thanks to Aaron Patterson for the original idea for this!
 
 ## Copyright
 
-Copyright (c) 2010-2012 Christoph Olszowka. See LICENSE for details.
+Copyright (c) 2010-2012 Christoph Olszowka. See MIT-LICENSE for details.
