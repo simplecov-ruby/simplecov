@@ -1,7 +1,8 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
 -------------------
 
-  * [BUGFIX] Lock the results file while merging. This prevents data corruption when running under parallel_test.
+  * [FEATURE] Automatically detect the usage of parallel_tests.
+    See https://github.com/colszowka/simplecov/issues/64
   * [FEATURE] Adds support for Rails 4 command guessing.
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
