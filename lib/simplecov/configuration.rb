@@ -34,7 +34,7 @@ module SimpleCov::Configuration
   # values. Will create the directory if it's missing
   #
   def coverage_path
-    coverage_path = File.join(root, coverage_dir)
+    coverage_path = File.expand_path(coverage_dir, root)
     FileUtils.mkdir_p coverage_path
     coverage_path
   end
