@@ -39,6 +39,6 @@ class SimpleCov::FileList < Array
   # Computes the strength (hits / line) based upon lines covered and lines missed
   def covered_strength
     return 0 if empty? or lines_of_code == 0
-    covered_lines.to_f / lines_of_code
+    map {|f| f.covered_strength * f.lines_of_code }.inject(&:+) / lines_of_code
   end
 end

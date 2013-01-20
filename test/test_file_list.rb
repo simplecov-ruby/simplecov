@@ -6,7 +6,7 @@ class TestFileList < Test::Unit::TestCase
       setup do
         original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
             source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-            source_fixture('app/controllers/sample_controller.rb') => [nil, 1, 1, 0, nil, nil, 0, nil, nil, nil]}
+            source_fixture('app/controllers/sample_controller.rb') => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil]}
         @file_list = SimpleCov::Result.new(original_result).files
       end
 
@@ -16,7 +16,8 @@ class TestFileList < Test::Unit::TestCase
       should("have 14 lines_of_code") { assert_equal 14, @file_list.lines_of_code }
       should("have 3 skipped_lines")  { assert_equal 3, @file_list.skipped_lines }
 
-      should ("have correct covered_percent") { assert_equal 100.0*11/14, @file_list.covered_percent }
+      should("have correct covered_percent") { assert_equal 100.0*11/14, @file_list.covered_percent }
+      should("have correct covered_strength") { assert_equal 13.to_f/14, @file_list.covered_strength }
     end
   end
 end
