@@ -2,6 +2,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...ma
 -------------------
 
   * [FEATURE] Adds support for Rails 4 command guessing.
+  * [BUGFIX] Average hits per line for groups of files weighed each file equally, ignoring the length of the files.
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 -------------------
