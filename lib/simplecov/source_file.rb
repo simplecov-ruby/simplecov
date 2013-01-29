@@ -168,7 +168,7 @@ module SimpleCov
     def process_skipped_lines!
       skipping = false
       lines.each do |line|
-        if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
+        if line.src =~ /#([\s]*)(\:#{SimpleCov.nocov_token}\:)\s*$/
           skipping = !skipping
         else
           line.skipped! if skipping
