@@ -88,6 +88,20 @@ class TestSourceFile < Test::Unit::TestCase
           source_file.process_skipped_lines!
         end
       end
+
+      should "handle utf-8 encoded source files when the default_internal encoding is binary" do
+        original_internal_encoding = Encoding.default_internal
+        Encoding.default_internal = "BINARY"
+        begin
+          source_file = SimpleCov::SourceFile.new(source_fixture('utf-8.rb'), [nil, nil, 1])
+        ensure
+          Encoding.default_internal = original_internal_encoding
+        end
+
+        assert_nothing_raised do
+          source_file.process_skipped_lines!
+        end
+      end
     end
 
   end
