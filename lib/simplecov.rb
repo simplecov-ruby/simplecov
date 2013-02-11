@@ -2,11 +2,8 @@
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
 module SimpleCov
-  # Indicates invalid coverage data
-  class CoverageDataError < StandardError; end;
-
   class << self
-    attr_accessor :running#, :result # TODO: Remove result?
+    attr_accessor :running
 
     #
     # Sets up SimpleCov to run against your project.
@@ -27,11 +24,6 @@ module SimpleCov
     #
     def start(adapter=nil, &block)
       if SimpleCov.usable?
-        unless defined? Coverage
-          require 'coverage'
-          require 'simplecov/jruby16_fix'
-        end
-
         load_adapter(adapter) if adapter
         configure(&block) if block_given?
         @result = nil
@@ -104,11 +96,19 @@ module SimpleCov
     end
 
     #
-    # Checks whether we're on a proper version of ruby (1.9+) and returns false if this is not the case,
-    # also printing an appropriate warning
+    # Checks whether we're on a proper version of Ruby (likely 1.9+) which
+    # provides coverage support
     #
     def usable?
-      "1.9".respond_to?(:encoding)
+      return @usable unless @usable.nil?
+
+      @usable = begin
+        require 'coverage'
+        require 'simplecov/jruby16_fix'
+        true
+      rescue LoadError
+        false
+      end
     end
   end
 end
