@@ -81,9 +81,10 @@ at_exit do
   exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
 end
 
-# Autoload config from .simplecov if present
+# Autoload config from ~/.simplecov if present
 global_config_path = File.join(File.expand_path("~"), '.simplecov')
 load global_config_path if File.exist?(global_config_path)
 
+# Autoload config from .simplecov if present
 config_path = File.join(SimpleCov.root, '.simplecov')
 load config_path if File.exist?(config_path)

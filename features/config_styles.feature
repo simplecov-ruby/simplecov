@@ -91,19 +91,3 @@ Feature:
     Then I should see "4 files in total."
     And I should see "using Config Test Runner" within "#footer"
 
-  Scenario: Global config and local config
-    Given a file named "~/.simplecov" with:
-      """
-      SimpleCov.configure do
-        add_filter 'test'
-      end
-      """
-    And a file named ".simplecov" with:
-      """
-      SimpleCov.command_name 'Config Test Runner'
-      SimpleCov.start
-      """
-
-    When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
-    And I should see "using Config Test Runner" within "#footer"
