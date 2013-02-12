@@ -79,7 +79,7 @@ module SimpleCov
 
     def initialize(filename, coverage)
       @filename, @coverage = filename, coverage
-      File.open(filename, "r:UTF-8") {|f| @src = f.readlines }
+      File.open(filename, "r:UTF-8:UTF-8") {|f| @src = f.readlines }
     end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
