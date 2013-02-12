@@ -82,5 +82,8 @@ at_exit do
 end
 
 # Autoload config from .simplecov if present
+global_config_path = File.join(File.expand_path("~"), '.simplecov')
+load global_config_path if File.exist?(global_config_path)
+
 config_path = File.join(SimpleCov.root, '.simplecov')
 load config_path if File.exist?(config_path)
