@@ -21,7 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'appraisal'
   gem.add_development_dependency 'cucumber', '>= 1.1.4'
   gem.add_development_dependency 'rake'
-  gem.add_development_dependency 'rspec'
+  gem.add_development_dependency 'rspec', '>= 2.1'
   gem.add_development_dependency 'shoulda'
 
   gem.files         = `git ls-files`.split("\n")
