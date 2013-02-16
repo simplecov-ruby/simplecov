@@ -296,7 +296,7 @@ is being set in the SimpleCov::Filter initialize method and thus is set to 5 in 
 ## Groups
 
 You can separate your source files into groups. For example, in a rails app, you'll want to have separate listings for
-Models, Controllers, Helpers, Libs and Plugins. Group definition works similar to Filters (and indeed also accepts custom
+Models, Controllers, Helpers, and Libs. Group definition works similar to Filters (and indeed also accepts custom
 filter classes), but source files end up in a group when the filter passes (returns true), as opposed to filtering results,
 which exclude files from results when the filter results in a true value.
 
@@ -406,7 +406,6 @@ SimpleCov.adapters.define 'rails' do
   add_group 'Models', 'app/models'
   add_group 'Helpers', 'app/helpers'
   add_group 'Libraries', 'lib'
-  add_group 'Plugins', 'vendor/plugins'
 end
 ```
 

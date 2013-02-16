@@ -27,7 +27,6 @@ SimpleCov.adapters.define 'rails' do
   add_group 'Mailers', 'app/mailers'
   add_group 'Helpers', 'app/helpers'
   add_group 'Libraries', 'lib'
-  add_group 'Plugins', 'vendor/plugins'
 end
 
 # Default configuration
