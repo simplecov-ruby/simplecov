@@ -1,6 +1,7 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
 -------------------
 
+  * Remove default addition of 'vendor/plugins' group when using 'rails' adapter.
   * [FEATURE] Adds support for Rails 4 command guessing.
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
