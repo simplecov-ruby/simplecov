@@ -7,12 +7,19 @@ require 'bundler'
 Bundler.setup
 require 'aruba/cucumber'
 require 'capybara/cucumber'
+require 'capybara/webkit'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
-Capybara.app = lambda {|env|
+Capybara.app = lambda { |env|
+  request_path = env['REQUEST_PATH'] || '/'
+  request_path = '/index.html' if request_path == '/'
+
   [200, {'Content-Type' => 'text/html'},
-    [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project', 'coverage/index.html'))]]
+    [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project/coverage', request_path))]]
 }
+
+# https://github.com/thoughtbot/capybara-webkit
+Capybara.default_driver = Capybara.javascript_driver = :webkit
 
 Before do
   @aruba_timeout_seconds = 20

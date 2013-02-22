@@ -14,7 +14,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "Code coverage for Project"
+    Then I should see "Code coverage for Project" within "title"
 
   Scenario: Custom name
     Given SimpleCov for Test/Unit is configured with:
@@ -24,4 +24,4 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "Code coverage for Superfancy 2.0"
+    Then I should see "Code coverage for Superfancy 2.0" within "title"
