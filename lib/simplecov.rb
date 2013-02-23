@@ -7,10 +7,10 @@ module SimpleCov
 
     #
     # Sets up SimpleCov to run against your project.
-    # You can optionally specify an adapter to use as well as configuration with a block:
+    # You can optionally specify a profile to use as well as configuration with a block:
     #   SimpleCov.start
     #    OR
-    #   SimpleCov.start 'rails' # using rails adapter
+    #   SimpleCov.start 'rails' # using rails profile
     #    OR
     #   SimpleCov.start do
     #     add_filter 'test'
@@ -22,9 +22,9 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def start(adapter=nil, &block)
+    def start(profile=nil, &block)
       if SimpleCov.usable?
-        load_adapter(adapter) if adapter
+        load_profile(profile) if profile
         configure(&block) if block_given?
         @result = nil
         self.running = true
@@ -89,10 +89,15 @@ module SimpleCov
     end
 
     #
-    # Applies the adapter of given name on SimpleCov configuration
+    # Applies the profile of given name on SimpleCov configuration
     #
+    def load_profile(name)
+      profiles.load(name)
+    end
+
     def load_adapter(name)
-      adapters.load(name)
+      warn "method load_adapter is deprecated. use load_profile instead"
+      load_profile(name)
     end
 
     #
@@ -118,7 +123,7 @@ require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
 require 'simplecov/exit_codes'
 require 'simplecov/json'
-require 'simplecov/adapters'
+require 'simplecov/profiles'
 require 'simplecov/source_file'
 require 'simplecov/file_list'
 require 'simplecov/result'

@@ -94,10 +94,15 @@ module SimpleCov::Configuration
   end
 
   #
-  # Returns the hash of available adapters
+  # Returns the hash of available profiles
   #
+  def profiles
+    @profiles ||= SimpleCov::Profiles.new
+  end
+
   def adapters
-    @adapters ||= SimpleCov::Adapters.new
+    warn "method adapters is deprecated. use profiles instead"
+    profiles
   end
 
   #
