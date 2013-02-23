@@ -19,13 +19,13 @@ class Test18FallBacks < Test::Unit::TestCase
     assert_equal false, SimpleCov.configure { raise "Shouldn't reach this!?" }
   end
 
-  should "allow to define an adapter" do
+  should "allow to define a profile" do
     begin
-      SimpleCov.adapters.define 'testadapter' do
+      SimpleCov.profiles.define 'testprofile' do
         add_filter '/config/'
       end
     rescue => err
-      assert false, "Adapter definition should have been fine, but raised #{err}"
+      assert false, "Profile definition should have been fine, but raised #{err}"
     end
   end
 end if RUBY_VERSION.start_with? '1.8'

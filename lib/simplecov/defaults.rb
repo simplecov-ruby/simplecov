@@ -1,22 +1,22 @@
 # Load default formatter gem
 require 'simplecov-html'
 
-SimpleCov.adapters.define 'root_filter' do
+SimpleCov.profiles.define 'root_filter' do
   # Exclude all files outside of simplecov root
   add_filter do |src|
     !(src.filename =~ /^#{SimpleCov.root}/)
   end
 end
 
-SimpleCov.adapters.define 'test_frameworks' do
+SimpleCov.profiles.define 'test_frameworks' do
   add_filter '/test/'
   add_filter '/features/'
   add_filter '/spec/'
   add_filter '/autotest/'
 end
 
-SimpleCov.adapters.define 'rails' do
-  load_adapter 'test_frameworks'
+SimpleCov.profiles.define 'rails' do
+  load_profile 'test_frameworks'
 
   add_filter '/config/'
   add_filter '/db/'
@@ -34,7 +34,7 @@ end
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
   # Exclude files outside of SimpleCov.root
-  load_adapter 'root_filter'
+  load_profile 'root_filter'
 end
 
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info

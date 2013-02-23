@@ -79,7 +79,7 @@ end
 
     coverage
 
-If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
+If you're making a Rails application, SimpleCov comes with a built-in configurations (see below for information on profiles)
 which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
@@ -388,17 +388,17 @@ COVERAGE=true rake test
 ```
 
 
-## Adapters
+## Profiles
 
 By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
-root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'adapters',
+root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
 or define your own.
 
-You can then pass the name of the adapter to be used as the first argument to SimpleCov.start. For example, simplecov
-comes bundled with a 'rails' adapter. It looks somewhat like this:
+You can then pass the name of the profile to be used as the first argument to SimpleCov.start. For example, simplecov
+comes bundled with a 'rails' profile. It looks somewhat like this:
 
 ```ruby
-SimpleCov.adapters.define 'rails' do
+SimpleCov.profiles.define 'rails' do
   add_filter '/test/'
   add_filter '/config/'
 
@@ -410,7 +410,7 @@ SimpleCov.adapters.define 'rails' do
 end
 ```
 
-As you can see, it's just a glorified SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
+As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
 
 ```ruby
 SimpleCov.start 'rails'
@@ -424,26 +424,26 @@ SimpleCov.start 'rails' do
 end
 ```
 
-### Custom adapters
+### Custom profiles
 
-You can load additional adapters with the SimpleCov.load_adapter('xyz') method. This allows you to build upon an existing
-adapter and customize it so you can reuse it in unit tests and cucumber features, for example.
+You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an existing
+profile and customize it so you can reuse it in unit tests and cucumber features, for example.
 
 ```ruby
-# lib/simplecov_custom_adapter.rb
+# lib/simplecov_custom_profile.rb
 require 'simplecov'
-SimpleCov.adapters.define 'myadapter' do
-  load_adapter 'rails'
+SimpleCov.profiles.define 'myprofile' do
+  load_profile 'rails'
   add_filter 'vendor' # Don't include vendored stuff
 end
 
 # features/support/env.rb
-require 'simplecov_custom_adapter'
-SimpleCov.start 'myadapter'
+require 'simplecov_custom_profile'
+SimpleCov.start 'myprofile'
 
 # test/test_helper.rb
-require 'simplecov_custom_adapter'
-SimpleCov.start 'myadapter'
+require 'simplecov_custom_profile'
+SimpleCov.start 'myprofile'
 ```
 
 
