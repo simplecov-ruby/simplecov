@@ -2,18 +2,15 @@
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
 module SimpleCov
-  # Indicates invalid coverage data
-  class CoverageDataError < StandardError; end;
-
   class << self
-    attr_accessor :running#, :result # TODO: Remove result?
+    attr_accessor :running
 
     #
     # Sets up SimpleCov to run against your project.
-    # You can optionally specify an adapter to use as well as configuration with a block:
+    # You can optionally specify a profile to use as well as configuration with a block:
     #   SimpleCov.start
     #    OR
-    #   SimpleCov.start 'rails' # using rails adapter
+    #   SimpleCov.start 'rails' # using rails profile
     #    OR
     #   SimpleCov.start do
     #     add_filter 'test'
@@ -25,14 +22,9 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def start(adapter=nil, &block)
+    def start(profile=nil, &block)
       if SimpleCov.usable?
-        unless defined? Coverage
-          require 'coverage'
-          require 'simplecov/jruby16_fix'
-        end
-
-        load_adapter(adapter) if adapter
+        load_profile(profile) if profile
         configure(&block) if block_given?
         @result = nil
         self.running = true
@@ -97,18 +89,31 @@ module SimpleCov
     end
 
     #
-    # Applies the adapter of given name on SimpleCov configuration
+    # Applies the profile of given name on SimpleCov configuration
     #
+    def load_profile(name)
+      profiles.load(name)
+    end
+
     def load_adapter(name)
-      adapters.load(name)
+      warn "method load_adapter is deprecated. use load_profile instead"
+      load_profile(name)
     end
 
     #
-    # Checks whether we're on a proper version of ruby (1.9+) and returns false if this is not the case,
-    # also printing an appropriate warning
+    # Checks whether we're on a proper version of Ruby (likely 1.9+) which
+    # provides coverage support
     #
     def usable?
-      "1.9".respond_to?(:encoding)
+      return @usable unless @usable.nil?
+
+      @usable = begin
+        require 'coverage'
+        require 'simplecov/jruby16_fix'
+        true
+      rescue LoadError
+        false
+      end
     end
   end
 end
@@ -118,7 +123,7 @@ require 'simplecov/configuration'
 SimpleCov.send :extend, SimpleCov::Configuration
 require 'simplecov/exit_codes'
 require 'simplecov/json'
-require 'simplecov/adapters'
+require 'simplecov/profiles'
 require 'simplecov/source_file'
 require 'simplecov/file_list'
 require 'simplecov/result'

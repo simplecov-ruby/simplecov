@@ -1,4 +1,4 @@
-SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.png)][Dependencies]
+SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.png)][Dependencies] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.png)](https://codeclimate.com/github/colszowka/simplecov)
 =========
 **Code coverage for Ruby 1.9**
 
@@ -42,43 +42,51 @@ Getting started
 
 1. Add SimpleCov to your `Gemfile` and `bundle install`:
 
-        gem 'simplecov', :require => false, :group => :test
+```ruby
+gem 'simplecov', :require => false, :group => :test
+```
 
 2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (*or `spec_helper.rb`, cucumber `env.rb`, or whatever
    your preferred test framework uses*):
 
-        require 'simplecov'
-        SimpleCov.start
+```ruby
+require 'simplecov'
+SimpleCov.start
 
-        # Previous content of test helper now starts here
+# Previous content of test helper now starts here
+```
 
-      **Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to
-      track your files and their coverage! The `SimpleCov.start` **must** be issued **before any of your application code
-      is required!**
+**Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to
+track your files and their coverage! The `SimpleCov.start` **must** be issued **before any of your application code
+is required!**
 
-      SimpleCov must be running in the process that you want the code coverage analysis to happen on. When testing a server
-      process (i.e. a JSON API endpoint) via a separate test process (i.e. when using Selenium) where you want to see all
-      code executed by the `rails server`, and not just code executed in your actual test files, you'll want to add something
-      like this to the top of `script/rails`:
+SimpleCov must be running in the process that you want the code coverage analysis to happen on. When testing a server
+process (i.e. a JSON API endpoint) via a separate test process (i.e. when using Selenium) where you want to see all
+code executed by the `rails server`, and not just code executed in your actual test files, you'll want to add something
+like this to the top of `script/rails`:
 
-        if ENV['RAILS_ENV'] == 'test'
-          require 'simplecov'
-          SimpleCov.start 'rails'
-          puts "required simplecov"
-        end
+```ruby
+if ENV['RAILS_ENV'] == 'test'
+  require 'simplecov'
+  SimpleCov.start 'rails'
+  puts "required simplecov"
+end
+```
 
 3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
 
 4. Add the following to your `.gitignore` file to ensure that coverage results are not tracked by Git (optional):
 
-        coverage
+    coverage
 
-If you're making a Rails application, SimpleCov comes with a built-in adapter (see below for more information on what adapters are)
+If you're making a Rails application, SimpleCov comes with a built-in configurations (see below for information on profiles)
 which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
-    require 'simplecov'
-    SimpleCov.start 'rails'
+```ruby
+require 'simplecov'
+SimpleCov.start 'rails'
+```
 
 ## Example output
 
@@ -101,8 +109,10 @@ config to the very top of your Cucumber/RSpec/whatever setup file.
 Add the setup code to the **top** of `features/support/env.rb` (for Cucumber) or `spec/spec_helper.rb` (for RSpec).
 Other test frameworks should work accordingly, whatever their setup file may be:
 
-    require 'simplecov'
-    SimpleCov.start 'rails'
+```ruby
+require 'simplecov'
+SimpleCov.start 'rails'
+```
 
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
 care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
@@ -184,19 +194,25 @@ to use SimpleCov with them. Here's an overview of the known ones:
 
 * The most common way is to configure it directly in your start block:
 
-        SimpleCov.start do
-          some_config_option 'foo'
-        end
+```ruby
+SimpleCov.start do
+  some_config_option 'foo'
+end
+```
 
 * You can also set all configuration options directly:
 
-        SimpleCov.some_config_option 'foo'
+```ruby
+SimpleCov.some_config_option 'foo'
+```
 
 * If you do not want to start coverage immediately after launch or want to add additional configuration later on in a concise way, use:
 
-        SimpleCov.configure do
-          some_config_option 'foo'
-        end
+```ruby
+SimpleCov.configure do
+  some_config_option 'foo'
+end
+```
 
 Please check out the [Configuration] API documentation to find out what you can customize.
 
@@ -209,17 +225,18 @@ set up all your config options twice, once in `test_helper.rb` and once in `env.
 To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the `require 'simplecov'` in each
 test setup helper and move the `SimpleCov.start` code with all your custom config options into `.simplecov`:
 
-    # test/test_helper.rb
-    require 'simplecov'
+```ruby
+# test/test_helper.rb
+require 'simplecov'
 
-    # features/support/env.rb
-    require 'simplecov'
+# features/support/env.rb
+require 'simplecov'
 
-    # .simplecov
-    SimpleCov.start 'rails' do
-      # any custom configs like groups and filters can be here at a central place
-    end
-
+# .simplecov
+SimpleCov.start 'rails' do
+  # any custom configs like groups and filters can be here at a central place
+end
+```
 
 ## Filters
 
@@ -237,19 +254,23 @@ a block or by passing in your own Filter class.
 
 #### String filter
 
-    SimpleCov.start do
-      add_filter "/test/"
-    end
+```ruby
+SimpleCov.start do
+  add_filter "/test/"
+end
+```
 
 This simple string filter will remove all files that match "/test/" in their path.
 
 #### Block filter
 
-    SimpleCov.start do
-      add_filter do |source_file|
-        source_file.lines.count < 5
-      end
-    end
+```ruby
+SimpleCov.start do
+  add_filter do |source_file|
+    source_file.lines.count < 5
+  end
+end
+```
 
 Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be removed
 from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to learn about the
@@ -257,13 +278,15 @@ methods available to you. In the above example, the filter will remove all files
 
 #### Custom filter class
 
-    class LineFilter < SimpleCov::Filter
-      def matches?(source_file)
-        source_file.lines.count < filter_argument
-      end
-    end
+```ruby
+class LineFilter < SimpleCov::Filter
+  def matches?(source_file)
+    source_file.lines.count < filter_argument
+  end
+end
 
-    SimpleCov.add_filter LineFilter.new(5)
+SimpleCov.add_filter LineFilter.new(5)
+```
 
 Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'matches?(source_file)'. When running
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
@@ -279,14 +302,16 @@ which exclude files from results when the filter results in a true value.
 
 Add your groups with:
 
-    SimpleCov.start do
-      add_group "Models", "app/models"
-      add_group "Controllers", "app/controllers"
-      add_group "Long files" do |src_file|
-        src_file.lines.count > 100
-      end
-      add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
-    end
+```ruby
+SimpleCov.start do
+  add_group "Models", "app/models"
+  add_group "Controllers", "app/controllers"
+  add_group "Long files" do |src_file|
+    src_file.lines.count > 100
+  end
+  add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
+end
+```
 
 ## Merging results
 
@@ -313,17 +338,19 @@ So, to customize the suite names on a Rails app (yeah, sorry for being Rails bia
 the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
-    # test/unit/some_test.rb
-    SimpleCov.command_name 'test:units'
+```ruby
+# test/unit/some_test.rb
+SimpleCov.command_name 'test:units'
 
-    # test/functionals/some_controller_test.rb
-    SimpleCov.command_name "test:functionals"
+# test/functionals/some_controller_test.rb
+SimpleCov.command_name "test:functionals"
 
-    # test/integration/some_integration_test.rb
-    SimpleCov.command_name "test:integration"
+# test/integration/some_integration_test.rb
+SimpleCov.command_name "test:integration"
 
-    # features/support/env.rb
-    SimpleCov.command_name "features"
+# features/support/env.rb
+SimpleCov.command_name "features"
+```
 
 Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is fair enough.
@@ -350,72 +377,85 @@ Because of this, SimpleCov has no explicit built-in mechanism to run coverage on
 
 However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
 
-    SimpleCov.start if ENV["COVERAGE"]
+```ruby
+SimpleCov.start if ENV["COVERAGE"]
+```
 
 Then, SimpleCov will only run if you execute your tests like this:
 
-    $ COVERAGE=true rake test
+```shell
+COVERAGE=true rake test
+```
 
 
-## Adapters
+## Profiles
 
 By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
-root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'adapters',
+root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
 or define your own.
 
-You can then pass the name of the adapter to be used as the first argument to SimpleCov.start. For example, simplecov
-comes bundled with a 'rails' adapter. It looks somewhat like this:
+You can then pass the name of the profile to be used as the first argument to SimpleCov.start. For example, simplecov
+comes bundled with a 'rails' profile. It looks somewhat like this:
 
-    SimpleCov.adapters.define 'rails' do
-      add_filter '/test/'
-      add_filter '/config/'
+```ruby
+SimpleCov.profiles.define 'rails' do
+  add_filter '/test/'
+  add_filter '/config/'
 
-      add_group 'Controllers', 'app/controllers'
-      add_group 'Models', 'app/models'
-      add_group 'Helpers', 'app/helpers'
-      add_group 'Libraries', 'lib'
-      add_group 'Plugins', 'vendor/plugins'
-    end
+  add_group 'Controllers', 'app/controllers'
+  add_group 'Models', 'app/models'
+  add_group 'Helpers', 'app/helpers'
+  add_group 'Libraries', 'lib'
+  add_group 'Plugins', 'vendor/plugins'
+end
+```
 
-As you can see, it's just a glorified SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
+As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
 
-    SimpleCov.start 'rails'
+```ruby
+SimpleCov.start 'rails'
+```
 
 **OR**
 
-    SimpleCov.start 'rails' do
-      # additional config here
-    end
+```ruby
+SimpleCov.start 'rails' do
+  # additional config here
+end
+```
 
-### Custom adapters
+### Custom profiles
 
-You can load additional adapters with the SimpleCov.load_adapter('xyz') method. This allows you to build upon an existing
-adapter and customize it so you can reuse it in unit tests and cucumber features, for example.
+You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an existing
+profile and customize it so you can reuse it in unit tests and cucumber features, for example.
 
-    # lib/simplecov_custom_adapter.rb
-    require 'simplecov'
-    SimpleCov.adapters.define 'myadapter' do
-      load_adapter 'rails'
-      add_filter 'vendor' # Don't include vendored stuff
-    end
+```ruby
+# lib/simplecov_custom_profile.rb
+require 'simplecov'
+SimpleCov.profiles.define 'myprofile' do
+  load_profile 'rails'
+  add_filter 'vendor' # Don't include vendored stuff
+end
 
-    # features/support/env.rb
-    require 'simplecov_custom_adapter'
-    SimpleCov.start 'myadapter'
+# features/support/env.rb
+require 'simplecov_custom_profile'
+SimpleCov.start 'myprofile'
 
-    # test/test_helper.rb
-    require 'simplecov_custom_adapter'
-    SimpleCov.start 'myadapter'
-
+# test/test_helper.rb
+require 'simplecov_custom_profile'
+SimpleCov.start 'myprofile'
+```
 
 
 ## Customizing exit behaviour
 
 You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
 
-    SimpleCov.at_exit do
-      SimpleCov.result.format!
-    end
+```ruby
+SimpleCov.at_exit do
+  SimpleCov.result.format!
+end
+```
 
 Above is the default behaviour. Do whatever you like instead!
 
@@ -423,25 +463,33 @@ Above is the default behaviour. Do whatever you like instead!
 
 You can define the minimum coverage percentage expected. SimpleCov will return non-zero if unmet.
 
-    SimpleCov.minimum_coverage 90
+```ruby
+SimpleCov.minimum_coverage 90
+```
 
 ### Maximum coverage drop
 
 You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.
 
-    SimpleCov.maximum_coverage_drop 5
+```ruby
+SimpleCov.maximum_coverage_drop 5
+```
 
 ### Refuse dropping coverage
 
 You can also entirely refuse dropping coverage between test runs:
 
-    SimpleCov.refuse_coverage_drop
+```ruby
+SimpleCov.refuse_coverage_drop
+```
 
 ## Using your own formatter
 
 You can use your own formatter with:
 
-    SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
+```ruby
+SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
+```
 
 When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result"
 being an instance of SimpleCov::Result. Do whatever your wish with that!
@@ -451,10 +499,12 @@ being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 If you want to use multiple result formats, as of SimpleCov 0.7.0 you can use the built-in MultiFormatter:
 
-    SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
-      SimpleCov::Formatter::HTMLFormatter,
-      SimpleCov::Formatter::CSVFormatter,
-    ]
+```ruby
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::CSVFormatter,
+]
+```
 
 ## Available formatters
 

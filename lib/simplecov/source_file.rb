@@ -30,7 +30,6 @@ module SimpleCov
         raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) or coverage.nil?
         @src, @line_number, @coverage = src, line_number, coverage
         @skipped = false
-        @src.encode!('UTF-8', 'UTF-8', :invalid => :replace) if @src.respond_to?(:encode!)
       end
 
       # Returns true if this is a line that should have been covered, but was not
@@ -79,7 +78,7 @@ module SimpleCov
 
     def initialize(filename, coverage)
       @filename, @coverage = filename, coverage
-      File.open(filename, "r:UTF-8") {|f| @src = f.readlines }
+      File.open(filename, "rb") {|f| @src = f.readlines }
     end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
