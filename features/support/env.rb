@@ -6,6 +6,7 @@ end
 require 'bundler'
 Bundler.setup
 require 'aruba/cucumber'
+require 'aruba/jruby' if RUBY_ENGINE == 'jruby'
 require 'capybara/cucumber'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
@@ -15,13 +16,17 @@ Capybara.app = lambda {|env|
 }
 
 Before do
-  @aruba_timeout_seconds = 20
+  # JRuby takes it's time... See https://github.com/cucumber/aruba/issues/134
+  @aruba_timeout_seconds = RUBY_ENGINE == 'jruby' ? 60 : 20
+
   this_dir = File.dirname(__FILE__)
+
   # Clean up and create blank state for fake project
   in_current_dir do
     FileUtils.rm_rf 'project'
     FileUtils.cp_r File.join(this_dir, '../../test/faked_project/'), 'project'
   end
+
   step 'I cd to "project"'
 end
 
