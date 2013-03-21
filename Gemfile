@@ -1,4 +1,4 @@
-source "http://rubygems.org"
+source "https://rubygems.org"
 gemspec
 
 # Uncomment this to use local copy of simplecov-html in development when checked out
