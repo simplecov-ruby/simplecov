@@ -105,7 +105,7 @@ module SimpleCov
     # provides coverage support
     #
     def usable?
-      return @usable unless @usable.nil?
+      return @usable if defined? @usable and !@usable.nil?
 
       @usable = begin
         require 'coverage'
