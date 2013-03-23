@@ -1,8 +1,15 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
 -------------------
 
-  * [FEATURE] Adds support for Rails 4 command guessing.
-  * Rename adapters to "profiles" given that they are bundles of settings
+  * [FEATURE] Adds support for Rails 4 command guessing. 
+    See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
+  * [REFACTORING] Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
+    deprecated, but remain available for now. 
+    See [#207](https://github.com/colszowka/simplecov/pull/207) (thanks to @mikerobe)
+  * [FEATURE] You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
+    or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
+    dropped by using this.
+    See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 -------------------
