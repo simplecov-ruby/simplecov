@@ -12,7 +12,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...ma
     See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
   * [REFACTORING] Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
     be correctly attributed to RSpec, not Cucumber.
-    See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan)
+    See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
   * [REFACTORING] The internal cucumber test suite now uses Capybara 2.
     See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
 
