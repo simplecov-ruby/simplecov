@@ -1,4 +1,4 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 -------------------
 
   * [FEATURE] Adds support for Rails 4 command guessing. 
