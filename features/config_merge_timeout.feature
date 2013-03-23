@@ -17,14 +17,14 @@ Feature:
       """
       require 'simplecov'
       SimpleCov.start do
-        merge_timeout 1
+        merge_timeout 5
       end
       """
     Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
-        merge_timeout 1
+        merge_timeout 5
       end
       """
 
@@ -32,7 +32,7 @@ Feature:
     Then the report should be based upon:
       | Unit Tests |
 
-    When I wait for 2 seconds
+    When I wait for 5 seconds
     And I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec |
