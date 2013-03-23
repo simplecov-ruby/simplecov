@@ -1,7 +1,5 @@
 before_install:
   - echo "yes" | gem uninstall json
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
 script:
   - bundle
   - rake appraisal:install
