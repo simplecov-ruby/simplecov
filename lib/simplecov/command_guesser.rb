@@ -18,16 +18,16 @@ module SimpleCov::CommandGuesser
     
     def from_command_line_options
       case original_run_command
-        when /#{'test/functional/'}/, /#{'test/{.*?functional.*?}/'}/
+        when /test\/functional\//, /test\/{.*?functional.*?}\//
           "Functional Tests"
-        when /#{'test/integration/'}/
+        when /test\/integration\//
           "Integration Tests"
-        when /#{'test/'}/
+        when /test\//
           "Unit Tests"
-        when /cucumber/, /features/
-          "Cucumber Features"
         when /spec/
           "RSpec"
+        when /cucumber/, /features/
+          "Cucumber Features"
         else
           nil
       end
