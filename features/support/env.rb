@@ -8,7 +8,7 @@ Bundler.setup
 require 'aruba/cucumber'
 require 'aruba/jruby' if RUBY_ENGINE == 'jruby'
 require 'capybara/cucumber'
-require 'capybara/webkit'
+require 'phantomjs/poltergeist'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
 Capybara.app = lambda { |env|
@@ -19,8 +19,7 @@ Capybara.app = lambda { |env|
     [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project/coverage', request_path))]]
 }
 
-# https://github.com/thoughtbot/capybara-webkit
-Capybara.default_driver = Capybara.javascript_driver = :webkit
+Capybara.default_driver = Capybara.javascript_driver = :poltergeist
 
 Before do
   # JRuby takes it's time... See https://github.com/cucumber/aruba/issues/134

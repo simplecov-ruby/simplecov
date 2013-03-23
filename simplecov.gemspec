@@ -16,14 +16,15 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'multi_json', '~> 1.0'
   gem.add_dependency 'simplecov-html', '~> 0.7.1'
 
-  gem.add_development_dependency 'aruba'
+  gem.add_development_dependency 'aruba', '~> 0.5.1'
   gem.add_development_dependency 'capybara', '~> 2.0'
-  gem.add_development_dependency 'capybara-webkit'
-  gem.add_development_dependency 'appraisal'
-  gem.add_development_dependency 'cucumber', '>= 1.1.4'
-  gem.add_development_dependency 'rake'
-  gem.add_development_dependency 'rspec', '>= 2.1'
-  gem.add_development_dependency 'shoulda'
+  gem.add_development_dependency 'poltergeist', '~> 1.1.0'
+  gem.add_development_dependency 'phantomjs', '~> 1.8.1'
+  gem.add_development_dependency 'appraisal', '~> 0.5.1'
+  gem.add_development_dependency 'cucumber', '~> 1.2.3'
+  gem.add_development_dependency 'rake', '~> 10.0.3'
+  gem.add_development_dependency 'rspec', '~> 2.13.0'
+  gem.add_development_dependency 'shoulda', '~> 3.4.0'
 
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
