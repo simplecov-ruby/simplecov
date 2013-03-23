@@ -16,12 +16,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'multi_json'
   gem.add_dependency 'simplecov-html', '~> 0.7.1'
 
-  gem.add_development_dependency 'aruba', '~> 0.5.1'
-  gem.add_development_dependency 'capybara', '~> 2.0'
-  gem.add_development_dependency 'poltergeist', '~> 1.1.0'
-  gem.add_development_dependency 'phantomjs', '~> 1.8.1'
   gem.add_development_dependency 'appraisal', '~> 0.5.1'
-  gem.add_development_dependency 'cucumber', '>= 1.1.0'
   gem.add_development_dependency 'rake', '~> 10.0.3'
   gem.add_development_dependency 'rspec', '~> 2.13.0'
   gem.add_development_dependency 'shoulda', '~> 3.4.0'
