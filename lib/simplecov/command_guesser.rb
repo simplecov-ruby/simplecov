@@ -11,11 +11,22 @@ module SimpleCov::CommandGuesser
     attr_accessor :original_run_command
     
     def guess
-      from_command_line_options || from_defined_constants
+      from_program_name || from_command_line_options || from_defined_constants
     end
     
     private
     
+    def from_program_name
+      case $PROGRAM_NAME
+        when /\/rspec$/
+          "RSpec"
+        when /\/cucumber$/
+          "Cucumber Features"
+        else
+          nil
+      end
+    end
+
     def from_command_line_options
       case original_run_command
         when /test\/functional\//, /test\/{.*?functional.*?}\//
