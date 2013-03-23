@@ -1,2 +1,2 @@
-$simplecov_without_defaults = true
+ENV['SIMPLECOV_NO_DEFAULTS'] = true
 require 'simplecov'
