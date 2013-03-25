@@ -1,8 +1,8 @@
-if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
+if defined?(JRUBY_VERSION)
   require 'jruby'
   java_import 'org.jruby.ast.NodeType'
 
-  # Coverage for JRuby < 1.7.0 does not work correctly
+  # Coverage for JRuby does not work correctly
   #
   #  - does not distinguish lines that cannot be executed
   #  - does (partial) coverage for files loaded before `Coverage.start`.
@@ -16,6 +16,8 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
       def result
         fixed = {}
         __broken_result__.each do |path, executed_lines|
+          next unless File.file? path
+
           covered_lines = executed_lines.dup
 
           process = lambda do |node|
@@ -26,10 +28,7 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
             node.child_nodes.each(&process)
           end
 
-          begin
-            process[JRuby.parse(File.read(path), path)]
-          rescue => e
-          end
+          process[JRuby.parse(File.read(path), path)]
 
           if (first = covered_lines.detect { |x| x }) && first > 0
             fixed[File.expand_path(path)] = covered_lines

@@ -109,7 +109,7 @@ module SimpleCov
 
       @usable = begin
         require 'coverage'
-        require 'simplecov/jruby16_fix'
+        require 'simplecov/jruby_fix'
         true
       rescue LoadError
         false
