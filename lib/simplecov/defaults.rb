@@ -42,10 +42,12 @@ SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(" ")}"
 
 at_exit do
   # Store the exit status of the test run since it goes away after calling the at_exit proc...
-  if $! #was an exception thrown?
-    #if it was a SystemExit, use the accompanying status
-    #otherwise set a non-zero status representing termination by some other exception
-    #(see github issue 41)
+  @exit_status = SimpleCov::ExitCodes::SUCCESS
+
+  if $! # was an exception thrown?
+    # if it was a SystemExit, use the accompanying status
+    # otherwise set a non-zero status representing termination by some other exception
+    # (see github issue 41)
     @exit_status = $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
   end
 
@@ -54,12 +56,12 @@ at_exit do
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
 
-    if @exit_status.to_i == 0 # No other errors
-      @exit_status = if covered_percent < SimpleCov.minimum_coverage
+    if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
+      if covered_percent < SimpleCov.minimum_coverage
         $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%)." % \
                      [covered_percent, SimpleCov.minimum_coverage]
 
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
 
       elsif (last_run = SimpleCov::LastRun.read)
         diff = last_run['result']['covered_percent'] - covered_percent
@@ -67,18 +69,15 @@ at_exit do
           $stderr.puts "Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%)." % \
                        [diff, SimpleCov.maximum_coverage_drop]
 
-          SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
+          @exit_status = SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
         end
       end
     end
 
-    metrics = {
-      :result => { :covered_percent => covered_percent }
-    }
-    SimpleCov::LastRun.write(metrics)
+    SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
   end
 
-  exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
+  exit @exit_status # Force exit with stored status (see github issue #5)
 end
 
 # Autoload config from ~/.simplecov if present
