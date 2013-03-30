@@ -23,6 +23,6 @@ If you want to contribute, please:
 
 This project uses Test::Unit. Individual tests can be run like this:
 
-```ruby
+```bash
 ruby -I test path/to/test.rb
 ```
