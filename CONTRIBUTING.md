@@ -18,3 +18,11 @@ If you want to contribute, please:
   * Add tests for it. This is important so I don't break it in a future version unintentionally.
   * **Bonus Points** go out to anyone who also updates `CHANGELOG.md` :)
   * Send me a pull request on Github.
+
+## Running Individual Tests
+
+This project uses Test::Unit. Individual tests can be run like this:
+
+```ruby
+ruby -I test path/to/test.rb
+```
