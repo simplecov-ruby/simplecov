@@ -1,9 +1,22 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 -------------------
 
-  * [FEATURE] Adds support for Rails 4 command guessing.
-  * [BUGFIX] Average hits per line for groups of files weighed each file equally, ignoring the length of the files.
-  * Rename adapters to "profiles" given that they are bundles of settings
+    See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
+  * [REFACTORING] Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
+    deprecated, but remain available for now. 
+    See [#207](https://github.com/colszowka/simplecov/pull/207) (thanks to @mikerobe)
+  * [FEATURE] You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
+    or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
+    dropped by using this.
+  * [BUGFIX] Average hits per line for groups of files is now computed correctly.
+    See [#192](http://github.com/colszowka/simplecov/pull/192) (thanks to @graysonwright)
+  * [FEATURE] Adds support for Rails 4 command guessing. 
+    See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
+  * [REFACTORING] Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
+    be correctly attributed to RSpec, not Cucumber.
+    See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
+  * [REFACTORING] The internal cucumber test suite now uses Capybara 2.
+    See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 -------------------

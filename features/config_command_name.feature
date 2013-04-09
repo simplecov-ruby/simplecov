@@ -31,3 +31,15 @@ Feature: Custom names for individual test suites
       | Dreck macht Speck |
       | I'm in UR Unitz   |
 
+  Scenario: RSpec auto detection with spec/features
+    Given SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start
+      """
+    And a file named "spec/features/foobar_spec.rb" with:
+      """
+      """
+    When I open the coverage report generated with `bundle exec rspec spec`
+    Then the report should be based upon:
+      | RSpec |

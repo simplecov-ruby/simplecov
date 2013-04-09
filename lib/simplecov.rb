@@ -105,7 +105,7 @@ module SimpleCov
     # provides coverage support
     #
     def usable?
-      return @usable unless @usable.nil?
+      return @usable if defined? @usable and !@usable.nil?
 
       @usable = begin
         require 'coverage'
@@ -136,7 +136,7 @@ require 'simplecov/command_guesser'
 require 'simplecov/version'
 
 # Load default config
-require 'simplecov/defaults'
+require 'simplecov/defaults' unless ENV['SIMPLECOV_NO_DEFAULTS']
 
 # Load Rails integration (only for Rails 3, see #113)
 require 'simplecov/railtie' if defined? Rails::Railtie

@@ -21,7 +21,12 @@ Rake::TestTask.new(:test) do |test|
   test.warning = true
 end
 
-require 'cucumber/rake/task'
-Cucumber::Rake::Task.new
+# Cucumber integration test suite is for impls that work with simplecov only - a.k.a. 1.9+
+if '1.9+'.respond_to? :encoding
+  require 'cucumber/rake/task'
+  Cucumber::Rake::Task.new
+  task :default => [:test, :cucumber]
+else
+  task :default => [:test]
+end
 
-task :default => [:test, :cucumber]

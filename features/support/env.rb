@@ -6,22 +6,33 @@ end
 require 'bundler'
 Bundler.setup
 require 'aruba/cucumber'
+require 'aruba/jruby' if RUBY_ENGINE == 'jruby'
 require 'capybara/cucumber'
+require 'phantomjs/poltergeist'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
-Capybara.app = lambda {|env|
+Capybara.app = lambda { |env|
+  request_path = env['REQUEST_PATH'] || '/'
+  request_path = '/index.html' if request_path == '/'
+
   [200, {'Content-Type' => 'text/html'},
-    [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project', 'coverage/index.html'))]]
+    [File.read(File.join(File.dirname(__FILE__), '../../tmp/aruba/project/coverage', request_path))]]
 }
 
+Capybara.default_driver = Capybara.javascript_driver = :poltergeist
+
 Before do
-  @aruba_timeout_seconds = 20
+  # JRuby takes it's time... See https://github.com/cucumber/aruba/issues/134
+  @aruba_timeout_seconds = RUBY_ENGINE == 'jruby' ? 60 : 20
+
   this_dir = File.dirname(__FILE__)
+
   # Clean up and create blank state for fake project
   in_current_dir do
     FileUtils.rm_rf 'project'
     FileUtils.cp_r File.join(this_dir, '../../test/faked_project/'), 'project'
   end
+
   step 'I cd to "project"'
 end
 
