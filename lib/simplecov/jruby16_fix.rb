@@ -28,7 +28,7 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
 
           begin
             process[JRuby.parse(File.read(path), path)]
-          rescue => e
+          rescue
           end
 
           if (first = covered_lines.detect { |x| x }) && first > 0
