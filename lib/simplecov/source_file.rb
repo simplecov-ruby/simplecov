@@ -1,3 +1,5 @@
+require "ooyala-grit"
+
 module SimpleCov
   #
   # Representation of a source file including it's coverage data, source code,
@@ -18,17 +20,22 @@ module SimpleCov
       attr_reader :coverage
       # Whether this line was skipped
       attr_reader :skipped
+      # Author of the line
+      attr_reader :author
+      # Authored date
+      attr_reader :date
 
       # Lets grab some fancy aliases, shall we?
       alias_method :source, :src
       alias_method :line, :line_number
       alias_method :number, :line_number
 
-      def initialize(src, line_number, coverage)
+      def initialize(src, line_number, coverage, options = {})
         raise ArgumentError, "Only String accepted for source" unless src.kind_of?(String)
         raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.kind_of?(Fixnum)
         raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) or coverage.nil?
         @src, @line_number, @coverage = src, line_number, coverage
+        @author, @date = options[:author], options[:date]
         @skipped = false
       end
 
@@ -68,6 +75,16 @@ module SimpleCov
       end
     end
 
+    class LineList < Array
+      def to_json(options)
+        line_list = []
+        self.each do |line|
+          line_list << line.source
+        end
+        line_list.to_json
+      end
+    end
+
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
@@ -91,11 +108,36 @@ module SimpleCov
         $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
       end
 
-      # Initialize lines
-      @lines = []
-      src.each_with_index do |src, i|
-        @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i])
+      author_info = []
+      # TODO (rkonda, 04/24/2013): Get the git repo where this file exists. Follow the directory, resolve the links,
+      # then git the actual directory, then get the git repo from there.
+      root_dir = Grit::Git.new(Dir.pwd).native(:rev_parse, {:base => false}, "--show-toplevel").chomp
+      repo = Grit::Repo.new(root_dir)
+      begin
+        blame = repo.blame(filename, nil, {:base => false})
+        blame.lines.each_with_index do |blame_line, line_number|
+          author_info << { :author => blame_line.commit.author.name, :date => blame_line.commit.date }
+        end
+      rescue Exception => e
+        require "pry-nav"; binding.pry
+        a = 10
       end
+
+      # Initialize lines
+      @lines = LineList.new
+      src.each_with_index do |src, i|
+        line_author_info = i < author_info.length ? author_info[i] : nil
+        if line_author_info.nil?
+          options = {}
+        else
+          options = {
+            :author => line_author_info[:author],
+            :date => line_author_info[:date]
+          }
+        end
+        @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i], options)
+      end
+
       process_skipped_lines!
       @lines
     end
