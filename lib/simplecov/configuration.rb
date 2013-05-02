@@ -7,6 +7,22 @@ require 'fileutils'
 module SimpleCov::Configuration
   attr_writer :filters, :groups, :formatter
 
+  module ReportTypes
+    module ItemsMissingCoverage
+      Api = "api"
+      Class = "class"
+      Method = "method"
+      Configure = "configure"
+    end
+
+    AuthorType = "author type"
+
+    module Author
+      BestAuthor = "best author"
+      AuthorStats = "author stats"
+    end
+  end
+
   #
   # The root for the project. This defaults to the
   # current working directory.
@@ -103,6 +119,10 @@ module SimpleCov::Configuration
   def adapters
     warn "method adapters is deprecated. use profiles instead"
     profiles
+  end
+
+  def report_specifications
+    @report_specifications ||= {}
   end
 
   #
@@ -227,6 +247,74 @@ module SimpleCov::Configuration
   #
   def add_group(group_name, filter_argument=nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
+  end
+
+  def add_report(options)
+    @report_specifications = @report_specifications || {}
+    case options[:type]
+      when ReportTypes::ItemsMissingCoverage::Api
+        @report_specifications[options[:type]] =
+          { :type => :file_report,
+            :options => {
+              :report_type => :api
+            }
+          }
+
+      when ReportTypes::ItemsMissingCoverage::Class
+        @report_specifications[options[:type]] =
+          { :type => :file_report,
+            :options => {
+              :report_type => :class
+            }
+          }
+
+      when ReportTypes::ItemsMissingCoverage::Method
+        @report_specifications[options[:type]] =
+          { :type => :file_report,
+            :options => {
+              :report_type => :method
+            }
+          }
+
+      when ReportTypes::ItemsMissingCoverage::Configure
+        @report_specifications[options[:type]] =
+          { :type => :file_report,
+            :options => {
+              :report_type => :configure
+            }
+          }
+
+      when ReportTypes::AuthorType
+        specification =
+          { :type => :author_report,
+            :options => {
+              :report_types => {},
+              :best_authors_count => options.has_key?(:best_authors_count) ? options[:best_authors_count]
+                : 3,
+              :best_author_tolerance => options.has_key?(:best_author_tolerance) ? options[:best_author_tolerance]
+                : 50.00,
+              :best_author_cutoff => options.has_key?(:best_author_cutoff) ? options[:best_author_cutoff]
+                : 15.00,
+              :author_report_from => options.has_key?(:author_report_from) ? options[:author_report_from]
+                : "1900-12-31 00:00:00 -0000",
+              :author_report_to => options.has_key?(:author_report_to) ? options[:author_report_to]
+                : "2025-12-31 00:00:00 -0000"
+            }
+          }
+
+        options[:sub_types].each do |sub_type|
+          case sub_type
+            when ReportTypes::Author::BestAuthor
+              specification[:options][:report_types][:best_authors] = true
+            when ReportTypes::Author::AuthorStats
+              specification[:options][:report_types][:author_stats] = true
+          end
+        end
+
+        if !specification[:options][:report_types].empty?
+          @report_specifications[options[:type]] = specification
+        end
+    end
   end
 
   private
