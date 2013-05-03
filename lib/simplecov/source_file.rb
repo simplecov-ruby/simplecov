@@ -119,8 +119,7 @@ module SimpleCov
           author_info << { :author => blame_line.commit.author.name, :date => blame_line.commit.date }
         end
       rescue Exception => e
-        require "pry-nav"; binding.pry
-        a = 10
+        puts "`git blame` on \'#{filename}\' encountered exception: #{e.message}. Skipping adding author info."
       end
 
       # Initialize lines
