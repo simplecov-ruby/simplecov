@@ -114,7 +114,7 @@ module SimpleCov
       root_dir = Grit::Git.new(Dir.pwd).native(:rev_parse, {:base => false}, "--show-toplevel").chomp
       repo = Grit::Repo.new(root_dir)
       begin
-        blame = repo.blame(filename, nil, {:base => false})
+        blame = repo.blame(File.realdirpath(filename), nil, {:base => false})
         blame.lines.each_with_index do |blame_line, line_number|
           author_info << { :author => blame_line.commit.author.name, :date => blame_line.commit.date }
         end
