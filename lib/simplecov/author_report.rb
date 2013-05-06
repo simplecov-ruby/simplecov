@@ -8,7 +8,7 @@ module SimpleCov
 
     def initialize(options)
       @options = options
-      @report_type = options[:report_types]
+      @report_types = options[:report_types]
 
       # For each author, there is a mapping to a file/linesOfCode map
       # 'file/linesOfCode map': mapping from file name to the stats about coverage for code
@@ -18,7 +18,7 @@ module SimpleCov
 
     def generate(files)
       compute_author_stats_mapping(files)
-      if @report_type[:best_authors]
+      if @report_types[:best_authors]
         compute_best_authors
       end
 
@@ -29,7 +29,7 @@ module SimpleCov
         :sub_reports => []
       }
 
-      if @report_type[:best_authors]
+      if @report_types[:best_authors]
         @report[:sub_reports] <<
           {
             :type => :best_authors,
@@ -37,7 +37,7 @@ module SimpleCov
           }
       end
 
-      if @report_type[:author_stats]
+      if @report_types[:author_stats]
         @report[:sub_reports] <<
           {
             :type => :author_stats,
