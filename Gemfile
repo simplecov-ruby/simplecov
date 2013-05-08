@@ -2,6 +2,8 @@ source "https://rubygems.org"
 source "http://gems.ooyala.com"
 gemspec
 
+gem "algorithms"
+
 if 'Integration test (cucumber) suite is 1.9+ only'.respond_to? :encoding
   gem 'aruba', '~> 0.5.1'
   gem 'capybara', '~> 2.0'
@@ -10,7 +12,6 @@ if 'Integration test (cucumber) suite is 1.9+ only'.respond_to? :encoding
   gem 'cucumber', '>= 1.1.0'
   gem "ooyala-grit"
   gem "pry-nav"
-  gem "algorithms"
   gem "simplecov-html", '=0.7.1.ooyala'
 end
 
