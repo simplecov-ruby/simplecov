@@ -33,6 +33,7 @@ module SimpleCov
         @report[:sub_reports] <<
           {
             :type => :best_authors,
+            :title => "Best Authors",
             :items => @best_author_stats_mapping
           }
       end
@@ -41,6 +42,7 @@ module SimpleCov
         @report[:sub_reports] <<
           {
             :type => :author_stats,
+            :title => "Author Stats",
             :items => @author_stats_mapping
           }
       end
