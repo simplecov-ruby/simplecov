@@ -14,7 +14,6 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
 
   gem.add_dependency 'multi_json'
-  gem.add_dependency 'simplecov-html'
   gem.add_dependency "ooyala-grit"
   gem.add_dependency "algorithms"
 
@@ -22,6 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake', '~> 10.0.3'
   gem.add_development_dependency 'rspec', '~> 2.13.0'
   gem.add_development_dependency 'shoulda', '~> 3.4.0'
+  gem.add_development_dependency 'pry-nav'
 
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
