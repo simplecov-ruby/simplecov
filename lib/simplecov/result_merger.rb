@@ -66,6 +66,7 @@ module SimpleCov::ResultMerger
       command_name, data = result.to_hash.first
       new_set[command_name] = data
       File.open(resultset_path, "w+") do |f|
+        f.flock(File::LOCK_EX)
         f.puts SimpleCov::JSON.dump(new_set)
       end
       true
