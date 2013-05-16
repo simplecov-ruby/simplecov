@@ -13,7 +13,11 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
-        SimpleCov::JSON.parse(stored_data)
+        begin
+          SimpleCov::JSON.parse(stored_data)
+        rescue
+          {}
+        end
       else
         {}
       end
