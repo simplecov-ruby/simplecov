@@ -4,12 +4,8 @@ module SimpleCov
     def self.generate_reports(files, report_specifications)
       reports = []
       report_specifications.values.each do |specification|
-        case specification[:type]
-          when :file_report
-            report = SimpleCov::FileReport.new(specification[:options]).generate(files)
-          when :author_report
-            report = SimpleCov::AuthorReport.new(specification[:options]).generate(files)
-        end
+        report_type = Report.report_types[specification[:type]]
+        report = report_type.new(specification[:options]).generate(files)
         reports << report
       end
       reports
