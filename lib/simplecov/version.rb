@@ -1,3 +1,3 @@
 module SimpleCov
-  VERSION = "0.9.0.ooyala"
+  VERSION = "0.9.1.ooyala"
 end
