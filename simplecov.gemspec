@@ -14,7 +14,6 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
 
   gem.add_dependency 'multi_json'
-  gem.add_dependency "ooyala-grit"
   gem.add_dependency "algorithms"
 
   gem.add_development_dependency 'appraisal', '~> 0.5.1'
