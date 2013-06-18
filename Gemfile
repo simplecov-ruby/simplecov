@@ -10,7 +10,6 @@ if 'Integration test (cucumber) suite is 1.9+ only'.respond_to? :encoding
   gem 'cucumber', '>= 1.1.0'
 end
 
-gem 'simplecov-html', '= 0.7.4.ooyala'
 # Uncomment this to use local copy of simplecov-html in development when checked out
 # gem 'simplecov-html', :path => ::File.dirname(__FILE__) + '/../simplecov-html'
 # gem "simplecov-html", :path => "/Users/rkonda/repos/qa/tools/simplecov-html"
