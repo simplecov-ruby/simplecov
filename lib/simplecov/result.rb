@@ -32,6 +32,8 @@ module SimpleCov
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
 
+      @reports = []
+
       filter!
     end
 
