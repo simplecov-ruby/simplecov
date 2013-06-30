@@ -1,9 +1,8 @@
 #!/usr/bin/env rake
 
 require 'rubygems'
+require 'bundler/gem_tasks'
 require 'bundler/setup'
-require 'appraisal'
-Bundler::GemHelper.install_tasks
 
 # See https://github.com/colszowka/simplecov/issues/171
 desc "Set permissions on all files so they are compatible with both user-local and system-wide installs"

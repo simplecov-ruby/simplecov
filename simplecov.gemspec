@@ -13,10 +13,10 @@ Gem::Specification.new do |gem|
   gem.summary     = gem.description
   gem.license     = "MIT"
 
-  gem.add_dependency 'multi_json'
+  gem.required_ruby_version     = '>= 1.9.1'
+
   gem.add_dependency 'simplecov-html', '~> 0.7.1'
 
-  gem.add_development_dependency 'appraisal', '~> 0.5.1'
   gem.add_development_dependency 'rake', '~> 10.0.3'
   gem.add_development_dependency 'rspec', '~> 2.13.0'
   gem.add_development_dependency 'shoulda', '~> 3.4.0'

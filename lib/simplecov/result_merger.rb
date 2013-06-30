@@ -3,6 +3,8 @@
 # SimpleCov::Results into a single result for coverage analysis based
 # upon multiple test suites.
 #
+require 'json'
+
 module SimpleCov::ResultMerger
   class << self
     # The path to the .resultset.json cache file
@@ -13,7 +15,7 @@ module SimpleCov::ResultMerger
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
-        SimpleCov::JSON.parse(stored_data)
+        JSON.parse(stored_data)
       else
         {}
       end
@@ -66,7 +68,7 @@ module SimpleCov::ResultMerger
       command_name, data = result.to_hash.first
       new_set[command_name] = data
       File.open(resultset_path, "w+") do |f|
-        f.puts SimpleCov::JSON.dump(new_set)
+        f.puts JSON.pretty_generate(new_set)
       end
       true
     end
