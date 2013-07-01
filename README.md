@@ -531,6 +531,85 @@ A formatter for Simplecov that emits a Vim script to mark up code files with cov
 
 A formatter that prints the coverage of the file under test when you run a single test file.
 
+## Reports
+
+Reports are customized presentations of data. 'Reports' are a way of extending the coverage report.
+
+To add a custom report to the coverage report
+* Create a class inherited from `Report` class and define the `def generate(files)` method. The barebones example
+is given below.
+* Use `Report.register` to register the new report type with the symbol used to identify the report type.
+* Create a module under `Configuration::ReportTypes` that is used to specify the configuration for the new report type.
+The module should have `def self.get_specification(options)` method that returns the specification for the report type.
+The barebones example is given below.
+
+```ruby
+module SimpleCov
+  class CoolReport < Report
+    def initialize(options)
+    end
+
+    def generate(files)
+      @report = {
+        :type => {
+          :main => :cool_report
+        }
+      }
+    end
+  end
+
+  SimpleCov::Report.register(:cool_report, SimpleCov::CoolReport)
+
+  module Configuration
+    module ReportTypes
+      module CoolReport
+        def self.get_specification(options)
+          {
+            :type => :cool_report,
+            :options => {}
+          }
+        end
+      end
+    end
+  end
+end
+```
+
+`add_report` can be used to add a specific type of report to to the coverage report.
+
+```ruby
+def start_simplecov
+  SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+
+  SimpleCov.start do
+    add_report :type => SimpleCov::Configuration::ReportTypes::CoolReport
+  end
+end
+```
+
+## Line enhancers
+
+Line enhancers are attribute/value pairs that enhance the data reported per line.
+They can be used for creating custom reports in the coverage report.
+
+In the following example, Line is enhanced with an attribute called "author". `SourceFile.add_line_enhancer` can be called
+to add data to `lines`.
+
+```ruby
+module SimpleCov
+  class SourceFile
+    class Line
+      attr_accessor :author
+    end
+  end
+
+  SimpleCov::SourceFile.add_line_enhancer(lambda do |lines, filename|
+      lines.each { |line| line.author = "bob" }
+    end
+  )
+end
+```
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
