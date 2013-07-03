@@ -15,7 +15,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency 'multi_json'
   gem.add_dependency "algorithms"
-  gem.add_dependency 'simplecov-html', '= 0.7.5.ooyala'
+  gem.add_dependency 'simplecov-html', '= 0.7.6.ooyala'
 
   gem.add_development_dependency 'appraisal', '~> 0.5.1'
   gem.add_development_dependency 'rake', '~> 10.0.3'
