@@ -45,7 +45,9 @@ module SimpleCov
       # first, then merge the results and return those
       if use_merging
         SimpleCov::ResultMerger.store_result(@result) if @result
-        return SimpleCov::ResultMerger.merged_result
+        merged_result = SimpleCov::ResultMerger.merged_result
+        merged_result.generate_reports(report_specifications)
+        merged_result
       else
         return @result if defined? @result
       end
@@ -125,6 +127,8 @@ require 'simplecov/exit_codes'
 require 'simplecov/json'
 require 'simplecov/profiles'
 require 'simplecov/source_file'
+require 'simplecov/report_generator'
+require "simplecov/report"
 require 'simplecov/file_list'
 require 'simplecov/result'
 require 'simplecov/filter'

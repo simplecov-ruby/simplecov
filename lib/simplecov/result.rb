@@ -15,6 +15,7 @@ module SimpleCov
     attr_writer :created_at
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
+    attr_reader :reports
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
@@ -31,7 +32,13 @@ module SimpleCov
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
 
+      @reports = []
+
       filter!
+    end
+
+    def generate_reports(report_specifications)
+      @reports = SimpleCov::ReportGenerator.generate_reports(@files, report_specifications)
     end
 
     # Returns all filenames for source files contained in this result
@@ -112,7 +119,12 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into YAML
     def to_hash
-      {command_name => {"coverage" => original_result.reject {|filename, result| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
+      {
+        command_name => {
+          "coverage" => original_result.reject {|filename, result| !filenames.include?(filename) },
+          "timestamp" => created_at.to_i
+        }
+      }
     end
 
     # Loads a SimpleCov::Result#to_hash dump
@@ -130,5 +142,7 @@ module SimpleCov
     def filter!
       @files = SimpleCov.filtered(files)
     end
-  end
-end
+
+  end # class Result
+
+end # module SimpleCov

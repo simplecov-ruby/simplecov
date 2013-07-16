@@ -1,6 +1,15 @@
 # An array of SimpleCov SourceFile instances with additional collection helper
 # methods for calculating coverage across them etc.
 class SimpleCov::FileList < Array
+
+  def to_json(options)
+    file_list = []
+    self.each do |file|
+      file_list << file.filename
+    end
+    file_list.to_json
+  end
+
   # Returns the count of lines that have coverage
   def covered_lines
     return 0.0 if empty?

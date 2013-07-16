@@ -68,6 +68,16 @@ module SimpleCov
       end
     end
 
+    class LineList < Array
+      def to_json(options)
+        line_list = []
+        self.each do |line|
+          line_list << line.source
+        end
+        line_list.to_json
+      end
+    end
+
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
@@ -81,6 +91,16 @@ module SimpleCov
       File.open(filename, "rb") {|f| @src = f.readlines }
     end
 
+    @line_enhancers = []
+
+    class << self
+      attr_reader :line_enhancers
+
+      def add_line_enhancer(line_enhancer)
+        @line_enhancers << line_enhancer
+      end
+    end
+
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
     # and thus including coverage data. Aliased as :source_lines
     def lines
@@ -92,10 +112,13 @@ module SimpleCov
       end
 
       # Initialize lines
-      @lines = []
+      @lines = LineList.new
       src.each_with_index do |src, i|
         @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i])
       end
+
+      SourceFile.line_enhancers.each { |line_enhancer| line_enhancer.call(@lines, filename) }
+
       process_skipped_lines!
       @lines
     end
@@ -183,5 +206,6 @@ module SimpleCov
       (float * factor).round / factor
     end
   end
+
 end
 

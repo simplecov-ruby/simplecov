@@ -7,6 +7,9 @@ require 'fileutils'
 module SimpleCov::Configuration
   attr_writer :filters, :groups, :formatter
 
+  module ReportTypes
+  end
+
   #
   # The root for the project. This defaults to the
   # current working directory.
@@ -103,6 +106,10 @@ module SimpleCov::Configuration
   def adapters
     warn "method adapters is deprecated. use profiles instead"
     profiles
+  end
+
+  def report_specifications
+    @report_specifications ||= {}
   end
 
   #
@@ -227,6 +234,11 @@ module SimpleCov::Configuration
   #
   def add_group(group_name, filter_argument=nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
+  end
+
+  def add_report(options)
+    @report_specifications = @report_specifications || {}
+    @report_specifications[options[:type]] = options[:type].get_specification(options)
   end
 
   private
