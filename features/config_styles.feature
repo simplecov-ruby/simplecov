@@ -24,6 +24,34 @@ Feature:
     Then I should see "4 files in total."
     And I should see "using Config Test Runner" within "#footer"
 
+  Scenario: Inside start block, using instance var from outside
+    Given a file named ".simplecov" with:
+      """
+      @filter = 'test'
+      SimpleCov.start do
+        add_filter @filter
+        command_name 'Config Test Runner'
+      end
+      """
+
+    When I open the coverage report generated with `bundle exec rake test`
+    Then I should see "4 files in total."
+    And I should see "using Config Test Runner" within "#footer"
+
+  Scenario: Inside start block, using local var from outside
+    Given a file named ".simplecov" with:
+      """
+      filter = 'test'
+      SimpleCov.start do
+        add_filter filter
+        command_name 'Config Test Runner'
+      end
+      """
+
+    When I open the coverage report generated with `bundle exec rake test`
+    Then I should see "4 files in total."
+    And I should see "using Config Test Runner" within "#footer"
+
   Scenario: Explicitly before start block
     Given a file named ".simplecov" with:
       """
