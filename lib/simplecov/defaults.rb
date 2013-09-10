@@ -47,6 +47,8 @@ at_exit do
     #otherwise set a non-zero status representing termination by some other exception
     #(see github issue 41)
     @exit_status = $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
+  else
+    @exit_status = 0
   end
 
   SimpleCov.at_exit.call
@@ -54,7 +56,7 @@ at_exit do
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
 
-    if @exit_status.to_i == 0 # No other errors
+    if @exit_status == 0 # No other errors
       @exit_status = if covered_percent < SimpleCov.minimum_coverage
         $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%)." % \
                      [covered_percent, SimpleCov.minimum_coverage]
