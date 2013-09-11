@@ -1,6 +1,7 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 -------------------
 
+  * [BUGFIX] Correct result calculations for people using :nocov: tags
   * [FEATURE] Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
   * [REFACTORING] Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are

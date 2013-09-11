@@ -37,6 +37,12 @@ class TestResult < Test::Unit::TestCase
         assert_equal 100.0*13/15, @result.covered_percent
       end
 
+      [:covered_percent, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
+        should "respond to #{msg}" do
+          assert @result.respond_to? msg
+        end
+      end
+
       context "dumped with to_hash" do
         setup { @hash = @result.to_hash }
         should("be a hash") { assert_equal Hash, @hash.class }
