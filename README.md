@@ -511,7 +511,7 @@ SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
 Apart from the direct companion [simplecov-html], there are other formatters
 available:
 
-### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
+#### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
 *by Fernando Guillen*
 
 "The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
@@ -530,6 +530,11 @@ A formatter for Simplecov that emits a Vim script to mark up code files with cov
 *by [Michael Grosser](http://grosser.it)*
 
 A formatter that prints the coverage of the file under test when you run a single test file.
+
+#### [simplecov-json](https://github.com/vicentllongo/simplecov-json)
+*by Vicent Llongo*
+
+JSON formatter for SimpleCov
 
 ## Ruby version compatibility
 
