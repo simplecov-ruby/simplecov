@@ -4,7 +4,7 @@ require 'simplecov-html'
 SimpleCov.profiles.define 'root_filter' do
   # Exclude all files outside of simplecov root
   add_filter do |src|
-    !(src.filename =~ /^#{SimpleCov.root}/)
+    !(src.filename =~ /^#{Regexp.escape(SimpleCov.root)}/)
   end
 end
 
