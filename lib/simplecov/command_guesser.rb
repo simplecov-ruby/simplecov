@@ -11,10 +11,19 @@ module SimpleCov::CommandGuesser
     attr_accessor :original_run_command
     
     def guess
-      from_command_line_options || from_defined_constants
+      from_env || from_command_line_options || from_defined_constants
     end
     
     private
+
+    def from_env
+      # If being run from inside parallel_tests set the command name according to the process number
+      if ENV['PARALLEL_TEST_GROUPS'] && ENV['TEST_ENV_NUMBER']
+        number = ENV['TEST_ENV_NUMBER']
+        number = '1' if number == ''
+        "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
+      end
+    end
     
     def from_command_line_options
       case original_run_command

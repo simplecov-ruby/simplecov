@@ -15,6 +15,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...ma
     See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
   * [REFACTORING] The internal cucumber test suite now uses Capybara 2.
     See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
+  * [FEATURE] Automatically detect the usage of parallel_tests.
+    See https://github.com/colszowka/simplecov/issues/64
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 -------------------
