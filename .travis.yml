@@ -12,9 +12,9 @@ rvm:
   - 2.0.0
   - rbx-18mode
   - rbx-19mode
-  - jruby-18mode
-  - jruby-19mode
-  - jruby-head
+#  - jruby-18mode
+#  - jruby-19mode
+#  - jruby-head
   - ruby-head
 matrix:
   allow_failures:
