@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'docile'
 #
 # Bundles the configuration options used for SimpleCov. All methods
 # defined here are usable from SimpleCov directly. Please check out
@@ -118,7 +119,7 @@ module SimpleCov::Configuration
   #
   def configure(&block)
     return false unless SimpleCov.usable?
-    instance_exec(&block)
+    Docile.dsl_eval(self, &block)
   end
 
   #
