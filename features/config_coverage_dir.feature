@@ -18,3 +18,16 @@ Feature:
     When I successfully run `bundle exec rake test`
     Then a coverage report should have been generated in "test/simplecov"
     And a directory named "coverage" should not exist
+
+  Scenario:
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        coverage_dir '/tmp/test/simplecov'
+      end
+      """
+
+    When I successfully run `bundle exec rake test`
+    Then a coverage report should have been generated in "/tmp/test/simplecov"
+    And a directory named "coverage" should not exist
