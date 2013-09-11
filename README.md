@@ -536,6 +536,11 @@ A formatter that prints the coverage of the file under test when you run a singl
 
 JSON formatter for SimpleCov
 
+#### [simplecov-badge](https://github.com/matthew342/simplecov-badge)
+*by Matt Hale*
+
+A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
