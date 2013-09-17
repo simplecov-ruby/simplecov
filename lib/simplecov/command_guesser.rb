@@ -48,6 +48,8 @@ module SimpleCov::CommandGuesser
         "RSpec"
       elsif defined?(Test::Unit)
         "Unit Tests"
+      elsif defined?(MiniTest)
+        "MiniTest"
       else
         # TODO: Provide link to docs/wiki article
         warn "SimpleCov failed to recognize the test framework and/or suite used. Please specify manually using SimpleCov.command_name 'Unit Tests'."
