@@ -111,24 +111,24 @@ module SimpleCov
       return 100.0 if lines.length == 0 or lines.length == never_lines.count
       relevant_lines = lines.count - never_lines.count - skipped_lines.count
       if relevant_lines == 0
-        0
+        0.0
       else
-        (covered_lines.count) * 100.0 / relevant_lines.to_f
+        Float((covered_lines.count) * 100.0 / relevant_lines.to_f)
       end
     end
 
     def covered_strength
-      return 0 if lines.length == 0 or lines.length == never_lines.count
+      return 0.0 if lines.length == 0 or lines.length == never_lines.count
 
       lines_strength = 0
       lines.each do |c|
         lines_strength += c.coverage if c.coverage
       end
 
-      effective_lines_count = (lines.count - never_lines.count - skipped_lines.count).to_f
+      effective_lines_count = Float(lines.count - never_lines.count - skipped_lines.count)
 
       if effective_lines_count == 0
-        0
+        0.0
       else
         strength = lines_strength / effective_lines_count
         round_float(strength, 1)
@@ -178,9 +178,10 @@ module SimpleCov
     private
 
     # ruby 1.9 could use Float#round(places) instead
+    # @return [Float]
     def round_float(float, places)
-      factor = (10 * places).to_f
-      (float * factor).round / factor
+      factor = Float(10 * places)
+      Float((float * factor).round / factor)
     end
   end
 end
