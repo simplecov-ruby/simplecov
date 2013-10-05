@@ -38,12 +38,30 @@ module SimpleCov
       end
     end
 
+    # Find files that were not loaded / executed and dummy up zero coverage data.
+    def load_uncovered_files
+      base_result = {}
+      Dir['**/*.rb'].each do |file|
+        absolute = File::expand_path(file)
+        lines = File.readlines(absolute).size
+        base_result[absolute] = [0]*lines
+      end
+      base_result
+    end
+
     #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
     #
     def result
       @result ||= SimpleCov::Result.new(Coverage.result) if running
+
+      #if the user wants to see files with no test coverage, we load zero'd coverage for all files and let the
+      #filters sort it out.
+      if show_uncovered_files
+        @result = SimpleCov::Result.new(@result.original_result.merge_resultset(load_uncovered_files)) if running
+      end
+
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
