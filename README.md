@@ -214,6 +214,13 @@ SimpleCov.configure do
 end
 ```
 
+* Show coverage for files with no corresponding tests defined.
+
+```ruby
+SimpleCov.start 'rails' do
+  show_uncovered_files true
+end
+
 Please check out the [Configuration] API documentation to find out what you can customize.
 
 
@@ -445,7 +452,6 @@ SimpleCov.start 'myprofile'
 require 'simplecov_custom_profile'
 SimpleCov.start 'myprofile'
 ```
-
 
 ## Customizing exit behaviour
 

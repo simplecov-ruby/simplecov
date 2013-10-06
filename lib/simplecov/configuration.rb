@@ -159,6 +159,17 @@ module SimpleCov::Configuration
   end
 
   #
+  # Defines whether or not to show zero coverage metrics for uncovered files.
+  #
+  def show_uncovered_files(show=false)
+    @show_uncovered_files = show
+  end
+
+  def show_uncovered_files?
+    @show_uncovered_files
+  end
+
+  #
   # Defines them maximum age (in seconds) of a resultset to still be included in merged results.
   # i.e. If you run cucumber features, then later rake test, if the stored cucumber resultset is
   # more seconds ago than specified here, it won't be taken into account when merging (and is also

@@ -1,6 +1,6 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 -------------------
-
+  * [FEATURE] Adds config option to show zero coverage data for source files without tests defined.
   * [FEATURE] Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
   * [REFACTORING] Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
