@@ -446,6 +446,15 @@ require 'simplecov_custom_profile'
 SimpleCov.start 'myprofile'
 ```
 
+## Show coverage for files with no corresponding tests defined.
+
+Some test frameworks will not load source files unless there is a spec written.  Setting this flag will scan the
+project directory, find files with no coverage and report zero coverage for the file.
+
+```ruby
+SimpleCov.start 'rails' do
+  show_uncovered_files true
+end
 
 ## Customizing exit behaviour
 
