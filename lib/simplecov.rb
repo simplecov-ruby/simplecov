@@ -58,7 +58,7 @@ module SimpleCov
 
       #if the user wants to see files with no test coverage, we load zero'd coverage for all files and let the
       #filters sort it out.
-      if show_uncovered_files
+      if show_uncovered_files?
         @result = SimpleCov::Result.new(@result.original_result.merge_resultset(load_uncovered_files)) if running
       end
 

@@ -161,9 +161,12 @@ module SimpleCov::Configuration
   #
   # Defines whether or not to show zero coverage metrics for uncovered files.
   #
-  def show_uncovered_files(show=nil)
-    @show_uncovered_files = show unless show.nil?
-    @show_uncovered_files = true unless defined? @show_uncovered_files and @show_uncovered_files == false
+  def show_uncovered_files(show=false)
+    @show_uncovered_files = show
+  end
+
+  def show_uncovered_files?
+    @show_uncovered_files
   end
 
   #
