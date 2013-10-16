@@ -521,10 +521,10 @@ available:
 
 CSV formatter for SimpleCov code coverage tool for ruby 1.9+
 
-#### [simplecov-vim](https://github.com/nyarly/Simplecov-Vim)
+#### [cadre](https://github.com/nyarly/cadre)
 *by Judson Lester*
 
-A formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
+Includes a formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
 
 #### [simplecov-single_file_reporter](https://github.com/grosser/simplecov-single_file_reporter)
 *by [Michael Grosser](http://grosser.it)*
