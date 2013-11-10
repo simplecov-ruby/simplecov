@@ -6,15 +6,13 @@ v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.
 
 ## TL;DR
 
-**
-It's been way too long since the last official release 0.7.1, but this was partly due to it proving itself
+**It's been way too long since the last official release 0.7.1, but this was partly due to it proving itself
 quite stable in most circumstances. This release brings various further stability improvements to result set merging
 (especially when working with parallel_tests), the configuration, source file encodings, and command name guessing.
 
 The 0.8 line is the last one to cooperate with Ruby < 1.9. Starting with 0.9, SimpleCov will assume to be running in
 Ruby 1.9+, and will not try to detect or bail silently on older Ruby versions. An appropriate deprecation warning 
-has been added.
-**
+has been added.**
 
 ## Features
 
