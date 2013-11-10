@@ -20,6 +20,9 @@ has been added.
     See [#238](https://github.com/colszowka/simplecov/pull/238) (thanks to @ms-tg)
   * You can now have a global `~/.simplecov` configuration file.
     See [#195](https://github.com/colszowka/simplecov/pull/195) (thanks to @spagalloco)
+  * simplecov-html now uses the MIT-licensed colorbox plugin. Some adjustments when viewing source files, 
+    including retaining the currently open file on refresh have been added.
+    See [simplecov-html #15](https://github.com/colszowka/simplecov-html/pull/15)
   * Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
   * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
@@ -33,9 +36,6 @@ has been added.
 
 ## Enhancements
 
-  * simplecov-html now uses the MIT-licensed colorbox plugin. Some adjustments when viewing source files, 
-    including retaining the currently open file on refresh have been added.
-    See [simplecov-html #15](https://github.com/colszowka/simplecov-html/pull/15)
   * Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
     deprecated, but remain available for now. 
     See [#207](https://github.com/colszowka/simplecov/pull/207) (thanks to @mikerobe)
