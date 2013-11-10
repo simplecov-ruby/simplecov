@@ -155,11 +155,13 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>parallel_tests</b>
  </td>
  <td>
-  SimpleCov does not detect parallel_test automatically yet but can be taught to do so
-  with a simple workaround explained at Issue #64.
+  As of 0.8.0, SimpleCov should correctly recognize parallel_tests and supplement your test suite names
+  with their corresponding test env numbers. Locking of the resultset cache should ensure no race conditions
+  occur when results are merged.
  </td>
  <td>
   <a href="https://github.com/colszowka/simplecov/issues/64">SimpleCov #64</a>
+  <a href="https://github.com/colszowka/simplecov/pull/185">SimpleCov #185</a>
  </td>
 </tr>
 <tr>
