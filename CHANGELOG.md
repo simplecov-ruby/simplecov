@@ -1,8 +1,8 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.0...master))
 =====================
 
 v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...v0.8.0))
-====================
+=====================
 
 ## TL;DR
 
@@ -54,10 +54,10 @@ has been added.
   * Fix warning: instance variable @exit_status not initialized.
     See [#242](https://github.com/colszowka/simplecov/pull/242) (thanks to @sferik)
 
-  
-
 ## Bugfixes
 
+  * Correct result calculations for people using :nocov: tags.
+    See [#215](https://github.com/colszowka/simplecov/pull/215) (thanks to @aokolish)
   * Compatability with BINARY internal encoding.
     See [#194](https://github.com/colszowka/simplecov/pull/194) and 
     [#127](https://github.com/colszowka/simplecov/issues/127) (thanks to @justfalter)
