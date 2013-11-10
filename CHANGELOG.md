@@ -1,10 +1,27 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 =====================
 
+v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...v0.8.0))
+====================
+
+## TL;DR
+
+**
+It's been way too long since the last official release 0.7.1, but this was partly due to it proving itself
+quite stable in most circumstances. This release brings various further stability improvements to result set merging
+(especially when working with parallel_tests), the configuration, source file encodings, and command name guessing.
+
+The 0.8 line is the last one to cooperate with Ruby < 1.9. Starting with 0.9, SimpleCov will assume to be running in
+Ruby 1.9+, and will not try to detect or bail silently on older Ruby versions. An appropriate deprecation warning 
+has been added.
+**
+
 ## Features
 
   * Configuration blocks now have access to variables and methods outside of the block's scope.
     See [#238](https://github.com/colszowka/simplecov/pull/238) (thanks to @ms-tg)
+  * You can now have a global `~/.simplecov` configuration file.
+    See [#195](https://github.com/colszowka/simplecov/pull/195) (thanks to @spagalloco)
   * Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
   * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
@@ -24,13 +41,25 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...ma
   * Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
     be correctly attributed to RSpec, not Cucumber.
     See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
+  * Makes SimpleCov resilient to inclusion of mathn library.
+    See [#175](https://github.com/colszowka/simplecov/pull/175) and 
+    [#140](https://github.com/colszowka/simplecov/issues/140) (thanks to @scotje)
+  * Allow coverage_dir to be an absolute path.
+  * See [#190](https://github.com/colszowka/simplecov/pull/190) (thanks to @jshraibman-mdsol)
   * The internal cucumber test suite now uses Capybara 2.
     See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
+  * Work-arounds for the Coverage library shipped in JRuby 1.6 to behave in line with MRI.
+    See [#174](https://github.com/colszowka/simplecov/pull/174) (thanks to @grddev)
   * Fix warning: instance variable @exit_status not initialized.
     See [#242](https://github.com/colszowka/simplecov/pull/242) (thanks to @sferik)
 
+  
+
 ## Bugfixes
 
+  * Compatability with BINARY internal encoding.
+    See [#194](https://github.com/colszowka/simplecov/pull/194) and 
+    [#127](https://github.com/colszowka/simplecov/issues/127) (thanks to @justfalter)
   * Special characters in `SimpleCov.root` are now correctly escaped before being used as a RegExp.
     See [#204](https://github.com/colszowka/simplecov/issues/204) and 
     [#237](https://github.com/colszowka/simplecov/pull/237) (thanks to @rli9)
