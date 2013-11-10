@@ -61,6 +61,9 @@ has been added.
 
   * Correct result calculations for people using :nocov: tags.
     See [#215](https://github.com/colszowka/simplecov/pull/215) (thanks to @aokolish)
+  * Average hits per line for groups of files is now computed correctly.
+    See [#192](http://github.com/colszowka/simplecov/pull/192) and 
+    [#179](http://github.com/colszowka/simplecov/issues/179) (thanks to @graysonwright)
   * Compatability with BINARY internal encoding.
     See [#194](https://github.com/colszowka/simplecov/pull/194) and 
     [#127](https://github.com/colszowka/simplecov/issues/127) (thanks to @justfalter)
