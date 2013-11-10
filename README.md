@@ -21,7 +21,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 [Mailing List]: https://groups.google.com/forum/#!forum/simplecov "Open mailing list for discussion and announcements on Google Groups"
 [Pledgie]: http://www.pledgie.com/campaigns/18379
 
-[![You can support the development of SimpleCov via Pledgie - thanks for your help](http://www.pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
+[![You can support the development of SimpleCov via Pledgie - thanks for your help](https://pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
 
 SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses [1.9's built-in Coverage][Coverage] library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
