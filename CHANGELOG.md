@@ -55,7 +55,8 @@ has been added.
   * Work-arounds for the Coverage library shipped in JRuby 1.6 to behave in line with MRI.
     See [#174](https://github.com/colszowka/simplecov/pull/174) (thanks to @grddev)
   * Fix warning: instance variable @exit_status not initialized.
-    See [#242](https://github.com/colszowka/simplecov/pull/242) (thanks to @sferik)
+    See [#242](https://github.com/colszowka/simplecov/pull/242) and 
+    [#213](https://github.com/colszowka/simplecov/pull/213) (thanks to @sferik and @infertux)
 
 ## Bugfixes
 
