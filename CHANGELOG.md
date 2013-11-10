@@ -1,17 +1,22 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 =====================
 
-## Feature
+## Features
 
+  * Configuration blocks now have access to variables and methods outside of the block's scope.
+    See [#238](https://github.com/colszowka/simplecov/pull/238) (thanks to @ms-tg)
   * Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
   * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
     or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
     dropped by using this. See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
-  * Automatically detect the usage of parallel_tests.
-    See https://github.com/colszowka/simplecov/issues/64
+  * The result set merging now uses the `lockfile` gem to avoid race conditions.
+    See [#185](https://github.com/colszowka/simplecov/pull/185) (thanks to @jshraibman-mdsol).
+  * Automatically detect the usage of parallel_tests and adjust the command name with the test env number accordingly,
+    See [#64](https://github.com/colszowka/simplecov/issues/64) and 
+    [#185](https://github.com/colszowka/simplecov/pull/185) (thanks to @jshraibman-mdsol).
 
-## Enhancement
+## Enhancements
 
   * Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
     deprecated, but remain available for now. 
@@ -21,10 +26,14 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...ma
     See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
   * The internal cucumber test suite now uses Capybara 2.
     See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
+  * Fix warning: instance variable @exit_status not initialized.
+    See [#242](https://github.com/colszowka/simplecov/pull/242) (thanks to @sferik)
 
-## Bugfix
+## Bugfixes
 
-  * 
+  * Special characters in `SimpleCov.root` are now correctly escaped before being used as a RegExp.
+    See [#204](https://github.com/colszowka/simplecov/issues/204) and 
+    [#237](https://github.com/colszowka/simplecov/pull/237) (thanks to @rli9)
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 =====================
