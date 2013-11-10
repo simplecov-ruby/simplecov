@@ -12,6 +12,8 @@ v0.8.1, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.
 v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...v0.8.0))
 =====================
 
+**Note: Yanked the same day because of the regression that 0.8.1 fixes, see above**
+
 ## TL;DR
 
 It's been way too long since the last official release 0.7.1, but this was partly due to it proving itself
