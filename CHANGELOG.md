@@ -22,7 +22,7 @@ has been added.
     See [#195](https://github.com/colszowka/simplecov/pull/195) (thanks to @spagalloco)
   * simplecov-html now uses the MIT-licensed colorbox plugin. Some adjustments when viewing source files, 
     including retaining the currently open file on refresh have been added.
-    See [simplecov-html #15](https://github.com/colszowka/simplecov-html/pull/15)
+    See [simplecov-html #15](https://github.com/colszowka/simplecov-html/pull/15) (thanks to @chetan)
   * Adds support for Rails 4 command guessing, removes default group `vendor/plugins`.
     See [#181](https://github.com/colszowka/simplecov/pull/181) and 
     [#203](https://github.com/colszowka/simplecov/pull/203) (thanks to @semanticart and @phallstrom)
