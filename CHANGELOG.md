@@ -26,7 +26,7 @@ has been added.
   * Adds support for Rails 4 command guessing, removes default group `vendor/plugins`.
     See [#181](https://github.com/colszowka/simplecov/pull/181) and 
     [#203](https://github.com/colszowka/simplecov/pull/203) (thanks to @semanticart and @phallstrom)
-  * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
+  * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'`
     or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
     dropped by using this. See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
   * The result set merging now uses the `lockfile` gem to avoid race conditions.
