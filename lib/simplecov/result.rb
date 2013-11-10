@@ -23,18 +23,10 @@ module SimpleCov
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
     def initialize(original_result)
-      @original_result = original_result.dup
-
-      # Squeeze filepaths (i.e. "/a/b/../c" becomes "/a/c")
-      @original_result.keys.each do |filename|
-        expanded_filename = File.expand_path filename
-        @original_result[expanded_filename] = @original_result.delete filename
-      end
-
-      @files = SimpleCov::FileList.new(@original_result.map do |filename, coverage|
+      @original_result = original_result.freeze
+      @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
-
       filter!
     end
 
