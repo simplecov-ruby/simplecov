@@ -42,6 +42,8 @@ has been added.
   * Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
     be correctly attributed to RSpec, not Cucumber.
     See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
+  * MiniTest should now be identified correctly by the command name guesser.
+    See [#244](https://github.com/colszowka/simplecov/pull/244) (thanks to @envygeeks)
   * Makes SimpleCov resilient to inclusion of mathn library.
     See [#175](https://github.com/colszowka/simplecov/pull/175) and 
     [#140](https://github.com/colszowka/simplecov/issues/140) (thanks to @scotje)
