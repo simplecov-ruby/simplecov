@@ -15,7 +15,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency 'multi_json'
   gem.add_dependency 'lockfile', '>= 2.1.0'
-  gem.add_dependency 'simplecov-html', '~> 0.7.1'
+  gem.add_dependency 'simplecov-html', '~> 0.8.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 
   gem.add_development_dependency 'appraisal', '~> 0.5.1'
