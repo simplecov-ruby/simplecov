@@ -1,22 +1,30 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...master))
 -------------------
 
-  * [FEATURE] Adds support for Rails 4 command guessing. 
+## Feature
+
+  * Adds support for Rails 4 command guessing. 
     See [#181](https://github.com/colszowka/simplecov/pull/181) (thanks to @semanticart)
-  * [REFACTORING] Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
+  * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
+    or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
+    dropped by using this. See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
+  * Automatically detect the usage of parallel_tests.
+    See https://github.com/colszowka/simplecov/issues/64
+
+## Enhancement
+
+  * Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
     deprecated, but remain available for now. 
     See [#207](https://github.com/colszowka/simplecov/pull/207) (thanks to @mikerobe)
-  * [FEATURE] You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'
-    or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
-    dropped by using this.
-    See [#209](https://github.com/colszowka/simplecov/pull/209) (thanks to @ileitch)
-  * [REFACTORING] Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
+  * Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
     be correctly attributed to RSpec, not Cucumber.
     See [#212](https://github.com/colszowka/simplecov/pull/212) (thanks to @ersatzryan and @betelgeuse)
-  * [REFACTORING] The internal cucumber test suite now uses Capybara 2.
+  * The internal cucumber test suite now uses Capybara 2.
     See [#206](https://github.com/colszowka/simplecov/pull/206) (thanks to @infertux)
-  * [FEATURE] Automatically detect the usage of parallel_tests.
-    See https://github.com/colszowka/simplecov/issues/64
+
+## Bugfix
+
+  * 
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
 -------------------
