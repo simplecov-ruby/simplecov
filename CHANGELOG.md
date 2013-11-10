@@ -1,5 +1,13 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...master))
+====================
+
+v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.0...v0.8.1))
 =====================
+
+## Bugfixes
+
+  * Fixed a regression introduced in 0.8.0 - the Forwardable STDLIB module is now required explicitly.
+    See [#256](https://github.com/colszowka/simplecov/pull/256) (thanks to @kylev)
 
 v0.8.0, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.1...v0.8.0))
 =====================
