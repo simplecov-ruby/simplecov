@@ -1,4 +1,4 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
 ====================
 
 v0.8.2, 2013-11-20 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...v0.8.2))
