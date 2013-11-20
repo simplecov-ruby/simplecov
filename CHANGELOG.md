@@ -1,6 +1,17 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...master))
 ====================
 
+v0.8.2, 2013-11-20 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...v0.8.2))
+=====================
+
+## Bugfixes
+
+  * Replaced the locking behaviour [via lockfile gem](https://github.com/colszowka/simplecov/pull/185) with 
+    plain Ruby explicit file locking when merging results. This should make simplecov merging to behave well 
+    on Windows again. 
+    See [#258](https://github.com/colszowka/simplecov/issues/258) and 
+    [#223](https://github.com/colszowka/simplecov/pull/223) (thanks to @tomykaira)
+
 v0.8.1, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.0...v0.8.1))
 =====================
 
