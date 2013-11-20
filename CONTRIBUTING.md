@@ -1,4 +1,18 @@
-# Making Contributions
+## Reporting Issues
+
+You can report issues at https://github.com/colszowka/simplecov/issues
+
+ * Search existing issues for your problem, chances are someone else already reported it.
+ * Please make sure you are running the latest version of simplecov. If that is not possible, 
+   please specify in your report why you can't update to the latest version.
+ * Include the SimpleCov version you are running in your report.
+ * Include your `ruby -e "puts RUBY_DESCRIPTION"`. Please also specify the gem versions of 
+ * Rails and your testing framework, if applicable.
+   This is extremely important for narrowing down the cause of your problem.
+
+Thanks!
+   
+## Making Contributions
 
 To fetch & test the library for development, do:
 
