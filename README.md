@@ -294,6 +294,23 @@ Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter an
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
 
+## Default root filter and coverage for things outside of it
+
+By default, SimpleCov filters everything outside of the `SimpleCov.root` directory. However, sometimes you may want
+to include coverage reports for things you include as a gem, for example a Rails Engine.
+
+Here's an example by [@lsaffie](https://github.com/lsaffie) from [#221](https://github.com/colszowka/simplecov/issues/221)
+that shows how you can achieve just that:
+
+```ruby
+SimpleCov.start :rails do
+  adapters.delete :root_filter
+  filters.clear
+  add_filter do |src|
+    !(src.filename =~ /^#{SimpleCov.root}/) unless src.filename =~ /my_engine/
+  end
+end
+```
 
 ## Groups
 
