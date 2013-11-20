@@ -7,7 +7,7 @@ You can report issues at https://github.com/colszowka/simplecov/issues
    please specify in your report why you can't update to the latest version.
  * Include the SimpleCov version you are running in your report.
  * Include your `ruby -e "puts RUBY_DESCRIPTION"`. Please also specify the gem versions of 
- * Rails and your testing framework, if applicable.
+   Rails and your testing framework, if applicable.
    This is extremely important for narrowing down the cause of your problem.
 
 Thanks!
