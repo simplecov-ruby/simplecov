@@ -569,6 +569,10 @@ interpreters add the coverage library.
 
 SimpleCov is built in [Continuous Integration] on 1.8.7, ree, 1.9.2, 1.9.3.
 
+## Want to find dead code in production?
+
+Try [coverband](https://github.com/danmayer/coverband).
+
 ## Contributing
 
 See the [contributing guide](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md).
