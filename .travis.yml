@@ -7,7 +7,7 @@ rvm:
   - 2.0.0
   - 2.1.0
   - ruby-head
-  - rbx-19mode
+  - rbx
 # JRuby is taking too long at the moment :(
 #  - jruby-19mode
 #  - jruby-head
@@ -16,7 +16,7 @@ matrix:
     - rvm: ruby-head
     - rvm: jruby-head
     - rvm: jruby-19mode
-    - rvm: rbx-19mode
+    - rvm: rbx
 notifications:
   email:
     on_success: always
