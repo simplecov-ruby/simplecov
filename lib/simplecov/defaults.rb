@@ -40,6 +40,7 @@ end
 SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(" ")}"
 
 at_exit do
+  @exit_status = nil
 
   if $! # was an exception thrown?
     # if it was a SystemExit, use the accompanying status
