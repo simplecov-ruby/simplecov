@@ -46,9 +46,8 @@ at_exit do
     # otherwise set a non-zero status representing termination by some other exception
     # (see github issue 41)
     @exit_status = $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
-  else
     # Store the exit status of the test run since it goes away after calling the at_exit proc...
-    @exit_status = SimpleCov::ExitCodes::SUCCESS
+    
   end
 
   SimpleCov.at_exit.call
@@ -77,7 +76,7 @@ at_exit do
     SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
   end
 
-  exit @exit_status # Force exit with stored status (see github issue #5)
+  exit @exit_status if @exit_status  # Force exit with stored status (see github issue #5)
 end
 
 # Autoload config from ~/.simplecov if present
