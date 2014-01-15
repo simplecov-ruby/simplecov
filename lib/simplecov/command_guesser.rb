@@ -9,11 +9,11 @@ module SimpleCov::CommandGuesser
     # between rails unit/functional/integration tests impossible without this cached
     # item.
     attr_accessor :original_run_command
-    
+
     def guess
       from_env || from_command_line_options || from_defined_constants
     end
-    
+
     private
 
     def from_env
@@ -24,7 +24,7 @@ module SimpleCov::CommandGuesser
         "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
       end
     end
-    
+
     def from_command_line_options
       case original_run_command
         when /test\/functional\//, /test\/{.*?functional.*?}\//
@@ -41,7 +41,7 @@ module SimpleCov::CommandGuesser
           nil
       end
     end
-  
+
     def from_defined_constants
       # If the command regexps fail, let's try checking defined constants.
       if defined?(RSpec)
