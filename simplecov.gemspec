@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'docile', '~> 1.1.0'
 
   gem.add_development_dependency 'appraisal', '~> 0.5.1'
-  gem.add_development_dependency 'rake', '~> 10.0.3'
+  gem.add_development_dependency 'rake', '~> 10.1.1'
   gem.add_development_dependency 'rspec', '~> 2.13.0'
   gem.add_development_dependency 'shoulda', '~> 3.4.0'
 
