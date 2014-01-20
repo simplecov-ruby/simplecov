@@ -1,6 +1,6 @@
 SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.png)][Dependencies] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.png)](https://codeclimate.com/github/colszowka/simplecov)
 =========
-**Code coverage for Ruby 1.9**
+**Code coverage for Ruby**
 
   * [Source Code]
   * [API documentation]
@@ -9,7 +9,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   * [Mailing List]
   * [Continuous Integration]
 
-[Coverage]: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby 1.9's Coverage library"
+[Coverage]: http://www.ruby-doc.org/stdlib-2.1.0/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby's Coverage library"
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
@@ -23,7 +23,7 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 
 [![You can support the development of SimpleCov via Pledgie - thanks for your help](https://pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
 
-SimpleCov is a code coverage analysis tool for Ruby 1.9. It uses [1.9's built-in Coverage][Coverage] library to gather code
+SimpleCov is a code coverage analysis tool for Ruby. It uses [ruby's built-in Coverage][Coverage] library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
 and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
@@ -536,7 +536,7 @@ available:
 #### [simplecov-csv](https://github.com/fguillen/simplecov-csv)
 *by Fernando Guillen*
 
-CSV formatter for SimpleCov code coverage tool for ruby 1.9+
+CSV formatter for SimpleCov
 
 #### [cadre](https://github.com/nyarly/cadre)
 *by Judson Lester*
@@ -567,7 +567,7 @@ including Rubinius and JRuby, in [Continuous Integration], but this happens only
 test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby
 interpreters add the coverage library.
 
-SimpleCov is built in [Continuous Integration] on 1.8.7, ree, 1.9.2, 1.9.3.
+SimpleCov is built in [Continuous Integration] on 1.9.3, 2.0.0, 2.1.0 and ruby-head.
 
 ## Want to find dead code in production?
 
