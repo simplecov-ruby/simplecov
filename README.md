@@ -9,6 +9,8 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
   * [Mailing List]
   * [Continuous Integration]
 
+### Important Notice: There is currently a bug that affects exit code handling on the 0.8 line of SimpleCov, see [#281](https://github.com/colszowka/simplecov/issues/281). Please use `gem 'simplecov', '~> 0.7.1'` until this is resolved.
+
 [Coverage]: http://www.ruby-doc.org/stdlib-1.9.3/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby 1.9's Coverage library"
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
