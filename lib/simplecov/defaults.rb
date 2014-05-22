@@ -77,7 +77,7 @@ at_exit do
     SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
   end
 
-  exit @exit_status # Force exit with stored status (see github issue #5)
+  exit @exit_status if @exit_status # Force exit with stored status (see github issue #5)
 end
 
 # Autoload config from ~/.simplecov if present
