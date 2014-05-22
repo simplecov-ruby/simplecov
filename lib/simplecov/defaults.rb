@@ -78,8 +78,8 @@ at_exit do
   end
 
   # Force exit with stored status (see github issue #5)
-  # Unless it's nil or 0 (see github issue #281)
-  exit @exit_status if @exit_status.is_a?(Numeric) && @exit_status > 0
+  # unless it's nil or 0 (see github issue #281)
+  exit @exit_status if @exit_status && @exit_status > 0
 end
 
 # Autoload config from ~/.simplecov if present
