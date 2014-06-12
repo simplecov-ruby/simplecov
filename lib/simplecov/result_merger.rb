@@ -10,6 +10,10 @@ module SimpleCov::ResultMerger
       File.join(SimpleCov.coverage_path, '.resultset.json')
     end
 
+    def resultset_writelock
+      File.join(SimpleCov.coverage_path, '.resultset.json.lock')
+    end
+
     # Loads the cached resultset from YAML and returns it as a Hash
     def resultset
       if stored_data
@@ -66,12 +70,14 @@ module SimpleCov::ResultMerger
 
     # Saves the given SimpleCov::Result in the resultset cache
     def store_result(result)
-      new_set = resultset
-      command_name, data = result.to_hash.first
-      new_set[command_name] = data
-      File.open(resultset_path, "w+") do |f|
+      File.open(resultset_writelock, "w+") do |f|
         f.flock(File::LOCK_EX)
-        f.puts SimpleCov::JSON.dump(new_set)
+        new_set = resultset
+        command_name, data = result.to_hash.first
+        new_set[command_name] = data
+        File.open(resultset_path, "w+") do |f_|
+          f_.puts SimpleCov::JSON.dump(new_set)
+        end
       end
       true
     end
