@@ -105,7 +105,7 @@ SimpleCov.start 'rails'
 
 ## Use it with any framework!
 
-Similarily to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
+Similarly to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
 config to the very top of your Cucumber/RSpec/whatever setup file.
 
 Add the setup code to the **top** of `features/support/env.rb` (for Cucumber) or `spec/spec_helper.rb` (for RSpec).
@@ -144,8 +144,8 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Spork</b>
  </td>
  <td>
-  Because of the how Spork works internally (using preforking) there used to be trouble when using SimpleCov
-  with it, but that apparently has been resolved with a specific configuration strategy. See
+  Because of how Spork works internally (using preforking) there used to be trouble when using SimpleCov
+  with it, but that has apparently been resolved with a specific configuration strategy. See
   <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a> comment.
  </td>
  <td>
@@ -245,7 +245,7 @@ end
 ## Filters
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all files
-OUTSIDE of your project's root directory - otherwise you'd end up with a billion of coverage reports for source files in the
+OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source files in the
 gems you are using.
 
 Of course you can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
@@ -278,7 +278,7 @@ end
 
 Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be removed
 from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to learn about the
-methods available to you. In the above example, the filter will remove all files that have less then 5 lines of code.
+methods available to you. In the above example, the filter will remove all files that have less than 5 lines of code.
 
 #### Custom filter class
 
@@ -372,7 +372,7 @@ SimpleCov.command_name "test:integration"
 SimpleCov.command_name "features"
 ```
 
-Note that this has only to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
+Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is fair enough.
 
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
@@ -395,7 +395,7 @@ it doesn't do your test speed any harm and you're always equipped with the lates
 
 Because of this, SimpleCov has no explicit built-in mechanism to run coverage only on demand.
 
-However, you can still accomplish this very easily by introducing a ENV variable conditional into your SimpleCov setup block, like this:
+However, you can still accomplish this very easily by introducing an ENV variable conditional into your SimpleCov setup block, like this:
 
 ```ruby
 SimpleCov.start if ENV["COVERAGE"]
