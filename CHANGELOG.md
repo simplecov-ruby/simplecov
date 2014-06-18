@@ -1,6 +1,11 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
 ====================
 
+## Bugfixes
+
+  * Does not look for .simplecov in ~/ when $HOME is not set
+
+
 v0.8.2
 =====================
 
