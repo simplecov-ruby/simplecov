@@ -296,6 +296,23 @@ Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter an
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
 
+#### Ignoring/skipping code
+
+You can exclude code from the coverage report by wrapping it in `# :nocov:`.
+
+```ruby
+# :nocov:
+def skip_this_method
+  never_reached
+end
+# :nocov:
+```
+
+The name of the token can be changed to your liking. [Learn more about the nocov feature.][nocov]
+[nocov]: https://github.com/colszowka/simplecov/blob/master/features/config_nocov_token.feature
+
+**Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If you appropriately test the public interface of your classes and objects you should automatically get full coverage of your private methods.
+
 ## Default root filter and coverage for things outside of it
 
 By default, SimpleCov filters everything outside of the `SimpleCov.root` directory. However, sometimes you may want
