@@ -1,6 +1,8 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
 ====================
 
+  * Ensure calculations return Floats, not Fixnum or Rational. Fixes segfaults with mathn. See [#245][https://github.com/colszowka/simplecov/pull/245] (thanks to @bf4)
+
 v0.8.2
 =====================
 
