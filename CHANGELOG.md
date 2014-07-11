@@ -1,10 +1,11 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
 ====================
 
-  * Ensure calculations return Floats, not Fixnum or Rational. Fixes segfaults with mathn. See [#245][https://github.com/colszowka/simplecov/pull/245] (thanks to @bf4)
 
 ## Bugfixes
 
+  * Ensure calculations return Floats, not Fixnum or Rational. Fixes segfaults with mathn.
+    See [#245][https://github.com/colszowka/simplecov/pull/245] (thanks to @bf4)
   * Using `Kernel.exit` instead of exit to avoid uncaught throw :IRB_EXIT when
     exiting irb sessions.
     See [#285](https://github.com/colszowka/simplecov/issues/285)
