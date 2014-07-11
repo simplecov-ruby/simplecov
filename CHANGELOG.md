@@ -1,6 +1,12 @@
 Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
 ====================
 
+## Enhancements
+
+  * Document in the README how to exclude code from coverage reports,
+    and that the feature shouldn't be abused for skipping untested
+    private code.
+    See [#304](https://github.com/colszowka/simplecov/issues/304)
 
 ## Bugfixes
 
