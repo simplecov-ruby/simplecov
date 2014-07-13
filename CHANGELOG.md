@@ -7,15 +7,27 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...ma
     and that the feature shouldn't be abused for skipping untested
     private code.
     See [#304](https://github.com/colszowka/simplecov/issues/304)
+  * Clarify Ruby version support.
+    See [#279](https://github.com/colszowka/simplecov/pull/279) (thanks @deivid-rodriguez)
 
 ## Bugfixes
 
   * Ensure calculations return Floats, not Fixnum or Rational. Fixes segfaults with mathn.
-    See [#245][https://github.com/colszowka/simplecov/pull/245] (thanks to @bf4)
+    See [#245](https://github.com/colszowka/simplecov/pull/245) (thanks to @bf4)
   * Using `Kernel.exit` instead of exit to avoid uncaught throw :IRB_EXIT when
     exiting irb sessions.
+    See [#287](https://github.com/colszowka/simplecov/pull/287) (thanks @wless1)
     See [#285](https://github.com/colszowka/simplecov/issues/285)
   * Does not look for .simplecov in ~/ when $HOME is not set.
+    See [#311](https://github.com/colszowka/simplecov/pull/311) (thanks @lasseebert)
+  * Exit with code only if it's Numeric > 0.
+    See [#302](https://github.com/colszowka/simplecov/pull/303)(thanks @hajder)
+  * Make default filter case insensitive.
+    See [#280](https://github.com/colszowka/simplecov/pull/280) (thanks @ryanatball)
+  * Improve regexp that matches functional tests.
+    See [#276](https://github.com/colszowka/simplecov/pull/276) (thanks @sferik)
+  * Fix TravisCI [#272](https://github.com/colszowka/simplecov/pull/272) [#278](https://github.com/colszowka/simplecov/pull/278), [#302](https://github.com/colszowka/simplecov/pull/302)
+  * Fix global config load.
     See [#311](https://github.com/colszowka/simplecov/pull/311) (thanks @lasseebert)
 
 v0.8.2
