@@ -83,8 +83,10 @@ at_exit do
 end
 
 # Autoload config from ~/.simplecov if present
-if ENV['HOME']
-  global_config_path = File.join(File.expand_path("~"), '.simplecov')
+require 'etc'
+home_dir = Dir.home || Etc.getpwuid.dir || (user = ENV["USER"] && Dir.home(user))
+if home_dir
+  global_config_path = File.join(home_dir, '.simplecov')
   load global_config_path if File.exist?(global_config_path)
 end
 
