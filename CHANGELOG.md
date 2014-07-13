@@ -15,6 +15,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...ma
   * Using `Kernel.exit` instead of exit to avoid uncaught throw :IRB_EXIT when
     exiting irb sessions.
     See [#285](https://github.com/colszowka/simplecov/issues/285)
+  * Does not look for .simplecov in ~/ when $HOME is not set.
+    See [#311](https://github.com/colszowka/simplecov/pull/311) (thanks @lasseebert)
 
 v0.8.2
 =====================
