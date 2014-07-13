@@ -1,3 +1,4 @@
+language: ruby
 script:
   - bundle
   - bundle exec rake appraisal:install
@@ -8,16 +9,14 @@ rvm:
   - 2.1.0
   - 2.1.2
   - ruby-head
+  - jruby
   - rbx-2
-# JRuby is taking too long at the moment :(
-#  - jruby-19mode
-#  - jruby-head
 matrix:
   allow_failures:
     - rvm: ruby-head
-    - rvm: jruby-head
-    - rvm: jruby-19mode
+    - rvm: jruby
     - rvm: rbx-2
+  fast_finish: true
 notifications:
   email:
     on_success: always
