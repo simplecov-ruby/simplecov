@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'docile'
+require 'simplecov/formatter/multi_formatter'
 #
 # Bundles the configuration options used for SimpleCov. All methods
 # defined here are usable from SimpleCov directly. Please check out
@@ -72,6 +73,24 @@ module SimpleCov::Configuration
     @formatter = formatter
     raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
     @formatter
+  end
+
+  #
+  # Sets the configured formatters.
+  #
+  def formatters=(formatters)
+    @formatter = SimpleCov::Formatter::MultiFormatter[*formatters]
+  end
+
+  #
+  # Gets the configured formatters.
+  #
+  def formatters
+    if @formatter.is_a?(SimpleCov::Formatter::MultiFormatter)
+      @formatter.formatters
+    else
+      Array(formatter)
+    end
   end
 
   #
