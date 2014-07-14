@@ -17,10 +17,10 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'simplecov-html', '~> 0.8.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 
-  gem.add_development_dependency 'appraisal', '~> 0.5.1'
-  gem.add_development_dependency 'rake', '~> 10.1.1'
-  gem.add_development_dependency 'rspec', '~> 2.13.0'
-  gem.add_development_dependency 'shoulda', '~> 3.4.0'
+  gem.add_development_dependency 'appraisal', '~> 1.0'
+  gem.add_development_dependency 'rake', '~> 10.3'
+  gem.add_development_dependency 'rspec', '~> 2.99'
+  gem.add_development_dependency 'shoulda', '~> 3.5'
 
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
