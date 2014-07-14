@@ -4,6 +4,6 @@ require 'rspec'
 SimpleCov.start
 describe 'exit status' do
   it "should exit with a zero exit status when assertion fails" do
-    1.should == 1
+    expect(1).to eq(1)
   end
 end
