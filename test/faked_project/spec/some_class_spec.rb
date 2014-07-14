@@ -3,8 +3,11 @@ require 'spec_helper'
 describe SomeClass do
   subject { SomeClass.new("foo") }
 
-  its(:reverse) { should == 'oof' }
+  it "should be reversible" do
+    expect(subject.reverse).to eq('oof')
+  end
+
   it "should compare with 'foo'" do
-    subject.compare_with('foo').should be_true
+    expect(subject.compare_with('foo')).to be true
   end
 end
