@@ -3,6 +3,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...ma
 
 ## Enhancements
 
+  * New interface to specify multiple formatters.
+    See [#317](https://github.com/colszowka/simplecov/pull/317) (thanks @sferik)
   * Document in the README how to exclude code from coverage reports,
     and that the feature shouldn't be abused for skipping untested
     private code.
@@ -37,10 +39,10 @@ v0.8.2
 
 ## Bugfixes
 
-  * Replaced the locking behaviour [via lockfile gem](https://github.com/colszowka/simplecov/pull/185) with 
-    plain Ruby explicit file locking when merging results. This should make simplecov merging to behave well 
-    on Windows again. 
-    See [#258](https://github.com/colszowka/simplecov/issues/258) and 
+  * Replaced the locking behaviour [via lockfile gem](https://github.com/colszowka/simplecov/pull/185) with
+    plain Ruby explicit file locking when merging results. This should make simplecov merging to behave well
+    on Windows again.
+    See [#258](https://github.com/colszowka/simplecov/issues/258) and
     [#223](https://github.com/colszowka/simplecov/pull/223) (thanks to @tomykaira)
 
 v0.8.1, 2013-11-10 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.0...v0.8.1))
@@ -63,7 +65,7 @@ quite stable in most circumstances. This release brings various further stabilit
 (especially when working with parallel_tests), the configuration, source file encodings, and command name guessing.
 
 The 0.8 line is the last one to cooperate with Ruby < 1.9. Starting with 0.9, SimpleCov will assume to be running in
-Ruby 1.9+, and will not try to detect or bail silently on older Ruby versions. An appropriate deprecation warning 
+Ruby 1.9+, and will not try to detect or bail silently on older Ruby versions. An appropriate deprecation warning
 has been added.
 
 ## Features
@@ -72,11 +74,11 @@ has been added.
     See [#238](https://github.com/colszowka/simplecov/pull/238) (thanks to @ms-tg)
   * You can now have a global `~/.simplecov` configuration file.
     See [#195](https://github.com/colszowka/simplecov/pull/195) (thanks to @spagalloco)
-  * simplecov-html now uses the MIT-licensed colorbox plugin. Some adjustments when viewing source files, 
+  * simplecov-html now uses the MIT-licensed colorbox plugin. Some adjustments when viewing source files,
     including retaining the currently open file on refresh have been added.
     See [simplecov-html #15](https://github.com/colszowka/simplecov-html/pull/15) (thanks to @chetan)
   * Adds support for Rails 4 command guessing, removes default group `vendor/plugins`.
-    See [#181](https://github.com/colszowka/simplecov/pull/181) and 
+    See [#181](https://github.com/colszowka/simplecov/pull/181) and
     [#203](https://github.com/colszowka/simplecov/pull/203) (thanks to @semanticart and @phallstrom)
   * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'`
     or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
@@ -84,13 +86,13 @@ has been added.
   * The result set merging now uses the `lockfile` gem to avoid race conditions.
     See [#185](https://github.com/colszowka/simplecov/pull/185) (thanks to @jshraibman-mdsol).
   * Automatically detect the usage of parallel_tests and adjust the command name with the test env number accordingly,
-    See [#64](https://github.com/colszowka/simplecov/issues/64) and 
+    See [#64](https://github.com/colszowka/simplecov/issues/64) and
     [#185](https://github.com/colszowka/simplecov/pull/185) (thanks to @jshraibman-mdsol).
 
 ## Enhancements
 
   * Rename adapters to "profiles" given that they are bundles of settings. The old adapter methods are
-    deprecated, but remain available for now. 
+    deprecated, but remain available for now.
     See [#207](https://github.com/colszowka/simplecov/pull/207) (thanks to @mikerobe)
   * Tweaks to the automatic test suite naming. In particular, `rspec/features` should now
     be correctly attributed to RSpec, not Cucumber.
@@ -98,7 +100,7 @@ has been added.
   * MiniTest should now be identified correctly by the command name guesser.
     See [#244](https://github.com/colszowka/simplecov/pull/244) (thanks to @envygeeks)
   * Makes SimpleCov resilient to inclusion of mathn library.
-    See [#175](https://github.com/colszowka/simplecov/pull/175) and 
+    See [#175](https://github.com/colszowka/simplecov/pull/175) and
     [#140](https://github.com/colszowka/simplecov/issues/140) (thanks to @scotje)
   * Allow coverage_dir to be an absolute path.
   * See [#190](https://github.com/colszowka/simplecov/pull/190) (thanks to @jshraibman-mdsol)
@@ -107,7 +109,7 @@ has been added.
   * Work-arounds for the Coverage library shipped in JRuby 1.6 to behave in line with MRI.
     See [#174](https://github.com/colszowka/simplecov/pull/174) (thanks to @grddev)
   * Fix warning: instance variable @exit_status not initialized.
-    See [#242](https://github.com/colszowka/simplecov/pull/242) and 
+    See [#242](https://github.com/colszowka/simplecov/pull/242) and
     [#213](https://github.com/colszowka/simplecov/pull/213) (thanks to @sferik and @infertux)
 
 ## Bugfixes
@@ -115,13 +117,13 @@ has been added.
   * Correct result calculations for people using :nocov: tags.
     See [#215](https://github.com/colszowka/simplecov/pull/215) (thanks to @aokolish)
   * Average hits per line for groups of files is now computed correctly.
-    See [#192](http://github.com/colszowka/simplecov/pull/192) and 
+    See [#192](http://github.com/colszowka/simplecov/pull/192) and
     [#179](http://github.com/colszowka/simplecov/issues/179) (thanks to @graysonwright)
   * Compatability with BINARY internal encoding.
-    See [#194](https://github.com/colszowka/simplecov/pull/194) and 
+    See [#194](https://github.com/colszowka/simplecov/pull/194) and
     [#127](https://github.com/colszowka/simplecov/issues/127) (thanks to @justfalter)
   * Special characters in `SimpleCov.root` are now correctly escaped before being used as a RegExp.
-    See [#204](https://github.com/colszowka/simplecov/issues/204) and 
+    See [#204](https://github.com/colszowka/simplecov/issues/204) and
     [#237](https://github.com/colszowka/simplecov/pull/237) (thanks to @rli9)
 
 v0.7.1, 2012-10-12 ([changes](https://github.com/colszowka/simplecov/compare/v0.7.0...v0.7.1))
