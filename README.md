@@ -533,10 +533,10 @@ being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 ## Using multiple formatters
 
-If you want to use multiple result formats, as of SimpleCov 0.7.0 you can use the built-in MultiFormatter:
+As for SimpleCov 0.9.0, you can specify multiple result formats:
 
 ```ruby
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+SimpleCov.formatters = [
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CSVFormatter,
 ]
