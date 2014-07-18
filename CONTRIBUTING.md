@@ -3,15 +3,15 @@
 You can report issues at https://github.com/colszowka/simplecov/issues
 
  * Search existing issues for your problem, chances are someone else already reported it.
- * Please make sure you are running the latest version of simplecov. If that is not possible, 
+ * Please make sure you are running the latest version of simplecov. If that is not possible,
    please specify in your report why you can't update to the latest version.
  * Include the SimpleCov version you are running in your report.
- * Include your `ruby -e "puts RUBY_DESCRIPTION"`. Please also specify the gem versions of 
+ * Include your `ruby -e "puts RUBY_DESCRIPTION"`. Please also specify the gem versions of
    Rails and your testing framework, if applicable.
    This is extremely important for narrowing down the cause of your problem.
 
 Thanks!
-   
+
 ## Making Contributions
 
 To fetch & test the library for development, do:
@@ -19,11 +19,6 @@ To fetch & test the library for development, do:
     $ git clone https://github.com/colszowka/simplecov.git
     $ cd simplecov
     $ bundle
-    $ rake appraisal:install
-    $ rake appraisal
-
-For more information on the appraisal gem (for testing against multiple gem dependency versions), please see
-https://github.com/thoughtbot/appraisal/
 
 If you want to contribute, please:
 

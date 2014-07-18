@@ -1,7 +1,4 @@
 language: ruby
-gemfile:
-  - gemfiles/multi_json_legacy.gemfile
-  - gemfiles/multi_json_new.gemfile
 rvm:
   - 1.9.3
   - 2.0.0
