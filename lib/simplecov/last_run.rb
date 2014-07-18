@@ -1,3 +1,5 @@
+require 'json'
+
 module SimpleCov::LastRun
   class << self
     def last_run_path
@@ -7,12 +9,12 @@ module SimpleCov::LastRun
     def read
       return nil unless File.exist?(last_run_path)
 
-      SimpleCov::JSON.parse(File.read(last_run_path))
+      JSON.load(File.read(last_run_path))
     end
 
     def write(json)
       File.open(last_run_path, "w+") do |f|
-        f.puts SimpleCov::JSON.dump(json)
+        f.puts JSON.dump(json)
       end
     end
   end
