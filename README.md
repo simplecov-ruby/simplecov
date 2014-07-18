@@ -38,6 +38,16 @@ The official formatter of SimpleCov is packaged as a separate gem called [simple
 automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html].
 
 
+## Contact
+
+*Code and Bug Reports*
+
+* [Issue Tracker](https://github.com/colszowka/simplecov/issues)
+    * See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along with some common problems to check out before creating an issue.
+
+*Questions, Problems, Suggestions, etc.*
+
+* [Mailing List]: https://groups.google.com/forum/#!forum/simplecov "Open mailing list for discussion and announcements on Google Groups"
 
 Getting started
 ---------------

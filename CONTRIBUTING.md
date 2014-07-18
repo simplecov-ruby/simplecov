@@ -2,16 +2,26 @@
 
 You can report issues at https://github.com/colszowka/simplecov/issues
 
- * Search existing issues for your problem, chances are someone else already reported it.
- * Please make sure you are running the latest version of simplecov. If that is not possible, 
-   please specify in your report why you can't update to the latest version.
+Search existing issues for your problem, chances are someone else already reported it.
+
  * Include the SimpleCov version you are running in your report.
- * Include your `ruby -e "puts RUBY_DESCRIPTION"`. Please also specify the gem versions of 
-   Rails and your testing framework, if applicable.
-   This is extremely important for narrowing down the cause of your problem.
+ * If you are not running the latest version (please check), and you cannot update it,
+   please specify in your report why you can't update to the latest version.
+ * Include your `ruby -e "puts RUBY_DESCRIPTION"`.
+ * Please also specify the gem versions of Rails (if applicable).
+ * Include any other coverage gems you may be using and their versions.
+ * Include how you run your tests and which testing framework or frameworks you are running.
+    - If running via rake, please ensure you are requiring SimpleCov at the top of your Rakefile
+    - Otherwise, please ensure you are requiring and starting SimpleCov before requiring any application code.
+      For example, if running via RSpec, this would be at the top of your spec_helper.
+    - Have you tried using a [`.simplecov` file](https://github.com/colszowka/simplecov#using-simplecov-for-centralized-config)?
+
+Include as much sample code as you can to help us reproduce the issue. (Inline, repo link, or gist, are fine. A failing test would help the most.)
+
+This is extremely important for narrowing down the cause of your problem.
 
 Thanks!
-   
+
 ## Making Contributions
 
 To fetch & test the library for development, do:
