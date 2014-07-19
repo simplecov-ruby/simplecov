@@ -1,4 +1,4 @@
-if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
+if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.8
   require 'jruby'
   java_import 'org.jruby.ast.NodeType'
 

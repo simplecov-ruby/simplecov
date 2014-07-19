@@ -1,5 +1,16 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.0...master))
 ====================
+
+## Enhancements
+
+
+## Bugfixes
+
+
+0.9.0, 2014-07-17 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...v0.9.0))
+====================
+
+**A warm welcome and big thank you to the new contributors [@xaviershay](https://github.com/xaviershay), [@sferik](https://github.com/sferik) and especially [@bf4](https://github.com/bf4) for tackling a whole lot of issues and pull requests for this release!**
 
 ## Enhancements
 
@@ -32,10 +43,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...ma
   * Fix global config load.
     See [#311](https://github.com/colszowka/simplecov/pull/311) (thanks @lasseebert)
 
-v0.8.2
+v0.8.2, 2013-11-20 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...v0.8.2))
 =====================
-
-### 2013-11-20 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.1...v0.8.2))
 
 ## Bugfixes
 
