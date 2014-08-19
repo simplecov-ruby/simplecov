@@ -591,7 +591,7 @@ A formatter that generates a coverage badge for use in your project's readme usi
 
 Some editors have a graphical integration for the simplecov gem.
 
-### [Atom Editor: coverage](https://atom.io/packages/coverage)
+#### [Atom Editor: coverage](https://atom.io/packages/coverage)
 *by Philip Giuliani*
 
 Adds an overview of your current test coverage to Atom.
