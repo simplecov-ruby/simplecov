@@ -587,6 +587,15 @@ JSON formatter for SimpleCov
 
 A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
 
+## Editor integration
+
+Some editors have a integration for the simplecov gem.
+
+### Atom Editor: [coverage](https://github.com/philipgiuliani/coverage)
+*by Philip Giuliani*
+
+Adds an overview of your current test coverage to Atom.
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
