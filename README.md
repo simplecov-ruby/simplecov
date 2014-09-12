@@ -30,7 +30,7 @@ coverage data, but makes processing its results much easier by providing a clean
 and display those results, giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
 
-In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features,
+In most cases, you'll want overall coverage results for your projects, including all types of tests, Cucumber features,
 etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
@@ -365,7 +365,7 @@ end
 You normally want to have your coverage analyzed across ALL of your test suites, right?
 
 Simplecov automatically caches coverage results in your (coverage_path)/.resultset.json. Those results will then
-be automatically merged when generating the result, so when coverage is set up properly for cucumber and your
+be automatically merged when generating the result, so when coverage is set up properly for Cucumber and your
 unit / functional / integration tests, all of those test suites will be taken into account when building the
 coverage report.
 
@@ -381,7 +381,7 @@ If you have some non-standard setup and still want nicely labeled test suites, y
 name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is
 part of your specific suite.
 
-To customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
+To customize the suite names on a Rails app (yeah, sorry for being Rails-biased, but everyone knows what
 the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
