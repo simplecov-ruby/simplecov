@@ -362,7 +362,7 @@ end
 
 ## Merging results
 
-Normally, you want to have your coverage analyzed across ALL of your test suites, right?
+You normally want to have your coverage analyzed across ALL of your test suites, right?
 
 Simplecov automatically caches coverage results in your (coverage_path)/.resultset.json. Those results will then
 be automatically merged when generating the result, so when coverage is set up properly for cucumber and your
@@ -373,15 +373,15 @@ There are two things to note here though:
 
 ### Test suite names
 
-Simplecov tries to guess the name of the currently running test suite based upon the shell command the tests are running
-on. This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
+SimpleCov tries to guess the name of the currently running test suite based upon the shell command the tests are running
+on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it will use the shell command
 that invoked the test suite as a command name.
 
-If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the
+If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue as to what the
 name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is
 part of your specific suite.
 
-So, to customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
+To customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
 the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
@@ -400,7 +400,7 @@ SimpleCov.command_name "features"
 ```
 
 Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
-some_test.rb is fair enough.
+some_test.rb is enough.
 
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
@@ -437,8 +437,8 @@ COVERAGE=true rake test
 
 ## Profiles
 
-By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
-root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
+By default, SimpleCov's only config assumption is that you only want coverage reports for files inside your project
+root. To save yourself from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
 or define your own.
 
 You can then pass the name of the profile to be used as the first argument to SimpleCov.start. For example, simplecov
@@ -456,7 +456,7 @@ SimpleCov.profiles.define 'rails' do
 end
 ```
 
-As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
+As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch SimpleCov with:
 
 ```ruby
 SimpleCov.start 'rails'
@@ -473,7 +473,7 @@ end
 ### Custom profiles
 
 You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an existing
-profile and customize it so you can reuse it in unit tests and cucumber features, for example.
+profile and customize it so you can reuse it in unit tests and Cucumber features. For example:
 
 ```ruby
 # lib/simplecov_custom_profile.rb
@@ -495,7 +495,7 @@ SimpleCov.start 'myprofile'
 
 ## Customizing exit behaviour
 
-You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
+You can define what SimpleCov should do when your test suite finishes by customizing the at_exit hook:
 
 ```ruby
 SimpleCov.at_exit do
