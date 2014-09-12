@@ -25,16 +25,16 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 
 [![You can support the development of SimpleCov via Pledgie - thanks for your help](https://pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
 
-SimpleCov is a code coverage analysis tool for Ruby. It uses [ruby's built-in Coverage][Coverage] library to gather code
-coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
-and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
+SimpleCov is a code coverage analysis tool for Ruby. It uses [Ruby's built-in Coverage][Coverage] library to gather code
+coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format,
+and display those results, giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
 
-In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features
-etc. SimpleCov automatically takes care of this by caching and then merging results when generating reports, so your
+In most cases, you'll want overall coverage results for your projects, including all types of tests, Cucumber features,
+etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
-The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
+The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html], but will be installed and configured
 automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html].
 
 
@@ -91,8 +91,8 @@ end
 
     coverage
 
-If you're making a Rails application, SimpleCov comes with a built-in configurations (see below for information on profiles)
-which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
+If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
+that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
 ```ruby
@@ -115,7 +115,7 @@ SimpleCov.start 'rails'
 
 ## Use it with any framework!
 
-Similarly to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
+Similarly to the usage with Test::Unit described above, the only thing you have to do is to add the SimpleCov
 config to the very top of your Cucumber/RSpec/whatever setup file.
 
 Add the setup code to the **top** of `features/support/env.rb` (for Cucumber) or `spec/spec_helper.rb` (for RSpec).
@@ -127,7 +127,7 @@ SimpleCov.start 'rails'
 ```
 
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
-care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
+care what kind of framework it is running in; it just looks at what code is being executed and generates a report about it.
 
 ### Notes on specific frameworks and test utilities
 
@@ -141,7 +141,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Test/Unit 2</b>
  </td>
  <td>
-  Test Unit 2 used to mess with ARGV, leading to failure to detect the test process name in SimpleCov.
+  Test Unit 2 used to mess with ARGV, leading to a failure to detect the test process name in SimpleCov.
   <code>test-unit</code> releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
  </td>
  <td>
@@ -154,7 +154,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Spork</b>
  </td>
  <td>
-  Because of how Spork works internally (using preforking) there used to be trouble when using SimpleCov
+  Because of how Spork works internally (using preforking), there used to be trouble when using SimpleCov
   with it, but that has apparently been resolved with a specific configuration strategy. See
   <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a> comment.
  </td>
@@ -182,7 +182,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
  </td>
  <td>
   A user has reported problems with the coverage report using the riot framework. If you experience
-  similar trouble please follow up on the related Github issue.
+  similar trouble please follow up on the related GitHub issue.
  </td>
  <td>
   <a href="https://github.com/colszowka/simplecov/issues/80">SimpleCov #80</a>
@@ -258,7 +258,7 @@ Filters can be used to remove selected files from your coverage data. By default
 OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source files in the
 gems you are using.
 
-Of course you can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
+You can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
 report.
 
 ### Defining custom filters
@@ -342,8 +342,8 @@ end
 
 ## Groups
 
-You can separate your source files into groups. For example, in a rails app, you'll want to have separate listings for
-Models, Controllers, Helpers, and Libs. Group definition works similar to Filters (and indeed also accepts custom
+You can separate your source files into groups. For example, in a Rails app, you'll want to have separate listings for
+Models, Controllers, Helpers, and Libs. Group definition works similarly to Filters (and also accepts custom
 filter classes), but source files end up in a group when the filter passes (returns true), as opposed to filtering results,
 which exclude files from results when the filter results in a true value.
 
@@ -362,10 +362,10 @@ end
 
 ## Merging results
 
-Normally, you want to have your coverage analyzed across ALL of your test suites, right?
+You normally want to have your coverage analyzed across ALL of your test suites, right?
 
 Simplecov automatically caches coverage results in your (coverage_path)/.resultset.json. Those results will then
-be automatically merged when generating the result, so when coverage is set up properly for cucumber and your
+be automatically merged when generating the result, so when coverage is set up properly for Cucumber and your
 unit / functional / integration tests, all of those test suites will be taken into account when building the
 coverage report.
 
@@ -373,15 +373,15 @@ There are two things to note here though:
 
 ### Test suite names
 
-Simplecov tries to guess the name of the currently running test suite based upon the shell command the tests are running
-on. This should work fine for Unit Tests, RSpec and Cucumber. If it fails, it will use the shell command
+SimpleCov tries to guess the name of the currently running test suite based upon the shell command the tests are running
+on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it will use the shell command
 that invoked the test suite as a command name.
 
-If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue what the
+If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue as to what the
 name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is
 part of your specific suite.
 
-So, to customize the suite names on a Rails app (yeah, sorry for being Rails biased, but everyone knows what
+To customize the suite names on a Rails app (yeah, sorry for being Rails-biased, but everyone knows what
 the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
 you could do something like this:
 
@@ -400,7 +400,7 @@ SimpleCov.command_name "features"
 ```
 
 Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
-some_test.rb is fair enough.
+some_test.rb is enough.
 
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
@@ -437,8 +437,8 @@ COVERAGE=true rake test
 
 ## Profiles
 
-By default, Simplecov's only config assumption is that you only want coverage reports for files inside your project
-root. To save you from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
+By default, SimpleCov's only config assumption is that you only want coverage reports for files inside your project
+root. To save yourself from repetitive configuration, you can use predefined blocks of configuration, called 'profiles',
 or define your own.
 
 You can then pass the name of the profile to be used as the first argument to SimpleCov.start. For example, simplecov
@@ -456,7 +456,7 @@ SimpleCov.profiles.define 'rails' do
 end
 ```
 
-As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch simplecov with:
+As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, launch SimpleCov with:
 
 ```ruby
 SimpleCov.start 'rails'
@@ -473,7 +473,7 @@ end
 ### Custom profiles
 
 You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an existing
-profile and customize it so you can reuse it in unit tests and cucumber features, for example.
+profile and customize it so you can reuse it in unit tests and Cucumber features. For example:
 
 ```ruby
 # lib/simplecov_custom_profile.rb
@@ -495,7 +495,7 @@ SimpleCov.start 'myprofile'
 
 ## Customizing exit behaviour
 
-You can define what simplecov should do when your test suite finishes by customizing the at_exit hook:
+You can define what SimpleCov should do when your test suite finishes by customizing the at_exit hook:
 
 ```ruby
 SimpleCov.at_exit do
