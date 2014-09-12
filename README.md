@@ -25,16 +25,16 @@ SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)
 
 [![You can support the development of SimpleCov via Pledgie - thanks for your help](https://pledgie.com/campaigns/18379.png?skin_name=chrome)][Pledgie]
 
-SimpleCov is a code coverage analysis tool for Ruby. It uses [ruby's built-in Coverage][Coverage] library to gather code
-coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format
-and display those results, thus giving you a complete code coverage suite that can be set up with just a couple lines of
+SimpleCov is a code coverage analysis tool for Ruby. It uses [Ruby's built-in Coverage][Coverage] library to gather code
+coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format,
+and display those results, giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
 
-In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features
-etc. SimpleCov automatically takes care of this by caching and then merging results when generating reports, so your
+In most cases, you'll want overall coverage results for your projects, including all types of tests, cucumber features,
+etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
-The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html] but will be installed and configured
+The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html], but will be installed and configured
 automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html].
 
 
@@ -91,8 +91,8 @@ end
 
     coverage
 
-If you're making a Rails application, SimpleCov comes with a built-in configurations (see below for information on profiles)
-which will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
+If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
+that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
 your test_helper should be like this:
 
 ```ruby
@@ -115,7 +115,7 @@ SimpleCov.start 'rails'
 
 ## Use it with any framework!
 
-Similarly to the usage with Test::Unit described above, the only thing you have to do is to add the simplecov
+Similarly to the usage with Test::Unit described above, the only thing you have to do is to add the SimpleCov
 config to the very top of your Cucumber/RSpec/whatever setup file.
 
 Add the setup code to the **top** of `features/support/env.rb` (for Cucumber) or `spec/spec_helper.rb` (for RSpec).
@@ -127,7 +127,7 @@ SimpleCov.start 'rails'
 ```
 
 You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
-care what kind of framework it is running in, it just looks at what code is being executed and generates a report about it.
+care what kind of framework it is running in; it just looks at what code is being executed and generates a report about it.
 
 ### Notes on specific frameworks and test utilities
 
@@ -141,7 +141,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Test/Unit 2</b>
  </td>
  <td>
-  Test Unit 2 used to mess with ARGV, leading to failure to detect the test process name in SimpleCov.
+  Test Unit 2 used to mess with ARGV, leading to a failure to detect the test process name in SimpleCov.
   <code>test-unit</code> releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
  </td>
  <td>
@@ -154,7 +154,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
    <b>Spork</b>
  </td>
  <td>
-  Because of how Spork works internally (using preforking) there used to be trouble when using SimpleCov
+  Because of how Spork works internally (using preforking), there used to be trouble when using SimpleCov
   with it, but that has apparently been resolved with a specific configuration strategy. See
   <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a> comment.
  </td>
@@ -182,7 +182,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
  </td>
  <td>
   A user has reported problems with the coverage report using the riot framework. If you experience
-  similar trouble please follow up on the related Github issue.
+  similar trouble please follow up on the related GitHub issue.
  </td>
  <td>
   <a href="https://github.com/colszowka/simplecov/issues/80">SimpleCov #80</a>
@@ -258,7 +258,7 @@ Filters can be used to remove selected files from your coverage data. By default
 OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source files in the
 gems you are using.
 
-Of course you can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
+You can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
 report.
 
 ### Defining custom filters
@@ -342,8 +342,8 @@ end
 
 ## Groups
 
-You can separate your source files into groups. For example, in a rails app, you'll want to have separate listings for
-Models, Controllers, Helpers, and Libs. Group definition works similar to Filters (and indeed also accepts custom
+You can separate your source files into groups. For example, in a Rails app, you'll want to have separate listings for
+Models, Controllers, Helpers, and Libs. Group definition works similarly to Filters (and also accepts custom
 filter classes), but source files end up in a group when the filter passes (returns true), as opposed to filtering results,
 which exclude files from results when the filter results in a true value.
 
