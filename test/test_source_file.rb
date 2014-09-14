@@ -90,11 +90,15 @@ class TestSourceFile < Test::Unit::TestCase
 
     should "handle utf-8 encoded source files when the default_internal encoding is binary" do
       original_internal_encoding = Encoding.default_internal
-      Encoding.default_internal = "BINARY"
+      without_warnings do
+        Encoding.default_internal = "BINARY"
+      end
       begin
         source_file = SimpleCov::SourceFile.new(source_fixture('utf-8.rb'), [nil, nil, 1])
       ensure
-        Encoding.default_internal = original_internal_encoding
+        without_warnings do
+          Encoding.default_internal = original_internal_encoding
+        end
       end
 
       assert_nothing_raised do
@@ -102,5 +106,11 @@ class TestSourceFile < Test::Unit::TestCase
       end
     end
   end
-end if SimpleCov.usable?
 
+  def without_warnings(&block)
+    original_verbose = $VERBOSE
+    $VERBOSE = nil
+    block.call
+    $VERBOSE = original_verbose
+  end
+end if SimpleCov.usable?
