@@ -333,7 +333,7 @@ that shows how you can achieve just that:
 
 ```ruby
 SimpleCov.start :rails do
-  filters.clear # This will remove the :root_filter that comes via simplecov's defaults
+  filters.clear # This will remove the :root_filter and :bundler_filter that come via simplecov's defaults
   add_filter do |src|
     !(src.filename =~ /^#{SimpleCov.root}/) unless src.filename =~ /my_engine/
   end
