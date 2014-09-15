@@ -2,7 +2,6 @@
 
 require 'rubygems'
 require 'bundler/setup'
-require 'appraisal'
 Bundler::GemHelper.install_tasks
 
 # See https://github.com/colszowka/simplecov/issues/171

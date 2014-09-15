@@ -29,11 +29,6 @@ To fetch & test the library for development, do:
     $ git clone https://github.com/colszowka/simplecov.git
     $ cd simplecov
     $ bundle
-    $ rake appraisal:install
-    $ rake appraisal
-
-For more information on the appraisal gem (for testing against multiple gem dependency versions), please see
-https://github.com/thoughtbot/appraisal/
 
 If you want to contribute, please:
 
