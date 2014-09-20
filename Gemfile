@@ -20,8 +20,8 @@ end
 
 if 'Integration test (cucumber) suite is 1.9+ only'.respond_to?(:encoding)
   gem 'aruba', '~> 0.6'
-  gem 'capybara', '~> 2.0'
-  gem 'poltergeist', '~> 1.1.0'
+  gem 'capybara', '~> 2.0.0'
+  gem 'poltergeist', '~> 1.1'
   gem 'phantomjs', '~> 1.9'
   gem 'cucumber', '~> 1.1'
 end

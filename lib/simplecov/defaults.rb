@@ -84,7 +84,7 @@ end
 
 # Autoload config from ~/.simplecov if present
 require 'etc'
-home_dir = Dir.home || Etc.getpwuid.dir || (user = ENV["USER"] && Dir.home(user))
+home_dir = File.expand_path('~') || Etc.getpwuid.dir || (user = ENV["USER"] && File.expand_path("~#{user}"))
 if home_dir
   global_config_path = File.join(home_dir, '.simplecov')
   load global_config_path if File.exist?(global_config_path)
