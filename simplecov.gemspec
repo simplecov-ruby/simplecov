@@ -17,12 +17,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'simplecov-html', '~> 0.8.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 
-  gem.add_development_dependency 'appraisal', '~> 1.0'
-  gem.add_development_dependency 'rake', '~> 10.3'
-  gem.add_development_dependency 'rspec', '~> 3.0'
-  gem.add_development_dependency 'rspec-legacy_formatters', '~> 1.0'
-  gem.add_development_dependency 'shoulda', '~> 3.5'
-
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
