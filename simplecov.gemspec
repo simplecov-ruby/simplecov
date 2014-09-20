@@ -13,7 +13,7 @@ Gem::Specification.new do |gem|
   gem.summary     = gem.description
   gem.license     = "MIT"
 
-  gem.add_dependency 'multi_json'
+  gem.add_dependency 'multi_json', '~> 1.0'
   gem.add_dependency 'simplecov-html', '~> 0.8.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 
