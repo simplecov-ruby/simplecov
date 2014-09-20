@@ -8,11 +8,10 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'rake', '~> 10.3'
+gem 'rake', '>= 10.3'
 
 group :test do
   gem 'activesupport', '~> 3.2.0' # Older version required for Ruby 1.8.7 support
-  gem 'appraisal', '>= 1.0'
   gem 'rspec', '>= 3.0'
   gem 'rspec-legacy_formatters', '>= 1.0'
   gem 'shoulda', '>= 3.5'
