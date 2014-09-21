@@ -1,10 +1,19 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.1...master))
 ====================
 
 ## Enhancements
 
+## Bugfixes
+
+
+0.9.1, 2014-09-21 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.0...v0.9.1))
+====================
 
 ## Bugfixes
+
+ * In 0.9.0, we introduced a regression that made SimpleCov no-op mode fail on Ruby 1.8, while
+   dropping 1.8 support altogether is announced only for v1.0. This has been fixed.
+   See [#333](https://github.com/colszowka/simplecov/issues/333) (thanks (@sferik)
 
 
 0.9.0, 2014-07-17 ([changes](https://github.com/colszowka/simplecov/compare/v0.8.2...v0.9.0))
