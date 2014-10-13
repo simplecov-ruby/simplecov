@@ -75,7 +75,7 @@ is required!**
 SimpleCov must be running in the process that you want the code coverage analysis to happen on. When testing a server
 process (i.e. a JSON API endpoint) via a separate test process (i.e. when using Selenium) where you want to see all
 code executed by the `rails server`, and not just code executed in your actual test files, you'll want to add something
-like this to the top of `script/rails`:
+like this to the top of `script/rails` (or `bin/rails` for Rails 4.*):
 
 ```ruby
 if ENV['RAILS_ENV'] == 'test'
