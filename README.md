@@ -251,6 +251,7 @@ SimpleCov.start 'rails' do
   # any custom configs like groups and filters can be here at a central place
 end
 ```
+Using `.simplecov` rather than separately requiring SimpleCov multiple times is recommended if you are merging multiple test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage information to be lost.
 
 ## Filters
 
