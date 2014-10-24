@@ -603,6 +603,19 @@ SimpleCov is built in [Continuous Integration] on 1.9.3, 2.0.0, 2.1.0 and ruby-h
 
 Try [coverband](https://github.com/danmayer/coverband).
 
+## Want to use Spring with SimpleCov?
+
+If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
+
+Just create `config/spring.rb` and move your SimpleCov config into it. Here's a simple version of what the file should look like:
+
+```ruby
+if ENV['RAILS_ENV'] == 'test'
+  require 'simplecov'
+  SimpleCov.start
+end
+```
+
 ## Contributing
 
 See the [contributing guide](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md).
