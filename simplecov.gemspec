@@ -12,6 +12,8 @@ Gem::Specification.new do |gem|
   gem.description = %Q{Code coverage for Ruby 1.9+ with a powerful configuration library and automatic merging of coverage across test suites}
   gem.summary     = gem.description
   gem.license     = "MIT"
+  
+  gem.required_ruby_version = ">= 1.9"
 
   gem.add_dependency 'multi_json', '~> 1.0'
   gem.add_dependency 'simplecov-html', '~> 0.8.0'
