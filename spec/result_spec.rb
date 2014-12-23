@@ -50,7 +50,15 @@ describe "result" do
         expect(subject.covered_percent).to eq(86.66666666666667)
       end
 
-      [:covered_percent, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
+      it "has accurate covered percentages" do
+        expect(subject.covered_percentages).to eq([80.0, 80.0, 100.0])
+      end
+
+      it "has accurate least covered file" do
+        expect(subject.least_covered_file).to match(/sample_controller.rb/)
+      end
+
+      [:covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
         it "responds to #{msg}" do
           expect(subject).to respond_to(msg)
         end
@@ -72,6 +80,10 @@ describe "result" do
 
           it "has the same covered_percent" do
             expect(dumped_result.covered_percent).to eq(subject.covered_percent)
+          end
+
+          it "has the same covered_percentages" do
+            expect(dumped_result.covered_percentages).to eq(subject.covered_percentages)
           end
 
           it "has the same timestamp" do
@@ -100,6 +112,10 @@ describe "result" do
 
       it "has 80 covered percent" do
         expect(SimpleCov::Result.new(original_result).covered_percent).to eq(80)
+      end
+
+      it "has [80.0, 80.0] covered percentages" do
+        expect(SimpleCov::Result.new(original_result).covered_percentages).to eq([80.0, 80.0])
       end
     end
 

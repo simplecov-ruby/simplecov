@@ -61,10 +61,14 @@ at_exit do
 
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
+    covered_percentages = SimpleCov.result.covered_percentages.map { |p| p.round(2) }
 
     if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
       if covered_percent < SimpleCov.minimum_coverage # rubocop:disable Metrics/BlockNesting
         $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
+        @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
+      elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file } # rubocop:disable Metrics/BlockNesting
+        $stderr.printf("File (%.2f%%) is only (%.2f%%) covered. This is below the expected minimum coverage per file of (%.2f%%).\n", least_covered_file, covered_percentages.min, SimpleCov.minimum_coverage_by_file)
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif (last_run = SimpleCov::LastRun.read) # rubocop:disable Metrics/BlockNesting
         diff = last_run["result"]["covered_percent"] - covered_percent

@@ -547,6 +547,14 @@ You can define the minimum coverage percentage expected. SimpleCov will return n
 SimpleCov.minimum_coverage 90
 ```
 
+### Minimum coverage by file
+
+You can define the minimum coverage by file percentage expected. SimpleCov will return non-zero if unmet. This is useful to help ensure coverage is relatively consistent, rather than being skewed by particularly good or bad areas of the code.
+
+```ruby
+SimpleCov.minimum_coverage_by_file 80
+```
+
 ### Maximum coverage drop
 
 You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.
