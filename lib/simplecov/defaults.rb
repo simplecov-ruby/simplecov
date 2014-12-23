@@ -55,11 +55,18 @@ at_exit do
 
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
+    covered_percentages = SimpleCov.result.covered_percentages.map {|p| p.round(2) }
 
     if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
       if covered_percent < SimpleCov.minimum_coverage
         $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%)." % \
                      [covered_percent, SimpleCov.minimum_coverage]
+
+        @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
+
+      elsif covered_percentages.any? {|p| p < SimpleCov.minimum_coverage_by_file }
+        $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage per file (%.2f%%)." % \
+                     [covered_percentages.min, SimpleCov.minimum_coverage_by_file]
 
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
 
