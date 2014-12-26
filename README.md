@@ -599,6 +599,11 @@ JSON formatter for SimpleCov
 
 A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
 
+### [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
+*by Jesse Bowes*
+
+A formatter that generates Cobertura XML.
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
