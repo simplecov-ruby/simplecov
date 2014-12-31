@@ -379,7 +379,7 @@ on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it w
 that invoked the test suite as a command name.
 
 If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue as to what the
-name of the currently running test suite is. You can do so by specifying SimpleCov.command_name in one test file that is
+name of the currently running test suite is. You can do so by specifying `SimpleCov.command_name` in one test file that is
 part of your specific suite.
 
 To customize the suite names on a Rails app (yeah, sorry for being Rails-biased, but everyone knows what
@@ -413,9 +413,9 @@ ensure that each suite gets a unique `command_name`.
 ### Timeout for merge
 
 Of course, your cached coverage data is likely to become invalid at some point. Thus, result sets that are older than
-SimpleCov.merge_timeout will not be used any more. By default, the timeout is 600 seconds (10 minutes), and you can
+`SimpleCov.merge_timeout` will not be used any more. By default, the timeout is 600 seconds (10 minutes), and you can
 raise (or lower) it by specifying `SimpleCov.merge_timeout 3600` (1 hour), or, inside a configure/start block, with
-just "merge_timeout 3600".
+just `merge_timeout 3600`.
 
 You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
