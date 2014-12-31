@@ -403,6 +403,11 @@ SimpleCov.command_name "features"
 Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
 some_test.rb is enough.
 
+Last but not least **if multiple suites resolve to the same `command_name`** be aware that the coverage results **will
+clobber each other instead of being merged**.  SimpleCov is smart enough to detect unique names for the most common
+setups, but if you have more than one test suite that doesn't follow a common pattern then you will want to manually
+ensure that each suite gets a unique `command_name`.
+
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
 ### Timeout for merge
