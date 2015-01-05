@@ -37,7 +37,12 @@ class TestResult < Test::Unit::TestCase
         assert_equal 100.0*13/15, @result.covered_percent
       end
 
-      [:covered_percent, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
+      should "have accurate covered percentages" do
+        # in our fixture, there are 13 covered line (result in 1) in all 15 relevant line (result in non-nil)
+        assert_same_elements [100.0*5/5, 100.0*4/5, 100.0*4/5], @result.covered_percentages
+      end
+
+      [:covered_percent, :covered_percentages, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
         should "respond to #{msg}" do
           assert @result.respond_to? msg
         end
@@ -56,6 +61,10 @@ class TestResult < Test::Unit::TestCase
 
           should "have the same covered_percent" do
             assert_equal @result.covered_percent, @dumped_result.covered_percent
+          end
+
+          should "have the same covered_percentages" do
+            assert_equal @result.covered_percentages, @dumped_result.covered_percentages
           end
 
           should "have the same timestamp" do
