@@ -29,7 +29,7 @@ class SimpleCov::FileList < Array
   # Returns an array with all coverage percentages
   def covered_percentages
     return [] if empty?
-    map {|f| f.covered_lines * 100.0 / f.lines_of_code }
+    map {|f| f.covered_percent }
   end
 
   # Returns the overall amount of relevant lines of code across all files in this list

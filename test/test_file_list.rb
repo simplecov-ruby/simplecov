@@ -16,6 +16,7 @@ class TestFileList < Test::Unit::TestCase
     should("have 3 skipped_lines")  { assert_equal 3, @file_list.skipped_lines }
 
     should("have correct covered_percent") { assert_equal 100.0*11/14, @file_list.covered_percent }
+    should("have correct covered_percentages") { assert_same_elements [(100.0*5/5), (100.0*4/5), (100.0*2/4)], @file_list.covered_percentages }
     should("have correct covered_strength") { assert_equal 13.to_f/14, @file_list.covered_strength }
   end
 end if SimpleCov.usable?
