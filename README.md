@@ -597,7 +597,7 @@ including Rubinius and JRuby, in [Continuous Integration], but this happens only
 test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby
 interpreters add the coverage library.
 
-SimpleCov is built in [Continuous Integration] on 1.9.3, 2.0.0, 2.1.0 and ruby-head.
+SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, and 2.2.
 
 ## Want to find dead code in production?
 

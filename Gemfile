@@ -22,7 +22,11 @@ group :test do
   gem 'shoulda', '>= 3.5'
 end
 
-platform :ruby_19, :ruby_20, :ruby_21 do
+platform :ruby_22 do
+  gem 'test-unit'
+end
+
+platform :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
   gem 'aruba', '~> 0.6'
   gem 'capybara', '~> 2.0.0'
   gem 'cucumber', '~> 1.1'
