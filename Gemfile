@@ -11,17 +11,21 @@ gemspec
 gem 'rake', '>= 10.3'
 
 group :test do
-  gem 'activesupport', '~> 3.2.0' # Older version required for Ruby 1.8.7 support
+  # Older versions of some gems required for Ruby 1.8.7 support
+  platform :ruby_18 do
+    gem 'activesupport', '~> 3.2.21'
+    gem 'shoulda-matchers', '~> 2.0.0'
+    gem 'i18n', '~> 0.6.11'
+  end
   gem 'rspec', '>= 3.0'
   gem 'rspec-legacy_formatters', '>= 1.0'
   gem 'shoulda', '>= 3.5'
-  gem 'shoulda-matchers', '~> 2.0.0' # Older version required for Ruby 1.8.7 support
 end
 
-if 'Integration test (cucumber) suite is 1.9+ only'.respond_to?(:encoding)
+platform :ruby_19, :ruby_20, :ruby_21 do
   gem 'aruba', '~> 0.6'
   gem 'capybara', '~> 2.0.0'
-  gem 'poltergeist', '~> 1.1'
-  gem 'phantomjs', '~> 1.9'
   gem 'cucumber', '~> 1.1'
+  gem 'phantomjs', '~> 1.9'
+  gem 'poltergeist', '~> 1.1'
 end
