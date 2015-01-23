@@ -1,6 +1,10 @@
 require 'helper'
 
-class TestMergeHelpers < Test::Unit::TestCase
+class TestMergeHelpers < Minitest::Test
+  def self.test_order
+    :alpha
+  end
+
   context "With two faked coverage resultsets" do
     setup do
       SimpleCov.use_merging true

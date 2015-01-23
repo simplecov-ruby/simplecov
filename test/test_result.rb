@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestResult < Test::Unit::TestCase
+class TestResult < Minitest::Test
   context "With a (mocked) Coverage.result" do
     setup do
       SimpleCov.filters = []

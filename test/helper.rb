@@ -1,21 +1,19 @@
 require 'bundler/setup'
 require 'simplecov'
-require 'test/unit'
+require 'minitest/autorun'
 require 'shoulda'
 
 SimpleCov.coverage_dir('tmp/coverage')
 
-class Test::Unit::TestCase
-  def source_fixture(filename)
-    File.expand_path(File.join(File.dirname(__FILE__), 'fixtures', filename))
-  end
+def source_fixture(filename)
+  File.expand_path(File.join(File.dirname(__FILE__), 'fixtures', filename))
 end
 
 require 'shoulda_macros'
-Test::Unit::TestCase.send :extend, ShouldaMacros
+Minitest::Test.send :extend, ShouldaMacros
 
 # Taken from http://stackoverflow.com/questions/4459330/how-do-i-temporarily-redirect-stderr-in-ruby
-require "stringio"
+require 'stringio'
 
 def capture_stderr
   # The output stream must be an IO-like object. In this case we capture it in

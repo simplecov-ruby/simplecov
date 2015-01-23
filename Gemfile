@@ -17,13 +17,10 @@ group :test do
     gem 'shoulda-matchers', '~> 2.0.0'
     gem 'i18n', '~> 0.6.11'
   end
+  gem 'minitest', '>= 5.5'
   gem 'rspec', '>= 3.0'
   gem 'rspec-legacy_formatters', '>= 1.0'
   gem 'shoulda', '>= 3.5'
-end
-
-platform :ruby_22 do
-  gem 'test-unit'
 end
 
 platform :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
@@ -32,4 +29,5 @@ platform :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
   gem 'cucumber', '~> 1.1'
   gem 'phantomjs', '~> 1.9'
   gem 'poltergeist', '~> 1.1'
+  gem 'test-unit', '~> 3.0'
 end

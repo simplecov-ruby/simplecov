@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestCommandGuesser < Test::Unit::TestCase
+class TestCommandGuesser < Minitest::Test
   def self.should_guess_command_name(expectation, *argv)
     argv.each do |args|
       should "return '#{expectation}' for '#{args}'" do

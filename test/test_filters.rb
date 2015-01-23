@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestFilters < Test::Unit::TestCase
+class TestFilters < Minitest::Test
   context "A source file initialized with some coverage data" do
     setup do
       @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])

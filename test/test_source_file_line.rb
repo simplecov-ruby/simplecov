@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestSourceFileLine < Test::Unit::TestCase
+class TestSourceFileLine < Minitest::Test
   context "A source line" do
     setup do
       @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)
@@ -87,19 +87,19 @@ class TestSourceFileLine < Test::Unit::TestCase
   end
 
   should "raise ArgumentError when initialized with invalid src" do
-    assert_raise ArgumentError do
+    assert_raises ArgumentError do
       SimpleCov::SourceFile::Line.new(:symbol, 5, 3)
     end
   end
 
   should "raise ArgumentError when initialized with invalid line_number" do
-    assert_raise ArgumentError do
+    assert_raises ArgumentError do
       SimpleCov::SourceFile::Line.new("some source", "five", 3)
     end
   end
 
   should "raise ArgumentError when initialized with invalid coverage" do
-    assert_raise ArgumentError do
+    assert_raises ArgumentError do
       SimpleCov::SourceFile::Line.new("some source", 5, "three")
     end
   end

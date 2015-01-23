@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestSourceFile < Test::Unit::TestCase
+class TestSourceFile < Minitest::Test
   COVERAGE_FOR_SAMPLE_RB = [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil]
   context "A source file initialized with some coverage data" do
     setup do
@@ -70,37 +70,4 @@ class TestSourceFile < Test::Unit::TestCase
       assert_match(/^Warning: coverage data provided/, captured_output)
     end
   end
-
-  context "Encoding" do
-    should "handle utf-8 encoded source files" do
-      source_file = SimpleCov::SourceFile.new(source_fixture('utf-8.rb'), [nil, nil, 1])
-
-      assert_nothing_raised do
-        source_file.process_skipped_lines!
-      end
-    end
-
-    should "handle iso-8859 encoded source files" do
-      source_file = SimpleCov::SourceFile.new(source_fixture('iso-8859.rb'), [nil, nil, 1])
-
-      assert_nothing_raised do
-        source_file.process_skipped_lines!
-      end
-    end
-
-    should "handle utf-8 encoded source files when the default_internal encoding is binary" do
-      original_internal_encoding = Encoding.default_internal
-      Encoding.default_internal = "BINARY"
-      begin
-        source_file = SimpleCov::SourceFile.new(source_fixture('utf-8.rb'), [nil, nil, 1])
-      ensure
-        Encoding.default_internal = original_internal_encoding
-      end
-
-      assert_nothing_raised do
-        source_file.process_skipped_lines!
-      end
-    end
-  end
 end if SimpleCov.usable?
-

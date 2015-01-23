@@ -1,6 +1,6 @@
 require 'helper'
 
-class TestFileList < Test::Unit::TestCase
+class TestFileList < Minitest::Test
   context "With a file list from a result" do
     setup do
       original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],

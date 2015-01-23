@@ -21,7 +21,7 @@ Rake::TestTask.new(:test) do |test|
 end
 
 # Cucumber integration test suite is for impls that work with simplecov only - a.k.a. 1.9+
-if '1.9+'.respond_to? :encoding
+if RUBY_VERSION >= "1.9"
   require 'cucumber/rake/task'
   Cucumber::Rake::Task.new
   task :default => [:test, :cucumber]

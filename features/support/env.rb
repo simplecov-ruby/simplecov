@@ -1,4 +1,4 @@
-unless '1.9'.respond_to?(:encoding)
+if RUBY_VERSION < "1.9"
   $stderr.puts "Sorry, Cucumber features are only meant to run on Ruby 1.9+ :("
   exit 0
 end
@@ -8,6 +8,7 @@ Bundler.setup
 require 'aruba/cucumber'
 require 'aruba/jruby' if RUBY_ENGINE == 'jruby'
 require 'capybara/cucumber'
+require 'minitest/autorun'
 require 'phantomjs/poltergeist'
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir

@@ -6,7 +6,7 @@ require 'helper'
 # TODO: This should be expanded upon all methods that could potentially
 # be called in a test/spec-helper simplecov config block
 #
-class Test18FallBacks < Test::Unit::TestCase
+class Test18FallBacks < Minitest::Test
   should "return false when calling SimpleCov.start" do
     assert_equal false, SimpleCov.start
   end
