@@ -408,6 +408,12 @@ clobber each other instead of being merged**.  SimpleCov is smart enough to dete
 setups, but if you have more than one test suite that doesn't follow a common pattern then you will want to manually
 ensure that each suite gets a unique `command_name`.
 
+If you are running tests in parallel each process has the potential to clobber results from the other test processes.
+If you are relying on the default `command_name` then SimpleCov will attempt to detect and avoid parallel test suite
+`command_name` collisions based on the presence of `ENV['PARALLEL_TEST_GROUPS']` and `ENV['TEST_ENV_NUMBER']`.  If your
+parallel test runner does not set one or both of these then *you must* set a `command_name` and ensure that it is unique
+per process (eg. `command_name "Unit Tests PID #{$$}"`).
+
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
 ### Timeout for merge
