@@ -41,6 +41,6 @@ class SimpleCov::FileList < Array
   # @return [Float]
   def covered_strength
     return 0.0 if empty? or lines_of_code == 0
-    Float(map {|f| f.covered_strength * f.lines_of_code }.inject(&:+) / lines_of_code)
+    map {|f| f.covered_strength }.sort[count/2]
   end
 end
