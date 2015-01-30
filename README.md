@@ -588,7 +588,7 @@ JSON formatter for SimpleCov
 
 A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
 
-### [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
+#### [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
 *by Jesse Bowes*
 
 A formatter that generates Cobertura XML.
