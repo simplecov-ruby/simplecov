@@ -43,7 +43,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.1...ma
   * Does not look for .simplecov in ~/ when $HOME is not set.
     See [#311](https://github.com/colszowka/simplecov/pull/311) (thanks @lasseebert)
   * Exit with code only if it's Numeric > 0.
-    See [#302](https://github.com/colszowka/simplecov/pull/303)(thanks @hajder)
+    See [#302](https://github.com/colszowka/simplecov/pull/302) (thanks @hajder)
   * Make default filter case insensitive.
     See [#280](https://github.com/colszowka/simplecov/pull/280) (thanks @ryanatball)
   * Improve regexp that matches functional tests.
