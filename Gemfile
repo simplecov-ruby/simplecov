@@ -6,8 +6,6 @@ source 'https://rubygems.org'
 # Uncomment this to use development version of html formatter from github
 # gem 'simplecov-html', :github => 'colszowka/simplecov-html'
 
-gemspec
-
 gem 'rake', '>= 10.3'
 
 group :test do
@@ -31,3 +29,5 @@ platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
   gem 'poltergeist', '~> 1.1'
   gem 'test-unit', '~> 3.0'
 end
+
+gemspec
