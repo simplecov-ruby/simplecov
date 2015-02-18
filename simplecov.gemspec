@@ -15,7 +15,7 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = ">= 1.8.7"
   gem.add_dependency 'multi_json', '~> 1.0'
-  gem.add_dependency 'simplecov-html', '~> 0.8.0'
+  gem.add_dependency 'simplecov-html', '~> 0.9.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 
   gem.files         = `git ls-files`.split("\n")
