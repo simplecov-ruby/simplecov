@@ -1,9 +1,30 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.1...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...master))
 ====================
 
 ## Enhancements
 
 ## Bugfixes
+
+0.9.2, 2015-02-18 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.1...v0.9.2))
+====================
+
+This is a minor bugfix release for simplecov-html, released as `0.9.0`. Due to the tight version constraint in the gemspec
+a new release of simplecov had to be shipped to allow using simplecov-html `~> 0.9.0`.
+
+  * The browser back / forward button should now work again. See [#36](https://github.com/colszowka/simplecov-html/pull/36) and 
+    [#35](https://github.com/colszowka/simplecov-html/pull/35). Thanks @whatasunnyday and @justinsteele for submitting PRs to fix this.
+  * Fix "warning: possibly useless use of a variable in void context" See [#31](https://github.com/colszowka/simplecov-html/pull/31). Thanks @cbandy
+  * Always use binary file format. See [#32](https://github.com/colszowka/simplecov-html/pull/32). Thanks @andy128k
+  * Avoid slow file output with JRuby/Windows. See [#16](https://github.com/colszowka/simplecov-html/pull/16). Thanks @pschambacher
+
+Other than the release includes a bunch of mostly documentation improvements:
+
+  * Update Rails path for Rails 4+. See [#336](https://github.com/colszowka/simplecov/pull/336). Thanks @yazinsai
+  * Encourage use of .simplecov to avoid lost files. See [#338](https://github.com/colszowka/simplecov/pull/338). thanks @dankohn
+  * Specified in the gemspec that simplecov needs ruby 1.8.7. See [#343](https://github.com/colszowka/simplecov/pull/343). thanks @iainbeeston
+  * Fix mispointed link in CHANGELOG.md. See [#353](https://github.com/colszowka/simplecov/pull/353). Thanks @dleve123
+  * Improve command name docs. See [#356](https://github.com/colszowka/simplecov/pull/356). Thanks @gtd
+
 
 
 0.9.1, 2014-09-21 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.0...v0.9.1))
