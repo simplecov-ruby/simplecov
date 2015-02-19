@@ -569,6 +569,15 @@ SimpleCov.formatters = [
   * [Open Source formatter and integration plugins for SimpleCov](doc/formatters.md)
   * [Hosted (commercial) services](doc/commercial-services.md)
 
+## Editor integration
+
+Some editors have a graphical integration for the simplecov gem.
+
+#### [Atom Editor: coverage](https://atom.io/packages/coverage)
+*by Philip Giuliani*
+
+Adds an overview of your current test coverage to Atom.
+
 ## Ruby version compatibility
 
 [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
