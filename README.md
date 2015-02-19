@@ -569,6 +569,11 @@ SimpleCov.formatters = [
 Apart from the direct companion [simplecov-html], there are other formatters
 available:
 
+#### [codecov](https://github.com/codecov/codecov-ruby)
+*by [Codecov](https://codecov.io/)*
+
+Upload coverage reports to [codecov.io](https://codecov.io/), a hosted coverage reporting solution.
+
 #### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
 *by Fernando Guillen*
 
