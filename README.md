@@ -564,50 +564,10 @@ SimpleCov.formatters = [
 ]
 ```
 
-## Available formatters
+## Available formatters and hosted services
 
-Apart from the direct companion [simplecov-html], there are other formatters
-available:
-
-#### [codecov](https://github.com/codecov/codecov-ruby)
-*by [Codecov](https://codecov.io/)*
-
-Upload coverage reports to [codecov.io](https://codecov.io/), a hosted coverage reporting solution.
-
-#### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
-*by Fernando Guillen*
-
-"The target of this formatter is to cheat on Hudson so I can use the Ruby metrics plugin with SimpleCov."
-
-#### [simplecov-csv](https://github.com/fguillen/simplecov-csv)
-*by Fernando Guillen*
-
-CSV formatter for SimpleCov
-
-#### [cadre](https://github.com/nyarly/cadre)
-*by Judson Lester*
-
-Includes a formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
-
-#### [simplecov-single_file_reporter](https://github.com/grosser/simplecov-single_file_reporter)
-*by [Michael Grosser](http://grosser.it)*
-
-A formatter that prints the coverage of the file under test when you run a single test file.
-
-#### [simplecov-json](https://github.com/vicentllongo/simplecov-json)
-*by Vicent Llongo*
-
-JSON formatter for SimpleCov
-
-#### [simplecov-badge](https://github.com/matthew342/simplecov-badge)
-*by Matt Hale*
-
-A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
-
-#### [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
-*by Jesse Bowes*
-
-A formatter that generates Cobertura XML.
+  * [Open Source formatter and integration plugins for SimpleCov](doc/formatters.md)
+  * [Hosted (commercial) services](doc/commercial-services.md)
 
 ## Ruby version compatibility
 
