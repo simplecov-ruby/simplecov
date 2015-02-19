@@ -3,7 +3,10 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...ma
 
 ## Enhancements
 
+ * Add writeup about using with Spring to README. See [#341](https://github.com/colszowka/simplecov/issues/341) (thanks (@swrobel)
+
 ## Bugfixes
+
 
 0.9.2, 2015-02-18 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.1...v0.9.2))
 ====================
