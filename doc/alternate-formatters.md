@@ -5,11 +5,6 @@ The community around simplecov provides a whole bunch of alternate formatters be
 
 If you have built or found one that is missing here, please send a Pull Request for this document!
 
-#### [cadre](https://github.com/nyarly/cadre)
-*by Judson Lester*
-
-Includes a formatter for Simplecov that emits a Vim script to mark up code files with coverage information.
-
 #### [simplecov-badge](https://github.com/matthew342/simplecov-badge)
 *by Matt Hale*
 
