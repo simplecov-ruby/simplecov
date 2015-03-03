@@ -97,7 +97,7 @@ class TestResult < Minitest::Test
     context "with groups set up for all files" do
       setup do
         SimpleCov.add_group 'Models', 'app/models'
-        SimpleCov.add_group 'Controllers', 'app/controllers'
+        SimpleCov.add_group 'Controllers', ['app/controllers']
         SimpleCov.add_group 'Other' do |src_file|
           File.basename(src_file.filename) == 'sample.rb'
         end

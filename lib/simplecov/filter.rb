@@ -41,4 +41,14 @@ module SimpleCov
       filter_argument.call(source_file)
     end
   end
+
+  class ArrayFilter < SimpleCov::Filter
+    # Returns true if any of the file paths passed in the given array matches the string
+    # configured when initializing this Filter with StringFilter.new(['some/path', 'other/path'])
+    def matches?(source_files_list)
+      filter_argument.any? do |arg|
+        source_files_list.filename =~ /#{arg}/
+      end
+    end
+  end
 end
