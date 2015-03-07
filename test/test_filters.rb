@@ -37,8 +37,12 @@ class TestFilters < Minitest::Test
 
   context "with no filters set up and a basic source file in an array" do
     setup do
-      SimpleCov.filters = []
+      @prev_filters, SimpleCov.filters = SimpleCov.filters, []
       @files = [SimpleCov::SourceFile.new(source_fixture('sample.rb'), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])]
+    end
+
+    teardown do
+      SimpleCov.filters = @prev_filters
     end
 
     should "return 0 items after executing SimpleCov.filtered on files when using a 'sample' string filter" do
