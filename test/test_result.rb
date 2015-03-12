@@ -3,12 +3,19 @@ require 'helper'
 class TestResult < Minitest::Test
   context "With a (mocked) Coverage.result" do
     setup do
-      SimpleCov.filters = []
-      SimpleCov.groups = {}
-      SimpleCov.formatter = nil
+      @prev_filters,   SimpleCov.filters   = SimpleCov.filters,   []
+      @prev_groups,    SimpleCov.groups    = SimpleCov.groups,    {}
+      @prev_formatter, SimpleCov.formatter = SimpleCov.formatter, nil
+
       @original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
           source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
           source_fixture('app/controllers/sample_controller.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
+    end
+
+    teardown do
+      SimpleCov.filters   = @prev_filters
+      SimpleCov.groups    = @prev_groups
+      SimpleCov.formatter = @prev_formatter
     end
 
     context "a simple cov result initialized from that" do
