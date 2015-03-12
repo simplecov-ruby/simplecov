@@ -41,6 +41,9 @@ SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(" ")}"
 
 at_exit do
 
+  # If we are in a different process than called start, don't interfere.
+  next if SimpleCov.pid != Process.pid
+
   if $! # was an exception thrown?
     # if it was a SystemExit, use the accompanying status
     # otherwise set a non-zero status representing termination by some other exception

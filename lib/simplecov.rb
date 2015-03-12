@@ -4,6 +4,7 @@
 module SimpleCov
   class << self
     attr_accessor :running
+    attr_accessor :pid
 
     #
     # Sets up SimpleCov to run against your project.
@@ -28,6 +29,7 @@ module SimpleCov
         configure(&block) if block_given?
         @result = nil
         self.running = true
+        self.pid = Process.pid
         Coverage.start
       else
         warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
