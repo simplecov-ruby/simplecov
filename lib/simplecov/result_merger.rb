@@ -18,7 +18,7 @@ module SimpleCov::ResultMerger
     def resultset
       if stored_data
         begin
-          SimpleCov::JSON.parse(stored_data)
+          SimpleCov::JSON.parse(stored_data) || {}
         rescue
           {}
         end
