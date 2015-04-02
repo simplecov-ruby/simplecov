@@ -604,6 +604,8 @@ if ENV['RAILS_ENV'] == 'test'
 end
 ```
 
+(3) Run `spring rspec <path>` as normal. Remember to run `spring stop` after making important changes to your app or its specs!
+
 ## Contributing
 
 See the [contributing guide](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md).
