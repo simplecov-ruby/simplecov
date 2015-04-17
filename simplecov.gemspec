@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
 
   gem.required_ruby_version = ">= 1.8.7"
-  gem.add_dependency 'multi_json', '~> 1.0'
+  gem.add_dependency 'json', '~> 1.8'
   gem.add_dependency 'simplecov-html', '~> 0.9.0'
   gem.add_dependency 'docile', '~> 1.1.0'
 

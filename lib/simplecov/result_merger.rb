@@ -1,3 +1,5 @@
+require 'json'
+
 #
 # Singleton that is responsible for caching, loading and merging
 # SimpleCov::Results into a single result for coverage analysis based
@@ -18,7 +20,7 @@ module SimpleCov::ResultMerger
     def resultset
       if stored_data
         begin
-          SimpleCov::JSON.parse(stored_data)
+          JSON.parse(stored_data)
         rescue
           {}
         end
@@ -76,7 +78,7 @@ module SimpleCov::ResultMerger
         command_name, data = result.to_hash.first
         new_set[command_name] = data
         File.open(resultset_path, "w+") do |f_|
-          f_.puts SimpleCov::JSON.dump(new_set)
+          f_.puts JSON.pretty_generate(new_set)
         end
       end
       true
