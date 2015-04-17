@@ -14,7 +14,7 @@ module SimpleCov::ResultMerger
       File.join(SimpleCov.coverage_path, '.resultset.json.lock')
     end
 
-    # Loads the cached resultset from YAML and returns it as a Hash
+    # Loads the cached resultset from JSON and returns it as a Hash
     def resultset
       if stored_data
         begin

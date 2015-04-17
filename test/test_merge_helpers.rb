@@ -72,7 +72,7 @@ class TestMergeHelpers < Minitest::Test
           assert SimpleCov::ResultMerger.store_result(@result2)
         end
 
-        should "have stored data in resultset_path yaml file" do
+        should "have stored data in resultset_path JSON file" do
           assert File.readlines(SimpleCov::ResultMerger.resultset_path).length > 50
         end
 

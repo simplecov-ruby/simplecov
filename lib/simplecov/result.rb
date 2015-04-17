@@ -57,7 +57,7 @@ module SimpleCov
       @command_name ||= SimpleCov.command_name
     end
 
-    # Returns a hash representation of this Result that can be used for marshalling it into YAML
+    # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
       {command_name => {"coverage" => original_result.reject {|filename, result| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
     end

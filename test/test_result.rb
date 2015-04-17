@@ -54,7 +54,7 @@ class TestResult < Minitest::Test
         setup { @hash = @result.to_hash }
         should("be a hash") { assert_equal Hash, @hash.class }
 
-        context "loaded back with from_yaml" do
+        context "loaded back with from_hash" do
           setup { @dumped_result = SimpleCov::Result.from_hash(@hash) }
 
           should "have 3 source files" do
