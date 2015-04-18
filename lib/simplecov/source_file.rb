@@ -34,7 +34,7 @@ module SimpleCov
 
       # Returns true if this is a line that should have been covered, but was not
       def missed?
-        not never? and not skipped? and coverage == 0
+        not never? and not skipped? and coverage.zero?
       end
 
       # Returns true if this is a line that has been covered
@@ -108,9 +108,9 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
-      return 100.0 if lines.length == 0 or lines.length == never_lines.count
+      return 100.0 if lines.length.zero? or lines.length == never_lines.count
       relevant_lines = lines.count - never_lines.count - skipped_lines.count
-      if relevant_lines == 0
+      if relevant_lines.zero?
         0.0
       else
         Float((covered_lines.count) * 100.0 / relevant_lines.to_f)
@@ -118,7 +118,7 @@ module SimpleCov
     end
 
     def covered_strength
-      return 0.0 if lines.length == 0 or lines.length == never_lines.count
+      return 0.0 if lines.length.zero? or lines.length == never_lines.count
 
       lines_strength = 0
       lines.each do |c|
@@ -127,7 +127,7 @@ module SimpleCov
 
       effective_lines_count = Float(lines.count - never_lines.count - skipped_lines.count)
 
-      if effective_lines_count == 0
+      if effective_lines_count.zero?
         0.0
       else
         strength = lines_strength / effective_lines_count
