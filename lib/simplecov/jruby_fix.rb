@@ -11,7 +11,7 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
   # This monkey patches Coverage to address those issues
   module Coverage
     class << self
-      alias __broken_result__ result
+      alias_method :__broken_result__, :result
 
       def result
         fixed = {}
