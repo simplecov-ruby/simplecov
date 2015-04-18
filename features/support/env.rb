@@ -15,9 +15,11 @@ require "phantomjs/poltergeist"
 Capybara.app = lambda { |env|
   request_path = env["REQUEST_PATH"] || "/"
   request_path = "/index.html" if request_path == "/"
-
-  [200, {"Content-Type" => "text/html"},
-    [File.read(File.join(File.dirname(__FILE__), "../../tmp/aruba/project/coverage", request_path))]]
+  [
+    200,
+    {"Content-Type" => "text/html"},
+    [File.read(File.join(File.dirname(__FILE__), "../../tmp/aruba/project/coverage", request_path))],
+  ]
 }
 
 Capybara.default_driver = Capybara.javascript_driver = :poltergeist
