@@ -28,18 +28,16 @@ module SimpleCov
 
       def from_command_line_options
         case original_run_command
-          when /test\/functional\//, /test\/\{.*functional.*\}\//
-            "Functional Tests"
-          when /test\/integration\//
-            "Integration Tests"
-          when /test\//
-            "Unit Tests"
-          when /spec/
-            "RSpec"
-          when /cucumber/, /features/
-            "Cucumber Features"
-          else
-            nil
+        when /test\/functional\//, /test\/\{.*functional.*\}\//
+          "Functional Tests"
+        when /test\/integration\//
+          "Integration Tests"
+        when /test\//
+          "Unit Tests"
+        when /spec/
+          "RSpec"
+        when /cucumber/, /features/
+          "Cucumber Features"
         end
       end
 

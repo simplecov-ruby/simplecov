@@ -34,8 +34,6 @@ module SimpleCov
       def stored_data
         if File.exist?(resultset_path) && stored_data = File.read(resultset_path) and stored_data.length >= 2
           stored_data
-        else
-          nil
         end
       end
 
