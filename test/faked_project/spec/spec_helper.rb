@@ -9,7 +9,3 @@ rescue LoadError
 end
 
 require "faked_project"
-
-RSpec.configure do |config|
-  # some (optional) config here
-end

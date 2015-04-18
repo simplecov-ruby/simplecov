@@ -16,7 +16,7 @@ module SimpleCov
       @filter_argument = filter_argument
     end
 
-    def matches?(source_file)
+    def matches?(_)
       raise "The base filter class is not intended for direct use"
     end
 

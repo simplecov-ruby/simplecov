@@ -31,7 +31,7 @@ module SimpleCov
         new_resultset[filename] = []
       end
 
-      new_resultset.each do |filename, data|
+      new_resultset.each_key do |filename|
         new_resultset[filename] = (self[filename] || []).merge_resultset(hash[filename] || [])
       end
       new_resultset

@@ -166,7 +166,7 @@ class TestResult < Minitest::Test
       end
 
       should "return all groups as instances of SimpleCov::FileList" do
-        @result.groups.each do |name, files|
+        @result.groups.each_value do |files|
           assert_equal SimpleCov::FileList, files.class
         end
       end

@@ -73,14 +73,14 @@ class TestFilters < Minitest::Test
     end
 
     should "return 0 items after executing SimpleCov.filtered on files when using a block filter that returns true" do
-      SimpleCov.add_filter do |src_file|
+      SimpleCov.add_filter do
         true
       end
       assert_equal 0, SimpleCov.filtered(@files).count
     end
 
     should "return 1 item after executing SimpleCov.filtered on files when using an always-false block filter" do
-      SimpleCov.add_filter do |src_file|
+      SimpleCov.add_filter do
         false
       end
       assert_equal 1, SimpleCov.filtered(@files).count
