@@ -4,7 +4,7 @@ module SimpleCov
     def merge_resultset(array)
       new_array = []
 
-      self.each_with_index do |element, i|
+      each_with_index do |element, i|
         new_array[i] = element
       end
 
@@ -27,7 +27,7 @@ module SimpleCov
     # Merges the given Coverage.result hash with self
     def merge_resultset(hash)
       new_resultset = {}
-      (self.keys + hash.keys).each do |filename|
+      (keys + hash.keys).each do |filename|
         new_resultset[filename] = []
       end
 
