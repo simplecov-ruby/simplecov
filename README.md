@@ -43,7 +43,7 @@ automatically when you launch SimpleCov. If you're curious, you can find it [on 
 *Code and Bug Reports*
 
 * [Issue Tracker](https://github.com/colszowka/simplecov/issues)
-    * See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along with some common problems to check out before creating an issue.
+* See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along with some common problems to check out before creating an issue.
 
 *Questions, Problems, Suggestions, etc.*
 
@@ -51,54 +51,58 @@ automatically when you launch SimpleCov. If you're curious, you can find it [on 
 
 Getting started
 ---------------
-
 1. Add SimpleCov to your `Gemfile` and `bundle install`:
 
-```ruby
-gem 'simplecov', :require => false, :group => :test
-```
+    ```ruby
+    gem 'simplecov', :require => false, :group => :test
+    ```
+2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb`
+   (*or `spec_helper.rb`, cucumber `env.rb`, or whatever your preferred test
+   framework uses*):
 
-2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb` (*or `spec_helper.rb`, cucumber `env.rb`, or whatever
-   your preferred test framework uses*):
+    ```ruby
+    require 'simplecov'
+    SimpleCov.start
 
-```ruby
-require 'simplecov'
-SimpleCov.start
+    # Previous content of test helper now starts here
+    ```
 
-# Previous content of test helper now starts here
-```
+    **Note:** If SimpleCov starts after your application code is already loaded
+    (via `require`), it won't be able to track your files and their coverage!
+    The `SimpleCov.start` **must** be issued **before any of your application
+    code is required!**
 
-**Note:** If SimpleCov starts after your application code is already loaded (via `require`), it won't be able to
-track your files and their coverage! The `SimpleCov.start` **must** be issued **before any of your application code
-is required!**
+    SimpleCov must be running in the process that you want the code coverage
+    analysis to happen on. When testing a server process (i.e. a JSON API
+    endpoint) via a separate test process (i.e. when using Selenium) where you
+    want to see all code executed by the `rails server`, and not just code
+    executed in your actual test files, you'll want to add something like this
+    to the top of `script/rails` (or `bin/rails` for Rails 4):
 
-SimpleCov must be running in the process that you want the code coverage analysis to happen on. When testing a server
-process (i.e. a JSON API endpoint) via a separate test process (i.e. when using Selenium) where you want to see all
-code executed by the `rails server`, and not just code executed in your actual test files, you'll want to add something
-like this to the top of `script/rails` (or `bin/rails` for Rails 4.*):
+    ```ruby
+    if ENV['RAILS_ENV'] == 'test'
+      require 'simplecov'
+      SimpleCov.start 'rails'
+      puts "required simplecov"
+    end
+    ```
+3. Run your tests, open up `coverage/index.html` in your browser and check out
+   what you've missed so far.
+4. Add the following to your `.gitignore` file to ensure that coverage results
+   are not tracked by Git (optional):
 
-```ruby
-if ENV['RAILS_ENV'] == 'test'
-  require 'simplecov'
-  SimpleCov.start 'rails'
-  puts "required simplecov"
-end
-```
-
-3. Run your tests, open up `coverage/index.html` in your browser and check out what you've missed so far.
-
-4. Add the following to your `.gitignore` file to ensure that coverage results are not tracked by Git (optional):
-
+    ```
     coverage
+    ```
 
-If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
-that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
-your test_helper should be like this:
+    If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
+    that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the first two lines of
+    your test_helper should be like this:
 
-```ruby
-require 'simplecov'
-SimpleCov.start 'rails'
-```
+    ```ruby
+    require 'simplecov'
+    SimpleCov.start 'rails'
+    ```
 
 ## Example output
 
@@ -110,8 +114,6 @@ SimpleCov.start 'rails'
 **Source file coverage details view:**
 
 ![SimpleCov source file detail view](http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png)
-
-
 
 ## Use it with any framework!
 
@@ -135,71 +137,88 @@ For some frameworks and testing tools there are quirks and problems you might wa
 to use SimpleCov with them. Here's an overview of the known ones:
 
 <table>
-<tr><th>Framework</th><th>Notes</th><th>Issue #</th></tr>
-<tr>
- <td>
-   <b>Test/Unit 2</b>
- </td>
- <td>
-  Test Unit 2 used to mess with ARGV, leading to a failure to detect the test process name in SimpleCov.
-  <code>test-unit</code> releases 2.4.3+ (Dec 11th, 2011) should have this problem resolved.
- </td>
- <td>
-  <a href="https://github.com/colszowka/simplecov/issues/45">SimpleCov #45</a> &
-  <a href="https://github.com/test-unit/test-unit/pull/12">Test/Unit #12</a>
- </td>
-</tr>
-<tr>
- <td>
-   <b>Spork</b>
- </td>
- <td>
-  Because of how Spork works internally (using preforking), there used to be trouble when using SimpleCov
-  with it, but that has apparently been resolved with a specific configuration strategy. See
-  <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a> comment.
- </td>
- <td>
-  <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">SimpleCov #42</a>
- </td>
-</tr>
-<tr>
- <td>
-   <b>parallel_tests</b>
- </td>
- <td>
-  As of 0.8.0, SimpleCov should correctly recognize parallel_tests and supplement your test suite names
-  with their corresponding test env numbers. Locking of the resultset cache should ensure no race conditions
-  occur when results are merged.
- </td>
- <td>
-  <a href="https://github.com/colszowka/simplecov/issues/64">SimpleCov #64</a>
-  <a href="https://github.com/colszowka/simplecov/pull/185">SimpleCov #185</a>
- </td>
-</tr>
-<tr>
- <td>
-   <b>Riot</b>
- </td>
- <td>
-  A user has reported problems with the coverage report using the riot framework. If you experience
-  similar trouble please follow up on the related GitHub issue.
- </td>
- <td>
-  <a href="https://github.com/colszowka/simplecov/issues/80">SimpleCov #80</a>
- </td>
-</tr>
-<tr>
- <td>
-   <b>RubyMine</b>
- </td>
- <td>
-  The <a href="https://www.jetbrains.com/ruby/">RubyMine IDE</a> has built-in support for SimpleCov's coverage reports,
-  though you might need to explicitly set the output root using `SimpleCov.root('foo/bar/baz')`
- </td>
- <td>
-  <a href="https://github.com/colszowka/simplecov/issues/95">SimpleCov #95</a>
- </td>
-</tr>
+  <tr><th>Framework</th><th>Notes</th><th>Issue</th></tr>
+  <tr>
+    <th>
+      parallel_tests
+    </th>
+    <td>
+      As of 0.8.0, SimpleCov should correctly recognize parallel_tests and
+      supplement your test suite names with their corresponding test env
+      numbers. Locking of the resultset cache should ensure no race conditions
+      occur when results are merged.
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/64">#64</a> &amp;
+      <a href="https://github.com/colszowka/simplecov/pull/185">#185</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Riot
+    </th>
+    <td>
+      A user has reported problems with the coverage report using the riot
+      framework. If you experience similar trouble please follow up on the
+      related GitHub issue.
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/80">#80</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
+      RubyMine
+    </th>
+    <td>
+      The <a href="https://www.jetbrains.com/ruby/">RubyMine IDE</a> has
+      built-in support for SimpleCov's coverage reports, though you might need
+      to explicitly set the output root using `SimpleCov.root('foo/bar/baz')`
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/95">#95</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Spork
+    </th>
+    <td>
+      Because of how Spork works internally (using preforking), there used to
+      be trouble when using SimpleCov with it, but that has apparently been
+      resolved with a specific configuration strategy. See <a
+      href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a>
+      comment.
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">#42</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Spring
+    </th>
+    <td>
+      <a href="#want-to-use-spring-with-simplecov">See section below.</a>
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/381">#381</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
+      Test/Unit
+    </th>
+    <td>
+      Test Unit 2 used to mess with ARGV, leading to a failure to detect the
+      test process name in SimpleCov. <code>test-unit</code> releases 2.4.3+
+      (Dec 11th, 2011) should have this problem resolved.
+    </td>
+    <td>
+      <a href="https://github.com/colszowka/simplecov/issues/45">#45</a> &amp;
+      <a href="https://github.com/test-unit/test-unit/pull/12">test-unit/test-unit#12</a>
+    </td>
+  </tr>
 </table>
 
 ## Configuring SimpleCov
@@ -208,28 +227,25 @@ to use SimpleCov with them. Here's an overview of the known ones:
 
 * The most common way is to configure it directly in your start block:
 
-```ruby
-SimpleCov.start do
-  some_config_option 'foo'
-end
-```
-
+    ```ruby
+    SimpleCov.start do
+      some_config_option 'foo'
+    end
+    ```
 * You can also set all configuration options directly:
 
-```ruby
-SimpleCov.some_config_option 'foo'
-```
-
+    ```ruby
+    SimpleCov.some_config_option 'foo'
+    ```
 * If you do not want to start coverage immediately after launch or want to add additional configuration later on in a concise way, use:
 
-```ruby
-SimpleCov.configure do
-  some_config_option 'foo'
-end
-```
+    ```ruby
+    SimpleCov.configure do
+      some_config_option 'foo'
+    end
+    ```
 
 Please check out the [Configuration] API documentation to find out what you can customize.
-
 
 ## Using .simplecov for centralized config
 
@@ -425,7 +441,6 @@ just `merge_timeout 3600`.
 
 You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
-
 ## Running coverage only on demand
 
 The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
@@ -445,7 +460,6 @@ Then, SimpleCov will only run if you execute your tests like this:
 ```shell
 COVERAGE=true rake test
 ```
-
 
 ## Profiles
 
@@ -474,7 +488,7 @@ As you can see, it's just a SimpleCov.configure block. In your test_helper.rb, l
 SimpleCov.start 'rails'
 ```
 
-**OR**
+or
 
 ```ruby
 SimpleCov.start 'rails' do
@@ -503,7 +517,6 @@ SimpleCov.start 'myprofile'
 require 'simplecov_custom_profile'
 SimpleCov.start 'myprofile'
 ```
-
 
 ## Customizing exit behaviour
 
@@ -572,39 +585,43 @@ SimpleCov.formatters = [
 
 ## Ruby version compatibility
 
-[![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)](http://travis-ci.org/colszowka/simplecov)
-
-Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon. SimpleCov is built against various other Rubies,
-including Rubinius and JRuby, in [Continuous Integration], but this happens only to ensure that SimpleCov does not make your
-test suite crash right now. Whether SimpleCov will support JRuby/Rubinius in the future depends solely on whether those Ruby
-interpreters add the coverage library.
+Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon.
+SimpleCov is built against various other Rubies, including Rubinius and JRuby,
+in [Continuous Integration], but this happens only to ensure that SimpleCov
+does not make your test suite crash right now. Whether SimpleCov will support
+JRuby/Rubinius in the future depends solely on whether those Ruby interpreters
+add the coverage library.
 
 SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, and 2.2.
 
 ## Want to find dead code in production?
 
-Try [coverband](https://github.com/danmayer/coverband).
+Try [Coverband](https://github.com/danmayer/coverband).
 
 ## Want to use Spring with SimpleCov?
 
 If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
 
-(1) Change the following settings in `development.rb` and `test.rb`.
-```ruby
-# Disable Rails's static asset server (Apache or nginx will already do this)
-config.serve_static_files = false
-config.eager_load = false
-```
+1. Change the following settings in `development.rb` and `test.rb`.
 
-(2) Add your SimpleCov config, as you normally would, to your `spec_helper.rb` (or `rails_helper.rb` for RSpec 3). If you have a `config/spring.rb` file (or anything similar), add it to the start of such file. Here's a simple version of what the config should look like:
-```ruby
-if ENV['RAILS_ENV'] == 'test'
-  require 'simplecov'
-  SimpleCov.start
-end
-```
+    ```ruby
+    # Disable Rails's static asset server (Apache or nginx will already do this)
+    config.serve_static_files = false
+    config.eager_load = false
+    ```
+2. Add your SimpleCov config, as you normally would, to your `spec_helper.rb`
+   (or `rails_helper.rb` for RSpec 3). If you have a `config/spring.rb` file
+   (or anything similar), add it to the start of such file. Here's a simple
+   version of what the config should look like:
 
-(3) Run `spring rspec <path>` as normal. Remember to run `spring stop` after making important changes to your app or its specs!
+    ```ruby
+    if ENV['RAILS_ENV'] == 'test'
+      require 'simplecov'
+      SimpleCov.start
+    end
+    ```
+3. Run `spring rspec <path>` as normal. Remember to run `spring stop` after
+   making important changes to your app or its specs!
 
 ## Contributing
 
