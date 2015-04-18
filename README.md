@@ -616,4 +616,4 @@ Thanks to Aaron Patterson for the original idea for this!
 
 ## Copyright
 
-Copyright (c) 2010-2013 Christoph Olszowka. See MIT-LICENSE for details.
+Copyright (c) 2010-2015 Christoph Olszowka. See MIT-LICENSE for details.
