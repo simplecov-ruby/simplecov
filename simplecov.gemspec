@@ -1,4 +1,3 @@
-# encoding: utf-8
 $LOAD_PATH.push File.expand_path("../lib", __FILE__)
 require "simplecov/version"
 
@@ -14,9 +13,12 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
 
   gem.required_ruby_version = ">= 1.8.7"
+
   gem.add_dependency "json", "~> 1.8"
   gem.add_dependency "simplecov-html", "~> 0.9.0"
   gem.add_dependency "docile", "~> 1.1.0"
+
+  gem.add_development_dependency "bundler", "~> 1.9"
 
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
