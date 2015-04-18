@@ -41,7 +41,7 @@ SimpleCov.configure do
 end
 
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
-SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(" ")}"
+SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(' ')}"
 
 at_exit do
   # If we are in a different process than called start, don't interfere.
@@ -85,7 +85,7 @@ end
 
 # Autoload config from ~/.simplecov if present
 require "etc"
-home_dir = File.expand_path("~") || Etc.getpwuid.dir || (ENV["USER"] && File.expand_path("~#{ENV["USER"]}"))
+home_dir = File.expand_path("~") || Etc.getpwuid.dir || (ENV["USER"] && File.expand_path("~#{ENV['USER']}"))
 if home_dir
   global_config_path = File.join(home_dir, ".simplecov")
   load global_config_path if File.exist?(global_config_path)

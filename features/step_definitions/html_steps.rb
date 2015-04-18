@@ -17,7 +17,7 @@ Then /^I should see the groups:$/ do |table|
   # Verify each of the expected groups has a file list container and corresponding title and coverage number
   # as well as the correct number of links to files.
   expected_groups.each do |group|
-    with_scope "#content ##{group["name"].gsub(/[^a-z]/i, '')}.file_list_container" do
+    with_scope "#content ##{group['name'].gsub(/[^a-z]/i, '')}.file_list_container" do
       file_count_in_group = page.all("a.src_link").count
       expect(file_count_in_group).to eq(group["files"].to_i)
 
