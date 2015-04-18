@@ -41,17 +41,17 @@ SimpleCov.configure do
 end
 
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
-SimpleCov::CommandGuesser.original_run_command = "#{$0} #{ARGV.join(' ')}"
+SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
 at_exit do
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
 
-  if $! # was an exception thrown?
+  if $ERROR_INFO # was an exception thrown?
     # if it was a SystemExit, use the accompanying status
     # otherwise set a non-zero status representing termination by some other exception
     # (see github issue 41)
-    @exit_status = $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
+    @exit_status = $ERROR_INFO.is_a?(SystemExit) ? $ERROR_INFO.status : SimpleCov::ExitCodes::EXCEPTION
   else
     # Store the exit status of the test run since it goes away after calling the at_exit proc...
     @exit_status = SimpleCov::ExitCodes::SUCCESS
