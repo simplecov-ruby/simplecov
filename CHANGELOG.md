@@ -4,6 +4,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...ma
 ## Enhancements
 
  * Add writeup about using with Spring to README. See [#341](https://github.com/colszowka/simplecov/issues/341) (thanks (@swrobel)
+ * Add support to pass in an Array when creating filter groups (original PR #104)
 
 ## Bugfixes
 
@@ -14,7 +15,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...ma
 This is a minor bugfix release for simplecov-html, released as `0.9.0`. Due to the tight version constraint in the gemspec
 a new release of simplecov had to be shipped to allow using simplecov-html `~> 0.9.0`.
 
-  * The browser back / forward button should now work again. See [#36](https://github.com/colszowka/simplecov-html/pull/36) and 
+  * The browser back / forward button should now work again. See [#36](https://github.com/colszowka/simplecov-html/pull/36) and
     [#35](https://github.com/colszowka/simplecov-html/pull/35). Thanks @whatasunnyday and @justinsteele for submitting PRs to fix this.
   * Fix "warning: possibly useless use of a variable in void context" See [#31](https://github.com/colszowka/simplecov-html/pull/31). Thanks @cbandy
   * Always use binary file format. See [#32](https://github.com/colszowka/simplecov-html/pull/32). Thanks @andy128k

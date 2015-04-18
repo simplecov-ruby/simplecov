@@ -373,6 +373,7 @@ SimpleCov.start do
   add_group "Long files" do |src_file|
     src_file.lines.count > 100
   end
+  add_group "Multiple Files", ["app/models", "app/controllers"] # You can also pass in an array
   add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
 end
 ```

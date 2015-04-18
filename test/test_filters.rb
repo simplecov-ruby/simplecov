@@ -33,6 +33,18 @@ class TestFilters < Minitest::Test
     should "match a new SimpleCov::BlockFilter that is applicable" do
       assert SimpleCov::BlockFilter.new(Proc.new {|s| File.basename(s.filename) == 'sample.rb'}).matches?(@source_file)
     end
+
+    should "match a new SimpleCov::ArrayFilter when 'sample.rb' is passed as array" do
+      assert SimpleCov::ArrayFilter.new(['sample.rb']).matches?(@source_file)
+    end
+
+    should "not match a new SimpleCov::ArrayFilter when a file path different than 'sample.rb' is passed as array" do
+      assert !SimpleCov::ArrayFilter.new(['other_file.rb']).matches?(@source_file)
+    end
+
+    should "match a new SimpleCov::ArrayFilter when two file paths including 'sample.rb' are passed as array" do
+      assert SimpleCov::ArrayFilter.new(['sample.rb', 'other_file.rb']).matches?(@source_file)
+    end
   end
 
   context "with no filters set up and a basic source file in an array" do

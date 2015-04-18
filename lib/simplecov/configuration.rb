@@ -261,6 +261,8 @@ module SimpleCov::Configuration
       SimpleCov::StringFilter.new(filter_argument)
     elsif filter_proc
       SimpleCov::BlockFilter.new(filter_proc)
+    elsif filter_argument.kind_of?(Array)
+      SimpleCov::ArrayFilter.new(filter_argument)
     else
       raise ArgumentError, "Please specify either a string or a block to filter with"
     end
