@@ -15,12 +15,15 @@ SimpleCov.profiles.define 'test_frameworks' do
   add_filter '/autotest/'
 end
 
+SimpleCov.profiles.define 'bundler_filter' do
+  add_filter '/vendor/bundle/'
+end
+
 SimpleCov.profiles.define 'rails' do
   load_profile 'test_frameworks'
 
   add_filter '/config/'
   add_filter '/db/'
-  add_filter '/vendor/bundle/'
 
   add_group 'Controllers', 'app/controllers'
   add_group 'Models', 'app/models'
@@ -32,6 +35,7 @@ end
 # Default configuration
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
+  load_profile 'bundler_filter'
   # Exclude files outside of SimpleCov.root
   load_profile 'root_filter'
 end
