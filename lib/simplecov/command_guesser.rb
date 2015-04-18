@@ -19,11 +19,10 @@ module SimpleCov
 
       def from_env
         # If being run from inside parallel_tests set the command name according to the process number
-        if ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
-          number = ENV["TEST_ENV_NUMBER"]
-          number = "1" if number == ""
-          "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
-        end
+        return unless ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
+        number = ENV["TEST_ENV_NUMBER"]
+        number = "1" if number.empty?
+        "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
       end
 
       def from_command_line_options
