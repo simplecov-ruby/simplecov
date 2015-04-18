@@ -128,7 +128,7 @@ class TestResult < Minitest::Test # rubocop:disable Metrics/ClassLength
 
       context "and multi formatter being used" do
         setup do
-          SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+          SimpleCov.formatters = [
             SimpleCov::Formatter::SimpleFormatter,
             SimpleCov::Formatter::SimpleFormatter,
           ]

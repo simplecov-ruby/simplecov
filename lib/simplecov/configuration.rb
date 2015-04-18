@@ -80,7 +80,7 @@ module SimpleCov
     # Sets the configured formatters.
     #
     def formatters=(formatters)
-      @formatter = SimpleCov::Formatter::MultiFormatter[*formatters]
+      @formatter = SimpleCov::Formatter::MultiFormatter.new(formatters)
     end
 
     #
