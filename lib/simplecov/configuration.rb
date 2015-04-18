@@ -165,7 +165,7 @@ module SimpleCov
     #
     def project_name(new_name = nil)
       return @project_name if defined? @project_name and @project_name and new_name.nil?
-      @project_name = new_name if new_name.kind_of?(String)
+      @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root.split("/").last).capitalize.gsub("_", " ")
     end
 
@@ -191,7 +191,7 @@ module SimpleCov
     # Configure with SimpleCov.merge_timeout(3600) # 1hr
     #
     def merge_timeout(seconds = nil)
-      @merge_timeout = seconds if seconds.kind_of?(Fixnum)
+      @merge_timeout = seconds if seconds.is_a?(Fixnum)
       @merge_timeout ||= 600
     end
 
@@ -256,13 +256,13 @@ module SimpleCov
     # The actal filter processor. Not meant for direct use
     #
     def parse_filter(filter_argument = nil, &filter_proc)
-      if filter_argument.kind_of?(SimpleCov::Filter)
+      if filter_argument.is_a?(SimpleCov::Filter)
         filter_argument
-      elsif filter_argument.kind_of?(String)
+      elsif filter_argument.is_a?(String)
         SimpleCov::StringFilter.new(filter_argument)
       elsif filter_proc
         SimpleCov::BlockFilter.new(filter_proc)
-      elsif filter_argument.kind_of?(Array)
+      elsif filter_argument.is_a?(Array)
         SimpleCov::ArrayFilter.new(filter_argument)
       else
         raise ArgumentError, "Please specify either a string or a block to filter with"
