@@ -9,8 +9,4 @@ rescue LoadError => err
 end
 
 require "faked_project"
-
 require "test/unit"
-
-class Test::Unit::TestCase
-end
