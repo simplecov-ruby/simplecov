@@ -81,7 +81,7 @@ class TestMergeHelpers < Minitest::Test
         end
 
         should "return a hash containing keys ['result1' and 'result2'] for resultset" do
-          assert_equal ["result1", "result2"], SimpleCov::ResultMerger.resultset.keys.sort
+          assert_equal %w(result1 result2), SimpleCov::ResultMerger.resultset.keys.sort
         end
 
         should "return proper values for merged_result" do

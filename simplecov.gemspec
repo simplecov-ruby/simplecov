@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.authors     = ["Christoph Olszowka"]
   gem.email       = ["christoph at olszowka de"]
   gem.homepage    = "http://github.com/colszowka/simplecov"
-  gem.description = %Q{Code coverage for Ruby 1.9+ with a powerful configuration library and automatic merging of coverage across test suites}
+  gem.description = %(Code coverage for Ruby 1.9+ with a powerful configuration library and automatic merging of coverage across test suites)
   gem.summary     = gem.description
   gem.license     = "MIT"
 
