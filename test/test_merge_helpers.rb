@@ -107,7 +107,6 @@ class TestMergeHelpers < Minitest::Test
           end
         end
       end
-
     end
   end
 end if SimpleCov.usable?

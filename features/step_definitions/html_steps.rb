@@ -9,7 +9,6 @@ module GroupHelpers
 end
 World(GroupHelpers)
 
-
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
   # Given group names should be the same number than those rendered in report
