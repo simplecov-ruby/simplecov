@@ -33,7 +33,7 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def start(profile=nil, &block)
+    def start(profile = nil, &block)
       if SimpleCov.usable?
         load_profile(profile) if profile
         configure(&block) if block_given?

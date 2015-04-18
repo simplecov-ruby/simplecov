@@ -15,7 +15,7 @@ module SimpleCov::Configuration
   #
   # Configure with SimpleCov.root('/my/project/path')
   #
-  def root(root=nil)
+  def root(root = nil)
     return @root if defined? @root and root.nil?
     @root = File.expand_path(root || Dir.getwd)
   end
@@ -25,7 +25,7 @@ module SimpleCov::Configuration
   #
   # Configure with SimpleCov.coverage_dir('cov')
   #
-  def coverage_dir(dir=nil)
+  def coverage_dir(dir = nil)
     return @coverage_dir if defined? @coverage_dir and dir.nil?
     @coverage_dir = (dir || "coverage")
   end
@@ -57,7 +57,7 @@ module SimpleCov::Configuration
   #
   # You can specify it manually with SimpleCov.command_name("test:units") - please
   # also check out the corresponding section in README.rdoc
-  def command_name(name=nil)
+  def command_name(name = nil)
     @name = name unless name.nil?
     @name ||= SimpleCov::CommandGuesser.guess
     @name
@@ -68,7 +68,7 @@ module SimpleCov::Configuration
   #
   # Configure with: SimpleCov.formatter(SimpleCov::Formatter::SimpleFormatter)
   #
-  def formatter(formatter=nil)
+  def formatter(formatter = nil)
     return @formatter if defined? @formatter and formatter.nil?
     @formatter = formatter
     raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
@@ -100,7 +100,7 @@ module SimpleCov::Configuration
   #
   # Configure with SimpleCov.nocov_token('skip') or it's alias SimpleCov.skip_token('skip')
   #
-  def nocov_token(nocov_token=nil)
+  def nocov_token(nocov_token = nil)
     return @nocov_token if defined? @nocov_token and nocov_token.nil?
     @nocov_token = (nocov_token || "nocov")
   end
@@ -162,7 +162,7 @@ module SimpleCov::Configuration
   # Returns the project name - currently assuming the last dirname in
   # the SimpleCov.root is this.
   #
-  def project_name(new_name=nil)
+  def project_name(new_name = nil)
     return @project_name if defined? @project_name and @project_name and new_name.nil?
     @project_name = new_name if new_name.kind_of?(String)
     @project_name ||= File.basename(root.split("/").last).capitalize.gsub("_", " ")
@@ -172,7 +172,7 @@ module SimpleCov::Configuration
   # Defines whether to use result merging so all your test suites (test:units, test:functionals, cucumber, ...)
   # are joined and combined into a single coverage report
   #
-  def use_merging(use=nil)
+  def use_merging(use = nil)
     @use_merging = use unless use.nil?
     @use_merging = true unless defined? @use_merging and @use_merging == false
   end
@@ -189,7 +189,7 @@ module SimpleCov::Configuration
   #
   # Configure with SimpleCov.merge_timeout(3600) # 1hr
   #
-  def merge_timeout(seconds=nil)
+  def merge_timeout(seconds = nil)
     @merge_timeout = seconds if seconds.kind_of?(Fixnum)
     @merge_timeout ||= 600
   end
@@ -200,7 +200,7 @@ module SimpleCov::Configuration
   #
   # Default is 0% (disabled)
   #
-  def minimum_coverage(coverage=nil)
+  def minimum_coverage(coverage = nil)
     @minimum_coverage ||= (coverage || 0).to_f.round(2)
   end
 
@@ -210,7 +210,7 @@ module SimpleCov::Configuration
   #
   # Default is 100% (disabled)
   #
-  def maximum_coverage_drop(coverage_drop=nil)
+  def maximum_coverage_drop(coverage_drop = nil)
     @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
   end
 
@@ -236,7 +236,7 @@ module SimpleCov::Configuration
   # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
   #   on how to define your own filter classes
   #
-  def add_filter(filter_argument=nil, &filter_proc)
+  def add_filter(filter_argument = nil, &filter_proc)
     filters << parse_filter(filter_argument, &filter_proc)
   end
 
@@ -245,7 +245,7 @@ module SimpleCov::Configuration
   # argument is the desired group name and files PASSING the filter end up in the group
   # (while filters exclude when the filter is applicable).
   #
-  def add_group(group_name, filter_argument=nil, &filter_proc)
+  def add_group(group_name, filter_argument = nil, &filter_proc)
     groups[group_name] = parse_filter(filter_argument, &filter_proc)
   end
 
@@ -254,7 +254,7 @@ module SimpleCov::Configuration
   #
   # The actal filter processor. Not meant for direct use
   #
-  def parse_filter(filter_argument=nil, &filter_proc)
+  def parse_filter(filter_argument = nil, &filter_proc)
     if filter_argument.kind_of?(SimpleCov::Filter)
       filter_argument
     elsif filter_argument.kind_of?(String)
