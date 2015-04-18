@@ -1,3 +1,18 @@
+AllCops:
+  Exclude:
+    - 'test/fixtures/iso-8859.rb'
+    - 'tmp/**/*'
+    - 'vendor/bundle/**/*'
+
+Lint/AmbiguousRegexpLiteral:
+  Exclude:
+    - 'features/**/*_steps.rb'
+    - 'test/**/*_steps.rb'
+    - 'tmp/**/*_steps.rb'
+
+Metrics/AbcSize:
+  Max: 25 # TODO: Lower to 15
+
 Metrics/BlockNesting:
   Max: 2
 
@@ -7,7 +22,7 @@ Metrics/LineLength:
 
 Metrics/MethodLength:
   CountComments: false
-  Max: 10
+  Max: 12 # TODO: Lower to 10
 
 Metrics/ParameterLists:
   Max: 4
@@ -29,11 +44,26 @@ Style/Documentation:
 Style/DoubleNegation:
   Enabled: false
 
+Style/HashSyntax:
+  EnforcedStyle: hash_rockets
+
+Style/RegexpLiteral:
+  Enabled: false
+
 Style/SpaceInsideHashLiteralBraces:
   EnforcedStyle: no_space
 
+Style/SpecialGlobalVars:
+  Exclude:
+    - 'test/test_deleted_source.rb'
+    - 'test/test_return_codes.rb'
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
+
+Style/FileName:
+  Exclude:
+    - 'test/fixtures/utf-8.rb'
 
 Style/TrailingComma:
   EnforcedStyleForMultiline: 'comma'

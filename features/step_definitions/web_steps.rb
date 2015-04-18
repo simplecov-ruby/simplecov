@@ -56,7 +56,7 @@ Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, se
 end
 
 Then /^show me the page$/ do
-  save_and_open_page
+  save_and_open_page # rubocop:disable Lint/Debugger
 end
 
 Then /^print the page$/ do

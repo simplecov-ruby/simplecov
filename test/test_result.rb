@@ -1,6 +1,6 @@
 require "helper"
 
-class TestResult < Minitest::Test
+class TestResult < Minitest::Test # rubocop:disable Metrics/ClassLength
   context "With a (mocked) Coverage.result" do
     setup do
       @prev_filters,   SimpleCov.filters   = SimpleCov.filters,   []

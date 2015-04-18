@@ -63,12 +63,12 @@ at_exit do
     covered_percent = SimpleCov.result.covered_percent.round(2)
 
     if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
-      if covered_percent < SimpleCov.minimum_coverage
+      if covered_percent < SimpleCov.minimum_coverage # rubocop:disable Metrics/BlockNesting
         $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
-      elsif (last_run = SimpleCov::LastRun.read)
+      elsif (last_run = SimpleCov::LastRun.read) # rubocop:disable Metrics/BlockNesting
         diff = last_run["result"]["covered_percent"] - covered_percent
-        if diff > SimpleCov.maximum_coverage_drop
+        if diff > SimpleCov.maximum_coverage_drop # rubocop:disable Metrics/BlockNesting
           $stderr.printf("Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%).\n", diff, SimpleCov.maximum_coverage_drop)
           @exit_status = SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
         end

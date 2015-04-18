@@ -20,11 +20,20 @@ Rake::TestTask.new(:test) do |test|
   test.warning = true
 end
 
+begin
+  require "rubocop/rake_task"
+  RuboCop::RakeTask.new
+rescue LoadError
+  task :rubocop do
+    $stderr.puts "Rubocop is disabled"
+  end
+end
+
 # Cucumber integration test suite is for impls that work with simplecov only - a.k.a. 1.9+
 if RUBY_VERSION >= "1.9"
   require "cucumber/rake/task"
   Cucumber::Rake::Task.new
-  task :default => [:test, :cucumber]
+  task :default => [:test, :cucumber, :rubocop]
 else
   task :default => [:test]
 end

@@ -13,7 +13,7 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
     class << self
       alias_method :__broken_result__, :result
 
-      def result
+      def result # rubocop:disable Metrics/MethodLength
         fixed = {}
         __broken_result__.each do |path, executed_lines|
           next unless File.file? path
