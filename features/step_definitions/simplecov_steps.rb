@@ -30,7 +30,7 @@ When /^I open the coverage report generated with `([^`]+)`$/ do |command|
 end
 
 Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
-  coverage_dir ||= 'coverage'
+  coverage_dir ||= "coverage"
   steps %Q{
     Then the output should contain "Coverage report generated"
     And a directory named "#{coverage_dir}" should exist
@@ -41,7 +41,7 @@ Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |cove
 end
 
 Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
-  coverage_dir ||= 'coverage'
+  coverage_dir ||= "coverage"
   steps %Q{
     Then the output should not contain "Coverage report generated"
     And a directory named "#{coverage_dir}" should not exist

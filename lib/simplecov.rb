@@ -121,8 +121,8 @@ module SimpleCov
       return @usable if defined? @usable and !@usable.nil?
 
       @usable = begin
-        require 'coverage'
-        require 'simplecov/jruby_fix'
+        require "coverage"
+        require "simplecov/jruby_fix"
         true
       rescue LoadError
         false
@@ -132,23 +132,23 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
-require 'simplecov/configuration'
+require "simplecov/configuration"
 SimpleCov.send :extend, SimpleCov::Configuration
-require 'simplecov/exit_codes'
-require 'simplecov/profiles'
-require 'simplecov/source_file'
-require 'simplecov/file_list'
-require 'simplecov/result'
-require 'simplecov/filter'
-require 'simplecov/formatter'
-require 'simplecov/last_run'
-require 'simplecov/merge_helpers'
-require 'simplecov/result_merger'
-require 'simplecov/command_guesser'
-require 'simplecov/version'
+require "simplecov/exit_codes"
+require "simplecov/profiles"
+require "simplecov/source_file"
+require "simplecov/file_list"
+require "simplecov/result"
+require "simplecov/filter"
+require "simplecov/formatter"
+require "simplecov/last_run"
+require "simplecov/merge_helpers"
+require "simplecov/result_merger"
+require "simplecov/command_guesser"
+require "simplecov/version"
 
 # Load default config
-require 'simplecov/defaults' unless ENV['SIMPLECOV_NO_DEFAULTS']
+require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
 
 # Load Rails integration (only for Rails 3, see #113)
-require 'simplecov/railtie' if defined? Rails::Railtie
+require "simplecov/railtie" if defined? Rails::Railtie

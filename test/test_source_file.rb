@@ -1,10 +1,10 @@
-require 'helper'
+require "helper"
 
 class TestSourceFile < Minitest::Test
   COVERAGE_FOR_SAMPLE_RB = [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil]
   context "A source file initialized with some coverage data" do
     setup do
-      @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), COVERAGE_FOR_SAMPLE_RB)
+      @source_file = SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
     end
 
     should "have a filename" do
@@ -54,7 +54,7 @@ class TestSourceFile < Minitest::Test
 
   context "Simulating potential Ruby 1.9 defect -- see Issue #56" do
     setup do
-      @source_file = SimpleCov::SourceFile.new(source_fixture('sample.rb'), COVERAGE_FOR_SAMPLE_RB + [nil])
+      @source_file = SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB + [nil])
     end
 
     should "have 16 source lines regardless of extra data in coverage array" do

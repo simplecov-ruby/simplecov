@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "spec_helper"
 
-describe 'forking' do
+describe "forking" do
   it do
     Process.waitpid(Kernel.fork { })
   end

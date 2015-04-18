@@ -1,4 +1,4 @@
-require 'helper'
+require "helper"
 
 # Tests that verify that on 1.8 versions of ruby, simplecov simply
 # does not launch and does not cause errors on the way
@@ -21,11 +21,11 @@ class Test18FallBacks < Minitest::Test
 
   should "allow to define a profile" do
     begin
-      SimpleCov.profiles.define 'testprofile' do
-        add_filter '/config/'
+      SimpleCov.profiles.define "testprofile" do
+        add_filter "/config/"
       end
     rescue => err
       assert false, "Profile definition should have been fine, but raised #{err}"
     end
   end
-end if RUBY_VERSION.start_with? '1.8'
+end if RUBY_VERSION.start_with? "1.8"

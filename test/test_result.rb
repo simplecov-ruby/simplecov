@@ -1,4 +1,4 @@
-require 'helper'
+require "helper"
 
 class TestResult < Minitest::Test
   context "With a (mocked) Coverage.result" do
@@ -7,9 +7,9 @@ class TestResult < Minitest::Test
       @prev_groups,    SimpleCov.groups    = SimpleCov.groups,    {}
       @prev_formatter, SimpleCov.formatter = SimpleCov.formatter, nil
 
-      @original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-          source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          source_fixture('app/controllers/sample_controller.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
+      @original_result = {source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+          source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+          source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
     end
 
     teardown do
@@ -82,7 +82,7 @@ class TestResult < Minitest::Test
 
     context "with some filters set up" do
       setup do
-        SimpleCov.add_filter 'sample.rb'
+        SimpleCov.add_filter "sample.rb"
       end
 
       should "have 2 files in a new simple cov result" do
@@ -96,10 +96,10 @@ class TestResult < Minitest::Test
 
     context "with groups set up for all files" do
       setup do
-        SimpleCov.add_group 'Models', 'app/models'
-        SimpleCov.add_group 'Controllers', ['app/controllers']
-        SimpleCov.add_group 'Other' do |src_file|
-          File.basename(src_file.filename) == 'sample.rb'
+        SimpleCov.add_group "Models", "app/models"
+        SimpleCov.add_group "Controllers", ["app/controllers"]
+        SimpleCov.add_group "Other" do |src_file|
+          File.basename(src_file.filename) == "sample.rb"
         end
         @result = SimpleCov::Result.new(@original_result)
       end
@@ -109,11 +109,11 @@ class TestResult < Minitest::Test
       end
 
       should "have user.rb in 'Models' group" do
-        assert_equal 'user.rb', File.basename(@result.groups['Models'].first.filename)
+        assert_equal "user.rb", File.basename(@result.groups["Models"].first.filename)
       end
 
       should "have sample_controller.rb in 'Controllers' group" do
-        assert_equal 'sample_controller.rb', File.basename(@result.groups['Controllers'].first.filename)
+        assert_equal "sample_controller.rb", File.basename(@result.groups["Controllers"].first.filename)
       end
 
       context "and simple formatter being used" do
@@ -143,8 +143,8 @@ class TestResult < Minitest::Test
     context "with groups set up that do not match all files" do
       setup do
         SimpleCov.configure do
-          add_group 'Models', 'app/models'
-          add_group 'Controllers', 'app/controllers'
+          add_group "Models", "app/models"
+          add_group "Controllers", "app/controllers"
         end
         @result = SimpleCov::Result.new(@original_result)
       end
@@ -160,7 +160,7 @@ class TestResult < Minitest::Test
       end
 
       should "have sample.rb in 'Ungrouped' group" do
-        assert_equal 'sample.rb', File.basename(@result.groups['Ungrouped'].first.filename)
+        assert_equal "sample.rb", File.basename(@result.groups["Ungrouped"].first.filename)
       end
 
       should "return all groups as instances of SimpleCov::FileList" do

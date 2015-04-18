@@ -1,6 +1,6 @@
-require 'fileutils'
-require 'docile'
-require 'simplecov/formatter/multi_formatter'
+require "fileutils"
+require "docile"
+require "simplecov/formatter/multi_formatter"
 #
 # Bundles the configuration options used for SimpleCov. All methods
 # defined here are usable from SimpleCov directly. Please check out
@@ -27,7 +27,7 @@ module SimpleCov::Configuration
   #
   def coverage_dir(dir=nil)
     return @coverage_dir if defined? @coverage_dir and dir.nil?
-    @coverage_dir = (dir || 'coverage')
+    @coverage_dir = (dir || "coverage")
   end
 
   #
@@ -102,7 +102,7 @@ module SimpleCov::Configuration
   #
   def nocov_token(nocov_token=nil)
     return @nocov_token if defined? @nocov_token and nocov_token.nil?
-    @nocov_token = (nocov_token || 'nocov')
+    @nocov_token = (nocov_token || "nocov")
   end
   alias_method :skip_token, :nocov_token
 
@@ -165,7 +165,7 @@ module SimpleCov::Configuration
   def project_name(new_name=nil)
     return @project_name if defined? @project_name and @project_name and new_name.nil?
     @project_name = new_name if new_name.kind_of?(String)
-    @project_name ||= File.basename(root.split('/').last).capitalize.gsub('_', ' ')
+    @project_name ||= File.basename(root.split("/").last).capitalize.gsub("_", " ")
   end
 
   #

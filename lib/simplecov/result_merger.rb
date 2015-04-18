@@ -1,4 +1,4 @@
-require 'json'
+require "json"
 
 #
 # Singleton that is responsible for caching, loading and merging
@@ -9,11 +9,11 @@ module SimpleCov::ResultMerger
   class << self
     # The path to the .resultset.json cache file
     def resultset_path
-      File.join(SimpleCov.coverage_path, '.resultset.json')
+      File.join(SimpleCov.coverage_path, ".resultset.json")
     end
 
     def resultset_writelock
-      File.join(SimpleCov.coverage_path, '.resultset.json.lock')
+      File.join(SimpleCov.coverage_path, ".resultset.json.lock")
     end
 
     # Loads the cached resultset from JSON and returns it as a Hash

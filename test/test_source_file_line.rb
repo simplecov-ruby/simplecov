@@ -1,25 +1,25 @@
-require 'helper'
+require "helper"
 
 class TestSourceFileLine < Minitest::Test
   context "A source line" do
     setup do
-      @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)
+      @line = SimpleCov::SourceFile::Line.new("# the ruby source", 5, 3)
     end
     subject { @line }
 
     should 'return "# the ruby source" as src' do
-      assert_equal '# the ruby source', @line.src
+      assert_equal "# the ruby source", @line.src
     end
 
-    should 'return the same for source as for src' do
+    should "return the same for source as for src" do
       assert_equal @line.src, @line.source
     end
 
-    should 'have line number 5' do
+    should "have line number 5" do
       assert_equal 5, @line.line_number
     end
 
-    should 'have equal line_number, line and number' do
+    should "have equal line_number, line and number" do
       assert_equal @line.line_number, @line.line
       assert_equal @line.line_number, @line.number
     end
@@ -31,13 +31,13 @@ class TestSourceFileLine < Minitest::Test
       should_be :skipped?
       should_not_be :missed?
       should_not_be :never?
-      should_have :status, 'skipped'
+      should_have :status, "skipped"
     end
   end
 
   context "A source line with coverage" do
     setup do
-      @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 3)
+      @line = SimpleCov::SourceFile::Line.new("# the ruby source", 5, 3)
     end
     subject { @line }
 
@@ -49,12 +49,12 @@ class TestSourceFileLine < Minitest::Test
     should_not_be :skipped?
     should_not_be :missed?
     should_not_be :never?
-    should_have :status, 'covered'
+    should_have :status, "covered"
   end
 
   context "A source line without coverage" do
     setup do
-      @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, 0)
+      @line = SimpleCov::SourceFile::Line.new("# the ruby source", 5, 0)
     end
     subject { @line }
 
@@ -66,12 +66,12 @@ class TestSourceFileLine < Minitest::Test
     should_not_be :skipped?
     should_be :missed?
     should_not_be :never?
-    should_have :status, 'missed'
+    should_have :status, "missed"
   end
 
   context "A source line with no code" do
     setup do
-      @line = SimpleCov::SourceFile::Line.new('# the ruby source', 5, nil)
+      @line = SimpleCov::SourceFile::Line.new("# the ruby source", 5, nil)
     end
     subject { @line }
 
@@ -83,7 +83,7 @@ class TestSourceFileLine < Minitest::Test
     should_not_be :skipped?
     should_not_be :missed?
     should_be :never?
-    should_have :status, 'never'
+    should_have :status, "never"
   end
 
   should "raise ArgumentError when initialized with invalid src" do

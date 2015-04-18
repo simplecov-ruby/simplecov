@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe FakedProject do
   it "should have added a class method to FakedProject" do

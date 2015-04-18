@@ -7,7 +7,7 @@ When /^I write my cukes for the fake project$/ do
 end
 
 Then /^I make all neccessary tests in a single step$/ do
-  expect(FakedProject.foo).to eq('bar')
+  expect(FakedProject.foo).to eq("bar")
 
   expect(FrameworkSpecific.cucumber).to eq("Only tested in Cucumber")
 
@@ -17,7 +17,7 @@ Then /^I make all neccessary tests in a single step$/ do
   expect(FakedProject.new.dynamic).to eq("A dynamically defined instance method")
 
   something = SomeClass.new("foo")
-  expect(something.reverse).to eq('oof')
-  expect(something.compare_with('foo')).to be true
+  expect(something.reverse).to eq("oof")
+  expect(something.compare_with("foo")).to be true
 end
 

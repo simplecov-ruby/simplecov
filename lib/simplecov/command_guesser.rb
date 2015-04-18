@@ -18,9 +18,9 @@ module SimpleCov::CommandGuesser
 
     def from_env
       # If being run from inside parallel_tests set the command name according to the process number
-      if ENV['PARALLEL_TEST_GROUPS'] && ENV['TEST_ENV_NUMBER']
-        number = ENV['TEST_ENV_NUMBER']
-        number = '1' if number == ''
+      if ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
+        number = ENV["TEST_ENV_NUMBER"]
+        number = "1" if number == ""
         "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
       end
     end
@@ -53,7 +53,7 @@ module SimpleCov::CommandGuesser
       else
         # TODO: Provide link to docs/wiki article
         warn "SimpleCov failed to recognize the test framework and/or suite used. Please specify manually using SimpleCov.command_name 'Unit Tests'."
-        'Unknown Test Framework'
+        "Unknown Test Framework"
       end
     end
   end

@@ -1,8 +1,8 @@
-require 'test_helper'
+require "test_helper"
 
 class FakedTest < Test::Unit::TestCase
   def test_something
-    assert_equal 'bar', FakedProject.foo
+    assert_equal "bar", FakedProject.foo
   end
 
   def test_framework_specific

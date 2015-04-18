@@ -1,4 +1,4 @@
-require 'helper'
+require "helper"
 
 # Make sure that exit codes of tests are propagated properly when using
 # simplecov. See github issue #5
@@ -10,8 +10,8 @@ class TestReturnCodes < Minitest::Test
   context "Inside fixtures/frameworks" do
     setup do
       @current_dir = Dir.getwd
-      Dir.chdir(File.join(File.dirname(__FILE__), 'fixtures', 'frameworks'))
-      FileUtils.rm_rf('./coverage')
+      Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "frameworks"))
+      FileUtils.rm_rf("./coverage")
     end
 
     should "have return code 0 when running testunit_good.rb" do

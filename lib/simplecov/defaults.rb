@@ -1,43 +1,43 @@
 # Load default formatter gem
-require 'simplecov-html'
+require "simplecov-html"
 
-SimpleCov.profiles.define 'root_filter' do
+SimpleCov.profiles.define "root_filter" do
   # Exclude all files outside of simplecov root
   add_filter do |src|
     !(src.filename =~ /^#{Regexp.escape(SimpleCov.root)}/i)
   end
 end
 
-SimpleCov.profiles.define 'test_frameworks' do
-  add_filter '/test/'
-  add_filter '/features/'
-  add_filter '/spec/'
-  add_filter '/autotest/'
+SimpleCov.profiles.define "test_frameworks" do
+  add_filter "/test/"
+  add_filter "/features/"
+  add_filter "/spec/"
+  add_filter "/autotest/"
 end
 
-SimpleCov.profiles.define 'bundler_filter' do
-  add_filter '/vendor/bundle/'
+SimpleCov.profiles.define "bundler_filter" do
+  add_filter "/vendor/bundle/"
 end
 
-SimpleCov.profiles.define 'rails' do
-  load_profile 'test_frameworks'
+SimpleCov.profiles.define "rails" do
+  load_profile "test_frameworks"
 
-  add_filter '/config/'
-  add_filter '/db/'
+  add_filter "/config/"
+  add_filter "/db/"
 
-  add_group 'Controllers', 'app/controllers'
-  add_group 'Models', 'app/models'
-  add_group 'Mailers', 'app/mailers'
-  add_group 'Helpers', 'app/helpers'
-  add_group 'Libraries', 'lib'
+  add_group "Controllers", "app/controllers"
+  add_group "Models", "app/models"
+  add_group "Mailers", "app/mailers"
+  add_group "Helpers", "app/helpers"
+  add_group "Libraries", "lib"
 end
 
 # Default configuration
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
-  load_profile 'bundler_filter'
+  load_profile "bundler_filter"
   # Exclude files outside of SimpleCov.root
-  load_profile 'root_filter'
+  load_profile "root_filter"
 end
 
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
@@ -71,7 +71,7 @@ at_exit do
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
 
       elsif (last_run = SimpleCov::LastRun.read)
-        diff = last_run['result']['covered_percent'] - covered_percent
+        diff = last_run["result"]["covered_percent"] - covered_percent
         if diff > SimpleCov.maximum_coverage_drop
           $stderr.puts "Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%)." % \
                        [diff, SimpleCov.maximum_coverage_drop]
@@ -90,13 +90,13 @@ at_exit do
 end
 
 # Autoload config from ~/.simplecov if present
-require 'etc'
-home_dir = File.expand_path('~') || Etc.getpwuid.dir || (user = ENV["USER"] && File.expand_path("~#{user}"))
+require "etc"
+home_dir = File.expand_path("~") || Etc.getpwuid.dir || (user = ENV["USER"] && File.expand_path("~#{user}"))
 if home_dir
-  global_config_path = File.join(home_dir, '.simplecov')
+  global_config_path = File.join(home_dir, ".simplecov")
   load global_config_path if File.exist?(global_config_path)
 end
 
 # Autoload config from .simplecov if present
-config_path = File.join(SimpleCov.root, '.simplecov')
+config_path = File.join(SimpleCov.root, ".simplecov")
 load config_path if File.exist?(config_path)

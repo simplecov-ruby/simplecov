@@ -1,11 +1,11 @@
-require 'helper'
+require "helper"
 
 class TestFileList < Minitest::Test
   context "With a file list from a result" do
     setup do
-      original_result = {source_fixture('sample.rb') => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-          source_fixture('app/models/user.rb') => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          source_fixture('app/controllers/sample_controller.rb') => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil]}
+      original_result = {source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+          source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+          source_fixture("app/controllers/sample_controller.rb") => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil]}
       @file_list = SimpleCov::Result.new(original_result).files
     end
 

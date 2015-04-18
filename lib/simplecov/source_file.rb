@@ -61,10 +61,10 @@ module SimpleCov
       # The status of this line - either covered, missed, skipped or never. Useful i.e. for direct use
       # as a css class in report generation
       def status
-        return 'skipped' if skipped?
-        return 'never' if never?
-        return 'missed' if missed?
-        return 'covered' if covered?
+        return "skipped" if skipped?
+        return "never" if never?
+        return "missed" if missed?
+        return "covered" if covered?
       end
     end
 

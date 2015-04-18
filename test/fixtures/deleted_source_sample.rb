@@ -1,5 +1,5 @@
-$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', '..'))
-require 'lib/simplecov'
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "..", ".."))
+require "lib/simplecov"
 SimpleCov.start { command_name "Test" }
 
 dir = File.expand_path(File.dirname(__FILE__))

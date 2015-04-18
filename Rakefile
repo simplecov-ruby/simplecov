@@ -1,7 +1,7 @@
 #!/usr/bin/env rake
 
-require 'rubygems'
-require 'bundler/setup'
+require "rubygems"
+require "bundler/setup"
 Bundler::GemHelper.install_tasks
 
 # See https://github.com/colszowka/simplecov/issues/171
@@ -12,17 +12,17 @@ end
 # Enforce proper permissions on each build
 Rake::Task[:build].prerequisites.unshift :fix_permissions
 
-require 'rake/testtask'
+require "rake/testtask"
 Rake::TestTask.new(:test) do |test|
-  test.libs << 'lib' << 'test'
-  test.test_files = FileList['test/test_*.rb']
+  test.libs << "lib" << "test"
+  test.test_files = FileList["test/test_*.rb"]
   test.verbose = true
   test.warning = true
 end
 
 # Cucumber integration test suite is for impls that work with simplecov only - a.k.a. 1.9+
 if RUBY_VERSION >= "1.9"
-  require 'cucumber/rake/task'
+  require "cucumber/rake/task"
   Cucumber::Rake::Task.new
   task :default => [:test, :cucumber]
 else

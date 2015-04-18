@@ -1,4 +1,4 @@
-require 'test_helper'
+require "test_helper"
 
 class SomeClassTest < Test::Unit::TestCase
   def setup
@@ -6,10 +6,10 @@ class SomeClassTest < Test::Unit::TestCase
   end
 
   def test_reverse
-    assert_equal 'oof', @instance.reverse
+    assert_equal "oof", @instance.reverse
   end
 
   def test_comparison
-    assert @instance.compare_with('foo')
+    assert @instance.compare_with("foo")
   end
 end

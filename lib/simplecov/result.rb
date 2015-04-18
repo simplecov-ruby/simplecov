@@ -1,5 +1,5 @@
-require 'digest/sha1'
-require 'forwardable'
+require "digest/sha1"
+require "forwardable"
 
 module SimpleCov
   #

@@ -1,6 +1,6 @@
 if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
-  require 'jruby'
-  java_import 'org.jruby.ast.NodeType'
+  require "jruby"
+  java_import "org.jruby.ast.NodeType"
 
   # Coverage for JRuby < 1.7.0 does not work correctly
   #
