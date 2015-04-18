@@ -34,17 +34,17 @@ module SimpleCov
 
       # Returns true if this is a line that should have been covered, but was not
       def missed?
-        !never? and !skipped? and coverage.zero?
+        !never? && !skipped? && coverage.zero?
       end
 
       # Returns true if this is a line that has been covered
       def covered?
-        !never? and !skipped? and coverage > 0
+        !never? && !skipped? && coverage > 0
       end
 
       # Returns true if this line is not relevant for coverage
       def never?
-        !skipped? and coverage.nil?
+        !skipped? && coverage.nil?
       end
 
       # Flags this line as skipped

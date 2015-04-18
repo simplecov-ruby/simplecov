@@ -71,7 +71,7 @@ module SimpleCov
     # Otherwise, returns the result
     #
     def result?
-      defined? @result and @result
+      defined?(@result) && @result
     end
 
     #
@@ -95,7 +95,7 @@ module SimpleCov
         grouped[name] = SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
         grouped_files += grouped[name]
       end
-      if groups.length > 0 and (other_files = files.reject { |source_file| grouped_files.include?(source_file) }).length > 0
+      if groups.length > 0 && (other_files = files.reject { |source_file| grouped_files.include?(source_file) }).length > 0
         grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
       end
       grouped
@@ -118,7 +118,7 @@ module SimpleCov
     # provides coverage support
     #
     def usable?
-      return @usable if defined? @usable and !@usable.nil?
+      return @usable if defined?(@usable) && !@usable.nil?
 
       @usable = begin
         require "coverage"

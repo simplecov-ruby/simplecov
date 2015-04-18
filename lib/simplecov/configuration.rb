@@ -17,7 +17,7 @@ module SimpleCov
     # Configure with SimpleCov.root('/my/project/path')
     #
     def root(root = nil)
-      return @root if defined? @root and root.nil?
+      return @root if defined?(@root) && root.nil?
       @root = File.expand_path(root || Dir.getwd)
     end
 
@@ -27,7 +27,7 @@ module SimpleCov
     # Configure with SimpleCov.coverage_dir('cov')
     #
     def coverage_dir(dir = nil)
-      return @coverage_dir if defined? @coverage_dir and dir.nil?
+      return @coverage_dir if defined?(@coverage_dir) && dir.nil?
       @coverage_dir = (dir || "coverage")
     end
 
@@ -70,7 +70,7 @@ module SimpleCov
     # Configure with: SimpleCov.formatter(SimpleCov::Formatter::SimpleFormatter)
     #
     def formatter(formatter = nil)
-      return @formatter if defined? @formatter and formatter.nil?
+      return @formatter if defined?(@formatter) && formatter.nil?
       @formatter = formatter
       fail "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
       @formatter
@@ -102,7 +102,7 @@ module SimpleCov
     # Configure with SimpleCov.nocov_token('skip') or it's alias SimpleCov.skip_token('skip')
     #
     def nocov_token(nocov_token = nil)
-      return @nocov_token if defined? @nocov_token and nocov_token.nil?
+      return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
       @nocov_token = (nocov_token || "nocov")
     end
     alias_method :skip_token, :nocov_token
@@ -164,7 +164,7 @@ module SimpleCov
     # the SimpleCov.root is this.
     #
     def project_name(new_name = nil)
-      return @project_name if defined? @project_name and @project_name and new_name.nil?
+      return @project_name if defined?(@project_name) && @project_name && new_name.nil?
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root.split("/").last).capitalize.gsub("_", " ")
     end
@@ -175,7 +175,7 @@ module SimpleCov
     #
     def use_merging(use = nil)
       @use_merging = use unless use.nil?
-      @use_merging = true unless defined? @use_merging and @use_merging == false
+      @use_merging = true unless defined?(@use_merging) && @use_merging == false
     end
 
     #
