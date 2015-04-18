@@ -24,7 +24,7 @@ module SimpleCov
     #
     def load(name)
       name = name.to_sym
-      fail "Could not find SimpleCov Profile called '#{name}'" unless has_key?(name)
+      fail "Could not find SimpleCov Profile called '#{name}'" unless key?(name)
       SimpleCov.configure(&self[name])
     end
   end
