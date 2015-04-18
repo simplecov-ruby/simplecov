@@ -8,15 +8,19 @@ class TestMergeHelpers < Minitest::Test
   context "With two faked coverage resultsets" do
     setup do
       SimpleCov.use_merging true
-      @resultset1 = {source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-          source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          source_fixture("resultset1.rb") => [1, 1, 1, 1]}
+      @resultset1 = {
+        source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+        source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        source_fixture("resultset1.rb") => [1, 1, 1, 1]
+      }
 
-      @resultset2 = {source_fixture("sample.rb") => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil],
-          source_fixture("app/models/user.rb") => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
-          source_fixture("app/controllers/sample_controller.rb") => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil],
-          source_fixture("resultset2.rb") => [nil, 1, 1, nil]}
+      @resultset2 = {
+        source_fixture("sample.rb") => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil],
+        source_fixture("app/models/user.rb") => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
+        source_fixture("app/controllers/sample_controller.rb") => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil],
+        source_fixture("resultset2.rb") => [nil, 1, 1, nil]
+      }
     end
 
     context "a merge" do
