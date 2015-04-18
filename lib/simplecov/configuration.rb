@@ -122,7 +122,7 @@ module SimpleCov
     end
 
     def adapters
-      warn "method adapters is deprecated. use profiles instead"
+      warn "#{Kernel.caller.first}: [DEPRECATION] #adapters is deprecated. Use #profiles instead."
       profiles
     end
 

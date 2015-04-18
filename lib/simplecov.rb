@@ -109,7 +109,7 @@ module SimpleCov
     end
 
     def load_adapter(name)
-      warn "method load_adapter is deprecated. use load_profile instead"
+      warn "#{Kernel.caller.first}: [DEPRECATION] #load_adapter is deprecated. Use #load_profile instead."
       load_profile(name)
     end
 

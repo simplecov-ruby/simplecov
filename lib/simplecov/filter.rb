@@ -21,7 +21,7 @@ module SimpleCov
     end
 
     def passes?(source_file)
-      warn "DEPRECATION: SimpleCov::Filter#passes?(x) has been renamed to #matches?. Please update your custom filters accordingly!"
+      warn "#{Kernel.caller.first}: [DEPRECATION] #passes? is deprecated. Use #matches? instead."
       matches?(source_file)
     end
   end
