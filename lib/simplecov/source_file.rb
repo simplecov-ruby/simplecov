@@ -78,7 +78,7 @@ module SimpleCov
 
     def initialize(filename, coverage)
       @filename, @coverage = filename, coverage
-      File.open(filename, "rb") {|f| @src = f.readlines }
+      File.open(filename, "rb") { |f| @src = f.readlines }
     end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
@@ -137,24 +137,24 @@ module SimpleCov
 
     # Returns all covered lines as SimpleCov::SourceFile::Line
     def covered_lines
-      @covered_lines ||= lines.select {|c| c.covered? }
+      @covered_lines ||= lines.select { |c| c.covered? }
     end
 
     # Returns all lines that should have been, but were not covered
     # as instances of SimpleCov::SourceFile::Line
     def missed_lines
-      @missed_lines ||= lines.select {|c| c.missed? }
+      @missed_lines ||= lines.select { |c| c.missed? }
     end
 
     # Returns all lines that are not relevant for coverage as
     # SimpleCov::SourceFile::Line instances
     def never_lines
-      @never_lines ||= lines.select {|c| c.never? }
+      @never_lines ||= lines.select { |c| c.never? }
     end
 
     # Returns all lines that were skipped as SimpleCov::SourceFile::Line instances
     def skipped_lines
-      @skipped_lines ||= lines.select {|c| c.skipped? }
+      @skipped_lines ||= lines.select { |c| c.skipped? }
     end
 
     # Returns the number of relevant lines (covered + missed)

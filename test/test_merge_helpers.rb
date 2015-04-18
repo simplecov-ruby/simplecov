@@ -47,7 +47,7 @@ class TestMergeHelpers < Minitest::Test
 
     # See Github issue #6
     should "return an empty hash when the resultset cache file is empty" do
-      File.open(SimpleCov::ResultMerger.resultset_path, "w+") {|f| f.puts ""}
+      File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
       assert_equal Hash.new, SimpleCov::ResultMerger.resultset
     end
 
@@ -81,7 +81,7 @@ class TestMergeHelpers < Minitest::Test
         end
 
         should "return proper values for merged_result" do
-          assert_equal [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil], SimpleCov::ResultMerger.merged_result.source_files.find {|s| s.filename =~ /user/}.lines.map(&:coverage)
+          assert_equal [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil], SimpleCov::ResultMerger.merged_result.source_files.find { |s| s.filename =~ /user/ }.lines.map(&:coverage)
         end
 
         context "with second result way above the merge_timeout" do

@@ -24,7 +24,7 @@ class TestSourceFile < Minitest::Test
     end
 
     should "have all source lines of type SimpleCov::SourceFile::Line" do
-      assert @source_file.lines.all? {|l| l.instance_of?(SimpleCov::SourceFile::Line)}
+      assert @source_file.lines.all? { |l| l.instance_of?(SimpleCov::SourceFile::Line) }
     end
 
     should "have 'class Foo' as line(2).source" do

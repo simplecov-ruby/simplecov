@@ -35,9 +35,9 @@ Then /^I should see the source files:$/ do |table|
   expect(expected_files.length).to eq(available_source_files.count)
 
   # Find all filenames and their coverage present in coverage report
-  files = available_source_files.map {|f| {"name" => f.find("h3").text, "coverage" => f.find("h4 > span").text} }
+  files = available_source_files.map { |f| {"name" => f.find("h3").text, "coverage" => f.find("h4 > span").text} }
 
-  expect(files.sort_by {|hsh| hsh["name"] }).to eq(expected_files.sort_by {|hsh| hsh["name"] })
+  expect(files.sort_by { |hsh| hsh["name"] }).to eq(expected_files.sort_by { |hsh| hsh["name"] })
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
