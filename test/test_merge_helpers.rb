@@ -90,7 +90,7 @@ class TestMergeHelpers < Minitest::Test
 
         context "with second result way above the merge_timeout" do
           setup do
-            @result2.created_at = Time.now - 172800 # two days ago
+            @result2.created_at = Time.now - 172_800 # two days ago
             assert SimpleCov::ResultMerger.store_result(@result2)
           end
 
