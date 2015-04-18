@@ -589,14 +589,22 @@ Try [coverband](https://github.com/danmayer/coverband).
 
 If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
 
-Just create `config/spring.rb` and move your SimpleCov config into it. Here's a simple version of what the file should look like:
+(1) Change the following settings in `development.rb` and `test.rb`.
+```ruby
+# Disable Rails's static asset server (Apache or nginx will already do this)
+config.serve_static_files = false
+config.eager_load = false
+```
 
+(2) Add your SimpleCov config, as you normally would, to your `spec_helper.rb` (or `rails_helper.rb` for RSpec 3). If you have a `config/spring.rb` file (or anything similar), add it to the start of such file. Here's a simple version of what the config should look like:
 ```ruby
 if ENV['RAILS_ENV'] == 'test'
   require 'simplecov'
   SimpleCov.start
 end
 ```
+
+(3) Run `spring rspec <path>` as normal. Remember to run `spring stop` after making important changes to your app or its specs!
 
 ## Contributing
 
