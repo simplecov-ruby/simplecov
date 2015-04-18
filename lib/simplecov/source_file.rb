@@ -185,4 +185,3 @@ module SimpleCov
     end
   end
 end
-

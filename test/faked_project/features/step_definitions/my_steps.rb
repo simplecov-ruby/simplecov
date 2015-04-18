@@ -20,4 +20,3 @@ Then /^I make all neccessary tests in a single step$/ do
   expect(something.reverse).to eq("oof")
   expect(something.compare_with("foo")).to be true
 end
-
