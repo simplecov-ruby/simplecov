@@ -315,7 +315,7 @@ v0.5.0, 2011-09-09 ([changes](https://github.com/colszowka/simplecov/compare/v0.
     <pre>
       #:nocov:
       def skipped
-    	  @foo * 2
+        @foo * 2
       end
       #:nocov:
     </pre>
