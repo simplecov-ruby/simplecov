@@ -20,7 +20,7 @@ class SomeClass
     false
   end
 
-  private
+private
 
   def uncovered
     "private method"

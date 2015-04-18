@@ -15,7 +15,7 @@ module SimpleCov
         from_env || from_command_line_options || from_defined_constants
       end
 
-      private
+    private
 
       def from_env
         # If being run from inside parallel_tests set the command name according to the process number

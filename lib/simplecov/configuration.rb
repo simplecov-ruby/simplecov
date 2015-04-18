@@ -250,7 +250,7 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
-    private
+  private
 
     #
     # The actal filter processor. Not meant for direct use

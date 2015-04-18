@@ -71,7 +71,7 @@ module SimpleCov
       result
     end
 
-    private
+  private
 
     # Applies all configured SimpleCov filters on this result's source files
     def filter!

@@ -175,7 +175,7 @@ module SimpleCov
       end
     end
 
-    private
+  private
 
     # ruby 1.9 could use Float#round(places) instead
     # @return [Float]
