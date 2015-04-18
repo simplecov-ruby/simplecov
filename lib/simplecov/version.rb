@@ -1,7 +1,7 @@
 module SimpleCov
   VERSION = "0.9.2"
   def VERSION.to_a
-    split(".").map { |part| part.to_i }
+    split(".").map(&:to_i)
   end
 
   def VERSION.major
