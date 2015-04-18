@@ -43,7 +43,7 @@ class TestResult < Minitest::Test
 
       should "have accurate covered percent" do
         # in our fixture, there are 13 covered line (result in 1) in all 15 relevant line (result in non-nil)
-        assert_equal 100.0*13/15, @result.covered_percent
+        assert_equal 100.0 * 13 / 15, @result.covered_percent
       end
 
       [:covered_percent, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|

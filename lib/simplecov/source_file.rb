@@ -94,7 +94,7 @@ module SimpleCov
       # Initialize lines
       @lines = []
       src.each_with_index do |src, i|
-        @lines << SimpleCov::SourceFile::Line.new(src, i+1, coverage[i])
+        @lines << SimpleCov::SourceFile::Line.new(src, i + 1, coverage[i])
       end
       process_skipped_lines!
       @lines
@@ -103,7 +103,7 @@ module SimpleCov
 
     # Access SimpleCov::SourceFile::Line source lines by line number
     def line(number)
-      lines[number-1]
+      lines[number - 1]
     end
 
     # The coverage for this file in percent. 0 if the file has no relevant lines
