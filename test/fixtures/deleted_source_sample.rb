@@ -12,4 +12,4 @@ code = %{
 File.open(file, "w") { |f| f.print code }
 load file
 File.unlink file
-raise unless kill_the_buddha(3) == 27
+fail unless kill_the_buddha(3) == 27

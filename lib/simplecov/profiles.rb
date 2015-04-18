@@ -15,7 +15,7 @@ module SimpleCov
     #
     def define(name, &blk)
       name = name.to_sym
-      raise "SimpleCov Profile '#{name}' is already defined" unless self[name].nil?
+      fail "SimpleCov Profile '#{name}' is already defined" unless self[name].nil?
       self[name] = blk
     end
 
@@ -24,7 +24,7 @@ module SimpleCov
     #
     def load(name)
       name = name.to_sym
-      raise "Could not find SimpleCov Profile called '#{name}'" unless has_key?(name)
+      fail "Could not find SimpleCov Profile called '#{name}'" unless has_key?(name)
       SimpleCov.configure(&self[name])
     end
   end

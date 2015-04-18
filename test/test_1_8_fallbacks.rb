@@ -12,11 +12,11 @@ class Test18FallBacks < Minitest::Test
   end
 
   should "return false when calling SimpleCov.start with a block" do
-    assert_equal false, SimpleCov.start { raise "Shouldn't reach this!?" }
+    assert_equal false, SimpleCov.start { fail "Shouldn't reach this!?" }
   end
 
   should "return false when calling SimpleCov.configure with a block" do
-    assert_equal false, SimpleCov.configure { raise "Shouldn't reach this!?" }
+    assert_equal false, SimpleCov.configure { fail "Shouldn't reach this!?" }
   end
 
   should "allow to define a profile" do

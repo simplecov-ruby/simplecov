@@ -17,7 +17,7 @@ module SimpleCov
     end
 
     def matches?(_)
-      raise "The base filter class is not intended for direct use"
+      fail "The base filter class is not intended for direct use"
     end
 
     def passes?(source_file)

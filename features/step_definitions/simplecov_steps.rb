@@ -11,7 +11,7 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
     when /Cucumber/i
       "features/support"
     else
-      raise ArgumentError, "Could not identify test framework #{framework}!"
+      fail ArgumentError, "Could not identify test framework #{framework}!"
     end
   end
 

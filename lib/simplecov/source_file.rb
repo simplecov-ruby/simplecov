@@ -25,9 +25,9 @@ module SimpleCov
       alias_method :number, :line_number
 
       def initialize(src, line_number, coverage)
-        raise ArgumentError, "Only String accepted for source" unless src.is_a?(String)
-        raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
-        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
+        fail ArgumentError, "Only String accepted for source" unless src.is_a?(String)
+        fail ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
+        fail ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
         @src, @line_number, @coverage = src, line_number, coverage
         @skipped = false
       end
