@@ -4,7 +4,7 @@ require "bundler/setup"
 # depending on what the test case is...
 begin
   require File.join(File.dirname(__FILE__), "simplecov_config")
-rescue LoadError => err
+rescue LoadError
   $stderr.puts "No SimpleCov config file found!"
 end
 

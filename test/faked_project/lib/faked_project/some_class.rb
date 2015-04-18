@@ -16,8 +16,7 @@ class SomeClass
     else
       raise "Item does not match label"
     end
-
-  rescue => err
+  rescue
     false
   end
 
