@@ -2,7 +2,8 @@
 # The test project is using separate config files to avoid specifying all of
 # test/spec_helper in the features every time.
 Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
-  framework_dir = case framework
+  framework_dir = begin
+    case framework
     when /RSpec/i
       "spec"
     when /Test\/Unit/i
@@ -11,6 +12,7 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
       "features/support"
     else
       raise ArgumentError, "Could not identify test framework #{framework}!"
+    end
   end
 
   steps %Q{
