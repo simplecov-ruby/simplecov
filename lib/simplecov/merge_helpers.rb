@@ -2,12 +2,7 @@ module SimpleCov
   module ArrayMergeHelper
     # Merges an array of coverage results with self
     def merge_resultset(array)
-      new_array = []
-
-      each_with_index do |element, i|
-        new_array[i] = element
-      end
-
+      new_array = dup
       array.each_with_index do |element, i|
         if element.nil? && new_array[i].nil?
           new_array[i] = nil
