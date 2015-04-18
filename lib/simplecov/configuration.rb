@@ -154,9 +154,9 @@ module SimpleCov
     #   end
     #
     def at_exit(&block)
-      return Proc.new {} unless running || block_given?
+      return proc {} unless running || block_given?
       @at_exit = block if block_given?
-      @at_exit ||= Proc.new { SimpleCov.result.format! }
+      @at_exit ||= proc { SimpleCov.result.format! }
     end
 
     #

@@ -27,11 +27,11 @@ class TestFilters < Minitest::Test
     end
 
     should "not match a new SimpleCov::BlockFilter that is not applicable" do
-      assert !SimpleCov::BlockFilter.new(Proc.new { |s| File.basename(s.filename) == "foo.rb" }).matches?(@source_file)
+      assert !SimpleCov::BlockFilter.new(proc { |s| File.basename(s.filename) == "foo.rb" }).matches?(@source_file)
     end
 
     should "match a new SimpleCov::BlockFilter that is applicable" do
-      assert SimpleCov::BlockFilter.new(Proc.new { |s| File.basename(s.filename) == "sample.rb" }).matches?(@source_file)
+      assert SimpleCov::BlockFilter.new(proc { |s| File.basename(s.filename) == "sample.rb" }).matches?(@source_file)
     end
 
     should "match a new SimpleCov::ArrayFilter when 'sample.rb' is passed as array" do
