@@ -52,13 +52,13 @@ class TestMergeHelpers < Minitest::Test
     # See Github issue #6
     should "return an empty hash when the resultset cache file is empty" do
       File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
-      assert_equal Hash.new, SimpleCov::ResultMerger.resultset
+      assert_empty SimpleCov::ResultMerger.resultset
     end
 
     # See Github issue #6
     should "return an empty hash when the resultset cache file is not present" do
       system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
-      assert_equal Hash.new, SimpleCov::ResultMerger.resultset
+      assert_empty SimpleCov::ResultMerger.resultset
     end
 
     context "and results generated from those" do
