@@ -32,7 +32,7 @@ module SimpleCov
 
       # Returns the contents of the resultset cache as a string or if the file is missing or empty nil
       def stored_data
-        if File.exist?(resultset_path) and stored_data = File.read(resultset_path) and stored_data.length >= 2
+        if File.exist?(resultset_path) && stored_data = File.read(resultset_path) and stored_data.length >= 2
           stored_data
         else
           nil

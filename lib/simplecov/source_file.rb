@@ -27,7 +27,7 @@ module SimpleCov
       def initialize(src, line_number, coverage)
         raise ArgumentError, "Only String accepted for source" unless src.kind_of?(String)
         raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.kind_of?(Fixnum)
-        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) or coverage.nil?
+        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.kind_of?(Fixnum) || coverage.nil?
         @src, @line_number, @coverage = src, line_number, coverage
         @skipped = false
       end
@@ -108,7 +108,7 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
-      return 100.0 if lines.length.zero? or lines.length == never_lines.count
+      return 100.0 if lines.length.zero? || lines.length == never_lines.count
       relevant_lines = lines.count - never_lines.count - skipped_lines.count
       if relevant_lines.zero?
         0.0
@@ -118,7 +118,7 @@ module SimpleCov
     end
 
     def covered_strength
-      return 0.0 if lines.length.zero? or lines.length == never_lines.count
+      return 0.0 if lines.length.zero? || lines.length == never_lines.count
 
       lines_strength = 0
       lines.each do |c|

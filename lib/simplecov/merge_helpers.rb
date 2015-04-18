@@ -9,7 +9,7 @@ module SimpleCov
       end
 
       array.each_with_index do |element, i|
-        if element.nil? and new_array[i].nil?
+        if element.nil? && new_array[i].nil?
           new_array[i] = nil
         else
           local_value = element || 0
