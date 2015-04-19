@@ -12,12 +12,9 @@ end
 # Enforce proper permissions on each build
 Rake::Task[:build].prerequisites.unshift :fix_permissions
 
-require "rake/testtask"
-Rake::TestTask.new(:test) do |test|
-  test.libs << "lib" << "test"
-  test.test_files = FileList["test/test_*.rb"]
-  test.verbose = true
-  test.warning = true
+require "rspec/core/rake_task"
+RSpec::Core::RakeTask.new(:spec) do |spec|
+  spec.pattern = FileList["spec/*_spec.rb"]
 end
 
 begin
@@ -33,7 +30,7 @@ end
 if RUBY_VERSION >= "1.9"
   require "cucumber/rake/task"
   Cucumber::Rake::Task.new
-  task :default => [:test, :cucumber, :rubocop]
+  task :default => [:spec, :cucumber, :rubocop]
 else
-  task :default => [:test]
+  task :default => [:spec]
 end

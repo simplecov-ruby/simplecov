@@ -8,7 +8,6 @@ Bundler.setup
 require "aruba/cucumber"
 require "aruba/jruby" if RUBY_ENGINE == "jruby"
 require "capybara/cucumber"
-require "minitest/autorun"
 require "phantomjs/poltergeist"
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
@@ -33,7 +32,7 @@ Before do
   # Clean up and create blank state for fake project
   in_current_dir do
     FileUtils.rm_rf "project"
-    FileUtils.cp_r File.join(this_dir, "../../test/faked_project/"), "project"
+    FileUtils.cp_r File.join(this_dir, "../../spec/faked_project/"), "project"
   end
 
   step 'I cd to "project"'

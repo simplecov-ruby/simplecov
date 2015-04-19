@@ -1,13 +1,13 @@
 AllCops:
   Exclude:
-    - 'test/fixtures/iso-8859.rb'
+    - 'spec/fixtures/iso-8859.rb'
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
 
 Lint/AmbiguousRegexpLiteral:
   Exclude:
     - 'features/**/*_steps.rb'
-    - 'test/**/*_steps.rb'
+    - 'spec/**/*_steps.rb'
     - 'tmp/**/*_steps.rb'
 
 Metrics/AbcSize:
@@ -55,15 +55,15 @@ Style/SpaceInsideHashLiteralBraces:
 
 Style/SpecialGlobalVars:
   Exclude:
-    - 'test/test_deleted_source.rb'
-    - 'test/test_return_codes.rb'
+    - 'spec/deleted_source_spec.rb'
+    - 'spec/return_codes_spec.rb'
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 Style/FileName:
   Exclude:
-    - 'test/fixtures/utf-8.rb'
+    - 'spec/fixtures/utf-8.rb'
 
 Style/TrailingComma:
   EnforcedStyleForMultiline: 'comma'

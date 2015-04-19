@@ -1,16 +1,11 @@
-require "bundler/setup"
 require "simplecov"
-require "minitest/autorun"
-require "shoulda"
+require "rspec"
 
 SimpleCov.coverage_dir("tmp/coverage")
 
 def source_fixture(filename)
   File.expand_path(File.join(File.dirname(__FILE__), "fixtures", filename))
 end
-
-require "shoulda_macros"
-Minitest::Test.send :extend, ShouldaMacros
 
 # Taken from http://stackoverflow.com/questions/4459330/how-do-i-temporarily-redirect-stderr-in-ruby
 require "stringio"
