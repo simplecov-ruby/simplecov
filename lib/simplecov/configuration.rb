@@ -205,26 +205,26 @@ module SimpleCov
       @minimum_coverage ||= (coverage || 0).to_f.round(2)
     end
 
-  #
-  # Defines the minimum coverage per file required for the testsuite to pass.
-  # SimpleCov will return non-zero if the current coverage of the least covered file
-  # is below this threshold.
-  #
-  # Default is 0% (disabled)
-  #
-  def minimum_coverage_by_file(coverage=nil)
-    @minimum_coverage_by_file ||= (coverage || 0).to_f.round(2)
-  end
+    #
+    # Defines the minimum coverage per file required for the testsuite to pass.
+    # SimpleCov will return non-zero if the current coverage of the least covered file
+    # is below this threshold.
+    #
+    # Default is 0% (disabled)
+    #
+    def minimum_coverage_by_file(coverage = nil)
+      @minimum_coverage_by_file ||= (coverage || 0).to_f.round(2)
+    end
 
-  #
-  # Defines the maximum coverage drop at once allowed for the testsuite to pass.
-  # SimpleCov will return non-zero if the coverage decreases by more than this threshold.
-  #
-  # Default is 100% (disabled)
-  #
-  def maximum_coverage_drop(coverage_drop=nil)
-    @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
-  end
+    #
+    # Defines the maximum coverage drop at once allowed for the testsuite to pass.
+    # SimpleCov will return non-zero if the coverage decreases by more than this threshold.
+    #
+    # Default is 100% (disabled)
+    #
+    def maximum_coverage_drop(coverage_drop = nil)
+      @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
+    end
 
     #
     # Refuses any coverage drop. That is, coverage is only allowed to increase.
