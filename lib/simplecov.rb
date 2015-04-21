@@ -1,9 +1,20 @@
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
+# Coverage may be inaccurate under JRUBY.
+if defined?(JRUBY_VERSION)
+  if ENV["JRUBY_OPTS"].to_s !~ /-Xcli.debug=true/
+    warn "Coverage may be inaccurate; Try setting JRUBY_OPTS=\"-Xcli.debug=true --debug\""
+    # see https://github.com/metricfu/metric_fu/pull/226
+    #     https://github.com/jruby/jruby/issues/1196
+    #     https://jira.codehaus.org/browse/JRUBY-6106
+    #     https://github.com/colszowka/simplecov/issues/86
+  end
+end
 module SimpleCov
   class << self
     attr_accessor :running
+    attr_accessor :pid
 
     #
     # Sets up SimpleCov to run against your project.
@@ -22,12 +33,13 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def start(profile=nil, &block)
+    def start(profile = nil, &block)
       if SimpleCov.usable?
         load_profile(profile) if profile
         configure(&block) if block_given?
         @result = nil
         self.running = true
+        self.pid = Process.pid
         Coverage.start
       else
         warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
@@ -59,7 +71,7 @@ module SimpleCov
     # Otherwise, returns the result
     #
     def result?
-      defined? @result and @result
+      defined?(@result) && @result
     end
 
     #
@@ -68,7 +80,7 @@ module SimpleCov
     def filtered(files)
       result = files.clone
       filters.each do |filter|
-        result = result.reject {|source_file| filter.matches?(source_file) }
+        result = result.reject { |source_file| filter.matches?(source_file) }
       end
       SimpleCov::FileList.new result
     end
@@ -80,10 +92,10 @@ module SimpleCov
       grouped = {}
       grouped_files = []
       groups.each do |name, filter|
-        grouped[name] = SimpleCov::FileList.new(files.select {|source_file| filter.matches?(source_file)})
+        grouped[name] = SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
         grouped_files += grouped[name]
       end
-      if groups.length > 0 and (other_files = files.reject {|source_file| grouped_files.include?(source_file)}).length > 0
+      if groups.length > 0 && (other_files = files.reject { |source_file| grouped_files.include?(source_file) }).length > 0
         grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
       end
       grouped
@@ -97,7 +109,7 @@ module SimpleCov
     end
 
     def load_adapter(name)
-      warn "method load_adapter is deprecated. use load_profile instead"
+      warn "#{Kernel.caller.first}: [DEPRECATION] #load_adapter is deprecated. Use #load_profile instead."
       load_profile(name)
     end
 
@@ -106,11 +118,11 @@ module SimpleCov
     # provides coverage support
     #
     def usable?
-      return @usable if defined? @usable and !@usable.nil?
+      return @usable if defined?(@usable) && !@usable.nil?
 
       @usable = begin
-        require 'coverage'
-        require 'simplecov/jruby_fix'
+        require "coverage"
+        require "simplecov/jruby_fix"
         true
       rescue LoadError
         false
@@ -120,24 +132,23 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
-require 'simplecov/configuration'
+require "simplecov/configuration"
 SimpleCov.send :extend, SimpleCov::Configuration
-require 'simplecov/exit_codes'
-require 'simplecov/json'
-require 'simplecov/profiles'
-require 'simplecov/source_file'
-require 'simplecov/file_list'
-require 'simplecov/result'
-require 'simplecov/filter'
-require 'simplecov/formatter'
-require 'simplecov/last_run'
-require 'simplecov/merge_helpers'
-require 'simplecov/result_merger'
-require 'simplecov/command_guesser'
-require 'simplecov/version'
+require "simplecov/exit_codes"
+require "simplecov/profiles"
+require "simplecov/source_file"
+require "simplecov/file_list"
+require "simplecov/result"
+require "simplecov/filter"
+require "simplecov/formatter"
+require "simplecov/last_run"
+require "simplecov/merge_helpers"
+require "simplecov/result_merger"
+require "simplecov/command_guesser"
+require "simplecov/version"
 
 # Load default config
-require 'simplecov/defaults' unless ENV['SIMPLECOV_NO_DEFAULTS']
+require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
 
 # Load Rails integration (only for Rails 3, see #113)
-require 'simplecov/railtie' if defined? Rails::Railtie
+require "simplecov/railtie" if defined? Rails::Railtie

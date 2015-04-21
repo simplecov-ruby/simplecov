@@ -30,7 +30,7 @@ Feature:
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
-      SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+      SimpleCov.formatters = [
         SimpleCov::Formatter::SimpleFormatter,
         Class.new do
           def format(result)

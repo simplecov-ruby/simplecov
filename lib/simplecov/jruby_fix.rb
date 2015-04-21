@@ -1,6 +1,6 @@
 if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
-  require 'jruby'
-  java_import 'org.jruby.ast.NodeType'
+  require "jruby"
+  java_import "org.jruby.ast.NodeType"
 
   # Coverage for JRuby < 1.7.0 does not work correctly
   #
@@ -11,9 +11,9 @@ if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
   # This monkey patches Coverage to address those issues
   module Coverage
     class << self
-      alias __broken_result__ result
+      alias_method :__broken_result__, :result
 
-      def result
+      def result # rubocop:disable Metrics/MethodLength
         fixed = {}
         __broken_result__.each do |path, executed_lines|
           next unless File.file? path
