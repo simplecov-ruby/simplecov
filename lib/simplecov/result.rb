@@ -1,5 +1,5 @@
-require 'digest/sha1'
-require 'forwardable'
+require "digest/sha1"
+require "forwardable"
 
 module SimpleCov
   #
@@ -57,9 +57,9 @@ module SimpleCov
       @command_name ||= SimpleCov.command_name
     end
 
-    # Returns a hash representation of this Result that can be used for marshalling it into YAML
+    # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      {command_name => {"coverage" => original_result.reject {|filename, result| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
+      {command_name => {"coverage" => original_result.reject { |filename, _| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
     end
 
     # Loads a SimpleCov::Result#to_hash dump
@@ -71,7 +71,7 @@ module SimpleCov
       result
     end
 
-    private
+  private
 
     # Applies all configured SimpleCov filters on this result's source files
     def filter!
