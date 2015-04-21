@@ -30,7 +30,7 @@ module SimpleCov
     # Returns an array with all coverage percentages
     def covered_percentages
       return [] if empty?
-      map { |f| f.covered_percent }
+      map(&:covered_percent)
     end
 
     # Returns the overall amount of relevant lines of code across all files in this list

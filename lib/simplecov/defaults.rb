@@ -61,25 +61,19 @@ at_exit do
 
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
-    covered_percentages = SimpleCov.result.covered_percentages.map {|p| p.round(2) }
+    covered_percentages = SimpleCov.result.covered_percentages.map { |p| p.round(2) }
 
     if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
       if covered_percent < SimpleCov.minimum_coverage # rubocop:disable Metrics/BlockNesting
         $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
-
-      elsif covered_percentages.any? {|p| p < SimpleCov.minimum_coverage_by_file }
-        $stderr.puts "Coverage (%.2f%%) is below the expected minimum coverage per file (%.2f%%)." % \
-                     [covered_percentages.min, SimpleCov.minimum_coverage_by_file]
-
+      elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file } # rubocop:disable Metrics/BlockNesting
+        $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage per file (%.2f%%).\n", covered_percentages.min, SimpleCov.minimum_coverage_by_file)
         @exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
-
-      elsif (last_run = SimpleCov::LastRun.read)
-        diff = last_run['result']['covered_percent'] - covered_percent
-        if diff > SimpleCov.maximum_coverage_drop
-          $stderr.puts "Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%)." % \
-                       [diff, SimpleCov.maximum_coverage_drop]
-
+      elsif (last_run = SimpleCov::LastRun.read) # rubocop:disable Metrics/BlockNesting
+        diff = last_run["result"]["covered_percent"] - covered_percent
+        if diff > SimpleCov.maximum_coverage_drop # rubocop:disable Metrics/BlockNesting
+          $stderr.printf("Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%).\n", diff, SimpleCov.maximum_coverage_drop)
           @exit_status = SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
         end
       end
