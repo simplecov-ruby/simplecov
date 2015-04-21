@@ -1,14 +1,13 @@
 module GroupHelpers
   def available_groups
-    all('#content .file_list_container')
+    all("#content .file_list_container")
   end
 
   def available_source_files
-    all('.source_files .source_table')
+    all(".source_files .source_table")
   end
 end
 World(GroupHelpers)
-
 
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
@@ -18,8 +17,8 @@ Then /^I should see the groups:$/ do |table|
   # Verify each of the expected groups has a file list container and corresponding title and coverage number
   # as well as the correct number of links to files.
   expected_groups.each do |group|
-    with_scope "#content ##{group["name"].gsub(/[^a-z]/i, '')}.file_list_container" do
-      file_count_in_group = page.all('a.src_link').count
+    with_scope "#content ##{group['name'].gsub(/[^a-z]/i, '')}.file_list_container" do
+      file_count_in_group = page.all("a.src_link").count
       expect(file_count_in_group).to eq(group["files"].to_i)
 
       with_scope "h2" do
@@ -35,9 +34,9 @@ Then /^I should see the source files:$/ do |table|
   expect(expected_files.length).to eq(available_source_files.count)
 
   # Find all filenames and their coverage present in coverage report
-  files = available_source_files.map {|f| {"name" => f.find('h3').text, "coverage" => f.find('h4 > span').text} }
+  files = available_source_files.map { |f| {"name" => f.find("h3").text, "coverage" => f.find("h4 > span").text} }
 
-  expect(files.sort_by {|hsh| hsh["name"] }).to eq(expected_files.sort_by {|hsh| hsh["name"] })
+  expect(files.sort_by { |hsh| hsh["name"] }).to eq(expected_files.sort_by { |hsh| hsh["name"] })
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
