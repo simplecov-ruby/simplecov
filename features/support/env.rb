@@ -23,6 +23,10 @@ Capybara.app = lambda { |env|
 
 Capybara.default_driver = Capybara.javascript_driver = :poltergeist
 
+Capybara.configure do |config|
+  config.ignore_hidden_elements = false
+end
+
 Before do
   # JRuby takes it's time... See https://github.com/cucumber/aruba/issues/134
   @aruba_timeout_seconds = RUBY_ENGINE == "jruby" ? 60 : 20
