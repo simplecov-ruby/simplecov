@@ -26,10 +26,17 @@ module SimpleCov
       map { |f| f.skipped_lines.count }.inject(&:+)
     end
 
-    # Returns the overall amount of relevant lines of code across all files in this list
-    def lines_of_code
-      covered_lines + missed_lines
-    end
+  # Computes the coverage based upon lines covered and lines missed for each file
+  # Returns an array with all coverage percentages
+  def covered_percentages
+    return [] if empty?
+    map {|f| f.covered_percent }
+  end
+
+  # Returns the overall amount of relevant lines of code across all files in this list
+  def lines_of_code
+    covered_lines + missed_lines
+  end
 
     # Computes the coverage based upon lines covered and lines missed
     # @return [Float]
