@@ -1,3 +1,5 @@
+require "English"
+
 # Load default formatter gem
 require "simplecov-html"
 
