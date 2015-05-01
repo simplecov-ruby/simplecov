@@ -16,12 +16,12 @@ module SimpleCov
       @filter_argument = filter_argument
     end
 
-    def matches?(source_file)
-      raise "The base filter class is not intended for direct use"
+    def matches?(_)
+      fail "The base filter class is not intended for direct use"
     end
 
     def passes?(source_file)
-      warn "DEPRECATION: SimpleCov::Filter#passes?(x) has been renamed to #matches?. Please update your custom filters accordingly!"
+      warn "#{Kernel.caller.first}: [DEPRECATION] #passes? is deprecated. Use #matches? instead."
       matches?(source_file)
     end
   end
@@ -39,6 +39,16 @@ module SimpleCov
     # returns true for the given source file.
     def matches?(source_file)
       filter_argument.call(source_file)
+    end
+  end
+
+  class ArrayFilter < SimpleCov::Filter
+    # Returns true if any of the file paths passed in the given array matches the string
+    # configured when initializing this Filter with StringFilter.new(['some/path', 'other/path'])
+    def matches?(source_files_list)
+      filter_argument.any? do |arg|
+        source_files_list.filename =~ /#{arg}/
+      end
     end
   end
 end

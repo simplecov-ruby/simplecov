@@ -24,10 +24,10 @@ Feature: Grouping on RSpec using a custom filter class
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name             | coverage | files |
-      | All Files        | 90.74%   | 6     |
+      | All Files        | 91.8%    | 7     |
       | By filter class  | 78.26%   | 2     |
       | By string        | 100.0%   | 1     |
-      | Ungrouped        | 100.0%   | 3     |
+      | Ungrouped        | 100.0%   | 4     |
 
     And I should see the source files:
       | name                                    | coverage |
@@ -35,6 +35,7 @@ Feature: Grouping on RSpec using a custom filter class
       | lib/faked_project/some_class.rb         | 80.0 %   |
       | lib/faked_project.rb                    | 100.0 %  |
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
+      | spec/forking_spec.rb                    | 100.0 %  |
       | spec/meta_magic_spec.rb                 | 100.0 %  |
       | spec/some_class_spec.rb                 | 100.0 %  |
 

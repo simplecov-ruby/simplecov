@@ -15,6 +15,7 @@ Feature: Sophisticated grouping and filtering on RSpec
           src_file.filename =~ /MaGiC/i
         end
         add_group 'By string', 'project/meta_magic'
+        add_group 'By array', ['project/meta_magic']
 
         add_filter 'faked_project.rb'
         # Remove all files that include "describe" in their source
@@ -29,6 +30,7 @@ Feature: Sophisticated grouping and filtering on RSpec
       | All Files | 100.0%   | 1     |
       | By block  | 100.0%   | 1     |
       | By string | 100.0%   | 1     |
+      | By array  | 100.0%   | 1     |
 
     And I should see the source files:
       | name                            | coverage |

@@ -1,23 +1,27 @@
-script:
-  - bundle
-  - rake appraisal:install
-  - rake appraisal
+language: ruby
+
+before_install:
+  - gem install bundler
+
+bundler_args: --without development --jobs=3 --retry=3
+
+cache: bundler
+
+sudo: false
+
 rvm:
+  - 1.8.7
   - 1.9.3
   - 2.0.0
-  - 2.1.0
+  - 2.1
+  - 2.2
   - ruby-head
-  - rbx-19mode
-# JRuby is taking too long at the moment :(
-#  - jruby-19mode
-#  - jruby-head
+  - jruby
+  - rbx-2
+
 matrix:
   allow_failures:
     - rvm: ruby-head
-    - rvm: jruby-head
-    - rvm: jruby-19mode
-    - rvm: rbx-19mode
-notifications:
-  email:
-    on_success: always
-    on_failure: always
+    - rvm: jruby
+    - rvm: rbx-2
+  fast_finish: true

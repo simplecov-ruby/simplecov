@@ -6,7 +6,7 @@ end
 World(WithinHelpers)
 
 When /^I open the coverage report$/ do
-  visit '/'
+  visit "/"
 end
 
 Given /^(?:|I )am on (.+)$/ do |path|
@@ -31,32 +31,32 @@ end
 
 Then /^(?:|I )should see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
   with_scope(selector) do
-    page.should have_content(text)
+    expect(page).to have_content(text)
   end
 end
 
 Then /^(?:|I )should see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
-    page.should have_xpath('//*', :text => regexp)
+    expect(page).to have_xpath("//*", :text => regexp)
   end
 end
 
 Then /^(?:|I )should not see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
   with_scope(selector) do
-    page.should have_no_content(text)
+    expect(page).to have_no_content(text)
   end
 end
 
 Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
-    page.should have_no_xpath('//*', :text => regexp)
+    expect(page).to have_no_xpath("//*", :text => regexp)
   end
 end
 
 Then /^show me the page$/ do
-  save_and_open_page
+  save_and_open_page # rubocop:disable Lint/Debugger
 end
 
 Then /^print the page$/ do
