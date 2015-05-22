@@ -33,8 +33,8 @@ module SimpleCov
     end
 
     # Finds the least covered file and returns that file's name
-    def least_covered
-      sort_by { |f| f.covered_percent }.first.filename
+    def least_covered_file
+      sort_by(&:covered_percent).first.filename
     end
 
     # Returns the overall amount of relevant lines of code across all files in this list
