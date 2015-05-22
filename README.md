@@ -145,8 +145,8 @@ to use SimpleCov with them. Here's an overview of the known ones:
     <td>
       As of 0.8.0, SimpleCov should correctly recognize parallel_tests and
       supplement your test suite names with their corresponding test env
-      numbers. Locking of the resultset cache should ensure no race conditions
-      occur when results are merged.
+      numbers. SimpleCov locks the resultset cache while merging, ensuring no
+      race conditions occur when results are merged.
     </td>
     <td>
       <a href="https://github.com/colszowka/simplecov/issues/64">#64</a> &amp;
@@ -391,17 +391,17 @@ There are two things to note here though:
 
 ### Test suite names
 
-SimpleCov tries to guess the name of the currently running test suite based upon the shell command the tests are running
-on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it will use the shell command
-that invoked the test suite as a command name.
+SimpleCov tries to guess the name of the currently running test suite based upon the shell command the tests
+are running on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it will use the shell
+command that invoked the test suite as a command name.
 
-If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a cue as to what the
-name of the currently running test suite is. You can do so by specifying `SimpleCov.command_name` in one test file that is
-part of your specific suite.
+If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a
+cue as to what the name of the currently running test suite is. You can do so by specifying
+`SimpleCov.command_name` in one test file that is part of your specific suite.
 
 To customize the suite names on a Rails app (yeah, sorry for being Rails-biased, but everyone knows what
-the structure of those projects is. You can apply this accordingly to the RSpecs in your Outlook-WebDAV-Calendar-Sync gem),
-you could do something like this:
+the structure of those projects is. You can apply this accordingly to the RSpecs in your
+Outlook-WebDAV-Calendar-Sync gem), you could do something like this:
 
 ```ruby
 # test/unit/some_test.rb
@@ -417,8 +417,8 @@ SimpleCov.command_name "test:integration"
 SimpleCov.command_name "features"
 ```
 
-Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files, specifying it in
-some_test.rb is enough.
+Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files,
+specifying it in `some_test.rb` is enough.
 
 Last but not least **if multiple suites resolve to the same `command_name`** be aware that the coverage results **will
 clobber each other instead of being merged**.  SimpleCov is smart enough to detect unique names for the most common
@@ -430,6 +430,14 @@ If you are relying on the default `command_name` then SimpleCov will attempt to 
 `command_name` collisions based on the presence of `ENV['PARALLEL_TEST_GROUPS']` and `ENV['TEST_ENV_NUMBER']`.  If your
 parallel test runner does not set one or both of these then *you must* set a `command_name` and ensure that it is unique
 per process (eg. `command_name "Unit Tests PID #{$$}"`).
+
+If you are using parallel_tests, you must incorporate `TEST_ENV_NUMBER` into the command name yourself, in
+order for SimpleCov to merge the results correctly. For example:
+
+```ruby
+# spec/spec_helper.rb
+SimpleCov.command_name "features" + (ENV['TEST_ENV_NUMBER'] || '')
+```
 
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
 
