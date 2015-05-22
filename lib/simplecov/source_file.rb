@@ -28,7 +28,7 @@ module SimpleCov
         fail ArgumentError, "Only String accepted for source" unless src.is_a?(String)
         fail ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
         fail ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
-        @src, @line_number, @coverage = src, line_number, coverage
+        @src, @line_number, @coverage = src, line_number, coverage # rubocop:disable Metrics/BlockNesting
         @skipped = false
       end
 
@@ -77,7 +77,7 @@ module SimpleCov
     alias_method :source, :src
 
     def initialize(filename, coverage)
-      @filename, @coverage = filename, coverage
+      @filename, @coverage = filename, coverage # rubocop:disable Metrics/BlockNesting
       File.open(filename, "rb") { |f| @src = f.readlines }
     end
 
