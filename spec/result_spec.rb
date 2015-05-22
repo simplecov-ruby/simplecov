@@ -54,7 +54,7 @@ describe "result" do
         expect(subject.covered_percentages).to eq([80.0, 80.0, 100.0])
       end
 
-      [:covered_percent, :covered_percentages, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
+      [:covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
         it "responds to #{msg}" do
           expect(subject).to respond_to(msg)
         end
