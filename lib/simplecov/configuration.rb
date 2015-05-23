@@ -7,7 +7,7 @@ require "simplecov/formatter/multi_formatter"
 # SimpleCov documentation for further info.
 #
 module SimpleCov
-  module Configuration # rubocop:disable Metrics/LineLength
+  module Configuration # rubocop:disable ModuleLength
     attr_writer :filters, :groups, :formatter
 
     #
