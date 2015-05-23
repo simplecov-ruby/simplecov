@@ -7,7 +7,7 @@ require "simplecov/formatter/multi_formatter"
 # SimpleCov documentation for further info.
 #
 module SimpleCov
-  module Configuration # rubocop:disable Metrics/BlockNesting
+  module Configuration
     attr_writer :filters, :groups, :formatter
 
     #
