@@ -34,6 +34,14 @@ describe SimpleCov::Result do
     expect(subject.covered_percent).to eq(78.57142857142857)
   end
 
+  it "has the correct covered percentages" do
+    expect(subject.covered_percentages).to eq([50.0, 80.0, 100.0])
+  end
+
+  it "has the correct least covered file" do
+    expect(subject.least_covered_file).to match(/sample_controller.rb/)
+  end
+
   it "has the correct covered strength" do
     expect(subject.covered_strength).to eq(0.9285714285714286)
   end
