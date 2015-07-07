@@ -3,8 +3,9 @@ require "simplecov-html"
 
 SimpleCov.profiles.define "root_filter" do
   # Exclude all files outside of simplecov root
+  root_filter = /\A#{Regexp.escape(SimpleCov.root)}/io
   add_filter do |src|
-    !(src.filename =~ /^#{Regexp.escape(SimpleCov.root)}/i)
+    !(src.filename =~ root_filter)
   end
 end
 
