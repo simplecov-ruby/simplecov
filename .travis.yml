@@ -1,5 +1,8 @@
 language: ruby
 
+notifications: 
+  email: false
+  
 before_install:
   - gem install bundler
 
