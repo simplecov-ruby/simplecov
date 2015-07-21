@@ -48,11 +48,11 @@ at_exit do
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
 
-  if $ERROR_INFO # was an exception thrown?
+  if $! # was an exception thrown?
     # if it was a SystemExit, use the accompanying status
     # otherwise set a non-zero status representing termination by some other exception
     # (see github issue 41)
-    @exit_status = $ERROR_INFO.is_a?(SystemExit) ? $ERROR_INFO.status : SimpleCov::ExitCodes::EXCEPTION
+    @exit_status = $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
   else
     # Store the exit status of the test run since it goes away after calling the at_exit proc...
     @exit_status = SimpleCov::ExitCodes::SUCCESS
