@@ -166,7 +166,7 @@ module SimpleCov
     def project_name(new_name = nil)
       return @project_name if defined?(@project_name) && @project_name && new_name.nil?
       @project_name = new_name if new_name.is_a?(String)
-      @project_name ||= File.basename(root.split("/").last).capitalize.gsub("_", " ")
+      @project_name ||= File.basename(root.split("/").last).capitalize.tr("_", " ")
     end
 
     #
