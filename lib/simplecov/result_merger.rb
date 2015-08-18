@@ -21,7 +21,7 @@ module SimpleCov
       def resultset
         if stored_data
           begin
-            JSON.parse(stored_data)
+            JSON.parse(stored_data) || {}
           rescue
             {}
           end
