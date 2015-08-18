@@ -16,7 +16,7 @@ group :test do
     gem "i18n", "~> 0.6.11"
   end
   platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
-    gem "aruba", "~> 0.6"
+    gem "aruba", "~> 0.7.4"
     gem "capybara", "~> 2.4"
     gem "cucumber", "~> 2.0"
     gem "phantomjs", "~> 1.9"
