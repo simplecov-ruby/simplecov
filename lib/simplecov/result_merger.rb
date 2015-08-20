@@ -19,9 +19,9 @@ module SimpleCov
 
       # Loads the cached resultset from JSON and returns it as a Hash
       def resultset
-        if stored_data
+        if stored_data && !stored_data.empty?
           begin
-            JSON.parse(stored_data) || {}
+            JSON.parse(stored_data)
           rescue
             {}
           end
