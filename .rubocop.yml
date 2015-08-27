@@ -57,6 +57,7 @@ Style/SpecialGlobalVars:
   Exclude:
     - 'spec/deleted_source_spec.rb'
     - 'spec/return_codes_spec.rb'
+    - 'lib/simplecov/defaults.rb'
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
