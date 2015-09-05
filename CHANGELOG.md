@@ -3,15 +3,14 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...m
 
 ## Enhancements
 
- * Deprecation warnings are now more consistent.
- * Various under-the-hood speed-improvements
- * Replace test/unit + shoulda with RSpec
+ * NEW: Minimum coverage by file. See [#392](https://github.com/colszowka/simplecov/pull/392) and [#405](https://github.com/colszowka/simplecov/pull/405) (thanks @gerry3)
+ * Speed improvements. See [#396](https://github.com/colszowka/simplecov/pull/396) (thanks @raszi)
 
 ## Bugfixes
 
- * Fix default minimum coverage by file error message
- * Avoid bundling aruba 0.8.x for now
- * Fixed "warning: global variable `$ERROR_INFO' not initialized"
+ * Fix default minimum coverage by file error message. See [#405](https://github.com/colszowka/simplecov/pull/405)
+ * Avoid bundling aruba 0.8.x for now. See [#407](https://github.com/colszowka/simplecov/pull/407)
+ * Fixed "warning: global variable `$ERROR_INFO' not initialized". See [#400](https://github.com/colszowka/simplecov/pull/400)
 
 
 
