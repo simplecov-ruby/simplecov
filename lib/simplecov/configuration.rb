@@ -42,6 +42,10 @@ module SimpleCov
       coverage_path
     end
 
+    def track_files(glob)
+      @track_files_glob = glob
+    end
+
     #
     # Returns the list of configured filters. Add filters using SimpleCov.add_filter.
     #
