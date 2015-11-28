@@ -47,7 +47,8 @@ describe SimpleCov::SourceFile do
 
   context "with no filters set up and a basic source file in an array" do
     before do
-      @prev_filters, SimpleCov.filters = SimpleCov.filters, []
+      @prev_filters = SimpleCov.filters
+      SimpleCov.filters = []
     end
 
     subject do
