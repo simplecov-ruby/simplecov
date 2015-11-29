@@ -1,5 +1,6 @@
 # Load default formatter gem
 require "simplecov-html"
+require "pathname"
 
 SimpleCov.profiles.define "root_filter" do
   # Exclude all files outside of simplecov root
@@ -97,5 +98,20 @@ if home_dir
 end
 
 # Autoload config from .simplecov if present
-config_path = File.join(SimpleCov.root, ".simplecov")
-load config_path if File.exist?(config_path)
+# Recurse upwards until we find .simplecov or reach the root directory
+
+config_path = Pathname.new(SimpleCov.root)
+loop do
+  filename = config_path.join(".simplecov")
+  if filename.exist?
+    begin
+      load filename
+    rescue LoadError, StandardError
+      $stderr.puts "Warning: Error occurred while trying to load #{filename}. " \
+        "Error message: #{$!.message}"
+    end
+    break
+  end
+  config_path, = config_path.split
+  break if config_path.root?
+end
