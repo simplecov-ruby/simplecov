@@ -49,11 +49,28 @@ module SimpleCov
     end
 
     #
+    # Finds files that were to be tracked but were not loaded and initializes
+    # their coverage to zero.
+    #
+    def add_not_loaded_files(result)
+      if @track_files_glob
+        result = result.dup
+        Dir[@track_files_glob].each do |file|
+          absolute = File.expand_path(file)
+
+          result[absolute] ||= [0] * File.foreach(absolute).count
+        end
+      end
+
+      result
+    end
+
+    #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
     #
     def result
-      @result ||= SimpleCov::Result.new(Coverage.result) if running
+      @result ||= SimpleCov::Result.new(add_not_loaded_files(Coverage.result)) if running
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
