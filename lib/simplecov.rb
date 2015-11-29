@@ -49,19 +49,16 @@ module SimpleCov
     end
 
     #
-    # Finds files that were to be tracked but were not covered and initializes
-    # their coverage to zero, with an estimation of the line count.
+    # Finds files that were to be tracked but were not loaded and initializes
+    # their coverage to zero.
     #
-    def add_uncovered_files(result)
+    def add_not_loaded_files(result)
       if @track_files_glob
         result = result.dup
         Dir[@track_files_glob].each do |file|
           absolute = File.expand_path(file)
 
-          unless result[absolute]
-            lines = File.readlines(absolute)
-            result[absolute] = [0] * lines.count { |l| relevant_line?(l) }
-          end
+          result[absolute] ||= [0] * File.foreach(absolute).count
         end
       end
 
@@ -69,24 +66,11 @@ module SimpleCov
     end
 
     #
-    # Determines if a line should be considered by coverage tools.
-    # This method is just an estimation, but it is not very important
-    # that it is accurate. It is only used when all lines in a file
-    # are not covered. As soon as a single line is covered, the counting
-    # method will be the one provided by the Coverage module.
-    #
-    def relevant_line?(line)
-      l = line.strip
-
-      !(l.empty? || l =~ /^else$/ || l =~ /^end$/ || l[0] == '#' || l =~ /^rescue(\s+.*)?$/)
-    end
-
-    #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
     #
     def result
-      @result ||= SimpleCov::Result.new(add_uncovered_files(Coverage.result)) if running
+      @result ||= SimpleCov::Result.new(add_not_loaded_files(Coverage.result)) if running
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
