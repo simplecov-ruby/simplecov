@@ -18,6 +18,11 @@ group :test do
   platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
     gem "aruba", "~> 0.7.4"
     gem "capybara", "~> 2.4"
+
+    # Hack until Capybara fixes its gemspec. 3.0 removed 1.9 support.
+    # See https://github.com/jnicklas/capybara/issues/1615
+    gem "mime-types", "~> 2.0.0"
+
     gem "cucumber", "~> 2.0"
     gem "phantomjs", "~> 1.9"
     gem "poltergeist", "~> 1.1"
