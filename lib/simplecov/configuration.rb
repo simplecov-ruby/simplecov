@@ -42,6 +42,11 @@ module SimpleCov
       coverage_path
     end
 
+    #
+    # Coverage results will always include files matched by this glob, whether
+    # or not they were explicitly required. Without this, un-required files
+    # will not be present in the final report.
+    #
     def track_files(glob)
       @track_files_glob = glob
     end
