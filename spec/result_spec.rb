@@ -3,9 +3,12 @@ require "helper"
 describe "result" do
   context "with a (mocked) Coverage.result" do
     before do
-      @prev_filters,   SimpleCov.filters   = SimpleCov.filters,   []
-      @prev_groups,    SimpleCov.groups    = SimpleCov.groups,    {}
-      @prev_formatter, SimpleCov.formatter = SimpleCov.formatter, nil
+      @prev_filters = SimpleCov.filters
+      SimpleCov.filters = []
+      @prev_groups = SimpleCov.groups
+      SimpleCov.groups = {}
+      @prev_formatter = SimpleCov.formatter
+      SimpleCov.formatter = nil
     end
 
     after do

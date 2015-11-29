@@ -1,11 +1,25 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...master))
 =================
 
 ## Enhancements
 
 ## Bugfixes
 
-0.10.0 2015-04-18 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...0.10.0))
+0.11.0 2015-11-29 ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...v0.10.11))
+=================
+
+## Enhancements
+
+* Added `SimpleCov.minimum_coverage_by_file` for per-file coverage thresholds. See [#392](https://github.com/colszowka/simplecov/pull/392) (thanks @ptashman)
+* Added `track_files` configuration option to specify a glob to always include in coverage results, whether or not those files are required. See [#422](https://github.com/colszowka/simplecov/pull/422) (thanks @hugopeixoto)
+* Speed up `root_filter` by an order of magnitude. See [#396](https://github.com/colszowka/simplecov/pull/396) (thanks @raszi)
+
+## Bugfixes
+
+* Fix warning about global variable `$ERROR_INFO`. See [#400](https://github.com/colszowka/simplecov/pull/400) (thanks @amatsuda)
+* Actually recurse upward looking for `.simplecov`, as claimed by the documentation, rather than only the working directory. See [#423](https://github.com/colszowka/simplecov/pull/423) (thanks @alexdowad)
+
+0.10.0 2015-04-18 ([changes](https://github.com/colszowka/simplecov/compare/v0.9.2...v0.10.0))
 =================
 
 ## Enhancements
