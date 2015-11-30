@@ -5,7 +5,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 
 ## Bugfixes
 
-0.11.0 2015-11-29 ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...v0.10.11))
+0.11.0 2015-11-29 ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...v0.11.0))
 =================
 
 ## Enhancements
