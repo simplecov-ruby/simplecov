@@ -2,13 +2,17 @@
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
 # Coverage may be inaccurate under JRUBY.
-if defined?(JRUBY_VERSION)
-  if ENV["JRUBY_OPTS"].to_s !~ /-Xcli.debug=true/
-    warn "Coverage may be inaccurate; Try setting JRUBY_OPTS=\"-Xcli.debug=true --debug\""
-    # see https://github.com/metricfu/metric_fu/pull/226
-    #     https://github.com/jruby/jruby/issues/1196
-    #     https://jira.codehaus.org/browse/JRUBY-6106
-    #     https://github.com/colszowka/simplecov/issues/86
+if defined?(JRUBY_VERSION) && defined?(JRuby)
+
+  # @see https://github.com/jruby/jruby/issues/1196
+  # @see https://github.com/metricfu/metric_fu/pull/226
+  # @see https://github.com/colszowka/simplecov/issues/420
+  # @see https://github.com/colszowka/simplecov/issues/86
+  # @see https://jira.codehaus.org/browse/JRUBY-6106
+
+  unless JRuby.runtime.debug?
+    warn 'Coverage may be inaccurate; set "cli.debug=true" ("-Xcli.debug=true") in your .jrubyrc or' \
+      ' do JRUBY_OPTS="-d"'
   end
 end
 module SimpleCov
