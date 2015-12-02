@@ -5,6 +5,15 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 
 ## Bugfixes
 
+0.11.1 2015-12-01 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...v0.11.1))
+=================
+
+## Enhancements
+
+## Bugfixes
+
+* Fixed regression in `MultiFormatter.[]` with multiple arguments. See [#431](https://github.com/colszowka/simplecov/pull/431) (thanks @dillondrobena)
+
 0.11.0 2015-11-29 ([changes](https://github.com/colszowka/simplecov/compare/v0.10.0...v0.11.0))
 =================
 
