@@ -25,7 +25,7 @@ module SimpleCov
 
       def self.[](*args)
         warn "#{Kernel.caller.first}: [DEPRECATION] ::[] is deprecated. Use ::new instead."
-        new(*args)
+        new(Array([*args]))
       end
     end
   end
