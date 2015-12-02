@@ -17,7 +17,7 @@ module SimpleCov
       def self.new(formatters = nil)
         Class.new do
           define_method :formatters do
-            @formatters ||= Array(formatters)
+            @formatters ||= Array([formatters])
           end
           include InstanceMethods
         end
