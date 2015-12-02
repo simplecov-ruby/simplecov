@@ -17,7 +17,7 @@ module SimpleCov
       def self.new(formatters = nil)
         Class.new do
           define_method :formatters do
-            @formatters ||= Array([formatters])
+            @formatters ||= Array(formatters)
           end
           include InstanceMethods
         end
@@ -25,7 +25,7 @@ module SimpleCov
 
       def self.[](*args)
         warn "#{Kernel.caller.first}: [DEPRECATION] ::[] is deprecated. Use ::new instead."
-        new(*args)
+        new(Array(*args))
       end
     end
   end
