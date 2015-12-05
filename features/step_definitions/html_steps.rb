@@ -42,3 +42,20 @@ end
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
   expect(all(".source_table ol li.skipped").count).to eq(expected_count.to_i)
 end
+
+Then /^the line count per file should be distributed as follows:$/ do |table|
+  files = Hash[available_source_files.map do |f|
+    counts = {
+      "name" => f.find("h3").text,
+      "never" => f.all("ol li.never").count.to_s,
+      "covered" => f.all("ol li.covered").count.to_s,
+      "skipped" => f.all("ol li.skipped").count.to_s,
+      "missed" => f.all("ol li.missed").count.to_s,
+    }
+    [f.find("h3").text, counts]
+  end]
+
+  table.hashes.each do |row|
+    expect(files[row["name"]]).to eq(row)
+  end
+end
