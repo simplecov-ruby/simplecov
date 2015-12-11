@@ -20,7 +20,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 ## Enhancements
 
 * Added `SimpleCov.minimum_coverage_by_file` for per-file coverage thresholds. See [#392](https://github.com/colszowka/simplecov/pull/392) (thanks @ptashman)
-* Added `track_files` configuration option to specify a glob to always include in coverage results, whether or not those files are required. See [#422](https://github.com/colszowka/simplecov/pull/422) (thanks @hugopeixoto)
+* Added `track_files` configuration option to specify a glob to always include in coverage results, whether or not those files are required. By default, this is enabled in the Rails profile for common Rails directories. See [#422](https://github.com/colszowka/simplecov/pull/422) (thanks @hugopeixoto)
 * Speed up `root_filter` by an order of magnitude. See [#396](https://github.com/colszowka/simplecov/pull/396) (thanks @raszi)
 
 ## Bugfixes
