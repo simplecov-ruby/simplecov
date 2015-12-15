@@ -6,6 +6,8 @@ module SimpleCov
       array.each_with_index do |element, i|
         if element.nil? && new_array[i].nil?
           new_array[i] = nil
+        elsif (element.nil? && new_array[i] == 0) || (element == 0 && new_array[i].nil?)
+          new_array[i] = nil
         else
           local_value = element || 0
           other_value = new_array[i] || 0
