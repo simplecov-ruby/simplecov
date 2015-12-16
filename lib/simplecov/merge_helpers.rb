@@ -4,14 +4,11 @@ module SimpleCov
     def merge_resultset(array)
       new_array = dup
       array.each_with_index do |element, i|
-        if element.nil? && new_array[i].nil?
-          new_array[i] = nil
-        elsif (element.nil? && new_array[i] == 0) || (element == 0 && new_array[i].nil?)
+        pair = [element, new_array[i]]
+        if pair.any?(&:nil?) && pair.map(&:to_i).all?(&:zero?)
           new_array[i] = nil
         else
-          local_value = element || 0
-          other_value = new_array[i] || 0
-          new_array[i] = local_value + other_value
+          new_array[i] = element.to_i + new_array[i].to_i
         end
       end
       new_array
