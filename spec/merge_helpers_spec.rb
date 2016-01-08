@@ -25,7 +25,7 @@ describe "merge helpers" do
       end
 
       it "has proper results for sample.rb" do
-        expect(subject[source_fixture("sample.rb")]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
+        expect(subject[source_fixture("sample.rb")]).to eq([nil, nil, 2, 2, nil, nil, 2, 2, nil, nil])
       end
 
       it "has proper results for user.rb" do
@@ -33,7 +33,7 @@ describe "merge helpers" do
       end
 
       it "has proper results for sample_controller.rb" do
-        expect(subject[source_fixture("app/controllers/sample_controller.rb")]).to eq([nil, 4, 2, 1, nil, nil, 2, 0, nil, nil])
+        expect(subject[source_fixture("app/controllers/sample_controller.rb")]).to eq([nil, 4, 2, nil, nil, nil, 2, 0, nil, nil])
       end
 
       it "has proper results for resultset1.rb" do
