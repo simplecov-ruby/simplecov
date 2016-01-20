@@ -27,12 +27,9 @@ module SimpleCov
       end
 
       new_resultset.each_key do |filename|
-        new_resultset[filename] = (self[filename] || []).merge_resultset(hash[filename] || [])
+        new_resultset[filename] = (self[filename] || []).extend(SimpleCov::ArrayMergeHelper).merge_resultset(hash[filename] || [])
       end
       new_resultset
     end
   end
 end
-
-Array.send :include, SimpleCov::ArrayMergeHelper
-Hash.send :include, SimpleCov::HashMergeHelper
