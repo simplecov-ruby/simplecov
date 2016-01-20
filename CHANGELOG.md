@@ -3,6 +3,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 
 ## Enhancements
 
+* Do not globally pollute Array and Hash with `merge_resultset` utility methods. See [#449](https://github.com/colszowka/simplecov/pull/449) (thanks @amatsuda)
+
 ## Bugfixes
 
 0.11.1 2015-12-01 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...v0.11.1))
