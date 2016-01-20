@@ -74,14 +74,22 @@ module SimpleCov
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
     #
     def result
-      @result ||= SimpleCov::Result.new(add_not_loaded_files(Coverage.result)) if running
+      # Ensure the variable is defined to avoid ruby warnings
+      @result = nil unless defined?(@result)
+
+      # Collect our coverage result
+      if running && !result?
+        @result = SimpleCov::Result.new add_not_loaded_files(Coverage.result)
+      end
+
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
-        SimpleCov::ResultMerger.store_result(@result) if @result
-        return SimpleCov::ResultMerger.merged_result
+        SimpleCov::ResultMerger.store_result(@result) if result?
+
+        SimpleCov::ResultMerger.merged_result
       else
-        return @result if defined? @result
+        @result
       end
     ensure
       self.running = false

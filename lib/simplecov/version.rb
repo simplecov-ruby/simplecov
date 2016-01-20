@@ -1,22 +1,25 @@
 module SimpleCov
-  VERSION = "0.11.1"
-  def VERSION.to_a
+  version = "0.11.1"
+
+  def version.to_a
     split(".").map(&:to_i)
   end
 
-  def VERSION.major
+  def version.major
     to_a[0]
   end
 
-  def VERSION.minor
+  def version.minor
     to_a[1]
   end
 
-  def VERSION.patch
+  def version.patch
     to_a[2]
   end
 
-  def VERSION.pre
+  def version.pre
     to_a[3]
   end
+
+  VERSION = version.freeze
 end

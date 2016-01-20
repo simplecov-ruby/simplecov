@@ -114,7 +114,7 @@ module SimpleCov
       return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
       @nocov_token = (nocov_token || "nocov")
     end
-    alias_method :skip_token, :nocov_token
+    alias skip_token nocov_token
 
     #
     # Returns the configured groups. Add groups using SimpleCov.add_group
