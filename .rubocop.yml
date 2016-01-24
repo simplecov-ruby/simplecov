@@ -68,3 +68,6 @@ Style/FileName:
 
 Style/TrailingCommaInLiteral:
   EnforcedStyleForMultiline: comma
+
+Style/GuardClause:
+  Enabled: false
