@@ -4,10 +4,10 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 ## Enhancements
 
 * Do not globally pollute Array and Hash with `merge_resultset` utility methods. See [#449](https://github.com/colszowka/simplecov/pull/449) (thanks @amatsuda)
+* Do not `mkdir_p` the `coverage_path` on every access of the method (See [#453](https://github.com/colszowka/simplecov/pull/453) (thanks @paddor)
+* Fixes a Ruby warning related to the `track_files` configuration. See [#447](https://github.com/colszowka/simplecov/pull/447) (thanks @craiglittle)
 
 ## Bugfixes
-
-* Fixes a Ruby warning related to the `track_files` configuration. See [#447](https://github.com/colszowka/simplecov/pull/447) (thanks @craiglittle)
 
 0.11.1 2015-12-01 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...v0.11.1))
 =================
