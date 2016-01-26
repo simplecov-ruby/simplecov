@@ -28,6 +28,7 @@ module SimpleCov
     #
     def coverage_dir(dir = nil)
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
+      @coverage_path = nil # invalidate cache
       @coverage_dir = (dir || "coverage")
     end
 
@@ -37,9 +38,11 @@ module SimpleCov
     # values. Will create the directory if it's missing
     #
     def coverage_path
-      coverage_path = File.expand_path(coverage_dir, root)
-      FileUtils.mkdir_p coverage_path
-      coverage_path
+      @coverage_path ||= begin
+        coverage_path = File.expand_path(coverage_dir, root)
+        FileUtils.mkdir_p coverage_path
+        coverage_path
+      end
     end
 
     #
