@@ -6,6 +6,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 * Do not globally pollute Array and Hash with `merge_resultset` utility methods. See [#449](https://github.com/colszowka/simplecov/pull/449) (thanks @amatsuda)
 * Do not `mkdir_p` the `coverage_path` on every access of the method (See [#453](https://github.com/colszowka/simplecov/pull/453) (thanks @paddor)
 * Fixes a Ruby warning related to the `track_files` configuration. See [#447](https://github.com/colszowka/simplecov/pull/447) (thanks @craiglittle)
+* Add a group for background jobs to default Rails profile. See [#442](https://github.com/colszowka/simplecov/pull/442) (thanks @stve)
 
 ## Bugfixes
 
