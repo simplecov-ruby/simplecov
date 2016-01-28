@@ -66,5 +66,8 @@ Style/FileName:
   Exclude:
     - 'spec/fixtures/utf-8.rb'
 
-Style/TrailingComma:
-  EnforcedStyleForMultiline: 'comma'
+Style/TrailingCommaInLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/GuardClause:
+  Enabled: false

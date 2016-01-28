@@ -34,6 +34,7 @@ module SimpleCov
     #
     def coverage_dir(dir = nil)
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
+      @coverage_path = nil # invalidate cache
       @coverage_dir = (dir || "coverage")
     end
 
@@ -43,9 +44,11 @@ module SimpleCov
     # values. Will create the directory if it's missing
     #
     def coverage_path
-      coverage_path = File.expand_path(coverage_dir, root)
-      FileUtils.mkdir_p coverage_path
-      coverage_path
+      @coverage_path ||= begin
+        coverage_path = File.expand_path(coverage_dir, root)
+        FileUtils.mkdir_p coverage_path
+        coverage_path
+      end
     end
 
     #
@@ -53,8 +56,9 @@ module SimpleCov
     # or not they were explicitly required. Without this, un-required files
     # will not be present in the final report.
     #
-    def track_files(glob)
-      @track_files_glob = glob
+    def track_files(glob = nil)
+      return @track_files if defined?(@track_files) && glob.nil?
+      @track_files = glob
     end
 
     #
@@ -120,7 +124,7 @@ module SimpleCov
       return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
       @nocov_token = (nocov_token || "nocov")
     end
-    alias_method :skip_token, :nocov_token
+    alias skip_token nocov_token
 
     #
     # Returns the configured groups. Add groups using SimpleCov.add_group

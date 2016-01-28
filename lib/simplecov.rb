@@ -57,9 +57,9 @@ module SimpleCov
     # their coverage to zero.
     #
     def add_not_loaded_files(result)
-      if @track_files_glob
+      if track_files
         result = result.dup
-        Dir[@track_files_glob].each do |file|
+        Dir[track_files].each do |file|
           absolute = File.expand_path(file)
 
           result[absolute] ||= [0] * File.foreach(absolute).count
@@ -74,14 +74,22 @@ module SimpleCov
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
     #
     def result
-      @result ||= SimpleCov::Result.new(add_not_loaded_files(Coverage.result)) if running
+      # Ensure the variable is defined to avoid ruby warnings
+      @result = nil unless defined?(@result)
+
+      # Collect our coverage result
+      if running && !result?
+        @result = SimpleCov::Result.new add_not_loaded_files(Coverage.result)
+      end
+
       # If we're using merging of results, store the current result
       # first, then merge the results and return those
       if use_merging
-        SimpleCov::ResultMerger.store_result(@result) if @result
-        return SimpleCov::ResultMerger.merged_result
+        SimpleCov::ResultMerger.store_result(@result) if result?
+
+        SimpleCov::ResultMerger.merged_result
       else
-        return @result if defined? @result
+        @result
       end
     ensure
       self.running = false

@@ -9,7 +9,7 @@ describe "merge helpers" do
         source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
         source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
         source_fixture("resultset1.rb") => [1, 1, 1, 1],
-      }
+      }.extend(SimpleCov::HashMergeHelper)
 
       @resultset2 = {
         source_fixture("sample.rb") => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil],

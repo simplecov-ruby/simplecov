@@ -20,9 +20,9 @@ module SimpleCov
       attr_reader :skipped
 
       # Lets grab some fancy aliases, shall we?
-      alias_method :source, :src
-      alias_method :line, :line_number
-      alias_method :number, :line_number
+      alias source src
+      alias line line_number
+      alias number line_number
 
       def initialize(src, line_number, coverage)
         fail ArgumentError, "Only String accepted for source" unless src.is_a?(String)
@@ -76,7 +76,7 @@ module SimpleCov
     attr_reader :coverage
     # The source code for this file. Aliased as :source
     attr_reader :src
-    alias_method :source, :src
+    alias source src
 
     def initialize(filename, coverage)
       @filename = filename
@@ -102,7 +102,7 @@ module SimpleCov
       process_skipped_lines!
       @lines
     end
-    alias_method :source_lines, :lines
+    alias source_lines lines
 
     # Access SimpleCov::SourceFile::Line source lines by line number
     def line(number)
@@ -116,7 +116,7 @@ module SimpleCov
       if relevant_lines.zero?
         0.0
       else
-        Float((covered_lines.count) * 100.0 / relevant_lines.to_f)
+        Float(covered_lines.count * 100.0 / relevant_lines.to_f)
       end
     end
 
@@ -172,8 +172,8 @@ module SimpleCov
       lines.each do |line|
         if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
           skipping = !skipping
-        else
-          line.skipped! if skipping
+        elsif skipping
+          line.skipped!
         end
       end
     end
