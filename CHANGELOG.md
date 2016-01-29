@@ -10,6 +10,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 
 ## Bugfixes
 
+* Fix root_filter evaluates SimpleCov.root before initialization. See [#437](https://github.com/colszowka/simplecov/pull/437) (thanks @tmtm)
+
 0.11.1 2015-12-01 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...v0.11.1))
 =================
 
