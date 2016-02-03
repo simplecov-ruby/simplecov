@@ -177,9 +177,7 @@ module SimpleCov
           line.skipped!
         else
           SimpleCov.nocov_regexes.each do |regex|
-            if line.src =~ regex
-              line.skipped!
-            end
+            line.skipped! if line.src =~ regex
           end
         end
       end

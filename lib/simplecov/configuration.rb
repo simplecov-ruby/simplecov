@@ -128,8 +128,7 @@ module SimpleCov
     # this method multiple times to define multiple regular expressions
     #
     def nocov_regexes(nocov_regex = nil)
-      return @nocov_regexes if defined?(@nocov_regexes) && nocov_regex.nil?
-      @nocov_regexes = [] if @nocov_regexes.nil?
+      @nocov_regexes ||= []
       @nocov_regexes << nocov_regex unless nocov_regex.nil?
       @nocov_regexes
     end

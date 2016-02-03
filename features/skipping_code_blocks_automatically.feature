@@ -1,4 +1,4 @@
-@test_unit @nocov_regex
+@test_unit
 Feature:
 
   When code matches a nocov regex, it does not count against the coverage numbers
