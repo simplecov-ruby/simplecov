@@ -22,3 +22,12 @@ ensure
   # Restore the previous value of stderr (typically equal to STDERR).
   $stderr = previous_stderr
 end
+
+RSpec.configure do |config|
+  # Fail tests if code generates runtime warnings
+  config.around(:example) do |example|
+    expect{example.call}
+      .not_to output(/^#{Regexp.escape(Dir.pwd)}\/.+:\d+: warning: /)
+      .to_stderr
+  end
+end
