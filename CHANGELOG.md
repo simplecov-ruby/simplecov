@@ -1,4 +1,11 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...master))
+=================
+
+## Enhancements
+
+## Bugfixes
+
+0.11.2 2016-02-03 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.1...v0.11.2))
 =================
 
 ## Enhancements
