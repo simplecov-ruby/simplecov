@@ -49,8 +49,6 @@ RSpec.configure do |config|
   end
   # Fail tests if code generates runtime warnings
   config.around(:example) do |example|
-    expect { example.call }
-      .not_to output(/^#{project_path_regexp}\/.+:\d+: warning: /)
-      .to_stderr
+    expect { example.call }.not_to output(/^#{project_path_regexp}\/.+:\d+: warning: /).to_stderr
   end
 end
