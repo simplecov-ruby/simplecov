@@ -121,6 +121,21 @@ module SimpleCov
     alias skip_token nocov_token
 
     #
+    # Any lines matching regular expressions in this array will be excluded
+    # from the coverage metrics, just as if they were wrapped with :nocov:
+    #
+    # Configure with SimpleCov.nocov_regex(/^[\s]*my_method/). You may call
+    # this method multiple times to define multiple regular expressions
+    #
+    def nocov_regexes(nocov_regex = nil)
+      return @nocov_regexes if defined?(@nocov_regexes) && nocov_regex.nil?
+      @nocov_regexes = [] if @nocov_regexes.nil?
+      @nocov_regexes << nocov_regex unless nocov_regex.nil?
+      @nocov_regexes
+    end
+    alias nocov_regex nocov_regexes
+
+    #
     # Returns the configured groups. Add groups using SimpleCov.add_group
     #
     def groups

@@ -166,7 +166,8 @@ module SimpleCov
     end
 
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
-    # as skipped.
+    # as skipped. If they aren't in a nocov block but match a nocov_regex, they
+    # will similarly be skipped.
     def process_skipped_lines!
       skipping = false
       lines.each do |line|
@@ -174,6 +175,12 @@ module SimpleCov
           skipping = !skipping
         elsif skipping
           line.skipped!
+        else
+          SimpleCov.nocov_regexes.each do |regex|
+            if line.src =~ regex
+              line.skipped!
+            end
+          end
         end
       end
     end
