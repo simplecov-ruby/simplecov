@@ -38,7 +38,7 @@ RSpec.configure do |config|
         end
       end
       example.call
-      kernel_warn_callers.keep_if{|c| c.match(/^#{project_path_regexp}/)}
+      kernel_warn_callers.keep_if { |c| c =~ /^#{project_path_regexp}/ }
       expect(kernel_warn_callers).to be_empty, "Kernel\#warn called from: #{kernel_warn_callers.join(', ')}."
     ensure
       Kernel.class_exec do
@@ -49,7 +49,7 @@ RSpec.configure do |config|
   end
   # Fail tests if code generates runtime warnings
   config.around(:example) do |example|
-    expect{example.call}
+    expect { example.call }
       .not_to output(/^#{project_path_regexp}\/.+:\d+: warning: /)
       .to_stderr
   end
