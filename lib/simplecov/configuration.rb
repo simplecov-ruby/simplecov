@@ -10,12 +10,6 @@ module SimpleCov
   module Configuration # rubocop:disable ModuleLength
     attr_writer :filters, :groups, :formatter
 
-    def self.extended(base)
-      base.instance_eval do
-        @track_files_glob = nil
-      end
-    end
-
     #
     # The root for the project. This defaults to the
     # current working directory.
