@@ -24,10 +24,33 @@ ensure
 end
 
 RSpec.configure do |config|
+  project_path_regexp = Regexp.escape(Dir.pwd)
+  # Fail tests if Kernel#warn is executed
+  config.around(:example) do |example|
+    original_warn = Kernel.method(:warn)
+    begin
+      kernel_warn_callers = []
+      Kernel.class_exec do
+        remove_method(:warn)
+        define_method(:warn) do |*args, &block|
+          kernel_warn_callers << caller.first
+          original_warn.call(*args, &block)
+        end
+      end
+      example.call
+      kernel_warn_callers.keep_if{|c| c.match(/^#{project_path_regexp}/)}
+      expect(kernel_warn_callers).to be_empty, "Kernel\#warn called from: #{kernel_warn_callers.join(', ')}."
+    ensure
+      Kernel.class_exec do
+        remove_method(:warn)
+        define_method(:warn, original_warn.to_proc)
+      end
+    end
+  end
   # Fail tests if code generates runtime warnings
   config.around(:example) do |example|
     expect{example.call}
-      .not_to output(/^#{Regexp.escape(Dir.pwd)}\/.+:\d+: warning: /)
+      .not_to output(/^#{project_path_regexp}\/.+:\d+: warning: /)
       .to_stderr
   end
 end
