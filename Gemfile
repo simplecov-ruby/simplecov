@@ -15,7 +15,7 @@ group :test do
     gem "activesupport", "~> 3.2.21"
     gem "i18n", "~> 0.6.11"
   end
-  platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22 do
+  platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22, :ruby_23 do
     gem "aruba", "~> 0.7.4"
     gem "capybara", "~> 2.4"
 

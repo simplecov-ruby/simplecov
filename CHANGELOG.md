@@ -1,4 +1,11 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...master))
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...master))
+=================
+
+## Enhancements
+
+## Bugfixes
+
+0.11.2 2016-02-03 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.1...v0.11.2))
 =================
 
 ## Enhancements
@@ -9,6 +16,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...m
 * Add a group for background jobs to default Rails profile. See [#442](https://github.com/colszowka/simplecov/pull/442) (thanks @stve)
 
 ## Bugfixes
+
+* Fix root_filter evaluates SimpleCov.root before initialization. See [#437](https://github.com/colszowka/simplecov/pull/437) (thanks @tmtm)
 
 0.11.1 2015-12-01 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.0...v0.11.1))
 =================
