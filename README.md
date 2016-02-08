@@ -1,4 +1,4 @@
-SimpleCov [![Build Status](https://secure.travis-ci.org/colszowka/simplecov.png)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.png)][Dependencies] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.png)](https://codeclimate.com/github/colszowka/simplecov) [![Inline docs](http://inch-ci.org/github/colszowka/simplecov.png)](http://inch-ci.org/github/colszowka/simplecov)
+SimpleCov [![Build Status](https://travis-ci.org/colszowka/simplecov.svg)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.svg)][Dependencies] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.svg)](https://codeclimate.com/github/colszowka/simplecov) [![Inline docs](http://inch-ci.org/github/colszowka/simplecov.svg)](http://inch-ci.org/github/colszowka/simplecov)
 =========
 **Code coverage for Ruby**
 
