@@ -21,5 +21,5 @@ module SimpleCov
     to_a[3]
   end
 
-  VERSION = version.freeze
+  VERSION = version
 end
