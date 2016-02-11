@@ -5,11 +5,11 @@ module SimpleCov
       new_array = dup
       array.each_with_index do |element, i|
         pair = [element, new_array[i]]
-        if pair.any?(&:nil?) && pair.map(&:to_i).all?(&:zero?)
-          new_array[i] = nil
-        else
-          new_array[i] = element.to_i + new_array[i].to_i
-        end
+        new_array[i] = if pair.any?(&:nil?) && pair.map(&:to_i).all?(&:zero?)
+                         nil
+                       else
+                         element.to_i + new_array[i].to_i
+                       end
       end
       new_array
     end
