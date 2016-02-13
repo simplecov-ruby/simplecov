@@ -57,9 +57,9 @@ module SimpleCov
     # their coverage to zero.
     #
     def add_not_loaded_files(result)
-      if track_files
+      if tracked_files
         result = result.dup
-        Dir[track_files].each do |file|
+        Dir[tracked_files].each do |file|
           absolute = File.expand_path(file)
 
           result[absolute] ||= [0] * File.foreach(absolute).count
