@@ -5,6 +5,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.13.0...m
 
 * Officially support JRuby 9.1+ going forward (should also work with previous releases). See [#547](https://github.com/colszowka/simplecov/pull/547) (ping @PragTob when encountering issues)
 * Add Channel group to Rails profile, when `ActionCable` is loaded. See [#492](https://github.com/colszowka/simplecov/pull/492) (thanks @BenMorganIO)
+* Do not overwrite .last_run.json file when refuse_coverage_drop option is enabled and the coverage has dropped
 
 ## Bugfixes
 
