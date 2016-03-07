@@ -252,6 +252,7 @@ module SimpleCov
     # SimpleCov will return non-zero if the coverage decreases.
     #
     def refuse_coverage_drop
+      @refuse_coverage_drop = true
       maximum_coverage_drop 0
     end
 
