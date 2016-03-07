@@ -3,6 +3,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...m
 
 ## Enhancements
 
+* Do not overwrite .last_run.json file when refuse_coverage_drop option is enabled and the coverage has dropped
+
 ## Bugfixes
 
 * Fix a regression on old rubies that failed to work with the recently introduced frozen VERSION string. See [#461](https://github.com/colszowka/simplecov/pull/461) (thanks @leafle)
