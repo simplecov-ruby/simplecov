@@ -4,7 +4,7 @@ module SimpleCov
     def merge_resultset(array)
       new_array = dup
       array.each_with_index do |element, i|
-        if element.nil? && new_array[i].nil?
+        if element.nil? || new_array[i].nil?
           new_array[i] = nil
         else
           local_value = element || 0
