@@ -10,9 +10,10 @@ if defined?(JRUBY_VERSION) && defined?(JRuby)
   # @see https://github.com/colszowka/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
-  unless JRuby.runtime.debug?
-    warn 'Coverage may be inaccurate; set "cli.debug=true" ("-Xcli.debug=true") in your .jrubyrc or' \
-      ' do JRUBY_OPTS="-d"'
+  unless org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
+    warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
+      ' or do JRUBY_OPTS="--debug"' \
+      ' or set the "debug.fullTrace=true" option in your .jrubyrc'
   end
 end
 module SimpleCov
