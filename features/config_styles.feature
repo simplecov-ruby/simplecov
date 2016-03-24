@@ -76,8 +76,24 @@ Feature:
     Then I should see "4 files in total."
     And I should see "using Config Test Runner" within "#footer"
 
+  Scenario: Using configure block after start with JRuby
+    Given the Ruby engine is jruby
+      And a file named ".simplecov" with:
+      """
+      SimpleCov.start
+      SimpleCov.configure do
+        add_filter 'test'
+        command_name 'Config Test Runner'
+      end
+      """
+
+    When I open the coverage report generated with `bundle exec rake test`
+    Then I should see "5 files in total."
+    And I should see "using Config Test Runner" within "#footer"
+
   Scenario: Using configure block after start
-    Given a file named ".simplecov" with:
+    Given the Ruby engine is not jruby
+      And a file named ".simplecov" with:
       """
       SimpleCov.start
       SimpleCov.configure do
