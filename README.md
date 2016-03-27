@@ -148,19 +148,6 @@ to use SimpleCov with them. Here's an overview of the known ones:
   </tr>
   <tr>
     <th>
-      Riot
-    </th>
-    <td>
-      A user has reported problems with the coverage report using the riot
-      framework. If you experience similar trouble please follow up on the
-      related GitHub issue.
-    </td>
-    <td>
-      <a href="https://github.com/colszowka/simplecov/issues/80">#80</a>
-    </td>
-  </tr>
-  <tr>
-    <th>
       RubyMine
     </th>
     <td>
