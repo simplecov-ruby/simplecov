@@ -333,6 +333,16 @@ The name of the token can be changed to your liking. [Learn more about the nocov
 
 **Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If you appropriately test the public interface of your classes and objects you should automatically get full coverage of your private methods.
 
+You can also exclude code using a regular expression. Setup your .simplecov file like this:
+
+```ruby
+SimpleCov.start do
+  nocov_regex /^[\s]*annoying_method/
+end
+```
+
+and lines matching the regular expression will be skipped, just as if they were inside a :nocov: block. In this example, the code for annoying_method would be tested ("def annoying_method"), but any call to that method would be skipped. This may be useful for code that renders errors, if you don't want to write tests for every single error handling condition.
+
 ## Default root filter and coverage for things outside of it
 
 By default, SimpleCov filters everything outside of the `SimpleCov.root` directory. However, sometimes you may want
