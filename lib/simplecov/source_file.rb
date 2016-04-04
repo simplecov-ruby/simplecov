@@ -87,22 +87,24 @@ module SimpleCov
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
     # and thus including coverage data. Aliased as :source_lines
     def lines
-      return @lines if defined? @lines
-
-      # Warning to identify condition from Issue #56
-      if coverage.size > src.size
-        $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
-      end
-
-      # Initialize lines
-      @lines = []
-      src.each_with_index do |src, i|
-        @lines << SimpleCov::SourceFile::Line.new(src, i + 1, coverage[i])
-      end
-      process_skipped_lines!
-      @lines
+      @lines ||= build_lines
     end
     alias source_lines lines
+
+    def build_lines
+      coverage_exceeding_source_warn if coverage.size > src.size
+
+      lines = src.map.with_index(1).each do |src, i|
+        SimpleCov::SourceFile::Line.new(src, i, coverage[i - 1])
+      end
+
+      process_skipped_lines(lines)
+    end
+
+    # Warning to identify condition from Issue #56
+    def coverage_exceeding_source_warn
+      $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
+    end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
     def line(number)
@@ -111,31 +113,33 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no relevant lines
     def covered_percent
-      return 100.0 if lines.length.zero? || lines.length == never_lines.count
-      relevant_lines = lines.count - never_lines.count - skipped_lines.count
-      if relevant_lines.zero?
-        0.0
-      else
-        Float(covered_lines.count * 100.0 / relevant_lines.to_f)
-      end
+      return 100.0 if no_lines?
+
+      return 0.0 if relevant_lines.zero?
+
+      Float(covered_lines.count * 100.0 / relevant_lines.to_f)
     end
 
     def covered_strength
-      return 0.0 if lines.length.zero? || lines.length == never_lines.count
+      return 0.0 if no_lines?
 
-      lines_strength = 0
-      lines.each do |c|
-        lines_strength += c.coverage if c.coverage
-      end
+      round_float(lines_strength / relevant_lines.to_f, 1)
+    end
 
-      effective_lines_count = Float(lines.count - never_lines.count - skipped_lines.count)
+    def no_lines?
+      lines.length.zero? || lines.length == never_lines.count
+    end
 
-      if effective_lines_count.zero?
-        0.0
-      else
-        strength = lines_strength / effective_lines_count
-        round_float(strength, 1)
-      end
+    def lines_strength
+      lines.map(&:coverage).compact.reduce(:+)
+    end
+
+    def relevant_lines
+      [
+        lines,
+        never_lines,
+        skipped_lines,
+      ].map(&:count).reduce(:-)
     end
 
     # Returns all covered lines as SimpleCov::SourceFile::Line
@@ -167,8 +171,9 @@ module SimpleCov
 
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
     # as skipped.
-    def process_skipped_lines!
+    def process_skipped_lines(lines)
       skipping = false
+
       lines.each do |line|
         if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
           skipping = !skipping
