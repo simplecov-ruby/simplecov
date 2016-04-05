@@ -55,8 +55,8 @@ Getting started
 
     ```ruby
     require 'simplecov'
-    SimpleCov.start
-
+    SimpleCov.start # Or SimpleCov.start 'rails'
+    
     # Previous content of test helper now starts here
     ```
 
