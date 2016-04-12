@@ -4,14 +4,11 @@ require "helper"
 # See https://github.com/colszowka/simplecov/issues/5
 describe "return codes" do
   context "inside fixtures/frameworks" do
-    before do
-      @current_dir = Dir.getwd
-      Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "frameworks"))
-      FileUtils.rm_rf("./coverage")
-    end
-
-    after do
-      Dir.chdir(@current_dir)
+    around do |test|
+      Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "frameworks")) do
+        FileUtils.rm_rf("./coverage")
+        test.call
+      end
     end
 
     it "has return code 0 when running testunit_good.rb" do
