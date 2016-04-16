@@ -6,6 +6,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...m
 ## Bugfixes
 
 * Fix a regression on old rubies that failed to work with the recently introduced frozen VERSION string. See [#461](https://github.com/colszowka/simplecov/pull/461) (thanks @leafle)
+* Fix source code snippets for SimpleCov.configure and SimpleCov.add_filter methods documentation.
 
 0.11.2 2016-02-03 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.1...v0.11.2))
 =================
