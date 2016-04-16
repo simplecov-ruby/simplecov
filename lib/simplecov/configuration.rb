@@ -143,9 +143,9 @@ module SimpleCov
     # Allows you to configure simplecov in a block instead of prepending SimpleCov to all config methods
     # you're calling.
     #
-    # SimpleCov.configure do
-    #   add_filter 'foobar'
-    # end
+    #   SimpleCov.configure do
+    #     add_filter 'foobar'
+    #   end
     #
     # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a bunch of configure
     # options at once.
@@ -255,9 +255,9 @@ module SimpleCov
     #   SimpleCov.add_filter 'app/models' # will reject all your models
     # * as a block which will be passed the source file in question and should either
     #   return a true or false value, depending on whether the file should be removed
-    #   SimpleCov.add_filter do |src_file|
-    #     File.basename(src_file.filename) == 'environment.rb'
-    #   end # Will exclude environment.rb files from the results
+    #     SimpleCov.add_filter do |src_file|
+    #       File.basename(src_file.filename) == 'environment.rb'
+    #     end # Will exclude environment.rb files from the results
     # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
     #   on how to define your own filter classes
     #
