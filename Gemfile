@@ -18,6 +18,9 @@ group :test do
   platform :ruby_18, :ruby_19 do
     gem "json", "~> 1.8"
   end
+  platform :ruby_18, :ruby_19, :ruby_20, :ruby_21 do
+    gem "rack", "~> 1.6"
+  end
   platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22, :ruby_23 do
     gem "aruba", "~> 0.7.4"
     gem "capybara", "~> 2.4"
