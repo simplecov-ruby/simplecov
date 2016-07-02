@@ -14,11 +14,15 @@ group :test do
   platform :ruby_18 do
     gem "activesupport", "~> 3.2.21"
     gem "addressable", "~> 2.3.8"
+    gem "gherkin", "~> 2.12.2"
     gem "i18n", "~> 0.6.11"
+    gem "mime-types", "~> 1.25"
   end
   platform :ruby_18, :ruby_19 do
-    gem "mime-types", "~> 2.0.0"
     gem "json", "~> 1.8"
+  end
+  platform :ruby_19 do
+    gem "mime-types", "~> 2.0"
   end
   platform :ruby_18, :ruby_19, :ruby_20, :ruby_21 do
     gem "rack", "~> 1.6"
