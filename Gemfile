@@ -32,7 +32,7 @@ group :test do
     gem "cucumber", "~> 2.0"
     gem "phantomjs", "~> 1.9"
     gem "poltergeist", "~> 1.1"
-    gem "rubocop", "~> 0.36.0"
+    gem "rubocop", "~> 0.41.0"
     gem "test-unit", "~> 3.0"
   end
 end
