@@ -13,20 +13,24 @@ group :test do
   # Older versions of some gems required for Ruby 1.8.7 support
   platform :ruby_18 do
     gem "activesupport", "~> 3.2.21"
+    gem "addressable", "~> 2.3.8"
     gem "i18n", "~> 0.6.11"
   end
   platform :ruby_18, :ruby_19 do
+    gem "mime-types", "~> 2.0.0"
     gem "json", "~> 1.8"
   end
   platform :ruby_18, :ruby_19, :ruby_20, :ruby_21 do
     gem "rack", "~> 1.6"
   end
-  gem "aruba"
+  platform :jruby, :ruby_18, :ruby_19, :ruby_20, :ruby_21, :ruby_22, :ruby_23 do
+    gem "rubocop", "~> 0.41.0"
+  end
+  gem "aruba", "~> 0.7.4"
   gem "capybara"
   gem "cucumber"
   gem "phantomjs"
   gem "poltergeist"
-  gem "rubocop", "~> 0.41.0"
   gem "test-unit"
 end
 
