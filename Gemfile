@@ -13,8 +13,6 @@ group :test do
   # Older versions of some gems required for Ruby 1.8.7 support
   platform :ruby_18 do
     gem "activesupport", "~> 3.2.21"
-    gem "addressable", "~> 2.3.8"
-    gem "gherkin", "~> 2.12.2"
     gem "i18n", "~> 0.6.11"
   end
   platform :ruby_18, :ruby_19 do
@@ -25,14 +23,14 @@ group :test do
     gem "rack", "~> 1.6"
   end
   platform :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22, :ruby_23 do
+    gem "aruba", "~> 0.7.4"
+    gem "capybara"
+    gem "cucumber"
+    gem "phantomjs", "~> 1.9"
+    gem "poltergeist"
     gem "rubocop", "~> 0.41.0"
+    gem "test-unit"
   end
-  gem "aruba", "~> 0.7.4"
-  gem "capybara"
-  gem "cucumber"
-  gem "phantomjs", "~> 1.9"
-  gem "poltergeist"
-  gem "test-unit"
 end
 
 gemspec
