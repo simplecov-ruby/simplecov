@@ -85,7 +85,7 @@ module SimpleCov
     def formatter(formatter = nil)
       return @formatter if defined?(@formatter) && formatter.nil?
       @formatter = formatter
-      fail "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
+      raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
       @formatter
     end
 
@@ -289,7 +289,7 @@ module SimpleCov
       elsif filter_argument.is_a?(Array)
         SimpleCov::ArrayFilter.new(filter_argument)
       else
-        fail ArgumentError, "Please specify either a string or a block to filter with"
+        raise ArgumentError, "Please specify either a string or a block to filter with"
       end
     end
   end

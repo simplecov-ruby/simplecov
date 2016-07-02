@@ -14,7 +14,7 @@ class SomeClass
     if item == label
       return true
     else
-      fail "Item does not match label"
+      raise "Item does not match label"
     end
   rescue
     false

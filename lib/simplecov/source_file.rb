@@ -25,9 +25,9 @@ module SimpleCov
       alias number line_number
 
       def initialize(src, line_number, coverage)
-        fail ArgumentError, "Only String accepted for source" unless src.is_a?(String)
-        fail ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
-        fail ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
+        raise ArgumentError, "Only String accepted for source" unless src.is_a?(String)
+        raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
+        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
         @src         = src
         @line_number = line_number
         @coverage    = coverage

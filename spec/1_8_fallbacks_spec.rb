@@ -12,11 +12,11 @@ describe "Ruby 1.8 fallback" do
   end
 
   it "return false when calling SimpleCov.start with a block" do
-    expect(SimpleCov.start { fail "Shouldn't reach this!" }).to be false
+    expect(SimpleCov.start { raise "Shouldn't reach this!" }).to be false
   end
 
   it "return false when calling SimpleCov.configure with a block" do
-    expect(SimpleCov.configure { fail "Shouldn't reach this!" }).to be false
+    expect(SimpleCov.configure { raise "Shouldn't reach this!" }).to be false
   end
 
   it "allow to define a profile" do
