@@ -125,7 +125,7 @@ module SimpleCov
         grouped[name] = SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
         grouped_files += grouped[name]
       end
-      if groups.length > 0 && (other_files = files.reject { |source_file| grouped_files.include?(source_file) }).length > 0
+      if !groups.empty? && !(other_files = files.reject { |source_file| grouped_files.include?(source_file) }).empty?
         grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
       end
       grouped
