@@ -1,10 +1,20 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...master))
-=================
+Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...master))
+==========
 
 ## Enhancements
 
 ## Bugfixes
 
+0.12.0 2016-07-02 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...v0.12.0))
+=================
+
+## Enhancements
+
+* Add support for JSON versions 2.x
+
+## Bugfixes
+
+* Fix coverage rate of the parallel_tests. See [#441](https://github.com/colszowka/simplecov/pull/441) (thanks @sinsoku)
 * Fix a regression on old rubies that failed to work with the recently introduced frozen VERSION string. See [#461](https://github.com/colszowka/simplecov/pull/461) (thanks @leafle)
 
 0.11.2 2016-02-03 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.1...v0.11.2))

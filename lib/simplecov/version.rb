@@ -1,5 +1,5 @@
 module SimpleCov
-  version = "0.11.2"
+  version = "0.12.0"
 
   def version.to_a
     split(".").map(&:to_i)
