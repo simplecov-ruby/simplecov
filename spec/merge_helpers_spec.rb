@@ -1,6 +1,41 @@
 require "helper"
 
 describe "merge helpers" do
+  describe SimpleCov::ArrayMergeHelper do
+    before { SimpleCov.use_merging true }
+
+    def merge(values_1, values_2)
+      values_1.extend(SimpleCov::ArrayMergeHelper).merge_resultset(values_2)
+    end
+
+    context "numbers get added" do
+      it { expect(merge([0], [0])).to eq [0] }
+      it { expect(merge([1], [0])).to eq [1] }
+      it { expect(merge([0], [1])).to eq [1] }
+      it { expect(merge([1], [1])).to eq [2] }
+      it { expect(merge([9], [9])).to eq [9 + 9] }
+    end
+    context "numbers and nil" do
+      it { expect(merge([0], [nil])).to eq [nil] }
+      it { expect(merge([1], [nil])).to eq [1] }
+      it { expect(merge([2], [nil])).to eq [2] }
+      it { expect(merge([nil], [0])).to eq [nil] }
+      it { expect(merge([nil], [1])).to eq [1] }
+      it { expect(merge([nil], [2])).to eq [2] }
+    end
+    context "numbers and empty" do
+      it { expect(merge([nil], [])).to eq [nil] }
+      it { expect(merge([0], [])).to eq [0] }
+      it { expect(merge([1], [])).to eq [1] }
+      it { expect(merge([2], [])).to eq [2] }
+
+      it { expect(merge([], [nil])).to eq [nil] }
+      it { expect(merge([], [0])).to eq [0] }
+      it { expect(merge([], [1])).to eq [1] }
+      it { expect(merge([], [2])).to eq [2] }
+    end
+  end
+
   describe "with two faked coverage resultsets" do
     before do
       SimpleCov.use_merging true
