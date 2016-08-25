@@ -5,7 +5,9 @@ describe "merge helpers" do
     before { SimpleCov.use_merging true }
 
     def merge(values_1, values_2)
-      values_1.extend(SimpleCov::ArrayMergeHelper).merge_resultset(values_2)
+      hash_1 = {"test" => values_1}
+      hash_2 = {"test" => values_2}
+      hash_1.extend(SimpleCov::HashMergeHelper).merge_resultset(hash_2)["test"]
     end
 
     context "numbers get added" do

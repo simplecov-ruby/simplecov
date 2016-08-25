@@ -23,14 +23,11 @@ module SimpleCov
     def merge_resultset(hash)
       new_resultset = {}
       (keys + hash.keys).each do |filename|
-        new_resultset[filename] = nil
+        new_resultset[filename] = []
       end
 
       new_resultset.each_key do |filename|
-        result1 = self[filename]
-        result2 = hash[filename]
-        new_resultset[filename] =
-          (result1 && result2) ? result1.extend(ArrayMergeHelper).merge_resultset(result2) : (result1 || result2).dup
+        new_resultset[filename] = (self[filename] || []).extend(SimpleCov::ArrayMergeHelper).merge_resultset(hash[filename] || [])
       end
       new_resultset
     end
