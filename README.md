@@ -101,12 +101,12 @@ Getting started
 
 **Coverage results report, fully browsable locally with sorting and much more:**
 
-![SimpleCov coverage report](http://colszowka.github.com/simplecov/devise_result-0.5.3.png)
+![SimpleCov coverage report](https://cloud.githubusercontent.com/assets/137793/17071162/db6f253e-502d-11e6-9d84-e40c3d75f333.png)
 
 
 **Source file coverage details view:**
 
-![SimpleCov source file detail view](http://colszowka.github.com/simplecov/devise_source_file-0.5.3.png)
+![SimpleCov source file detail view](https://cloud.githubusercontent.com/assets/137793/17071163/db6f9f0a-502d-11e6-816c-edb2c66fad8d.png)
 
 ## Use it with any framework!
 
