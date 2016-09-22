@@ -60,7 +60,7 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      {command_name => {"coverage" => original_result.reject { |filename, _| !filenames.include?(filename) }, "timestamp" => created_at.to_i}}
+      {command_name => {"coverage" => coverage, "timestamp" => created_at.to_i}}
     end
 
     # Loads a SimpleCov::Result#to_hash dump
@@ -73,6 +73,11 @@ module SimpleCov
     end
 
   private
+
+    def coverage
+      keys = original_result.keys & filenames
+      Hash[keys.zip(original_result.values_at(*keys))]
+    end
 
     # Applies all configured SimpleCov filters on this result's source files
     def filter!
