@@ -204,7 +204,7 @@ module SimpleCov
     # Configure with SimpleCov.merge_timeout(3600) # 1hr
     #
     def merge_timeout(seconds = nil)
-      @merge_timeout = seconds if seconds.is_a?(Fixnum)
+      @merge_timeout = seconds if seconds.is_a?(Integer)
       @merge_timeout ||= 600
     end
 

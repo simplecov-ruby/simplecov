@@ -26,8 +26,8 @@ module SimpleCov
 
       def initialize(src, line_number, coverage)
         raise ArgumentError, "Only String accepted for source" unless src.is_a?(String)
-        raise ArgumentError, "Only Fixnum accepted for line_number" unless line_number.is_a?(Fixnum)
-        raise ArgumentError, "Only Fixnum and nil accepted for coverage" unless coverage.is_a?(Fixnum) || coverage.nil?
+        raise ArgumentError, "Only Integer accepted for line_number" unless line_number.is_a?(Integer)
+        raise ArgumentError, "Only Integer and nil accepted for coverage" unless coverage.is_a?(Integer) || coverage.nil?
         @src         = src
         @line_number = line_number
         @coverage    = coverage
