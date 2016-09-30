@@ -79,6 +79,8 @@ Getting started
       puts "required simplecov"
     end
     ```
+    **Note:** If deploying to Heroku, make sure the line `#!/usr/bin/env ruby.exe` in `bin/rails` is on the very top of your file.
+
 3. Run your tests, open up `coverage/index.html` in your browser and check out
    what you've missed so far.
 4. Add the following to your `.gitignore` file to ensure that coverage results
