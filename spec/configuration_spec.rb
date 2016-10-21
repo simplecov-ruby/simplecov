@@ -8,7 +8,7 @@ RSpec.describe SimpleCov::Configuration do
 
     before(:each) do
       # ensure we're starting from a clean slate
-      FileUtils.rmdir(coverage_dir) if Dir.exist?(coverage_dir)
+      FileUtils.rmdir(coverage_dir) if File.directory?(coverage_dir)
       @original_coverage_dir = subject.instance_variable_get("@coverage_dir")
       @original_coverage_path = subject.instance_variable_get("@coverage_path")
       subject.instance_variable_set("@coverage_dir", coverage_dir)
