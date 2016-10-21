@@ -40,7 +40,7 @@ module SimpleCov
     def coverage_path
       @coverage_path ||= begin
         coverage_path = File.expand_path(coverage_dir, root)
-        FileUtils.mkdir_p(coverage_path) unless Dir.exist?(coverage_path) || File.symlink?(coverage_path)
+        FileUtils.mkdir_p(coverage_path) unless File.directory?(coverage_path) || File.symlink?(coverage_path)
         coverage_path
       end
     end
