@@ -172,6 +172,7 @@ module SimpleCov
       lines.each do |line|
         if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
           skipping = !skipping
+          line.skipped!
         elsif skipping
           line.skipped!
         end
