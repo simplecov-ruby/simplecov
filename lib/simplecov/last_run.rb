@@ -9,7 +9,8 @@ module SimpleCov
 
       def read
         return nil unless File.exist?(last_run_path)
-        JSON.parse(File.read(last_run_path))
+        json = File.read(last_run_path)
+        JSON.parse(json) unless json.strip.empty?
       end
 
       def write(json)
