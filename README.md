@@ -599,11 +599,17 @@ Try [Coverband](https://github.com/danmayer/coverband).
 
 If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
 
-1. Change the following settings in `development.rb` and `test.rb`.
+1. Change the following settings in `test.rb`.
 
     ```ruby
+    # For Rails 4 or earlier, use the following configuration:
     # Disable Rails's static asset server (Apache or nginx will already do this)
     config.serve_static_files = false
+    config.eager_load = false
+
+    # For Rails 5, use the following configuration:
+    # Disable Rails's static asset server (Apache or nginx will already do this)
+    config.public_file_server.enabled = false
     config.eager_load = false
     ```
 2. Add your SimpleCov config, as you normally would, to your `spec_helper.rb`
