@@ -18,7 +18,7 @@ group :test do
   platform :ruby_18, :ruby_19 do
     gem "mime-types", "~> 1.25"
     gem "json", "~> 1.8"
-    gem "addressable", "~> 2.4.0"
+    gem "addressable", "~> 2.3.0"
   end
   platform :ruby_18, :ruby_19, :ruby_20, :ruby_21 do
     gem "rack", "~> 1.6"
