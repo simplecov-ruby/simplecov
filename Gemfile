@@ -17,7 +17,6 @@ group :test do
   end
   platforms :ruby_18, :ruby_19 do
     gem "mime-types", "~> 1.25"
-    gem "json", "~> 1.8"
     gem "addressable", "~> 2.3.0"
   end
   platforms :ruby_18, :ruby_19, :ruby_20, :ruby_21 do
@@ -31,6 +30,11 @@ group :test do
     gem "poltergeist"
     gem "rubocop", "~> 0.41.0"
     gem "test-unit"
+  end
+  if RUBY_VERSION.start_with? '1.'
+    gem "json", "~> 1.8"
+  else
+    gem "json", "~> 2.0"
   end
 end
 
