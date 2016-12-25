@@ -24,6 +24,8 @@ rvm:
 
 matrix:
   allow_failures:
+    # TODO remove from allow_failures once newer version of bundler than 1.13.6 is released
+    - rvm: 2.4.0
     - rvm: ruby-head
     - rvm: jruby-head
     - rvm: jruby-9.1.6.0
