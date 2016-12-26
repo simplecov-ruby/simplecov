@@ -4,6 +4,9 @@ AllCops:
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
 
+Bundler/OrderedGems:
+  Enabled: false
+
 Lint/AmbiguousRegexpLiteral:
   Exclude:
     - 'features/**/*_steps.rb'
