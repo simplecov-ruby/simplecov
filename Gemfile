@@ -28,7 +28,7 @@ group :test do
     gem "cucumber"
     gem "phantomjs", "~> 1.9"
     gem "poltergeist"
-    gem "rubocop"
+    gem "rubocop" unless RUBY_VERSION.start_with?("1.")
     gem "test-unit"
   end
   gem "json", RUBY_VERSION.start_with?("1.") ? "~> 1.8" : "~> 2.0"
