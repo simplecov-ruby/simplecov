@@ -31,11 +31,7 @@ group :test do
     gem "rubocop", "~> 0.41.0"
     gem "test-unit"
   end
-  if RUBY_VERSION.start_with? "1."
-    gem "json", "~> 1.8"
-  else
-    gem "json", "~> 2.0"
-  end
+  gem "json", RUBY_VERSION.start_with?("1.") ? "~> 1.8" : "~> 2.0"
 end
 
 gemspec
