@@ -25,6 +25,7 @@ group :test do
   platforms :jruby, :ruby_19, :ruby_20, :ruby_21, :ruby_22, :ruby_23, :ruby_24 do
     gem "aruba", "~> 0.7.4"
     gem "capybara"
+    gem "nokogiri", RUBY_VERSION < "2.1" ? "~> 1.6.0" : ">= 1.7"
     gem "cucumber"
     gem "phantomjs", "~> 1.9"
     gem "poltergeist"
