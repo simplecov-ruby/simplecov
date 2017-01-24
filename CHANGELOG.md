@@ -5,6 +5,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...m
 
 ## Bugfixes
 
+* Fix parallel_tests where one thread ends up running no tests. See [#533](https://github.com/colszowka/simplecov/pull/533) (thanks @cshaffer)
+
 0.12.0 2016-07-02 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...v0.12.0))
 =================
 
