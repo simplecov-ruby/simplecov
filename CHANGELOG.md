@@ -1,9 +1,17 @@
-Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...master))
+0.13.0 ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...master))
 ==========
 
 ## Enhancements
 
+* Faster run times when a very large number of files is loaded into SimpleCov. See [#520](https://github.com/colszowka/simplecov/pull/520) (thanks @alyssais)
+* Only read in source code files that are actually used (faster when files are ignored etc.). See [#540](https://github.com/colszowka/simplecov/pull/540) (tahks @yui-knk)
+
 ## Bugfixes
+
+* Fix merging of resultsets if a file is missing on one side. See [#513](https://github.com/colszowka/simplecov/pull/513) (thanks @hanazuki)
+* Fix Ruby 2.4 deprecation warnings by using Integer instead of Fixnum. See [#523](https://github.com/colszowka/simplecov/pull/523) (thanks @nobu)
+* Force Ruby 2 to json 2. See [dc7417d50](https://github.com/colszowka/simplecov/commit/dc7417d5049b1809cea214314c15dd93a5dd964f) (thanks @amatsuda)
+* Various other gem dependency fixes for different gems on different ruby versions. (thanks @amatsuda)
 
 0.12.0 2016-07-02 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...v0.12.0))
 =================
