@@ -3,6 +3,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...m
 
 ## Enhancements
 
+* Allow coverage directory to be a symlink.
+
 ## Bugfixes
 
 0.12.0 2016-07-02 ([changes](https://github.com/colszowka/simplecov/compare/v0.11.2...v0.12.0))
