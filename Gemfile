@@ -27,7 +27,7 @@ group :test do
     gem "capybara"
     gem "nokogiri", RUBY_VERSION < "2.1" ? "~> 1.6.0" : ">= 1.7"
     gem "cucumber"
-    gem "phantomjs", "~> 1.9"
+    gem "phantomjs", "~> 2.1"
     gem "poltergeist"
     gem "rubocop" unless RUBY_VERSION.start_with?("1.")
     gem "test-unit"
