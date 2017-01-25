@@ -1,4 +1,4 @@
-0.13.0 ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...master))
+0.13.0 2016-01-25 ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...v0.13.0))
 ==========
 
 ## Enhancements
