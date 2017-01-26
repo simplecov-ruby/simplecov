@@ -8,6 +8,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.13.0...m
 ## Bugfixes
 
 * Fix parallel_tests when a thread ends up running no tests. See [#533](https://github.com/colszowka/simplecov/pull/533) (thanks @cshaffer)
+* Skip the `:nocov:` comments along with the code that they skip. See [#551](https://github.com/colszowka/simplecov/pull/551) (thanks @ebiven)
 
 0.13.0 2016-01-25 ([changes](https://github.com/colszowka/simplecov/compare/v0.12.0...v0.13.0))
 ==========
