@@ -42,8 +42,12 @@ if SimpleCov.usable?
         expect(subject.missed_lines.map(&:line)).to eq([8])
       end
 
-      it "returns lines number 1, 5, 6, 9, 10, 11, 15, 16 for never_lines" do
-        expect(subject.never_lines.map(&:line)).to eq([1, 5, 6, 9, 10, 11, 15, 16])
+      it "returns lines number 1, 5, 6, 9, 10, 16 for never_lines" do
+        expect(subject.never_lines.map(&:line)).to eq([1, 5, 6, 9, 10, 16])
+      end
+
+      it "returns line numbers 11, 12, 13, 14, 15 for skipped_lines" do
+        expect(subject.skipped_lines.map(&:line)).to eq([11, 12, 13, 14, 15])
       end
 
       it "returns line numbers 12, 13, 14 for skipped_lines" do
