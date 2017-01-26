@@ -35,7 +35,7 @@ Feature:
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
       | lib/faked_project/nocov.rb              | 100.0 %  |
 
-    And there should be 5 skipped lines in the source files
+    And there should be 7 skipped lines in the source files
 
     And the report should be based upon:
       | Unit Tests |
@@ -64,7 +64,7 @@ Feature:
       | lib/faked_project/meta_magic.rb         | 100.0 %  |
       | lib/faked_project/nocov.rb              | 100.0 %  |
 
-    And there should be 5 skipped lines in the source files
+    And there should be 7 skipped lines in the source files
 
     And the report should be based upon:
       | Unit Tests |
