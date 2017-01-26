@@ -18,16 +18,16 @@ describe SimpleCov::Result do
     expect(subject.missed_lines).to eq(3)
   end
 
-  it "has 17 never lines" do
-    expect(subject.never_lines).to eq(17)
+  it "has 19 never lines" do
+    expect(subject.never_lines).to eq(19)
   end
 
   it "has 14 lines of code" do
     expect(subject.lines_of_code).to eq(14)
   end
 
-  it "has 5 skipped lines" do
-    expect(subject.skipped_lines).to eq(5)
+  it "has 3 skipped lines" do
+    expect(subject.skipped_lines).to eq(3)
   end
 
   it "has the correct covered percent" do

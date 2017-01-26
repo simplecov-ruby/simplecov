@@ -49,7 +49,7 @@ end
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
-at_exit do
+at_exit do # rubocop:disable Metrics/BlockLength
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
 

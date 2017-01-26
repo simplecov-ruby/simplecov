@@ -74,15 +74,19 @@ module SimpleCov
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
     attr_reader :coverage
-    # The source code for this file. Aliased as :source
-    attr_reader :src
-    alias source src
 
     def initialize(filename, coverage)
       @filename = filename
       @coverage = coverage
-      File.open(filename, "rb") { |f| @src = f.readlines }
     end
+
+    # The source code for this file. Aliased as :source
+    def src
+      # We intentionally read source code lazily to
+      # suppress reading unused source code.
+      @src ||= File.open(filename, "rb", &:readlines)
+    end
+    alias source src
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
     # and thus including coverage data. Aliased as :source_lines

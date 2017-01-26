@@ -1,6 +1,7 @@
 language: ruby
 
 before_install:
+  - gem update --system
   - gem install bundler
 
 bundler_args: --without development --jobs=3 --retry=3
@@ -14,15 +15,15 @@ rvm:
   - 1.9.3
   - 2.0.0
   - 2.1.10
-  - 2.2.5
-  - 2.3.1
+  - 2.2.6
+  - 2.3.3
+  - 2.4.0
   - ruby-head
   - jruby-head
-  - rbx-2
+  - jruby-9.1.7.0
 
 matrix:
   allow_failures:
     - rvm: ruby-head
     - rvm: jruby-head
-    - rvm: rbx-2
   fast_finish: true

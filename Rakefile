@@ -27,10 +27,15 @@ rescue LoadError
 end
 
 # Cucumber integration test suite is for impls that work with simplecov only - a.k.a. 1.9+
-if RUBY_VERSION >= "1.9"
+if RUBY_VERSION.start_with? "1.8"
+  task :default => [:spec]
+else
   require "cucumber/rake/task"
   Cucumber::Rake::Task.new
-  task :default => [:spec, :cucumber, :rubocop]
-else
-  task :default => [:spec]
+
+  if RUBY_VERSION.start_with? "1.9"
+    task :default => [:spec, :cucumber]
+  else
+    task :default => [:spec, :cucumber, :rubocop]
+  end
 end

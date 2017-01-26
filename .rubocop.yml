@@ -4,6 +4,9 @@ AllCops:
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
 
+Bundler/OrderedGems:
+  Enabled: false
+
 Lint/AmbiguousRegexpLiteral:
   Exclude:
     - 'features/**/*_steps.rb'
@@ -12,6 +15,10 @@ Lint/AmbiguousRegexpLiteral:
 
 Metrics/AbcSize:
   Max: 25 # TODO: Lower to 15
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*.rb'
 
 Metrics/BlockNesting:
   Max: 2

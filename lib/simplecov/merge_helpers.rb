@@ -29,7 +29,7 @@ module SimpleCov
         result1 = self[filename]
         result2 = hash[filename]
         new_resultset[filename] =
-          (result1 && result2) ? result1.extend(ArrayMergeHelper).merge_resultset(result2) : (result1 || result2).dup
+          result1 && result2 ? result1.extend(ArrayMergeHelper).merge_resultset(result2) : (result1 || result2).dup
       end
       new_resultset
     end
