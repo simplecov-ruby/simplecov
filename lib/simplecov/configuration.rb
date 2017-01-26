@@ -143,9 +143,9 @@ module SimpleCov
     # Allows you to configure simplecov in a block instead of prepending SimpleCov to all config methods
     # you're calling.
     #
-    #   SimpleCov.configure do
-    #     add_filter 'foobar'
-    #   end
+    #     SimpleCov.configure do
+    #       add_filter 'foobar'
+    #     end
     #
     # This is equivalent to SimpleCov.add_filter 'foobar' and thus makes it easier to set a bunch of configure
     # options at once.
@@ -161,10 +161,11 @@ module SimpleCov
     # By default, it will call SimpleCov.result.format!
     #
     # Configure with:
-    #   SimpleCov.at_exit do
-    #     puts "Coverage done"
-    #     SimpleCov.result.format!
-    #   end
+    #
+    #     SimpleCov.at_exit do
+    #       puts "Coverage done"
+    #       SimpleCov.result.format!
+    #     end
     #
     def at_exit(&block)
       return proc {} unless running || block_given?
