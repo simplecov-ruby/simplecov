@@ -3,6 +3,8 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.13.0...m
 
 ## Enhancements
 
+* Officially support JRuby 9.1+ going forward (should also work with previous releases). See [#547](https://github.com/colszowka/simplecov/pull/547) (ping @PragTob when encountering issues) 
+
 ## Bugfixes
 
 * Fix parallel_tests when a thread ends up running no tests. See [#533](https://github.com/colszowka/simplecov/pull/533) (thanks @cshaffer)
