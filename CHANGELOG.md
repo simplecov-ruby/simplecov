@@ -15,7 +15,7 @@ Unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.13.0...m
 ## Enhancements
 
 * Faster run times when a very large number of files is loaded into SimpleCov. See [#520](https://github.com/colszowka/simplecov/pull/520) (thanks @alyssais)
-* Only read in source code files that are actually used (faster when files are ignored etc.). See [#540](https://github.com/colszowka/simplecov/pull/540) (tahks @yui-knk)
+* Only read in source code files that are actually used (faster when files are ignored etc.). See [#540](https://github.com/colszowka/simplecov/pull/540) (thanks @yui-knk)
 
 ## Bugfixes
 
