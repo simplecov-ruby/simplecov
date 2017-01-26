@@ -70,7 +70,8 @@ Getting started
     endpoint) via a separate test process (i.e. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
     executed in your actual test files, you'll want to add something like this
-    to the top of `script/rails` (or `bin/rails` for Rails 4):
+    to the top of `script/rails` (or `bin/rails` for Rails 4), but below the
+    "shebang" line (`#! /usr/bin/env ruby`):
 
     ```ruby
     if ENV['RAILS_ENV'] == 'test'
@@ -79,7 +80,6 @@ Getting started
       puts "required simplecov"
     end
     ```
-    **Note:** If deploying to Heroku, make sure the line `#!/usr/bin/env ruby.exe` in `bin/rails` is on the very top of your file.
 
 3. Run your tests, open up `coverage/index.html` in your browser and check out
    what you've missed so far.
