@@ -36,6 +36,6 @@ else
   if RUBY_VERSION.start_with? "1.9"
     task :default => [:spec, :cucumber]
   else
-    task :default => [:spec, :cucumber, :rubocop]
+    task :default => [:rubocop, :spec, :cucumber]
   end
 end
