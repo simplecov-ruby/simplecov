@@ -98,7 +98,7 @@ module SimpleCov
     def build_lines
       coverage_exceeding_source_warn if coverage.size > src.size
 
-      lines = src.map.with_index(1).each do |src, i|
+      lines = src.map.with_index(1) do |src, i|
         SimpleCov::SourceFile::Line.new(src, i, coverage[i - 1])
       end
 
@@ -121,7 +121,7 @@ module SimpleCov
 
       return 0.0 if relevant_lines.zero?
 
-      Float(covered_lines.count * 100.0 / relevant_lines.to_f)
+      Float(covered_lines.size * 100.0 / relevant_lines.to_f)
     end
 
     def covered_strength
@@ -131,7 +131,7 @@ module SimpleCov
     end
 
     def no_lines?
-      lines.length.zero? || lines.length == never_lines.count
+      lines.length.zero? || lines.length == never_lines.size
     end
 
     def lines_strength
@@ -139,11 +139,7 @@ module SimpleCov
     end
 
     def relevant_lines
-      [
-        lines,
-        never_lines,
-        skipped_lines,
-      ].map(&:count).reduce(:-)
+      lines.size - never_lines.size - skipped_lines.size
     end
 
     # Returns all covered lines as SimpleCov::SourceFile::Line
@@ -170,7 +166,7 @@ module SimpleCov
 
     # Returns the number of relevant lines (covered + missed)
     def lines_of_code
-      covered_lines.count + missed_lines.count
+      covered_lines.size + missed_lines.size
     end
 
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
