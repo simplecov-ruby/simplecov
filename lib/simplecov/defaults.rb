@@ -70,7 +70,6 @@ at_exit do # rubocop:disable Metrics/BlockLength
   if SimpleCov.result? # Result has been computed
     covered_percent = SimpleCov.result.covered_percent.round(2)
     covered_percentages = SimpleCov.result.covered_percentages.map { |p| p.round(2) }
-    coverage_diff = 0
 
     if @exit_status == SimpleCov::ExitCodes::SUCCESS # No other errors
       if covered_percent < SimpleCov.minimum_coverage # rubocop:disable Metrics/BlockNesting
@@ -89,7 +88,7 @@ at_exit do # rubocop:disable Metrics/BlockLength
     end
 
     # Don't overwrite last_run file if refuse_coverage_drop option is enabled and the coverage has dropped
-    unless SimpleCov.refuse_coverage_drop && coverage_diff > 0
+    unless @exit_status == SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
       SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
     end
   end
