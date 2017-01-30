@@ -66,8 +66,8 @@ Getting started
     code is required!**
 
     SimpleCov must be running in the process that you want the code coverage
-    analysis to happen on. When testing a server process (i.e. a JSON API
-    endpoint) via a separate test process (i.e. when using Selenium) where you
+    analysis to happen on. When testing a server process (e.g. a JSON API
+    endpoint) via a separate test process (e.g. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
     executed in your actual test files, you'll want to add something like this
     to the top of `script/rails` (or `bin/rails` for Rails 4), but below the
@@ -231,7 +231,7 @@ Please check out the [Configuration] API documentation to find out what you can 
 
 ## Using .simplecov for centralized config
 
-If you use SimpleCov to merge multiple test suite results (i.e. Test/Unit and Cucumber) into a single report, you'd normally have to
+If you use SimpleCov to merge multiple test suite results (e.g. Test/Unit and Cucumber) into a single report, you'd normally have to
 set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
 
 To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the `require 'simplecov'` in each
@@ -434,7 +434,7 @@ You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
 ## Running coverage only on demand
 
-The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (i.e. on a ~10 min Rails test suite, the speed drop was
+The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (on a ~10 min Rails test suite, the speed drop was
 only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
 it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
 
