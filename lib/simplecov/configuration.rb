@@ -250,15 +250,18 @@ module SimpleCov
 
     #
     # Add a filter to the processing chain.
-    # There are three ways to define a filter:
+    # There are four ways to define a filter:
     #
     # * as a String that will then be matched against all source files' file paths,
-    #   SimpleCov.add_filter 'app/models' # will reject all your models
+    #     SimpleCov.add_filter 'app/models' # will reject all your models
     # * as a block which will be passed the source file in question and should either
     #   return a true or false value, depending on whether the file should be removed
     #     SimpleCov.add_filter do |src_file|
     #       File.basename(src_file.filename) == 'environment.rb'
     #     end # Will exclude environment.rb files from the results
+    # * as an array of strings that are matched against all sorce files' file
+    #   paths and then ignored (basically string filter multiple times)
+    #     SimpleCov.add_filter ['app/models', 'app/helpers'] # ignores both dirs
     # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
     #   on how to define your own filter classes
     #
@@ -278,7 +281,7 @@ module SimpleCov
   private
 
     #
-    # The actal filter processor. Not meant for direct use
+    # The actual filter processor. Not meant for direct use
     #
     def parse_filter(filter_argument = nil, &filter_proc)
       if filter_argument.is_a?(SimpleCov::Filter)
