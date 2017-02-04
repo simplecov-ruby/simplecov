@@ -50,9 +50,16 @@ module SimpleCov
     # or not they were explicitly required. Without this, un-required files
     # will not be present in the final report.
     #
-    def track_files(glob = nil)
-      return @track_files if defined?(@track_files) && glob.nil?
-      @track_files = glob
+    def track_files(glob)
+      @tracked_files = glob
+    end
+
+    #
+    # Returns the glob that will be used to include files that were not
+    # explicitly required.
+    #
+    def tracked_files
+      @tracked_files if defined?(@tracked_files)
     end
 
     #
