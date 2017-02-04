@@ -1,6 +1,6 @@
 # Borrowed and heavily adjusted from:
 # https://github.com/metricfu/metric_fu/blob/master/spec/capture_warnings.rb
-require 'fileutils'
+require "fileutils"
 
 class FailOnWarnings
   def initialize
@@ -22,7 +22,8 @@ class FailOnWarnings
     fail_script(app_warnings) if app_warnings.any?
   end
 
-  private
+private
+
   def close_stream
     $stderr = STDERR
 
@@ -51,7 +52,9 @@ class FailOnWarnings
     output_dir = File.join(@app_root, "tmp")
     FileUtils.mkdir_p(output_dir)
     output_file = File.join(output_dir, "warnings.txt")
-    File.write(output_file, other_warnings.join("\n") << "\n")
+    File.open(output_file, "w") do |file|
+      file.write(other_warnings.join("\n") << "\n")
+    end
     puts
     puts "Non-app warnings written to tmp/warnings.txt"
     puts
