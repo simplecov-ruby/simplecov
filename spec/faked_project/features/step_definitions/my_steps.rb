@@ -6,7 +6,7 @@ When /^I write my cukes for the fake project$/ do
   expect(1).to eq(1)
 end
 
-Then /^I make all neccessary tests in a single step$/ do
+Then /^I make all necessary tests in a single step$/ do
   expect(FakedProject.foo).to eq("bar")
 
   expect(FrameworkSpecific.cucumber).to eq("Only tested in Cucumber")
