@@ -1,8 +1,8 @@
 module SimpleCov
-  module MergeHelper
+  module RawCoverage
     class << self
       # Merges two Coverage.result hashes
-      def merge_resultsets(a, b)
+      def merge_results(a, b)
         (a.keys | b.keys).each_with_object({}) do |filename, merged|
           result1 = a[filename]
           result2 = b[filename]

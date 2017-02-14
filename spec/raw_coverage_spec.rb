@@ -1,7 +1,7 @@
 require "helper"
 
 if SimpleCov.usable?
-  describe "merge helper" do
+  describe SimpleCov::RawCoverage do
     describe "with two faked coverage resultsets" do
       before do
         SimpleCov.use_merging true
@@ -26,7 +26,7 @@ if SimpleCov.usable?
 
       context "a merge" do
         subject do
-          SimpleCov::MergeHelper.merge_resultsets(@resultset1, @resultset2)
+          SimpleCov::RawCoverage.merge_results(@resultset1, @resultset2)
         end
 
         it "has proper results for sample.rb" do
@@ -137,7 +137,7 @@ if SimpleCov.usable?
       end
 
       it "can merge without exceptions" do
-        SimpleCov::MergeHelper.merge_resultsets(@resultset1, @resultset2)
+        SimpleCov::RawCoverage.merge_results(@resultset1, @resultset2)
       end
     end
   end
