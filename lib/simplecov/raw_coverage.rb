@@ -1,29 +1,34 @@
 module SimpleCov
   module RawCoverage
-    class << self
-      # Merges two Coverage.result hashes
-      def merge_results(a, b)
-        (a.keys | b.keys).each_with_object({}) do |filename, merged|
-          result1 = a[filename]
-          result2 = b[filename]
-          merged[filename] = if result1 && result2
-                               merge_arrays(result1, result2)
-                             else
-                               (result1 || result2).dup
-                             end
-        end
+    module_function
+
+    # Merges multiple Coverage.result hashes
+    def merge_results(*results)
+      results.reduce({}) do |result, merged|
+        merge_resultsets(result, merged)
+      end
+    end
+
+    # Merges two Coverage.result hashes
+    def merge_resultsets(a, b)
+      (a.keys | b.keys).each_with_object({}) do |filename, merged|
+        result1 = a[filename]
+        result2 = b[filename]
+        merged[filename] = merge_file_coverage(result1, result2)
+      end
+    end
+
+    def merge_file_coverage(a, b)
+      unless a && b
+        return (a || b).dup
       end
 
-      private
-
-      def merge_arrays(a, b)
-        a.zip(b).map do |count1, count2|
-          sum = count1.to_i + count2.to_i
-          if sum.zero? && (count1.nil? || count2.nil?)
-            nil
-          else
-            sum
-          end
+      a.zip(b).map do |count1, count2|
+        sum = count1.to_i + count2.to_i
+        if sum.zero? && (count1.nil? || count2.nil?)
+          nil
+        else
+          sum
         end
       end
     end

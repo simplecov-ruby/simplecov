@@ -60,10 +60,7 @@ module SimpleCov
       # for the result consisting of a join on all source result's names
       #
       def merged_result
-        merged = {}
-        results.each do |result|
-          merged = SimpleCov::RawCoverage.merge_results(result.original_result, merged)
-        end
+        merged = SimpleCov::RawCoverage.merge_results(*results.map(&:original_result))
         result = SimpleCov::Result.new(merged)
         # Specify the command name
         result.command_name = results.map(&:command_name).sort.join(", ")
