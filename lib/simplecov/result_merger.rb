@@ -54,17 +54,24 @@ module SimpleCov
         results
       end
 
+      # Merge two or more SimpleCov::Results into a new one with merged
+      # coverage data and the command_name for the result consisting of a join
+      # on all source result's names
+      def merge_results(*results)
+        merged = SimpleCov::RawCoverage.merge_results(*results.map(&:original_result))
+        result = SimpleCov::Result.new(merged)
+        # Specify the command name
+        result.command_name = results.map(&:command_name).sort.join(", ")
+        result
+      end
+
       #
       # Gets all SimpleCov::Results from cache, merges them and produces a new
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
       #
       def merged_result
-        merged = SimpleCov::RawCoverage.merge_results(*results.map(&:original_result))
-        result = SimpleCov::Result.new(merged)
-        # Specify the command name
-        result.command_name = results.map(&:command_name).sort.join(", ")
-        result
+        merge_results(*results)
       end
 
       # Saves the given SimpleCov::Result in the resultset cache
