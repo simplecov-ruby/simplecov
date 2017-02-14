@@ -62,7 +62,7 @@ module SimpleCov
       def merged_result
         merged = {}
         results.each do |result|
-          merged = result.original_result.merge_resultset(merged)
+          merged = SimpleCov::MergeHelper.merge_resultsets(result.original_result, merged)
         end
         result = SimpleCov::Result.new(merged)
         # Specify the command name
