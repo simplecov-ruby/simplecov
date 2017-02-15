@@ -1,5 +1,7 @@
-require "simplecov"
 require "rspec"
+# loaded before simplecov to also capture parse time warnings
+require "support/fail_rspec_on_ruby_warning"
+require "simplecov"
 
 SimpleCov.coverage_dir("tmp/coverage")
 
