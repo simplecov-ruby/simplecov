@@ -21,7 +21,8 @@ module SimpleCov
     def merge_file_coverage(file1, file2)
       return (file1 || file2).dup unless file1 && file2
 
-      file1.zip(file2).map do |count1, count2|
+      file1.map.with_index do |count1, index|
+        count2 = file2[index]
         merge_line_coverage(count1, count2)
       end
     end
