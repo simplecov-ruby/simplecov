@@ -86,7 +86,9 @@ if SimpleCov.usable?
       end
 
       it "can merge without exceptions" do
-        SimpleCov::RawCoverage.merge_results(@resultset1, @resultset2)
+        expect {
+          SimpleCov::RawCoverage.merge_results(@resultset1, @resultset2)
+        }.not_to raise_error
       end
     end
   end
