@@ -72,24 +72,21 @@ if SimpleCov.usable?
       end
     end
 
-    describe "with frozen resultsets" do
-      before do
-        @resultset1 = {
-          source_fixture("sample.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
-          source_fixture("app/models/user.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil].freeze,
-        }.freeze
+    it "merges frozen resultsets" do
+      resultset1 = {
+        source_fixture("sample.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
+        source_fixture("app/models/user.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil].freeze,
+      }.freeze
 
-        @resultset2 = {
-          source_fixture("sample.rb").freeze => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
-          source_fixture("app/models/user.rb").freeze => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil].freeze,
-        }.freeze
-      end
+      resultset2 = {
+        source_fixture("sample.rb").freeze => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
+      }.freeze
 
-      it "can merge without exceptions" do
-        expect {
-          SimpleCov::RawCoverage.merge_results(@resultset1, @resultset2)
-        }.not_to raise_error
-      end
+      merged_result = SimpleCov::RawCoverage.merge_results(resultset1, resultset2)
+      expect(merged_result.keys).to eq(resultset1.keys)
+      expect(merged_result.values.map(&:frozen?)).to eq([false, false])
+      expect(merged_result[source_fixture('sample.rb')]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
+      expect(merged_result[source_fixture('app/models/user.rb')]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
     end
   end
 end
