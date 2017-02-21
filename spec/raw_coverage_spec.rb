@@ -85,8 +85,8 @@ if SimpleCov.usable?
       merged_result = SimpleCov::RawCoverage.merge_results(resultset1, resultset2)
       expect(merged_result.keys).to eq(resultset1.keys)
       expect(merged_result.values.map(&:frozen?)).to eq([false, false])
-      expect(merged_result[source_fixture('sample.rb')]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
-      expect(merged_result[source_fixture('app/models/user.rb')]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
+      expect(merged_result[source_fixture("sample.rb")]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
+      expect(merged_result[source_fixture("app/models/user.rb")]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
     end
   end
 end
