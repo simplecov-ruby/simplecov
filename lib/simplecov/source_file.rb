@@ -127,11 +127,16 @@ module SimpleCov
     def covered_strength
       return 0.0 if no_lines?
 
-      round_float(lines_strength / relevant_lines.to_f, 1)
+      effective_lines_count = Float(relevant_lines)
+      if effective_lines_count.zero?
+        0.0
+      else
+        round_float(lines_strength / effective_lines_count, 1)
+      end
     end
 
     def no_lines?
-      lines.length.zero? || lines.length == never_lines.size
+      lines.length.zero? || (lines.length == never_lines.size)
     end
 
     def lines_strength
