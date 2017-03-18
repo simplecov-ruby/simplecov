@@ -1,3 +1,10 @@
+0.14.1 (unreleased) ([changes](https://github.com/colszowka/simplecov/compare/v0.14.0...v0.14.1))
+========
+
+## Bugfixes
+
+* Files that were skipped as a whole/had no relevant coverage could lead to Float errors. See [#564](https://github.com/colszowka/simplecov/pull/564) (thanks to @stevehanson for the report in [#563](https://github.com/colszowka/simplecov/issues/563))
+
 0.14.0 2017-03-15 ([changes](https://github.com/colszowka/simplecov/compare/v0.13.0...v0.14.0))
 ==========
 

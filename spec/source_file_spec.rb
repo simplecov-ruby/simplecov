@@ -73,5 +73,69 @@ if SimpleCov.usable?
         expect(captured_output).to match(/^Warning: coverage data provided/)
       end
     end
+
+    context "a file that is never relevant" do
+      COVERAGE_FOR_NEVER_RB = [nil, nil].freeze
+
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("never.rb"), COVERAGE_FOR_NEVER_RB)
+      end
+
+      it "has 0.0 covered_strength" do
+        expect(subject.covered_strength).to eq 0.0
+      end
+
+      it "has 0.0 covered_percent" do
+        expect(subject.covered_percent).to eq 100.0
+      end
+    end
+
+    context "a file where nothing is ever executed mixed with skipping #563" do
+      COVERAGE_FOR_SKIPPED_RB = [nil, nil, nil, nil].freeze
+
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("skipped.rb"), COVERAGE_FOR_SKIPPED_RB)
+      end
+
+      it "has 0.0 covered_strength" do
+        expect(subject.covered_strength).to eq 0.0
+      end
+
+      it "has 0.0 covered_percent" do
+        expect(subject.covered_percent).to eq 0.0
+      end
+    end
+
+    context "a file where everything is skipped and missed #563" do
+      COVERAGE_FOR_SKIPPED_RB_2 = [nil, nil, 0, nil].freeze
+
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("skipped.rb"), COVERAGE_FOR_SKIPPED_RB_2)
+      end
+
+      it "has 0.0 covered_strength" do
+        expect(subject.covered_strength).to eq 0.0
+      end
+
+      it "has 0.0 covered_percent" do
+        expect(subject.covered_percent).to eq 0.0
+      end
+    end
+
+    context "a file where everything is skipped/irrelevamt but executed #563" do
+      COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = [nil, nil, 1, 1, 0, nil, nil, nil].freeze
+
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("skipped_and_executed.rb"), COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB)
+      end
+
+      it "has 0.0 covered_strength" do
+        expect(subject.covered_strength).to eq 0.0
+      end
+
+      it "has 0.0 covered_percent" do
+        expect(subject.covered_percent).to eq 0.0
+      end
+    end
   end
 end
