@@ -7,7 +7,7 @@ SimpleCov.profiles.define "root_filter" do
   root_filter = nil
   add_filter do |src|
     root_filter ||= /\A#{Regexp.escape(SimpleCov.root)}/io
-    !(src.filename =~ root_filter)
+    src.filename !~ root_filter
   end
 end
 
