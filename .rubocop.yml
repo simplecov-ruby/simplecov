@@ -55,6 +55,9 @@ Style/DoubleNegation:
 Style/HashSyntax:
   EnforcedStyle: hash_rockets
 
+Style/IndentHeredoc:
+  Enabled: false
+
 Style/RegexpLiteral:
   Enabled: false
 
