@@ -3,6 +3,7 @@ AllCops:
     - 'spec/fixtures/iso-8859.rb'
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
+  TargetRubyVersion: 1.9
 
 Bundler/OrderedGems:
   Enabled: false
@@ -53,6 +54,9 @@ Style/DoubleNegation:
 
 Style/HashSyntax:
   EnforcedStyle: hash_rockets
+
+Style/IndentHeredoc:
+  Enabled: false
 
 Style/RegexpLiteral:
   Enabled: false
