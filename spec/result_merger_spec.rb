@@ -56,7 +56,7 @@ if SimpleCov.usable?
           end
 
           it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
-            expect(SimpleCov::ResultMerger.resultset.keys.sort).to eq %w(result1 result2)
+            expect(SimpleCov::ResultMerger.resultset.keys.sort).to eq %w[result1 result2]
           end
 
           it "returns proper values for merged_result" do
