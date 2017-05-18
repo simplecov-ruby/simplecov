@@ -27,7 +27,14 @@ module SimpleCov
       @original_result = original_result.freeze
       @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
-      end.compact.sort_by(&:filename))
+      end.compact.sort_by(&:filename)).group_by do |file|
+        File.read(file.filename).hash
+      end.map do |_, files|
+        files.reduce(nil) do |acc, file|
+          next file unless acc
+          combine_files(acc, file)
+        end
+      end
       filter!
     end
 
@@ -72,6 +79,32 @@ module SimpleCov
     end
 
   private
+
+    # Combine files that are the same (have same content) but have different file paths
+    def combine_files(file1, file2)
+      new_coverage = combine_coverages(file1.coverage, file2.coverage)
+      # NOTE: It is possible that both don't exist but eventually either one does or it's just one of the names that was
+      # used in the code
+      new_filename = strict_file_exists?(file1.filename) ? file1.filename : file2.filename
+      SimpleCov::SourceFile.new(new_filename, new_coverage)
+    end
+
+    # Does a case-sensitive check for file, unlike File.exists?
+    def strict_file_exists?(path)
+      directory = `dirname #{path}`.chomp
+      name = `basename #{path}`.chomp
+      !`find "#{directory}" -name "#{name}"`.empty?
+    end
+
+    # This method combines coverages from the same file but spelled differently
+    def combine_coverages(coverage1, coverage2)
+      raise ArgumentError, "size of coverages are not equal" if coverage1.size != coverage2.size
+      coverage1.map.with_index do |number, index|
+        number2 = coverage2[index] || 0
+        number ||= 0
+        number + number2
+      end
+    end
 
     def coverage
       keys = original_result.keys & filenames
