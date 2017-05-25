@@ -5,6 +5,10 @@ module WithinHelpers
 end
 World(WithinHelpers)
 
+Given /^the Ruby engine is (not )?(.*)$/ do |invert, engine|
+  skip_this_scenario unless (RUBY_ENGINE == engine) ^ !!invert
+end
+
 When /^I open the coverage report$/ do
   visit "/"
 end
