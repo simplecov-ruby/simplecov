@@ -11,6 +11,8 @@ Gem::Specification.new do |gem|
   gem.description = %(Code coverage for Ruby 1.9+ with a powerful configuration library and automatic merging of coverage across test suites)
   gem.summary     = gem.description
   gem.license     = "MIT"
+  
+  gem.required_ruby_version = ">= 1.9"
 
   gem.required_ruby_version = ">= 1.8.7"
 
