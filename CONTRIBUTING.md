@@ -29,7 +29,7 @@ To fetch & test the library for development, do:
     $ git clone https://github.com/colszowka/simplecov.git
     $ cd simplecov
     $ bundle
-    $ bundle exec rake
+    $ bundle exec rake spec
 
 If you want to contribute, please:
 
