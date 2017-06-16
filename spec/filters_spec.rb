@@ -26,6 +26,22 @@ if SimpleCov.usable?
       expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
     end
 
+    it "matches a new SimpleCov::StringFilter '/fixtures/'" do
+      expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
+    end
+
+    it "matches a new SimpleCov::RegexFilter /\/fixtures\//" do
+      expect(SimpleCov::RegexFilter.new(/\/fixtures\//)).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::RegexFilter /^\/fixtures\//" do
+      expect(SimpleCov::RegexFilter.new(/^\/fixtures\//)).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::RegexFilter /^\/spec\//" do
+      expect(SimpleCov::RegexFilter.new(/^\/spec\//)).to be_matches subject
+    end
+
     it "doesn't match a new SimpleCov::BlockFilter that is not applicable" do
       expect(SimpleCov::BlockFilter.new(proc { |s| File.basename(s.filename) == "foo.rb" })).not_to be_matches subject
     end
@@ -92,6 +108,20 @@ if SimpleCov.usable?
       it "returns a FileList after filtering" do
         SimpleCov.add_filter "fooo"
         expect(SimpleCov.filtered(subject)).to be_a SimpleCov::FileList
+      end
+    end
+
+    describe ".class_for_argument" do
+      it "returns SimpleCov::StringFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument("filestring")).to eq(SimpleCov::StringFilter)
+      end
+
+      it "returns SimpleCov::RegexFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument(/regex/)).to eq(SimpleCov::RegexFilter)
+      end
+
+      it "returns SimpleCov::RegexFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument(%w[file1 file2])).to eq(SimpleCov::ArrayFilter)
       end
     end
   end

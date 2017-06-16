@@ -25,8 +25,8 @@ end
 SimpleCov.profiles.define "rails" do
   load_profile "test_frameworks"
 
-  add_filter "/config/"
-  add_filter "/db/"
+  add_filter %r{^/config/}
+  add_filter %r{/^/db/}
 
   add_group "Controllers", "app/controllers"
   add_group "Channels", "app/channels" if defined?(ActionCable)

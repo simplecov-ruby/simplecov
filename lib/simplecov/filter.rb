@@ -24,6 +24,18 @@ module SimpleCov
       warn "#{Kernel.caller.first}: [DEPRECATION] #passes? is deprecated. Use #matches? instead."
       matches?(source_file)
     end
+
+    def self.class_for_argument(filter_argument)
+      if filter_argument.is_a?(String)
+        SimpleCov::StringFilter
+      elsif filter_argument.is_a?(Regexp)
+        SimpleCov::RegexFilter
+      elsif filter_argument.is_a?(Array)
+        SimpleCov::ArrayFilter
+      else
+        raise ArgumentError, "You have provided an unrecognized filter type"
+      end
+    end
   end
 
   class StringFilter < SimpleCov::Filter
@@ -31,6 +43,14 @@ module SimpleCov
     # string configured when initializing this Filter with StringFilter.new('somestring)
     def matches?(source_file)
       (source_file.filename =~ /#{filter_argument}/)
+    end
+  end
+
+  class RegexFilter < SimpleCov::Filter
+    # Returns true when the given source file's filename matches the
+    # regex configured when initializing this Filter with RegexFilter.new(/someregex/)
+    def matches?(source_file)
+      (source_file.project_filename =~ filter_argument)
     end
   end
 

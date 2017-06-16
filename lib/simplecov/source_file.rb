@@ -80,6 +80,12 @@ module SimpleCov
       @coverage = coverage
     end
 
+    # The path to this source file relative to the projects directory
+    def project_filename
+      project_dir = File.dirname(File.expand_path(File.basename(__FILE__)))
+      @filename.sub(/^#{project_dir}/, "")
+    end
+
     # The source code for this file. Aliased as :source
     def src
       # We intentionally read source code lazily to
