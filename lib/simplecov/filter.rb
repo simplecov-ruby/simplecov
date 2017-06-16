@@ -42,7 +42,7 @@ module SimpleCov
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring)
     def matches?(source_file)
-      (source_file.filename =~ /#{filter_argument}/)
+      (source_file.project_filename =~ /#{filter_argument}/)
     end
   end
 
@@ -67,7 +67,7 @@ module SimpleCov
     # configured when initializing this Filter with StringFilter.new(['some/path', 'other/path'])
     def matches?(source_files_list)
       filter_argument.any? do |arg|
-        source_files_list.filename =~ /#{arg}/
+        source_files_list.project_filename =~ /#{arg}/
       end
     end
   end

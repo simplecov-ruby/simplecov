@@ -26,6 +26,11 @@ if SimpleCov.usable?
       expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
     end
 
+    it "doesn't match a parent directory with a new SimpleCov::StringFilter" do
+      parent_dir_name = File.basename(File.expand_path("..", File.dirname(__FILE__)))
+      expect(SimpleCov::StringFilter.new(parent_dir_name)).not_to be_matches subject
+    end
+
     it "matches a new SimpleCov::StringFilter '/fixtures/'" do
       expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
     end
@@ -60,6 +65,11 @@ if SimpleCov.usable?
 
     it "matches a new SimpleCov::ArrayFilter when two file paths including 'sample.rb' are passed as array" do
       expect(SimpleCov::ArrayFilter.new(["sample.rb", "other_file.rb"])).to be_matches subject
+    end
+
+    it "doesn't match a parent directory with a new SimpleCov::ArrayFilter" do
+      parent_dir_name = File.basename(File.expand_path("..", File.dirname(__FILE__)))
+      expect(SimpleCov::ArrayFilter.new([parent_dir_name])).not_to be_matches subject
     end
 
     context "with no filters set up and a basic source file in an array" do
