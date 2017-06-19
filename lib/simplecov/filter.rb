@@ -32,6 +32,8 @@ module SimpleCov
         SimpleCov::RegexFilter
       elsif filter_argument.is_a?(Array)
         SimpleCov::ArrayFilter
+      elsif filter_argument.is_a?(Proc)
+        SimpleCov::BlockFilter
       else
         raise ArgumentError, "You have provided an unrecognized filter type"
       end
@@ -63,11 +65,23 @@ module SimpleCov
   end
 
   class ArrayFilter < SimpleCov::Filter
-    # Returns true if any of the file paths passed in the given array matches the string
-    # configured when initializing this Filter with StringFilter.new(['some/path', 'other/path'])
+    def initialize(filter_argument)
+      filter_argument.map! do |arg|
+        if arg.is_a?(SimpleCov::Filter)
+          arg
+        else
+          Filter.class_for_argument(arg).new(arg)
+        end
+      end
+
+      super(filter_argument)
+    end
+
+    # Returns true if any of the filters in the array match the given source file.
+    # Configure this Filter like StringFilter.new(['some/path', /^some_regex/, Proc.new {|src_file| ... }])
     def matches?(source_files_list)
       filter_argument.any? do |arg|
-        source_files_list.project_filename =~ /#{arg}/
+        arg.matches?(source_files_list)
       end
     end
   end
