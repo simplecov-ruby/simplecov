@@ -25,7 +25,14 @@ module SimpleCov
       matches?(source_file)
     end
 
+    def self.build_filter(filter_argument)
+      return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
+      class_for_argument(filter_argument).new(filter_argument)
+    end
+
     def self.class_for_argument(filter_argument)
+      return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
+
       if filter_argument.is_a?(String)
         SimpleCov::StringFilter
       elsif filter_argument.is_a?(Regexp)
@@ -66,7 +73,7 @@ module SimpleCov
 
   class ArrayFilter < SimpleCov::Filter
     def initialize(filter_argument)
-      filter_argument.map! do |arg|
+      filter_objects = filter_argument.map do |arg|
         if arg.is_a?(SimpleCov::Filter)
           arg
         else
@@ -74,7 +81,7 @@ module SimpleCov
         end
       end
 
-      super(filter_argument)
+      super(filter_objects)
     end
 
     # Returns true if any of the filters in the array match the given source file.

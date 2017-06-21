@@ -293,10 +293,8 @@ module SimpleCov
     def parse_filter(filter_argument = nil, &filter_proc)
       filter = filter_argument || filter_proc
 
-      if filter_argument.is_a?(SimpleCov::Filter)
-        filter_argument
-      elsif filter
-        SimpleCov::Filter.class_for_argument(filter).new(filter)
+      if filter
+        SimpleCov::Filter.build_filter(filter)
       else
         raise ArgumentError, "Please specify either a filter or a block to filter with"
       end

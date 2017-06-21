@@ -72,6 +72,40 @@ if SimpleCov.usable?
       expect(SimpleCov::ArrayFilter.new([parent_dir_name])).not_to be_matches subject
     end
 
+    it "matches a new SimpleCov::ArrayFilter when /sample.rb/ is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([/sample.rb/])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a file path different than /sample.rb/ is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([/other_file.rb/])).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::ArrayFilter when a block is passed as array and returns true" do
+      expect(SimpleCov::ArrayFilter.new([proc { true }])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a block that returns false is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([proc { false }])).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::ArrayFilter when a custom class that returns true is passed as array" do
+      filter = Class.new(SimpleCov::Filter) do
+        def matches?(_)
+          true
+        end
+      end.new(nil)
+      expect(SimpleCov::ArrayFilter.new([filter])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a custom class that returns false is passed as array" do
+      filter = Class.new(SimpleCov::Filter) do
+        def matches?(_)
+          false
+        end
+      end.new(nil)
+      expect(SimpleCov::ArrayFilter.new([filter])).not_to be_matches subject
+    end
+
     context "with no filters set up and a basic source file in an array" do
       before do
         @prev_filters = SimpleCov.filters
