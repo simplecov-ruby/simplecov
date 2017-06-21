@@ -31,8 +31,6 @@ module SimpleCov
     end
 
     def self.class_for_argument(filter_argument)
-      return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
-
       if filter_argument.is_a?(String)
         SimpleCov::StringFilter
       elsif filter_argument.is_a?(Regexp)
@@ -74,11 +72,7 @@ module SimpleCov
   class ArrayFilter < SimpleCov::Filter
     def initialize(filter_argument)
       filter_objects = filter_argument.map do |arg|
-        if arg.is_a?(SimpleCov::Filter)
-          arg
-        else
-          Filter.class_for_argument(arg).new(arg)
-        end
+        Filter.build_filter(arg)
       end
 
       super(filter_objects)
