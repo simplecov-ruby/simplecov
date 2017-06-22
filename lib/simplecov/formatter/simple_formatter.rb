@@ -6,7 +6,7 @@ module SimpleCov
     class SimpleFormatter
       # Takes a SimpleCov::Result and generates a string out of it
       def format(result)
-        output = ""
+        output = "".dup
         result.groups.each do |name, files|
           output << "Group: #{name}\n"
           output << "=" * 40
