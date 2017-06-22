@@ -82,8 +82,7 @@ module SimpleCov
 
     # The path to this source file relative to the projects directory
     def project_filename
-      project_dir = File.dirname(File.expand_path(File.basename(__FILE__)))
-      @filename.sub(/^#{project_dir}/, "")
+      @filename.sub(/^#{SimpleCov.root}/, "")
     end
 
     # The source code for this file. Aliased as :source
