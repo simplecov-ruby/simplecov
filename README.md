@@ -40,7 +40,7 @@ automatically when you launch SimpleCov. If you're curious, you can find it [on 
 
 *Questions, Problems, Suggestions, etc.*
 
-* [Mailing List]: https://groups.google.com/forum/#!forum/simplecov "Open mailing list for discussion and announcements on Google Groups"
+* [Mailing List](https://groups.google.com/forum/#!forum/simplecov) "Open mailing list for discussion and announcements on Google Groups"
 
 Getting started
 ---------------
