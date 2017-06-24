@@ -1,3 +1,16 @@
+0.15.0 unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.14.1...master))
+=======
+
+## Enhancements
+
+* Ability to use regex filters for removing files from the output. See [#589](https://github.com/colszowka/simplecov/pull/589) (thanks @jsteel)
+
+## Bugfixes
+
+* Make sure Array Filter can use all other filter types. See [#589](https://github.com/colszowka/simplecov/pull/589) (thanks @jsteel)
+* Make sure file names use `Simplecov.root` as base avoiding using full absolute project paths. See [#589](https://github.com/colszowka/simplecov/pull/589) (thanks @jsteel)
+
+
 0.14.1 2017-03-18 ([changes](https://github.com/colszowka/simplecov/compare/v0.14.0...v0.14.1))
 ========
 
