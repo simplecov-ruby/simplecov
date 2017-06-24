@@ -262,7 +262,7 @@ report.
 
 ### Defining custom filters
 
-You can currently define a filter using either a String (that will then be Regexp-matched against each source file's path),
+You can currently define a filter using either a String or Regexp (that will then be Regexp-matched against each source file's path),
 a block or by passing in your own Filter class.
 
 #### String filter
@@ -274,6 +274,16 @@ end
 ```
 
 This simple string filter will remove all files that match "/test/" in their path.
+
+#### Regex filter
+
+```ruby
+SimpleCov.start do
+  add_filter %r{^/test/}
+end
+```
+
+This simple regex filter will remove all files that start with /test/ in their path.
 
 #### Block filter
 
@@ -304,6 +314,17 @@ SimpleCov.add_filter LineFilter.new(5)
 Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'matches?(source_file)'. When running
 the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
 is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
+
+#### Array filter
+
+```ruby
+SimpleCov.start do
+  proc = Proc.new { |source_file| fales }
+  add_filter ["string", /regex/, proc, LineFilter.new(5)]
+end
+```
+
+You can pass in an array containing any of the other filter types.
 
 #### Ignoring/skipping code
 

@@ -291,16 +291,12 @@ module SimpleCov
     # The actual filter processor. Not meant for direct use
     #
     def parse_filter(filter_argument = nil, &filter_proc)
-      if filter_argument.is_a?(SimpleCov::Filter)
-        filter_argument
-      elsif filter_argument.is_a?(String)
-        SimpleCov::StringFilter.new(filter_argument)
-      elsif filter_proc
-        SimpleCov::BlockFilter.new(filter_proc)
-      elsif filter_argument.is_a?(Array)
-        SimpleCov::ArrayFilter.new(filter_argument)
+      filter = filter_argument || filter_proc
+
+      if filter
+        SimpleCov::Filter.build_filter(filter)
       else
-        raise ArgumentError, "Please specify either a string or a block to filter with"
+        raise ArgumentError, "Please specify either a filter or a block to filter with"
       end
     end
   end

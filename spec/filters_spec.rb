@@ -26,6 +26,27 @@ if SimpleCov.usable?
       expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
     end
 
+    it "doesn't match a parent directory with a new SimpleCov::StringFilter" do
+      parent_dir_name = File.basename(File.expand_path("..", File.dirname(__FILE__)))
+      expect(SimpleCov::StringFilter.new(parent_dir_name)).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::StringFilter '/fixtures/'" do
+      expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
+    end
+
+    it "matches a new SimpleCov::RegexFilter /\/fixtures\//" do
+      expect(SimpleCov::RegexFilter.new(/\/fixtures\//)).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::RegexFilter /^\/fixtures\//" do
+      expect(SimpleCov::RegexFilter.new(/^\/fixtures\//)).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::RegexFilter /^\/spec\//" do
+      expect(SimpleCov::RegexFilter.new(/^\/spec\//)).to be_matches subject
+    end
+
     it "doesn't match a new SimpleCov::BlockFilter that is not applicable" do
       expect(SimpleCov::BlockFilter.new(proc { |s| File.basename(s.filename) == "foo.rb" })).not_to be_matches subject
     end
@@ -44,6 +65,45 @@ if SimpleCov.usable?
 
     it "matches a new SimpleCov::ArrayFilter when two file paths including 'sample.rb' are passed as array" do
       expect(SimpleCov::ArrayFilter.new(["sample.rb", "other_file.rb"])).to be_matches subject
+    end
+
+    it "doesn't match a parent directory with a new SimpleCov::ArrayFilter" do
+      parent_dir_name = File.basename(File.expand_path("..", File.dirname(__FILE__)))
+      expect(SimpleCov::ArrayFilter.new([parent_dir_name])).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::ArrayFilter when /sample.rb/ is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([/sample.rb/])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a file path different than /sample.rb/ is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([/other_file.rb/])).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::ArrayFilter when a block is passed as array and returns true" do
+      expect(SimpleCov::ArrayFilter.new([proc { true }])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a block that returns false is passed as array" do
+      expect(SimpleCov::ArrayFilter.new([proc { false }])).not_to be_matches subject
+    end
+
+    it "matches a new SimpleCov::ArrayFilter when a custom class that returns true is passed as array" do
+      filter = Class.new(SimpleCov::Filter) do
+        def matches?(_)
+          true
+        end
+      end.new(nil)
+      expect(SimpleCov::ArrayFilter.new([filter])).to be_matches subject
+    end
+
+    it "doesn't match a new SimpleCov::ArrayFilter when a custom class that returns false is passed as array" do
+      filter = Class.new(SimpleCov::Filter) do
+        def matches?(_)
+          false
+        end
+      end.new(nil)
+      expect(SimpleCov::ArrayFilter.new([filter])).not_to be_matches subject
     end
 
     context "with no filters set up and a basic source file in an array" do
@@ -92,6 +152,20 @@ if SimpleCov.usable?
       it "returns a FileList after filtering" do
         SimpleCov.add_filter "fooo"
         expect(SimpleCov.filtered(subject)).to be_a SimpleCov::FileList
+      end
+    end
+
+    describe ".class_for_argument" do
+      it "returns SimpleCov::StringFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument("filestring")).to eq(SimpleCov::StringFilter)
+      end
+
+      it "returns SimpleCov::RegexFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument(/regex/)).to eq(SimpleCov::RegexFilter)
+      end
+
+      it "returns SimpleCov::RegexFilter for a string" do
+        expect(SimpleCov::Filter.class_for_argument(%w[file1 file2])).to eq(SimpleCov::ArrayFilter)
       end
     end
   end

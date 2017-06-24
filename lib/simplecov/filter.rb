@@ -24,13 +24,40 @@ module SimpleCov
       warn "#{Kernel.caller.first}: [DEPRECATION] #passes? is deprecated. Use #matches? instead."
       matches?(source_file)
     end
+
+    def self.build_filter(filter_argument)
+      return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
+      class_for_argument(filter_argument).new(filter_argument)
+    end
+
+    def self.class_for_argument(filter_argument)
+      if filter_argument.is_a?(String)
+        SimpleCov::StringFilter
+      elsif filter_argument.is_a?(Regexp)
+        SimpleCov::RegexFilter
+      elsif filter_argument.is_a?(Array)
+        SimpleCov::ArrayFilter
+      elsif filter_argument.is_a?(Proc)
+        SimpleCov::BlockFilter
+      else
+        raise ArgumentError, "You have provided an unrecognized filter type"
+      end
+    end
   end
 
   class StringFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring)
     def matches?(source_file)
-      (source_file.filename =~ /#{filter_argument}/)
+      (source_file.project_filename =~ /#{filter_argument}/)
+    end
+  end
+
+  class RegexFilter < SimpleCov::Filter
+    # Returns true when the given source file's filename matches the
+    # regex configured when initializing this Filter with RegexFilter.new(/someregex/)
+    def matches?(source_file)
+      (source_file.project_filename =~ filter_argument)
     end
   end
 
@@ -43,11 +70,19 @@ module SimpleCov
   end
 
   class ArrayFilter < SimpleCov::Filter
-    # Returns true if any of the file paths passed in the given array matches the string
-    # configured when initializing this Filter with StringFilter.new(['some/path', 'other/path'])
+    def initialize(filter_argument)
+      filter_objects = filter_argument.map do |arg|
+        Filter.build_filter(arg)
+      end
+
+      super(filter_objects)
+    end
+
+    # Returns true if any of the filters in the array match the given source file.
+    # Configure this Filter like StringFilter.new(['some/path', /^some_regex/, Proc.new {|src_file| ... }])
     def matches?(source_files_list)
       filter_argument.any? do |arg|
-        source_files_list.filename =~ /#{arg}/
+        arg.matches?(source_files_list)
       end
     end
   end
