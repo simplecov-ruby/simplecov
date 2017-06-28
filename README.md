@@ -319,7 +319,7 @@ is being set in the SimpleCov::Filter initialize method and thus is set to 5 in 
 
 ```ruby
 SimpleCov.start do
-  proc = Proc.new { |source_file| fales }
+  proc = Proc.new { |source_file| false }
   add_filter ["string", /regex/, proc, LineFilter.new(5)]
 end
 ```
