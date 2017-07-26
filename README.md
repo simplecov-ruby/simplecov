@@ -138,7 +138,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
       bootsnap
     </th>
     <td>
-      <a href="#want-to-use-spring-with-simplecov">See section below.</a>
+      <a href="#want-to-use-bootsnap-with-simplecov">See section below.</a>
     </td>
     <td>
       <a href="https://github.com/Shopify/bootsnap/issues/35">Shopify/bootsnap#35</a>
