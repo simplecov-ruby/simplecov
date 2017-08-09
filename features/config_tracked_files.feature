@@ -16,7 +16,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 76.81%   | 7     |
+      | All Files | 77.94%   | 7     |
 
     And I should see the source files:
       | name                                    | coverage |
