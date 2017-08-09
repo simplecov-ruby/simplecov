@@ -180,7 +180,7 @@ module SimpleCov
       skipping = false
 
       lines.each do |line|
-        if line.src =~ /^([\s]*)#([\s]*)(\:#{SimpleCov.nocov_token}\:)/
+        if line.src =~ SimpleCov::LinesClassifier.no_cov_line
           skipping = !skipping
           line.skipped!
         elsif skipping
