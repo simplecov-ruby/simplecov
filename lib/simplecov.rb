@@ -55,7 +55,7 @@ module SimpleCov
 
     #
     # Finds files that were to be tracked but were not loaded and initializes
-    # their coverage to zero.
+    # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
     #
     def add_not_loaded_files(result)
       if tracked_files
@@ -63,7 +63,7 @@ module SimpleCov
         Dir[tracked_files].each do |file|
           absolute = File.expand_path(file)
 
-          result[absolute] ||= [0] * File.foreach(absolute).count
+          result[absolute] ||= LinesClassifier.new.classify(File.foreach(absolute))
         end
       end
 
@@ -177,6 +177,7 @@ require "simplecov/result"
 require "simplecov/filter"
 require "simplecov/formatter"
 require "simplecov/last_run"
+require "simplecov/lines_classifier"
 require "simplecov/raw_coverage"
 require "simplecov/result_merger"
 require "simplecov/command_guesser"
