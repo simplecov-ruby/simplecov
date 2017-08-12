@@ -34,7 +34,7 @@ Before do
   this_dir = File.dirname(__FILE__)
 
   # Clean up and create blank state for fake project
-  in_current_directory do
+  cd('.') do
     FileUtils.rm_rf "project"
     FileUtils.cp_r File.join(this_dir, "../../spec/faked_project/"), "project"
   end
@@ -44,7 +44,7 @@ end
 
 # Workaround for https://github.com/cucumber/aruba/pull/125
 Aruba.configure do |config|
-  config.before_cmd do
-    set_env("JRUBY_OPTS", "--dev --debug")
+  config.before(:command) do
+    set_environment_variable("JRUBY_OPTS", "--dev --debug")
   end
 end
