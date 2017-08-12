@@ -1,4 +1,7 @@
 module SimpleCov
+  # Classifies whether lines are relevant for code coverage analysis.
+  # Comments & whitespace lines, and :nocov: token blocks, are considered not relevant.
+
   class LinesClassifier
     RELEVANT = 0
     NOT_RELEVANT = nil
@@ -18,7 +21,7 @@ module SimpleCov
         if line =~ self.class.no_cov_line
           skipping = !skipping
           NOT_RELEVANT
-        elsif line =~ WHITESPACE_OR_COMMENT_LINE || skipping
+        elsif skipping || line =~ WHITESPACE_OR_COMMENT_LINE
           NOT_RELEVANT
         else
           RELEVANT
