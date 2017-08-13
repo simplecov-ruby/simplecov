@@ -6,7 +6,8 @@ end
 require "bundler"
 Bundler.setup
 require "aruba/cucumber"
-require "aruba/jruby" if RUBY_ENGINE == "jruby"
+require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
+require_relative "aruba_freedom_patch"
 require "capybara/cucumber"
 require "phantomjs/poltergeist"
 
@@ -34,7 +35,7 @@ Before do
   this_dir = File.dirname(__FILE__)
 
   # Clean up and create blank state for fake project
-  in_current_directory do
+  cd(".") do
     FileUtils.rm_rf "project"
     FileUtils.cp_r File.join(this_dir, "../../spec/faked_project/"), "project"
   end
@@ -44,7 +45,6 @@ end
 
 # Workaround for https://github.com/cucumber/aruba/pull/125
 Aruba.configure do |config|
-  config.before_cmd do
-    set_env("JRUBY_OPTS", "--dev --debug")
-  end
+  config.exit_timeout = RUBY_ENGINE == "jruby" ? 60 : 20
+  config.command_runtime_environment = {"JRUBY_OPTS" => "--dev --debug"}
 end
