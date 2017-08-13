@@ -36,7 +36,7 @@ Metrics/ParameterLists:
   Max: 4
   CountKeywordArgs: true
 
-Style/AccessModifierIndentation:
+Layout/AccessModifierIndentation:
   EnforcedStyle: outdent
 
 Style/CollectionMethods:
@@ -55,13 +55,13 @@ Style/DoubleNegation:
 Style/HashSyntax:
   EnforcedStyle: hash_rockets
 
-Style/IndentHeredoc:
+Layout/IndentHeredoc:
   Enabled: false
 
 Style/RegexpLiteral:
   Enabled: false
 
-Style/SpaceInsideHashLiteralBraces:
+Layout/SpaceInsideHashLiteralBraces:
   EnforcedStyle: no_space
 
 Style/SpecialGlobalVars:
