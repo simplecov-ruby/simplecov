@@ -6,7 +6,7 @@ end
 require "bundler"
 Bundler.setup
 require "aruba/cucumber"
-require "aruba/jruby" if RUBY_ENGINE == "jruby"
+require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require_relative "aruba_freedom_patch"
 require "capybara/cucumber"
 require "phantomjs/poltergeist"
@@ -45,7 +45,6 @@ end
 
 # Workaround for https://github.com/cucumber/aruba/pull/125
 Aruba.configure do |config|
-  config.before(:command) do
-    set_environment_variable("JRUBY_OPTS", "--dev --debug")
-  end
+  config.exit_timeout = RUBY_ENGINE == "jruby" ? 60 : 20
+  config.command_runtime_environment = {"JRUBY_OPTS" => "--dev --debug"}
 end
