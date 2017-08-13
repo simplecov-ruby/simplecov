@@ -7,7 +7,7 @@ require "bundler"
 Bundler.setup
 require "aruba/cucumber"
 require "aruba/jruby" if RUBY_ENGINE == "jruby"
-require_relative 'aruba_freedom_patch'
+require_relative "aruba_freedom_patch"
 require "capybara/cucumber"
 require "phantomjs/poltergeist"
 
@@ -35,7 +35,7 @@ Before do
   this_dir = File.dirname(__FILE__)
 
   # Clean up and create blank state for fake project
-  cd('.') do
+  cd(".") do
     FileUtils.rm_rf "project"
     FileUtils.cp_r File.join(this_dir, "../../spec/faked_project/"), "project"
   end

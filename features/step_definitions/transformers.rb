@@ -8,6 +8,6 @@
 #
 Transform "bundle exec rspec spec" do |_|
   files = nil # Avoid shadowing
-  cd('.') { files = Dir["spec/**/*_spec.rb"] }
+  cd(".") { files = Dir["spec/**/*_spec.rb"] }
   "bundle exec rspec #{files.sort.join(' ')}"
 end
