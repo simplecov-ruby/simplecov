@@ -7,6 +7,7 @@ require "bundler"
 Bundler.setup
 require "aruba/cucumber"
 require "aruba/jruby" if RUBY_ENGINE == "jruby"
+require_relative 'aruba_freedom_patch'
 require "capybara/cucumber"
 require "phantomjs/poltergeist"
 
