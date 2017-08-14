@@ -1,4 +1,4 @@
-0.15.0 unreleased ([changes](https://github.com/colszowka/simplecov/compare/v0.14.1...master))
+0.15.0 (2017-08-14) ([changes](https://github.com/colszowka/simplecov/compare/v0.14.1...v0.15.0))
 =======
 
 ## Enhancements
