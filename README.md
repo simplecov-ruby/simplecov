@@ -349,8 +349,7 @@ end
 # :nocov:
 ```
 
-The name of the token can be changed to your liking. [Learn more about the nocov feature.][nocov]
-[nocov]: https://github.com/colszowka/simplecov/blob/master/features/config_nocov_token.feature
+The name of the token can be changed to your liking. [Learn more about the nocov feature.]( https://github.com/colszowka/simplecov/blob/master/features/config_nocov_token.feature)
 
 **Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If you appropriately test the public interface of your classes and objects you should automatically get full coverage of your private methods.
 
