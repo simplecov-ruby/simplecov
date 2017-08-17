@@ -31,10 +31,6 @@ if SimpleCov.usable?
       expect(SimpleCov::StringFilter.new(parent_dir_name)).not_to be_matches subject
     end
 
-    it "matches a new SimpleCov::StringFilter '/fixtures/'" do
-      expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
-    end
-
     it "matches a new SimpleCov::RegexFilter /\/fixtures\//" do
       expect(SimpleCov::RegexFilter.new(/\/fixtures\//)).to be_matches subject
     end
