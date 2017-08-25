@@ -34,3 +34,8 @@ JSON formatter for SimpleCov
 *by [Michael Grosser](http://grosser.it)*
 
 A formatter that prints the coverage of the file under test when you run a single test file.
+
+#### [simplecov-t_wada](https://github.com/ysksn/simplecov-t_wada)
+*by [Yosuke Kabuto](https://github.com/ysksn)*
+
+t_wada AA formatter for SimpleCov
