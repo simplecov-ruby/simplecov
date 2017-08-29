@@ -155,6 +155,34 @@ if SimpleCov.usable?
       end
     end
 
+    context "with the default profile" do
+      def a_file(path)
+        path = File.join(SimpleCov.root, path) unless path.start_with?("/")
+        SimpleCov::SourceFile.new(path, [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
+      end
+
+      context "inside the project" do
+        it "doesn't filter" do
+          expect(SimpleCov.filtered([a_file("foo.rb")]).count).to eq(1)
+        end
+
+        it "filters vendor/bundle" do
+          expect(SimpleCov.filtered([a_file("vendor/bundle/foo.rb")]).count).to eq(0)
+        end
+      end
+
+      context "outside the project" do
+        it "filters" do
+          expect(SimpleCov.filtered([a_file("/other/path/foo.rb")]).count).to eq(0)
+        end
+
+        it "filters even if the sibling directory has SimpleCov.root as a prefix" do
+          sibling_dir = SimpleCov.root + "_cache"
+          expect(SimpleCov.filtered([a_file(sibling_dir + "/foo.rb")]).count).to eq(0)
+        end
+      end
+    end
+
     describe ".class_for_argument" do
       it "returns SimpleCov::StringFilter for a string" do
         expect(SimpleCov::Filter.class_for_argument("filestring")).to eq(SimpleCov::StringFilter)
