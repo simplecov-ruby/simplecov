@@ -155,7 +155,9 @@ if SimpleCov.usable?
       end
     end
 
-    context "with the default profile" do
+    context "with the default configuration" do
+      skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
+
       def a_file(path)
         path = File.join(SimpleCov.root, path) unless path.start_with?("/")
         SimpleCov::SourceFile.new(path, [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
