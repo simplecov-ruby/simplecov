@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "helper"
 
 # Test to verify correct handling of deleted files

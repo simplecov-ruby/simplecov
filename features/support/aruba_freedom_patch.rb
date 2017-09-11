@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Freedom patch because of not working absolute directories, see: https://github.com/cucumber/aruba/issues/478
 # code taken directly from aruba 0.14.2 - roughly here: https://github.com/cucumber/aruba/blob/master/lib/aruba/api/core.rb#L122-L159
 # rubocop:disable all

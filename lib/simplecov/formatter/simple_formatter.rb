@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # A ridiculously simple formatter for SimpleCov results.
 #

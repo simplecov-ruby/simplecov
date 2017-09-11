@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module WithinHelpers
   def with_scope(locator)
     locator ? within(locator) { yield } : yield

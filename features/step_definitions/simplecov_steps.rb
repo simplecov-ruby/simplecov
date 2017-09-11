@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Just a shortcut to make framework setup more readable
 # The test project is using separate config files to avoid specifying all of
 # test/spec_helper in the features every time.

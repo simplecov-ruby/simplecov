@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GroupHelpers
   def available_groups
     all("#content .file_list_container")

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "helper"
 
 # Make sure that exit codes of tests are propagated properly
