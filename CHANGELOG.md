@@ -1,3 +1,11 @@
+0.15.1 (2017-09-11) ([changes](https://github.com/colszowka/simplecov/compare/v0.15.0...v0.15.1))
+=======
+
+## Bugfixes
+
+* Filter directories outside SimpleCov.root that have it as a prefix. See [#617](https://github.com/colszowka/simplecov/pull/617) (thanks @jenseng)
+* Fix standard rails profile rails filter (didn't work). See [#618](https://github.com/colszowka/simplecov/pull/618) (thanks @jenseng again!)
+
 0.15.0 (2017-08-14) ([changes](https://github.com/colszowka/simplecov/compare/v0.14.1...v0.15.0))
 =======
 
