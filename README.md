@@ -50,7 +50,7 @@ Getting started
     gem 'simplecov', :require => false, :group => :test
     ```
 2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb`
-   (*or `spec_helper.rb`, cucumber `env.rb`, or whatever your preferred test
+   (*or `spec_helper.rb`, `rails_helper`, cucumber `env.rb`, or whatever your preferred test
    framework uses*):
 
     ```ruby
@@ -246,7 +246,7 @@ If you use SimpleCov to merge multiple test suite results (e.g. Test/Unit and Cu
 set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
 
 To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the `require 'simplecov'` in each
-test setup helper and move the `SimpleCov.start` code with all your custom config options into `.simplecov`:
+test setup helper (**at the top**) and move the `SimpleCov.start` code with all your custom config options into `.simplecov`:
 
 ```ruby
 # test/test_helper.rb
@@ -260,6 +260,7 @@ SimpleCov.start 'rails' do
   # any custom configs like groups and filters can be here at a central place
 end
 ```
+
 Using `.simplecov` rather than separately requiring SimpleCov multiple times is recommended if you are merging multiple test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage information to be lost.
 
 ## Filters
@@ -669,6 +670,38 @@ Bootsnap.setup(
   # all those other options
 )
 ```
+
+## Troubleshooting
+
+The **most common problem is that simplecov isn't required and started before everything else**. In order to track coverage for your whole application **simplecov needs to be the first one** so that it (and the underlying coverage library) can subsequently track loaded files and their usage.
+
+If you are missing coverage for some code a simple trick is to put a puts statement in there and right after `Simplecov.start` so you can see if the file really was loaded after simplecov was started.
+
+```ruby
+# my_code.rb
+class MyCode
+
+  puts "MyCode is being loaded!"
+  
+  def my_method
+    # ...
+  end
+end
+
+# spec_helper.rb/rails_helper.rb/test_helper.rb/.simplecov whatever
+
+Simplecov.start
+puts "Simplecov started successfully!"
+```
+
+Now when you run your test suite and you see:
+
+```
+Simplecov started successfully!
+MyCode is being loaded!
+```
+
+then it's good otherwise you likely have a problem :)
 
 ## Contributing
 
