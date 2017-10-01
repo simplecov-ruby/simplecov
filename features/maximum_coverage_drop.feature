@@ -85,5 +85,55 @@ Feature:
         }
       }
       """
+  Scenario: test failures do not update the resultset
+    Given SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_group 'Libs', 'lib/faked_project/'
+        add_filter '/spec/'
+        maximum_coverage_drop 0
+      end
+      """
 
+    And a file named "lib/faked_project/missed.rb" with:
+      """
+      class UncoveredSourceCode
+        def foo
+          never_reached
+        rescue => err
+          but no one cares about invalid ruby here
+        end
+      end
+      """
+
+    And a file named "spec/failing_spec.rb" with:
+      """
+      require "spec_helper"
+      describe FakedProject do
+        it "fails" do
+          expect(false).to eq(true)
+        end
+      end
+      """
+    And the file named "coverage/.last_run.json" with:
+      """
+      {
+        "result": {
+          "covered_percent": 100.0
+        }
+      }
+      """
+
+    When I run `bundle exec rspec spec`
+    Then the exit status should be 1
+    And a file named "coverage/.last_run.json" should exist
+    And the file "coverage/.last_run.json" should contain:
+      """
+      {
+        "result": {
+          "covered_percent": 100.0
+        }
+      }
+      """
 
