@@ -1,6 +1,4 @@
-## Reporting Issues
-
-You can report issues at https://github.com/colszowka/simplecov/issues
+Howdy! Thanks for reporting an issue <3
 
 Before you go ahead please search existing issues for your problem, chances are someone else already reported it.
 
@@ -23,28 +21,3 @@ Include as much sample code as you can to help us reproduce the issue. (Inline, 
 This is extremely important for narrowing down the cause of your problem.
 
 Thanks!
-
-## Making Contributions
-
-To fetch & test the library for development, do:
-
-    $ git clone https://github.com/colszowka/simplecov.git
-    $ cd simplecov
-    $ bundle
-    $ bundle exec rake
-
-If you want to contribute, please:
-
-  * Fork the project.
-  * Make your feature addition or bug fix.
-  * Add tests for it. This is important so I don't break it in a future version unintentionally.
-  * **Bonus Points** go out to anyone who also updates `CHANGELOG.md` :)
-  * Send me a pull request on Github.
-
-## Running Individual Tests
-
-This project uses Test::Unit. Individual tests can be run like this:
-
-```bash
-ruby -I test path/to/test.rb
-```
