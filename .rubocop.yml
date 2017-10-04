@@ -87,3 +87,6 @@ Style/GuardClause:
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
+  Exclude:
+    - 'spec/fixtures/**/*'
+    - 'spec/faked_project/**/*'

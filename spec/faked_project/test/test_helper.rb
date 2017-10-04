@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require "bundler/setup"
 
 # We're injecting simplecov_config via aruba in cucumber here

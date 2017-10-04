@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class SomeClass
   attr_reader :label
   attr_accessor :some_attr

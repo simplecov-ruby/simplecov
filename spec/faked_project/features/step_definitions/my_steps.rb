@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 Given /^I want to keep stuff simple$/ do
   expect(1).to eq(1)
 end

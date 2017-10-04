@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module MetaMagic
   module ClassMethods
     def a_class_method
