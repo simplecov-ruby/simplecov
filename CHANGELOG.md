@@ -1,3 +1,10 @@
+unreleased
+==========
+
+## Bugfixes
+
+* Avoid overwriting the last coverage results on unsuccessful test runs. See [#625](https://github.com/colszowka/simplecov/pull/625) (thanks @thomas07vt)
+
 0.15.1 (2017-09-11) ([changes](https://github.com/colszowka/simplecov/compare/v0.15.0...v0.15.1))
 =======
 
