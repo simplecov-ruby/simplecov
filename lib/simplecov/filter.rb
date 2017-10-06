@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SimpleCov
   #
   # Base filter class. Inherit from this to create custom filters,

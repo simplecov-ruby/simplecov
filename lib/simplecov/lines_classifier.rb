@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SimpleCov
   # Classifies whether lines are relevant for code coverage analysis.
   # Comments & whitespace lines, and :nocov: token blocks, are considered not relevant.

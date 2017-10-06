@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "helper"
 
 # Tests that verify that on 1.8 versions of ruby, simplecov simply

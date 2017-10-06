@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 if RUBY_VERSION < "1.9"
   $stderr.puts "Sorry, Cucumber features are only meant to run on Ruby 1.9+ :("
   exit 0

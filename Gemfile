@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 source "https://rubygems.org"
 
 # Uncomment this to use local copy of simplecov-html in development when checked out

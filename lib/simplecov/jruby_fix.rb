@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 if defined?(JRUBY_VERSION) && JRUBY_VERSION.to_f < 1.7
   require "jruby"
   java_import "org.jruby.ast.NodeType"

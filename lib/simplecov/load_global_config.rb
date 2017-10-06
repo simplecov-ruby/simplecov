@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "etc"
 home_dir = (ENV["HOME"] && File.expand_path("~")) || Etc.getpwuid.dir || (ENV["USER"] && File.expand_path("~#{ENV['USER']}"))
 if home_dir

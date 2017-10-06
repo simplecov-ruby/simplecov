@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SimpleCov
   module RawCoverage
   module_function

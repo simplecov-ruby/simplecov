@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SimpleCov
   module ExitCodes
     SUCCESS = 0

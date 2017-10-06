@@ -84,6 +84,9 @@ Style/TrailingCommaInLiteral:
 Style/GuardClause:
   Enabled: false
 
-Style/MutableConstant:
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
   Exclude:
-    - 'lib/simplecov/version.rb' # required for older versions of rubygems
+    - 'spec/fixtures/**/*'
+    - 'spec/faked_project/**/*'

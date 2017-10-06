@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SimpleCov
   #
   # Representation of a source file including it's coverage data, source code,

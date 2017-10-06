@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Load default formatter gem
 require "simplecov-html"
 require "pathname"

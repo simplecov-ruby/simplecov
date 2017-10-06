@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Enforce the alphabetical execution of specs because rspec 2+ executes them
 # randomly with `rspec spec` while we need them in an accurate order for coverage

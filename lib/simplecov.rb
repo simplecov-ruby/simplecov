@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
