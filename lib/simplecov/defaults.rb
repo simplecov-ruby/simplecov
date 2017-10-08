@@ -3,43 +3,10 @@
 # Load default formatter gem
 require "simplecov-html"
 require "pathname"
-
-SimpleCov.profiles.define "root_filter" do
-  # Exclude all files outside of simplecov root
-  root_filter = nil
-  add_filter do |src|
-    root_filter ||= /\A#{Regexp.escape(SimpleCov.root + File::SEPARATOR)}/io
-    src.filename !~ root_filter
-  end
-end
-
-SimpleCov.profiles.define "test_frameworks" do
-  add_filter "/test/"
-  add_filter "/features/"
-  add_filter "/spec/"
-  add_filter "/autotest/"
-end
-
-SimpleCov.profiles.define "bundler_filter" do
-  add_filter "/vendor/bundle/"
-end
-
-SimpleCov.profiles.define "rails" do
-  load_profile "test_frameworks"
-
-  add_filter %r{^/config/}
-  add_filter %r{^/db/}
-
-  add_group "Controllers", "app/controllers"
-  add_group "Channels", "app/channels" if defined?(ActionCable)
-  add_group "Models", "app/models"
-  add_group "Mailers", "app/mailers"
-  add_group "Helpers", "app/helpers"
-  add_group "Jobs", %w[app/jobs app/workers]
-  add_group "Libraries", "lib"
-
-  track_files "{app,lib}/**/*.rb"
-end
+require "simplecov/profiles/root_filter"
+require "simplecov/profiles/test_frameworks"
+require "simplecov/profiles/bundler_filter"
+require "simplecov/profiles/rails"
 
 # Default configuration
 SimpleCov.configure do
