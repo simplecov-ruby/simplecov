@@ -1,6 +1,5 @@
 AllCops:
   Exclude:
-    - 'spec/fixtures/iso-8859.rb'
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
     - 'vendor/bundle/**/.*'
@@ -73,10 +72,6 @@ Style/SpecialGlobalVars:
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
-
-Style/FileName:
-  Exclude:
-    - 'spec/fixtures/utf-8.rb'
 
 Style/TrailingCommaInLiteral:
   EnforcedStyleForMultiline: comma
