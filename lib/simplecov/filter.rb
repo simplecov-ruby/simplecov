@@ -51,7 +51,7 @@ module SimpleCov
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring)
     def matches?(source_file)
-      (source_file.project_filename =~ /#{filter_argument}/)
+      source_file.project_filename.include?(filter_argument)
     end
   end
 
