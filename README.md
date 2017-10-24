@@ -675,7 +675,7 @@ Bootsnap.setup(
 
 The **most common problem is that simplecov isn't required and started before everything else**. In order to track coverage for your whole application **simplecov needs to be the first one** so that it (and the underlying coverage library) can subsequently track loaded files and their usage.
 
-If you are missing coverage for some code a simple trick is to put a puts statement in there and right after `Simplecov.start` so you can see if the file really was loaded after simplecov was started.
+If you are missing coverage for some code a simple trick is to put a puts statement in there and right after `SimpleCov.start` so you can see if the file really was loaded after simplecov was started.
 
 ```ruby
 # my_code.rb
@@ -690,14 +690,14 @@ end
 
 # spec_helper.rb/rails_helper.rb/test_helper.rb/.simplecov whatever
 
-Simplecov.start
-puts "Simplecov started successfully!"
+SimpleCov.start
+puts "SimpleCov started successfully!"
 ```
 
 Now when you run your test suite and you see:
 
 ```
-Simplecov started successfully!
+SimpleCov started successfully!
 MyCode is being loaded!
 ```
 
