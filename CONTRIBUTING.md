@@ -39,7 +39,7 @@ If you want to contribute, please:
   * Make your feature addition or bug fix.
   * Add tests for it. This is important so I don't break it in a future version unintentionally.
   * **Bonus Points** go out to anyone who also updates `CHANGELOG.md` :)
-  * Send me a pull request on Github.
+  * Send me a pull request on GitHub.
 
 ## Running Individual Tests
 

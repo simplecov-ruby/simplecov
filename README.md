@@ -28,7 +28,7 @@ etc. SimpleCov automatically takes care of this by caching and merging results w
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
 The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html], but will be installed and configured
-automatically when you launch SimpleCov. If you're curious, you can find it [on Github, too][simplecov-html].
+automatically when you launch SimpleCov. If you're curious, you can find it [on GitHub, too][simplecov-html].
 
 
 ## Contact
@@ -656,7 +656,7 @@ If you're using [Spring](https://github.com/rails/spring) to speed up test suite
     ```
 3. Run `spring rspec <path>` as normal. Remember to run `spring stop` after
    making important changes to your app or its specs!
-   
+
 ## Want to use bootsnap with SimpleCov?
 
 As mentioned in [this issue](https://github.com/Shopify/bootsnap/issues/35) iseq
@@ -682,7 +682,7 @@ If you are missing coverage for some code a simple trick is to put a puts statem
 class MyCode
 
   puts "MyCode is being loaded!"
-  
+
   def my_method
     # ...
   end

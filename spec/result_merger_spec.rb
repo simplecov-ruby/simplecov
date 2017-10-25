@@ -32,13 +32,13 @@ if SimpleCov.usable?
         }
       end
 
-      # See Github issue #6
+      # See GitHub issue #6
       it "returns an empty hash when the resultset cache file is empty" do
         File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
         expect(SimpleCov::ResultMerger.resultset).to be_empty
       end
 
-      # See Github issue #6
+      # See GitHub issue #6
       it "returns an empty hash when the resultset cache file is not present" do
         system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
         expect(SimpleCov::ResultMerger.resultset).to be_empty
