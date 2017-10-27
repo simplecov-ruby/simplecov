@@ -77,9 +77,11 @@ module SimpleCov
     # The array of coverage data received from the Coverage.result
     attr_reader :coverage
 
-    def initialize(filename, coverage)
-      @filename = filename
-      @coverage = coverage
+    def initialize(filename, coverage, final_result)
+      @filename     = filename
+      @coverage     = coverage
+      @final_result = final_result
+      lines
     end
 
     # The path to this source file relative to the projects directory
@@ -179,15 +181,18 @@ module SimpleCov
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
     # as skipped.
     def process_skipped_lines(lines)
+      @final_result[filename] ||= coverage.dup
+
       skipping = false
 
-      lines.each do |line|
+      lines.each_with_index do |line, i|
         if line.src =~ SimpleCov::LinesClassifier.no_cov_line
           skipping = !skipping
           line.skipped!
         elsif skipping
           line.skipped!
         end
+        @final_result[filename][i] = -1 if line.skipped?
       end
     end
 

@@ -12,6 +12,8 @@ module SimpleCov
     extend Forwardable
     # Returns the original Coverage.result used for this instance of SimpleCov::Result
     attr_reader :original_result
+    # Returns the final Coverage.result for this instance after skipped lines have been processed
+    attr_reader :final_result
     # Returns all files that are applicable to this result (sans filters!) as instances of SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
     alias source_files files
@@ -27,8 +29,9 @@ module SimpleCov
     # coverage data)
     def initialize(original_result)
       @original_result = original_result.freeze
+      @final_result = Hash[@original_result.keys.zip([nil] * @original_result.keys.size)]
       @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
+        SimpleCov::SourceFile.new(filename, coverage, @final_result) if File.file?(filename)
       end.compact.sort_by(&:filename))
       filter!
     end
@@ -77,7 +80,7 @@ module SimpleCov
 
     def coverage
       keys = original_result.keys & filenames
-      Hash[keys.zip(original_result.values_at(*keys))]
+      Hash[keys.zip(final_result.values_at(*keys))]
     end
 
     # Applies all configured SimpleCov filters on this result's source files
