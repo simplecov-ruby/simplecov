@@ -107,5 +107,68 @@ if SimpleCov.usable?
         end
       end
     end
+
+    describe ".set_exit_exception" do
+      context "when an exception has occurred" do
+        let(:error) { StandardError.new "SomeError" }
+
+        after do
+          # Clear the exit_exception
+          SimpleCov.set_exit_exception
+        end
+
+        it "captures the current exception" do
+          begin
+            raise error
+          rescue
+            SimpleCov.set_exit_exception
+            expect(SimpleCov.exit_exception).to be(error)
+          end
+        end
+      end
+
+      context "when an exception has not occurred" do
+        it "has no exit_exception" do
+          SimpleCov.set_exit_exception
+          expect(SimpleCov.exit_exception).to eq(nil)
+        end
+      end
+    end
+
+    describe ".exit_status_from_exception" do
+      context "when no exception has occurred" do
+        before do
+          allow(SimpleCov).to receive(:exit_exception).and_return(nil)
+        end
+
+        it "returns SimpleCov::ExitCodes::SUCCESS" do
+          expect(SimpleCov.exit_status_from_exception).to eq(SimpleCov::ExitCodes::SUCCESS)
+        end
+      end
+
+      context "when a SystemExit has occurred" do
+        let(:system_exit) { SystemExit.new(1) }
+
+        before do
+          allow(SimpleCov).to receive(:exit_exception).and_return(system_exit)
+        end
+
+        it "returns the SystemExit status" do
+          expect(SimpleCov.exit_status_from_exception).to eq(system_exit.status)
+        end
+      end
+
+      context "when a non SystemExit occurrs" do
+        let(:error) { StandardError.new "NonSystemExit" }
+
+        before do
+          allow(SimpleCov).to receive(:exit_exception).and_return(error)
+        end
+
+        it "return SimpleCov::ExitCodes::EXCEPTION" do
+          expect(SimpleCov.exit_status_from_exception).to eq(SimpleCov::ExitCodes::EXCEPTION)
+        end
+      end
+    end
   end
 end

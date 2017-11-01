@@ -23,16 +23,9 @@ at_exit do # rubocop:disable Metrics/BlockLength
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
 
-  @exit_status = if $! # was an exception thrown?
-                   # if it was a SystemExit, use the accompanying status
-                   # otherwise set a non-zero status representing termination by
-                   # some other exception (see github issue 41)
-                   $!.is_a?(SystemExit) ? $!.status : SimpleCov::ExitCodes::EXCEPTION
-                 else
-                   # Store the exit status of the test run since it goes away
-                   # after calling the at_exit proc...
-                   SimpleCov::ExitCodes::SUCCESS
-                 end
+  SimpleCov.set_exit_exception
+
+  @exit_status = SimpleCov.exit_status_from_exception
 
   SimpleCov.at_exit.call
 

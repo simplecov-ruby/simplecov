@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "English"
+
 #
 # Code coverage for ruby 1.9. Please check out README for a full introduction.
 #
@@ -22,6 +24,7 @@ module SimpleCov
   class << self
     attr_accessor :running
     attr_accessor :pid
+    attr_reader :exit_exception
 
     #
     # Sets up SimpleCov to run against your project.
@@ -164,6 +167,27 @@ module SimpleCov
     #
     def clear_result
       @result = nil
+    end
+
+    #
+    # Capture the current exception if it exists
+    # This will get called inside the at_exit block
+    #
+    def set_exit_exception
+      @exit_exception = $ERROR_INFO
+    end
+
+    #
+    # Returns the exit status from the exit exception
+    #
+    def exit_status_from_exception
+      return SimpleCov::ExitCodes::SUCCESS unless exit_exception
+
+      if exit_exception.is_a?(SystemExit)
+        exit_exception.status
+      else
+        SimpleCov::ExitCodes::EXCEPTION
+      end
     end
   end
 end
