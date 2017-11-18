@@ -1,6 +1,10 @@
 unreleased
 ==========
 
+## Enhancements
+
+* exception that occured on exit is available as `exit_exception`! See [#639](https://github.com/colszowka/simplecov/pull/639)  (thanks @thomas07vt)
+
 ## Bugfixes
 
 * (breaking) Stop handling string filters as regular expressions, use the dedicated regex filter if you need that behaviour. See [#616](https://github.com/colszowka/simplecov/pull/616) (thanks @yujinakayama)
