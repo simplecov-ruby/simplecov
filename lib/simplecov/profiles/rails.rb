@@ -12,7 +12,7 @@ SimpleCov.profiles.define "rails" do
   add_group "Mailers", "app/mailers"
   add_group "Helpers", "app/helpers"
   add_group "Jobs", %w[app/jobs app/workers]
-  add_group "Libraries", "lib"
+  add_group "Libraries", "lib/"
 
   track_files "{app,lib}/**/*.rb"
 end
