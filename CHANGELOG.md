@@ -28,7 +28,7 @@ unreleased
 ## Bugfixes
 
 * Fix merging race condition when running tests in parallel and merging them. See [#570](https://github.com/colszowka/simplecov/pull/570) (thanks @jenseng)
-* Fix relevant lines for unloaded files - comments, skipped code etc. are correctly classigied as irrelevant. See [#605](https://github.com/colszowka/simplecov/pull/605) (thanks @odlp)
+* Fix relevant lines for unloaded files - comments, skipped code etc. are correctly classified as irrelevant. See [#605](https://github.com/colszowka/simplecov/pull/605) (thanks @odlp)
 * Allow using simplecov with frozen-string-literals enabled. See [#590](https://github.com/colszowka/simplecov/pull/590) (thanks @pat)
 * Make sure Array Filter can use all other filter types. See [#589](https://github.com/colszowka/simplecov/pull/589) (thanks @jsteel)
 * Make sure file names use `Simplecov.root` as base avoiding using full absolute project paths. See [#589](https://github.com/colszowka/simplecov/pull/589) (thanks @jsteel)
