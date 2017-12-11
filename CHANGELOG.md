@@ -3,7 +3,7 @@ unreleased
 
 ## Enhancements
 
-* exception that occured on exit is available as `exit_exception`! See [#639](https://github.com/colszowka/simplecov/pull/639)  (thanks @thomas07vt)
+* exception that occurred on exit is available as `exit_exception`! See [#639](https://github.com/colszowka/simplecov/pull/639)  (thanks @thomas07vt)
 
 ## Bugfixes
 
