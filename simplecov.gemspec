@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "json", ">= 1.8", "< 3"
   gem.add_dependency "simplecov-html", "~> 0.10.0"
-  gem.add_dependency "docile", "~> 1.1.0"
+  gem.add_dependency "docile", "~> 1.1"
 
   gem.add_development_dependency "bundler", "~> 1.9"
 
