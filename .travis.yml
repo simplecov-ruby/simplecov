@@ -2,8 +2,7 @@ language: ruby
 
 before_install:
   - gem update --system
-  # Pin bundler version due to https://github.com/rubygems/rubygems/issues/2055
-  - gem install bundler -v 1.16.0
+  - gem install bundler --force
 
 bundler_args: --without development --jobs=3 --retry=3
 
@@ -16,10 +15,11 @@ rvm:
   - 1.9.3
   - 2.0.0
   - 2.1.10
-  - 2.2.7
-  - 2.3.4
-  - 2.4.1
-  - jruby-9.1.13.0
+  - 2.2.9
+  - 2.3.6
+  - 2.4.3
+  - 2.5.0
+  - jruby-9.1.15.0
   - ruby-head
   - jruby-head
 
