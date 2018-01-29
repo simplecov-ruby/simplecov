@@ -22,7 +22,7 @@ Gem::Specification.new do |gem|
 
   gem.add_development_dependency "bundler", "~> 1.9"
 
-  gem.files         = `git ls-files`.split("\n")
+  gem.files         = `git ls-files`.split("\n") - %w[cucumber.yml]
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   gem.executables   = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
   gem.require_paths = ["lib"]
