@@ -33,6 +33,10 @@ Metrics/MethodLength:
   CountComments: false
   Max: 12 # TODO: Lower to 10
 
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/simplecov.rb'
+
 Metrics/ParameterLists:
   Max: 4
   CountKeywordArgs: true

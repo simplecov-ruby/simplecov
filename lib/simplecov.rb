@@ -189,6 +189,42 @@ module SimpleCov
         SimpleCov::ExitCodes::EXCEPTION
       end
     end
+
+    #
+    # Usage:
+    #   exit_status = SimpleCov.process_result(SimpleCov.result, exit_status)
+    #
+    # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/PerceivedComplexity
+    # rubocop:disable Metrics/AbcSize
+    def process_result(result, exit_status)
+      covered_percent = SimpleCov.result.covered_percent.round(2)
+      covered_percentages = SimpleCov.result.covered_percentages.map { |p| p.round(2) }
+      return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
+      if covered_percent < SimpleCov.minimum_coverage
+        $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
+        exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
+      elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
+        $stderr.printf("File (%s) is only (%.2f%%) covered. This is below the expected minimum coverage per file of (%.2f%%).\n", result.least_covered_file, covered_percentages.min, SimpleCov.minimum_coverage_by_file)
+        exit_status = SimpleCov::ExitCodes::MINIMUM_COVERAGE
+      elsif (last_run = SimpleCov::LastRun.read)
+        coverage_diff = last_run["result"]["covered_percent"] - covered_percent
+        if coverage_diff > SimpleCov.maximum_coverage_drop
+          $stderr.printf("Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%).\n", coverage_diff, SimpleCov.maximum_coverage_drop)
+          exit_status = SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
+        else write_last_run(covered_percent)
+        end
+      else write_last_run(covered_percent)
+      end
+      exit_status
+    end
+    # rubocop:enable Metrics/PerceivedComplexity
+    # rubocop:enable Metrics/AbcSize
+    # rubocop:enable Metrics/MethodLength
+
+    def write_last_run(covered_percent)
+      SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
+    end
   end
 end
 
