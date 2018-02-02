@@ -198,8 +198,8 @@ module SimpleCov
     # rubocop:disable Metrics/PerceivedComplexity
     # rubocop:disable Metrics/AbcSize
     def process_result(result, exit_status)
-      covered_percent = SimpleCov.result.covered_percent.round(2)
-      covered_percentages = SimpleCov.result.covered_percentages.map { |p| p.round(2) }
+      covered_percent = result.covered_percent.round(2)
+      covered_percentages = result.covered_percentages.map { |p| p.round(2) }
       return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
       if covered_percent < SimpleCov.minimum_coverage
         $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
