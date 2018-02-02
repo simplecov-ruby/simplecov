@@ -47,7 +47,7 @@ Getting started
 1. Add SimpleCov to your `Gemfile` and `bundle install`:
 
     ```ruby
-    gem 'simplecov', :require => false, :group => :test
+    gem 'simplecov', require: false, group: :test
     ```
 2. Load and launch SimpleCov **at the very top** of your `test/test_helper.rb`
    (*or `spec_helper.rb`, `rails_helper`, cucumber `env.rb`, or whatever your preferred test
