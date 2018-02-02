@@ -24,18 +24,7 @@ at_exit do
   next if SimpleCov.pid != Process.pid
 
   SimpleCov.set_exit_exception
-
-  @exit_status = SimpleCov.exit_status_from_exception
-
-  SimpleCov.at_exit.call
-
-  if SimpleCov.result? # Result has been computed
-    @exit_status = SimpleCov.process_result(SimpleCov.result, @exit_status)
-  end
-
-  # Force exit with stored status (see github issue #5)
-  # unless it's nil or 0 (see github issue #281)
-  Kernel.exit @exit_status if @exit_status && @exit_status > 0
+  SimpleCov.run_exit_tasks!
 end
 
 # Autoload config from ~/.simplecov if present
