@@ -20,6 +20,11 @@ A formatter that generates Cobertura XML.
 
 CSV formatter for SimpleCov
 
+#### [simplecov-erb](https://github.com/kpaulisse/simplecov-erb)
+*by [Kevin Paulisse](https://github.com/kpaulisse)*
+
+Flexible formatter that generates the output from an ERB template.
+
 #### [simplecov-json](https://github.com/vicentllongo/simplecov-json)
 *by Vicent Llongo*
 
