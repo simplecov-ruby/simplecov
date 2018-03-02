@@ -30,6 +30,11 @@ Flexible formatter that generates the output from an ERB template.
 
 JSON formatter for SimpleCov
 
+#### [simplecov-lcov](https://github.com/fortissimo1997/simplecov-lcov)
+*by fortissimo1997*
+
+lcov formatter for SimpleCov
+
 #### [simplecov-rcov](https://github.com/fguillen/simplecov-rcov)
 *by Fernando Guillen*
 
