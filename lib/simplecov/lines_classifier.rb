@@ -13,7 +13,7 @@ module SimpleCov
     WHITESPACE_OR_COMMENT_LINE = Regexp.union(WHITESPACE_LINE, COMMENT_LINE)
 
     def self.no_cov_line
-      /^(\s*)#(\s*)(\:#{SimpleCov.nocov_token}\:)/
+      @no_cov_line ||= /^(\s*)#(\s*)(\:#{SimpleCov.nocov_token}\:)/
     end
 
     def classify(lines)
