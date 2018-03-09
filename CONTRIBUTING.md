@@ -43,8 +43,9 @@ If you want to contribute, please:
 
 ## Running Individual Tests
 
-This project uses Test::Unit. Individual tests can be run like this:
+This project uses RSpec and Cucumber. Individual tests can be run like this:
 
 ```bash
-ruby -I test path/to/test.rb
+bundle exec rspec path/to/test.rb
+bundle exec cucumber path/to/test.feature
 ```
