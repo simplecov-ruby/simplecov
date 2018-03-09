@@ -5,7 +5,7 @@ require "simplecov/version"
 
 Gem::Specification.new do |gem|
   gem.name        = "simplecov"
-  gem.version     = SimpleCov::VERSION
+  gem.version     = SimpleCov::VERSION.dup
   gem.platform    = Gem::Platform::RUBY
   gem.authors     = ["Christoph Olszowka"]
   gem.email       = ["christoph at olszowka de"]
