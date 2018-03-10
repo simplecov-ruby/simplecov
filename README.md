@@ -633,14 +633,8 @@ If you're using [Spring](https://github.com/rails/spring) to speed up test suite
 1. Change the following settings in `test.rb`.
 
     ```ruby
-    # For Rails 4 or earlier, use the following configuration:
-    # Disable Rails's static asset server (Apache or nginx will already do this)
-    config.serve_static_files = false
-    config.eager_load = false
-
-    # For Rails 5, use the following configuration:
-    # Disable Rails's static asset server (Apache or nginx will already do this)
-    config.public_file_server.enabled = false
+    # For Rails
+    # Do not eager load code on boot
     config.eager_load = false
     ```
 2. Add your SimpleCov config, as you normally would, to your `spec_helper.rb`
