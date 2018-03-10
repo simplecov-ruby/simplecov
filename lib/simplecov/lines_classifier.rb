@@ -20,12 +20,17 @@ module SimpleCov
       skipping = false
 
       lines.map do |line|
-        if line =~ self.class.no_cov_line
-          skipping = !skipping
-          NOT_RELEVANT
-        elsif skipping || line =~ WHITESPACE_OR_COMMENT_LINE
-          NOT_RELEVANT
-        else
+        begin
+          if line =~ self.class.no_cov_line
+            skipping = !skipping
+            NOT_RELEVANT
+          elsif skipping || line =~ WHITESPACE_OR_COMMENT_LINE
+            NOT_RELEVANT
+          else
+            RELEVANT
+          end
+        rescue ArgumentError
+          # E.g., line contains an invalid byte sequence in UTF-8
           RELEVANT
         end
       end
