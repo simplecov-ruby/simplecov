@@ -620,7 +620,7 @@ Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon and t
 SimpleCov is also built against Ruby 1.8 in [Continuous Integration], but this happens only to ensure that SimpleCov
 does not make your test suite crash right now.
 
-SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, 2.2, 2.3, 2.4 as well as JRuby 9.1.
+SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, 2.2, 2.3, 2.4, 2.5 as well as JRuby 9.1.
 
 ## Want to find dead code in production?
 
