@@ -27,5 +27,6 @@ Feature:
     """
 
     When I open the coverage report generated with `bundle exec rspec spec`
-    Then I follow "lib/not_loaded.rb"
-    Then I should see "3 relevant lines" within ".highlighted"
+     And I follow "lib/not_loaded.rb"
+    Then the overlay should be open
+     And I should see "3 relevant lines" within "#cboxContent"
