@@ -37,4 +37,8 @@ group :test do
   gem "json", RUBY_VERSION.start_with?("1.") ? "~> 1.8" : "~> 2.0"
 end
 
+group :development do
+  gem "benchmark-ips"
+end
+
 gemspec
