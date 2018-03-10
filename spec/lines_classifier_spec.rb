@@ -20,6 +20,15 @@ describe SimpleCov::LinesClassifier do
         expect(classified_lines.length).to eq 7
         expect(classified_lines).to all be_relevant
       end
+
+      it "determines invalid UTF-8 byte sequences as relevant" do
+        classified_lines = subject.classify [
+          "bytes = \"\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\"",
+        ]
+
+        expect(classified_lines.length).to eq 1
+        expect(classified_lines).to all be_relevant
+      end
     end
 
     describe "not-relevant lines" do
