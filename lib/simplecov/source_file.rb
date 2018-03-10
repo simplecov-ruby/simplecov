@@ -182,7 +182,7 @@ module SimpleCov
       skipping = false
 
       lines.each do |line|
-        if line.src =~ SimpleCov::LinesClassifier.no_cov_line
+        if SimpleCov::LinesClassifier.no_cov_line?(line.src)
           skipping = !skipping
           line.skipped!
         elsif skipping
