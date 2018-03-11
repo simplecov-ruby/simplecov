@@ -16,14 +16,28 @@ module SimpleCov
       /^(\s*)#(\s*)(\:#{SimpleCov.nocov_token}\:)/o
     end
 
+    def self.no_cov_line?(line)
+      line =~ no_cov_line
+    rescue ArgumentError
+      # E.g., line contains an invalid byte sequence in UTF-8
+      false
+    end
+
+    def self.whitespace_line?(line)
+      line =~ WHITESPACE_OR_COMMENT_LINE
+    rescue ArgumentError
+      # E.g., line contains an invalid byte sequence in UTF-8
+      false
+    end
+
     def classify(lines)
       skipping = false
 
       lines.map do |line|
-        if line =~ self.class.no_cov_line
+        if self.class.no_cov_line?(line)
           skipping = !skipping
           NOT_RELEVANT
-        elsif skipping || line =~ WHITESPACE_OR_COMMENT_LINE
+        elsif skipping || self.class.whitespace_line?(line)
           NOT_RELEVANT
         else
           RELEVANT

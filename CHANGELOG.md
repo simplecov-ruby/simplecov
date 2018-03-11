@@ -11,6 +11,7 @@ unreleased
 
 * (breaking) Stop handling string filters as regular expressions, use the dedicated regex filter if you need that behaviour. See [#616](https://github.com/colszowka/simplecov/pull/616) (thanks @yujinakayama)
 * Avoid overwriting the last coverage results on unsuccessful test runs. See [#625](https://github.com/colszowka/simplecov/pull/625) (thanks @thomas07vt)
+* Don't crash on invalid UTF-8 byte sequences.
 
 0.15.1 (2017-09-11) ([changes](https://github.com/colszowka/simplecov/compare/v0.15.0...v0.15.1))
 =======
