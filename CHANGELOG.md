@@ -1,4 +1,4 @@
-unreleased
+0.16.0 (2018-03-15)
 ==========
 
 ## Enhancements
@@ -6,12 +6,13 @@ unreleased
 * Relax version constraint on `docile`, per SemVer
 * exception that occurred on exit is available as `exit_exception`! See [#639](https://github.com/colszowka/simplecov/pull/639)  (thanks @thomas07vt)
 * Performance: processing results now runs from 2.5x to 3.75x faster. See [#662](https://github.com/colszowka/simplecov/pull/662) (thanks @BMorearty & @eregon)
+* Decrease gem size by only shipping lib and docs
 
 ## Bugfixes
 
 * (breaking) Stop handling string filters as regular expressions, use the dedicated regex filter if you need that behaviour. See [#616](https://github.com/colszowka/simplecov/pull/616) (thanks @yujinakayama)
 * Avoid overwriting the last coverage results on unsuccessful test runs. See [#625](https://github.com/colszowka/simplecov/pull/625) (thanks @thomas07vt)
-* Don't crash on invalid UTF-8 byte sequences.
+* Don't crash on invalid UTF-8 byte sequences. (thanks @BMorearty)
 
 0.15.1 (2017-09-11) ([changes](https://github.com/colszowka/simplecov/compare/v0.15.0...v0.15.1))
 =======
