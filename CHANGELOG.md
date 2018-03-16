@@ -1,5 +1,12 @@
+0.16.1 (2018-03-16)
+===================
+
+## Bugfixes
+
+* Include the LICENSE in the distributed gem again (accidentally removed in 0.16.0). (thanks @tas50)
+
 0.16.0 (2018-03-15)
-==========
+===================
 
 ## Enhancements
 
