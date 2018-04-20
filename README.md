@@ -87,7 +87,11 @@ Getting started
    are not tracked by Git (optional):
 
     ```
-    coverage
+    echo "coverage" >> .gitignore
+    ```
+    Or if you use Windows:
+    ```
+    echo coverage >> .gitignore
     ```
 
     If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
