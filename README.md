@@ -630,26 +630,17 @@ Try [Coverband](https://github.com/danmayer/coverband).
 
 If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
 
-1. Change the following settings in `test.rb`.
+One solution is to [explicitly call eager
+load](https://github.com/colszowka/simplecov/issues/381#issuecomment-347651728)
+in your `test_helper.rb` / `spec_helper.rb` after calling `SimpleCov.start`.
 
-    ```ruby
-    # For Rails
-    # Do not eager load code on boot
-    config.eager_load = false
-    ```
-2. Add your SimpleCov config, as you normally would, to your `spec_helper.rb`
-   (or `rails_helper.rb` for RSpec 3). If you have a `config/spring.rb` file
-   (or anything similar), add it to the start of such file. Here's a simple
-   version of what the config should look like:
+```ruby
+require 'simplecov'
+SimpleCov.start 'rails'
+Rails.application.eager_load!
+```
 
-    ```ruby
-    if ENV['RAILS_ENV'] == 'test'
-      require 'simplecov'
-      SimpleCov.start
-    end
-    ```
-3. Run `spring rspec <path>` as normal. Remember to run `spring stop` after
-   making important changes to your app or its specs!
+Or you could remove `gem 'spring'` from your `Gemfile`.
 
 ## Want to use bootsnap with SimpleCov?
 
