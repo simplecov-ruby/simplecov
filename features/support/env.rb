@@ -25,7 +25,6 @@ Capybara.app = lambda { |env|
 }
 
 Capybara.default_driver = Capybara.javascript_driver = :poltergeist
-Capybara.server = :webrick # new versions seem to try load puma...
 
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
