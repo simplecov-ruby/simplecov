@@ -16,21 +16,7 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Coverage (88.10%) is below the expected minimum coverage (90.00%)."
-
-  Scenario:
-    Given SimpleCov for Test/Unit is configured with:
-      """
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage 88.11
-      end
-      """
-
-    When I run `bundle exec rake test`
-    Then the exit status should not be 0
-    And the output should contain "Coverage (88.10%) is below the expected minimum coverage (88.11%)."
+    And the output should contain "Coverage (88.09%) is below the expected minimum coverage (90.00%)."
 
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
@@ -39,6 +25,20 @@ Feature:
       SimpleCov.start do
         add_filter 'test.rb'
         minimum_coverage 88.10
+      end
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should not be 0
+    And the output should contain "Coverage (88.09%) is below the expected minimum coverage (88.10%)."
+
+  Scenario:
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        minimum_coverage 88.09
       end
       """
 

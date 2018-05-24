@@ -215,7 +215,7 @@ module SimpleCov
       return exit_status unless SimpleCov.result? # Result has been computed
       return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
 
-      covered_percent = result.covered_percent.round(2)
+      covered_percent = result.covered_percent.floor(2)
       result_exit_status = result_exit_status(result, covered_percent)
       if result_exit_status == SimpleCov::ExitCodes::SUCCESS # No result errors
         write_last_run(covered_percent)
@@ -227,7 +227,7 @@ module SimpleCov
     #
     # rubocop:disable Metrics/MethodLength
     def result_exit_status(result, covered_percent)
-      covered_percentages = result.covered_percentages.map { |percentage| percentage.round(2) }
+      covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
       if covered_percent < SimpleCov.minimum_coverage
         $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
         SimpleCov::ExitCodes::MINIMUM_COVERAGE

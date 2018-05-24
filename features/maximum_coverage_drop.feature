@@ -31,13 +31,13 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Coverage has dropped by 3.32% since the last time (maximum allowed: 3.14%)."
+    And the output should contain "Coverage has dropped by 3.31% since the last time (maximum allowed: 3.14%)."
     And a file named "coverage/.last_run.json" should exist
     And the file "coverage/.last_run.json" should contain:
       """
       {
         "result": {
-          "covered_percent": 88.1
+          "covered_percent": 88.09
         }
       }
       """
@@ -58,7 +58,7 @@ Feature:
       """
       {
         "result": {
-          "covered_percent": 88.1
+          "covered_percent": 88.09
         }
       }
       """
