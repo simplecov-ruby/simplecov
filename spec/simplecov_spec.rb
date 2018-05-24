@@ -191,5 +191,42 @@ describe SimpleCov do
         end
       end
     end
+
+    describe ".process_result" do
+      context "when minimum coverage is 100%" do
+        let(:result) { SimpleCov::Result.new({}) }
+
+        before do
+          allow(SimpleCov).to receive(:minimum_coverage).and_return(100)
+          allow(SimpleCov).to receive(:result?).and_return(true)
+        end
+
+        context "when actual coverage is almost 100%" do
+          before do
+            allow(result).to receive(:covered_percent).and_return(100 * 32_847.0 / 32_848)
+          end
+
+          it "return SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
+            expect(
+              SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
+            ).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+          end
+        end
+
+        context "when actual coverage is exactly 100%" do
+          before do
+            allow(result).to receive(:covered_percent).and_return(100.0)
+            allow(result).to receive(:covered_percentages).and_return([])
+            allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
+          end
+
+          it "return SimpleCov::ExitCodes::SUCCESS" do
+            expect(
+              SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
+            ).to eq(SimpleCov::ExitCodes::SUCCESS)
+          end
+        end
+      end
+    end
   end
 end
