@@ -75,29 +75,15 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def collate(result_file_names, profile = nil, &block)
+    def collate(result_filenames, profile = nil, &block)
       load_profile(profile) if profile
       configure(&block) if block_given?
       self.running = true
       self.pid = Process.pid
 
-      results = []
-      result_sets = result_file_names.map do |coverage_resultset|
-        # Load each result file, and parse it to JSON.
-        data = File.read(coverage_resultset)
-
-        if data
-          begin
-            JSON.parse(data) || {}
-          rescue
-            {}
-          end
-        else
-          {}
-        end
-      end.reduce(&:merge).each do |command_name, data|
+      results = result_filenames.map { |filename| JSON.parse(File.read(filename)) || {} }.reduce(&:merge).map do |command_name, data|
         # Re-create each included instance of SimpleCov::Result from the stored run data.
-        results << SimpleCov::Result.from_hash(command_name => data)
+        SimpleCov::Result.from_hash(command_name => data)
       end
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
