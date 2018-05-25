@@ -420,9 +420,62 @@ You can deactivate this automatic merging altogether with `SimpleCov.use_merging
 ### Between parallel test runs
 
 If your tests are done in parallel aross multiple build machines, you can fetch them all and merge them into a single
-result set using the `SimpleCov.collate` method.
+result set using the `SimpleCov.collate` method. This can be added to a Rakefile or script file, having downloaded a set of
+`.resultset.json` files from each parallel test run.
 
-TODO: Add more notes about this here
+```ruby
+# lib/tasks/coverage_report.rake
+namespace :coverage do
+  task :report do
+    require 'simplecov'
+
+    SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails'
+  end
+end
+```
+
+`SimpleCov.collate` also takes a block for configuration, just the same as `SimpleCov.start` or `SimpleCov.configure`.
+This means you can configure a separate formatter for the collated output. For instance, you can make the formatter in `SimpleCov.start`
+the `SimpleCov::Formatter::SimpleFormatter`, and only use more complex formatters in the finall `SimpleCov.collate` run.
+
+```ruby
+# spec/spec_helper.rb
+require 'simplecov'
+require 'simplecov-console'
+
+SimpleCov.start 'rails' do
+  # Disambiguates individual test runs
+  command_name "Job #{ENV["TEST_ENV_NUMBER"]}" if ENV["TEST_ENV_NUMBER"]
+
+  if ENV['CI']
+    formatter SimpleCov::Formatter::SimpleFormatter
+  else
+    formatter SimpleCov::Formatter::MultiFormatter.new([
+      SimpleCov::Formatter::Console,
+      SimpleCov::Formatter::HTMLFormatter
+    ])
+  end
+
+  track_files "**/*.rb"
+end
+```
+
+```ruby
+# lib/tasks/coverage_report.rake
+namespace :coverage do
+  task :report do
+    require 'simplecov'
+    require 'simplecov-console'
+
+    SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails' do
+      formatter SimpleCov::Formatter::MultiFormatter.new([
+        SimpleCov::Formatter::Console,
+        SimpleCov::Formatter::HTMLFormatter
+      ])
+    end
+  end
+end
+```
 
 ### Test suite names
 
