@@ -78,8 +78,7 @@ module SimpleCov
     def collate(result_file_names, profile = nil, &block)
       load_profile(profile) if profile
       configure(&block) if block_given?
-
-      # If the pid is set, SimpleCov will automatically write output on exit
+      self.running = true
       self.pid = Process.pid
 
       results = []
