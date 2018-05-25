@@ -62,6 +62,12 @@ module SimpleCov
         results
       end
 
+      def merge_and_store(*results)
+        result = merge_results(*results)
+        store_result(result) if result
+        result
+      end
+
       # Merge two or more SimpleCov::Results into a new one with merged
       # coverage data and the command_name for the result consisting of a join
       # on all source result's names

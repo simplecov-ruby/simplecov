@@ -46,13 +46,48 @@ module SimpleCov
     #
     def start(profile = nil, &block)
       require "coverage"
-      load_profile(profile) if profile
-      configure(&block) if block_given?
+      initial_setup(profile, &block)
       @result = nil
-      self.running = true
       self.pid = Process.pid
 
       start_coverage_measurement
+    end
+
+    #
+    # Collate a series of SimpleCov result files into a single SimpleCov output.
+    # You can optionally specify configuration with a block:
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"]
+    #    OR
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails' # using rails profile
+    #    OR
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"] do
+    #     add_filter 'test'
+    #   end
+    #    OR
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails' do
+    #     add_filter 'test'
+    #   end
+    #
+    # Please check out the RDoc for SimpleCov::Configuration to find about
+    # available config options, or checkout the README for more in-depth
+    # information about coverage collation
+    #
+    def collate(result_filenames, profile = nil, &block)
+      raise "There's no reports to be merged" if result_filenames.empty?
+
+      initial_setup(profile, &block)
+
+      results = result_filenames.flat_map do |filename|
+        # Re-create each included instance of SimpleCov::Result from the stored run data.
+        (JSON.parse(File.read(filename), symbolize_names: true) || {}).map do |command_name, coverage|
+          SimpleCov::Result.from_hash(command_name => coverage)
+        end
+      end
+
+      # Use the ResultMerger to produce a single, merged result, ready to use.
+      @result = SimpleCov::ResultMerger.merge_and_store(*results)
+
+      run_exit_tasks!
     end
 
     #
@@ -254,6 +289,12 @@ module SimpleCov
     end
 
   private
+
+    def initial_setup(profile, &block)
+      load_profile(profile) if profile
+      configure(&block) if block_given?
+      self.running = true
+    end
 
     #
     # Trigger Coverage.start depends on given config coverage_criterion
