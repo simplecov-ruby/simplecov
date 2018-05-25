@@ -400,12 +400,29 @@ end
 
 You normally want to have your coverage analyzed across ALL of your test suites, right?
 
-Simplecov automatically caches coverage results in your (coverage_path)/.resultset.json. Those results will then
-be automatically merged when generating the result, so when coverage is set up properly for Cucumber and your
-unit / functional / integration tests, all of those test suites will be taken into account when building the
-coverage report.
+Simplecov automatically caches coverage results in your (coverage_path)/.resultset.json.
 
-There are two things to note here though:
+### Between subsequent test runs
+
+Test results are be automatically merged with previous runs when generating the result, so when coverage is set up
+properly for Cucumber and your unit / functional / integration tests, all of those test suites will be taken into
+account when building the coverage report.
+
+#### Timeout for merge
+
+Of course, your cached coverage data is likely to become invalid at some point. Thus, when automatically merging
+sequential test runs, result sets that are older than `SimpleCov.merge_timeout` will not be used any more. By default,
+the timeout is 600 seconds (10 minutes), and you can raise (or lower) it by specifying `SimpleCov.merge_timeout 3600`
+(1 hour), or, inside a configure/start block, with just `merge_timeout 3600`.
+
+You can deactivate this automatic merging altogether with `SimpleCov.use_merging false`.
+
+### Between parallel test runs
+
+If your tests are done in parallel aross multiple build machines, you can fetch them all and merge them into a single
+result set using the `SimpleCov.collate` method.
+
+TODO: Add more notes about this here
 
 ### Test suite names
 
@@ -458,15 +475,6 @@ SimpleCov.command_name "features" + (ENV['TEST_ENV_NUMBER'] || '')
 ```
 
 [simplecov-html] prints the used test suites in the footer of the generated coverage report.
-
-### Timeout for merge
-
-Of course, your cached coverage data is likely to become invalid at some point. Thus, result sets that are older than
-`SimpleCov.merge_timeout` will not be used any more. By default, the timeout is 600 seconds (10 minutes), and you can
-raise (or lower) it by specifying `SimpleCov.merge_timeout 3600` (1 hour), or, inside a configure/start block, with
-just `merge_timeout 3600`.
-
-You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
 ## Running coverage only on demand
 
