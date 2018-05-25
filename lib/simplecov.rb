@@ -59,6 +59,47 @@ module SimpleCov
     end
 
     #
+    # Collate a series of SimpleCov result files into a single SimpleCov output.
+    # You can optionally specify configuration with a block:
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"]
+    #    OR
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"] do
+    #     load_profile 'rails'
+    #   end
+    #
+    # Please check out the RDoc for SimpleCov::Configuration to find about available config options
+    #
+    def collate(result_file_names, &block)
+      load_profile(profile) if profile
+      configure(&block) if block_given?
+
+      # If the pid is set, SimpleCov will automatically write output on exit
+      self.pid = Process.pid
+
+      results = []
+      result_sets = result_file_names.map do |coverage_resultset|
+        # Load each result file, and parse it to JSON.
+        data = File.read(coverage_resultset)
+
+        if data
+          begin
+            JSON.parse(data) || {}
+          rescue
+            {}
+          end
+        else
+          {}
+        end
+      end.reduce(&:merge).each do |command_name, data|
+        # Re-create each included instance of SimpleCov::Result from the stored run data.
+        results << SimpleCov::Result.from_hash(command_name => data)
+      end
+
+      # Use the ResultMerger to produce a single, merged result, ready to use.
+      @result = SimpleCov::ResultMerger.merge_results(*results)
+    end
+
+    #
     # Finds files that were to be tracked but were not loaded and initializes
     # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
     #
