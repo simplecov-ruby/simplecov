@@ -22,7 +22,7 @@ SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join('
 at_exit do
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
-
+  next if !SimpleCov.running
   SimpleCov.set_exit_exception
   SimpleCov.run_exit_tasks!
 end
