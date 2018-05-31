@@ -57,6 +57,17 @@ module SimpleCov
         false
       end
     end
+    
+    #
+    # Method added by NREL to shutdown SimpleCov and collect results
+    # this will set result to false which will prevent from running again at_exit 
+    def end_now()
+      SimpleCov.set_exit_exception
+      exit_status = SimpleCov.exit_status_from_exception
+      SimpleCov.result.format!
+      exit_status = SimpleCov.process_result(SimpleCov.result, exit_status)
+      return exit_status
+    end
 
     #
     # Finds files that were to be tracked but were not loaded and initializes
