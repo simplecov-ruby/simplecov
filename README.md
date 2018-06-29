@@ -404,9 +404,9 @@ Simplecov automatically caches coverage results in your (coverage_path)/.results
 
 ### Between subsequent test runs
 
-Test results are be automatically merged with previous runs when generating the result, so when coverage is set up
-properly for Cucumber and your unit / functional / integration tests, all of those test suites will be taken into
-account when building the coverage report.
+Test results are automatically merged with previous runs in the same environment when generating the result, so when
+coverage is set up properly for Cucumber and your unit / functional / integration tests, all of those test suites will
+be taken into account when building the coverage report.
 
 #### Timeout for merge
 
@@ -419,7 +419,7 @@ You can deactivate this automatic merging altogether with `SimpleCov.use_merging
 
 ### Between parallel test runs
 
-If your tests are done in parallel aross multiple build machines, you can fetch them all and merge them into a single
+If your tests are done in parallel across multiple build machines, you can fetch them all and merge them into a single
 result set using the `SimpleCov.collate` method. This can be added to a Rakefile or script file, having downloaded a set of
 `.resultset.json` files from each parallel test run.
 
@@ -441,7 +441,6 @@ the `SimpleCov::Formatter::SimpleFormatter`, and only use more complex formatter
 ```ruby
 # spec/spec_helper.rb
 require 'simplecov'
-require 'simplecov-console'
 
 SimpleCov.start 'rails' do
   # Disambiguates individual test runs
@@ -451,7 +450,7 @@ SimpleCov.start 'rails' do
     formatter SimpleCov::Formatter::SimpleFormatter
   else
     formatter SimpleCov::Formatter::MultiFormatter.new([
-      SimpleCov::Formatter::Console,
+      SimpleCov::Formatter::SimpleFormatter,
       SimpleCov::Formatter::HTMLFormatter
     ])
   end
@@ -465,11 +464,10 @@ end
 namespace :coverage do
   task :report do
     require 'simplecov'
-    require 'simplecov-console'
 
     SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails' do
       formatter SimpleCov::Formatter::MultiFormatter.new([
-        SimpleCov::Formatter::Console,
+        SimpleCov::Formatter::SimpleFormatter,
         SimpleCov::Formatter::HTMLFormatter
       ])
     end
