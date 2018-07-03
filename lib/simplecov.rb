@@ -63,7 +63,7 @@ module SimpleCov
     # You can optionally specify configuration with a block:
     #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"]
     #    OR
-    #   SimpleCov.start Dir["simplecov-resultset-*/.resultset.json"], 'rails' # using rails profile
+    #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], 'rails' # using rails profile
     #    OR
     #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"] do
     #     add_filter 'test'
