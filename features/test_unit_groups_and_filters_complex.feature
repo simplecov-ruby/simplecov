@@ -11,25 +11,31 @@ Feature: Sophisticated grouping and filtering on Test/Unit
       """
       require 'simplecov'
       SimpleCov.start do
+        default_group_name 'Remaining'
+
         add_group 'By block' do |src_file|
           src_file.filename =~ /MaGiC/i
         end
         add_group 'By string', 'project/meta_magic'
+        add_group 'By array', ['project/meta_magic']
 
         add_filter 'faked_project.rb'
         # Remove all files that include "describe" in their source
         add_filter {|src_file| src_file.lines.any? {|line| line.src =~ /TestCase/ } }
-        add_filter {|src_file| src_file.covered_percent < 100 }
+        add_filter {|src_file| src_file.covered_percent < 80 }
       end
       """
 
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 100.0%   | 1     |
+      | All Files |  89.29%  | 2     |
       | By block  | 100.0%   | 1     |
       | By string | 100.0%   | 1     |
+      | By array  | 100.0%   | 1     |
+      | Remaining |  80.0%   | 1     |
 
     And I should see the source files:
       | name                            | coverage |
       | lib/faked_project/meta_magic.rb | 100.0 %  |
+      | lib/faked_project/some_class.rb |  80.0 %  |

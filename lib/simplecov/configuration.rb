@@ -287,6 +287,16 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
+    #
+    # Define the name of the group where ungrouped files are listed. Only applies if
+    # at least one add_group rule is defined.
+    #
+    # Default is "Ungrouped"
+    #
+    def default_group_name(group_name = nil)
+      @default_group_name ||= (group_name || "Ungrouped")
+    end
+
   private
 
     #

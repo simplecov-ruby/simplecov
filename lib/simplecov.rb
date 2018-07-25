@@ -129,7 +129,7 @@ module SimpleCov
         grouped_files += grouped[name]
       end
       if !groups.empty? && !(other_files = files.reject { |source_file| grouped_files.include?(source_file) }).empty?
-        grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
+        grouped[SimpleCov.default_group_name] = SimpleCov::FileList.new(other_files)
       end
       grouped
     end
