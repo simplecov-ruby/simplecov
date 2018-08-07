@@ -77,11 +77,11 @@ if SimpleCov.usable?
 
           context "loaded back with from_hash" do
             let(:dumped_result) do
-              SimpleCov::Result.from_hash(subject.to_hash)
+              SimpleCov::Result.from_hash(subject.to_hash).first
             end
 
             it "has 3 source files" do
-              expect(dumped_result.source_files.count).to eq(subject.source_files.count)
+              expect(dumped_result.first.source_files.count).to eq(subject.source_files.count)
             end
 
             it "has the same covered_percent" do

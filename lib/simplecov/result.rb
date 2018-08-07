@@ -66,11 +66,15 @@ module SimpleCov
 
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
-      command_name, data = hash.first
-      result = SimpleCov::Result.new(data["coverage"])
-      result.command_name = command_name
-      result.created_at = Time.at(data["timestamp"])
-      result
+      results = []
+      hash.each do |command_name, data|
+        command_name, data = hash.first
+        result = SimpleCov::Result.new(data["coverage"])
+        result.command_name = command_name
+        result.created_at = Time.at(data["timestamp"])
+        results << result
+      end
+      results
     end
 
   private

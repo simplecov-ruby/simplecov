@@ -51,15 +51,17 @@ module SimpleCov
       # All results that are above the SimpleCov.merge_timeout will be
       # dropped. Returns an array of SimpleCov::Result items.
       def results
-        results = []
+        all = []
         resultset.each do |command_name, data|
-          result = SimpleCov::Result.from_hash(command_name => data)
+          results = SimpleCov::Result.from_hash(command_name => data)
           # Only add result if the timeout is above the configured threshold
-          if (Time.now - result.created_at) < SimpleCov.merge_timeout
-            results << result
+          results.each do |result|
+            if (Time.now - result.created_at) < SimpleCov.merge_timeout
+              all << result
+            end
           end
         end
-        results
+        all
       end
 
       # Merge two or more SimpleCov::Results into a new one with merged
