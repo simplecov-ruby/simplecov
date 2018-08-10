@@ -10,7 +10,7 @@ require "simplecov/formatter/multi_formatter"
 #
 module SimpleCov
   module Configuration # rubocop:disable ModuleLength
-    attr_writer :filters, :groups, :formatter
+    attr_writer :filters, :groups, :formatter, :branchable_report
 
     #
     # The root for the project. This defaults to the
@@ -69,6 +69,15 @@ module SimpleCov
     #
     def filters
       @filters ||= []
+    end
+
+    # Coverage results report behaviour definition.
+    # False => Give default behaviour, only lines measurement report on the coverage results.
+    # True  => Give all available kinds of measurement report lines, branches and methods coverage results.
+    # This feature is only supported with ruby version >= 2.5
+    #
+    def branchable_report
+      @branchable_report ||= false
     end
 
     # The name of the command (a.k.a. Test Suite) currently running. Used for result
@@ -285,6 +294,15 @@ module SimpleCov
     #
     def add_group(group_name, filter_argument = nil, &filter_proc)
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
+    end
+
+    # Define if the report should include any other standarts of coverage measurement except
+    # :lines which is the default
+    #
+    # @param [Boolean] target
+    #
+    def use_branchable_report(target = false)
+      @branchable_report = target
     end
 
   private

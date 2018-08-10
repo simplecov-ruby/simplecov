@@ -589,6 +589,15 @@ You can also entirely refuse dropping coverage between test runs:
 SimpleCov.refuse_coverage_drop
 ```
 
+## Branch coverage (ruby '~> 2.5')
+Add branch coverage measurement statistics to your results
+
+```ruby
+SimpleCov.start do
+  use_branchable_report true
+end
+```
+
 ## Using your own formatter
 
 You can use your own formatter with:

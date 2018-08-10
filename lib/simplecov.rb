@@ -50,7 +50,8 @@ module SimpleCov
         @result = nil
         self.running = true
         self.pid = Process.pid
-        Coverage.start
+
+        start_coverage_measurement
       else
         warn "WARNING: SimpleCov is activated, but you're not running Ruby 1.9+ - no coverage analysis will happen"
         warn "Starting with SimpleCov 1.0.0, even no-op compatibility with Ruby <= 1.8 will be entirely dropped."
@@ -68,7 +69,10 @@ module SimpleCov
         Dir[tracked_files].each do |file|
           absolute = File.expand_path(file)
 
-          result[absolute] ||= LinesClassifier.new.classify(File.foreach(absolute))
+          result[absolute] ||= {
+            :lines => LinesClassifier.new.classify(File.foreach(absolute)),
+            :branches => BranchesPerFile.start(absolute),
+          }
         end
       end
 
@@ -84,7 +88,9 @@ module SimpleCov
 
       # Collect our coverage result
       if running
-        @result = SimpleCov::Result.new add_not_loaded_files(Coverage.result)
+        # Adapting the format of the Coverage.result whether it's default or with statistics
+        # It should always be a hash.
+        @result = SimpleCov::Result.new add_not_loaded_files(adapt_result_format)
       end
 
       # If we're using merging of results, store the current result
@@ -254,6 +260,37 @@ module SimpleCov
     def write_last_run(covered_percent)
       SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
     end
+
+  private
+
+    #
+    # Responsible for adapting the format of the coverage result whether it's default or with statistics
+    #
+    # @return [Hash]
+    #
+    def adapt_result_format
+      Coverage.result.each_with_object({}) do |(file_name, cover_statistic), adapted_result|
+        if cover_statistic.is_a?(Array)
+          adapted_result.merge!(file_name => {:lines => cover_statistic})
+        else
+          adapted_result.merge!(file_name => cover_statistic)
+        end
+      end
+    end
+
+    #
+    # Trigger Coverage.start depends on given config use_branchable_report
+    #
+    # With Positive branch it supports all coverage measurement types
+    # With Negative branch it supports only line coverage measurement type
+    #
+    def start_coverage_measurement
+      if branchable_report
+        Coverage.start(:all)
+      else
+        Coverage.start
+      end
+    end
   end
 end
 
@@ -273,7 +310,7 @@ require "simplecov/raw_coverage"
 require "simplecov/result_merger"
 require "simplecov/command_guesser"
 require "simplecov/version"
-
+require "simplecov/branches_per_file"
 # Load default config
 require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
 
