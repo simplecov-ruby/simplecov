@@ -203,7 +203,10 @@ module SimpleCov
 
       # Force exit with stored status (see github issue #5)
       # unless it's nil or 0 (see github issue #281)
-      Kernel.exit exit_status if exit_status && exit_status > 0
+      if exit_status && exit_status > 0
+        $stderr.printf("SimpleCov failed build with exit %d", exit_status)
+        Kernel.exit exit_status
+      end
     end
 
     # @api private
