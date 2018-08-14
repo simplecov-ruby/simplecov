@@ -9,15 +9,14 @@ module SimpleCov
       # Takes a SimpleCov::Result and generates a string out of it
       def format(result)
         output = "".dup
-        result.groups.each do |name, files|
-          output << "Group: #{name}\n"
-          output << "=" * 40
-          output << "\n"
-          files.each do |file|
-            output << "#{file.filename} (coverage: #{file.covered_percent.round(2)}%)\n"
-          end
-          output << "\n"
+        output << "Coverage Output\n"
+        output << "=" * 40
+        output << "\n"
+        result.source_files.each do |file|
+          output << "#{File.basename file.filename} (coverage: #{file.covered_percent.round(2)}%)\n"
         end
+        output << "\n"
+        puts output
         output
       end
     end
