@@ -85,10 +85,15 @@ module SimpleCov
 
       attr_accessor :coverage, :root_id
 
-      def initialize(*branch_attrs, root_id)
-        @type, @id, @start_line, @start_col, @end_col, @end_col = *branch_attrs
+      def initialize(*args)
+        @type       = args[0]
+        @id         = args[1]
+        @start_line = args[2]
+        @start_col  = args[3]
+        @end_line   = args[4]
+        @end_col    = args[5]
+        @root_id    = args[6]
         @coverage   = 0
-        @root_id    = root_id
       end
 
       #
@@ -135,7 +140,7 @@ module SimpleCov
       #
       def positive?
         return true if type == :when
-        1 + root_id == id
+        1 + root_id.to_i == id
       end
 
       #
@@ -260,7 +265,7 @@ module SimpleCov
 
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
+      $stderr.puts "Warning: coverage data provided by Coverage [#{coverage[:lines].size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -392,7 +397,8 @@ module SimpleCov
       @branches_collection ||= []
 
       given_branches.each do |branch_args, value|
-        branch = Branch.new(*branch_args, root_id)
+        branch_args << root_id
+        branch = Branch.new(*branch_args)
 
         if value.is_a?(Integer)
           branch.coverage = value

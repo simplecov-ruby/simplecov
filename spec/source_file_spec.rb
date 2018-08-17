@@ -9,6 +9,10 @@ if SimpleCov.usable?
       :branches => {[:if, 0, 17, 6, 23, 9] => {[:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 20, 8, 22, 19] => 0}, [:if, 3, 29, 6, 35, 9] => {[:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 32, 8, 34, 20] => 0}},
     }.freeze
 
+    COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES = {
+      :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil, nil],
+    }.freeze
+
     context "a source file initialized with some coverage data" do
       subject do
         SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
@@ -95,8 +99,7 @@ if SimpleCov.usable?
 
     context "simulating potential Ruby 1.9 defect -- see Issue #56" do
       subject do
-        COVERAGE_FOR_SAMPLE_RB[:lines] << nil
-        SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
+        SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES)
       end
 
       it "has 16 source lines regardless of extra data in coverage array" do

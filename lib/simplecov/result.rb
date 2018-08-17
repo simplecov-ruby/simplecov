@@ -78,7 +78,7 @@ module SimpleCov
     end
 
     # Manage symbolize the keys of coverage hash.
-    # JSON.prase gives coverage hash with stringified keys what breaks some logics
+    # JSON.parse gives coverage hash with stringified keys what breaks some logics
     # inside the process that expects them as symboles.
     #
     # @return [Hash]

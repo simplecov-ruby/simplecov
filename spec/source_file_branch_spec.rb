@@ -13,15 +13,15 @@ if SimpleCov.usable?
     end
 
     let(:root_branch) do
-      SimpleCov::SourceFile::Branch.new(*results[0], nil)
+      SimpleCov::SourceFile::Branch.new(*(results[0] + [nil]))
     end
 
     let(:positive_sub_branch) do
-      SimpleCov::SourceFile::Branch.new(*results[1], 0)
+      SimpleCov::SourceFile::Branch.new(*(results[1] + [0]))
     end
 
     let(:negative_sub_branch) do
-      SimpleCov::SourceFile::Branch.new(*results[2], 0)
+      SimpleCov::SourceFile::Branch.new(*(results[2] + [0]))
     end
 
     let(:branches) do
@@ -30,8 +30,8 @@ if SimpleCov.usable?
 
     let(:inline_branches) do
       [root_branch,
-       SimpleCov::SourceFile::Branch.new(*results[3], 0),
-       SimpleCov::SourceFile::Branch.new(*results[4], 0)]
+       SimpleCov::SourceFile::Branch.new(*(results[3] + [0])),
+       SimpleCov::SourceFile::Branch.new(*(results[4] + [0]))]
     end
 
     context "A source branch if..else" do
@@ -77,25 +77,25 @@ if SimpleCov.usable?
       end
 
       let(:case_branch) do
-        SimpleCov::SourceFile::Branch.new(*results[0], nil)
+        SimpleCov::SourceFile::Branch.new(*(results[0] + [nil]))
       end
 
       let(:branches_without_else) do
         [case_branch,
-         SimpleCov::SourceFile::Branch.new(*results[1], 0),
-         SimpleCov::SourceFile::Branch.new(*results[2], 0),
-         SimpleCov::SourceFile::Branch.new(*results[3], 0)]
+         SimpleCov::SourceFile::Branch.new(*(results[1] + [0])),
+         SimpleCov::SourceFile::Branch.new(*(results[2] + [0])),
+         SimpleCov::SourceFile::Branch.new(*(results[3] + [0]))]
       end
 
       let(:branches_with_else) do
         [case_branch,
-         SimpleCov::SourceFile::Branch.new(*results[1], 0),
-         SimpleCov::SourceFile::Branch.new(*results[2], 0),
-         SimpleCov::SourceFile::Branch.new(*results[4], 0)]
+         SimpleCov::SourceFile::Branch.new(*(results[1] + [0])),
+         SimpleCov::SourceFile::Branch.new(*(results[2] + [0])),
+         SimpleCov::SourceFile::Branch.new(*(results[4] + [0]))]
       end
 
       it "When branche badge is positive" do
-        expect(branches_without_else[1].badge).to be "+"
+        expect(branches_without_else[1].badge.to_sym).to eq(:+)
       end
 
       it "Has right `case` sub branches which having else inside" do
@@ -117,7 +117,7 @@ if SimpleCov.usable?
     context "A source branch with coverage" do
       let(:covered_branch) do
         attrs = [:when, 1, 2, 6, 8, 4]
-        branch = SimpleCov::SourceFile::Branch.new(*attrs, 0)
+        branch = SimpleCov::SourceFile::Branch.new(*(attrs + [0]))
         branch.coverage = 5
         branch
       end
@@ -134,7 +134,7 @@ if SimpleCov.usable?
     context "A source branch with out coverage" do
       let(:covered_branch) do
         attrs = [:when, 1, 2, 6, 8, 4]
-        branch = SimpleCov::SourceFile::Branch.new(*attrs, 0)
+        branch = SimpleCov::SourceFile::Branch.new(*(attrs + [0]))
         branch.coverage = 0
         branch
       end
