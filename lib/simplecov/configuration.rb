@@ -327,7 +327,7 @@ module SimpleCov
     # lines coverage report on not supportable versions.
     #
     def target_capability(target)
-      if (RUBY_VERSION.to_f < 2.5) && target
+      if Coverage.method(:start).arity.zero? && target
         $stderr.printf <<-FYI
           Branch coverage report available only on ruby >= 2.5,
           please remove use_branchable_report option or set it to false
