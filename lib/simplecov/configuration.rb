@@ -160,7 +160,6 @@ module SimpleCov
     # options at once.
     #
     def configure(&block)
-      return false unless SimpleCov.usable?
       Docile.dsl_eval(self, &block)
     end
 
