@@ -10,6 +10,9 @@ GEM
   specs:
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
+    apparition (0.4.0)
+      capybara (~> 3.13, < 4)
+      websocket-driver (>= 0.6.5)
     aruba (0.14.12)
       childprocess (>= 0.6.3, < 4.0.0)
       contracts (~> 0.9)
@@ -30,7 +33,6 @@ GEM
       regexp_parser (~> 1.5)
       xpath (~> 3.2)
     childprocess (3.0.0)
-    cliver (0.3.2)
     contracts (0.16.0)
     cucumber (3.1.2)
       builder (>= 2.1.2)
@@ -61,11 +63,6 @@ GEM
     parallel (1.19.1)
     parser (2.6.5.0)
       ast (~> 2.4.0)
-    phantomjs (2.1.1.0)
-    poltergeist (1.18.1)
-      capybara (>= 2.1, < 4)
-      cliver (~> 0.3.1)
-      websocket-driver (>= 0.2.0)
     power_assert (1.1.5)
     powerpack (0.1.2)
     public_suffix (4.0.1)
@@ -111,12 +108,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  apparition (= 0.4.0)
   aruba (~> 0.14)
   benchmark-ips
   capybara (~> 3.29)
   cucumber (~> 3.1)
-  phantomjs
-  poltergeist
   rake (~> 12.0)
   rspec (~> 3.2)
   rubocop (= 0.53.0)

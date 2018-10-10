@@ -6,7 +6,7 @@ require "aruba/cucumber"
 require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require_relative "aruba_freedom_patch"
 require "capybara/cucumber"
-require "phantomjs/poltergeist"
+require "capybara/apparition"
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
 Capybara.app = lambda { |env|
@@ -19,7 +19,7 @@ Capybara.app = lambda { |env|
   ]
 }
 
-Capybara.default_driver = Capybara.javascript_driver = :poltergeist
+Capybara.default_driver = Capybara.javascript_driver = :apparition
 
 Capybara.server = :webrick
 

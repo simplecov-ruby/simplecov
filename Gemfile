@@ -9,11 +9,10 @@ source "https://rubygems.org"
 # gem 'simplecov-html', :github => 'colszowka/simplecov-html'
 
 group :development do
+  gem "apparition", "0.4.0"
   gem "aruba", "~> 0.14"
   gem "capybara", "~> 3.29"
   gem "cucumber", "~> 3.1"
-  gem "phantomjs"
-  gem "poltergeist"
   gem "rake", "~> 12.0"
   gem "rspec", "~> 3.2"
   gem "rubocop", "0.53.0"
