@@ -63,7 +63,7 @@ describe "result" do
         expect(subject.least_covered_file).to match(/sample_controller.rb/)
       end
 
-      [:covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :total_lines].each do |msg|
+      %i[covered_percent covered_percentages least_covered_file covered_strength covered_lines missed_lines total_lines].each do |msg|
         it "responds to #{msg}" do
           expect(subject).to respond_to(msg)
         end

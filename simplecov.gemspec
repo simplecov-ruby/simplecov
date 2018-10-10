@@ -10,13 +10,12 @@ Gem::Specification.new do |gem|
   gem.authors     = ["Christoph Olszowka"]
   gem.email       = ["christoph at olszowka de"]
   gem.homepage    = "http://github.com/colszowka/simplecov"
-  gem.description = %(Code coverage for Ruby 1.9+ with a powerful configuration library and automatic merging of coverage across test suites)
+  gem.description = %(Code coverage for Ruby with a powerful configuration library and automatic merging of coverage across test suites)
   gem.summary     = gem.description
   gem.license     = "MIT"
 
-  gem.required_ruby_version = ">= 1.9.3"
+  gem.required_ruby_version = ">= 2.0.0"
 
-  gem.add_dependency "json", ">= 1.8", "< 3"
   gem.add_dependency "simplecov-html", "~> 0.10.0"
   gem.add_dependency "docile", "~> 1.1"
 
