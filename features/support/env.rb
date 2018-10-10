@@ -21,6 +21,8 @@ Capybara.app = lambda { |env|
 
 Capybara.default_driver = Capybara.javascript_driver = :poltergeist
 
+Capybara.server = :webrick
+
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
 end
