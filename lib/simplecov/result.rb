@@ -5,7 +5,7 @@ require "forwardable"
 
 module SimpleCov
   #
-  # A simplecov code coverage result, initialized from the Hash Ruby 1.9's built-in coverage
+  # A simplecov code coverage result, initialized from the Hash Ruby's built-in coverage
   # library generates (Coverage.result).
   #
   class Result

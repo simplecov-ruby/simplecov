@@ -29,8 +29,4 @@ end
 require "cucumber/rake/task"
 Cucumber::Rake::Task.new
 
-if RUBY_VERSION.start_with? "1.9"
-  task :default => [:spec, :cucumber]
-else
-  task :default => [:rubocop, :spec, :cucumber]
-end
+task :default => %i[rubocop spec cucumber]

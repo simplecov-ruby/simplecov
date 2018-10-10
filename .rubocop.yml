@@ -4,7 +4,7 @@ AllCops:
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
     - 'vendor/bundle/**/.*'
-  TargetRubyVersion: 1.9
+  TargetRubyVersion: 2.0
 
 Bundler/OrderedGems:
   Description: Gems should be alphabetically sorted within groups.

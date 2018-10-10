@@ -8,8 +8,6 @@ bundler_args: --without development --jobs=3 --retry=3
 
 matrix:
   include:
-    - rvm: 1.9.3
-      gemfile: gemfiles/ruby_19.gemfile
     - rvm: 2.0.0
       gemfile: gemfiles/ruby_20.gemfile
     - rvm: 2.1.10
