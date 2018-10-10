@@ -134,7 +134,7 @@ module SimpleCov
     def covered_strength
       return 0.0 if relevant_lines.zero?
 
-      round_float(lines_strength / relevant_lines.to_f, 1)
+      (lines_strength / relevant_lines.to_f).round(1)
     end
 
     def no_lines?
@@ -189,15 +189,6 @@ module SimpleCov
           line.skipped!
         end
       end
-    end
-
-  private
-
-    # ruby 1.9 could use Float#round(places) instead
-    # @return [Float]
-    def round_float(float, places)
-      factor = Float(10 * places)
-      Float((float * factor).round / factor)
     end
   end
 end

@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.summary     = gem.description
   gem.license     = "MIT"
 
-  gem.required_ruby_version = ">= 1.8.7"
+  gem.required_ruby_version = ">= 1.9.3"
 
   gem.add_dependency "json", ">= 1.8", "< 3"
   gem.add_dependency "simplecov-html", "~> 0.10.0"

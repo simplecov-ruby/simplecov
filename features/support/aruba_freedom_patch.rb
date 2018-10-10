@@ -17,17 +17,8 @@ module Aruba
 
         aruba.logger.warn %(`aruba`'s working directory does not exist. Maybe you forgot to run `setup_aruba` before using it's API. This warning will be an error from 1.0.0) unless Aruba.platform.directory? File.join(aruba.config.root_directory, aruba.config.working_directory)
 
-        if RUBY_VERSION < '1.9'
-          prefix = file_name.chars.to_a[0].to_s
-          rest = if file_name.chars.to_a[2..-1].nil?
-                   nil
-                 else
-                   file_name.chars.to_a[2..-1].join
-                 end
-        else
-          prefix = file_name[0]
-          rest = file_name[2..-1]
-        end
+        prefix = file_name[0]
+        rest = file_name[2..-1]
 
         if aruba.config.fixtures_path_prefix == prefix
           path = File.join(*[aruba.fixtures_directory, rest].compact)

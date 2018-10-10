@@ -610,8 +610,6 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
 ## Ruby version compatibility
 
 Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon and that's what SimpleCov supports. Additionally JRuby 9.1+ is supported as well, while JRuby 1.7 and 9.0 should work they're not "officially" supported.
-SimpleCov is also built against Ruby 1.8 in [Continuous Integration], but this happens only to ensure that SimpleCov
-does not make your test suite crash right now.
 
 SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, 2.2, 2.3, 2.4, 2.5 as well as JRuby 9.1.
 
