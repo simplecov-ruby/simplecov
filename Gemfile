@@ -10,7 +10,7 @@ source "https://rubygems.org"
 
 group :development do
   gem "aruba", "~> 0.14"
-  gem "capybara", "< 3"
+  gem "capybara", "~> 3.29"
   gem "cucumber", "~> 3.1"
   gem "phantomjs"
   gem "poltergeist"
