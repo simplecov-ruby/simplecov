@@ -70,8 +70,8 @@ Getting started
     endpoint) via a separate test process (e.g. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
     executed in your actual test files, you'll want to add something like this
-    to the top of `script/rails` (or `bin/rails` for Rails 4), but below the
-    "shebang" line (`#! /usr/bin/env ruby`):
+    to the top of `bin/rails`, but below the "shebang" line (`#! /usr/bin/env
+    ruby`):
 
     ```ruby
     if ENV['RAILS_ENV'] == 'test'
