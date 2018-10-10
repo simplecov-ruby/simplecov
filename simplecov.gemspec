@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.summary     = gem.description
   gem.license     = "MIT"
 
-  gem.required_ruby_version = ">= 2.0.0"
+  gem.required_ruby_version = ">= 2.1.0"
 
   gem.add_dependency "simplecov-html", "~> 0.10.0"
   gem.add_dependency "docile", "~> 1.1"
