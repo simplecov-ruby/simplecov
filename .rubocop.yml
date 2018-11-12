@@ -27,7 +27,7 @@ Metrics/BlockLength:
     - 'spec/**/*.rb'
 
 Metrics/BlockNesting:
-  Description: Avoid excessive block nesting
+  Description: Avoid excessive block nesting.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#three-is-the-number-thou-shalt-count
   Max: 2
 
@@ -42,7 +42,7 @@ Metrics/MethodLength:
   Max: 12 # TODO: Lower to 10
 
 Metrics/ModuleLength:
-  Description: Avoid modules longer than 100 lines of code
+  Description: Avoid modules longer than 100 lines of code.
   Exclude:
     - 'lib/simplecov.rb'
 
@@ -100,7 +100,7 @@ Style/SpecialGlobalVars:
     - 'lib/simplecov/defaults.rb'
 
 Style/StringLiterals:
-  Description: Allow double-quoted strings without interpolation
+  Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
 
 Style/FileName:
