@@ -5,6 +5,9 @@
 
 * Print the exit status explicitly when it's not a successful build so it's easier figure out SimpleCov failed the build in the output.
 
+## Bugfixes
+
+* Avoid a premature failure exit code when setting `minimum_coverage` in combination with using [parallel_tests](https://github.com/grosser/parallel_tests)
 
 0.16.1 (2018-03-16)
 ===================

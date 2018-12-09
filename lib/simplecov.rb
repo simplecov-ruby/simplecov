@@ -90,6 +90,7 @@ module SimpleCov
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
       if use_merging
+        wait_for_other_processes
         SimpleCov::ResultMerger.store_result(@result) if result?
         @result = SimpleCov::ResultMerger.merged_result
       end
@@ -224,7 +225,7 @@ module SimpleCov
       if result_exit_status == SimpleCov::ExitCodes::SUCCESS # No result errors
         write_last_run(covered_percent)
       end
-      result_exit_status
+      final_result_process? ? result_exit_status : SimpleCov::ExitCodes::SUCCESS
     end
 
     # @api private
@@ -251,6 +252,21 @@ module SimpleCov
       end
     end
     # rubocop:enable Metrics/MethodLength
+
+    #
+    # @api private
+    #
+    def final_result_process?
+      !defined?(ParallelTests) || ParallelTests.last_process?
+    end
+
+    #
+    # @api private
+    #
+    def wait_for_other_processes
+      return unless defined?(ParallelTests) && final_result_process?
+      ParallelTests.wait_for_other_processes_to_finish
+    end
 
     #
     # @api private
