@@ -1,3 +1,10 @@
+0.16.2 (TBD)
+===================
+
+## Bugfixes
+
+* Avoid a premature failure exit code when setting `minimum_coverage` in combination with using [parallel_tests](https://github.com/grosser/parallel_tests)
+
 0.16.1 (2018-03-16)
 ===================
 
