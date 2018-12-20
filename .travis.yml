@@ -1,7 +1,7 @@
 language: ruby
 
 before_install:
-  - gem update --system
+  - gem i rubygems-update -v '<3' && update_rubygems
   - gem install bundler
 
 bundler_args: --without development --jobs=3 --retry=3
