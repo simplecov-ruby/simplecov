@@ -20,13 +20,13 @@ matrix:
       gemfile: gemfiles/ruby_21.gemfile
     - rvm: 2.2.10
       gemfile: gemfiles/ruby_22.gemfile
-    - rvm: 2.3.7
+    - rvm: 2.3.8
       gemfile: gemfiles/ruby_23.gemfile
-    - rvm: 2.4.3
+    - rvm: 2.4.5
       gemfile: gemfiles/ruby_24.gemfile
-    - rvm: 2.5.1
+    - rvm: 2.5.3
       gemfile: gemfiles/ruby_25.gemfile
-    - rvm: jruby-9.1.17.0
+    - rvm: jruby-9.2.5.0
       gemfile: gemfiles/jruby.gemfile
     - rvm: ruby-head
       gemfile: gemfiles/ruby_trunk.gemfile
