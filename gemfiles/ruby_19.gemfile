@@ -25,8 +25,4 @@ group :test do
   gem "json", "~> 1.8"
 end
 
-group :development do
-  gem "benchmark-ips"
-end
-
 gemspec path: '../'
