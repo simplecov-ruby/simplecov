@@ -8,19 +8,10 @@ source "https://rubygems.org"
 # Uncomment this to use development version of html formatter from github
 # gem 'simplecov-html', :github => 'colszowka/simplecov-html'
 
-gem "rake", ">= 10.3"
-
 group :test do
-  gem "rspec", ">= 3.2"
   gem "rack", "~> 1.6"
-  gem "aruba", "~> 0.14"
-  gem "capybara", "< 3"
   gem "nokogiri", ">= 1.7"
-  gem "cucumber", "< 3"
-  gem "phantomjs", "~> 2.1"
-  gem "poltergeist"
   gem "rubocop", "0.49.1"
-  gem "test-unit"
   gem "json", "~> 2.0"
 end
 
