@@ -8,20 +8,18 @@ bundler_args: --without development --jobs=3 --retry=3
 
 matrix:
   include:
-    - rvm: 2.2.10
-      gemfile: gemfiles/ruby_22.gemfile
     - rvm: 2.3.8
-      gemfile: gemfiles/ruby_22.gemfile
+      gemfile: gemfiles/ruby_23.gemfile
     - rvm: 2.4.6
-      gemfile: gemfiles/ruby_22.gemfile
+      gemfile: gemfiles/ruby_23.gemfile
     - rvm: 2.5.5
-      gemfile: gemfiles/ruby_22.gemfile
+      gemfile: gemfiles/ruby_23.gemfile
     - rvm: 2.6.3
-      gemfile: gemfiles/ruby_22.gemfile
+      gemfile: gemfiles/ruby_23.gemfile
     - rvm: jruby-9.2.7.0
       gemfile: gemfiles/jruby.gemfile
     - rvm: ruby-head
-      gemfile: gemfiles/ruby_22.gemfile
+      gemfile: gemfiles/ruby_23.gemfile
     - rvm: jruby-head
       gemfile: gemfiles/jruby.gemfile
   allow_failures:

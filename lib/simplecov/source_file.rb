@@ -43,7 +43,7 @@ module SimpleCov
 
       # Returns true if this is a line that has been covered
       def covered?
-        !never? && !skipped? && coverage > 0
+        !never? && !skipped? && coverage.positive?
       end
 
       # Returns true if this line is not relevant for coverage
