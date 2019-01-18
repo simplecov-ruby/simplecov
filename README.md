@@ -609,7 +609,7 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
 
 ## Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 2.2, 2.3, 2.4, 2.5 as well as JRuby 9.1.
+SimpleCov is built in [Continuous Integration] on Ruby 2.3, 2.4, 2.5 as well as JRuby 9.1.
 
 ## Want to find dead code in production?
 
