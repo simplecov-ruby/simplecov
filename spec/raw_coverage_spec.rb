@@ -57,7 +57,7 @@ if SimpleCov.usable?
         end
 
         it "has proper results for parallel_tests.rb" do
-          expect(subject[source_fixture("parallel_tests.rb")]).to eq([nil, nil, nil, 0])
+          expect(subject[source_fixture("parallel_tests.rb")]).to eq([nil, 0, 0, 0])
         end
 
         it "has proper results for conditionally_loaded_1.rb" do

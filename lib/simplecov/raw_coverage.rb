@@ -30,11 +30,10 @@ module SimpleCov
     end
 
     def merge_line_coverage(count1, count2)
-      sum = count1.to_i + count2.to_i
-      if sum.zero? && (count1.nil? || count2.nil?)
+      if count1.nil? && count2.nil?
         nil
       else
-        sum
+        count1.to_i + count2.to_i
       end
     end
   end
