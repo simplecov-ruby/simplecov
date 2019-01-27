@@ -20,8 +20,7 @@ module SimpleCov
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
 
-    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines
-    def_delegator :files, :lines_of_code, :total_lines
+    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :lines_of_code, :total_lines
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
