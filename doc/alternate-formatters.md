@@ -10,7 +10,7 @@ If you have built or found one that is missing here, please send a Pull Request 
 
 A formatter that generates a coverage badge for use in your project's readme using ImageMagick.
 
-#### [simplecov-small-badge](https://github.com/marcgrimme/simplecov-smallbadge)
+#### [simplecov-small-badge](https://github.com/marcgrimme/simplecov-small-badge)
 *by Marc Grimme*
 
 A formatter that generates a small coverage badge for use in your project's readme using the SVG.
