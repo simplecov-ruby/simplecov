@@ -84,7 +84,7 @@ module SimpleCov
 
     # The path to this source file relative to the projects directory
     def project_filename
-      @filename.sub(/^#{SimpleCov.root}/, "")
+      @filename.sub(Regexp.new("^#{Regexp.escape(SimpleCov.root)}"), "")
     end
 
     # The source code for this file. Aliased as :source
