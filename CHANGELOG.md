@@ -3,6 +3,7 @@
 
 ## Enhancements
 
+* Per default filter hidden files and folders. See [#721](https://github.com/colszowka/simplecov/pull/721) (thanks [Renuo AG](https://www.renuo.ch))
 * Print the exit status explicitly when it's not a successful build so it's easier figure out SimpleCov failed the build in the output.
 
 ## Bugfixes

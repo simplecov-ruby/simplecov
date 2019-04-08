@@ -6,12 +6,14 @@ require "pathname"
 require "simplecov/profiles/root_filter"
 require "simplecov/profiles/test_frameworks"
 require "simplecov/profiles/bundler_filter"
+require "simplecov/profiles/hidden_filter"
 require "simplecov/profiles/rails"
 
 # Default configuration
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
   load_profile "bundler_filter"
+  load_profile "hidden_filter"
   # Exclude files outside of SimpleCov.root
   load_profile "root_filter"
 end
