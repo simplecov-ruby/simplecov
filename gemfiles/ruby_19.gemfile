@@ -14,6 +14,7 @@ group :test do
   gem "rack", "~> 1.6"
   gem "nokogiri", "~> 1.6.0"
   gem "json", "~> 1.8"
+  gem "ffi", "~> 1.10.0"
 end
 
 gemspec path: '../', development_group: 'test'
