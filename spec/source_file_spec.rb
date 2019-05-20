@@ -22,6 +22,25 @@ if SimpleCov.usable?
         expect(subject.project_filename).to eq("/spec/fixtures/sample.rb")
       end
 
+      context "when project_root contains special characters" do
+        let(:root) { File.expand_path("foo[]bar") }
+
+        around do |example|
+          old_root = SimpleCov.root
+          SimpleCov.root(root)
+          begin
+            example.run
+          ensure
+            SimpleCov.root(old_root)
+          end
+        end
+
+        it "works" do
+          source_file = SimpleCov::SourceFile.new(File.expand_path("sample.rb", root), COVERAGE_FOR_SAMPLE_RB)
+          expect(source_file.project_filename).to eq("/sample.rb")
+        end
+      end
+
       it "has source_lines equal to lines" do
         expect(subject.lines).to eq(subject.source_lines)
       end
