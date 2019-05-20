@@ -24,9 +24,9 @@ matrix:
       gemfile: gemfiles/ruby_22.gemfile
     - rvm: 2.5.5
       gemfile: gemfiles/ruby_22.gemfile
-    - rvm: 2.6.2
+    - rvm: 2.6.3
       gemfile: gemfiles/ruby_22.gemfile
-    - rvm: jruby-9.2.6.0
+    - rvm: jruby-9.2.7.0
       gemfile: gemfiles/jruby.gemfile
     - rvm: ruby-head
       gemfile: gemfiles/ruby_22.gemfile
