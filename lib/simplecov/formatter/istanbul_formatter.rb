@@ -5,7 +5,7 @@
 #
 module SimpleCov
   module Formatter
-    class InstanbulFormatter
+    class IstanbulFormatter
       # Takes a SimpleCov::Result and generates a string out of it
       # independently of whether any groups have been defined
       def format(result)
@@ -17,6 +17,7 @@ module SimpleCov
           output << "#{File.basename file.filename} (coverage: #{file.covered_percent.round(2)}%)\n"
         end
         output << "\n"
+        puts output
         output
       end
     end
