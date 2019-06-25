@@ -1,3 +1,11 @@
+<Version> <Date>
+===================
+
+## Enhancements
+
+* Print the exit status explicitly when it's not a successful build so it's easier figure out SimpleCov failed the build in the output.
+
+
 0.16.1 (2018-03-16)
 ===================
 
