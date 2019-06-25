@@ -199,7 +199,9 @@ module SimpleCov
 
       SimpleCov.at_exit.call
 
-      exit_status = SimpleCov.process_result(SimpleCov.result, exit_status)
+      # Don't modify the exit status unless the result has already been
+      # computed
+      exit_status = SimpleCov.process_result(SimpleCov.result, exit_status) if SimpleCov.result?
 
       # Force exit with stored status (see github issue #5)
       # unless it's nil or 0 (see github issue #281)
@@ -212,7 +214,6 @@ module SimpleCov
     #   exit_status = SimpleCov.process_result(SimpleCov.result, exit_status)
     #
     def process_result(result, exit_status)
-      return exit_status unless SimpleCov.result? # Result has been computed
       return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
 
       covered_percent = result.covered_percent.round(2)

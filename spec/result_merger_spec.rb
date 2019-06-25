@@ -104,6 +104,31 @@ if SimpleCov.usable?
         expect(SimpleCov::ResultMerger).to receive(:synchronize_resultset)
         SimpleCov::ResultMerger.store_result({})
       end
+
+      it "persists after exit" do
+        skip "fork not available on JRuby" if RUBY_ENGINE == "jruby"
+
+        coverage = {__FILE__ => 5.downto(1).to_a}
+
+        # Fork to ensure that the Kernel.at_exit block defined in
+        # simplecov/defaults.rb runs
+        pid = Kernel.fork do
+          SimpleCov.start
+
+          # Override the default SimpleCov.at_exit block to avoid instantiating
+          # SimpleCov.result
+          SimpleCov.at_exit {}
+          SimpleCov.command_name "merged result persistence"
+
+          result = SimpleCov::Result.new(coverage)
+          SimpleCov::ResultMerger.store_result(result)
+        end
+
+        Process.waitpid pid
+
+        merged_result = SimpleCov::ResultMerger.merged_result
+        expect(merged_result.original_result).to include(coverage)
+      end
     end
 
     describe ".resultset" do
