@@ -7,7 +7,7 @@ SimpleCov.profiles.define "rails" do
   add_filter %r{^/db/}
 
   add_group "Controllers", "app/controllers"
-  add_group "Channels", "app/channels" if defined?(ActionCable)
+  add_group "Channels", "app/channels"
   add_group "Models", "app/models"
   add_group "Mailers", "app/mailers"
   add_group "Helpers", "app/helpers"
