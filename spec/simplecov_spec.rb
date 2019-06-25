@@ -176,7 +176,6 @@ if SimpleCov.usable?
     describe ".process_result" do
       before do
         expect(SimpleCov).to receive(:result_exit_status).and_return SimpleCov::ExitCodes::MINIMUM_COVERAGE
-        expect(SimpleCov).to receive(:result?).and_return true
       end
       context "when the final result process" do
         let(:result) { double(SimpleCov::Result, :covered_percent => 0.0) }
