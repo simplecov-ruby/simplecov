@@ -139,17 +139,6 @@ to use SimpleCov with them. Here's an overview of the known ones:
   <tr><th>Framework</th><th>Notes</th><th>Issue</th></tr>
   <tr>
     <th>
-      bootsnap
-    </th>
-    <td>
-      <a href="#want-to-use-bootsnap-with-simplecov">See section below.</a>
-    </td>
-    <td>
-      <a href="https://github.com/Shopify/bootsnap/issues/35">Shopify/bootsnap#35</a>
-    </td>
-  </tr>
-  <tr>
-    <th>
       parallel_tests
     </th>
     <td>
@@ -645,20 +634,6 @@ Rails.application.eager_load!
 ```
 
 Or you could remove `gem 'spring'` from your `Gemfile`.
-
-## Want to use bootsnap with SimpleCov?
-
-As mentioned in [this issue](https://github.com/Shopify/bootsnap/issues/35) iseq
-loading/dumping doesn't work with coverage. Hence you need to deactivate it when
-you run coverage so for instance when you use the environment `COVERAGE=true` to
-decide that you want to gather coverage you can do:
-
-```ruby
-Bootsnap.setup(
-  compile_cache_iseq:   !ENV["COVERAGE"], # Compile Ruby code into ISeq cache, breaks coverage reporting.
-  # all those other options
-)
-```
 
 ## Troubleshooting
 
