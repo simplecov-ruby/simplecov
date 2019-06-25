@@ -6,4 +6,6 @@ group :development do
   gem "benchmark-ips"
 end
 
+gem "rubocop", "0.49.1"
+
 gemspec
