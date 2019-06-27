@@ -173,6 +173,18 @@ if SimpleCov.usable?
         it "filters vendor/bundle" do
           expect(SimpleCov.filtered([a_file("vendor/bundle/foo.rb")]).count).to eq(0)
         end
+
+        it "filters hidden folders" do
+          expect(SimpleCov.filtered([a_file(".semaphore-cache/lib.rb")]).count).to eq(0)
+        end
+
+        it "filters hidden files" do
+          expect(SimpleCov.filtered([a_file(".hidden_config.rb")]).count).to eq(0)
+        end
+
+        it "doesn't filter hidden files further down the path" do
+          expect(SimpleCov.filtered([a_file("some_dir/.sneaky.rb")]).count).to eq(1)
+        end
       end
 
       context "outside the project" do
