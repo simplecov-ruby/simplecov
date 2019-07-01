@@ -1,8 +1,8 @@
 language: ruby
 
 before_install:
-  - gem i rubygems-update -v '<3' && update_rubygems
-  - gem i bundler -v '<2'
+  - gem i rubygems-update -v '3.0.4' && update_rubygems
+  - gem i bundler -v '2.0.2'
 
 bundler_args: --without development --jobs=3 --retry=3
 
