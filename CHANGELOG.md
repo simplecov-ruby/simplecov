@@ -2,7 +2,7 @@
 ===================
 
 Maintenance release with nice convenience features and important bugfixes.
-Notably this **will be the last release to support ruby versions that have reached their end of life**. Moving forward official CRuby support will be 2.4+ and JRuby support will be 9.1+. Older versions might still work but no guarantees.
+Notably this **will be the last release to support ruby versions that have reached their end of life**. Moving forward official CRuby support will be 2.4+ and JRuby support will be 9.2+. Older versions might still work but no guarantees.
 
 ## Enhancements
 
