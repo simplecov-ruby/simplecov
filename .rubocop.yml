@@ -4,7 +4,7 @@ AllCops:
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
     - 'vendor/bundle/**/.*'
-  TargetRubyVersion: 2.3
+  TargetRubyVersion: 2.4
 
 Bundler/OrderedGems:
   Description: Gems should be alphabetically sorted within groups.
@@ -53,7 +53,7 @@ Metrics/ParameterLists:
   CountKeywordArgs: true
 
 Layout/AccessModifierIndentation:
-  Description: Modifiers should be indented as deep as method definitions, 
+  Description: Modifiers should be indented as deep as method definitions,
     or as deep as the class/module keyword, depending on configuration.
   EnforcedStyle: outdent
 
