@@ -2,10 +2,14 @@
 
 source "https://rubygems.org"
 
-group :development do
+# Uncomment this to use local copy of simplecov-html in development when checked out
+# gem 'simplecov-html', :path => ::File.dirname(__FILE__) + '/../simplecov-html'
+
+# Uncomment this to use development version of html formatter from github
+# gem 'simplecov-html', :github => 'colszowka/simplecov-html'
+
+group :benchmark do
   gem "benchmark-ips"
 end
-
-gem "rubocop", "0.49.1"
 
 gemspec

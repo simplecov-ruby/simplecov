@@ -20,14 +20,15 @@ Gem::Specification.new do |gem|
   gem.add_dependency "docile", "~> 1.1"
 
   gem.add_development_dependency "bundler"
-  gem.add_development_dependency "rake"
-  gem.add_development_dependency "rspec"
+  gem.add_development_dependency "rake", "~> 12.0"
+  gem.add_development_dependency "rspec", "~> 3.2"
   gem.add_development_dependency "test-unit"
   gem.add_development_dependency "cucumber", "< 3"
-  gem.add_development_dependency "aruba"
+  gem.add_development_dependency "aruba", "~> 0.14"
   gem.add_development_dependency "capybara", "< 3"
   gem.add_development_dependency "phantomjs"
   gem.add_development_dependency "poltergeist"
+  gem.add_development_dependency "rubocop", "0.49.1"
 
   gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "*.md", "doc/*"]
   gem.require_paths = ["lib"]
