@@ -1,4 +1,4 @@
-SimpleCov [![Build Status](https://travis-ci.org/colszowka/simplecov.svg)][Continuous Integration] [![Dependency Status](https://gemnasium.com/colszowka/simplecov.svg)][Dependencies] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.svg)](https://codeclimate.com/github/colszowka/simplecov) [![Inline docs](http://inch-ci.org/github/colszowka/simplecov.svg)](http://inch-ci.org/github/colszowka/simplecov)
+SimpleCov [![Build Status](https://travis-ci.org/colszowka/simplecov.svg)][Continuous Integration] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.svg)](https://codeclimate.com/github/colszowka/simplecov) [![Inline docs](http://inch-ci.org/github/colszowka/simplecov.svg)](http://inch-ci.org/github/colszowka/simplecov)
 =========
 **Code coverage for Ruby**
 
@@ -70,8 +70,8 @@ Getting started
     endpoint) via a separate test process (e.g. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
     executed in your actual test files, you'll want to add something like this
-    to the top of `script/rails` (or `bin/rails` for Rails 4), but below the
-    "shebang" line (`#! /usr/bin/env ruby`):
+    to the top of `bin/rails`, but below the "shebang" line (`#! /usr/bin/env
+    ruby`):
 
     ```ruby
     if ENV['RAILS_ENV'] == 'test'
@@ -87,7 +87,11 @@ Getting started
    are not tracked by Git (optional):
 
     ```
-    coverage
+    echo "coverage" >> .gitignore
+    ```
+    Or if you use Windows:
+    ```
+    echo coverage >> .gitignore
     ```
 
     If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on profiles)
@@ -133,17 +137,6 @@ to use SimpleCov with them. Here's an overview of the known ones:
 
 <table>
   <tr><th>Framework</th><th>Notes</th><th>Issue</th></tr>
-  <tr>
-    <th>
-      bootsnap
-    </th>
-    <td>
-      <a href="#want-to-use-bootsnap-with-simplecov">See section below.</a>
-    </td>
-    <td>
-      <a href="https://github.com/Shopify/bootsnap/issues/35">Shopify/bootsnap#35</a>
-    </td>
-  </tr>
   <tr>
     <th>
       parallel_tests
@@ -616,11 +609,7 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
 
 ## Ruby version compatibility
 
-Only Ruby 1.9+ ships with the coverage library that SimpleCov depends upon and that's what SimpleCov supports. Additionally JRuby 9.1+ is supported as well, while JRuby 1.7 and 9.0 should work they're not "officially" supported.
-SimpleCov is also built against Ruby 1.8 in [Continuous Integration], but this happens only to ensure that SimpleCov
-does not make your test suite crash right now.
-
-SimpleCov is built in [Continuous Integration] on Ruby 1.9.3, 2.0.0, 2.1, 2.2, 2.3, 2.4, 2.5 as well as JRuby 9.1.
+SimpleCov is built in [Continuous Integration] on Ruby 2.4+ as well as JRuby 9.2+.
 
 ## Want to find dead code in production?
 
@@ -630,40 +619,17 @@ Try [Coverband](https://github.com/danmayer/coverband).
 
 If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
 
-1. Change the following settings in `test.rb`.
-
-    ```ruby
-    # For Rails
-    # Do not eager load code on boot
-    config.eager_load = false
-    ```
-2. Add your SimpleCov config, as you normally would, to your `spec_helper.rb`
-   (or `rails_helper.rb` for RSpec 3). If you have a `config/spring.rb` file
-   (or anything similar), add it to the start of such file. Here's a simple
-   version of what the config should look like:
-
-    ```ruby
-    if ENV['RAILS_ENV'] == 'test'
-      require 'simplecov'
-      SimpleCov.start
-    end
-    ```
-3. Run `spring rspec <path>` as normal. Remember to run `spring stop` after
-   making important changes to your app or its specs!
-
-## Want to use bootsnap with SimpleCov?
-
-As mentioned in [this issue](https://github.com/Shopify/bootsnap/issues/35) iseq
-loading/dumping doesn't work with coverage. Hence you need to deactivate it when
-you run coverage so for instance when you use the environment `COVERAGE=true` to
-decide that you want to gather coverage you can do:
+One solution is to [explicitly call eager
+load](https://github.com/colszowka/simplecov/issues/381#issuecomment-347651728)
+in your `test_helper.rb` / `spec_helper.rb` after calling `SimpleCov.start`.
 
 ```ruby
-Bootsnap.setup(
-  compile_cache_iseq:   !ENV["COVERAGE"], # Compile Ruby code into ISeq cache, breaks coverage reporting.
-  # all those other options
-)
+require 'simplecov'
+SimpleCov.start 'rails'
+Rails.application.eager_load!
 ```
+
+Or you could remove `gem 'spring'` from your `Gemfile`.
 
 ## Troubleshooting
 

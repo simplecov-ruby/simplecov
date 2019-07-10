@@ -1,3 +1,20 @@
+0.17.0 (2019-07-02)
+===================
+
+Maintenance release with nice convenience features and important bugfixes.
+Notably this **will be the last release to support ruby versions that have reached their end of life**. Moving forward official CRuby support will be 2.4+ and JRuby support will be 9.2+. Older versions might still work but no guarantees.
+
+## Enhancements
+
+* Per default filter hidden files and folders. See [#721](https://github.com/colszowka/simplecov/pull/721) (thanks [Renuo AG](https://www.renuo.ch))
+* Print the exit status explicitly when it's not a successful build so it's easier figure out SimpleCov failed the build in the output. See [#688](https://github.com/colszowka/simplecov/pull/688) (thanks [@daemonsy](https://github.com/daemonsy))
+
+## Bugfixes
+
+* Avoid a premature failure exit code when setting `minimum_coverage` in combination with using [parallel_tests](https://github.com/grosser/parallel_tests). See [#706](https://github.com/colszowka/simplecov/pull/706) (thanks [@f1sherman](https://github.com/f1sherman))
+* Project roots with special characters no longer cause crashes. See [#717](https://github.com/colszowka/simplecov/pull/717) (thanks [@deivid-rodriguez](https://github.com/deivid-rodriguez))
+* Avoid continously overriding test results with manual `ResultMergere.store_results` usage. See [#674](https://github.com/colszowka/simplecov/pull/674) (thanks [@tomeon](https://github.com/tomeon))
+
 0.16.1 (2018-03-16)
 ===================
 

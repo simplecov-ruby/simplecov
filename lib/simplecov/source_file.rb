@@ -43,7 +43,7 @@ module SimpleCov
 
       # Returns true if this is a line that has been covered
       def covered?
-        !never? && !skipped? && coverage > 0
+        !never? && !skipped? && coverage.positive?
       end
 
       # Returns true if this line is not relevant for coverage
@@ -84,7 +84,7 @@ module SimpleCov
 
     # The path to this source file relative to the projects directory
     def project_filename
-      @filename.sub(/^#{SimpleCov.root}/, "")
+      @filename.sub(Regexp.new("^#{Regexp.escape(SimpleCov.root)}"), "")
     end
 
     # The source code for this file. Aliased as :source
@@ -134,7 +134,7 @@ module SimpleCov
     def covered_strength
       return 0.0 if relevant_lines.zero?
 
-      round_float(lines_strength / relevant_lines.to_f, 1)
+      (lines_strength / relevant_lines.to_f).round(1)
     end
 
     def no_lines?
@@ -189,15 +189,6 @@ module SimpleCov
           line.skipped!
         end
       end
-    end
-
-  private
-
-    # ruby 1.9 could use Float#round(places) instead
-    # @return [Float]
-    def round_float(float, places)
-      factor = Float(10 * places)
-      Float((float * factor).round / factor)
     end
   end
 end

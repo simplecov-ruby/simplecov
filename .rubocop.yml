@@ -4,47 +4,61 @@ AllCops:
     - 'tmp/**/*'
     - 'vendor/bundle/**/*'
     - 'vendor/bundle/**/.*'
-  TargetRubyVersion: 1.9
+  TargetRubyVersion: 2.4
 
 Bundler/OrderedGems:
+  Description: Gems should be alphabetically sorted within groups.
   Enabled: false
 
 Lint/AmbiguousRegexpLiteral:
+  Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
   Exclude:
     - 'features/**/*_steps.rb'
     - 'spec/**/*_steps.rb'
     - 'tmp/**/*_steps.rb'
 
 Metrics/AbcSize:
+  Description: Checks that the ABC size of methods is not higher than the configured maximum.
   Max: 25 # TODO: Lower to 15
 
 Metrics/BlockLength:
+  Description: Checks if the length of a block exceeds some maximum value.
   Exclude:
     - 'spec/**/*.rb'
 
 Metrics/BlockNesting:
+  Description: Avoid excessive block nesting.
+  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#three-is-the-number-thou-shalt-count
   Max: 2
 
 Metrics/LineLength:
+  Description: Checks the length of lines in the source code.
   AllowURI: true
   Enabled: false
 
 Metrics/MethodLength:
+  Description: Checks if the length of a method exceeds some maximum value.
   CountComments: false
   Max: 12 # TODO: Lower to 10
 
 Metrics/ModuleLength:
+  Description: Avoid modules longer than 100 lines of code.
   Exclude:
     - 'lib/simplecov.rb'
 
 Metrics/ParameterLists:
+  Description: Avoid parameter lists longer than three or four parameters.
+  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#too-many-params
   Max: 4
   CountKeywordArgs: true
 
 Layout/AccessModifierIndentation:
+  Description: Modifiers should be indented as deep as method definitions,
+    or as deep as the class/module keyword, depending on configuration.
   EnforcedStyle: outdent
 
 Style/CollectionMethods:
+  Description: Enforces the use of consistent method names from the Enumerable module.
   PreferredMethods:
     map:      'collect'
     reduce:   'inject'
@@ -52,33 +66,45 @@ Style/CollectionMethods:
     find_all: 'select'
 
 Style/Documentation:
+  Description: Checks for missing top-level documentation of classes and modules.
   Enabled: false
 
 Style/DoubleNegation:
+  Description: Checks for uses of double negation (!!).
+  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#no-bang-bang
   Enabled: false
 
 Style/HashSyntax:
+  Description: Checks hash literal syntax.
   EnforcedStyle: hash_rockets
 
 Layout/IndentHeredoc:
+  Description: Checks the indentation of the here document bodies.
   Enabled: false
 
 Style/RegexpLiteral:
+  Description: Use / or %r around regular expressions.
+  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#percent-r
   Enabled: false
 
 Layout/SpaceInsideHashLiteralBraces:
+  Description: Use spaces inside hash literal braces - or don't.
+  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#spaces-operators
   EnforcedStyle: no_space
 
 Style/SpecialGlobalVars:
+  Description: Looks for uses of Perl-style global variables.
   Exclude:
     - 'spec/deleted_source_spec.rb'
     - 'spec/return_codes_spec.rb'
     - 'lib/simplecov/defaults.rb'
 
 Style/StringLiterals:
+  Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
 
 Style/FileName:
+  Description: makes sure that Ruby source files have snake_case names.
   Exclude:
     - 'spec/fixtures/utf-8.rb'
 
@@ -86,9 +112,12 @@ Style/TrailingCommaInLiteral:
   EnforcedStyleForMultiline: comma
 
 Style/GuardClause:
+  Description: Use a guard clause instead of wrapping the code inside a conditional expression.
   Enabled: false
 
 Style/FrozenStringLiteralComment:
+  Description: Add the frozen_string_literal comment to the top of files to help transition
+    from Ruby 2.3.0 to Ruby 3.0.
   Enabled: true
   EnforcedStyle: always
   Exclude:

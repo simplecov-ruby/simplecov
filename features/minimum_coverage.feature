@@ -17,6 +17,7 @@ Feature:
     When I run `bundle exec rake test`
     Then the exit status should not be 0
     And the output should contain "Coverage (88.10%) is below the expected minimum coverage (90.00%)."
+    And the output should contain "SimpleCov failed with exit 2"
 
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
@@ -31,6 +32,7 @@ Feature:
     When I run `bundle exec rake test`
     Then the exit status should not be 0
     And the output should contain "Coverage (88.10%) is below the expected minimum coverage (88.11%)."
+    And the output should contain "SimpleCov failed with exit 2"
 
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
