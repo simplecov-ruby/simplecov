@@ -629,6 +629,12 @@ SimpleCov.start 'rails'
 Rails.application.eager_load!
 ```
 
+Alternatively, you could disable Spring while running SimpleCov:
+
+```
+DISABLE_SPRING=1 rake test
+```
+
 Or you could remove `gem 'spring'` from your `Gemfile`.
 
 ## Troubleshooting
