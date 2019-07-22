@@ -669,6 +669,10 @@ MyCode is being loaded!
 
 then it's good otherwise you likely have a problem :)
 
+## Code of Conduct
+
+Everyone participating in this project's development, issue trackers and other channels is expected to follow our [Code of Conduct](./CODE_OF_CONDUCT.md)
+
 ## Contributing
 
 See the [contributing guide](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md).
