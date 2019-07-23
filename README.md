@@ -8,7 +8,7 @@ SimpleCov [![Build Status](https://travis-ci.org/colszowka/simplecov.svg)][Conti
   * [Rubygem]
   * [Continuous Integration]
 
-[Coverage]: http://www.ruby-doc.org/stdlib-2.1.0/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby's Coverage library"
+[Coverage]: https://ruby-doc.org/stdlib/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby's Coverage library"
 [Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
