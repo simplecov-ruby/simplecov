@@ -224,6 +224,7 @@ module SimpleCov
     # Default is 0% (disabled)
     #
     def minimum_coverage(coverage = nil)
+      minimum_possible_coverage_exceeded("minimum_coverage") if coverage && coverage > 100
       @minimum_coverage ||= (coverage || 0).to_f.round(2)
     end
 
@@ -245,6 +246,7 @@ module SimpleCov
     # Default is 0% (disabled)
     #
     def minimum_coverage_by_file(coverage = nil)
+      minimum_possible_coverage_exceeded("minimum_coverage_by_file") if coverage && coverage > 100
       @minimum_coverage_by_file ||= (coverage || 0).to_f.round(2)
     end
 
@@ -287,6 +289,10 @@ module SimpleCov
     end
 
   private
+
+    def minimum_possible_coverage_exceeded(coverage_option)
+      warn "The coverage you set for #{coverage_option} is greater than 100%"
+    end
 
     #
     # The actual filter processor. Not meant for direct use

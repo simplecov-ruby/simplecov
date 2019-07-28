@@ -1,3 +1,10 @@
+Unrealeased
+===================
+
+## Enhancements
+
+* If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737)
+
 0.17.0 (2019-07-02)
 ===================
 
