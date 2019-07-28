@@ -13,9 +13,11 @@ matrix:
     - rvm: 2.6.3
     - rvm: jruby-9.2.7.0
       env: JRUBY_OPTS=--debug
+      jdk: openjdk8
     - rvm: ruby-head
     - rvm: jruby-head
       env: JRUBY_OPTS=--debug
+      jdk: openjdk8
   allow_failures:
     - rvm: ruby-head
     - rvm: jruby-head
