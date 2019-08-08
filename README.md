@@ -27,8 +27,8 @@ In most cases, you'll want overall coverage results for your projects, including
 etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
 report actually includes coverage across your test suites and thereby gives you a better picture of blank spots.
 
-The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html], but will be installed and configured
-automatically when you launch SimpleCov. If you're curious, you can find it [on GitHub, too][simplecov-html].
+The official formatter of SimpleCov is packaged as a separate gem called [simplecov-html], but will be installed and
+configured automatically when you launch SimpleCov. If you're curious, you can find it [on GitHub, too][simplecov-html].
 
 
 ## Contact
@@ -36,11 +36,13 @@ automatically when you launch SimpleCov. If you're curious, you can find it [on 
 *Code and Bug Reports*
 
 * [Issue Tracker](https://github.com/colszowka/simplecov/issues)
-* See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along with some common problems to check out before creating an issue.
+* See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along
+with some common problems to check out before creating an issue.
 
 *Questions, Problems, Suggestions, etc.*
 
-* [Mailing List](https://groups.google.com/forum/#!forum/simplecov) "Open mailing list for discussion and announcements on Google Groups"
+* [Mailing List](https://groups.google.com/forum/#!forum/simplecov) "Open mailing list for discussion and announcements
+on Google Groups"
 
 Getting started
 ---------------
@@ -132,8 +134,9 @@ require 'simplecov'
 SimpleCov.start 'rails'
 ```
 
-You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov does not
-care what kind of framework it is running in; it just looks at what code is being executed and generates a report about it.
+You could even track what kind of code your UI testers are touching if you want to go overboard with things. SimpleCov
+does not care what kind of framework it is running in; it just looks at what code is being executed and generates a
+report about it.
 
 ### Notes on specific frameworks and test utilities
 
@@ -228,7 +231,8 @@ to use SimpleCov with them. Here's an overview of the known ones:
     ```ruby
     SimpleCov.some_config_option 'foo'
     ```
-* If you do not want to start coverage immediately after launch or want to add additional configuration later on in a concise way, use:
+* If you do not want to start coverage immediately after launch or want to add additional configuration later on in a
+  concise way, use:
 
     ```ruby
     SimpleCov.configure do
@@ -240,11 +244,12 @@ Please check out the [Configuration] API documentation to find out what you can 
 
 ## Using .simplecov for centralized config
 
-If you use SimpleCov to merge multiple test suite results (e.g. Test/Unit and Cucumber) into a single report, you'd normally have to
-set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
+If you use SimpleCov to merge multiple test suite results (e.g. Test/Unit and Cucumber) into a single report, you'd
+normally have to set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
 
-To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the `require 'simplecov'` in each
-test setup helper (**at the top**) and move the `SimpleCov.start` code with all your custom config options into `.simplecov`:
+To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the
+`require 'simplecov'` in each test setup helper (**at the top**) and move the `SimpleCov.start` code with all your
+custom config options into `.simplecov`:
 
 ```ruby
 # test/test_helper.rb
@@ -259,21 +264,23 @@ SimpleCov.start 'rails' do
 end
 ```
 
-Using `.simplecov` rather than separately requiring SimpleCov multiple times is recommended if you are merging multiple test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage information to be lost.
+Using `.simplecov` rather than separately requiring SimpleCov multiple times is recommended if you are merging multiple
+test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage
+information to be lost.
 
 ## Filters
 
-Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all files
-OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source files in the
-gems you are using.
+Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all
+files OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source
+files in the gems you are using.
 
 You can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
 report.
 
 ### Defining custom filters
 
-You can currently define a filter using either a String or Regexp (that will then be Regexp-matched against each source file's path),
-a block or by passing in your own Filter class.
+You can currently define a filter using either a String or Regexp (that will then be Regexp-matched against each source
+file's path), a block or by passing in your own Filter class.
 
 #### String filter
 
@@ -305,9 +312,10 @@ SimpleCov.start do
 end
 ```
 
-Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be removed
-from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to learn about the
-methods available to you. In the above example, the filter will remove all files that have less than 5 lines of code.
+Block filters receive a SimpleCov::SourceFile instance and expect your block to return either true (if the file is to be
+removed from the result) or false (if the result should be kept). Please check out the RDoc for SimpleCov::SourceFile to
+learn about the methods available to you. In the above example, the filter will remove all files that have less than 5
+lines of code.
 
 #### Custom filter class
 
@@ -321,9 +329,10 @@ end
 SimpleCov.add_filter LineFilter.new(5)
 ```
 
-Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method 'matches?(source_file)'. When running
-the filter, a true return value from this method will result in the removal of the given source_file. The filter_argument method
-is being set in the SimpleCov::Filter initialize method and thus is set to 5 in this example.
+Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method
+'matches?(source_file)'. When running the filter, a true return value from this method will result in the removal of the
+given source_file. The filter_argument method is being set in the SimpleCov::Filter initialize method and thus is set to
+5 in this example.
 
 #### Array filter
 
@@ -350,7 +359,9 @@ end
 
 The name of the token can be changed to your liking. [Learn more about the nocov feature.]( https://github.com/colszowka/simplecov/blob/master/features/config_nocov_token.feature)
 
-**Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If you appropriately test the public interface of your classes and objects you should automatically get full coverage of your private methods.
+**Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If
+you appropriately test the public interface of your classes and objects you should automatically get full coverage of
+your private methods.
 
 ## Default root filter and coverage for things outside of it
 
@@ -373,8 +384,8 @@ end
 
 You can separate your source files into groups. For example, in a Rails app, you'll want to have separate listings for
 Models, Controllers, Helpers, and Libs. Group definition works similarly to Filters (and also accepts custom
-filter classes), but source files end up in a group when the filter passes (returns true), as opposed to filtering results,
-which exclude files from results when the filter results in a true value.
+filter classes), but source files end up in a group when the filter passes (returns true), as opposed to filtering
+results, which exclude files from results when the filter results in a true value.
 
 Add your groups with:
 
@@ -464,13 +475,15 @@ You can deactivate merging altogether with `SimpleCov.use_merging false`.
 
 ## Running coverage only on demand
 
-The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (on a ~10 min Rails test suite, the speed drop was
-only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you run your tests because
-it doesn't do your test speed any harm and you're always equipped with the latest and greatest coverage results.
+The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (on a ~10 min Rails test suite, the speed
+drop was only a couple seconds for me), and therefore it's SimpleCov's policy to just generate coverage every time you
+run your tests because it doesn't do your test speed any harm and you're always equipped with the latest and greatest
+coverage results.
 
 Because of this, SimpleCov has no explicit built-in mechanism to run coverage only on demand.
 
-However, you can still accomplish this very easily by introducing an ENV variable conditional into your SimpleCov setup block, like this:
+However, you can still accomplish this very easily by introducing an ENV variable conditional into your SimpleCov setup
+block, like this:
 
 ```ruby
 SimpleCov.start if ENV["COVERAGE"]
@@ -519,8 +532,8 @@ end
 
 ### Custom profiles
 
-You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an existing
-profile and customize it so you can reuse it in unit tests and Cucumber features. For example:
+You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an
+existing profile and customize it so you can reuse it in unit tests and Cucumber features. For example:
 
 ```ruby
 # lib/simplecov_custom_profile.rb
@@ -561,7 +574,8 @@ SimpleCov.minimum_coverage 90
 
 ### Minimum coverage by file
 
-You can define the minimum coverage by file percentage expected. SimpleCov will return non-zero if unmet. This is useful to help ensure coverage is relatively consistent, rather than being skewed by particularly good or bad areas of the code.
+You can define the minimum coverage by file percentage expected. SimpleCov will return non-zero if unmet. This is useful
+to help ensure coverage is relatively consistent, rather than being skewed by particularly good or bad areas of the code.
 
 ```ruby
 SimpleCov.minimum_coverage_by_file 80
@@ -591,8 +605,8 @@ You can use your own formatter with:
 SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 ```
 
-When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result), "result"
-being an instance of SimpleCov::Result. Do whatever your wish with that!
+When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result),
+"result" being an instance of SimpleCov::Result. Do whatever your wish with that!
 
 
 ## Using multiple formatters
@@ -622,7 +636,9 @@ Try [Coverband](https://github.com/danmayer/coverband).
 
 ## Want to use Spring with SimpleCov?
 
-If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading issue. Don't despair!
+If you're using [Spring](https://github.com/rails/spring) to speed up test suite runs and want to run SimpleCov along
+with them, you'll find that it often misreports coverage with the default config due to some sort of eager loading
+issue. Don't despair!
 
 One solution is to [explicitly call eager
 load](https://github.com/colszowka/simplecov/issues/381#issuecomment-347651728)
@@ -644,9 +660,12 @@ Or you could remove `gem 'spring'` from your `Gemfile`.
 
 ## Troubleshooting
 
-The **most common problem is that simplecov isn't required and started before everything else**. In order to track coverage for your whole application **simplecov needs to be the first one** so that it (and the underlying coverage library) can subsequently track loaded files and their usage.
+The **most common problem is that simplecov isn't required and started before everything else**. In order to track
+coverage for your whole application **simplecov needs to be the first one** so that it (and the underlying coverage
+library) can subsequently track loaded files and their usage.
 
-If you are missing coverage for some code a simple trick is to put a puts statement in there and right after `SimpleCov.start` so you can see if the file really was loaded after simplecov was started.
+If you are missing coverage for some code a simple trick is to put a puts statement in there and right after
+`SimpleCov.start` so you can see if the file really was loaded after simplecov was started.
 
 ```ruby
 # my_code.rb
@@ -676,7 +695,8 @@ then it's good otherwise you likely have a problem :)
 
 ## Code of Conduct
 
-Everyone participating in this project's development, issue trackers and other channels is expected to follow our [Code of Conduct](./CODE_OF_CONDUCT.md)
+Everyone participating in this project's development, issue trackers and other channels is expected to follow our
+[Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ## Contributing
 
