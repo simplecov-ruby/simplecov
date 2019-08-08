@@ -81,9 +81,14 @@ Getting started
     end
     ```
 
-3. Run your tests, open up `coverage/index.html` in your browser and check out
-   what you've missed so far.
-4. Add the following to your `.gitignore` file to ensure that coverage results
+3. Run your full test suite to see the percent coverage that your application has.
+4. After running your tests, run the command below from your app's root directory to check out what parts of your
+   application need more tests:
+
+  ```
+  open coverage/index.html
+  ```
+5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
 
     ```
