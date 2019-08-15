@@ -95,22 +95,22 @@ Getting started
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
 
-    ```
-    echo "coverage" >> .gitignore
-    ```
-    Or if you use Windows:
-    ```
-    echo coverage >> .gitignore
-    ```
+   ```
+   echo "coverage" >> .gitignore
+   ```
+   Or if you use Windows:
+   ```
+   echo coverage >> .gitignore
+   ```
 
-    If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on
-    profiles) that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the
-    first two lines of your test_helper should be like this:
+  If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on
+  profiles) that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the
+  first two lines of your test_helper should be like this:
 
-    ```ruby
-    require 'simplecov'
-    SimpleCov.start 'rails'
-    ```
+  ```ruby
+  require 'simplecov'
+  SimpleCov.start 'rails'
+  ```
 
 ## Example output
 
