@@ -5,6 +5,15 @@ Unrealeased
 
 * If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737)
 
+0.17.1 (2019-09-16)
+===================
+
+Bugfix release for problems with ParallelTests.
+
+## Bugfixes
+
+* Avoid hanging with parallel_tests. See [#746](https://github.com/colszowka/simplecov/pull/746) (thanks [@annaswims](https://github.com/annaswims))
+
 0.17.0 (2019-07-02)
 ===================
 
