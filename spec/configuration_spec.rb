@@ -10,6 +10,19 @@ describe SimpleCov::Configuration do
   end
   let(:config) { config_class.new }
 
+  describe "#print_error_status" do
+    subject { config.print_error_status }
+
+    context "when not manually set" do
+      it { is_expected.to be true }
+    end
+
+    context "when manually set" do
+      before { config.print_error_status = false }
+      it { is_expected.to be false }
+    end
+  end
+
   describe "#tracked_files" do
     context "when configured" do
       let(:glob) { "{app,lib}/**/*.rb" }
