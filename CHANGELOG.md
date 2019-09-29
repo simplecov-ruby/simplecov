@@ -4,6 +4,7 @@ Unrealeased
 ## Enhancements
 
 * If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737)
+* Add a configuration option to disable the printing of non-successful exit statuses. See [#747](https://github.com/colszowka/simplecov/pull/746) (thanks [@JacobEvelyn](https://github.com/JacobEvelyn))
 
 0.17.1 (2019-09-16)
 ===================

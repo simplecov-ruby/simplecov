@@ -2,6 +2,7 @@
 
 require "rspec"
 require "stringio"
+require "open3"
 # loaded before simplecov to also capture parse time warnings
 require "support/fail_rspec_on_ruby_warning"
 require "simplecov"

@@ -497,6 +497,21 @@ Then, SimpleCov will only run if you execute your tests like this:
 COVERAGE=true rake test
 ```
 
+## Errors and exit statuses
+
+To aid in debugging issues, if an error is raised, SimpleCov will print a message to `STDERR`
+with the exit status of the error, like:
+
+```
+SimpleCov failed with exit 1
+```
+
+This `STDERR` message can be disabled with:
+
+```
+SimpleCov.print_error_status = false
+```
+
 ## Profiles
 
 By default, SimpleCov's only config assumption is that you only want coverage reports for files inside your project
