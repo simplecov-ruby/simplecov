@@ -23,7 +23,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "rake", "~> 12.0"
   gem.add_development_dependency "rspec", "~> 3.2"
   gem.add_development_dependency "test-unit"
-  gem.add_development_dependency "cucumber", "< 3"
+  gem.add_development_dependency "cucumber"
   gem.add_development_dependency "aruba", "~> 0.14"
   gem.add_development_dependency "capybara", "< 3"
   gem.add_development_dependency "phantomjs"
