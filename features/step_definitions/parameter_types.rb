@@ -7,9 +7,13 @@
 #
 # This is due to the fact that coverage will not include the first loaded spec/test file.
 # To get predictable coverage results, we need to know which one that is...
-#
-Transform "bundle exec rspec spec" do |_|
-  files = nil # Avoid shadowing
-  cd(".") { files = Dir["spec/**/*_spec.rb"] }
-  "bundle exec rspec #{files.sort.join(' ')}"
-end
+
+ParameterType(
+  :name => "rspec",
+  :regexp => /bundle exec rspec spec/,
+  :transformer => lambda { |_|
+    files = nil # Avoid shadowing
+    cd(".") { files = Dir["spec/**/*_spec.rb"] }
+    "bundle exec rspec #{files.sort.join(' ')}"
+  }
+)
