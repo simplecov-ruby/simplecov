@@ -108,7 +108,10 @@ Style/FileName:
   Exclude:
     - 'spec/fixtures/utf-8.rb'
 
-Style/TrailingCommaInLiteral:
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: comma
 
 Style/GuardClause:
