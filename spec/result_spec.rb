@@ -23,7 +23,7 @@ describe "result" do
       {
         source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
         source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]
       }
     end
 
@@ -163,7 +163,7 @@ describe "result" do
         before do
           SimpleCov.formatters = [
             SimpleCov::Formatter::SimpleFormatter,
-            SimpleCov::Formatter::SimpleFormatter,
+            SimpleCov::Formatter::SimpleFormatter
           ]
         end
 
