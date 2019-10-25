@@ -90,6 +90,13 @@ Getting started
   ```
   open coverage/index.html
   ```
+  in a linux Terminal,
+
+  ```
+  xdg-open coverage/index.html
+  ```
+ 
+  
    **Note:** [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
    operating system requires.
 5. Add the following to your `.gitignore` file to ensure that coverage results
