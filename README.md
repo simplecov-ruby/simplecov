@@ -90,7 +90,7 @@ Getting started
   ```
   open coverage/index.html
   ```
-  in a linux Terminal,
+  in a debian/ubuntu Terminal,
 
   ```
   xdg-open coverage/index.html
