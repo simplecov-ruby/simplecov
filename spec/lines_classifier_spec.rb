@@ -14,7 +14,7 @@ describe SimpleCov::LinesClassifier do
           "      puts 'hi'",
           "    end",
           "  end",
-          "end",
+          "end"
         ]
 
         expect(classified_lines.length).to eq 7
@@ -23,7 +23,7 @@ describe SimpleCov::LinesClassifier do
 
       it "determines invalid UTF-8 byte sequences as relevant" do
         classified_lines = subject.classify [
-          "bytes = \"\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\"",
+          "bytes = \"\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\""
         ]
 
         expect(classified_lines.length).to eq 1
@@ -36,7 +36,7 @@ describe SimpleCov::LinesClassifier do
         classified_lines = subject.classify [
           "",
           "  ",
-          "\t\t",
+          "\t\t"
         ]
 
         expect(classified_lines.length).to eq 3
@@ -48,7 +48,7 @@ describe SimpleCov::LinesClassifier do
           classified_lines = subject.classify [
             "#Comment",
             " # Leading space comment",
-            "\t# Leading tab comment",
+            "\t# Leading tab comment"
           ]
 
           expect(classified_lines.length).to eq 3
@@ -57,7 +57,7 @@ describe SimpleCov::LinesClassifier do
 
         it "doesn't mistake interpolation as a comment" do
           classified_lines = subject.classify [
-            'puts "#{var}"',
+            'puts "#{var}"'
           ]
 
           expect(classified_lines.length).to eq 1
@@ -71,7 +71,7 @@ describe SimpleCov::LinesClassifier do
             "# :nocov:",
             "def hi",
             "end",
-            "# :nocov:",
+            "# :nocov:"
           ]
 
           expect(classified_lines.length).to eq 4
@@ -87,7 +87,7 @@ describe SimpleCov::LinesClassifier do
             "puts 'Still relevant'",
             "# :nocov:",
             "puts 'Not relevant till the end'",
-            "puts 'Ditto'",
+            "puts 'Ditto'"
           ]
 
           expect(classified_lines.length).to eq 8

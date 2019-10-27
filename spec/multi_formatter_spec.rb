@@ -13,7 +13,7 @@ describe SimpleCov::Formatter::MultiFormatter do
 
       children = [
         SimpleCov::Formatter::SimpleFormatter,
-        SimpleCov::Formatter::SimpleFormatter,
+        SimpleCov::Formatter::SimpleFormatter
       ]
 
       expect(described_class[*children].new.formatters).to eq(children)

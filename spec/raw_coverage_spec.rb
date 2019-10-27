@@ -12,7 +12,7 @@ describe SimpleCov::RawCoverage do
         source_fixture("resultset1.rb") => [1, 1, 1, 1],
         source_fixture("parallel_tests.rb") => [nil, 0, nil, 0],
         source_fixture("conditionally_loaded_1.rb") => [nil, 0, 1],  # loaded only in the first resultset
-        source_fixture("three.rb") => [nil, 1, 1],
+        source_fixture("three.rb") => [nil, 1, 1]
       }
 
       @resultset2 = {
@@ -22,11 +22,11 @@ describe SimpleCov::RawCoverage do
         source_fixture("resultset2.rb") => [nil, 1, 1, nil],
         source_fixture("parallel_tests.rb") => [nil, nil, 0, 0],
         source_fixture("conditionally_loaded_2.rb") => [nil, 0, 1],  # loaded only in the second resultset
-        source_fixture("three.rb") => [nil, 1, 4],
+        source_fixture("three.rb") => [nil, 1, 4]
       }
 
       @resultset3 = {
-        source_fixture("three.rb") => [nil, 1, 2],
+        source_fixture("three.rb") => [nil, 1, 2]
       }
     end
 
@@ -76,11 +76,11 @@ describe SimpleCov::RawCoverage do
   it "merges frozen resultsets" do
     resultset1 = {
       source_fixture("sample.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
-      source_fixture("app/models/user.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil].freeze,
+      source_fixture("app/models/user.rb").freeze => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil].freeze
     }.freeze
 
     resultset2 = {
-      source_fixture("sample.rb").freeze => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil].freeze,
+      source_fixture("sample.rb").freeze => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil].freeze
     }.freeze
 
     merged_result = SimpleCov::RawCoverage.merge_results(resultset1, resultset2)

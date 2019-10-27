@@ -15,7 +15,7 @@ Capybara.app = lambda { |env|
   [
     200,
     {"Content-Type" => "text/html"},
-    [File.read(File.join(File.dirname(__FILE__), "../../tmp/aruba/project/coverage", request_path))],
+    [File.read(File.join(File.dirname(__FILE__), "../../tmp/aruba/project/coverage", request_path))]
   ]
 }
 
