@@ -189,6 +189,14 @@ module SimpleCov
       end
     end
 
+    def at_exit_behvior
+      # If we are in a different process than called start, don't interfere.
+      return if SimpleCov.pid != Process.pid
+
+      # If SimpleCov is no longer running then don't run exit tasks
+      SimpleCov.run_exit_tasks! if SimpleCov.running
+    end
+
     # @api private
     #
     # Called from at_exit block

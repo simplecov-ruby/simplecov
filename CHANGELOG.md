@@ -1,3 +1,9 @@
+unreleased
+===========
+
+## Bugfixes
+* Use `Minitest.after_run` hook to trigger post-run hooks if `Minitest` is present. See [#756](https://github.com/colszowka/simplecov/pull/756) and [#855](https://github.com/colszowka/simplecov/pull/855) thanks ([@adam12](https://github.com/adam12))
+
 0.18.2 (2020-02-12)
 ===================
 

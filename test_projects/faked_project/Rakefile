@@ -25,3 +25,9 @@ task :collate do
   require "simplecov"
   SimpleCov.collate Dir["coverage/resultset*.json"]
 end
+
+Rake::TestTask.new(:minitest) do |test|
+  test.libs << "minitest"
+  test.test_files = FileList["minitest/**/*_test.rb"].sort
+  test.verbose = true
+end
