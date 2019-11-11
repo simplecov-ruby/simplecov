@@ -12,6 +12,7 @@ Unrealeased
 ## Bugfixes
 
 * Add new instance of `Minitest` constant. The `MiniTest` constant (with the capital T) will be removed in the next major release of Minitest. See [#757](https://github.com/colszowka/simplecov/pull/757) (thanks [@adam12](https://github.com/adam12))
+* Use `Minitest.after_run` hook to trigger post-run hooks if `Minitest` is present.
 
 0.17.1 (2019-09-16)
 ===================
