@@ -12,6 +12,8 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
       "test"
     when /Cucumber/i
       "features/support"
+    when /Minitest/i
+      "minitest"
     else
       raise ArgumentError, "Could not identify test framework #{framework}!"
     end

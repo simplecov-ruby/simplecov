@@ -22,13 +22,10 @@ end
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
 at_exit do
-  # If we are in a different process than called start, don't interfere.
-  next if SimpleCov.pid != Process.pid
+  # Exit hook for Minitest defined in Minitest plugin
+  next if defined?(Minitest)
 
-  # If SimpleCov is no longer running then don't run exit tasks
-  next unless SimpleCov.running
-
-  SimpleCov.run_exit_tasks!
+  SimpleCov.at_exit_behvior
 end
 
 # Autoload config from ~/.simplecov if present
