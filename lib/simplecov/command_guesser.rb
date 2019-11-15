@@ -48,6 +48,8 @@ module SimpleCov
           "RSpec"
         elsif defined?(Test::Unit)
           "Unit Tests"
+        elsif defined?(Minitest)
+          "Minitest"
         elsif defined?(MiniTest)
           "MiniTest"
         else
