@@ -54,3 +54,8 @@ A formatter that prints the coverage of the file under test when you run a singl
 *by [Yosuke Kabuto](https://github.com/ysksn)*
 
 t_wada AA formatter for SimpleCov
+
+#### [simplecov-material(https://github.com/chiefpansancolt/simplecov-material)
+*by [Chiefpansancolt](https://github.com/chiefpansancolt)*
+
+A Material Designed HTML formatter with clean and easy search of files with a tabular left Navigation.
