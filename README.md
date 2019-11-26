@@ -654,6 +654,8 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
 
 SimpleCov is built in [Continuous Integration] on Ruby 2.4+ as well as JRuby 9.2+.
 
+Note for JRuby => You need to pass JRUBY_OPTS="--debug" or create .jrubyrc and add debug.fullTrace=true
+
 ## Want to find dead code in production?
 
 Try [Coverband](https://github.com/danmayer/coverband).
