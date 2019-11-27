@@ -12,11 +12,11 @@ class SomeClass
 
   def compare_with(item)
     if item == label
-      return true
+      true
     else
       raise "Item does not match label"
     end
-  rescue
+  rescue StandardError
     false
   end
 

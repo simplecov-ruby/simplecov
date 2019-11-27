@@ -42,7 +42,7 @@ loop do
     begin
       load filename
     rescue LoadError, StandardError
-      $stderr.puts "Warning: Error occurred while trying to load #{filename}. " \
+      warn "Warning: Error occurred while trying to load #{filename}. " \
         "Error message: #{$!.message}"
     end
     break

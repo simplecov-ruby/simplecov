@@ -114,7 +114,7 @@ module SimpleCov
 
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      $stderr.puts "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
+      warn "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number

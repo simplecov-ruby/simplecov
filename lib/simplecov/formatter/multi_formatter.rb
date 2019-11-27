@@ -8,7 +8,7 @@ module SimpleCov
           formatters.map do |formatter|
             begin
               formatter.new.format(result)
-            rescue => e
+            rescue StandardError => e
               STDERR.puts("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
               nil
             end

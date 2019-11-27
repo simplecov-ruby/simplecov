@@ -27,7 +27,7 @@ module SimpleCov
           if data
             begin
               JSON.parse(data) || {}
-            rescue
+            rescue StandardError
               {}
             end
           else

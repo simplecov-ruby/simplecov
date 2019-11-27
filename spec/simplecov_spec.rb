@@ -122,7 +122,7 @@ describe SimpleCov do
       it "captures the current exception" do
         begin
           raise error
-        rescue
+        rescue StandardError
           SimpleCov.set_exit_exception
           expect(SimpleCov.exit_exception).to be(error)
         end
