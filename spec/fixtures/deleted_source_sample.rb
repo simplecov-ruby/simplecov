@@ -2,7 +2,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "..", ".."))
 require "lib/simplecov"
 SimpleCov.start { command_name "Test" }
 
-dir = File.expand_path(File.dirname(__FILE__))
+dir = __dir__
 file = File.join(dir, "generated_buddha.rb")
 code = %{
   def kill_the_buddha(z)

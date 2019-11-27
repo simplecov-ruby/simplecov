@@ -91,7 +91,7 @@ describe SimpleCov::SourceFile do
 
   it "matches a new SimpleCov::ArrayFilter when a custom class that returns true is passed as array" do
     filter = Class.new(SimpleCov::Filter) do
-      def matches?(_)
+      def matches?(_source_file)
         true
       end
     end.new(nil)
@@ -100,7 +100,7 @@ describe SimpleCov::SourceFile do
 
   it "doesn't match a new SimpleCov::ArrayFilter when a custom class that returns false is passed as array" do
     filter = Class.new(SimpleCov::Filter) do
-      def matches?(_)
+      def matches?(_source_file)
         false
       end
     end.new(nil)

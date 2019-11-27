@@ -103,7 +103,7 @@ Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
 
-Style/FileName:
+Naming/FileName:
   Description: makes sure that Ruby source files have snake_case names.
   Exclude:
     - 'spec/fixtures/utf-8.rb'

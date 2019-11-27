@@ -160,7 +160,7 @@ describe SimpleCov::ResultMerger do
     it "blocks other processes" do
       file = Tempfile.new("foo")
 
-      other_process = open("|ruby -e " + Shellwords.escape(<<-CODE) + " 2>/dev/null")
+      other_process = open("|ruby -e " + Shellwords.escape(<<-CODE) + " 2>/dev/null") # rubocop:disable Security/Open
         require "simplecov"
         SimpleCov.coverage_dir(#{SimpleCov.coverage_dir.inspect})
 

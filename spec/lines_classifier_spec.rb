@@ -57,7 +57,7 @@ describe SimpleCov::LinesClassifier do
 
         it "doesn't mistake interpolation as a comment" do
           classified_lines = subject.classify [
-            'puts "#{var}"'
+            'puts "#{var}"' # rubocop:disable Lint/InterpolationCheck
           ]
 
           expect(classified_lines.length).to eq 1

@@ -5,7 +5,7 @@ require "bundler/setup"
 begin
   require File.join(File.dirname(__FILE__), "simplecov_config")
 rescue LoadError
-  $stderr.puts "No SimpleCov config file found!"
+  warn "No SimpleCov config file found!"
 end
 
 require "faked_project"
