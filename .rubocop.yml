@@ -109,10 +109,10 @@ Style/FileName:
     - 'spec/fixtures/utf-8.rb'
 
 Style/TrailingCommaInArrayLiteral:
-  EnforcedStyleForMultiline: comma
+  EnforcedStyleForMultiline: no_comma
 
 Style/TrailingCommaInHashLiteral:
-  EnforcedStyleForMultiline: comma
+  EnforcedStyleForMultiline: no_comma
 
 Style/GuardClause:
   Description: Use a guard clause instead of wrapping the code inside a conditional expression.
