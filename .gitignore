@@ -1,6 +1,5 @@
 .bundle
 Gemfile.lock
-gemfiles/*.lock
 
 ## MAC OS
 .DS_Store
@@ -23,7 +22,6 @@ coverage
 rdoc
 pkg
 tmp
-capybara*.html
 .rvmrc
 
 ## PROJECT::SPECIFIC
