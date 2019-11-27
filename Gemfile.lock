@@ -111,7 +111,6 @@ PLATFORMS
 DEPENDENCIES
   aruba (~> 0.14)
   benchmark-ips
-  bundler
   capybara (< 3)
   cucumber (~> 3.1)
   phantomjs
