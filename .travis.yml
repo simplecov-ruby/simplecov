@@ -1,7 +1,7 @@
 language: ruby
 
 before_install:
-  - gem update --system '3.0.4'
+  - gem update --system '3.0.6'
   - gem i bundler -v '2.0.2'
 
 bundler_args: --without benchmark --jobs=3 --retry=3
