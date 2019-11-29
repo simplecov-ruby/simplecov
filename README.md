@@ -87,18 +87,18 @@ Getting started
 4. After running your tests, open `coverage/index.html` in the browser of your choice. For example, in a Mac Terminal,
    run the following command from your application's root directory:
 
-  ```
-  open coverage/index.html
-  ```
-  in a debian/ubuntu Terminal,
+   ```
+   open coverage/index.html
+   ```
+   in a debian/ubuntu Terminal,
 
-  ```
-  xdg-open coverage/index.html
-  ```
- 
-  
+   ```
+   xdg-open coverage/index.html
+   ```
+   
    **Note:** [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
    operating system requires.
+
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
 
@@ -110,14 +110,14 @@ Getting started
    echo coverage >> .gitignore
    ```
 
-  If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on
-  profiles) that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the
-  first two lines of your test_helper should be like this:
+   If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on
+   profiles) that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the
+   first two lines of your test_helper should be like this:
 
-  ```ruby
-  require 'simplecov'
-  SimpleCov.start 'rails'
-  ```
+   ```ruby
+   require 'simplecov'
+   SimpleCov.start 'rails'
+   ```
 
 ## Example output
 
