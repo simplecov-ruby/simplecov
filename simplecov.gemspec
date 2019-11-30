@@ -19,17 +19,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency "docile", "~> 1.1"
   gem.add_dependency "simplecov-html", "~> 0.10.0"
 
-  gem.add_development_dependency "aruba", "~> 0.14"
-  gem.add_development_dependency "bundler"
-  gem.add_development_dependency "capybara", "< 3"
-  gem.add_development_dependency "cucumber", "~> 3.1"
-  gem.add_development_dependency "phantomjs"
-  gem.add_development_dependency "poltergeist"
-  gem.add_development_dependency "rake", "~> 12.0"
-  gem.add_development_dependency "rspec", "~> 3.2"
-  gem.add_development_dependency "rubocop", "0.53.0"
-  gem.add_development_dependency "test-unit"
-
   gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "*.md", "doc/*"]
   gem.require_paths = ["lib"]
 end
