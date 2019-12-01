@@ -6,3 +6,9 @@ Rake::TestTask.new(:test) do |test|
   test.test_files = FileList["test/**/*_test.rb"].sort
   test.verbose = true
 end
+
+Rake::TestTask.new(:minitest) do |test|
+  test.libs << "minitest"
+  test.test_files = FileList["minitest/**/*_test.rb"].sort
+  test.verbose = true
+end

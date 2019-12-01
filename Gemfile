@@ -13,6 +13,7 @@ group :development do
   gem "aruba", "~> 0.14"
   gem "capybara", "~> 3.29"
   gem "cucumber", "~> 3.1"
+  gem "minitest"
   gem "rake", "~> 13.0"
   gem "rspec", "~> 3.2"
   gem "rubocop", "0.53.0"

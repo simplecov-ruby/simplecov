@@ -57,6 +57,7 @@ GEM
     gherkin (5.1.0)
     mini_mime (1.0.2)
     mini_portile2 (2.4.0)
+    minitest (5.13.0)
     multi_json (1.14.1)
     multi_test (0.1.2)
     nokogiri (1.10.7)
@@ -118,6 +119,7 @@ DEPENDENCIES
   benchmark-ips
   capybara (~> 3.29)
   cucumber (~> 3.1)
+  minitest
   rake (~> 13.0)
   rspec (~> 3.2)
   rubocop (= 0.53.0)
