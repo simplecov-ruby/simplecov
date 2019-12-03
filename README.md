@@ -22,6 +22,7 @@ SimpleCov is a code coverage analysis tool for Ruby. It uses [Ruby's built-in Co
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format,
 and display those results, giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
+SimpleCov/Coverage track covered ruby code, gathering coverage for common templating solutions like erb, slim and haml is not supported.
 
 In most cases, you'll want overall coverage results for your projects, including all types of tests, Cucumber features,
 etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
@@ -95,7 +96,7 @@ Getting started
    ```
    xdg-open coverage/index.html
    ```
-   
+
    **Note:** [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
    operating system requires.
 
@@ -111,7 +112,7 @@ Getting started
    ```
 
    If you're making a Rails application, SimpleCov comes with built-in configurations (see below for information on
-   profiles) that will get you started with groups for your Controllers, Views, Models and Helpers. To use it, the
+   profiles) that will get you started with groups for your Controllers, Models and Helpers. To use it, the
    first two lines of your test_helper should be like this:
 
    ```ruby
