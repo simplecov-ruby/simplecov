@@ -12,12 +12,10 @@ matrix:
     - rvm: 2.6.5
     - rvm: jruby-9.2.9.0
       env: JRUBY_OPTS=--debug
-      jdk: openjdk8
     - rvm: ruby-head
     - rvm: 2.7.0-preview2
     - rvm: jruby-head
       env: JRUBY_OPTS=--debug
-      jdk: openjdk8
   allow_failures:
     - rvm: 2.7.0-preview2
     - rvm: ruby-head
