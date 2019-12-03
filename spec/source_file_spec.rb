@@ -139,14 +139,12 @@ describe SimpleCov::SourceFile do
     end
 
     it "Has branches coverage precent 50.00" do
-      expect(subject.branches_coverage_precent).to eq(50.00)
+      expect(subject.branches_coverage_percent).to eq(50.00)
     end
   end
 
   context "a file that is never relevant" do
-    COVERAGE_FOR_NEVER_RB = {
-      :lines => [nil, nil]
-    }.freeze
+    COVERAGE_FOR_NEVER_RB = {:lines => [nil, nil]}.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("never.rb"), COVERAGE_FOR_NEVER_RB)

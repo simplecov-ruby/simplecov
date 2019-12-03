@@ -29,9 +29,8 @@ module SimpleCov
         combined_result = first_coverage.clone
         first_coverage.each do |(condition, branches_inside)|
           branches_inside.each do |(branch_key, branch_coverage_value)|
-            compared_branch_coverage = second_coverage[condition][branch_key]
-
-            combined_result[condition][branch_key] = branch_coverage_value + compared_branch_coverage
+            compared_branch_coverage = second_coverage.dig(condition, branch_key)
+            combined_result[condition][branch_key] = branch_coverage_value + compared_branch_coverage.to_i
           end
         end
 

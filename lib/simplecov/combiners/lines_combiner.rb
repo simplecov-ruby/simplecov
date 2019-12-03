@@ -8,6 +8,7 @@ module SimpleCov
     class LinesCombiner < BaseCombiner
       def combine
         return existed_coverage unless empty_coverage?
+
         combine_lines
       end
 
