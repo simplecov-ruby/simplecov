@@ -1,14 +1,17 @@
 Unrealeased
 ===================
 
+## Breaking
+* Dropped official support for all EOL'ed rubies meaning we only officially support 2.4+ - older rubies might still work but are not guaranteed to do so. Older release should still work. (thanks [@deivid-rodriguez](https://github.com/deivid-rodriguez))
+
 ## Enhancements
 
-* If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737)
+* If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737) (thanks [@belfazt](https://github.com/belfazt))
 * Add a configuration option to disable the printing of non-successful exit statuses. See [#747](https://github.com/colszowka/simplecov/pull/746) (thanks [@JacobEvelyn](https://github.com/JacobEvelyn))
 
 ## Bugfixes
 
-* Add new instance of `Minitest` constant. The `MiniTest` constant (with the capital T) will be removed in the next major release of Minitest.
+* Add new instance of `Minitest` constant. The `MiniTest` constant (with the capital T) will be removed in the next major release of Minitest. See [#757](https://github.com/colszowka/simplecov/pull/757) (thanks [@adam12](https://github.com/adam12))
 
 0.17.1 (2019-09-16)
 ===================
