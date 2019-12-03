@@ -14,7 +14,7 @@ module SimpleCov
       end
 
       def initialize(first_coverage, second_coverage)
-        @first_coverage  = first_coverage
+        @first_coverage = first_coverage
         @second_coverage = second_coverage
       end
 

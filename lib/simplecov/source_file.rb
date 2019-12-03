@@ -171,7 +171,7 @@ module SimpleCov
     attr_reader :coverage
 
     def initialize(filename, coverage)
-      @filename = filename
+      @filename = filename.to_s
       @coverage = coverage
     end
 
@@ -250,7 +250,7 @@ module SimpleCov
       total_branches.length.zero?
     end
 
-    def branches_coverage_precent
+    def branches_coverage_percent
       return 100.0 if no_branches? && no_lines?
       return 0.0 if covered_branches.size.zero?
 

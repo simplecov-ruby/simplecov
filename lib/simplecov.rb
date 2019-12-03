@@ -270,6 +270,17 @@ module SimpleCov
     end
 
     #
+    # Call steps that handle process coverage result
+    #
+    # @return [Hash]
+    #
+    def process_coverage_result
+      adapt_coverage_result
+      remove_useless_results
+      result_with_not_loaded_files
+    end
+
+    #
     # Unite the result so it wouldn't matter what coverage type was called
     #
     # @return [Hash]
@@ -298,17 +309,6 @@ module SimpleCov
     def result_with_not_loaded_files
       @result = SimpleCov::Result.new(add_not_loaded_files(@result))
     end
-
-    #
-    # Call steps that handle process coverage result
-    #
-    # @return [Hash]
-    #
-    def process_coverage_result
-      adapt_coverage_result
-      remove_useless_results
-      result_with_not_loaded_files
-    end
   end
 end
 
@@ -335,7 +335,7 @@ require "simplecov/combiners/branches_combiner"
 require "simplecov/combiners/files_combiner"
 require "simplecov/combiners/lines_combiner"
 require "simplecov/run_results_combiner"
-require "simplecov/branches_per_file"
+require "simplecov/branch_data_for_missing_file"
 require "simplecov/useless_results_remover"
 require "simplecov/run_file_coverage"
 

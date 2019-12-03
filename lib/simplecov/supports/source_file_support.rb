@@ -67,9 +67,11 @@ module SimpleCov
       #
       # @return [Array]
       #
+      # rubocop:disable Metrics/MethodLength
       def branches_collection(given_branches, root_id = nil)
         @branches_collection ||= []
-        given_branches.each do |branch_args, value|
+        given_branches.each do |branch_args_sym, value|
+          branch_args = extract_branch_args(branch_args_sym.to_s)
           branch_args << root_id
           branch = SourceFile::Branch.new(*branch_args)
 
@@ -82,6 +84,18 @@ module SimpleCov
           @branches_collection << branch
         end
         @branches_collection
+      end
+      # rubocop:enable Metrics/MethodLength
+
+      # TODO: Refactoring candidate.
+      # notice: avoid using `eval()`
+      # params [String] branch_args_str ex: "[:if, 0, 9, 4, 9, 39]"
+      #
+      # @return [Array] ex: [:if, 0, 9, 4, 9, 39]
+      def extract_branch_args(branch_args_str)
+        branch_args_str.gsub(/\[|\]/, "").split(", ").map do |elm|
+          elm.start_with?(":") ? elm.delete(":", "").to_sym : elm.to_i
+        end
       end
 
       #

@@ -23,7 +23,7 @@ module SimpleCov
     #
     def call
       @classified_result[:lines]    = LinesClassifier.new.classify(lines)
-      @classified_result[:branches] = BranchesPerFile.start(absolute_path)
+      @classified_result[:branches] = BranchDateForMissingFile.start(absolute_path)
       @classified_result
     end
 
