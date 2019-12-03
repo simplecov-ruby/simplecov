@@ -6,6 +6,7 @@ module SimpleCov
   # source lines and featuring helpers to interpret that data.
   #
   class SourceFile
+    include SimpleCov::Supports::SourceFileSupport
     # Representation of a single line in a source file including
     # this specific line's source code, line_number and code coverage,
     # with the coverage being either nil (coverage not applicable, e.g. comment
@@ -72,6 +73,98 @@ module SimpleCov
       end
     end
 
+    #
+    # Representing single branch that has been detected in coverage report.
+    # Give us support methods that handle needed calculations.
+    class Branch
+      include SimpleCov::Supports::BranchSupport
+
+      attr_reader :type,
+                  :id,
+                  :start_line,
+                  :start_col,
+                  :end_line,
+                  :end_col
+
+      attr_accessor :coverage, :root_id
+
+      def initialize(*args)
+        @type       = args[0]
+        @id         = args[1]
+        @start_line = args[2]
+        @start_col  = args[3]
+        @end_line   = args[4]
+        @end_col    = args[5]
+        @root_id    = args[6]
+        @coverage   = 0
+      end
+
+      #
+      # Return true if there is relevant count defined > 0
+      #
+      # @return [Boolean]
+      #
+      def covered?
+        coverage.positive?
+      end
+
+      #
+      # Check if branche missed or not
+      #
+      # @return [Boolean]
+      #
+      def missed?
+        coverage.zero?
+      end
+
+      #
+      # Current branch is root or not
+      #
+      # @return [Boolean]
+      #
+      def root?
+        root_id.nil?
+      end
+
+      #
+      # Current branch is sub_branch
+      #
+      # @return [Boolean]
+      #
+      def sub_branch?
+        !root?
+      end
+
+      #
+      # Branch is positive or negative.
+      # For `case` conditions, `when` always supposed as positive branch.
+      #
+      # @return [Boolean]
+      #
+      def positive?
+        return true if type == :when
+        1 + root_id.to_i == id
+      end
+
+      #
+      # Branch is negative
+      #
+      # @return [Boolean]
+      #
+      def negative?
+        !positive?
+      end
+
+      #
+      # Return the sign depends on branch is positive or negative
+      #
+      # @return [String]
+      #
+      def badge
+        positive? ? "+" : "-"
+      end
+    end
+
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
@@ -103,18 +196,22 @@ module SimpleCov
     alias source_lines lines
 
     def build_lines
-      coverage_exceeding_source_warn if coverage.size > src.size
-
+      coverage_exceeding_source_warn if coverage[:lines].size > src.size
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage[i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, coverage[:lines][i - 1])
       end
-
       process_skipped_lines(lines)
+    end
+
+    #
+    # Return all the branches inside current source file
+    def branches
+      @branches ||= build_branches
     end
 
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage.size}] exceeds number of lines in #{filename} [#{src.size}]"
+      warn "Warning: coverage data provided by Coverage [#{coverage[:lines].size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -122,7 +219,7 @@ module SimpleCov
       lines[number - 1]
     end
 
-    # The coverage for this file in percent. 0 if the file has no relevant lines
+    # The coverage for this file in percent. 0 if the file has no coverage lines
     def covered_percent
       return 100.0 if no_lines?
 
@@ -149,46 +246,27 @@ module SimpleCov
       lines.size - never_lines.size - skipped_lines.size
     end
 
-    # Returns all covered lines as SimpleCov::SourceFile::Line
-    def covered_lines
-      @covered_lines ||= lines.select(&:covered?)
+    def no_branches?
+      total_branches.length.zero?
     end
 
-    # Returns all lines that should have been, but were not covered
-    # as instances of SimpleCov::SourceFile::Line
-    def missed_lines
-      @missed_lines ||= lines.select(&:missed?)
+    def branches_coverage_precent
+      return 100.0 if no_branches? && no_lines?
+      return 0.0 if covered_branches.size.zero?
+
+      Float(covered_branches.size * 100.0 / total_branches.size.to_f)
     end
 
-    # Returns all lines that are not relevant for coverage as
-    # SimpleCov::SourceFile::Line instances
-    def never_lines
-      @never_lines ||= lines.select(&:never?)
+    #
+    # Return the relevant branches to source file
+    def total_branches
+      covered_branches + missed_branches
     end
 
-    # Returns all lines that were skipped as SimpleCov::SourceFile::Line instances
-    def skipped_lines
-      @skipped_lines ||= lines.select(&:skipped?)
-    end
-
-    # Returns the number of relevant lines (covered + missed)
-    def lines_of_code
-      covered_lines.size + missed_lines.size
-    end
-
-    # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
-    # as skipped.
-    def process_skipped_lines(lines)
-      skipping = false
-
-      lines.each do |line|
-        if SimpleCov::LinesClassifier.no_cov_line?(line.src)
-          skipping = !skipping
-          line.skipped!
-        elsif skipping
-          line.skipped!
-        end
-      end
+    #
+    # Return hash with key of line number and branch coverage count as value
+    def branches_report
+      @branches_report ||= build_branches_report
     end
   end
 end

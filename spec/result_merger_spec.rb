@@ -13,21 +13,21 @@ describe SimpleCov::ResultMerger do
   describe "with two faked coverage resultsets" do
     before do
       @resultset1 = {
-        source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-        source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        source_fixture("app/controllers/sample_controller.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        source_fixture("resultset1.rb") => [1, 1, 1, 1],
-        source_fixture("parallel_tests.rb") => [nil, 0, nil, 0],
-        source_fixture("conditionally_loaded_1.rb") => [nil, 0, 1],  # loaded only in the first resultset
+        source_fixture("sample.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
+        source_fixture("app/models/user.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+        source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+        source_fixture("resultset1.rb") => {:lines => [1, 1, 1, 1]},
+        source_fixture("parallel_tests.rb") => {:lines => [nil, 0, nil, 0]},
+        source_fixture("conditionally_loaded_1.rb") => {:lines => [nil, 0, 1]}, # loaded only in the first resultset
       }
 
       @resultset2 = {
-        source_fixture("sample.rb") => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil],
-        source_fixture("app/models/user.rb") => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
-        source_fixture("app/controllers/sample_controller.rb") => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil],
-        source_fixture("resultset2.rb") => [nil, 1, 1, nil],
-        source_fixture("parallel_tests.rb") => [nil, nil, 0, 0],
-        source_fixture("conditionally_loaded_2.rb") => [nil, 0, 1],  # loaded only in the second resultset
+        source_fixture("sample.rb") => {:lines => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
+        source_fixture("app/models/user.rb") => {:lines => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil]},
+        source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
+        source_fixture("resultset2.rb") => {:lines => [nil, 1, 1, nil]},
+        source_fixture("parallel_tests.rb") => {:lines => [nil, nil, 0, 0]},
+        source_fixture("conditionally_loaded_2.rb") => {:lines => [nil, 0, 1]}, # loaded only in the second resultset
       }
     end
 
@@ -102,31 +102,6 @@ describe SimpleCov::ResultMerger do
     it "synchronizes writes" do
       expect(SimpleCov::ResultMerger).to receive(:synchronize_resultset)
       SimpleCov::ResultMerger.store_result({})
-    end
-
-    it "persists after exit" do
-      skip "fork not available on JRuby" if RUBY_ENGINE == "jruby"
-
-      coverage = {__FILE__ => 5.downto(1).to_a}
-
-      # Fork to ensure that the Kernel.at_exit block defined in
-      # simplecov/defaults.rb runs
-      pid = Kernel.fork do
-        SimpleCov.start
-
-        # Override the default SimpleCov.at_exit block to avoid instantiating
-        # SimpleCov.result
-        SimpleCov.at_exit {}
-        SimpleCov.command_name "merged result persistence"
-
-        result = SimpleCov::Result.new(coverage)
-        SimpleCov::ResultMerger.store_result(result)
-      end
-
-      Process.waitpid pid
-
-      merged_result = SimpleCov::ResultMerger.merged_result
-      expect(merged_result.original_result).to include(coverage)
     end
   end
 

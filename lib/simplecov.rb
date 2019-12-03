@@ -50,24 +50,8 @@ module SimpleCov
       @result = nil
       self.running = true
       self.pid = Process.pid
-      Coverage.start
-    end
 
-    #
-    # Finds files that were to be tracked but were not loaded and initializes
-    # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
-    #
-    def add_not_loaded_files(result)
-      if tracked_files
-        result = result.dup
-        Dir[tracked_files].each do |file|
-          absolute = File.expand_path(file)
-
-          result[absolute] ||= LinesClassifier.new.classify(File.foreach(absolute))
-        end
-      end
-
-      result
+      start_coverage_measurment
     end
 
     #
@@ -76,11 +60,9 @@ module SimpleCov
     #
     def result
       return @result if result?
-
       # Collect our coverage result
-      if running
-        @result = SimpleCov::Result.new add_not_loaded_files(Coverage.result)
-      end
+
+      process_coverage_result if running
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
@@ -254,6 +236,79 @@ module SimpleCov
     def write_last_run(covered_percent)
       SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
     end
+
+  private
+
+    #
+    # Trigger Coverage.start depends on given config use_branchable_report
+    #
+    # With Positive branch it supports all coverage measurement types
+    # With Negative branch it supports only line coverage measurement type
+    #
+    def start_coverage_measurment
+      if branchable_report
+        Coverage.start(:all)
+      else
+        Coverage.start
+      end
+    end
+
+    #
+    # Finds files that were to be tracked but were not loaded and initializes
+    # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
+    #
+    def add_not_loaded_files(result)
+      if tracked_files
+        result = result.dup
+        Dir[tracked_files].each do |file|
+          absolute = File.expand_path(file)
+          result[absolute] ||= RunFileCoverage.start(absolute)
+        end
+      end
+
+      result
+    end
+
+    #
+    # Unite the result so it wouldn't matter what coverage type was called
+    #
+    # @return [Hash]
+    #
+    def adapt_coverage_result
+      @result = SimpleCov::ResultAdapter.call(Coverage.result)
+    end
+
+    #
+    # Filter coverage result
+    # The result before filter also has result of coverage for files
+    # are not related to the project like loaded gems coverage.
+    #
+    # @return [Hash]
+    #
+    def remove_useless_results
+      @result = SimpleCov::UselessResultsRemover.call(@result)
+    end
+
+    #
+    # Initialize result with files that are not included by coverage
+    # and added inside the config block
+    #
+    # @return [Hash]
+    #
+    def result_with_not_loaded_files
+      @result = SimpleCov::Result.new(add_not_loaded_files(@result))
+    end
+
+    #
+    # Call steps that handle process coverage result
+    #
+    # @return [Hash]
+    #
+    def process_coverage_result
+      adapt_coverage_result
+      remove_useless_results
+      result_with_not_loaded_files
+    end
   end
 end
 
@@ -262,6 +317,8 @@ require "simplecov/configuration"
 SimpleCov.send :extend, SimpleCov::Configuration
 require "simplecov/exit_codes"
 require "simplecov/profiles"
+require "simplecov/supports/branch_support"
+require "simplecov/supports/source_file_support"
 require "simplecov/source_file"
 require "simplecov/file_list"
 require "simplecov/result"
@@ -269,10 +326,18 @@ require "simplecov/filter"
 require "simplecov/formatter"
 require "simplecov/last_run"
 require "simplecov/lines_classifier"
-require "simplecov/raw_coverage"
 require "simplecov/result_merger"
 require "simplecov/command_guesser"
 require "simplecov/version"
+require "simplecov/result_adapter"
+require "simplecov/combiners/base_combiner"
+require "simplecov/combiners/branches_combiner"
+require "simplecov/combiners/files_combiner"
+require "simplecov/combiners/lines_combiner"
+require "simplecov/run_results_combiner"
+require "simplecov/branches_per_file"
+require "simplecov/useless_results_remover"
+require "simplecov/run_file_coverage"
 
 # Load default config
 require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
