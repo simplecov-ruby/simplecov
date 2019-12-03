@@ -13,11 +13,11 @@ matrix:
     - rvm: jruby-9.2.9.0
       env: JRUBY_OPTS=--debug
     - rvm: ruby-head
-    - rvm: 2.7.0-preview2
+    - rvm: 2.7.0-preview3
     - rvm: jruby-head
       env: JRUBY_OPTS=--debug
   allow_failures:
-    - rvm: 2.7.0-preview2
+    - rvm: 2.7.0-preview3
     - rvm: ruby-head
     - rvm: jruby-head
       env: JRUBY_OPTS=--debug
