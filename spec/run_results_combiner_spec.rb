@@ -8,35 +8,33 @@ describe SimpleCov::RunResultsCombiner do
       @resultset1 = {
         source_fixture("sample.rb") => {
           :lines => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}},
+          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
         },
         source_fixture("app/models/user.rb") => {
           :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}},
+          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
         },
         source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset1.rb") => {:lines => [1, 1, 1, 1]},
         source_fixture("parallel_tests.rb") => {:lines => [nil, 0, nil, 0]},
         source_fixture("conditionally_loaded_1.rb") => {:lines => [nil, 0, 1]},  # loaded only in the first resultset
-        source_fixture("three.rb") => {:lines => [nil, 1, 1]},
+        source_fixture("three.rb") => {:lines => [nil, 1, 1]}
       }
 
       @resultset2 = {
         source_fixture("sample.rb") => {:lines => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
         source_fixture("app/models/user.rb") => {
           :lines => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
-          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 1, [:else, 5, 8, 6, 8, 36] => 2}},
+          :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 1, [:else, 5, 8, 6, 8, 36] => 2}}
         },
         source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset2.rb") => {:lines => [nil, 1, 1, nil]},
         source_fixture("parallel_tests.rb") => {:lines => [nil, nil, 0, 0]},
         source_fixture("conditionally_loaded_2.rb") => {:lines => [nil, 0, 1]},  # loaded only in the second resultset
-        source_fixture("three.rb") => {:lines => [nil, 1, 4]},
+        source_fixture("three.rb") => {:lines => [nil, 1, 4]}
       }
 
-      @resultset3 = {
-        source_fixture("three.rb") => {:lines => [nil, 1, 2]},
-      }
+      @resultset3 = {source_fixture("three.rb") => {:lines => [nil, 1, 2]}}
     end
 
     context "a merge" do
@@ -88,11 +86,11 @@ describe SimpleCov::RunResultsCombiner do
   it "merges frozen resultsets" do
     resultset1 = {
       source_fixture("sample.rb").freeze => {:lines => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
-      source_fixture("app/models/user.rb").freeze => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+      source_fixture("app/models/user.rb").freeze => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
     }
 
     resultset2 = {
-      source_fixture("sample.rb").freeze => {:lines => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
+      source_fixture("sample.rb").freeze => {:lines => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}
     }
 
     merged_result = SimpleCov::RunResultsCombiner.combine!(resultset1, resultset2)
