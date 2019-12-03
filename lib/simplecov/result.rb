@@ -20,7 +20,7 @@ module SimpleCov
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
 
-    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines
+    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :total_branches, :covered_branches, :missed_branches
     def_delegator :files, :lines_of_code, :total_lines
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
@@ -67,10 +67,27 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       command_name, data = hash.first
-      result = SimpleCov::Result.new(data["coverage"])
+
+      result = SimpleCov::Result.new(
+        symbolize_names_of_coverage_results(data["coverage"])
+      )
+
       result.command_name = command_name
       result.created_at = Time.at(data["timestamp"])
       result
+    end
+
+    # Manage symbolize the keys of coverage hash.
+    # JSON.parse gives coverage hash with stringified keys what breaks some logics
+    # inside the process that expects them as symboles.
+    #
+    # @return [Hash]
+    def self.symbolize_names_of_coverage_results(coverage_data)
+      coverage_data.each_with_object({}) do |(file_name, file_coverage_result), coverage_results|
+        coverage_results[file_name] = file_coverage_result.each_with_object({}) do |(k, v), cov_elem|
+          cov_elem[k.to_sym] = v
+        end
+      end
     end
 
   private

@@ -1,9 +1,9 @@
 AllCops:
   Exclude:
-    - 'spec/fixtures/iso-8859.rb'
-    - 'tmp/**/*'
-    - 'vendor/bundle/**/*'
-    - 'vendor/bundle/**/.*'
+    - "spec/fixtures/iso-8859.rb"
+    - "tmp/**/*"
+    - "vendor/bundle/**/*"
+    - "vendor/bundle/**/.*"
   TargetRubyVersion: 2.4
 
 Bundler/OrderedGems:
@@ -13,9 +13,9 @@ Bundler/OrderedGems:
 Lint/AmbiguousRegexpLiteral:
   Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
   Exclude:
-    - 'features/**/*_steps.rb'
-    - 'spec/**/*_steps.rb'
-    - 'tmp/**/*_steps.rb'
+    - "features/**/*_steps.rb"
+    - "spec/**/*_steps.rb"
+    - "tmp/**/*_steps.rb"
 
 Metrics/AbcSize:
   Description: Checks that the ABC size of methods is not higher than the configured maximum.
@@ -24,7 +24,7 @@ Metrics/AbcSize:
 Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:
-    - 'spec/**/*.rb'
+    - "spec/**/*.rb"
 
 Metrics/BlockNesting:
   Description: Avoid excessive block nesting.
@@ -44,7 +44,7 @@ Metrics/MethodLength:
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
   Exclude:
-    - 'lib/simplecov.rb'
+    - "lib/simplecov.rb"
 
 Metrics/ParameterLists:
   Description: Avoid parameter lists longer than three or four parameters.
@@ -60,10 +60,10 @@ Layout/AccessModifierIndentation:
 Style/CollectionMethods:
   Description: Enforces the use of consistent method names from the Enumerable module.
   PreferredMethods:
-    map:      'collect'
-    reduce:   'inject'
-    find:     'detect'
-    find_all: 'select'
+    map: "collect"
+    reduce: "inject"
+    find: "detect"
+    find_all: "select"
 
 Style/Documentation:
   Description: Checks for missing top-level documentation of classes and modules.
@@ -95,9 +95,9 @@ Layout/SpaceInsideHashLiteralBraces:
 Style/SpecialGlobalVars:
   Description: Looks for uses of Perl-style global variables.
   Exclude:
-    - 'spec/deleted_source_spec.rb'
-    - 'spec/return_codes_spec.rb'
-    - 'lib/simplecov/defaults.rb'
+    - "spec/deleted_source_spec.rb"
+    - "spec/return_codes_spec.rb"
+    - "lib/simplecov/defaults.rb"
 
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
@@ -106,7 +106,7 @@ Style/StringLiterals:
 Naming/FileName:
   Description: makes sure that Ruby source files have snake_case names.
   Exclude:
-    - 'spec/fixtures/utf-8.rb'
+    - "spec/fixtures/utf-8.rb"
 
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: no_comma
@@ -119,10 +119,11 @@ Style/GuardClause:
   Enabled: false
 
 Style/FrozenStringLiteralComment:
-  Description: Add the frozen_string_literal comment to the top of files to help transition
+  Description:
+    Add the frozen_string_literal comment to the top of files to help transition
     from Ruby 2.3.0 to Ruby 3.0.
   Enabled: true
   EnforcedStyle: always
   Exclude:
-    - 'spec/fixtures/**/*'
-    - 'spec/faked_project/**/*'
+    - "spec/fixtures/**/*"
+    - "spec/faked_project/**/*"

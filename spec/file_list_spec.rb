@@ -5,9 +5,9 @@ require "helper"
 describe SimpleCov::Result do
   subject do
     original_result = {
-      source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-      source_fixture("app/models/user.rb") => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-      source_fixture("app/controllers/sample_controller.rb") => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil]
+      source_fixture("sample.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
+      source_fixture("app/models/user.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+      source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil]},
     }
     SimpleCov::Result.new(original_result).files
   end
