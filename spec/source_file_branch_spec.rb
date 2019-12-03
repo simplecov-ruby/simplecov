@@ -9,7 +9,7 @@ describe SimpleCov::SourceFile::Branch do
       [:then, 1, 2, 6, 8, 4],
       [:else, 2, 2, 6, 8, 4],
       [:then, 1, 1, 6, 9, 5],
-      [:else, 2, 1, 6, 8, 4],
+      [:else, 2, 1, 6, 8, 4]
     ]
   end
 
@@ -33,7 +33,7 @@ describe SimpleCov::SourceFile::Branch do
     [
       root_branch,
       SimpleCov::SourceFile::Branch.new(*(results[3] + [0])),
-      SimpleCov::SourceFile::Branch.new(*(results[4] + [0])),
+      SimpleCov::SourceFile::Branch.new(*(results[4] + [0]))
     ]
   end
 
@@ -77,7 +77,7 @@ describe SimpleCov::SourceFile::Branch do
         [:when, 1, 2, 6, 8, 4],
         [:when, 2, 3, 8, 10, 4],
         [:else, 0, 1, 4, 10, 4],
-        [:else, 3, 4, 10, 12, 4],
+        [:else, 3, 4, 10, 12, 4]
       ]
     end
 
@@ -90,7 +90,7 @@ describe SimpleCov::SourceFile::Branch do
         case_branch,
         SimpleCov::SourceFile::Branch.new(*(results[1] + [0])),
         SimpleCov::SourceFile::Branch.new(*(results[2] + [0])),
-        SimpleCov::SourceFile::Branch.new(*(results[3] + [0])),
+        SimpleCov::SourceFile::Branch.new(*(results[3] + [0]))
       ]
     end
 
@@ -99,7 +99,7 @@ describe SimpleCov::SourceFile::Branch do
         case_branch,
         SimpleCov::SourceFile::Branch.new(*(results[1] + [0])),
         SimpleCov::SourceFile::Branch.new(*(results[2] + [0])),
-        SimpleCov::SourceFile::Branch.new(*(results[4] + [0])),
+        SimpleCov::SourceFile::Branch.new(*(results[4] + [0]))
       ]
     end
 

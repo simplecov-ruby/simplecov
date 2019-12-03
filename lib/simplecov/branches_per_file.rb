@@ -11,16 +11,7 @@ module SimpleCov
     #
     # @return [Hash]
     #
-    def self.start(source_file_path)
-      return {} unless SimpleCov.branchable_report
-
-      Coverage.start(:all)
-      require source_file_path
-      coverage_result = Coverage.result
-
-      coverage_result[source_file_path] ? coverage_result[source_file_path][:branches] : {}
-    rescue => e
-      puts "File with path: #{source_file_path},\n raised '#{e.class}' with message: #{e.message}."
+    def self.start(_source_file_path)
       {}
     end
   end

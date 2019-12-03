@@ -9,12 +9,12 @@ describe SimpleCov::UselessResultsRemover do
     {
       gem_file_path => {
         :lines => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-        :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}},
+        :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
       },
       source_fixture("app/models/user.rb") => {
         :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}},
-      },
+        :branches => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
+      }
     }
   end
 

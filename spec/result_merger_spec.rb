@@ -18,7 +18,7 @@ describe SimpleCov::ResultMerger do
         source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset1.rb") => {:lines => [1, 1, 1, 1]},
         source_fixture("parallel_tests.rb") => {:lines => [nil, 0, nil, 0]},
-        source_fixture("conditionally_loaded_1.rb") => {:lines => [nil, 0, 1]}, # loaded only in the first resultset
+        source_fixture("conditionally_loaded_1.rb") => {:lines => [nil, 0, 1]} # loaded only in the first resultset
       }
 
       @resultset2 = {
@@ -27,7 +27,7 @@ describe SimpleCov::ResultMerger do
         source_fixture("app/controllers/sample_controller.rb") => {:lines => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset2.rb") => {:lines => [nil, 1, 1, nil]},
         source_fixture("parallel_tests.rb") => {:lines => [nil, nil, 0, 0]},
-        source_fixture("conditionally_loaded_2.rb") => {:lines => [nil, 0, 1]}, # loaded only in the second resultset
+        source_fixture("conditionally_loaded_2.rb") => {:lines => [nil, 0, 1]} # loaded only in the second resultset
       }
     end
 

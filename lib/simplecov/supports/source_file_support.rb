@@ -92,7 +92,7 @@ module SimpleCov
       # @return [Array]
       #
       def covered_branches
-        @coverd_branches ||= root_branches.flat_map do |root_branch|
+        @covered_branches ||= root_branches.flat_map do |root_branch|
           root_branch.sub_branches(branches).select(&:covered?)
         end
       end
@@ -136,7 +136,7 @@ module SimpleCov
       # @return [String] ex: "[1, '+'],[2, '-']" two times on negative branch and non on the positive
       #
       def branch_per_line(line_number)
-        branches_report[line_number].each_with_object(" ".dup) do |data, message|
+        branches_report[line_number].each_with_object(+" ") do |data, message|
           separator = message.strip.empty? ? " " : ", "
           message << (separator + data.to_s)
         end.strip
