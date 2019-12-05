@@ -118,7 +118,7 @@ describe SimpleCov::SourceFile do
   context "A file that have inline branches" do
     COVERAGE_FOR_DUMB_INLINE = {
       :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil],
-      :branches => {[:if, 0, 18, 6, 18, 9] => {[:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 18, 8, 19, 19] => 0}, [:if, 3, 29, 6, 35, 9] => {[:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 31, 8, 34, 20] => 0}}
+      :branches => {[:if, 0, 18, 6, 18, 9] => {[:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 18, 8, 18, 19] => 0}, [:if, 3, 29, 6, 35, 9] => {[:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 31, 8, 34, 20] => 0}}
     }.freeze
 
     subject do

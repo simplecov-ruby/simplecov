@@ -93,8 +93,8 @@ module SimpleCov
       #
       # @return [Array] ex: [:if, 0, 9, 4, 9, 39]
       def extract_branch_args(branch_args_str)
-        branch_args_str.gsub(/\[|\]/, "").split(", ").map do |elm|
-          elm.start_with?(":") ? elm.delete(":", "").to_sym : elm.to_i
+        branch_args_str.gsub(/\[|\]|\"/, "").split(", ").map do |elm|
+          elm.start_with?(":") ? elm.delete(":").to_sym : elm.to_i
         end
       end
 

@@ -138,12 +138,16 @@ module SimpleCov
       #
       # Branch is positive or negative.
       # For `case` conditions, `when` always supposed as positive branch.
+      # For `if, else` conditions:
+      # coverage returns matrices ex: [:if, 0,..] => {[:then, 1,..], [:else, 2,..]},
+      # positive branch always has Id equals to root branch Id incremented by 1.
       #
       # @return [Boolean]
       #
       def positive?
         return true if type == :when
-        1 + root_id.to_i == id
+
+        (1 + root_id.to_i) == id
       end
 
       #
@@ -251,7 +255,7 @@ module SimpleCov
     end
 
     def branches_coverage_percent
-      return 100.0 if no_branches? && no_lines?
+      return 100.0 if no_branches?
       return 0.0 if covered_branches.size.zero?
 
       Float(covered_branches.size * 100.0 / total_branches.size.to_f)
