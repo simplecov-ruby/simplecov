@@ -22,8 +22,8 @@ describe SimpleCov::SourceFile::Branch do
   let(:inline_branches) do
     [
       root_branch,
-      SimpleCov::SourceFile::Branch.new(*([:then, 1, 1, 6, 9, 5] + [0])),
-      SimpleCov::SourceFile::Branch.new(*([:else, 2, 1, 6, 8, 4] + [0]))
+      SimpleCov::SourceFile::Branch.new(*([:then, 1, 1, 6, 10, 5] + [0])),
+      SimpleCov::SourceFile::Branch.new(*([:else, 2, 1, 6, 10, 4] + [0]))
     ]
   end
 

@@ -37,15 +37,27 @@ module SimpleCov
         end
       end
 
-      #
-      # Return true of false depends on number of start_line
-      # If the are in one line start line is same for all
+      # TODO: Refactoring candidate.
+      # Return boolean value depends on branches start_line & end_line
+      # including single branch conditions & nested branches, ex:
+      #   unless/if cond
+      #      puts "x"
+      #   end
+      #   if cond
+      #    ..
+      #   elsif cond
+      #    ..
+      #   else
+      #    ..
+      #   end
       #
       # @return [Boolean]
       #
       def inline_branch?(branches)
-        return unless root?
-        sub_branches(branches).map(&:start_line).uniq.size == 1
+        # nested conditions
+        return true if branches.any? { |b| b.root_id != id && sub_branches(branches).map(&:start_line).include?(b.start_line) }
+        # inline or single branch conditions
+        sub_branches(branches).all? { |branch| branch.start_line.eql?(start_line) && branch.end_line.eql?(end_line) }
       end
 
       #
