@@ -21,22 +21,21 @@ end
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
-if defined?(Minitest)
-  Minitest.after_run do
-    simplecov_at_exit
-  end
-else
-  at_exit do
-    simplecov_at_exit
+module SimpleCov
+  def self.custom_at_exit
+    # If we are in a different process than called start, don't interfere.
+    return if SimpleCov.pid != Process.pid
+
+    SimpleCov.set_exit_exception
+    SimpleCov.run_exit_tasks!
   end
 end
 
-def simplecov_at_exit
-  # If we are in a different process than called start, don't interfere.
-  return if SimpleCov.pid != Process.pid
+at_exit do
+  # Exit hook for Minitest defined in Minitest plugin
+  next if defined?(Minitest)
 
-  SimpleCov.set_exit_exception
-  SimpleCov.run_exit_tasks!
+  SimpleCov.custom_at_exit
 end
 
 # Autoload config from ~/.simplecov if present
