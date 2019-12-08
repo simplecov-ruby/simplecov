@@ -1,21 +1,16 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  module Combiners
+  module Combine
     #
     # Combine different branch coverage results on single file.
     #
-    class BranchesCombiner < BaseCombiner
+    # Should be called through `SimpleCov.combine`.
+    module BranchesCombiner
+    module_function
+
       #
       # Return merged branches or the existed branche if other is missing.
-      #
-      # @return [Hash]
-      #
-      def combine
-        return existed_coverage unless empty_coverage?
-        combine_branches
-      end
-
       #
       # Branches inside files are always same if they exists, the difference only in coverage count.
       # Branch coverage report for any conditional case is built from hash, it's key is a condition and
@@ -25,11 +20,11 @@ module SimpleCov
       #
       # @return [Hash]
       #
-      def combine_branches
-        combined_result = first_coverage.clone
-        first_coverage.each do |(condition, branches_inside)|
+      def combine(coverage_a, coverage_b)
+        combined_result = coverage_a.clone
+        coverage_a.each do |(condition, branches_inside)|
           branches_inside.each do |(branch_key, branch_coverage_value)|
-            compared_branch_coverage = second_coverage.dig(condition, branch_key)
+            compared_branch_coverage = coverage_b.dig(condition, branch_key)
             combined_result[condition][branch_key] = branch_coverage_value + compared_branch_coverage.to_i
           end
         end

@@ -1,26 +1,22 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  module Combiners
+  module Combine
     #
     # Combine two different lines coverage results on same file
     #
-    class LinesCombiner < BaseCombiner
-      def combine
-        return existed_coverage unless empty_coverage?
+    # Should be called through `SimpleCov.combine`.
+    module LinesCombiner
+    module_function
 
-        combine_lines
-      end
-
-      def combine_lines
-        first_coverage.map.with_index do |first_coverage_val, index|
-          second_coverage_val = second_coverage[index]
-          merge_line_coverage(first_coverage_val, second_coverage_val)
+      def combine(coverage_a, coverage_b)
+        coverage_a.map.with_index do |coverage_a_val, index|
+          coverage_b_val = coverage_b[index]
+          merge_line_coverage(coverage_a_val, coverage_b_val)
         end
       end
 
-      #
-      # Return depends on value
+      # Return depends on coverage in a specific line
       #
       # @param [Integer || nil] first_val
       # @param [Integer || nil] second_val
@@ -30,8 +26,8 @@ module SimpleCov
       # => nil + 0 = nil
       # => nil + nil = nil
       # => int + int = int
-      # @return [Integer || nil]
       #
+      # @return [Integer || nil]
       def merge_line_coverage(first_val, second_val)
         sum = first_val.to_i + second_val.to_i
 

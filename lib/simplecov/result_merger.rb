@@ -67,7 +67,7 @@ module SimpleCov
       # on all source result's names
       def merge_results(*results)
         parsed_results = JSON.parse(JSON.dump(results.map(&:original_result)), :symbolize_names => true)
-        combined_result = SimpleCov::RunResultsCombiner.combine!(*parsed_results)
+        combined_result = SimpleCov::RunResultsCombiner.combine(*parsed_results)
         result = SimpleCov::Result.new(combined_result)
         # Specify the command name
         result.command_name = results.map(&:command_name).sort.join(", ")
