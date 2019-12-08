@@ -5,11 +5,11 @@ module SimpleCov
   # e.g. RSpec and Cucumber. We need to combine their results
   # into unified one. This class does that.
   # To unite the results on file basis, it leverages
-  # the combiners of lines and branches inside each file within given results.
+  # the combine of lines and branches inside each file within given results.
   class RunResultsCombiner
     attr_reader :results
 
-    def self.combine!(*results)
+    def self.combine(*results)
       new(*results).call
     end
 
@@ -35,18 +35,18 @@ module SimpleCov
     #
     # Manage combining results on files level
     #
-    # @param [Hash] first_result
-    # @param [Hash] second_result
+    # @param [Hash] result_a
+    # @param [Hash] result_b
     #
     # @return [Hash]
     #
-    def combine_result_sets(first_result, second_result)
-      results_files = first_result.keys | second_result.keys
+    def combine_result_sets(result_a, result_b)
+      results_files = result_a.keys | result_b.keys
 
       results_files.each_with_object({}) do |file_name, combined_results|
         combined_results[file_name] = combine_file_coverage(
-          first_result[file_name],
-          second_result[file_name]
+          result_a[file_name],
+          result_b[file_name]
         )
       end
     end
@@ -54,13 +54,13 @@ module SimpleCov
     #
     # Combine two files coverage results
     #
-    # @param [Hash] first_coverage
-    # @param [Hash] second_coverage
+    # @param [Hash] coverage_a
+    # @param [Hash] coverage_b
     #
     # @return [Hash]
     #
-    def combine_file_coverage(first_coverage, second_coverage)
-      SimpleCov::Combiners::FilesCombiner.combine!(first_coverage, second_coverage)
+    def combine_file_coverage(coverage_a, coverage_b)
+      Combine.combine(Combine::FilesCombiner, coverage_a, coverage_b)
     end
   end
 end
