@@ -17,6 +17,7 @@ Gem::Specification.new do |gem|
     "bug_tracker_uri"   => "https://github.com/colszowka/simplecov/issues",
     "changelog_uri"     => "https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
+    "mailing_list_uri"  => "https://groups.google.com/forum/#!forum/simplecov",
     "source_code_uri"   => "https://github.com/colszowka/simplecov/tree/v#{gem.version}"
   }
 
