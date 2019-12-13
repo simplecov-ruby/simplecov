@@ -159,6 +159,8 @@ module SimpleCov
     # Called from at_exit block
     #
     def run_exit_tasks!
+      set_exit_exception
+
       exit_status = SimpleCov.exit_status_from_exception
 
       SimpleCov.at_exit.call
