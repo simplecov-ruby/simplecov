@@ -3,6 +3,7 @@ Unrealeased
 
 ## Breaking
 * Dropped official support for all EOL'ed rubies meaning we only officially support 2.4+ - older rubies might still work but are not guaranteed to do so. Older release should still work. (thanks [@deivid-rodriguez](https://github.com/deivid-rodriguez))
+* Dropped the `rake simplecov` task that "magically" integreated with rails. It was always undocumented, caused some issues and [had some issues](https://github.com/colszowka/simplecov/issues/689#issuecomment-561572327). Use the integration as described in the README please :)
 
 ## Enhancements
 
