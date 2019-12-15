@@ -8,8 +8,8 @@ module SimpleCov
     RELEVANT = 0
     NOT_RELEVANT = nil
 
-    WHITESPACE_LINE = /^\s*$/
-    COMMENT_LINE = /^\s*#/
+    WHITESPACE_LINE = /^\s*$/.freeze
+    COMMENT_LINE = /^\s*#/.freeze
     WHITESPACE_OR_COMMENT_LINE = Regexp.union(WHITESPACE_LINE, COMMENT_LINE)
 
     def self.no_cov_line

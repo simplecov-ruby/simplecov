@@ -31,6 +31,7 @@ module SimpleCov
         raise ArgumentError, "Only String accepted for source" unless src.is_a?(String)
         raise ArgumentError, "Only Integer accepted for line_number" unless line_number.is_a?(Integer)
         raise ArgumentError, "Only Integer and nil accepted for coverage" unless coverage.is_a?(Integer) || coverage.nil?
+
         @src         = src
         @line_number = line_number
         @coverage    = coverage

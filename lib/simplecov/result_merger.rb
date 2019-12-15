@@ -40,8 +40,10 @@ module SimpleCov
       def stored_data
         synchronize_resultset do
           return unless File.exist?(resultset_path)
+
           data = File.read(resultset_path)
           return if data.nil? || data.length < 2
+
           data
         end
       end
@@ -55,9 +57,7 @@ module SimpleCov
         resultset.each do |command_name, data|
           result = SimpleCov::Result.from_hash(command_name => data)
           # Only add result if the timeout is above the configured threshold
-          if (Time.now - result.created_at) < SimpleCov.merge_timeout
-            results << result
-          end
+          results << result if (Time.now - result.created_at) < SimpleCov.merge_timeout
         end
         results
       end

@@ -8,4 +8,4 @@ Dir[File.join(File.dirname(__FILE__), "faked_project/*.rb")].reject { |f| /untes
   require file # Require all source files in project dynamically so we can inject some stuff depending on test situation
 end
 
-FakedProject.send :include, MetaMagic
+FakedProject.include MetaMagic

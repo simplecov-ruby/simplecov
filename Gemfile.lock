@@ -55,6 +55,8 @@ GEM
     ffi (1.11.3)
     ffi (1.11.3-java)
     gherkin (5.1.0)
+    jaro_winkler (1.5.4)
+    jaro_winkler (1.5.4-java)
     mini_mime (1.0.2)
     mini_portile2 (2.4.0)
     multi_json (1.14.1)
@@ -66,7 +68,6 @@ GEM
     parser (2.6.5.0)
       ast (~> 2.4.0)
     power_assert (1.1.5)
-    powerpack (0.1.2)
     public_suffix (4.0.1)
     rack (2.0.7)
     rack-test (1.1.0)
@@ -87,13 +88,13 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.9.0)
     rspec-support (3.9.0)
-    rubocop (0.53.0)
+    rubocop (0.77.0)
+      jaro_winkler (~> 1.5.1)
       parallel (~> 1.10)
-      parser (>= 2.5)
-      powerpack (~> 0.1)
+      parser (>= 2.6)
       rainbow (>= 2.2.2, < 4.0)
       ruby-progressbar (~> 1.7)
-      unicode-display_width (~> 1.0, >= 1.0.1)
+      unicode-display_width (>= 1.4.0, < 1.7)
     ruby-progressbar (1.10.1)
     simplecov-html (0.10.2)
     test-unit (3.3.4)
@@ -120,7 +121,7 @@ DEPENDENCIES
   cucumber (~> 3.1)
   rake (~> 13.0)
   rspec (~> 3.2)
-  rubocop (= 0.53.0)
+  rubocop
   simplecov!
   test-unit
 
