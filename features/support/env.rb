@@ -41,9 +41,6 @@ Capybara.configure do |config|
 end
 
 Before do
-  # JRuby takes it's time... See https://github.com/cucumber/aruba/issues/134
-  @aruba_timeout_seconds = RUBY_ENGINE == "jruby" ? 60 : 20
-
   this_dir = File.dirname(__FILE__)
 
   # Clean up and create blank state for fake project
