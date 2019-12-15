@@ -60,6 +60,7 @@ module SimpleCov
     #
     def result
       return @result if result?
+
       # Collect our coverage result
 
       process_coverage_result if running
@@ -168,7 +169,7 @@ module SimpleCov
       # Force exit with stored status (see github issue #5)
       # unless it's nil or 0 (see github issue #281)
       if exit_status&.positive?
-        $stderr.printf("SimpleCov failed with exit %d\n", exit_status) if print_error_status
+        $stderr.printf("SimpleCov failed with exit %<exit_status>d\n", :exit_status => exit_status) if print_error_status
         Kernel.exit exit_status
       end
     end
@@ -183,9 +184,7 @@ module SimpleCov
 
       covered_percent = result.covered_percent.floor(2)
       result_exit_status = result_exit_status(result, covered_percent)
-      if result_exit_status == SimpleCov::ExitCodes::SUCCESS # No result errors
-        write_last_run(covered_percent)
-      end
+      write_last_run(covered_percent) if result_exit_status == SimpleCov::ExitCodes::SUCCESS # No result errors
       final_result_process? ? result_exit_status : SimpleCov::ExitCodes::SUCCESS
     end
 
@@ -195,15 +194,28 @@ module SimpleCov
     def result_exit_status(result, covered_percent)
       covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
       if covered_percent < SimpleCov.minimum_coverage
-        $stderr.printf("Coverage (%.2f%%) is below the expected minimum coverage (%.2f%%).\n", covered_percent, SimpleCov.minimum_coverage)
+        $stderr.printf(
+          "Coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
+          :covered => covered_percent,
+          :minimum_coverage => SimpleCov.minimum_coverage
+        )
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
-        $stderr.printf("File (%s) is only (%.2f%%) covered. This is below the expected minimum coverage per file of (%.2f%%).\n", result.least_covered_file, covered_percentages.min, SimpleCov.minimum_coverage_by_file)
+        $stderr.printf(
+          "File (%<file>s) is only (%<least_covered_percentage>.2f%%) covered. This is below the expected minimum coverage per file of (%<min_coverage>.2f%%).\n",
+          :file => result.least_covered_file,
+          :least_covered_percentage => covered_percentages.min,
+          :min_coverage => SimpleCov.minimum_coverage_by_file
+        )
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif (last_run = SimpleCov::LastRun.read)
         coverage_diff = last_run["result"]["covered_percent"] - covered_percent
         if coverage_diff > SimpleCov.maximum_coverage_drop
-          $stderr.printf("Coverage has dropped by %.2f%% since the last time (maximum allowed: %.2f%%).\n", coverage_diff, SimpleCov.maximum_coverage_drop)
+          $stderr.printf(
+            "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            :drop_percent => coverage_diff,
+            :max_drop => SimpleCov.maximum_coverage_drop
+          )
           SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
         else
           SimpleCov::ExitCodes::SUCCESS
@@ -227,6 +239,7 @@ module SimpleCov
     #
     def wait_for_other_processes
       return unless defined?(ParallelTests) && final_result_process?
+
       ParallelTests.wait_for_other_processes_to_finish
     end
 
@@ -314,7 +327,7 @@ end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
 require "simplecov/configuration"
-SimpleCov.send :extend, SimpleCov::Configuration
+SimpleCov.extend SimpleCov::Configuration
 require "simplecov/exit_codes"
 require "simplecov/profiles"
 require "simplecov/supports/branch_support"

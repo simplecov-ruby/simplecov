@@ -165,6 +165,7 @@ module SimpleCov
       #
       def line_with_missed_branch?(line_number)
         return unless branchable_line?(line_number)
+
         branches_report[line_number].select { |count, _sign| count.zero? }.any?
       end
 

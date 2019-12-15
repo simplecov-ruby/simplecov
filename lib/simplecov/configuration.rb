@@ -9,7 +9,7 @@ require "simplecov/formatter/multi_formatter"
 # SimpleCov documentation for further info.
 #
 module SimpleCov
-  module Configuration # rubocop:disable ModuleLength
+  module Configuration # rubocop:disable Metrics/ModuleLength
     attr_writer :filters, :groups, :formatter, :print_error_status, :branchable_report
 
     #
@@ -20,6 +20,7 @@ module SimpleCov
     #
     def root(root = nil)
       return @root if defined?(@root) && root.nil?
+
       @root = File.expand_path(root || Dir.getwd)
     end
 
@@ -30,6 +31,7 @@ module SimpleCov
     #
     def coverage_dir(dir = nil)
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
+
       @coverage_path = nil # invalidate cache
       @coverage_dir = (dir || "coverage")
     end
@@ -102,8 +104,10 @@ module SimpleCov
     #
     def formatter(formatter = nil)
       return @formatter if defined?(@formatter) && formatter.nil?
+
       @formatter = formatter
       raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
+
       @formatter
     end
 
@@ -142,6 +146,7 @@ module SimpleCov
     #
     def nocov_token(nocov_token = nil)
       return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
+
       @nocov_token = (nocov_token || "nocov")
     end
     alias skip_token nocov_token
@@ -194,6 +199,7 @@ module SimpleCov
     #
     def at_exit(&block)
       return proc {} unless running || block_given?
+
       @at_exit = block if block_given?
       @at_exit ||= proc { SimpleCov.result.format! }
     end
@@ -204,6 +210,7 @@ module SimpleCov
     #
     def project_name(new_name = nil)
       return @project_name if defined?(@project_name) && @project_name && new_name.nil?
+
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root.split("/").last).capitalize.tr("_", " ")
     end

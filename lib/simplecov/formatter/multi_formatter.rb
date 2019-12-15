@@ -9,7 +9,7 @@ module SimpleCov
             begin
               formatter.new.format(result)
             rescue StandardError => e
-              STDERR.puts("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
+              warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
               nil
             end
           end

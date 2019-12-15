@@ -29,6 +29,7 @@ module SimpleCov
 
     def self.build_filter(filter_argument)
       return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
+
       class_for_argument(filter_argument).new(filter_argument)
     end
 

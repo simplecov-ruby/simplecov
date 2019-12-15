@@ -56,6 +56,7 @@ module SimpleCov
       def inline_branch?(branches)
         # nested conditions
         return true if branches.any? { |b| b.root_id != id && sub_branches(branches).map(&:start_line).include?(b.start_line) }
+
         # inline or single branch conditions
         sub_branches(branches).all? { |branch| branch.start_line.eql?(start_line) && branch.end_line.eql?(end_line) }
       end

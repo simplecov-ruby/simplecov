@@ -29,7 +29,7 @@ module SimpleCov
 
   private
 
-    # rubocop:disable TrivialAccessors
+    # rubocop:disable Style/TrivialAccessors
     # attr_reader under private for ruby < 2.3.7 raise "warning: private attribute?"
     def lines
       @lines
@@ -38,6 +38,6 @@ module SimpleCov
     def absolute_path
       @absolute_path
     end
-    # rubocop:enable TrivialAccessors
+    # rubocop:enable Style/TrivialAccessors
   end
 end
