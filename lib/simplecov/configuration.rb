@@ -323,7 +323,7 @@ module SimpleCov
     end
 
     def branch_coverage?
-      @coverage_criterion == :branch
+      coverage_criterion == :branch
     end
 
   private
