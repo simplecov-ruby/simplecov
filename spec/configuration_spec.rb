@@ -59,7 +59,7 @@ describe SimpleCov::Configuration do
       end
     end
 
-    describe "minimum_coverage_by_file" do
+    describe "#minimum_coverage_by_file" do
       it "does not warn you about your usage" do
         expect(config).not_to receive(:warn)
         config.minimum_coverage_by_file(100.00)
@@ -68,6 +68,44 @@ describe SimpleCov::Configuration do
       it "warns you about your usage" do
         expect(config).to receive(:warn).with("The coverage you set for minimum_coverage_by_file is greater than 100%")
         config.minimum_coverage_by_file(100.01)
+      end
+    end
+
+    describe "#coverage_criterion" do
+      it "defaults to line" do
+        expect(config.coverage_criterion).to eq :line
+      end
+
+      it "works fine with line" do
+        config.coverage_criterion :line
+
+        expect(config.coverage_criterion).to eq :line
+      end
+
+      it "works fine with :branch" do
+        config.coverage_criterion :branch
+
+        expect(config.coverage_criterion).to eq :branch
+      end
+
+      it "errors out on unknown coverage" do
+        expect do
+          config.coverage_criterion :unknown
+        end.to raise_error(/unsupported.*unknown.*line/i)
+      end
+    end
+
+    describe "#branch_coverage?" do
+      it "returns true of branch coverage is being measured" do
+        config.coverage_criterion :branch
+
+        expect(config).to be_branch_coverage
+      end
+
+      it "returns false for line coverage" do
+        config.coverage_criterion :line
+
+        expect(config).not_to be_branch_coverage
       end
     end
   end

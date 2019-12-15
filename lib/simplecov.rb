@@ -253,13 +253,13 @@ module SimpleCov
   private
 
     #
-    # Trigger Coverage.start depends on given config use_branchable_report
+    # Trigger Coverage.start depends on given config coverage_criterion
     #
     # With Positive branch it supports all coverage measurement types
     # With Negative branch it supports only line coverage measurement type
     #
     def start_coverage_measurment
-      if branchable_report
+      if branch_coverage?
         Coverage.start(:all)
       else
         Coverage.start

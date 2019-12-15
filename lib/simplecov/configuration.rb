@@ -10,7 +10,7 @@ require "simplecov/formatter/multi_formatter"
 #
 module SimpleCov
   module Configuration # rubocop:disable Metrics/ModuleLength
-    attr_writer :filters, :groups, :formatter, :print_error_status, :branchable_report
+    attr_writer :filters, :groups, :formatter, :print_error_status
 
     #
     # The root for the project. This defaults to the
@@ -71,15 +71,6 @@ module SimpleCov
     #
     def filters
       @filters ||= []
-    end
-
-    # Coverage results report behaviour definition.
-    # False => Give default behaviour, only lines measurement report on the coverage results.
-    # True  => Give all available kinds of measurement report lines, branches and methods coverage results.
-    # This feature is only supported with ruby version >= 2.5
-    #
-    def branchable_report
-      @branchable_report ||= false
     end
 
     # The name of the command (a.k.a. Test Suite) currently running. Used for result
@@ -312,17 +303,34 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
+    SUPPORTED_COVERAGE_CRITERIA = %i[line branch].freeze
     #
-    # Define if the report should include any other standarts of coverage measurment except
-    # :lines which is the default
+    # Define which coverage criterion should be evaluated.
     #
-    # @param [Boolean] target
+    # Possible coverage criteria:
+    # * :line - coverage based on lines aka has this line been executed?
+    # * :branch - coverage based on branches aka has this branch (think conditions) been executed?
     #
-    def use_branchable_report(target = false)
-      @branchable_report = target_capability(target)
+    # If not set the default is is `:line`
+    #
+    # @param [Symbol] criterion
+    #
+    def coverage_criterion(criterion = nil)
+      criterion ||= :line
+      raise_criterion_not_supported(criterion) unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+
+      @coverage_criterion ||= criterion
+    end
+
+    def branch_coverage?
+      @coverage_criterion == :branch
     end
 
   private
+
+    def raise_criterion_not_supported(criterion)
+      raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+    end
 
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
@@ -339,24 +347,6 @@ module SimpleCov
       else
         raise ArgumentError, "Please specify either a filter or a block to filter with"
       end
-    end
-
-    #
-    # Check if use_branchable_report is called on a ruby version
-    # which not supporting it (< 2.5).
-    # Shows notify meessage and continue the process as normal
-    # lines coverage report on not supportable versions.
-    #
-    def target_capability(target)
-      if Coverage.method(:start).arity.zero? && target
-        $stderr.printf <<-FYI
-          Branch coverage report available only on ruby >= 2.5,
-          please remove use_branchable_report option or set it to false.
-        FYI
-
-        return false
-      end
-      target
     end
   end
 end
