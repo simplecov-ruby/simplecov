@@ -627,7 +627,7 @@ Add branch coverage measurement statistics to your results
 
 ```ruby
 SimpleCov.start do
-  use_branchable_report true
+  coverage_criterion :branch
 end
 ```
 
