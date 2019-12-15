@@ -72,3 +72,10 @@ end
 Then /^the overlay should be open/ do
   expect(page).to have_css("#cboxContent")
 end
+
+When "I pry" do
+  require "pry"
+  # rubocop:disable Lint/Debugger
+  binding.pry
+  # rubocop:enable Lint/Debugger
+end

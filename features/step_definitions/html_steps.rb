@@ -6,7 +6,7 @@ module GroupHelpers
   end
 
   def available_source_files
-    all(".source_files .source_table")
+    all(".t-file", :visible => true)
   end
 end
 World(GroupHelpers)
@@ -34,11 +34,22 @@ end
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
   expect(expected_files.length).to eq(available_source_files.count)
+  include_branch_coverage = table.column_names.include?("branch coverage")
 
   # Find all filenames and their coverage present in coverage report
-  files = available_source_files.map { |f| {"name" => f.find("h3").text, "coverage" => f.find("h4 > span").text} }
+  files = available_source_files.map do |file_row|
+    coverage_data =
+      {
+        "name" => file_row.find(".t-file__name").text,
+        "coverage" => file_row.find(".t-file__coverage").text
+      }
 
-  expect(files.sort_by { |hsh| hsh["name"] }).to eq(expected_files.sort_by { |hsh| hsh["name"] })
+    coverage_data["branch coverage"] = file_row.find(".t-file__branch-coverage").text if include_branch_coverage
+
+    coverage_data
+  end
+
+  expect(files.sort_by { |coverage_data| coverage_data["name"] }).to eq(expected_files.sort_by { |coverage_data| coverage_data["name"] })
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
