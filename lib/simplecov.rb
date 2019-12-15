@@ -341,6 +341,3 @@ require "simplecov/run_file_coverage"
 
 # Load default config
 require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
-
-# Load Rails integration
-require "simplecov/railtie" if defined? Rails::Railtie
