@@ -323,7 +323,12 @@ module SimpleCov
     end
 
     def branch_coverage?
-      coverage_criterion == :branch
+      branch_coverage_supported? && coverage_criterion == :branch
+    end
+
+    def branch_coverage_supported?
+      require "coverage"
+      !Coverage.method(:start).arity.zero?
     end
 
   private
