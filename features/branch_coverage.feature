@@ -1,4 +1,4 @@
-@rspec
+@rspec @branch_coverage
 Feature:
 
   Simply executing branch coverage gives ok results.
