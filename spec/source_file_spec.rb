@@ -4,15 +4,9 @@ require "helper"
 
 describe SimpleCov::SourceFile do
   COVERAGE_FOR_SAMPLE_RB = {
-    :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil],
-    :branches => {
-      [:if, 0, 17, 6, 23, 9] => {
-        [:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 20, 8, 22, 19] => 0
-      },
-      [:if, 3, 29, 6, 35, 9] => {
-        [:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 32, 8, 34, 20] => 0
-      }
-    }
+    :lines =>
+      [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
+    :branches => {}
   }.freeze
 
   COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES = {
@@ -74,32 +68,28 @@ describe SimpleCov::SourceFile do
       expect(subject.covered_percent).to eq(80.0)
     end
 
-    it "Has total branches count 4" do
-      expect(subject.total_branches.size).to eq(4)
+    it "Has total branches count 0" do
+      expect(subject.total_branches.size).to eq(0)
     end
 
-    it "Has covered branches count 2" do
-      expect(subject.covered_branches.size).to eq(2)
+    it "Has covered branches count 0" do
+      expect(subject.covered_branches.size).to eq(0)
     end
 
-    it "Has missed branches count 2" do
-      expect(subject.missed_branches.size).to eq(2)
+    it "Has missed branches count 0" do
+      expect(subject.missed_branches.size).to eq(0)
     end
 
-    it "Has root branches count 2" do
-      expect(subject.root_branches.size).to eq(2)
+    it "Has root branches count 0" do
+      expect(subject.root_branches.size).to eq(0)
     end
 
-    it "Has branch on line number 7 with report pr line" do
-      expect(subject.branch_per_line(17)).to eq("[3, \"+\"]")
+    it "is considered 100% branches covered" do
+      expect(subject.branches_coverage_percent).to eq(100.0)
     end
 
     it "Has coverage report" do
-      expect(subject.branches_report).to eq(17 => [[3, "+"]], 19 => [[0, "-"]], 29 => [[3, "+"]], 31 => [[0, "-"]])
-    end
-
-    it "Hash line 31 with missed branches" do
-      expect(subject.line_with_missed_branch?(31)).to eq(true)
+      expect(subject.branches_report).to eq({})
     end
   end
 
