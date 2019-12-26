@@ -2,8 +2,8 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "sample"
+require_relative "branches"
 
-Foo.new
+Branches.new.call(42)
 
 p Coverage.result
