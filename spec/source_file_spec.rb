@@ -5,7 +5,14 @@ require "helper"
 describe SimpleCov::SourceFile do
   COVERAGE_FOR_SAMPLE_RB = {
     :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil],
-    :branches => {[:if, 0, 17, 6, 23, 9] => {[:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 20, 8, 22, 19] => 0}, [:if, 3, 29, 6, 35, 9] => {[:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 32, 8, 34, 20] => 0}}
+    :branches => {
+      [:if, 0, 17, 6, 23, 9] => {
+        [:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 20, 8, 22, 19] => 0
+      },
+      [:if, 3, 29, 6, 35, 9] => {
+        [:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 32, 8, 34, 20] => 0
+      }
+    }
   }.freeze
 
   COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES = {
@@ -115,36 +122,42 @@ describe SimpleCov::SourceFile do
     end
   end
 
-  context "A file that have inline branches" do
-    COVERAGE_FOR_DUMB_INLINE = {
-      :lines => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil],
-      :branches => {[:if, 0, 18, 6, 18, 9] => {[:then, 1, 18, 8, 18, 81] => 3, [:else, 2, 18, 8, 18, 19] => 0}, [:if, 3, 29, 6, 35, 9] => {[:then, 4, 30, 8, 30, 81] => 3, [:else, 5, 31, 8, 34, 20] => 0}}
+  context "A file that has inline branches" do
+    COVERAGE_FOR_INLINE = {
+      :lines =>
+        [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
+      :branches => {
+        [:if, 0, 3, 11, 3, 33] =>
+          {[:then, 1, 3, 23, 3, 27] => 1, [:else, 2, 3, 30, 3, 33] => 0},
+        [:if, 3, 6, 6, 10, 9] =>
+          {[:then, 4, 7, 8, 7, 12] => 0, [:else, 5, 9, 8, 9, 11] => 1}
+      }
     }.freeze
 
     subject do
-      SimpleCov::SourceFile.new(source_fixture("never.rb"), COVERAGE_FOR_DUMB_INLINE)
+      SimpleCov::SourceFile.new(source_fixture("inline.rb"), COVERAGE_FOR_INLINE)
     end
 
-    it "Has branches report on 3 lines " do
+    it "has branches report on 3 lines" do
       expect(subject.branches_report.keys.size).to eq(3)
-      expect(subject.branches_report.keys).to eq([18, 29, 30])
+      expect(subject.branches_report.keys).to eq([3, 6, 8])
     end
 
-    it "Has covered branches count 2 " do
+    it "has covered branches count 2" do
       expect(subject.covered_branches.size).to eq(2)
     end
 
-    it "Has dual element in condition at line 18 report" do
-      expect(subject.branches_report[18]).to eq([[3, "+"], [0, "-"]])
+    it "has dual element in condition at line 3 report" do
+      expect(subject.branches_report[3]).to eq([[1, "+"], [0, "-"]])
     end
 
-    it "Has branches coverage precent 50.00" do
+    it "has branches coverage precent 50.00" do
       expect(subject.branches_coverage_percent).to eq(50.00)
     end
   end
 
   context "a file that is never relevant" do
-    COVERAGE_FOR_NEVER_RB = {:lines => [nil, nil]}.freeze
+    COVERAGE_FOR_NEVER_RB = {:lines => [nil, nil], :branches => {}}.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("never.rb"), COVERAGE_FOR_NEVER_RB)
@@ -154,8 +167,12 @@ describe SimpleCov::SourceFile do
       expect(subject.covered_strength).to eq 0.0
     end
 
-    it "has 0.0 covered_percent" do
+    it "has 100.0 covered_percent" do
       expect(subject.covered_percent).to eq 100.0
+    end
+
+    it "has 100.0 branch coverage" do
+      expect(subject.branches_coverage_percent).to eq(100.00)
     end
   end
 
