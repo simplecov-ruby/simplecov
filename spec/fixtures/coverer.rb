@@ -2,8 +2,8 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "inline"
+require_relative "sample"
 
-Inline.new.call(42)
+Foo.new
 
 p Coverage.result
