@@ -48,48 +48,52 @@ describe SimpleCov::SourceFile do
       expect(subject.line(2).source).to eq("class Foo\n")
     end
 
-    it "returns lines number 2, 3, 4, 7 for covered_lines" do
-      expect(subject.covered_lines.map(&:line)).to eq([2, 3, 4, 7])
+    describe "line coverage" do
+      it "returns lines number 2, 3, 4, 7 for covered_lines" do
+        expect(subject.covered_lines.map(&:line)).to eq([2, 3, 4, 7])
+      end
+
+      it "returns lines number 8 for missed_lines" do
+        expect(subject.missed_lines.map(&:line)).to eq([8])
+      end
+
+      it "returns lines number 1, 5, 6, 9, 10, 16 for never_lines" do
+        expect(subject.never_lines.map(&:line)).to eq([1, 5, 6, 9, 10, 16])
+      end
+
+      it "returns line numbers 11, 12, 13, 14, 15 for skipped_lines" do
+        expect(subject.skipped_lines.map(&:line)).to eq([11, 12, 13, 14, 15])
+      end
+
+      it "has 80% covered_percent" do
+        expect(subject.covered_percent).to eq(80.0)
+      end
     end
 
-    it "returns lines number 8 for missed_lines" do
-      expect(subject.missed_lines.map(&:line)).to eq([8])
-    end
+    describe "branch coverage" do
+      it "has total branches count 0" do
+        expect(subject.total_branches.size).to eq(0)
+      end
 
-    it "returns lines number 1, 5, 6, 9, 10, 16 for never_lines" do
-      expect(subject.never_lines.map(&:line)).to eq([1, 5, 6, 9, 10, 16])
-    end
+      it "has covered branches count 0" do
+        expect(subject.covered_branches.size).to eq(0)
+      end
 
-    it "returns line numbers 11, 12, 13, 14, 15 for skipped_lines" do
-      expect(subject.skipped_lines.map(&:line)).to eq([11, 12, 13, 14, 15])
-    end
+      it "has missed branches count 0" do
+        expect(subject.missed_branches.size).to eq(0)
+      end
 
-    it "has 80% covered_percent" do
-      expect(subject.covered_percent).to eq(80.0)
-    end
+      it "has root branches count 0" do
+        expect(subject.root_branches.size).to eq(0)
+      end
 
-    it "Has total branches count 0" do
-      expect(subject.total_branches.size).to eq(0)
-    end
+      it "is considered 100% branches covered" do
+        expect(subject.branches_coverage_percent).to eq(100.0)
+      end
 
-    it "Has covered branches count 0" do
-      expect(subject.covered_branches.size).to eq(0)
-    end
-
-    it "Has missed branches count 0" do
-      expect(subject.missed_branches.size).to eq(0)
-    end
-
-    it "Has root branches count 0" do
-      expect(subject.root_branches.size).to eq(0)
-    end
-
-    it "is considered 100% branches covered" do
-      expect(subject.branches_coverage_percent).to eq(100.0)
-    end
-
-    it "Has coverage report" do
-      expect(subject.branches_report).to eq({})
+      it "has branch coverage report" do
+        expect(subject.branches_report).to eq({})
+      end
     end
   end
 
