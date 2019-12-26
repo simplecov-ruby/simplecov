@@ -1,7 +1,7 @@
 language: ruby
 
 before_install:
-  - gem i bundler -v '2.0.2'
+  - gem i bundler
 
 bundler_args: --without benchmark --jobs=3 --retry=3
 
