@@ -93,6 +93,86 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  context "file with branches" do
+    COVERAGE_FOR_BRANCHES_RB = {
+      :lines =>
+        [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
+      :branches => {
+        [:if, 0, 3, 4, 3, 21] =>
+          {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
+        [:if, 3, 5, 4, 5, 26] =>
+          {[:then, 4, 5, 16, 5, 20] => 1, [:else, 5, 5, 23, 5, 26] => 0},
+        [:if, 6, 7, 4, 11, 7] =>
+          {[:then, 7, 8, 6, 8, 10] => 0, [:else, 8, 10, 6, 10, 9] => 1}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("branches.rb"), COVERAGE_FOR_BRANCHES_RB)
+    end
+
+    describe "branch coverage" do
+      it "has 50% branch coverage" do
+        expect(subject.branches_coverage_percent).to eq 50.0
+      end
+
+      it "has total branches count 6" do
+        expect(subject.total_branches.size).to eq(6)
+      end
+
+      it "has covered branches count 3" do
+        expect(subject.covered_branches.size).to eq(3)
+      end
+
+      it "has missed branches count 3" do
+        expect(subject.missed_branches.size).to eq(3)
+      end
+
+      it "has root branches count 3" do
+        expect(subject.root_branches.size).to eq(3)
+      end
+
+      it "has branch on line number 7 with report line" do
+        expect(subject.branch_per_line(7)).to eq('[0, "+"]')
+      end
+
+      it "has coverage report" do
+        expect(subject.branches_report).to eq(
+          3 => [[0, "+"], [1, "-"]],
+          5 => [[1, "+"], [0, "-"]],
+          7 => [[0, "+"]],
+          9 => [[1, "-"]]
+        )
+      end
+
+      it "has line 7 with missed branches branch" do
+        expect(subject.line_with_missed_branch?(7)).to eq(true)
+      end
+
+      it "has line 3 with missed branches branch" do
+        expect(subject.line_with_missed_branch?(3)).to eq(true)
+      end
+    end
+
+    describe "line coverage" do
+      it "has line coverage" do
+        expect(subject.covered_percent).to be_within(0.01).of(85.71)
+      end
+
+      it "has 6 covered lines" do
+        expect(subject.covered_lines.size).to eq 6
+      end
+
+      it "has 1 missed line" do
+        expect(subject.missed_lines.size).to eq 1
+      end
+
+      it "has 7 relevant lines" do
+        expect(subject.relevant_lines).to eq 7
+      end
+    end
+  end
+
   context "simulating potential Ruby 1.9 defect -- see Issue #56" do
     subject do
       SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES)
