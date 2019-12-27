@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-#
-# Profiles are SimpleCov configuration procs that can be easily
-# loaded using SimpleCov.start :rails and defined using
-#   SimpleCov.profiles.define :foo do
-#     # SimpleCov configuration here, same as in  SimpleCov.configure
-#   end
-#
 module SimpleCov
+
+  #
+  # Profiles are SimpleCov configuration procs that can be easily
+  # loaded using SimpleCov.start :rails and defined using
+  #   SimpleCov.profiles.define :foo do
+  #     # SimpleCov configuration here, same as in  SimpleCov.configure
+  #   end
+  #
   class Profiles < Hash
     #
     # Define a SimpleCov profile:

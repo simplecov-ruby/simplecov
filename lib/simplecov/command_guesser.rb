@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-#
-# Helper that tries to find out what test suite is running (for SimpleCov.command_name)
-#
 module SimpleCov
+
+  #
+  # Helper that tries to find out what test suite is running (for SimpleCov.command_name)
+  #
   module CommandGuesser
     class << self
       # Storage for the original command line call that invoked the test suite.

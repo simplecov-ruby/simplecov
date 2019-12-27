@@ -2,9 +2,6 @@
 
 require "English"
 
-#
-# Code coverage for ruby. Please check out README for a full introduction.
-#
 # Coverage may be inaccurate under JRUBY.
 if defined?(JRUBY_VERSION) && defined?(JRuby)
 
@@ -20,6 +17,10 @@ if defined?(JRUBY_VERSION) && defined?(JRuby)
       ' or set the "debug.fullTrace=true" option in your .jrubyrc'
   end
 end
+
+#
+# Code coverage for ruby. Please check out README for a full introduction.
+#
 module SimpleCov
   class << self
     attr_accessor :running

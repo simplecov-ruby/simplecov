@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-# An array of SimpleCov SourceFile instances with additional collection helper
-# methods for calculating coverage across them etc.
 module SimpleCov
+
+  # An array of SimpleCov SourceFile instances with additional collection helper
+  # methods for calculating coverage across them etc.
   class FileList < Array
     # Returns the count of lines that have coverage
     def covered_lines
