@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-#
-# A ridiculously simple formatter for SimpleCov results.
-#
 module SimpleCov
   module Formatter
+
+    #
+    # A ridiculously simple formatter for SimpleCov results.
+    #
     class SimpleFormatter
       # Takes a SimpleCov::Result and generates a string out of it
       def format(result)

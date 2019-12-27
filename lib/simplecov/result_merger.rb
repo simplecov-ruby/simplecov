@@ -2,12 +2,13 @@
 
 require "json"
 
-#
-# Singleton that is responsible for caching, loading and merging
-# SimpleCov::Results into a single result for coverage analysis based
-# upon multiple test suites.
-#
 module SimpleCov
+
+  #
+  # Singleton that is responsible for caching, loading and merging
+  # SimpleCov::Results into a single result for coverage analysis based
+  # upon multiple test suites.
+  #
   module ResultMerger
     class << self
       # The path to the .resultset.json cache file

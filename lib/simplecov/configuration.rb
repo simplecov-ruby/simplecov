@@ -3,12 +3,14 @@
 require "fileutils"
 require "docile"
 require "simplecov/formatter/multi_formatter"
-#
-# Bundles the configuration options used for SimpleCov. All methods
-# defined here are usable from SimpleCov directly. Please check out
-# SimpleCov documentation for further info.
-#
+
 module SimpleCov
+
+  #
+  # Bundles the configuration options used for SimpleCov. All methods
+  # defined here are usable from SimpleCov directly. Please check out
+  # SimpleCov documentation for further info.
+  #
   module Configuration # rubocop:disable Metrics/ModuleLength
     attr_writer :filters, :groups, :formatter, :print_error_status
 
