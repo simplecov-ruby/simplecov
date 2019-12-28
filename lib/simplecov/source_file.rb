@@ -141,7 +141,7 @@ module SimpleCov
     end
 
     def no_branches?
-      total_branches.length.zero?
+      total_branches.empty?
     end
 
     def branches_coverage_percent
@@ -170,7 +170,7 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      branches_collection(coverage[:branches] || {})
+      branches_collection(coverage.fetch(:branches, {}))
     end
 
     #

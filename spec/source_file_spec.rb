@@ -335,4 +335,41 @@ describe SimpleCov::SourceFile do
       end
     end
   end
+
+  context "a file with nested branches" do
+    COVERAGE_FOR_NESTED_BRANCHES_RB = {
+      :lines =>
+        [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
+      :branches => {
+        [:while, 0, 7, 8, 7, 31] =>
+          {[:body, 1, 7, 8, 7, 16] => 2},
+        [:if, 2, 6, 6, 9, 9] =>
+          {[:then, 3, 7, 8, 8, 11] => 1, [:else, 4, 6, 6, 9, 9] => 0},
+        [:if, 5, 5, 4, 12, 7] =>
+          {[:then, 6, 6, 6, 9, 9] => 1, [:else, 7, 11, 6, 11, 11] => 0}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("nested_branches.rb"), COVERAGE_FOR_NESTED_BRANCHES_RB)
+    end
+
+    describe "line coverage" do
+      it "covers 6/7" do
+        expect(subject.covered_percent).to be_within(0.01).of(85.71)
+      end
+    end
+
+    describe "branch coverage" do
+      it "covers 3/5" do
+        expect(subject.total_branches.size).to eq 5
+        expect(subject.covered_branches.size).to eq 3
+        expect(subject.missed_branches.size).to eq 2
+      end
+
+      it "registered 2 hits for the while branch" do
+        expect(subject.branches_report[7]).to eq [[2, "+"]]
+      end
+    end
+  end
 end
