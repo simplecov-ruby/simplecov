@@ -373,7 +373,7 @@ describe SimpleCov::SourceFile do
     end
   end
 
-  context "a file with a case statement" do
+  context "a file with case" do
     COVERAGE_FOR_CASE_STATEMENT_RB = {
       :lines =>
         [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
@@ -408,6 +408,44 @@ describe SimpleCov::SourceFile do
 
       it "covers the branch that includes 42" do
         expect(subject.branches_report[6]).to eq [[1, "+"]]
+      end
+    end
+  end
+
+  context "a file with if/elsif" do
+    COVERAGE_FOR_ELSIF_RB = {
+      :lines => [1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
+      :branches => {
+        [:if, 0, 7, 4, 10, 10] =>
+          {[:then, 1, 8, 6, 8, 10] => 1, [:else, 2, 10, 6, 10, 10] => 0},
+        [:if, 3, 5, 4, 10, 10] =>
+          {[:then, 4, 6, 6, 6, 10] => 0, [:else, 5, 7, 4, 10, 10] => 1},
+        [:if, 6, 3, 4, 11, 7] =>
+          {[:then, 7, 4, 6, 4, 10] => 0, [:else, 8, 5, 4, 10, 10] => 1}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("elsif.rb"), COVERAGE_FOR_ELSIF_RB)
+    end
+
+    describe "line coverage" do
+      it "covers 6/9" do
+        expect(subject.relevant_lines).to eq 9
+        expect(subject.covered_lines.size).to eq 6
+        expect(subject.missed_lines.size).to eq 3
+      end
+    end
+
+    describe "branch coverage" do
+      it "covers 3/6" do
+        expect(subject.total_branches.size).to eq 6
+        expect(subject.covered_branches.size).to eq 3
+        expect(subject.missed_branches.size).to eq 3
+      end
+
+      it "covers the branch that includes 42" do
+        expect(subject.branches_report[7]).to eq [[1, "+"]]
       end
     end
   end

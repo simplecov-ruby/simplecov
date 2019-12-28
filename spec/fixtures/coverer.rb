@@ -2,7 +2,7 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "case"
-Case.call(42)
+require_relative "elsif"
+Elsif.call(42)
 
 p Coverage.result
