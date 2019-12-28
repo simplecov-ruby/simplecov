@@ -2,8 +2,6 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "branches"
-
-Branches.new.call(42)
+require_relative "skipped_and_executed"
 
 p Coverage.result

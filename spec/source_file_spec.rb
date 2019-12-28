@@ -283,18 +283,42 @@ describe SimpleCov::SourceFile do
   end
 
   context "a file where everything is skipped/irrelevamt but executed #563" do
-    COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = {:lines => [nil, nil, 1, 1, 0, nil, nil, nil]}.freeze
+    COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = {
+      :lines => [nil, nil, 1, 1, 0, 0, nil, 0, nil, nil, nil, nil],
+      :branches => {
+        [:if, 0, 5, 4, 9, 7] =>
+          {[:then, 1, 6, 6, 6, 7] => 0, [:else, 2, 8, 6, 8, 7] => 0}
+      }
+    }.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("skipped_and_executed.rb"), COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB)
     end
 
-    it "has 0.0 covered_strength" do
-      expect(subject.covered_strength).to eq 0.0
-    end
+    describe "line coverage" do
+      it "has no relevant lines" do
+        expect(subject.relevant_lines).to eq(0)
+      end
 
-    it "has 0.0 covered_percent" do
-      expect(subject.covered_percent).to eq 0.0
+      it "has no covered lines" do
+        expect(subject.covered_lines.size).to eq(0)
+      end
+
+      it "has no missed lines" do
+        expect(subject.missed_lines.size).to eq(0)
+      end
+
+      it "has a whole lot of skipped lines" do
+        expect(subject.skipped_lines.size).to eq(11)
+      end
+
+      it "has 0.0 covered_strength" do
+        expect(subject.covered_strength).to eq 0.0
+      end
+
+      it "has 0.0 covered_percent" do
+        expect(subject.covered_percent).to eq 0.0
+      end
     end
   end
 end
