@@ -36,14 +36,6 @@ module SimpleCov
     end
     alias source_lines lines
 
-    def build_lines
-      coverage_exceeding_source_warn if coverage[:lines].size > src.size
-      lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage[:lines][i - 1])
-      end
-      process_skipped_lines(lines)
-    end
-
     # Returns all covered lines as SimpleCov::SourceFile::Line
     def covered_lines
       @covered_lines ||= lines.select(&:covered?)
@@ -71,24 +63,38 @@ module SimpleCov
       covered_lines.size + missed_lines.size
     end
 
+    def build_lines
+      coverage_exceeding_source_warn if coverage[:lines].size > src.size
+      lines = src.map.with_index(1) do |src, i|
+        SimpleCov::SourceFile::Line.new(src, i, coverage[:lines][i - 1])
+      end
+      process_skipped_lines(lines)
+    end
+
+    # no_cov_chunks is zero indexed to work directly with the array holding the lines
+    def no_cov_chunks
+      @no_cov_chunks ||= build_no_cov_chunks
+    end
+
+    def build_no_cov_chunks
+      no_cov_lines = @src.map.with_index.select { |line, _index| LinesClassifier.no_cov_line?(line) }
+
+      warn "uneven number of nocov comments detected" if no_cov_lines.size.odd?
+
+      @no_cov_chunks =
+        no_cov_lines.each_cons(2).map do |(_line_start, index_start), (_line_end, index_end)|
+          index_start..index_end
+        end
+    end
+
     # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
     # as skipped.
     def process_skipped_lines(lines)
-      skipping = false
-      lines.each do |line|
-        if SimpleCov::LinesClassifier.no_cov_line?(line.src)
-          skipping = !skipping
-          line.skipped!
-        elsif skipping
-          line.skipped!
-        end
+      no_cov_chunks.each do |chunk|
+        lines[chunk].each(&:skipped!)
       end
-    end
 
-    #
-    # Return all the branches inside current source file
-    def branches
-      @branches ||= build_branches
+      lines
     end
 
     # Warning to identify condition from Issue #56
@@ -126,6 +132,12 @@ module SimpleCov
 
     def relevant_lines
       lines.size - never_lines.size - skipped_lines.size
+    end
+
+    #
+    # Return all the branches inside current source file
+    def branches
+      @branches ||= build_branches
     end
 
     def no_branches?
