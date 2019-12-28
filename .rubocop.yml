@@ -36,6 +36,9 @@ Metrics/BlockNesting:
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#three-is-the-number-thou-shalt-count
   Max: 2
 
+Metrics/ClassLength:
+  Max: 300
+
 Layout/LineLength:
   Description: Checks the length of lines in the source code.
   AllowURI: true
