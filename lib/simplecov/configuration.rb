@@ -5,7 +5,6 @@ require "docile"
 require "simplecov/formatter/multi_formatter"
 
 module SimpleCov
-
   #
   # Bundles the configuration options used for SimpleCov. All methods
   # defined here are usable from SimpleCov directly. Please check out

@@ -2,7 +2,6 @@
 
 module SimpleCov
   module Formatter
-
     #
     # A ridiculously simple formatter for SimpleCov results.
     #
