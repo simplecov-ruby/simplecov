@@ -146,7 +146,7 @@ module SimpleCov
 
     def branches_coverage_percent
       return 100.0 if no_branches?
-      return 0.0 if covered_branches.size.zero?
+      return 0.0 if covered_branches.empty?
 
       Float(covered_branches.size * 100.0 / total_branches.size.to_f)
     end
@@ -170,47 +170,67 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      branches_collection(coverage.fetch(:branches, {}))
+      coverage_branches = coverage.fetch(:branches, {})
+      coverage_branches.flat_map do |condition, branches|
+        build_branches_from(condition, branches)
+      end
+    end
+
+    # Since we are dumping to and loading from JSON, and we have arrays as keys those
+    # don't make their way back to us intact e.g. just as a string or a symbol (currently keys are symbolized).
+    #
+    # We should probably do something different here, but as it stands these are
+    # our data structures that we write so eval isn't _too_ bad.
+    #
+    # See #801
+    #
+    def restore_ruby_data_structure(structure)
+      # Tests use the real data structures (except for integration tests) so no need to
+      # put them through here.
+      return structure if structure.is_a?(Array)
+
+      # as of right now the keys are still symbolized
+      # rubocop:disable Security/Eval
+      eval structure.to_s
+      # rubocop:enable Security/Eval
+    end
+
+    def build_branches_from(condition, branches)
+      # the format handed in from the coverage data is like this:
+      #
+      #     [:then, 4, 6, 6, 6, 10]
+      #
+      # which is [type, id, start_line, start_col, end_line, end_col]
+      _, condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
+
+      branches.map do |branch_data, hit_count|
+        branch_data = restore_ruby_data_structure(branch_data)
+        type, id, start_line, _start_col, _end_line, _end_col = branch_data
+        SourceFile::Branch.new(
+          # rubocop these are keyword args please let me keep them, thank you
+          # rubocop:disable Style/HashSyntax
+          start_line: start_line,
+          coverage:   hit_count,
+          inline:     start_line == condition_start_line,
+          positive:   positive_branch?(condition_id, id, type)
+          # rubocop:enable Style/HashSyntax
+        )
+      end
     end
 
     #
-    # Recursive method brings all of the branches as array of objects
-    # In logic here we collect only the positive or negative branch,
-    # not the first called branch for it
+    # Branch is positive or negative.
+    # For `case` conditions, `when` always supposed as positive branch.
+    # For `if, else` conditions:
+    # coverage returns matrices ex: [:if, 0,..] => {[:then, 1,..], [:else, 2,..]},
+    # positive branch always has id equals to condition id incremented by 1.
     #
-    # @param [Hash] given_branches
+    # @return [Boolean]
     #
-    # @return [Array]
-    #
-    # rubocop:disable Metrics/MethodLength
-    def branches_collection(given_branches, root_id = nil)
-      @branches_collection ||= []
-      given_branches.each do |branch_args_sym, value|
-        branch_args = extract_branch_args(branch_args_sym.to_s)
-        branch_args << root_id
-        branch = SourceFile::Branch.new(*branch_args)
+    def positive_branch?(condition_id, branch_id, branch_type)
+      return true if branch_type == :when
 
-        if value.is_a?(Integer)
-          branch.coverage = value
-        else
-          branches_collection(value, branch.id)
-        end
-
-        @branches_collection << branch
-      end
-      @branches_collection
-    end
-    # rubocop:enable Metrics/MethodLength
-
-    # TODO: Refactoring candidate.
-    # notice: avoid using `eval()`
-    # params [String] branch_args_str ex: "[:if, 0, 9, 4, 9, 39]"
-    #
-    # @return [Array] ex: [:if, 0, 9, 4, 9, 39]
-    def extract_branch_args(branch_args_str)
-      branch_args_str.gsub(/\[|\]|\"/, "").split(", ").map do |elm|
-        elm.start_with?(":") ? elm.delete(":").to_sym : elm.to_i
-      end
+      branch_id == (1 + condition_id)
     end
 
     #
@@ -221,9 +241,7 @@ module SimpleCov
     # @return [Array]
     #
     def covered_branches
-      @covered_branches ||= root_branches.flat_map do |root_branch|
-        root_branch.sub_branches(branches).select(&:covered?)
-      end
+      @covered_branches ||= branches.select(&:covered?)
     end
 
     #
@@ -232,18 +250,7 @@ module SimpleCov
     # @return [Array]
     #
     def missed_branches
-      @missed_branches ||= root_branches.flat_map do |root_branch|
-        root_branch.sub_branches(branches).select(&:missed?)
-      end
-    end
-
-    #
-    # Select the perent branches inside the branches hash
-    #
-    # @return [Array]
-    #
-    def root_branches
-      @root_branches = branches.select(&:root?)
+      @missed_branches ||= branches.select(&:missed?)
     end
 
     #
@@ -265,7 +272,7 @@ module SimpleCov
     # @return [String] ex: "[1, '+'],[2, '-']" two times on negative branch and non on the positive
     #
     def branch_per_line(line_number)
-      branches_report[line_number].each_with_object(+" ") do |data, message|
+      branches_report.fetch(line_number, []).each_with_object(+" ") do |data, message|
         separator = message.strip.empty? ? " " : ", "
         message << (separator + data.to_s)
       end.strip
@@ -292,59 +299,10 @@ module SimpleCov
     # @return [Hash]
     #
     def build_branches_report
-      root_branches.each_with_object({}) do |root_branch, statistics|
-        statistics.merge!(condition_report(root_branch))
+      branches.each_with_object({}) do |branch, coverage_statistics|
+        coverage_statistics[branch.report_line] ||= []
+        coverage_statistics[branch.report_line] << branch.report
       end
-    end
-
-    #
-    # Create hash as branches coverage report
-    # keys: lines numbers matching the branch start line
-    # Values: Array with matched branches data
-    #
-    # @param [Array] branches
-    #
-    # @return [Hash] ex: {
-    #   1 => [[1,"+"], [0, "-"]],
-    #   4 => [[10, "+"]]
-    # }
-    #
-    def condition_report(root_branch)
-      if root_branch.inline_branch?(branches)
-        inline_condition_report(root_branch)
-      else
-        multiline_condition_report(root_branch)
-      end
-    end
-
-    #
-    # Collect the information from all sub branches reports
-    #
-    # @param [Branch object] root_branch
-    #
-    # @return [Hash]
-    #
-    def multiline_condition_report(root_branch)
-      root_branch.sub_branches(branches).each_with_object({}) do |branch, cov_report|
-        cov_report[branch.start_line - 1] = [branch.report]
-      end
-    end
-
-    #
-    # Collect all the reports from all branches that are
-    # on same line (positive & negative)
-    #
-    # @param [Branch object] root_branch
-    #
-    # @return [Hash] ex: { 4 => [[10, "+"], [0, "-"]]}
-    #
-    #
-    def inline_condition_report(root_branch)
-      sub_branches = root_branch.sub_branches(branches)
-      inline_result = sub_branches.each_with_object([]) do |branch, inline_report|
-        inline_report << branch.report
-      end
-      {root_branch.start_line => inline_result}
     end
   end
 end

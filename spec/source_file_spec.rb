@@ -83,10 +83,6 @@ describe SimpleCov::SourceFile do
         expect(subject.missed_branches.size).to eq(0)
       end
 
-      it "has root branches count 0" do
-        expect(subject.root_branches.size).to eq(0)
-      end
-
       it "is considered 100% branches covered" do
         expect(subject.branches_coverage_percent).to eq(100.0)
       end
@@ -130,10 +126,6 @@ describe SimpleCov::SourceFile do
 
       it "has missed branches count 3" do
         expect(subject.missed_branches.size).to eq(3)
-      end
-
-      it "has root branches count 3" do
-        expect(subject.root_branches.size).to eq(3)
       end
 
       it "has branch on line number 7 with report line" do
