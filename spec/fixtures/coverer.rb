@@ -2,7 +2,7 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "nested_branches"
-NestedBranches.call(42)
+require_relative "case"
+Case.call(42)
 
 p Coverage.result
