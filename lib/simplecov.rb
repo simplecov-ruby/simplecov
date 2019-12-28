@@ -331,6 +331,8 @@ require "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
 require "simplecov/exit_codes"
 require "simplecov/profiles"
+require "simplecov/source_file/line"
+require "simplecov/source_file/branch"
 require "simplecov/source_file"
 require "simplecov/file_list"
 require "simplecov/result"
