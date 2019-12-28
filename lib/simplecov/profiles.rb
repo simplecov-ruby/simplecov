@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module SimpleCov
-
   #
   # Profiles are SimpleCov configuration procs that can be easily
   # loaded using SimpleCov.start :rails and defined using

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module SimpleCov
-
   # An array of SimpleCov SourceFile instances with additional collection helper
   # methods for calculating coverage across them etc.
   class FileList < Array

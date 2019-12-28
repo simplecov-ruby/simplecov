@@ -3,7 +3,6 @@
 require "json"
 
 module SimpleCov
-
   #
   # Singleton that is responsible for caching, loading and merging
   # SimpleCov::Results into a single result for coverage analysis based
