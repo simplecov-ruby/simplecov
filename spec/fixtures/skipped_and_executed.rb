@@ -1,8 +1,12 @@
 # So much skippping
 # :nocov:
 class Foo
-  def bar
-    0
+  def bar(arg)
+    if arg == 42
+      0
+    else
+      1
+    end
   end
 end
 #:nocov:
