@@ -282,7 +282,7 @@ describe SimpleCov::SourceFile do
     end
   end
 
-  context "a file where everything is skipped/irrelevamt but executed #563" do
+  context "a file where everything is skipped/irrelevant but executed #563" do
     COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = {
       :lines => [nil, nil, 1, 1, 0, 0, nil, 0, nil, nil, nil, nil],
       :branches => {
@@ -318,6 +318,20 @@ describe SimpleCov::SourceFile do
 
       it "has 0.0 covered_percent" do
         expect(subject.covered_percent).to eq 0.0
+      end
+    end
+
+    describe "branch coverage" do
+      it "has an empty branch report" do
+        pending "Tobi needs to implement branches."
+
+        expect(subject.branches_report).to eq({})
+      end
+
+      it "has no total branches" do
+        pending "Tobi needs to implement branches."
+
+        expect(subject.total_branches.size).to eq 0
       end
     end
   end
