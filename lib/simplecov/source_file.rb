@@ -201,11 +201,12 @@ module SimpleCov
       #     [:then, 4, 6, 6, 6, 10]
       #
       # which is [type, id, start_line, start_col, end_line, end_col]
-      _, condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
+      condition_type, condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
 
-      branches.map do |branch_data, hit_count|
-        branch_data = restore_ruby_data_structure(branch_data)
-        type, id, start_line, _start_col, _end_line, _end_col = branch_data
+      branches
+        .map { |branch_data, hit_count| [restore_ruby_data_structure(branch_data), hit_count] }
+        .reject { |branch_data, _hit_count| ignore_branch?(branch_data, condition_type, condition_start_line) }
+        .map do |(type, id, start_line, _start_col, _end_line, _end_col), hit_count|
         SourceFile::Branch.new(
           # rubocop these are keyword args please let me keep them, thank you
           # rubocop:disable Style/HashSyntax
@@ -216,6 +217,18 @@ module SimpleCov
           # rubocop:enable Style/HashSyntax
         )
       end
+    end
+
+    def ignore_branch?(branch_data, condition_type, condition_start_line)
+      branch_type = branch_data[0]
+      branch_start_line = branch_data[2]
+
+      # branch coverage always reports case to be with an else branch even when
+      # there is no else branch to be covered, it's noticable by the reported start
+      # line being the same as that of the condition/case
+      condition_type == :case &&
+        branch_type == :else &&
+        condition_start_line == branch_start_line
     end
 
     #
