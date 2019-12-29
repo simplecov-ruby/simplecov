@@ -398,8 +398,56 @@ describe SimpleCov::SourceFile do
         expect(subject.missed_branches.size).to eq 3
       end
 
+      it "covers all the things right" do
+        expect(subject.branches_report).to eq(
+          4 => [[0, "+"]],
+          6 => [[1, "+"]],
+          8 => [[0, "+"]],
+          10 => [[0, "-"]]
+        )
+      end
+    end
+  end
+
+  context "a file with case without else" do
+    COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB = {
+      :lines =>
+        [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
+      :branches => {
+        [:case, 0, 3, 4, 10, 7] => {
+          [:when, 1, 5, 6, 5, 10] => 0,
+          [:when, 2, 7, 6, 7, 10] => 1,
+          [:when, 3, 9, 6, 9, 10] => 0,
+          [:else, 4, 3, 4, 10, 7] => 0
+        }
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("case_without_else.rb"), COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB)
+    end
+
+    describe "line coverage" do
+      it "covers 4/6" do
+        expect(subject.relevant_lines).to eq 6
+        expect(subject.covered_lines.size).to eq 4
+        expect(subject.missed_lines.size).to eq 2
+      end
+    end
+
+    describe "branch coverage" do
+      it "covers 1/3" do
+        expect(subject.total_branches.size).to eq 3
+        expect(subject.covered_branches.size).to eq 1
+        expect(subject.missed_branches.size).to eq 2
+      end
+
       it "covers the branch that includes 42" do
-        expect(subject.branches_report[6]).to eq [[1, "+"]]
+        expect(subject.branches_report).to eq(
+          4 => [[0, "+"]],
+          6 => [[1, "+"]],
+          8 => [[0, "+"]]
+        )
       end
     end
   end
