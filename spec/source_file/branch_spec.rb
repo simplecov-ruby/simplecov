@@ -6,11 +6,11 @@ require "helper"
 
 describe SimpleCov::SourceFile::Branch do
   let(:positive_branch) do
-    described_class.new(start_line: 1, coverage: 0, inline: false, positive: true)
+    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: true)
   end
 
   let(:negative_branch) do
-    described_class.new(start_line: 1, coverage: 0, inline: false, positive: false)
+    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: false)
   end
 
   context "a source branch if..else" do
@@ -30,7 +30,7 @@ describe SimpleCov::SourceFile::Branch do
 
   context "A source branch with coverage" do
     let(:covered_branch) do
-      described_class.new(start_line: 1, coverage: 1, inline: false, positive: true)
+      described_class.new(start_line: 1, end_line: 3, coverage: 1, inline: false, positive: true)
     end
 
     it "is covered" do
@@ -44,7 +44,7 @@ describe SimpleCov::SourceFile::Branch do
 
   context "a source branch without coverage" do
     let(:uncovered_branch) do
-      described_class.new(start_line: 1, coverage: 0, inline: false, positive: true)
+      described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: true)
     end
 
     it "isn't covered" do
@@ -53,6 +53,51 @@ describe SimpleCov::SourceFile::Branch do
 
     it "is missed" do
       expect(uncovered_branch).to be_missed
+    end
+  end
+
+  describe "skipping lines" do
+    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, positive: true) }
+
+    it "isn't skipped by default" do
+      expect(subject).not_to be_skipped
+    end
+
+    it "can be skipped" do
+      subject.skipped!
+      expect(subject).to be_skipped
+    end
+  end
+
+  describe "#overlaps_with?(range)" do
+    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, positive: true) }
+
+    it "doesn't overlap with a range beyond its lines" do
+      expect(subject.overlaps_with?(8..10)).to eq false
+    end
+
+    it "doesn't overlap with a range before its lines" do
+      expect(subject.overlaps_with?(3..4)).to eq false
+    end
+
+    it "overlaps with a range that fully includes everything" do
+      expect(subject.overlaps_with?(1..100)).to eq true
+    end
+
+    it "overlaps with a range that exactly includes it" do
+      expect(subject.overlaps_with?(5..7)).to eq true
+    end
+
+    it "overlaps with a range that partially includes its beginning" do
+      expect(subject.overlaps_with?(1..5)).to eq true
+    end
+
+    it "overlaps with a range that partially includes its end" do
+      expect(subject.overlaps_with?(7..10)).to eq true
+    end
+
+    it "overlaps with a range that pends in its middle" do
+      expect(subject.overlaps_with?(1..6)).to eq true
     end
   end
 end

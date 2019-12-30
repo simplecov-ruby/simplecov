@@ -77,7 +77,7 @@ module SimpleCov
     end
 
     def build_no_cov_chunks
-      no_cov_lines = @src.map.with_index.select { |line, _index| LinesClassifier.no_cov_line?(line) }
+      no_cov_lines = src.map.with_index.select { |line, _index| LinesClassifier.no_cov_line?(line) }
 
       warn "uneven number of nocov comments detected" if no_cov_lines.size.odd?
 
@@ -87,12 +87,8 @@ module SimpleCov
         end
     end
 
-    # Will go through all source files and mark lines that are wrapped within # :nocov: comment blocks
-    # as skipped.
     def process_skipped_lines(lines)
-      no_cov_chunks.each do |chunk|
-        lines[chunk].each(&:skipped!)
-      end
+      no_cov_chunks.each { |chunk| lines[chunk].each(&:skipped!) }
 
       lines
     end
@@ -170,10 +166,22 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      coverage_branches = coverage.fetch(:branches, {})
-      coverage_branches.flat_map do |condition, branches|
-        build_branches_from(condition, branches)
+      coverage_branch_data = coverage.fetch(:branches, {})
+      branches = coverage_branch_data.flat_map do |condition, coverage_branches|
+        build_branches_from(condition, coverage_branches)
       end
+
+      process_skipped_branches(branches)
+    end
+
+    def process_skipped_branches(branches)
+      return branches if no_cov_chunks.empty?
+
+      branches.each do |branch|
+        branch.skipped! if no_cov_chunks.any? { |no_cov_chunk| branch.overlaps_with?(no_cov_chunk) }
+      end
+
+      branches
     end
 
     # Since we are dumping to and loading from JSON, and we have arrays as keys those
@@ -206,17 +214,22 @@ module SimpleCov
       branches
         .map { |branch_data, hit_count| [restore_ruby_data_structure(branch_data), hit_count] }
         .reject { |branch_data, _hit_count| ignore_branch?(branch_data, condition_type, condition_start_line) }
-        .map do |(type, id, start_line, _start_col, _end_line, _end_col), hit_count|
-        SourceFile::Branch.new(
-          # rubocop these are keyword args please let me keep them, thank you
-          # rubocop:disable Style/HashSyntax
-          start_line: start_line,
-          coverage:   hit_count,
-          inline:     start_line == condition_start_line,
-          positive:   positive_branch?(condition_id, id, type)
-          # rubocop:enable Style/HashSyntax
-        )
-      end
+        .map { |branch_data, hit_count| build_branch(branch_data, hit_count, condition_start_line, condition_id) }
+    end
+
+    def build_branch(branch_data, hit_count, condition_start_line, condition_id)
+      type, id, start_line, _start_col, end_line, _end_col = branch_data
+
+      SourceFile::Branch.new(
+        # rubocop these are keyword args please let me keep them, thank you
+        # rubocop:disable Style/HashSyntax
+        start_line: start_line,
+        end_line:   end_line,
+        coverage:   hit_count,
+        inline:     start_line == condition_start_line,
+        positive:   positive_branch?(condition_id, id, type)
+        # rubocop:enable Style/HashSyntax
+      )
     end
 
     def ignore_branch?(branch_data, condition_type, condition_start_line)
