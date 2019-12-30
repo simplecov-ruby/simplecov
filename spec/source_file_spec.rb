@@ -279,7 +279,7 @@ describe SimpleCov::SourceFile do
       :lines => [nil, nil, 1, 1, 0, 0, nil, 0, nil, nil, nil, nil],
       :branches => {
         [:if, 0, 5, 4, 9, 7] =>
-          {[:then, 1, 6, 6, 6, 7] => 0, [:else, 2, 8, 6, 8, 7] => 0}
+          {[:then, 1, 6, 6, 6, 7] => 1, [:else, 2, 8, 6, 8, 7] => 0}
       }
     }.freeze
 
@@ -326,6 +326,68 @@ describe SimpleCov::SourceFile do
       it "does has neither covered nor missed branches" do
         expect(subject.missed_branches.size).to eq 0
         expect(subject.covered_branches.size).to eq 0
+      end
+    end
+  end
+
+  context "a file with more complex skipping" do
+    COVERAGE_FOR_NOCOV_COMPLEX_RB = {
+      :lines =>
+        [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
+      :branches => {
+        [:if, 0, 6, 4, 11, 7] =>
+          {[:then, 1, 7, 6, 7, 7] => 0, [:else, 2, 10, 6, 10, 7] => 1},
+        [:if, 3, 13, 4, 13, 24] =>
+          {[:then, 4, 13, 4, 13, 12] => 1, [:else, 5, 13, 4, 13, 24] => 0},
+        [:while, 6, 16, 4, 16, 27] =>
+          {[:body, 7, 16, 4, 16, 12] => 2},
+        [:case, 8, 18, 4, 24, 7] => {
+          [:when, 9, 20, 6, 20, 11] => 0,
+          [:when, 10, 23, 6, 23, 10] => 1,
+          [:else, 11, 18, 4, 24, 7] => 0
+        }
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("nocov_complex.rb"), COVERAGE_FOR_NOCOV_COMPLEX_RB)
+    end
+
+    describe "line coverage" do
+      it "has 6 relevant lines" do
+        expect(subject.relevant_lines).to eq(5)
+      end
+
+      it "has 6 covered lines" do
+        expect(subject.covered_lines.size).to eq(5)
+      end
+
+      it "has no missed lines" do
+        expect(subject.missed_lines.size).to eq(0)
+      end
+
+      it "has a whole lot of skipped lines" do
+        expect(subject.skipped_lines.size).to eq(11)
+      end
+
+      it "has 100.0 covered_percent" do
+        expect(subject.covered_percent).to eq 100.0
+      end
+    end
+
+    describe "branch coverage" do
+      it "has an empty branch report" do
+        expect(subject.branches_report).to eq(
+          9 => [[1, "-"]],
+          13 => [[1, "+"], [0, "-"]],
+          22 => [[1, "+"]]
+        )
+      end
+
+      it "covers 3/4 branches" do
+        expect(subject.total_branches.size).to eq 4
+        expect(subject.missed_branches.size).to eq 1
+        expect(subject.covered_branches.size).to eq 3
       end
     end
   end
