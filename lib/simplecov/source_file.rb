@@ -77,18 +77,20 @@ module SimpleCov
     end
 
     def build_no_cov_chunks
-      no_cov_lines = src.map.with_index.select { |line, _index| LinesClassifier.no_cov_line?(line) }
+      no_cov_lines = src.map.with_index(1).select { |line, _index| LinesClassifier.no_cov_line?(line) }
 
       warn "uneven number of nocov comments detected" if no_cov_lines.size.odd?
 
-      @no_cov_chunks =
-        no_cov_lines.each_cons(2).map do |(_line_start, index_start), (_line_end, index_end)|
-          index_start..index_end
-        end
+      no_cov_lines.each_slice(2).map do |(_line_start, index_start), (_line_end, index_end)|
+        index_start..index_end
+      end
     end
 
     def process_skipped_lines(lines)
-      no_cov_chunks.each { |chunk| lines[chunk].each(&:skipped!) }
+      # the array the lines are kept in is 0-based whereas the line numbers in the nocov
+      # chunks are 1-based and are expected to be like this in other parts (and it's also
+      # arguably more understandable)
+      no_cov_chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
 
       lines
     end
