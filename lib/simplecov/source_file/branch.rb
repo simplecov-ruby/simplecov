@@ -6,14 +6,18 @@ module SimpleCov
     # Representing single branch that has been detected in coverage report.
     # Give us support methods that handle needed calculations.
     class Branch
-      attr_reader :start_line, :coverage
+      attr_reader :start_line, :end_line, :coverage
 
-      def initialize(start_line:, coverage:, inline:, positive:)
+      # rubocop:disable Metrics/ParameterLists
+      def initialize(start_line:, end_line:, coverage:, inline:, positive:)
         @start_line = start_line
+        @end_line   = end_line
         @coverage   = coverage
         @inline     = inline
         @positive   = positive
+        @skipped    = false
       end
+      # rubocop:enable Metrics/ParameterLists
 
       def inline?
         @inline
@@ -73,6 +77,20 @@ module SimpleCov
         else
           start_line - 1
         end
+      end
+
+      # Flags the branch as skipped
+      def skipped!
+        @skipped = true
+      end
+
+      # Returns true if the branch was marked skipped by virtue of nocov comments.
+      def skipped?
+        @skipped
+      end
+
+      def overlaps_with?(line_range)
+        start_line <= line_range.end && end_line >= line_range.begin
       end
 
       #
