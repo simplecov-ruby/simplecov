@@ -325,7 +325,7 @@ module SimpleCov
     # @return [Hash]
     #
     def build_branches_report
-      branches.each_with_object({}) do |branch, coverage_statistics|
+      branches.reject(&:skipped?).each_with_object({}) do |branch, coverage_statistics|
         coverage_statistics[branch.report_line] ||= []
         coverage_statistics[branch.report_line] << branch.report
       end

@@ -37,6 +37,12 @@ describe SimpleCov::SourceFile::Branch do
       expect(covered_branch).to be_covered
     end
 
+    it "is neither covered not missed if skipped" do
+      covered_branch.skipped!
+      expect(covered_branch).not_to be_covered
+      expect(covered_branch).not_to be_missed
+    end
+
     it "is not missed" do
       expect(covered_branch).not_to be_missed
     end
@@ -53,6 +59,12 @@ describe SimpleCov::SourceFile::Branch do
 
     it "is missed" do
       expect(uncovered_branch).to be_missed
+    end
+
+    it "is neither covered not missed if skipped" do
+      uncovered_branch.skipped!
+      expect(uncovered_branch).not_to be_covered
+      expect(uncovered_branch).not_to be_missed
     end
   end
 

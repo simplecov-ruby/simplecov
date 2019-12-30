@@ -42,7 +42,7 @@ module SimpleCov
       # @return [Boolean]
       #
       def covered?
-        coverage.positive?
+        !skipped? && coverage.positive?
       end
 
       #
@@ -51,7 +51,7 @@ module SimpleCov
       # @return [Boolean]
       #
       def missed?
-        coverage.zero?
+        !skipped? && coverage.zero?
       end
 
       #

@@ -315,15 +315,17 @@ describe SimpleCov::SourceFile do
 
     describe "branch coverage" do
       it "has an empty branch report" do
-        pending "Tobi needs to implement branches."
-
         expect(subject.branches_report).to eq({})
       end
 
-      it "has no total branches" do
-        pending "Tobi needs to implement branches."
-
+      it "has no branches" do
         expect(subject.total_branches.size).to eq 0
+        expect(subject.no_branches?).to eq true
+      end
+
+      it "does has neither covered nor missed branches" do
+        expect(subject.missed_branches.size).to eq 0
+        expect(subject.covered_branches.size).to eq 0
       end
     end
   end
