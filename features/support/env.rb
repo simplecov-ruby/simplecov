@@ -6,7 +6,7 @@ require "aruba/cucumber"
 require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require_relative "aruba_bundler_run_command_fix"
 require "capybara/cucumber"
-require "capybara/apparition"
+require "capybara/cuprite"
 require "simplecov"
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
@@ -37,7 +37,7 @@ Capybara.app = lambda { |env|
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
   config.server = :webrick
-  config.default_driver = :apparition
+  config.default_driver = :cuprite
 end
 
 Before("@branch_coverage") do
