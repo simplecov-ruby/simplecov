@@ -21,15 +21,11 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        combined_result = coverage_a.clone
-        coverage_a.each do |(condition, branches_inside)|
-          branches_inside.each do |(branch_key, branch_coverage_value)|
-            compared_branch_coverage = coverage_b.dig(condition, branch_key)
-            combined_result[condition][branch_key] = branch_coverage_value + compared_branch_coverage.to_i
+        coverage_a.merge(coverage_b) do |_condition, branches_inside_a, branches_inside_b|
+          branches_inside_a.merge(branches_inside_b) do |_branch, a_count, b_count|
+            a_count + b_count
           end
         end
-
-        combined_result
       end
     end
   end
