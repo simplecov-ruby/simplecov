@@ -2,7 +2,6 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "nocov_complex"
-NoCovComplex.call(41)
+require_relative "branch_tester_script"
 
 p Coverage.result

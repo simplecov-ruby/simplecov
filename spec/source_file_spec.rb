@@ -553,4 +553,59 @@ describe SimpleCov::SourceFile do
       end
     end
   end
+
+  context "the branch tester script" do
+    COVERAGE_FOR_BRANCH_TESTER_RB = {
+      :lines =>
+        [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
+      :branches => {
+        [:if, 0, 4, 0, 4, 19] =>
+          {[:then, 1, 4, 12, 4, 15] => 0, [:else, 2, 4, 18, 4, 19] => 1},
+        [:unless, 3, 6, 0, 6, 23] =>
+          {[:else, 4, 6, 0, 6, 23] => 0, [:then, 5, 6, 0, 6, 6] => 1},
+        [:unless, 6, 8, 0, 10, 3] =>
+          {[:else, 7, 8, 0, 10, 3] => 0, [:then, 8, 9, 2, 9, 14] => 1},
+        [:unless, 9, 12, 0, 14, 3] =>
+          {[:else, 10, 12, 0, 14, 3] => 1, [:then, 11, 13, 2, 13, 14] => 0},
+        [:unless, 12, 16, 0, 20, 3] =>
+          {[:else, 13, 19, 2, 19, 13] => 1, [:then, 14, 17, 2, 17, 14] => 0},
+        [:if, 15, 22, 0, 22, 19] =>
+          {[:then, 16, 22, 0, 22, 6] => 0, [:else, 17, 22, 0, 22, 19] => 1},
+        [:if, 18, 23, 0, 25, 3] =>
+          {[:then, 19, 24, 2, 24, 14] => 1, [:else, 20, 23, 0, 25, 3] => 0},
+        [:if, 21, 27, 0, 29, 3] =>
+          {[:then, 22, 28, 2, 28, 14] => 0, [:else, 23, 27, 0, 29, 3] => 1},
+        [:if, 24, 31, 0, 35, 3] =>
+          {[:then, 25, 32, 2, 32, 14] => 1, [:else, 26, 34, 2, 34, 13] => 0},
+        [:if, 27, 42, 0, 47, 8] =>
+          {[:then, 28, 43, 2, 45, 13] => 0, [:else, 29, 47, 2, 47, 8] => 0},
+        [:if, 30, 40, 0, 47, 8] =>
+          {[:then, 31, 41, 2, 41, 25] => 1, [:else, 32, 42, 0, 47, 8] => 0},
+        [:if, 33, 37, 0, 48, 3] =>
+          {[:then, 34, 38, 2, 39, 21] => 0, [:else, 35, 40, 0, 47, 8] => 1}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("branch_tester_script.rb"), COVERAGE_FOR_BRANCH_TESTER_RB)
+    end
+
+    describe "line coverage" do
+      it "covers 18/28" do
+        expect(subject.relevant_lines).to eq 28
+        expect(subject.covered_lines.size).to eq 18
+      end
+    end
+
+    describe "branch coverage" do
+      it "covers 10/24" do
+        expect(subject.total_branches.size).to eq 24
+        expect(subject.covered_branches.size).to eq 11
+      end
+
+      it "notifies us of the missing else branch on line 27 that's hit" do
+        expect(subject.branches_report[27]).to eq [[0, "+"], [1, "-"]]
+      end
+    end
+  end
 end
