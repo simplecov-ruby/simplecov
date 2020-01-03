@@ -7,7 +7,7 @@ source "https://rubygems.org"
 
 # Uncomment this to use development version of html formatter from github
 # gem "simplecov-html", :github => "colszowka/simplecov-html"
-gem "simplecov-html", :github => "colszowka/simplecov-html", :branch => "branch-coverage-cuke-support"
+gem "simplecov-html", :github => "colszowka/simplecov-html"
 
 group :development do
   gem "apparition", "0.4.0"

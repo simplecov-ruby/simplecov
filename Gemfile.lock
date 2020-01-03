@@ -1,7 +1,6 @@
 GIT
   remote: https://github.com/colszowka/simplecov-html.git
-  revision: b756e4195c3d42e5c608da8d24bc3a1754235b74
-  branch: branch-coverage-cuke-support
+  revision: 76429073dd3c479977d4e088393e2e66979b87d1
   specs:
     simplecov-html (0.11.0.pre.dev)
 
