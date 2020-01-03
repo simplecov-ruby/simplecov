@@ -57,8 +57,7 @@ Before do
   step 'I cd to "project"'
 end
 
-# Workaround for https://github.com/cucumber/aruba/pull/125
 Aruba.configure do |config|
+  # JRuby needs a bit longer to get going
   config.exit_timeout = RUBY_ENGINE == "jruby" ? 60 : 20
-  config.command_runtime_environment = {"JRUBY_OPTS" => "--dev --debug"}
 end
