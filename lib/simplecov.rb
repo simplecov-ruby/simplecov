@@ -260,6 +260,33 @@ module SimpleCov
     # With Negative branch it supports only line coverage measurement type
     #
     def start_coverage_measurment
+      # This blog post gives a good run down of the coverage criterias introduced
+      # in Ruby 2.5: https://blog.bigbinary.com/2018/04/11/ruby-2-5-supports-measuring-branch-and-method-coverages.html
+      # There is also a nice writeup of the different coverage criteria made in this
+      # comment  https://github.com/colszowka/simplecov/pull/692#discussion_r281836176 :
+      # Ruby < 2.5:
+      # https://github.com/ruby/ruby/blob/v1_9_3_374/ext/coverage/coverage.c
+      # traditional mode (Array)
+      #
+      # Ruby 2.5:
+      # https://bugs.ruby-lang.org/issues/13901
+      # https://github.com/ruby/ruby/blob/v2_5_3/ext/coverage/coverage.c
+      # default: traditional/compatible mode (Array)
+      # :lines - like traditional mode but using Hash
+      # :branches
+      # :methods
+      # :all - same as lines + branches + methods
+      #
+      # Ruby >= 2.6:
+      # https://bugs.ruby-lang.org/issues/15022
+      # https://github.com/ruby/ruby/blob/v2_6_3/ext/coverage/coverage.c
+      # default: traditional/compatible mode (Array)
+      # :lines - like traditional mode but using Hash
+      # :branches
+      # :methods
+      # :oneshot_lines - can not be combined with lines
+      # :all - same as lines + branches + methods
+      #
       if branch_coverage?
         Coverage.start(:all)
       else
@@ -275,8 +302,8 @@ module SimpleCov
       if tracked_files
         result = result.dup
         Dir[tracked_files].each do |file|
-          absolute = File.expand_path(file)
-          result[absolute] ||= RunFileCoverage.start(absolute)
+          absolute_path = File.expand_path(file)
+          result[absolute_path] ||= SimulateCoverage.call(absolute_path)
         end
       end
 
@@ -348,10 +375,9 @@ require "simplecov/combine"
 require "simplecov/combine/branches_combiner"
 require "simplecov/combine/files_combiner"
 require "simplecov/combine/lines_combiner"
-require "simplecov/run_results_combiner"
-require "simplecov/branch_data_for_missing_file"
+require "simplecov/combine/results_combiner"
 require "simplecov/useless_results_remover"
-require "simplecov/run_file_coverage"
+require "simplecov/simulate_coverage"
 
 # Load default config
 require "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
