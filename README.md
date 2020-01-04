@@ -626,8 +626,9 @@ SimpleCov.refuse_coverage_drop
 Add branch coverage measurement statistics to your results
 
 ```ruby
+# or in configure or just SimpleCov.enable_coverage :branch
 SimpleCov.start do
-  coverage_criterion :branch
+  enable_coverage :branch
 end
 ```
 
