@@ -48,10 +48,18 @@ Then /^there should be (\d+) skipped lines in the source files$/ do |expected_co
   expect(all(".source_table ol li.skipped").count).to eq(expected_count.to_i)
 end
 
-Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)$/ do |coverage_type, hit, total|
+Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)( for the file)?$/ do |coverage_type, hit, total, for_file|
   missed = total - hit
 
-  summary_text = find("#t-#{coverage_type}-summary").text
+  extra_class = for_file ? ".source_table" : ""
+  summary_text = find("#{extra_class} .t-#{coverage_type}-summary", :visible => true).text
 
   expect(summary_text).to match /#{total} .+ #{hit} .+ #{missed} /
+end
+
+When /^I open the detailed view for "(.+)"$/ do |file_path|
+  click_on(file_path)
+
+  header_text = page.find(".header h3", :visible => true).text
+  expect(header_text).to eq file_path
 end

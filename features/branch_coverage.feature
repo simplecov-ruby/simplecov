@@ -26,3 +26,6 @@ Feature:
       | spec/forking_spec.rb                    | 100.0 %  | 50.0 %          |
       | spec/meta_magic_spec.rb                 | 100.0 %  | 100.0 %         |
       | spec/some_class_spec.rb                 | 100.0 %  | 100.0 %         |
+    When I open the detailed view for "lib/faked_project/some_class.rb"
+    Then I should see a line coverage summary of 12/15 for the file
+    And I should see a branch coverage summary of 1/2 for the file
