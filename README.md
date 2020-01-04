@@ -278,6 +278,16 @@ Using `.simplecov` rather than separately requiring SimpleCov multiple times is 
 test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage
 information to be lost.
 
+## Branch coverage (ruby '~> 2.5')
+Add branch coverage measurement statistics to your results
+
+```ruby
+# or in configure or just SimpleCov.enable_coverage :branch
+SimpleCov.start do
+  enable_coverage :branch
+end
+```
+
 ## Filters
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all
@@ -620,16 +630,6 @@ You can also entirely refuse dropping coverage between test runs:
 
 ```ruby
 SimpleCov.refuse_coverage_drop
-```
-
-## Branch coverage (ruby '~> 2.5')
-Add branch coverage measurement statistics to your results
-
-```ruby
-# or in configure or just SimpleCov.enable_coverage :branch
-SimpleCov.start do
-  enable_coverage :branch
-end
 ```
 
 ## Using your own formatter
