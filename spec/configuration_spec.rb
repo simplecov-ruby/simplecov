@@ -88,6 +88,13 @@ describe SimpleCov::Configuration do
         expect(config.coverage_criterion).to eq :branch
       end
 
+      it "works fine setting it back and forth" do
+        config.coverage_criterion :branch
+        config.coverage_criterion :line
+
+        expect(config.coverage_criterion).to eq :line
+      end
+
       it "errors out on unknown coverage" do
         expect do
           config.coverage_criterion :unknown
@@ -95,9 +102,35 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#coverage_criteria" do
+      it "defaults to line" do
+        expect(config.coverage_criteria).to contain_exactly :line
+      end
+    end
+
+    describe "#enable_coverage" do
+      it "can enable branch coverage" do
+        config.enable_coverage :branch
+
+        expect(config.coverage_criteria).to contain_exactly :line, :branch
+      end
+
+      it "can enable line again" do
+        config.enable_coverage :line
+
+        expect(config.coverage_criteria).to contain_exactly :line
+      end
+
+      it "can't enable arbitrary things" do
+        expect do
+          config.enable_coverage :unknown
+        end.to raise_error(/unsupported.*unknown.*line/i)
+      end
+    end
+
     describe "#branch_coverage?", :if => SimpleCov.branch_coverage_supported? do
       it "returns true of branch coverage is being measured" do
-        config.coverage_criterion :branch
+        config.enable_coverage :branch
 
         expect(config).to be_branch_coverage
       end

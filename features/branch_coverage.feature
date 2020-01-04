@@ -8,7 +8,7 @@ Feature:
       """
       require 'simplecov'
       SimpleCov.start do
-        coverage_criterion :branch
+        enable_coverage :branch
       end
       """
     When I open the coverage report generated with `bundle exec rspec spec`

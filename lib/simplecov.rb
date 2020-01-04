@@ -354,6 +354,7 @@ module SimpleCov
 end
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
+require "set"
 require "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
 require "simplecov/exit_codes"

@@ -305,6 +305,7 @@ module SimpleCov
     end
 
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch].freeze
+    DEFAULT_COVERAGE_CRITERION = :line
     #
     # Define which coverage criterion should be evaluated.
     #
@@ -317,14 +318,25 @@ module SimpleCov
     # @param [Symbol] criterion
     #
     def coverage_criterion(criterion = nil)
-      criterion ||= :line
-      raise_criterion_not_supported(criterion) unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+      return @coverage_criterion ||= DEFAULT_COVERAGE_CRITERION unless criterion
 
-      @coverage_criterion ||= criterion
+      raise_if_criterion_unsupported(criterion)
+
+      @coverage_criterion = criterion
+    end
+
+    def enable_coverage(criterion)
+      raise_if_criterion_unsupported(criterion)
+
+      coverage_criteria << criterion
+    end
+
+    def coverage_criteria
+      @coverage_criteria ||= Set[DEFAULT_COVERAGE_CRITERION]
     end
 
     def branch_coverage?
-      branch_coverage_supported? && coverage_criterion == :branch
+      branch_coverage_supported? && coverage_criteria.member?(:branch)
     end
 
     def branch_coverage_supported?
@@ -334,7 +346,11 @@ module SimpleCov
 
   private
 
-    def raise_criterion_not_supported(criterion)
+    def raise_if_criterion_unsupported(criterion)
+      raise_criterion_unsupported(criterion) unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+    end
+
+    def raise_criterion_unsupported(criterion)
       raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
     end
 
