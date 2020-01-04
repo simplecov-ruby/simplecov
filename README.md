@@ -278,8 +278,8 @@ Using `.simplecov` rather than separately requiring SimpleCov multiple times is 
 test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage
 information to be lost.
 
-## Branch coverage (ruby '~> 2.5')
-Add branch coverage measurement statistics to your results
+## Branch coverage (ruby "~> 2.5")
+Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.
 
 ```ruby
 # or in configure or just SimpleCov.enable_coverage :branch
@@ -287,6 +287,37 @@ SimpleCov.start do
   enable_coverage :branch
 end
 ```
+
+Branch coverage is a feature introduced in Ruby 2.5 concerning itself with whether a
+particular branch of a condiation had been executed. Line coverage on the other hand
+is only interested in whether a line of code has been executed.
+
+This comes in handy for instance for one line conditionls:
+
+```ruby
+number.odd? ? "odd" : "even"
+```
+
+In line coverage this line would always be marked as executed but you'd never know if both
+conditions were met. Guard clauses have a similar story:
+
+```ruby
+return if number.odd?
+
+# more code
+```
+
+If all the code in that method was covered you'd never know if the guard clause was ever
+triggered with line coverage as just evaluating the condition marks it as covered.
+
+**Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
+conditionals - meaning coverage of sequential code is of no interest to it. A file without
+conditional logic will have no branch coverage data and SimpleCov will report 0 of 0
+branches covered as 100% (as everything that can be covered was covered).
+
+Hence, we recommend looking at both metrics together. Branch coverage might also be a good
+overall metric to look at - while you might be missing only 10% of your lines that might
+account for 50% of your branches for instance.
 
 ## Filters
 
