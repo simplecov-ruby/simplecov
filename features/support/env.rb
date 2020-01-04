@@ -33,12 +33,10 @@ Capybara.app = lambda { |env|
   ]
 }
 
-Capybara.default_driver = Capybara.javascript_driver = :apparition
-
-Capybara.server = :webrick
-
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
+  config.server = :webrick
+  config.default_driver = :apparition
 end
 
 Before("@branch_coverage") do
