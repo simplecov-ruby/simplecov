@@ -289,10 +289,10 @@ end
 ```
 
 Branch coverage is a feature introduced in Ruby 2.5 concerning itself with whether a
-particular branch of a condiation had been executed. Line coverage on the other hand
+particular branch of a condition had been executed. Line coverage on the other hand
 is only interested in whether a line of code has been executed.
 
-This comes in handy for instance for one line conditionls:
+This comes in handy for instance for one line conditionals:
 
 ```ruby
 number.odd? ? "odd" : "even"
