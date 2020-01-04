@@ -1,18 +1,8 @@
 # frozen_string_literal: true
 
-module GroupHelpers
-  def available_groups
-    all("#content .file_list_container")
-  end
-
-  def available_source_files
-    all(".t-file", :visible => true)
-  end
-end
-World(GroupHelpers)
-
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
+  available_groups = all("#content .file_list_container")
   # Given group names should be the same number than those rendered in report
   expect(expected_groups.count).to eq(available_groups.count)
 
@@ -33,6 +23,8 @@ end
 
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
+  available_source_files = all(".t-file", :visible => true)
+
   expect(expected_files.length).to eq(available_source_files.count)
   include_branch_coverage = table.column_names.include?("branch coverage")
 
@@ -54,4 +46,12 @@ end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
   expect(all(".source_table ol li.skipped").count).to eq(expected_count.to_i)
+end
+
+Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)$/ do |coverage_type, hit, total|
+  missed = total - hit
+
+  summary_text = find("#t-#{coverage_type}-summary").text
+
+  expect(summary_text).to match /#{total} .+ #{hit} .+ #{missed} /
 end

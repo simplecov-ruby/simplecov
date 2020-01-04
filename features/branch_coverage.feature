@@ -12,11 +12,11 @@ Feature:
       end
       """
     When I open the coverage report generated with `bundle exec rspec spec`
-    # note: branch coverage here still seems somewhat suspect so sbject to
-    # change.
     Then I should see the groups:
       | name      | coverage | files |
       | All Files | 91.8%    | 7     |
+    And I should see a line coverage summary of 56/61
+    And I should see a branch coverage summary of 2/4
     And I should see the source files:
       | name                                    | coverage | branch coverage |
       | lib/faked_project.rb                    | 100.0 %  | 100.0 %         |
