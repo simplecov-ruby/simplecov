@@ -63,3 +63,7 @@ When /^I open the detailed view for "(.+)"$/ do |file_path|
   header_text = page.find(".header h3", :visible => true).text
   expect(header_text).to eq file_path
 end
+
+Then /^I should see coverage branch data like: (\d+), ([+|-])$/ do |hit_count, pos_or_neg|
+  expect(find(".hits", :visible => true, :text => "#{hit_count}, #{pos_or_neg}")).to be_truthy
+end
