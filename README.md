@@ -310,6 +310,11 @@ return if number.odd?
 If all the code in that method was covered you'd never know if the guard clause was ever
 triggered with line coverage as just evaluating the condition marks it as covered.
 
+In the HTML report the lines of code will be annotated like `hit_count, positive_or_negative_branch`:
+
+* `2, +` - the positive branch was executed twice
+* `0, -` - the negative branch was never executed
+
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
 conditionals - meaning coverage of sequential code is of no interest to it. A file without
 conditional logic will have no branch coverage data and SimpleCov will report 0 of 0
