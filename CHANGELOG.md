@@ -1,5 +1,11 @@
-Unrealeased
+0.18.0.beta1 (unreleased)
 ===================
+
+This is a huge release highlighted by changing our support for ruby versions to 2.4+ (so things that aren't EOL'ed) and finally adding branch coverage support!
+
+This release is still beta because we'd love for you to test out branch coverage and get your feedback before doing a full release.
+
+On a personal note from [@PragTob](https://github.com/PragTob/) thanks to [ruby together](https://rubytogether.org/) for sponsoring this work on SimpleCov making it possible to deliver this and subsequent releases.
 
 ## Breaking
 * Dropped official support for all EOL'ed rubies meaning we only officially support 2.4+ - older rubies might still work but are not guaranteed to do so. Older release should still work. (thanks [@deivid-rodriguez](https://github.com/deivid-rodriguez))
@@ -7,9 +13,10 @@ Unrealeased
 
 ## Enhancements
 
-* Branch coverage is here! Please try it out and test it! See the README for more details.
+* Branch coverage is here! Please try it out and test it! You can activate it with `enable_coverage :branch`. See the README for more details. This is thanks to a bunch of people most notably [@som4ik](https://github.com/som4ik), [@tycooon](https://github.com/tycooon), [@stepozer](https://github.com/stepozer),  [@klyonrad](https://github.com/klyonrad) and your humble maintainers also contributed ;)
 * If the minimum coverage is set to be greater than 100, a warning will be shown. See [#737](https://github.com/colszowka/simplecov/pull/737) (thanks [@belfazt](https://github.com/belfazt))
 * Add a configuration option to disable the printing of non-successful exit statuses. See [#747](https://github.com/colszowka/simplecov/pull/746) (thanks [@JacobEvelyn](https://github.com/JacobEvelyn))
+* Calculating 100% coverage is now stricter, so 100% means 100%. See [#680](https://github.com/colszowka/simplecov/pull/680) thanks [@gleseur](https://github.com/gleseur)
 
 ## Bugfixes
 
