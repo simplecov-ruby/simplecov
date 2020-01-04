@@ -128,10 +128,6 @@ describe SimpleCov::SourceFile do
         expect(subject.missed_branches.size).to eq(3)
       end
 
-      it "has branch on line number 7 with report line" do
-        expect(subject.branch_per_line(7)).to eq('[0, "+"]')
-      end
-
       it "has coverage report" do
         expect(subject.branches_report).to eq(
           3 => [[0, "+"], [1, "-"]],

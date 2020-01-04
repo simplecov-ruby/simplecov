@@ -281,29 +281,8 @@ module SimpleCov
       @missed_branches ||= branches.select(&:missed?)
     end
 
-    #
-    # Method check if line is branches
-    #
-    # @param [Integer] line_number
-    #
-    # @return [Boolean]
-    #
-    def branchable_line?(line_number)
-      branches_report.keys.include?(line_number)
-    end
-
-    #
-    # Return String with branches message match to the line given
-    #
-    # @param [Integer] line_number
-    #
-    # @return [String] ex: "[1, '+'],[2, '-']" two times on negative branch and non on the positive
-    #
-    def branch_per_line(line_number)
-      branches_report.fetch(line_number, []).each_with_object(+" ") do |data, message|
-        separator = message.strip.empty? ? " " : ", "
-        message << (separator + data.to_s)
-      end.strip
+    def branches_for_line(line_number)
+      branches_report.fetch(line_number, [])
     end
 
     #
@@ -314,9 +293,7 @@ module SimpleCov
     # @return [Boolean]
     #
     def line_with_missed_branch?(line_number)
-      return unless branchable_line?(line_number)
-
-      branches_report[line_number].select { |count, _sign| count.zero? }.any?
+      branches_for_line(line_number).select { |count, _sign| count.zero? }.any?
     end
 
     #
