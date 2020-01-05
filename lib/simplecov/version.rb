@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  VERSION = "0.18.0-dev"
+  VERSION = "0.18.0.beta1"
 end

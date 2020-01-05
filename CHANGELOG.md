@@ -1,4 +1,4 @@
-0.18.0.beta1 (unreleased)
+0.18.0.beta1 (2020-01-05)
 ===================
 
 This is a huge release highlighted by changing our support for ruby versions to 2.4+ (so things that aren't EOL'ed) and finally adding branch coverage support!
