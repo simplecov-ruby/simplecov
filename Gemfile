@@ -10,7 +10,7 @@ gem "simplecov-html", :github => "colszowka/simplecov-html"
 
 group :development do
   gem "aruba", "~> 0.14"
-  gem "capybara", "~> 3.29"
+  gem "capybara", :github => "teamcapybara/capybara"
   gem "cucumber", "~> 3.1"
   gem "cuprite", "0.8"
   gem "rake", "~> 13.0"
