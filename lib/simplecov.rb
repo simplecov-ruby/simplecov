@@ -52,7 +52,7 @@ module SimpleCov
       self.running = true
       self.pid = Process.pid
 
-      start_coverage_measurment
+      start_coverage_measurement
     end
 
     #
@@ -259,7 +259,7 @@ module SimpleCov
     # With Positive branch it supports all coverage measurement types
     # With Negative branch it supports only line coverage measurement type
     #
-    def start_coverage_measurment
+    def start_coverage_measurement
       # This blog post gives a good run down of the coverage criterias introduced
       # in Ruby 2.5: https://blog.bigbinary.com/2018/04/11/ruby-2-5-supports-measuring-branch-and-method-coverages.html
       # There is also a nice writeup of the different coverage criteria made in this
@@ -287,11 +287,27 @@ module SimpleCov
       # :oneshot_lines - can not be combined with lines
       # :all - same as lines + branches + methods
       #
-      if branch_coverage?
-        Coverage.start(:all)
+      if coverage_start_arguments_supported?
+        start_coverage_with_criteria
       else
         Coverage.start
       end
+    end
+
+    def start_coverage_with_criteria
+      start_arguments = coverage_criteria.map do |criterion|
+        [lookup_corresponding_ruby_coverage_name(criterion), true]
+      end.to_h
+
+      Coverage.start(start_arguments)
+    end
+
+    CRITERION_TO_RUBY_COVERAGE = {
+      :branch => :branches,
+      :line => :lines
+    }.freeze
+    def lookup_corresponding_ruby_coverage_name(cirterion)
+      CRITERION_TO_RUBY_COVERAGE.fetch(cirterion)
     end
 
     #
