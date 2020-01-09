@@ -229,4 +229,27 @@ describe SimpleCov do
       end
     end
   end
+
+  # Normally wouldn't test private methods but just start has side effects that
+  # cause errors so for time this is pragmatic (tm)
+  describe ".start_coverage_measurement", :if => SimpleCov.coverage_start_arguments_supported? do
+    before :each do
+      # global state, yay!
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "starts coverage in lines mode by default" do
+      expect(Coverage).to receive(:start).with(:lines => true)
+
+      SimpleCov.send :start_coverage_measurement
+    end
+
+    it "starts coverage with lines and branches if branches is activated" do
+      expect(Coverage).to receive(:start).with(:lines => true, :branches => true)
+
+      SimpleCov.enable_coverage :branch
+
+      SimpleCov.send :start_coverage_measurement
+    end
+  end
 end

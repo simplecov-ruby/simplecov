@@ -335,14 +335,20 @@ module SimpleCov
       @coverage_criteria ||= Set[DEFAULT_COVERAGE_CRITERION]
     end
 
+    def clear_coverage_criteria
+      @coverage_criteria = nil
+    end
+
     def branch_coverage?
       branch_coverage_supported? && coverage_criteria.member?(:branch)
     end
 
-    def branch_coverage_supported?
+    def coverage_start_arguments_supported?
       require "coverage"
       !Coverage.method(:start).arity.zero?
     end
+
+    alias branch_coverage_supported? coverage_start_arguments_supported?
 
   private
 

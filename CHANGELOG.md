@@ -1,3 +1,9 @@
+0.18.0.beta2 (2020-01-05)
+===================
+
+## Enhancements
+* only turn on the requested coverage criteria (when activating branch coverage before SimpleCov would also instruct Ruby to take Method coverage)
+
 0.18.0.beta1 (2020-01-05)
 ===================
 
