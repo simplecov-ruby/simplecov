@@ -69,8 +69,14 @@ When /^I wait for (\d+) seconds$/ do |seconds|
   sleep seconds.to_i
 end
 
-Then /^the overlay should be open/ do
+Then "the overlay should be open" do
   expect(page).to have_css("#cboxContent")
+end
+
+When "I install dependencies" do
+  steps %(
+    When I successfully run `bundle`
+  )
 end
 
 When "I pry" do
