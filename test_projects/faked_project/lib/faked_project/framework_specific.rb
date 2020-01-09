@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # A pile of methods that only get tested in their frameworks
 # and thus make this file only 100% covered when all framework test
 # results are merged

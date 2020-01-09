@@ -49,7 +49,7 @@ Before do
   # Clean up and create blank state for fake project
   cd(".") do
     FileUtils.rm_rf "project"
-    FileUtils.cp_r File.join(this_dir, "../../spec/faked_project/"), "project"
+    FileUtils.cp_r File.join(this_dir, "../../test_projects/faked_project/"), "project"
   end
 
   step 'I cd to "project"'
