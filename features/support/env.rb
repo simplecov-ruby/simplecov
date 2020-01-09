@@ -43,13 +43,19 @@ Before("@branch_coverage") do
   skip_this_scenario unless SimpleCov.branch_coverage_supported?
 end
 
+Before("@parallel_tests_project") do
+  @test_project_name = "parallel_tests_project"
+end
+
 Before do
   this_dir = File.dirname(__FILE__)
+
+  @test_project_name ||= "faked_project"
 
   # Clean up and create blank state for fake project
   cd(".") do
     FileUtils.rm_rf "project"
-    FileUtils.cp_r File.join(this_dir, "../../test_projects/faked_project/"), "project"
+    FileUtils.cp_r File.join(this_dir, "../../test_projects/#{@test_project_name}/"), "project"
   end
 
   step 'I cd to "project"'
