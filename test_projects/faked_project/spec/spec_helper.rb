@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "bundler/setup"
 
 # We're injecting simplecov_config via aruba in cucumber here
@@ -9,4 +11,3 @@ rescue LoadError
 end
 
 require "faked_project"
-require "test/unit"
