@@ -234,7 +234,9 @@ describe SimpleCov do
   # cause errors so for time this is pragmatic (tm)
   describe ".start_coverage_measurement", :if => SimpleCov.coverage_start_arguments_supported? do
     before :each do
-      # global state, yay!
+      # SimpleCov is a Singleton/global object so once any test enables
+      # any kind of coverage data it stays there.
+      # Hence, we use clear_coverage_data to create a "clean slate" for these tests
       SimpleCov.clear_coverage_criteria
     end
 

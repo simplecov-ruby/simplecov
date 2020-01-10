@@ -306,8 +306,8 @@ module SimpleCov
       :branch => :branches,
       :line => :lines
     }.freeze
-    def lookup_corresponding_ruby_coverage_name(cirterion)
-      CRITERION_TO_RUBY_COVERAGE.fetch(cirterion)
+    def lookup_corresponding_ruby_coverage_name(criterion)
+      CRITERION_TO_RUBY_COVERAGE.fetch(criterion)
     end
 
     #
