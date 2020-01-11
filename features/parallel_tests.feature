@@ -8,6 +8,11 @@ Feature:
 
   Scenario: Running it through parallel_tests produces the same results as a normal rspec run
     Given I install dependencies
+    And SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start
+      """
     When I open the coverage report generated with `bundle exec parallel_rspec spec`
     Then I should see the results for the parallel tests project
 
@@ -15,5 +20,10 @@ Feature:
   # then merging of results might kick in
   Scenario: Running the project with normal rspec
     Given I install dependencies
+    And SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start
+      """
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the results for the parallel tests project
