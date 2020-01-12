@@ -48,6 +48,11 @@ Before("@parallel_tests_project") do
   @test_project_name = "parallel_tests_project"
 end
 
+Before("@old_coverage_json") do
+  @test_project_name = "old_coverage_json"
+end
+
+
 Before do
   this_dir = File.dirname(__FILE__)
 

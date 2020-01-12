@@ -1,0 +1,31 @@
+{
+  "RSpec Different Name to avoid overriding": {
+    "coverage": {
+      "/home/tobi/github/simplecov/test_projects/old_coverage_json/lib/code.rb": [
+        null,
+        null,
+        1,
+        1,
+        1,
+        1,
+        null,
+        0,
+        null,
+        null,
+        null
+      ],
+      "/home/tobi/github/simplecov/test_projects/old_coverage_json/spec/code_spec.rb": [
+        null,
+        null,
+        1,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null
+      ]
+    },
+    "timestamp": 1579085826
+  }
+}
