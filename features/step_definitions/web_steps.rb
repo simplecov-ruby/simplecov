@@ -40,7 +40,7 @@ end
 Then /^(?:|I )should see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
-    expect(page).to have_xpath("//*", :text => regexp)
+    expect(page).to have_xpath("//*", text: regexp)
   end
 end
 
@@ -53,7 +53,7 @@ end
 Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
-    expect(page).to have_no_xpath("//*", :text => regexp)
+    expect(page).to have_no_xpath("//*", text: regexp)
   end
 end
 

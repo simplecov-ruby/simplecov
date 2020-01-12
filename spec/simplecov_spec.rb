@@ -177,14 +177,14 @@ describe SimpleCov do
         expect(SimpleCov).to receive(:result_exit_status).and_return SimpleCov::ExitCodes::MINIMUM_COVERAGE
       end
       context "when the final result process" do
-        let(:result) { double(SimpleCov::Result, :covered_percent => 0.0) }
+        let(:result) { double(SimpleCov::Result, covered_percent: 0.0) }
         before { expect(SimpleCov).to receive(:final_result_process?).and_return true }
         it "returns the exit code from .result_exit_status" do
           expect(SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)).to eq SimpleCov::ExitCodes::MINIMUM_COVERAGE
         end
       end
       context "when not the final result process" do
-        let(:result) { double(SimpleCov::Result, :covered_percent => 0.0) }
+        let(:result) { double(SimpleCov::Result, covered_percent: 0.0) }
         before { expect(SimpleCov).to receive(:final_result_process?).and_return false }
         it "returns the success exit code" do
           expect(SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)).to eq SimpleCov::ExitCodes::SUCCESS
@@ -232,7 +232,7 @@ describe SimpleCov do
 
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
-  describe ".start_coverage_measurement", :if => SimpleCov.coverage_start_arguments_supported? do
+  describe ".start_coverage_measurement", if: SimpleCov.coverage_start_arguments_supported? do
     before :each do
       # SimpleCov is a Singleton/global object so once any test enables
       # any kind of coverage data it stays there.
@@ -241,13 +241,13 @@ describe SimpleCov do
     end
 
     it "starts coverage in lines mode by default" do
-      expect(Coverage).to receive(:start).with(:lines => true)
+      expect(Coverage).to receive(:start).with(lines: true)
 
       SimpleCov.send :start_coverage_measurement
     end
 
     it "starts coverage with lines and branches if branches is activated" do
-      expect(Coverage).to receive(:start).with(:lines => true, :branches => true)
+      expect(Coverage).to receive(:start).with(lines: true, branches: true)
 
       SimpleCov.enable_coverage :branch
 

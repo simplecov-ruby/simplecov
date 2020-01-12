@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# rubocop:disable Style/HashSyntax
-
 require "helper"
 
 describe SimpleCov::SourceFile::Branch do
@@ -113,4 +111,3 @@ describe SimpleCov::SourceFile::Branch do
     end
   end
 end
-# rubocop:enable Style/HashSyntax

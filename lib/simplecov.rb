@@ -170,7 +170,7 @@ module SimpleCov
       # Force exit with stored status (see github issue #5)
       # unless it's nil or 0 (see github issue #281)
       if exit_status&.positive?
-        $stderr.printf("SimpleCov failed with exit %<exit_status>d\n", :exit_status => exit_status) if print_error_status
+        $stderr.printf("SimpleCov failed with exit %<exit_status>d\n", exit_status: exit_status) if print_error_status
         Kernel.exit exit_status
       end
     end
@@ -197,16 +197,16 @@ module SimpleCov
       if covered_percent < SimpleCov.minimum_coverage
         $stderr.printf(
           "Coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
-          :covered => covered_percent,
-          :minimum_coverage => SimpleCov.minimum_coverage
+          covered: covered_percent,
+          minimum_coverage: SimpleCov.minimum_coverage
         )
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
         $stderr.printf(
           "File (%<file>s) is only (%<least_covered_percentage>.2f%%) covered. This is below the expected minimum coverage per file of (%<min_coverage>.2f%%).\n",
-          :file => result.least_covered_file,
-          :least_covered_percentage => covered_percentages.min,
-          :min_coverage => SimpleCov.minimum_coverage_by_file
+          file: result.least_covered_file,
+          least_covered_percentage: covered_percentages.min,
+          min_coverage: SimpleCov.minimum_coverage_by_file
         )
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif (last_run = SimpleCov::LastRun.read)
@@ -214,8 +214,8 @@ module SimpleCov
         if coverage_diff > SimpleCov.maximum_coverage_drop
           $stderr.printf(
             "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
-            :drop_percent => coverage_diff,
-            :max_drop => SimpleCov.maximum_coverage_drop
+            drop_percent: coverage_diff,
+            max_drop: SimpleCov.maximum_coverage_drop
           )
           SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
         else
@@ -248,7 +248,7 @@ module SimpleCov
     # @api private
     #
     def write_last_run(covered_percent)
-      SimpleCov::LastRun.write(:result => {:covered_percent => covered_percent})
+      SimpleCov::LastRun.write(result: {covered_percent: covered_percent})
     end
 
   private
@@ -303,8 +303,8 @@ module SimpleCov
     end
 
     CRITERION_TO_RUBY_COVERAGE = {
-      :branch => :branches,
-      :line => :lines
+      branch: :branches,
+      line: :lines
     }.freeze
     def lookup_corresponding_ruby_coverage_name(criterion)
       CRITERION_TO_RUBY_COVERAGE.fetch(criterion)

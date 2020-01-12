@@ -16,8 +16,8 @@ module SimpleCov
       #
       def combine(coverage_a, coverage_b)
         {
-          :lines => Combine.combine(LinesCombiner, coverage_a[:lines], coverage_b[:lines]),
-          :branches => Combine.combine(BranchesCombiner, coverage_a[:branches], coverage_b[:branches])
+          lines: Combine.combine(LinesCombiner, coverage_a[:lines], coverage_b[:lines]),
+          branches: Combine.combine(BranchesCombiner, coverage_a[:branches], coverage_b[:branches])
         }
       end
     end

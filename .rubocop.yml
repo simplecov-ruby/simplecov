@@ -84,7 +84,7 @@ Style/DoubleNegation:
 
 Style/HashSyntax:
   Description: Checks hash literal syntax.
-  EnforcedStyle: hash_rockets
+  EnforcedStyle: ruby19
 
 Layout/HeredocIndentation:
   Description: Checks the indentation of the here document bodies.

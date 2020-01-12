@@ -128,7 +128,7 @@ describe SimpleCov::Configuration do
       end
     end
 
-    describe "#branch_coverage?", :if => SimpleCov.branch_coverage_supported? do
+    describe "#branch_coverage?", if: SimpleCov.branch_coverage_supported? do
       it "returns true of branch coverage is being measured" do
         config.enable_coverage :branch
 

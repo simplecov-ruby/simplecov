@@ -8,9 +8,9 @@ gem "rspec"
 # when the tests are executed the project is in tmp/aruba/project
 # which is a different nesting from its usual place
 if File.exist?("../../simplecov.gemspec")
-  gem "simplecov", :path => "../.."
+  gem "simplecov", path: "../.."
 else
   # rubocop:disable Bundler/DuplicatedGem
-  gem "simplecov", :path => "../../.."
+  gem "simplecov", path: "../../.."
   # rubocop:enable Bundler/DuplicatedGem
 end

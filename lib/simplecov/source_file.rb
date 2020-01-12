@@ -224,13 +224,11 @@ module SimpleCov
 
       SourceFile::Branch.new(
         # rubocop these are keyword args please let me keep them, thank you
-        # rubocop:disable Style/HashSyntax
         start_line: start_line,
         end_line:   end_line,
         coverage:   hit_count,
         inline:     start_line == condition_start_line,
         positive:   positive_branch?(condition_id, id, type)
-        # rubocop:enable Style/HashSyntax
       )
     end
 

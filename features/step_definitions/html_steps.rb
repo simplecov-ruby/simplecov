@@ -23,7 +23,7 @@ end
 
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
-  available_source_files = all(".t-file", :visible => true)
+  available_source_files = all(".t-file", visible: true)
 
   expect(expected_files.length).to eq(available_source_files.count)
   include_branch_coverage = table.column_names.include?("branch coverage")
@@ -52,7 +52,7 @@ Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)( for the file)?$/ do
   missed = total - hit
 
   extra_class = for_file ? ".source_table" : ""
-  summary_text = find("#{extra_class} .t-#{coverage_type}-summary", :visible => true).text
+  summary_text = find("#{extra_class} .t-#{coverage_type}-summary", visible: true).text
 
   expect(summary_text).to match /#{total} .+ #{hit} .+ #{missed} /
 end
@@ -60,10 +60,10 @@ end
 When /^I open the detailed view for "(.+)"$/ do |file_path|
   click_on(file_path)
 
-  header_text = page.find(".header h3", :visible => true).text
+  header_text = page.find(".header h3", visible: true).text
   expect(header_text).to eq file_path
 end
 
 Then /^I should see coverage branch data like: (\d+), ([+|-])$/ do |hit_count, pos_or_neg|
-  expect(find(".hits", :visible => true, :text => "#{hit_count}, #{pos_or_neg}")).to be_truthy
+  expect(find(".hits", visible: true, text: "#{hit_count}, #{pos_or_neg}")).to be_truthy
 end
