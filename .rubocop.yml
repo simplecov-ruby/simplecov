@@ -134,4 +134,3 @@ Style/FrozenStringLiteralComment:
   EnforcedStyle: always
   Exclude:
     - "spec/fixtures/**/*"
-    - "spec/faked_project/**/*"
