@@ -17,7 +17,7 @@ tmtags
 *.swp
 
 ## PROJECT::GENERAL
-coverage
+/coverage
 rdoc
 pkg
 tmp
@@ -26,3 +26,5 @@ tmp
 ## PROJECT::SPECIFIC
 
 .yardoc
+spec/fixtures/coverage
+spec/fixtures/frameworks/coverage
