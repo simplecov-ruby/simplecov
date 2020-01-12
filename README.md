@@ -172,6 +172,17 @@ to use SimpleCov with them. Here's an overview of the known ones:
   </tr>
   <tr>
     <th>
+      knapsack_pro
+    </th>
+    <td>
+      To make SimpleCov work with Knapsack Pro Queue Mode to split tests in parallel on CI jobs you need to [provide CI node index number to the `SimpleCov.command_name`](https://knapsackpro.com/faq/question/how-to-use-simplecov-in-queue-mode).
+    </td>
+    <td>
+      <a href="https://knapsackpro.com/faq/question/how-to-use-simplecov-in-queue-mode">Tip</a>
+    </td>
+  </tr>
+  <tr>
+    <th>
       RubyMine
     </th>
     <td>
