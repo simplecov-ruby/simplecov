@@ -9,7 +9,7 @@ source "https://rubygems.org"
 gem "simplecov-html", github: "colszowka/simplecov-html"
 
 group :development do
-  gem "aruba", "~> 0.14"
+  gem "aruba", github: "cucumber/aruba"
   gem "capybara", github: "teamcapybara/capybara"
   gem "cucumber", "~> 3.1"
   gem "cuprite", "0.8"

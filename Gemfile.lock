@@ -5,6 +5,18 @@ GIT
     simplecov-html (0.11.0.beta2)
 
 GIT
+  remote: https://github.com/cucumber/aruba.git
+  revision: 8b7dc956daf47051237700488e8d866fb229db29
+  specs:
+    aruba (1.0.0.pre.alpha.5)
+      childprocess (~> 3.0)
+      contracts (~> 0.16.0)
+      cucumber (>= 2.4, < 4.0)
+      ffi (~> 1.9)
+      rspec-expectations (~> 3.4)
+      thor (~> 1.0)
+
+GIT
   remote: https://github.com/teamcapybara/capybara.git
   revision: c8bceae5ac95b607b58acd723d647deb98e49cc3
   specs:
@@ -29,13 +41,6 @@ GEM
   specs:
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
-    aruba (0.14.14)
-      childprocess (>= 0.6.3, < 4.0.0)
-      contracts (~> 0.9)
-      cucumber (>= 1.3.19)
-      ffi (~> 1.9)
-      rspec-expectations (>= 2.99)
-      thor (>= 0.19, < 2.0)
     ast (2.4.0)
     backports (3.15.0)
     benchmark-ips (2.7.2)
@@ -142,7 +147,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  aruba (~> 0.14)
+  aruba!
   benchmark-ips
   capybara!
   cucumber (~> 3.1)

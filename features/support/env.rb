@@ -63,6 +63,8 @@ Before do
 end
 
 Aruba.configure do |config|
+  config.allow_absolute_paths = true
+
   # JRuby needs a bit longer to get going
   config.exit_timeout = RUBY_ENGINE == "jruby" ? 60 : 20
 end
