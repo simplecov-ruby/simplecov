@@ -9,9 +9,9 @@
 # To get predictable coverage results, we need to know which one that is...
 
 ParameterType(
-  :name => "rspec",
-  :regexp => /bundle exec rspec spec/,
-  :transformer => lambda { |_|
+  name: "rspec",
+  regexp: /bundle exec rspec spec/,
+  transformer: lambda { |_|
     files = nil # Avoid shadowing
     cd(".") { files = Dir["spec/**/*_spec.rb"] }
     "bundle exec rspec #{files.sort.join(' ')}"

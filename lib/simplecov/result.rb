@@ -28,7 +28,7 @@ module SimpleCov
     def initialize(original_result)
       @original_result = original_result.freeze
       @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage), :symbolize_names => true)) if File.file?(filename.to_s)
+        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage), symbolize_names: true)) if File.file?(filename.to_s)
       end.compact.sort_by(&:filename))
       filter!
     end

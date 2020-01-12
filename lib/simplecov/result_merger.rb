@@ -66,7 +66,7 @@ module SimpleCov
       # coverage data and the command_name for the result consisting of a join
       # on all source result's names
       def merge_results(*results)
-        parsed_results = JSON.parse(JSON.dump(results.map(&:original_result)), :symbolize_names => true)
+        parsed_results = JSON.parse(JSON.dump(results.map(&:original_result)), symbolize_names: true)
         combined_result = SimpleCov::Combine::ResultsCombiner.combine(*parsed_results)
         result = SimpleCov::Result.new(combined_result)
         # Specify the command name
