@@ -80,7 +80,7 @@ module SimpleCov
   private
 
     def coverage
-      keys = original_result.keys & filenames
+      keys = original_result.keys & filenames.map(&:to_sym)
       Hash[keys.zip(original_result.values_at(*keys))]
     end
 
