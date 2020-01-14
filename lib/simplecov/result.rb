@@ -69,25 +69,12 @@ module SimpleCov
       command_name, data = hash.first
 
       result = SimpleCov::Result.new(
-        symbolize_names_of_coverage_results(data[:coverage])
+        data[:coverage]
       )
 
       result.command_name = command_name.to_s
       result.created_at = Time.at(data[:timestamp])
       result
-    end
-
-    # Manage symbolize the keys of coverage hash.
-    # JSON.parse gives coverage hash with stringified keys what breaks some logics
-    # inside the process that expects them as symboles.
-    #
-    # @return [Hash]
-    def self.symbolize_names_of_coverage_results(coverage_data)
-      coverage_data.each_with_object({}) do |(file_name, file_coverage_result), coverage_results|
-        coverage_results[file_name] = file_coverage_result.each_with_object({}) do |(k, v), cov_elem|
-          cov_elem[k.to_sym] = v
-        end
-      end
     end
 
   private
