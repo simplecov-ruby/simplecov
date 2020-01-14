@@ -321,7 +321,7 @@ module SimpleCov
         result = result.dup
         Dir[tracked_files].each do |file|
           absolute_path = File.expand_path(file)
-          result[absolute_path] ||= SimulateCoverage.call(absolute_path)
+          result[absolute_path.to_sym] ||= SimulateCoverage.call(absolute_path)
         end
       end
 
