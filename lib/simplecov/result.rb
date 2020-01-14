@@ -61,7 +61,7 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      {command_name => {"coverage" => coverage, "timestamp" => created_at.to_i}}
+      {command_name.to_sym => {coverage: coverage, timestamp: created_at.to_i}}
     end
 
     # Loads a SimpleCov::Result#to_hash dump
@@ -69,11 +69,11 @@ module SimpleCov
       command_name, data = hash.first
 
       result = SimpleCov::Result.new(
-        symbolize_names_of_coverage_results(data["coverage"])
+        symbolize_names_of_coverage_results(data[:coverage])
       )
 
-      result.command_name = command_name
-      result.created_at = Time.at(data["timestamp"])
+      result.command_name = command_name.to_s
+      result.created_at = Time.at(data[:timestamp])
       result
     end
 

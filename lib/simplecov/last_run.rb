@@ -15,7 +15,7 @@ module SimpleCov
         json = File.read(last_run_path)
         return nil if json.strip.empty?
 
-        JSON.parse(json)
+        JSON.parse(json, symbolize_names: true)
       end
 
       def write(json)
