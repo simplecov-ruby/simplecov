@@ -26,7 +26,7 @@ module SimpleCov
           data = stored_data
           if data
             begin
-              JSON.parse(data) || {}
+              JSON.parse(data, symbolize_names: true) || {}
             rescue StandardError
               {}
             end

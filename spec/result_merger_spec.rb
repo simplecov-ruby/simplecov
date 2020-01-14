@@ -63,7 +63,7 @@ describe SimpleCov::ResultMerger do
         end
 
         it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
-          expect(SimpleCov::ResultMerger.resultset.keys.sort).to eq %w[result1 result2]
+          expect(SimpleCov::ResultMerger.resultset.keys.sort).to eq %i[result1 result2]
         end
 
         it "returns proper values for merged_result" do
@@ -96,7 +96,7 @@ describe SimpleCov::ResultMerger do
       SimpleCov::ResultMerger.store_result("a" => [1])
       SimpleCov::ResultMerger.clear_resultset
       new_set = SimpleCov::ResultMerger.resultset
-      expect(new_set).to eq("a" => [1])
+      expect(new_set).to eq(a: [1])
     end
 
     it "synchronizes writes" do
