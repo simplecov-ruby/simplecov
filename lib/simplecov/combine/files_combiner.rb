@@ -15,10 +15,9 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        {
-          lines: Combine.combine(LinesCombiner, coverage_a[:lines], coverage_b[:lines]),
-          branches: Combine.combine(BranchesCombiner, coverage_a[:branches], coverage_b[:branches])
-        }
+        combination = {lines: Combine.combine(LinesCombiner, coverage_a[:lines], coverage_b[:lines])}
+        combination[:branches] = Combine.combine(BranchesCombiner, coverage_a[:branches], coverage_b[:branches]) if SimpleCov.branch_coverage?
+        combination
       end
     end
   end
