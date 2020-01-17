@@ -313,7 +313,7 @@ module SimpleCov
     # * :line - coverage based on lines aka has this line been executed?
     # * :branch - coverage based on branches aka has this branch (think conditions) been executed?
     #
-    # If not set the default is is `:line`
+    # If not set the default is `:line`
     #
     # @param [Symbol] criterion
     #
