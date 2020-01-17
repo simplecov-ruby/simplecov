@@ -5,7 +5,7 @@ require "tempfile"
 require "timeout"
 
 describe SimpleCov::ResultMerger do
-  before do
+  after do
     SimpleCov::ResultMerger.clear_resultset
     File.delete(SimpleCov::ResultMerger.resultset_path) if File.exist?(SimpleCov::ResultMerger.resultset_path)
   end
