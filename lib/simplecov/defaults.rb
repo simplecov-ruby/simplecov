@@ -25,6 +25,9 @@ at_exit do
   # If we are in a different process than called start, don't interfere.
   next if SimpleCov.pid != Process.pid
 
+  # If SimpleCov is no longer running then don't run exit tasks
+  next unless SimpleCov.running
+
   SimpleCov.run_exit_tasks!
 end
 
