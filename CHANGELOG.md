@@ -1,15 +1,10 @@
-Master (unreleased)
-===================
-
-## Enhancements
-* Allow early running exit tasks and avoid the `at_exit` hook through the `SimpleCov.run_exit_tasks!` method. (thanks [@macumber]: https://github.com/macumber))
-* Allow manual collation of result sets through the `SimpleCov.collate` entrypoint. See the README for more details (thanks [@ticky](https://github.com/ticky))
-
-0.18.0.beta2 (2020-01-05)
+0.18.0.beta2 (unreleased)
 ===================
 
 ## Enhancements
 * only turn on the requested coverage criteria (when activating branch coverage before SimpleCov would also instruct Ruby to take Method coverage)
+* Allow early running exit tasks and avoid the `at_exit` hook through the `SimpleCov.run_exit_tasks!` method. (thanks [@macumber]: https://github.com/macumber))
+* Allow manual collation of result sets through the `SimpleCov.collate` entrypoint. See the README for more details (thanks [@ticky](https://github.com/ticky))
 
 0.18.0.beta1 (2020-01-05)
 ===================
