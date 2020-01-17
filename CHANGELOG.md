@@ -1,3 +1,9 @@
+Master (unreleased)
+===================
+
+## Enhancements
+* Allow early running exit tasks and avoid the `at_exit` hook through the `SimpleCov.run_exit_tasks!` method. (thanks [@macumber]: https://github.com/macumber))
+
 0.18.0.beta2 (2020-01-05)
 ===================
 
