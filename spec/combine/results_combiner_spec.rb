@@ -4,7 +4,13 @@ require "helper"
 
 describe SimpleCov::Combine::ResultsCombiner do
   describe "with two faked coverage resultsets" do
+    after do
+      SimpleCov.clear_coverage_criteria
+    end
+
     before do
+      SimpleCov.enable_coverage :branch
+
       @resultset1 = {
         source_fixture("sample.rb") => {
           lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
