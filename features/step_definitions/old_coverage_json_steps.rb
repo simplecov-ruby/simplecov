@@ -19,3 +19,7 @@ Given "the timestamp in the .resultset.json is current" do
     File.write(RESULTSET_JSON_PATH, JSON.pretty_generate(resultset_hash))
   end
 end
+
+Then "the mismatched format warning should have been printed" do
+  expect(all_stderr).to match /Merg.*format.*ignore.*bug/im
+end

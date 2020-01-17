@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# While you're here, handy tip for debugging: try to attach @announce-output
+# @announce-command to the scenarios/features to see what's going on
+
 require "bundler"
 Bundler.setup
 require "aruba/cucumber"

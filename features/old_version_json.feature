@@ -1,4 +1,4 @@
-@rspec @old_coverage_json @announce-output @announce-command
+@rspec @old_coverage_json
 
 Feature:
 
@@ -22,3 +22,4 @@ Feature:
       | name      | coverage | files |
       | All Files | 88.89%    | 2     |
     And I should see a line coverage summary of 8/9
+    And the mismatched format warning should have been printed
