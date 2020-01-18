@@ -10,7 +10,7 @@ require "simplecov"
 SimpleCov.coverage_dir("tmp/coverage")
 
 def source_fixture(filename)
-  File.expand_path(File.join(File.dirname(__FILE__), "fixtures", filename)).to_sym
+  File.expand_path(File.join(File.dirname(__FILE__), "fixtures", filename))
 end
 
 # Taken from http://stackoverflow.com/questions/4459330/how-do-i-temporarily-redirect-stderr-in-ruby

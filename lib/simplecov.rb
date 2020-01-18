@@ -79,7 +79,7 @@ module SimpleCov
 
       results = result_filenames.flat_map do |filename|
         # Re-create each included instance of SimpleCov::Result from the stored run data.
-        (JSON.parse(File.read(filename), symbolize_names: true) || {}).map do |command_name, coverage|
+        (JSON.parse(File.read(filename)) || {}).map do |command_name, coverage|
           SimpleCov::Result.from_hash(command_name => coverage)
         end
       end
@@ -362,7 +362,7 @@ module SimpleCov
         result = result.dup
         Dir[tracked_files].each do |file|
           absolute_path = File.expand_path(file)
-          result[absolute_path.to_sym] ||= SimulateCoverage.call(absolute_path)
+          result[absolute_path] ||= SimulateCoverage.call(absolute_path)
         end
       end
 

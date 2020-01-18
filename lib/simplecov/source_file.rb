@@ -12,7 +12,7 @@ module SimpleCov
     attr_reader :coverage
 
     def initialize(filename, coverage)
-      @filename = filename.to_s
+      @filename = filename
       @coverage = coverage
     end
 
@@ -64,9 +64,9 @@ module SimpleCov
     end
 
     def build_lines
-      coverage_exceeding_source_warn if coverage[:lines].size > src.size
+      coverage_exceeding_source_warn if coverage["lines"].size > src.size
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage[:lines][i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, coverage["lines"][i - 1])
       end
       process_skipped_lines(lines)
     end
@@ -97,7 +97,7 @@ module SimpleCov
 
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage[:lines].size}] exceeds number of lines in #{filename} [#{src.size}]"
+      warn "Warning: coverage data provided by Coverage [#{coverage['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -168,7 +168,7 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      coverage_branch_data = coverage.fetch(:branches, {})
+      coverage_branch_data = coverage.fetch("branches", {})
       branches = coverage_branch_data.flat_map do |condition, coverage_branches|
         build_branches_from(condition, coverage_branches)
       end
@@ -187,7 +187,7 @@ module SimpleCov
     end
 
     # Since we are dumping to and loading from JSON, and we have arrays as keys those
-    # don't make their way back to us intact e.g. just as a string or a symbol (currently keys are symbolized).
+    # don't make their way back to us intact e.g. just as a string
     #
     # We should probably do something different here, but as it stands these are
     # our data structures that we write so eval isn't _too_ bad.
@@ -199,9 +199,8 @@ module SimpleCov
       # put them through here.
       return structure if structure.is_a?(Array)
 
-      # as of right now the keys are still symbolized
       # rubocop:disable Security/Eval
-      eval structure.to_s
+      eval structure
       # rubocop:enable Security/Eval
     end
 

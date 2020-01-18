@@ -232,11 +232,11 @@ describe SimpleCov do
 
   describe ".collate" do
     let(:resultset1) do
-      {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset2) do
-      {source_fixture("sample.rb") => {lines: [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
@@ -270,8 +270,8 @@ describe SimpleCov do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
 
-          expected = {"result1": {coverage: {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}}}
-          collated = JSON.parse(File.read(resultset_path), symbolize_names: true).transform_values { |v| v.reject { |k| k == :timestamp } }
+          expected = {"result1" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}}}
+          collated = JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
           expect(collated).to eq(expected)
         end
       end
@@ -290,8 +290,8 @@ describe SimpleCov do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
 
-          expected = {"result1, result2": {coverage: {source_fixture("sample.rb") => {lines: [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]}}}}
-          collated = JSON.parse(File.read(resultset_path), symbolize_names: true).transform_values { |v| v.reject { |k| k == :timestamp } }
+          expected = {"result1, result2" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]}}}}
+          collated = JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
           expect(collated).to eq(expected)
         end
       end
