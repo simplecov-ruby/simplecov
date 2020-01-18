@@ -1,0 +1,51 @@
+name: unstable
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-16.04
+
+    strategy:
+      matrix:
+        ruby: [ruby-head, jruby-head]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up RVM
+        run: curl -sSL https://get.rvm.io | bash
+
+      - name: Set up Ruby
+        run: |
+          source $HOME/.rvm/scripts/rvm
+          rvm install ${{ matrix.ruby }} --binary --autolibs=disable
+          rvm --default use ${{ matrix.ruby }}
+
+      - name: Install java
+        run: sudo apt-get -y install openjdk-8-jre-headless
+        if: matrix.ruby == 'jruby-head'
+
+      - name: Install dependencies
+        run: |
+          source $HOME/.rvm/scripts/rvm
+          bundle install --without benchmark --jobs=3 --retry=3
+
+      - name: Run tests (MRI)
+        run: |
+          source $HOME/.rvm/scripts/rvm
+          bundle exec rake
+        if: matrix.ruby == 'ruby-head'
+        continue-on-error: true
+
+      - name: Run tests (JRuby)
+        run: |
+          source $HOME/.rvm/scripts/rvm
+          JRUBY_OPTS=--debug bundle exec rake
+        if: matrix.ruby == 'jruby-head'
+        continue-on-error: true
