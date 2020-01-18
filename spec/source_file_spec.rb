@@ -128,10 +128,10 @@ describe SimpleCov::SourceFile do
 
       it "has coverage report" do
         expect(subject.branches_report).to eq(
-          3 => [[0, "+"], [1, "-"]],
-          5 => [[1, "+"], [0, "-"]],
-          7 => [[0, "+"]],
-          9 => [[1, "-"]]
+          3 => [[:then, 0], [:else, 1]],
+          5 => [[:then, 1], [:else, 0]],
+          7 => [[:then, 0]],
+          9 => [[:else, 1]]
         )
       end
 
@@ -207,7 +207,7 @@ describe SimpleCov::SourceFile do
     end
 
     it "has dual element in condition at line 3 report" do
-      expect(subject.branches_report[3]).to eq([[1, "+"], [0, "-"]])
+      expect(subject.branches_report[3]).to eq([[:then, 1], [:else, 0]])
     end
 
     it "has branches coverage precent 50.00" do
@@ -370,9 +370,9 @@ describe SimpleCov::SourceFile do
     describe "branch coverage" do
       it "has an empty branch report" do
         expect(subject.branches_report).to eq(
-          9 => [[1, "-"]],
-          13 => [[1, "+"], [0, "-"]],
-          22 => [[1, "+"]]
+          9 => [[:else, 1]],
+          13 => [[:then, 1], [:else, 0]],
+          22 => [[:when, 1]]
         )
       end
 
@@ -415,7 +415,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "registered 2 hits for the while branch" do
-        expect(subject.branches_report[7]).to eq [[2, "+"]]
+        expect(subject.branches_report[7]).to eq [[:body, 2]]
       end
     end
   end
@@ -454,10 +454,10 @@ describe SimpleCov::SourceFile do
 
       it "covers all the things right" do
         expect(subject.branches_report).to eq(
-          4 => [[0, "+"]],
-          6 => [[1, "+"]],
-          8 => [[0, "+"]],
-          10 => [[0, "-"]]
+          4 => [[:when, 0]],
+          6 => [[:when, 1]],
+          8 => [[:when, 0]],
+          10 => [[:else, 0]]
         )
       end
     end
@@ -496,15 +496,15 @@ describe SimpleCov::SourceFile do
       end
 
       it "marks the non declared else branch as missing at the point of the case" do
-        expect(subject.branches_for_line(3)).to eq [[0, "-"]]
+        expect(subject.branches_for_line(3)).to eq [[:else, 0]]
       end
 
       it "covers the branch that includes 42" do
         expect(subject.branches_report).to eq(
-          3 => [[0, "-"]],
-          4 => [[0, "+"]],
-          6 => [[1, "+"]],
-          8 => [[0, "+"]]
+          3 => [[:else, 0]],
+          4 => [[:when, 0]],
+          6 => [[:when, 1]],
+          8 => [[:when, 0]]
         )
       end
     end
@@ -543,7 +543,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "covers the branch that includes 42" do
-        expect(subject.branches_report[7]).to eq [[1, "+"]]
+        expect(subject.branches_report[7]).to eq [[:then, 1]]
       end
     end
   end
@@ -597,7 +597,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "notifies us of the missing else branch on line 27 that's hit" do
-        expect(subject.branches_report[27]).to eq [[0, "+"], [1, "-"]]
+        expect(subject.branches_report[27]).to eq [[:then, 0], [:else, 1]]
       end
     end
   end

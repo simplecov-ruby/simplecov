@@ -30,5 +30,5 @@ Feature:
     When I open the detailed view for "lib/faked_project/some_class.rb"
     Then I should see a line coverage summary of 12/15 for the file
     And I should see a branch coverage summary of 1/2 for the file
-    And I should see coverage branch data like: 1, +
-    And I should see coverage branch data like: 0, -
+    And I should see coverage branch data like "then: 1"
+    And I should see coverage branch data like "else: 0"
