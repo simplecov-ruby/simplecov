@@ -1,0 +1,42 @@
+name: stable
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.4.9, 2.5.7, 2.6.5, 2.7.0, jruby-9.2.9.0]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup ruby
+        uses: eregon/use-ruby-action@master
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install java
+        run: sudo apt-get -y install openjdk-8-jre-headless
+        if: matrix.ruby == 'jruby-9.2.9.0'
+
+      - name: Install bundler
+        run: gem i bundler
+
+      - name: Install dependencies
+        run:  bundle install --without benchmark --jobs=3 --retry=3
+
+      - name: Run tests (MRI)
+        run: bundle exec rake
+        if: matrix.ruby != 'jruby-9.2.9.0'
+
+      - name: Run tests (JRuby)
+        run: JRUBY_OPTS=--debug bundle exec rake
+        if: matrix.ruby == 'jruby-9.2.9.0'
