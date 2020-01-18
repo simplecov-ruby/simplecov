@@ -23,6 +23,14 @@ GIT
       regexp_parser (~> 1.5)
       xpath (~> 3.2)
 
+GIT
+  remote: https://github.com/twalpole/apparition.git
+  revision: 1cee56d20a1a3df20fcb7c657d19d2031643ef73
+  specs:
+    apparition (0.4.0)
+      capybara (~> 3.13, < 4)
+      websocket-driver (>= 0.6.5)
+
 PATH
   remote: .
   specs:
@@ -40,9 +48,7 @@ GEM
     benchmark-ips (2.7.2)
     builder (3.2.4)
     childprocess (3.0.0)
-    cliver (0.3.2)
     coderay (1.1.2)
-    concurrent-ruby (1.1.5)
     contracts (0.16.0)
     cucumber (3.1.2)
       builder (>= 2.1.2)
@@ -60,16 +66,8 @@ GEM
     cucumber-expressions (6.0.1)
     cucumber-tag_expressions (1.1.1)
     cucumber-wire (0.0.1)
-    cuprite (0.8)
-      capybara (>= 2.1, < 4)
-      ferrum (~> 0.6.0)
     diff-lcs (1.3)
     docile (1.3.2)
-    ferrum (0.6.2)
-      addressable (~> 2.6)
-      cliver (~> 0.3)
-      concurrent-ruby (~> 1.1)
-      websocket-driver (>= 0.6, < 0.8)
     ffi (1.12.1)
     ffi (1.12.1-java)
     gherkin (5.1.0)
@@ -142,11 +140,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  apparition!
   aruba!
   benchmark-ips
   capybara!
   cucumber (~> 3.1)
-  cuprite (= 0.8)
   pry
   rake (~> 13.0)
   rspec (~> 3.2)
