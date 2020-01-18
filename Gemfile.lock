@@ -19,7 +19,7 @@ GIT
 
 GIT
   remote: https://github.com/teamcapybara/capybara.git
-  revision: c8bceae5ac95b607b58acd723d647deb98e49cc3
+  revision: 55f8304d1abcbb14b1a655db12dcdf4d71dfc675
   specs:
     capybara (3.30.1)
       addressable
@@ -77,8 +77,8 @@ GEM
       cliver (~> 0.3)
       concurrent-ruby (~> 1.1)
       websocket-driver (>= 0.6, < 0.8)
-    ffi (1.11.3)
-    ffi (1.11.3-java)
+    ffi (1.12.1)
+    ffi (1.12.1-java)
     gherkin (5.1.0)
     jaro_winkler (1.5.4)
     jaro_winkler (1.5.4-java)
@@ -131,10 +131,10 @@ GEM
     ruby-progressbar (1.10.1)
     spoon (0.0.6)
       ffi
-    test-unit (3.3.4)
+    test-unit (3.3.5)
       power_assert
     thor (1.0.1)
-    unicode-display_width (1.6.0)
+    unicode-display_width (1.6.1)
     websocket-driver (0.7.1)
       websocket-extensions (>= 0.1.0)
     websocket-driver (0.7.1-java)
