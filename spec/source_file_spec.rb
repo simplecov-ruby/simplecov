@@ -489,14 +489,19 @@ describe SimpleCov::SourceFile do
     end
 
     describe "branch coverage" do
-      it "covers 1/3" do
-        expect(subject.total_branches.size).to eq 3
+      it "covers 1/4 (counting the else branch)" do
+        expect(subject.total_branches.size).to eq 4
         expect(subject.covered_branches.size).to eq 1
-        expect(subject.missed_branches.size).to eq 2
+        expect(subject.missed_branches.size).to eq 3
+      end
+
+      it "marks the non declared else branch as missing at the point of the case" do
+        expect(subject.branches_for_line(3)).to eq [[0, "-"]]
       end
 
       it "covers the branch that includes 42" do
         expect(subject.branches_report).to eq(
+          3 => [[0, "-"]],
           4 => [[0, "+"]],
           6 => [[1, "+"]],
           8 => [[0, "+"]]
