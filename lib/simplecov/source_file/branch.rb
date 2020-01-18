@@ -6,34 +6,21 @@ module SimpleCov
     # Representing single branch that has been detected in coverage report.
     # Give us support methods that handle needed calculations.
     class Branch
-      attr_reader :start_line, :end_line, :coverage
+      attr_reader :start_line, :end_line, :coverage, :type
 
       # rubocop:disable Metrics/ParameterLists
-      def initialize(start_line:, end_line:, coverage:, inline:, positive:)
+      def initialize(start_line:, end_line:, coverage:, inline:, type:)
         @start_line = start_line
         @end_line   = end_line
         @coverage   = coverage
         @inline     = inline
-        @positive   = positive
+        @type       = type
         @skipped    = false
       end
       # rubocop:enable Metrics/ParameterLists
 
       def inline?
         @inline
-      end
-
-      def positive?
-        @positive
-      end
-
-      #
-      # Branch is negative
-      #
-      # @return [Boolean]
-      #
-      def negative?
-        !positive?
       end
 
       #
@@ -52,15 +39,6 @@ module SimpleCov
       #
       def missed?
         !skipped? && coverage.zero?
-      end
-
-      #
-      # Return the sign depends on branch is positive or negative
-      #
-      # @return [String]
-      #
-      def badge
-        positive? ? "+" : "-"
       end
 
       # The line on which we want to report the coverage
@@ -99,7 +77,7 @@ module SimpleCov
       # @return [Array]
       #
       def report
-        [coverage, badge]
+        [type, coverage]
       end
     end
   end

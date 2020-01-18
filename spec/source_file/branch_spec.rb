@@ -3,32 +3,24 @@
 require "helper"
 
 describe SimpleCov::SourceFile::Branch do
-  let(:positive_branch) do
-    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: true)
+  let(:if_branch) do
+    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, type: :then)
   end
 
-  let(:negative_branch) do
-    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: false)
+  let(:else_branch) do
+    described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, type: :else)
   end
 
   context "a source branch if..else" do
-    it "has positive badge of positive branch" do
-      expect(positive_branch.badge).to eq "+"
-    end
-
-    it "has negative badge of negative branch" do
-      expect(negative_branch.badge).to eq "-"
-    end
-
-    it "corrects report branch report" do
-      expect(positive_branch.report).to eq([0, "+"])
-      expect(negative_branch.report).to eq([0, "-"])
+    it "correct branch report" do
+      expect(if_branch.report).to eq([:then, 0])
+      expect(else_branch.report).to eq([:else, 0])
     end
   end
 
   context "A source branch with coverage" do
     let(:covered_branch) do
-      described_class.new(start_line: 1, end_line: 3, coverage: 1, inline: false, positive: true)
+      described_class.new(start_line: 1, end_line: 3, coverage: 1, inline: false, type: :then)
     end
 
     it "is covered" do
@@ -48,7 +40,7 @@ describe SimpleCov::SourceFile::Branch do
 
   context "a source branch without coverage" do
     let(:uncovered_branch) do
-      described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, positive: true)
+      described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, type: :then)
     end
 
     it "isn't covered" do
@@ -67,7 +59,7 @@ describe SimpleCov::SourceFile::Branch do
   end
 
   describe "skipping lines" do
-    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, positive: true) }
+    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, type: :then) }
 
     it "isn't skipped by default" do
       expect(subject).not_to be_skipped
@@ -80,7 +72,7 @@ describe SimpleCov::SourceFile::Branch do
   end
 
   describe "#overlaps_with?(range)" do
-    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, positive: true) }
+    subject { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, type: :then) }
 
     it "doesn't overlap with a range beyond its lines" do
       expect(subject.overlaps_with?(8..10)).to eq false

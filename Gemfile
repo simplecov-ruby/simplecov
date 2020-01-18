@@ -3,10 +3,10 @@
 source "https://rubygems.org"
 
 # Uncomment this to use local copy of simplecov-html in development when checked out
-# gem "simplecov-html", :path => ::File.dirname(__FILE__) + "/../simplecov-html"
+# gem "simplecov-html", path: File.dirname(__FILE__) + "/../simplecov-html"
 
 # Uncomment this to use development version of html formatter from github
-gem "simplecov-html", github: "colszowka/simplecov-html"
+gem "simplecov-html", github: "colszowka/simplecov-html", branch: "branch-report-mentioning-branch-types"
 
 group :development do
   gem "aruba", github: "cucumber/aruba"

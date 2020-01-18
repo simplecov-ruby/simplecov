@@ -210,39 +210,24 @@ module SimpleCov
       #     [:then, 4, 6, 6, 6, 10]
       #
       # which is [type, id, start_line, start_col, end_line, end_col]
-      _condition_type, condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
+      _condition_type, _condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
 
       branches.map do |branch_data, hit_count|
         branch_data = restore_ruby_data_structure(branch_data)
-        build_branch(branch_data, hit_count, condition_start_line, condition_id)
+        build_branch(branch_data, hit_count, condition_start_line)
       end
     end
 
-    def build_branch(branch_data, hit_count, condition_start_line, condition_id)
-      type, id, start_line, _start_col, end_line, _end_col = branch_data
+    def build_branch(branch_data, hit_count, condition_start_line)
+      type, _id, start_line, _start_col, end_line, _end_col = branch_data
 
       SourceFile::Branch.new(
         start_line: start_line,
         end_line:   end_line,
         coverage:   hit_count,
         inline:     start_line == condition_start_line,
-        positive:   positive_branch?(condition_id, id, type)
+        type:       type
       )
-    end
-
-    #
-    # Branch is positive or negative.
-    # For `case` conditions, `when` always supposed as positive branch.
-    # For `if, else` conditions:
-    # coverage returns matrices ex: [:if, 0,..] => {[:then, 1,..], [:else, 2,..]},
-    # positive branch always has id equals to condition id incremented by 1.
-    #
-    # @return [Boolean]
-    #
-    def positive_branch?(condition_id, branch_id, branch_type)
-      return true if branch_type == :when
-
-      branch_id == (1 + condition_id)
     end
 
     #
@@ -277,7 +262,7 @@ module SimpleCov
     # @return [Boolean]
     #
     def line_with_missed_branch?(line_number)
-      branches_for_line(line_number).select { |count, _sign| count.zero? }.any?
+      branches_for_line(line_number).select { |_type, count| count.zero? }.any?
     end
 
     #
