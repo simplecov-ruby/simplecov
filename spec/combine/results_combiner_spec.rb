@@ -56,13 +56,22 @@ describe SimpleCov::Combine::ResultsCombiner do
 
       it "has proper results for sample.rb" do
         expect(subject[source_fixture("sample.rb")]["lines"]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
-        expect(subject[source_fixture("sample.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(47)
+
+        # gotta configure max line so it doesn't get ridiculous
+        # rubocop:disable Style/IfUnlessModifier
+        if SimpleCov.branch_coverage_supported?
+          expect(subject[source_fixture("sample.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(47)
+        end
+        # rubocop:enable Style/IfUnlessModifier
       end
 
       it "has proper results for user.rb" do
         expect(subject[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
-        expect(subject[source_fixture("app/models/user.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
-        expect(subject[source_fixture("app/models/user.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
+
+        if SimpleCov.branch_coverage_supported?
+          expect(subject[source_fixture("app/models/user.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
+          expect(subject[source_fixture("app/models/user.rb")]["branches"][[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
+        end
       end
 
       it "has proper results for sample_controller.rb" do
