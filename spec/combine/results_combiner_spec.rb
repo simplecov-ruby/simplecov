@@ -4,14 +4,8 @@ require "helper"
 
 describe SimpleCov::Combine::ResultsCombiner do
   describe "with two faked coverage resultsets" do
-    after do
-      SimpleCov.clear_coverage_criteria
-    end
-
-    before do
-      SimpleCov.enable_coverage :branch
-
-      @resultset1 = {
+    let(:resultset1) do
+      {
         source_fixture("sample.rb") => {
           "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
           "branches" => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
@@ -26,8 +20,10 @@ describe SimpleCov::Combine::ResultsCombiner do
         source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]},  # loaded only in the first resultset
         source_fixture("three.rb") => {"lines" => [nil, 1, 1]}
       }
+    end
 
-      @resultset2 = {
+    let(:resultset2) do
+      {
         source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
         source_fixture("app/models/user.rb") => {
           "lines" => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
@@ -39,13 +35,23 @@ describe SimpleCov::Combine::ResultsCombiner do
         source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]},  # loaded only in the second resultset
         source_fixture("three.rb") => {"lines" => [nil, 1, 4]}
       }
+    end
 
-      @resultset3 = {source_fixture("three.rb") => {"lines" => [nil, 1, 2]}}
+    let(:resultset3) do
+      {source_fixture("three.rb") => {"lines" => [nil, 1, 2]}}
+    end
+
+    after do
+      SimpleCov.clear_coverage_criteria
+    end
+
+    before do
+      SimpleCov.enable_coverage :branch
     end
 
     context "a merge" do
       subject do
-        SimpleCov::Combine::ResultsCombiner.combine(@resultset1, @resultset2, @resultset3)
+        SimpleCov::Combine::ResultsCombiner.combine(resultset1, resultset2, resultset3)
       end
 
       it "has proper results for sample.rb" do
@@ -105,5 +111,27 @@ describe SimpleCov::Combine::ResultsCombiner do
 
     expect(merged_result[source_fixture("sample.rb")]["lines"]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
     expect(merged_result[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
+  end
+
+  context "outdated file formats" do
+    it "warns when trying to work with outdated file formats but returns a good value" do
+      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
+      expect(described_class).to receive(:warn_wrong_format)
+
+      merged_result = described_class.combine(old_resultset)
+
+      expect(merged_result).to eq({})
+    end
+
+    it "warns when trying to work with outdated file formats but still merges" do
+      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
+      good_resultset = {source_fixture("three.rb") => {"lines" => [1, 0, nil]}}
+
+      expect(described_class).to receive(:warn_wrong_format)
+
+      merged_result = described_class.combine(old_resultset, good_resultset)
+
+      expect(merged_result).to eq(good_resultset)
+    end
   end
 end
