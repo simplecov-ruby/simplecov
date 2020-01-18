@@ -1,4 +1,5 @@
 @parallel_tests_project @rspec
+@disable-bundler
 
 Feature:
 
