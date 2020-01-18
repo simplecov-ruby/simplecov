@@ -9,10 +9,10 @@ source "https://rubygems.org"
 # gem "simplecov-html", github: "colszowka/simplecov-html"
 
 group :development do
+  gem "apparition", github: "twalpole/apparition"
   gem "aruba", github: "cucumber/aruba"
   gem "capybara", github: "teamcapybara/capybara"
   gem "cucumber", "~> 3.1"
-  gem "cuprite", "0.8"
   gem "rake", "~> 13.0"
   gem "rspec", "~> 3.2"
   gem "pry"
