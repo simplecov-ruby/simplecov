@@ -28,7 +28,7 @@ module SimpleCov
     def initialize(original_result)
       @original_result = original_result.freeze
       @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage), symbolize_names: true)) if File.file?(filename.to_s)
+        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
       end.compact.sort_by(&:filename))
       filter!
     end
@@ -61,26 +61,29 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      {command_name.to_sym => {coverage: coverage, timestamp: created_at.to_i}}
+      {
+        command_name => {
+          "coverage" => coverage,
+          "timestamp" => created_at.to_i
+        }
+      }
     end
 
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       command_name, data = hash.first
 
-      result = SimpleCov::Result.new(
-        data[:coverage]
-      )
+      result = SimpleCov::Result.new(data["coverage"])
 
-      result.command_name = command_name.to_s
-      result.created_at = Time.at(data[:timestamp])
+      result.command_name = command_name
+      result.created_at = Time.at(data["timestamp"])
       result
     end
 
   private
 
     def coverage
-      keys = original_result.keys & filenames.map(&:to_sym)
+      keys = original_result.keys & filenames
       Hash[keys.zip(original_result.values_at(*keys))]
     end
 

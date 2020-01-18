@@ -28,8 +28,8 @@ module SimpleCov
       #
       # Manage combining results on files level
       #
-      # @param [Hash] result_a
-      # @param [Hash] result_b
+      # @param [Hash] combined_results
+      # @param [Hash] result
       #
       # @return [Hash]
       #
@@ -56,7 +56,7 @@ module SimpleCov
       # otherwise ignore it. See #820
       #
       # Currently correct format is:
-      # { symbol_file_path => {coverage_criterion => coverage_date}}
+      # { file_path_string => {coverage_criterion => coverage_date}}
       #
       # Internal use/reliance only.
       def correct_format?(result)
@@ -67,10 +67,10 @@ module SimpleCov
         # I so wish I could already use pattern matching
         key, data = result.first
 
-        key.is_a?(Symbol) && second_level_choice_of_criterion?(data)
+        key.is_a?(String) && second_level_choice_of_criterion?(data)
       end
 
-      SECOND_LEVEL_KEYS = %i[lines branches].freeze
+      SECOND_LEVEL_KEYS = %w[lines branches].freeze
       def second_level_choice_of_criterion?(data)
         second_level_key, = data.first
 
