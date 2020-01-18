@@ -4,7 +4,6 @@ require "bundler"
 Bundler.setup
 require "aruba/cucumber"
 require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
-require_relative "aruba_bundler_run_command_fix"
 require "capybara/cucumber"
 require "capybara/cuprite"
 require "simplecov"
