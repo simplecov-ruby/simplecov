@@ -319,12 +319,16 @@ return if number.odd?
 ```
 
 If all the code in that method was covered you'd never know if the guard clause was ever
-triggered with line coverage as just evaluating the condition marks it as covered.
+triggered! With line coverage as just evaluating the condition marks it as covered.
 
-In the HTML report the lines of code will be annotated like `hit_count, positive_or_negative_branch`:
+In the HTML report the lines of code will be annotated like `branch_type: hit_count`:
 
-* `2, +` - the positive branch was executed twice
-* `0, -` - the negative branch was never executed
+* `then: 2` - the then branch (of an `if`) was executed twice
+* `else: 0` - the else branch (of an `if` or `case`) was never executed
+
+Not that even if you don't declare an `else` branch it will still show up in the coverage
+reports meaning that the condition of the `if` was not hit or that no `when` of `case`
+was hit during the test runs.
 
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
 conditionals - meaning coverage of sequential code is of no interest to it. A file without
