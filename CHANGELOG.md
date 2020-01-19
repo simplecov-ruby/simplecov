@@ -3,8 +3,15 @@
 
 ## Enhancements
 * only turn on the requested coverage criteria (when activating branch coverage before SimpleCov would also instruct Ruby to take Method coverage)
+* Change how branch coverage is displayed, now it's `branch_type: hit_count` which should be more self explanatory. See [#830](https://github.com/colszowka/simplecov/pull/830) for an example and feel free to give feedback!
 * Allow early running exit tasks and avoid the `at_exit` hook through the `SimpleCov.run_exit_tasks!` method. (thanks [@macumber]: https://github.com/macumber))
 * Allow manual collation of result sets through the `SimpleCov.collate` entrypoint. See the README for more details (thanks [@ticky](https://github.com/ticky))
+* Within `case`, even if there is no `else` branch declared show missing coverage for it (aka no branch of it). See [#825](https://github.com/colszowka/simplecov/pull/825)
+* Stop symbolizing all keys when loading cache (should lead to be faster and consume less memory)
+* Cache whether we can use/are using branch coverage (should be slightly faster)
+
+## Bugfixes
+* Fix a crash that happened when an old version of our internal cache file `.resultset.json` was still present
 
 0.18.0.beta1 (2020-01-05)
 ===================
