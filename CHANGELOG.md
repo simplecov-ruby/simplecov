@@ -1,4 +1,4 @@
-0.18.0.beta2 (unreleased)
+0.18.0.beta2 (2020-01-19)
 ===================
 
 ## Enhancements
