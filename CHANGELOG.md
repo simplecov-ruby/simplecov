@@ -1,3 +1,12 @@
+0.18.0.beta3 (unreleased)
+========================
+
+## Enhancements
+* Instead of ignoring old `.resultset.json`s that are inside the merge timeout, adapt and respect them
+
+## Bugfixes
+* Remove the constant warning printing if you still have a `.resultset.json` in pre 0.18 layout that is within your merge timeout
+
 0.18.0.beta2 (2020-01-19)
 ===================
 

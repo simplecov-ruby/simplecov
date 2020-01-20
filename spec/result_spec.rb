@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe "result" do
+describe SimpleCov::Result do
   context "with a (mocked) Coverage.result" do
     before do
       @prev_filters = SimpleCov.filters
@@ -204,6 +204,16 @@ describe "result" do
           expect(files).to be_a SimpleCov::FileList
         end
       end
+    end
+  end
+
+  context "with outdated result format" do
+    it "adapts pre 0.18 results correctly to a new result format" do
+      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
+
+      expect(described_class.new(old_resultset).original_result).to eq(
+        source_fixture("three.rb") => {"lines" => [nil, 1, 2]}
+      )
     end
   end
 end

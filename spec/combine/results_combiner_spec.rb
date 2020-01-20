@@ -121,26 +121,4 @@ describe SimpleCov::Combine::ResultsCombiner do
     expect(merged_result[source_fixture("sample.rb")]["lines"]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
     expect(merged_result[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
   end
-
-  context "outdated file formats" do
-    it "warns when trying to work with outdated file formats but returns a good value" do
-      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
-      expect(described_class).to receive(:warn_wrong_format)
-
-      merged_result = described_class.combine(old_resultset)
-
-      expect(merged_result).to eq({})
-    end
-
-    it "warns when trying to work with outdated file formats but still merges" do
-      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
-      good_resultset = {source_fixture("three.rb") => {"lines" => [1, 0, nil]}}
-
-      expect(described_class).to receive(:warn_wrong_format)
-
-      merged_result = described_class.combine(old_resultset, good_resultset)
-
-      expect(merged_result).to eq(good_resultset)
-    end
-  end
 end
