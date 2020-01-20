@@ -60,8 +60,7 @@ end
 When /^I open the detailed view for "(.+)"$/ do |file_path|
   click_on(file_path)
 
-  header_text = page.find(".header h3", visible: true).text
-  expect(header_text).to eq file_path
+  expect(page).to have_css(".header h3", visible: true, text: file_path)
 end
 
 Then /^I should see coverage branch data like "(.+)"$/ do |text|
