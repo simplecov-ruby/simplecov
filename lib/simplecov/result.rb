@@ -26,8 +26,9 @@ module SimpleCov
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
     def initialize(original_result)
-      @original_result = original_result.freeze
-      @files = SimpleCov::FileList.new(original_result.map do |filename, coverage|
+      result = adapt_result(original_result)
+      @original_result = result.freeze
+      @files = SimpleCov::FileList.new(result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
       end.compact.sort_by(&:filename))
       filter!
@@ -81,6 +82,31 @@ module SimpleCov
     end
 
   private
+
+    # We changed the format of the raw result data in simplecov, as people are likely
+    # to have "old" resultsets lying around (but not too old so that they're still
+    # considered we can adapt them).
+    # See https://github.com/colszowka/simplecov/pull/824#issuecomment-576049747
+    def adapt_result(result)
+      if pre_simplecov_0_18_result?(result)
+        adapt_pre_simplecov_0_18_result(result)
+      else
+        result
+      end
+    end
+
+    # pre 0.18 coverage data pointed from file directly to an array of line coverage
+    def pre_simplecov_0_18_result?(result)
+      _key, data = result.first
+
+      data.is_a?(Array)
+    end
+
+    def adapt_pre_simplecov_0_18_result(result)
+      result.map do |file_path, line_coverage_data|
+        [file_path, {"lines" => line_coverage_data}]
+      end.to_h
+    end
 
     def coverage
       keys = original_result.keys & filenames
