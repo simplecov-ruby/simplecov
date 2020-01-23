@@ -416,6 +416,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
 require "set"
 require "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
+require "simplecov/coverage_data"
 require "simplecov/exit_codes"
 require "simplecov/profiles"
 require "simplecov/source_file/line"
