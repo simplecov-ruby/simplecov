@@ -15,7 +15,7 @@ SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
 [Changelog]: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md "Project Changelog"
 [Rubygem]: http://rubygems.org/gems/simplecov "SimpleCov @ rubygems.org"
-[Continuous Integration]: https://github.com/colszowka/simplecov/actions "SimpleCov is built around the clock by github.com"
+[Continuous Integration]: https://github.com/colszowka/simplecov/actions?query=workflow%3Astable "SimpleCov is built around the clock by github.com"
 [Dependencies]: https://gemnasium.com/colszowka/simplecov "SimpleCov dependencies on Gemnasium"
 [simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
 
