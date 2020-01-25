@@ -44,13 +44,13 @@ module SimpleCov
     def compute_percent(covered, total)
       return 100.0 if total.zero?
 
-      Float(covered * 100.0 / total)
+      covered * 100.0 / total
     end
 
     def compute_strength(total_strength, total)
       return 0.0 if total.zero?
 
-      Float(total_strength.to_f / total)
+      total_strength.to_f / total
     end
   end
 end
