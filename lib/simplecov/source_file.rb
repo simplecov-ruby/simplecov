@@ -110,7 +110,7 @@ module SimpleCov
     #
     # Return the relevant branches to source file
     def total_branches
-      covered_branches + missed_branches
+      @total_branches ||= covered_branches + missed_branches
     end
 
     #
