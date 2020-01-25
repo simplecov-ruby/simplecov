@@ -9,11 +9,11 @@ module SimpleCov
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
-    attr_reader :coverage
+    attr_reader :coverage_data
 
-    def initialize(filename, coverage)
+    def initialize(filename, coverage_data)
       @filename = filename
-      @coverage = coverage
+      @coverage_data = coverage_data
     end
 
     # The path to this source file relative to the projects directory
@@ -28,6 +28,14 @@ module SimpleCov
       @src ||= File.open(filename, "rb", &:readlines)
     end
     alias source src
+
+    def coverage
+      @coverage ||=
+        {
+          **line_coverage,
+          **branch_coverage
+        }
+    end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
     # and thus including coverage data. Aliased as :source_lines
@@ -60,44 +68,7 @@ module SimpleCov
 
     # Returns the number of relevant lines (covered + missed)
     def lines_of_code
-      covered_lines.size + missed_lines.size
-    end
-
-    def build_lines
-      coverage_exceeding_source_warn if coverage["lines"].size > src.size
-      lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage["lines"][i - 1])
-      end
-      process_skipped_lines(lines)
-    end
-
-    # no_cov_chunks is zero indexed to work directly with the array holding the lines
-    def no_cov_chunks
-      @no_cov_chunks ||= build_no_cov_chunks
-    end
-
-    def build_no_cov_chunks
-      no_cov_lines = src.map.with_index(1).select { |line, _index| LinesClassifier.no_cov_line?(line) }
-
-      warn "uneven number of nocov comments detected" if no_cov_lines.size.odd?
-
-      no_cov_lines.each_slice(2).map do |(_line_start, index_start), (_line_end, index_end)|
-        index_start..index_end
-      end
-    end
-
-    def process_skipped_lines(lines)
-      # the array the lines are kept in is 0-based whereas the line numbers in the nocov
-      # chunks are 1-based and are expected to be like this in other parts (and it's also
-      # arguably more understandable)
-      no_cov_chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
-
-      lines
-    end
-
-    # Warning to identify condition from Issue #56
-    def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
+      coverage[:line]&.total
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -107,25 +78,15 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no coverage lines
     def covered_percent
-      return 100.0 if no_lines?
-
-      return 0.0 if relevant_lines.zero?
-
-      Float(covered_lines.size * 100.0 / relevant_lines.to_f)
+      coverage[:line]&.percent
     end
 
     def covered_strength
-      return 0.0 if relevant_lines.zero?
-
-      lines_strength / relevant_lines.to_f
+      coverage[:line]&.strength
     end
 
     def no_lines?
       lines.length.zero? || (lines.length == never_lines.size)
-    end
-
-    def lines_strength
-      lines.map(&:coverage).compact.reduce(:+)
     end
 
     def relevant_lines
@@ -143,10 +104,7 @@ module SimpleCov
     end
 
     def branches_coverage_percent
-      return 100.0 if no_branches?
-      return 0.0 if covered_branches.empty?
-
-      Float(covered_branches.size * 100.0 / total_branches.size.to_f)
+      coverage[:branch]&.percent
     end
 
     #
@@ -161,14 +119,104 @@ module SimpleCov
       @branches_report ||= build_branches_report
     end
 
-    ## Related to source file branches statistics
+    #
+    # Select the covered branches
+    # Here we user tree schema because some conditions like case may have additional
+    # else that is not in declared inside the code but given by default by coverage report
+    #
+    # @return [Array]
+    #
+    def covered_branches
+      @covered_branches ||= branches.select(&:covered?)
+    end
+
+    #
+    # Select the missed branches with coverage equal to zero
+    #
+    # @return [Array]
+    #
+    def missed_branches
+      @missed_branches ||= branches.select(&:missed?)
+    end
+
+    def branches_for_line(line_number)
+      branches_report.fetch(line_number, [])
+    end
+
+    #
+    # Check if any branches missing on given line number
+    #
+    # @param [Integer] line_number
+    #
+    # @return [Boolean]
+    #
+    def line_with_missed_branch?(line_number)
+      branches_for_line(line_number).select { |_type, count| count.zero? }.any?
+    end
+
+  private
+
+    # no_cov_chunks is zero indexed to work directly with the array holding the lines
+    def no_cov_chunks
+      @no_cov_chunks ||= build_no_cov_chunks
+    end
+
+    def build_no_cov_chunks
+      no_cov_lines = src.map.with_index(1).select { |line, _index| LinesClassifier.no_cov_line?(line) }
+
+      warn "uneven number of nocov comments detected" if no_cov_lines.size.odd?
+
+      no_cov_lines.each_slice(2).map do |(_line_start, index_start), (_line_end, index_end)|
+        index_start..index_end
+      end
+    end
+
+    def build_lines
+      coverage_exceeding_source_warn if coverage_data["lines"].size > src.size
+      lines = src.map.with_index(1) do |src, i|
+        SimpleCov::SourceFile::Line.new(src, i, coverage_data["lines"][i - 1])
+      end
+      process_skipped_lines(lines)
+    end
+
+    def process_skipped_lines(lines)
+      # the array the lines are kept in is 0-based whereas the line numbers in the nocov
+      # chunks are 1-based and are expected to be like this in other parts (and it's also
+      # arguably more understandable)
+      no_cov_chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
+
+      lines
+    end
+
+    def lines_strength
+      lines.map(&:coverage).compact.reduce(:+)
+    end
+
+    # Warning to identify condition from Issue #56
+    def coverage_exceeding_source_warn
+      warn "Warning: coverage data provided by Coverage [#{coverage_data['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
+    end
+
+    #
+    # Build full branches report
+    # Root branches represent the wrapper of all condition state that
+    # have inside the branches
+    #
+    # @return [Hash]
+    #
+    def build_branches_report
+      branches.reject(&:skipped?).each_with_object({}) do |branch, coverage_statistics|
+        coverage_statistics[branch.report_line] ||= []
+        coverage_statistics[branch.report_line] << branch.report
+      end
+    end
 
     #
     # Call recursive method that transform our static hash to array of objects
     # @return [Array]
     #
     def build_branches
-      coverage_branch_data = coverage.fetch("branches", {})
+      coverage_branch_data = coverage_data.fetch("branches", {})
       branches = coverage_branch_data.flat_map do |condition, coverage_branches|
         build_branches_from(condition, coverage_branches)
       end
@@ -230,53 +278,23 @@ module SimpleCov
       )
     end
 
-    #
-    # Select the covered branches
-    # Here we user tree schema because some conditions like case may have additional
-    # else that is not in declared inside the code but given by default by coverage report
-    #
-    # @return [Array]
-    #
-    def covered_branches
-      @covered_branches ||= branches.select(&:covered?)
+    def line_coverage
+      {
+        line: CoverageData.new(
+          total_strength: lines_strength,
+          covered:  covered_lines.size,
+          missed:   missed_lines.size
+        )
+      }
     end
 
-    #
-    # Select the missed branches with coverage equal to zero
-    #
-    # @return [Array]
-    #
-    def missed_branches
-      @missed_branches ||= branches.select(&:missed?)
-    end
-
-    def branches_for_line(line_number)
-      branches_report.fetch(line_number, [])
-    end
-
-    #
-    # Check if any branches missing on given line number
-    #
-    # @param [Integer] line_number
-    #
-    # @return [Boolean]
-    #
-    def line_with_missed_branch?(line_number)
-      branches_for_line(line_number).select { |_type, count| count.zero? }.any?
-    end
-
-    #
-    # Build full branches report
-    # Root branches represent the wrapper of all condition state that
-    # have inside the branches
-    #
-    # @return [Hash]
-    #
-    def build_branches_report
-      branches.reject(&:skipped?).each_with_object({}) do |branch, coverage_statistics|
-        coverage_statistics[branch.report_line] ||= []
-        coverage_statistics[branch.report_line] << branch.report
-      end
+    def branch_coverage
+      {
+        branch: CoverageData.new(
+          covered: covered_branches.size,
+          missed:  missed_branches.size
+        )
+      }
     end
   end
 end
