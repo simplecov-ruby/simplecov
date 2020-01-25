@@ -117,7 +117,7 @@ module SimpleCov
     def covered_strength
       return 0.0 if relevant_lines.zero?
 
-      (lines_strength / relevant_lines.to_f).round(1)
+      lines_strength / relevant_lines.to_f
     end
 
     def no_lines?
