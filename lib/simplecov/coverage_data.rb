@@ -13,21 +13,44 @@ module SimpleCov
   class CoverageData
     attr_reader :total, :covered, :missed, :strength, :percent
 
+    def self.from(coverage_data)
+      sum_covered, sum_missed, sum_total_strength =
+        coverage_data.reduce([0, 0, 0.0]) do |(covered, missed, total_strength), file_coverage_data|
+          [
+            covered + file_coverage_data.covered,
+            missed + file_coverage_data.missed,
+            # gotta remultiply with loc because files have different strenght and loc
+            # giving them a different "weight" in total
+            total_strength + (file_coverage_data.strength * file_coverage_data.total)
+          ]
+        end
+
+      new(covered: sum_covered, missed: sum_missed, total_strength: sum_total_strength)
+    end
+
     # Requires only covered, missed and strength to be initialized.
     #
     # Other values are computed by this class.
-    def initialize(covered:, missed:, strength: nil)
+    def initialize(covered:, missed:, total_strength: 0.0)
       @covered  = covered
       @missed   = missed
-      @strength = strength
       @total    = covered + missed
       @percent  = compute_percent(covered, total)
+      @strength = compute_strength(total_strength, @total)
     end
+
+  private
 
     def compute_percent(covered, total)
       return 100.0 if total.zero?
 
       Float(covered * 100.0 / total)
+    end
+
+    def compute_strength(total_strength, total)
+      return 0.0 if total.zero?
+
+      Float(total_strength.to_f / total)
     end
   end
 end

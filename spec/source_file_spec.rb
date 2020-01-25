@@ -247,7 +247,7 @@ describe SimpleCov::SourceFile do
     end
 
     it "has 0.0 covered_percent" do
-      expect(subject.covered_percent).to eq 0.0
+      expect(subject.covered_percent).to eq 100.0
     end
   end
 
@@ -263,7 +263,12 @@ describe SimpleCov::SourceFile do
     end
 
     it "has 0.0 covered_percent" do
-      expect(subject.covered_percent).to eq 0.0
+      expect(subject.covered_percent).to eq 100.0
+    end
+
+    it "has no covered or missed lines" do
+      expect(subject.covered_lines).to be_empty
+      expect(subject.missed_lines).to be_empty
     end
   end
 
@@ -302,7 +307,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "has 0.0 covered_percent" do
-        expect(subject.covered_percent).to eq 0.0
+        expect(subject.covered_percent).to eq 100.0
       end
     end
 

@@ -13,7 +13,7 @@ module SimpleCov
                    # also delegating methods implemented in Enumerable as they have
                    # custom Array implementations which are presumably better/more
                    # resource efficient
-                   :size, :map,
+                   :size, :map, :count,
                    # surprisingly not in Enumerable
                    :empty?, :length,
                    # still act like we're kinda an array
@@ -24,24 +24,17 @@ module SimpleCov
     end
 
     def coverage
-      {
-        **line_coverage,
-        **branch_coverage
-      }
+      @coverage ||= compute_coverage
     end
 
     # Returns the count of lines that have coverage
     def covered_lines
-      return 0.0 if empty?
-
-      map { |f| f.covered_lines.count }.inject(:+)
+      coverage[:line]&.covered
     end
 
     # Returns the count of lines that have been missed
     def missed_lines
-      return 0.0 if empty?
-
-      map { |f| f.missed_lines.count }.inject(:+)
+      coverage[:line]&.missed
     end
 
     # Returns the count of lines that are not relevant for coverage
@@ -71,75 +64,51 @@ module SimpleCov
 
     # Returns the overall amount of relevant lines of code across all files in this list
     def lines_of_code
-      covered_lines + missed_lines
+      coverage[:line]&.total
     end
 
     # Computes the coverage based upon lines covered and lines missed
     # @return [Float]
     def covered_percent
-      percent(covered_lines, lines_of_code)
+      coverage[:line]&.percent
     end
 
     # Computes the strength (hits / line) based upon lines covered and lines missed
     # @return [Float]
     def covered_strength
-      return 0.0 if empty? || lines_of_code.zero?
-
-      Float(map { |f| f.covered_strength * f.lines_of_code }.inject(:+) / lines_of_code)
+      coverage[:line]&.strength
     end
 
     # Return total count of branches in all files
     def total_branches
-      return 0 if empty?
-
-      map { |file| file.total_branches.count }.inject(:+)
+      coverage[:branch]&.total
     end
 
     # Return total count of covered branches
     def covered_branches
-      return 0 if empty?
-
-      map { |file| file.covered_branches.count }.inject(:+)
+      coverage[:branch]&.covered
     end
 
     # Return total count of covered branches
     def missed_branches
-      return 0 if empty?
-
-      map { |file| file.missed_branches.count }.inject(:+)
+      coverage[:branch]&.missed
     end
 
     def branch_covered_percent
-      percent(covered_branches, total_branches)
+      coverage[:branch]&.percent
     end
 
   private
 
-    def percent(covered, total)
-      return 100.0 if empty? || total.zero?
+    def compute_coverage
+      total_coverage_data = @files.each_with_object(line: [], branch: []) do |file, together|
+        together[:line] << file.coverage[:line]
+        together[:branch] << file.coverage[:branch] if SimpleCov.branch_coverage?
+      end
 
-      Float(covered * 100.0 / total)
-    end
-
-    def line_coverage
-      {
-        line: CoverageData.new(
-          strength: covered_strength,
-          covered: covered_lines,
-          missed: missed_lines
-        )
-      }
-    end
-
-    def branch_coverage
-      return nil unless SimpleCov.branch_coverage?
-
-      {
-        branch: CoverageData.new(
-          covered: covered_branches,
-          missed: missed_branches
-        )
-      }
+      coverage_data = {line: CoverageData.from(total_coverage_data[:line])}
+      coverage_data[:branch] = CoverageData.from(total_coverage_data[:branch]) if SimpleCov.branch_coverage?
+      coverage_data
     end
   end
 end
