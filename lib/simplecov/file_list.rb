@@ -3,7 +3,26 @@
 module SimpleCov
   # An array of SimpleCov SourceFile instances with additional collection helper
   # methods for calculating coverage across them etc.
-  class FileList < Array
+  class FileList
+    include Enumerable
+    extend Forwardable
+
+    def_delegators :@files,
+                   # For Enumerable
+                   :each,
+                   # also delegating methods implemented in Enumerable as they have
+                   # custom Array implementations which are presumably better/more
+                   # resource efficient
+                   :size, :map,
+                   # surprisingly not in Enumerable
+                   :empty?, :length,
+                   # still act like we're kinda an array
+                   :to_a, :to_ary
+
+    def initialize(files)
+      @files = files
+    end
+
     def coverage
       {
         **line_coverage,
