@@ -417,7 +417,7 @@ require "set"
 require "forwardable"
 require "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
-require "simplecov/coverage_data"
+require "simplecov/coverage_statistics"
 require "simplecov/exit_codes"
 require "simplecov/profiles"
 require "simplecov/source_file/line"

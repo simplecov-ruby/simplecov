@@ -10,18 +10,18 @@ module SimpleCov
   # * missed - how many of the coverables are missed
   # * percent - percentage as covered/missed
   # * strength - average hits per/coverable (will not exist for one shot lines format)
-  class CoverageData
+  class CoverageStatistics
     attr_reader :total, :covered, :missed, :strength, :percent
 
-    def self.from(coverage_data)
+    def self.from(coverage_statistics)
       sum_covered, sum_missed, sum_total_strength =
-        coverage_data.reduce([0, 0, 0.0]) do |(covered, missed, total_strength), file_coverage_data|
+        coverage_statistics.reduce([0, 0, 0.0]) do |(covered, missed, total_strength), file_coverage_statistics|
           [
-            covered + file_coverage_data.covered,
-            missed + file_coverage_data.missed,
+            covered + file_coverage_statistics.covered,
+            missed + file_coverage_statistics.missed,
             # gotta remultiply with loc because files have different strenght and loc
             # giving them a different "weight" in total
-            total_strength + (file_coverage_data.strength * file_coverage_data.total)
+            total_strength + (file_coverage_statistics.strength * file_coverage_statistics.total)
           ]
         end
 
