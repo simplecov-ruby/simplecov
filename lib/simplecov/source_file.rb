@@ -280,7 +280,7 @@ module SimpleCov
 
     def line_coverage
       {
-        line: CoverageData.new(
+        line: CoverageStatistics.new(
           total_strength: lines_strength,
           covered:  covered_lines.size,
           missed:   missed_lines.size
@@ -290,7 +290,7 @@ module SimpleCov
 
     def branch_coverage
       {
-        branch: CoverageData.new(
+        branch: CoverageStatistics.new(
           covered: covered_branches.size,
           missed:  missed_branches.size
         )
