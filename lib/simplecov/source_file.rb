@@ -29,11 +29,11 @@ module SimpleCov
     end
     alias source src
 
-    def coverage
-      @coverage ||=
+    def coverage_statistics
+      @coverage_statistics ||=
         {
-          **line_coverage,
-          **branch_coverage
+          **line_coverage_statistics,
+          **branch_coverage_statistics
         }
     end
 
@@ -68,7 +68,7 @@ module SimpleCov
 
     # Returns the number of relevant lines (covered + missed)
     def lines_of_code
-      coverage[:line]&.total
+      coverage_statistics[:line]&.total
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -78,11 +78,11 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no coverage lines
     def covered_percent
-      coverage[:line]&.percent
+      coverage_statistics[:line]&.percent
     end
 
     def covered_strength
-      coverage[:line]&.strength
+      coverage_statistics[:line]&.strength
     end
 
     def no_lines?
@@ -104,7 +104,7 @@ module SimpleCov
     end
 
     def branches_coverage_percent
-      coverage[:branch]&.percent
+      coverage_statistics[:branch]&.percent
     end
 
     #
@@ -278,7 +278,7 @@ module SimpleCov
       )
     end
 
-    def line_coverage
+    def line_coverage_statistics
       {
         line: CoverageStatistics.new(
           total_strength: lines_strength,
@@ -288,7 +288,7 @@ module SimpleCov
       }
     end
 
-    def branch_coverage
+    def branch_coverage_statistics
       {
         branch: CoverageStatistics.new(
           covered: covered_branches.size,

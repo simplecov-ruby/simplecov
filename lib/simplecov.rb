@@ -231,12 +231,8 @@ module SimpleCov
     # rubocop:disable Metrics/MethodLength
     def result_exit_status(result, covered_percent)
       covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
-      if covered_percent < SimpleCov.minimum_coverage
-        $stderr.printf(
-          "Coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
-          covered: covered_percent,
-          minimum_coverage: SimpleCov.minimum_coverage
-        )
+      if (minimum_violations = minimum_coverage_violated(result)).any?
+        report_minimum_violated(minimum_violations)
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
         $stderr.printf(
@@ -408,6 +404,31 @@ module SimpleCov
     #
     def result_with_not_loaded_files
       @result = SimpleCov::Result.new(add_not_loaded_files(@result))
+    end
+
+    def minimum_coverage_violated(result)
+      coverage_achieved = minimum_coverage.map do |criterion, percent|
+        {
+          criterion: criterion,
+          minimum_expected: percent,
+          actual: result.coverage_statistics[criterion].percent
+        }
+      end
+
+      coverage_achieved.select do |achieved|
+        achieved.fetch(:actual) < achieved.fetch(:minimum_expected)
+      end
+    end
+
+    def report_minimum_violated(violations)
+      violations.each do |violation|
+        $stderr.printf(
+          "%<criterion>s coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
+          covered: violation.fetch(:actual).floor(2),
+          minimum_coverage: violation.fetch(:minimum_expected),
+          criterion: violation.fetch(:criterion).capitalize
+        )
+      end
     end
   end
 end
