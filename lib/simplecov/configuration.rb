@@ -240,8 +240,15 @@ module SimpleCov
     # Default is 0% (disabled)
     #
     def minimum_coverage(coverage = nil)
-      minimum_possible_coverage_exceeded("minimum_coverage") if coverage && coverage > 100
-      @minimum_coverage ||= (coverage || 0).to_f.round(2)
+      return @minimum_coverage ||= {} unless coverage
+
+      coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
+      coverage.keys.each { |criterion| raise_if_criterion_disabled(criterion) }
+      coverage.values.each do |percent|
+        minimum_possible_coverage_exceeded("minimum_coverage") if percent && percent > 100
+      end
+
+      @minimum_coverage = coverage
     end
 
     #
@@ -362,12 +369,21 @@ module SimpleCov
 
   private
 
-    def raise_if_criterion_unsupported(criterion)
-      raise_criterion_unsupported(criterion) unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+    def raise_if_criterion_disabled(criterion)
+      raise_if_criterion_unsupported(criterion)
+      # rubocop:disable Style/IfUnlessModifier
+      unless coverage_criterion_enabled?(criterion)
+        raise "Coverage criterion #{criterion}, is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
+      end
+      # rubocop:enable Style/IfUnlessModifier
     end
 
-    def raise_criterion_unsupported(criterion)
-      raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+    def raise_if_criterion_unsupported(criterion)
+      # rubocop:disable Style/IfUnlessModifier
+      unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+        raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+      end
+      # rubocop:enable Style/IfUnlessModifier
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)

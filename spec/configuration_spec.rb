@@ -48,6 +48,10 @@ describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage" do
+      after :each do
+        config.clear_coverage_criteria
+      end
+
       it "does not warn you about your usage" do
         expect(config).not_to receive(:warn)
         config.minimum_coverage(100.00)
@@ -56,6 +60,44 @@ describe SimpleCov::Configuration do
       it "warns you about your usage" do
         expect(config).to receive(:warn).with("The coverage you set for minimum_coverage is greater than 100%")
         config.minimum_coverage(100.01)
+      end
+
+      it "sets the right converage value when called with a number" do
+        config.minimum_coverage(80)
+
+        expect(config.minimum_coverage).to eq line: 80
+      end
+
+      it "sets the right coverage when called with a hash of just line" do
+        config.minimum_coverage line: 85.0
+
+        expect(config.minimum_coverage).to eq line: 85.0
+      end
+
+      it "sets the right coverage when called with a hash of just branch" do
+        config.enable_coverage :branch
+        config.minimum_coverage branch: 85.0
+
+        expect(config.minimum_coverage).to eq branch: 85.0
+      end
+
+      it "sets the right coverage when called withboth line and branch" do
+        config.enable_coverage :branch
+        config.minimum_coverage branch: 85.0, line: 95.4
+
+        expect(config.minimum_coverage).to eq branch: 85.0, line: 95.4
+      end
+
+      it "raises when trying to set branch coverage but not enabled" do
+        expect do
+          config.minimum_coverage branch: 42
+        end.to raise_error(/branch.*disabled/i)
+      end
+
+      it "raises when unknown coverage criteria provided" do
+        expect do
+          config.minimum_coverage unknown: 42
+        end.to raise_error(/unsupported.*unknown/i)
       end
     end
 

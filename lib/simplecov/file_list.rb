@@ -23,18 +23,18 @@ module SimpleCov
       @files = files
     end
 
-    def coverage
-      @coverage ||= compute_coverage
+    def coverage_statistics
+      @coverage_statistics ||= compute_coverage_statistics
     end
 
     # Returns the count of lines that have coverage
     def covered_lines
-      coverage[:line]&.covered
+      coverage_statistics[:line]&.covered
     end
 
     # Returns the count of lines that have been missed
     def missed_lines
-      coverage[:line]&.missed
+      coverage_statistics[:line]&.missed
     end
 
     # Returns the count of lines that are not relevant for coverage
@@ -64,46 +64,46 @@ module SimpleCov
 
     # Returns the overall amount of relevant lines of code across all files in this list
     def lines_of_code
-      coverage[:line]&.total
+      coverage_statistics[:line]&.total
     end
 
     # Computes the coverage based upon lines covered and lines missed
     # @return [Float]
     def covered_percent
-      coverage[:line]&.percent
+      coverage_statistics[:line]&.percent
     end
 
     # Computes the strength (hits / line) based upon lines covered and lines missed
     # @return [Float]
     def covered_strength
-      coverage[:line]&.strength
+      coverage_statistics[:line]&.strength
     end
 
     # Return total count of branches in all files
     def total_branches
-      coverage[:branch]&.total
+      coverage_statistics[:branch]&.total
     end
 
     # Return total count of covered branches
     def covered_branches
-      coverage[:branch]&.covered
+      coverage_statistics[:branch]&.covered
     end
 
     # Return total count of covered branches
     def missed_branches
-      coverage[:branch]&.missed
+      coverage_statistics[:branch]&.missed
     end
 
     def branch_covered_percent
-      coverage[:branch]&.percent
+      coverage_statistics[:branch]&.percent
     end
 
   private
 
-    def compute_coverage
+    def compute_coverage_statistics
       total_coverage_statistics = @files.each_with_object(line: [], branch: []) do |file, together|
-        together[:line] << file.coverage[:line]
-        together[:branch] << file.coverage[:branch] if SimpleCov.branch_coverage?
+        together[:line] << file.coverage_statistics[:line]
+        together[:branch] << file.coverage_statistics[:branch] if SimpleCov.branch_coverage?
       end
 
       coverage_statistics = {line: CoverageStatistics.from(total_coverage_statistics[:line])}

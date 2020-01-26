@@ -193,17 +193,17 @@ describe SimpleCov do
     end
 
     describe ".process_result" do
-      context "when minimum coverage is 100%" do
-        let(:result) { SimpleCov::Result.new({}) }
+      let(:result) { SimpleCov::Result.new({}) }
 
+      context "when minimum coverage is 100%" do
         before do
-          allow(SimpleCov).to receive(:minimum_coverage).and_return(100)
+          allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 100)
           allow(SimpleCov).to receive(:result?).and_return(true)
         end
 
         context "when actual coverage is almost 100%" do
           before do
-            allow(result).to receive(:covered_percent).and_return(100 * 32_847.0 / 32_848)
+            allow(result).to receive(:coverage_statistics).and_return(line: double("statistics", percent: 100 * 32_847.0 / 32_848))
           end
 
           it "return SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
@@ -216,6 +216,9 @@ describe SimpleCov do
         context "when actual coverage is exactly 100%" do
           before do
             allow(result).to receive(:covered_percent).and_return(100.0)
+            allow(result).to receive(:coverage_statistics).and_return(
+              line: double("statistics", percent: 100.0)
+            )
             allow(result).to receive(:covered_percentages).and_return([])
             allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
           end
@@ -225,6 +228,21 @@ describe SimpleCov do
               SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
             ).to eq(SimpleCov::ExitCodes::SUCCESS)
           end
+        end
+      end
+
+      context "branch coverage" do
+        before do
+          allow(SimpleCov).to receive(:minimum_coverage).and_return(branch: 90)
+          allow(SimpleCov).to receive(:result?).and_return(true)
+        end
+
+        it "errors out when the coverage is too low" do
+          allow(result).to receive(:coverage_statistics).and_return(branch: double("statistics", percent: 89.99))
+
+          expect(
+            SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
+          ).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
         end
       end
     end
