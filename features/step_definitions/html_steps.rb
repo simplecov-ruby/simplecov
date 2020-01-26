@@ -58,7 +58,7 @@ Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)( for the file)?$/ do
 end
 
 When /^I open the detailed view for "(.+)"$/ do |file_path|
-  click_on(file_path)
+  click_link(file_path, class: "src_link", title: file_path)
 
   expect(page).to have_css(".header h3", visible: true, text: file_path)
 end
