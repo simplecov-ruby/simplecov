@@ -10,27 +10,6 @@ GIT
       rspec-expectations (~> 3.4)
       thor (~> 1.0)
 
-GIT
-  remote: https://github.com/teamcapybara/capybara.git
-  revision: 55f8304d1abcbb14b1a655db12dcdf4d71dfc675
-  specs:
-    capybara (3.30.1)
-      addressable
-      mini_mime (>= 0.1.3)
-      nokogiri (~> 1.8)
-      rack (>= 1.6.0)
-      rack-test (>= 0.6.3)
-      regexp_parser (~> 1.5)
-      xpath (~> 3.2)
-
-GIT
-  remote: https://github.com/twalpole/apparition.git
-  revision: 1cee56d20a1a3df20fcb7c657d19d2031643ef73
-  specs:
-    apparition (0.4.0)
-      capybara (~> 3.13, < 4)
-      websocket-driver (>= 0.6.5)
-
 PATH
   remote: .
   specs:
@@ -43,10 +22,21 @@ GEM
   specs:
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
+    apparition (0.5.0)
+      capybara (~> 3.13, < 4)
+      websocket-driver (>= 0.6.5)
     ast (2.4.0)
     backports (3.15.0)
     benchmark-ips (2.7.2)
     builder (3.2.4)
+    capybara (3.31.0)
+      addressable
+      mini_mime (>= 0.1.3)
+      nokogiri (~> 1.8)
+      rack (>= 1.6.0)
+      rack-test (>= 0.6.3)
+      regexp_parser (~> 1.5)
+      xpath (~> 3.2)
     childprocess (3.0.0)
     coderay (1.1.2)
     contracts (0.16.0)
@@ -140,10 +130,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  apparition!
+  apparition (= 0.5.0)
   aruba!
   benchmark-ips
-  capybara!
+  capybara (~> 3.31)
   cucumber (~> 3.1)
   pry
   rake (~> 13.0)
