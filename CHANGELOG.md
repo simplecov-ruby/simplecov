@@ -1,3 +1,21 @@
+0.18.0 (2020-01-28)
+===================
+
+Huge release! Highlights are support for branch coverage (Ruby 2.5+) and dropping support for EOL'ed Ruby versions (< 2.4).
+Please also read the other beta patch notes.
+
+## Enhancements
+* You can now define the minimum expected coverage by criterion like `minimum_coverage line: 90, branch: 80`
+* Memoized some internal data structures that didn't change to reduce SimpleCov overhead
+* Both `FileList` and `SourceFile` now have a `coverage` method that returns a hash that points from a coverage criterion to a `CoverageStatistics` object for uniform access to overall coverage statistics for both line and branch coverage
+
+## Bugfixes
+* we were losing precision by rounding the covered strength early, that has been removed. **For Formatters** this also means that you may need to round it yourself now.
+* Removed an inconsistency in how we treat skipped vs. irrelevant lines (see [#565](https://github.com/colszowka/simplecov/issues/565)) - SimpleCov's definition of 100% is now "You covered everything that you could" so if coverage is 0/0 that's counted as a 100% no matter if the lines were irrelevant or ignored/skipped
+
+## Noteworthy
+* `FileList` stopped inheriting from Array, it includes Enumerable so if you didn't use Array specific methods on it in formatters you should be fine
+
 0.18.0.beta3 (2020-01-20)
 ========================
 
