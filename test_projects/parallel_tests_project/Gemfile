@@ -14,3 +14,5 @@ else
   gem "simplecov", path: "../../.."
   # rubocop:enable Bundler/DuplicatedGem
 end
+
+gem "simplecov-html", github: "colszowka/simplecov-html"
