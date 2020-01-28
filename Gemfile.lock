@@ -1,10 +1,4 @@
 GIT
-  remote: https://github.com/colszowka/simplecov-html.git
-  revision: e4a39b826f011712c2bb6e02fba2eb33a0f86024
-  specs:
-    simplecov-html (0.11.0)
-
-GIT
   remote: https://github.com/cucumber/aruba.git
   revision: 8b7dc956daf47051237700488e8d866fb229db29
   specs:
@@ -116,6 +110,7 @@ GEM
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 1.7)
     ruby-progressbar (1.10.1)
+    simplecov-html (0.11.0)
     spoon (0.0.6)
       ffi
     test-unit (3.3.5)
@@ -145,7 +140,6 @@ DEPENDENCIES
   rspec (~> 3.2)
   rubocop
   simplecov!
-  simplecov-html!
   test-unit
 
 BUNDLED WITH
