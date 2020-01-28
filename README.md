@@ -726,6 +726,10 @@ You can define the minimum coverage percentage expected. SimpleCov will return n
 
 ```ruby
 SimpleCov.minimum_coverage 90
+# same as above (the default is to check line coverage)
+SimpleCov.minimum_coverage line: 90
+# check for a minimum line coverage of 90% and minimum 80% branch coverage
+SimpleCov.minimum_coverage line: 90, branch: 80
 ```
 
 ### Minimum coverage by file
@@ -737,6 +741,8 @@ to help ensure coverage is relatively consistent, rather than being skewed by pa
 SimpleCov.minimum_coverage_by_file 80
 ```
 
+(not yet supported for branch coverage)
+
 ### Maximum coverage drop
 
 You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.
@@ -745,6 +751,8 @@ You can define the maximum coverage drop percentage at once. SimpleCov will retu
 SimpleCov.maximum_coverage_drop 5
 ```
 
+(not yet supported for branch coverage)
+
 ### Refuse dropping coverage
 
 You can also entirely refuse dropping coverage between test runs:
@@ -752,6 +760,8 @@ You can also entirely refuse dropping coverage between test runs:
 ```ruby
 SimpleCov.refuse_coverage_drop
 ```
+
+(not yet supported for branch coverage)
 
 ## Using your own formatter
 
