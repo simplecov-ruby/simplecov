@@ -19,7 +19,7 @@ GIT
 PATH
   remote: .
   specs:
-    simplecov (0.18.0.beta3)
+    simplecov (0.18.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11.0.beta2)
 
