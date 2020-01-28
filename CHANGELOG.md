@@ -4,6 +4,8 @@
 Huge release! Highlights are support for branch coverage (Ruby 2.5+) and dropping support for EOL'ed Ruby versions (< 2.4).
 Please also read the other beta patch notes.
 
+You can run with branch coverage by putting `enable_coverage :branch` into your SimpleCov configuration (like the `SimpleCov.start do .. end` block)
+
 ## Enhancements
 * You can now define the minimum expected coverage by criterion like `minimum_coverage line: 90, branch: 80`
 * Memoized some internal data structures that didn't change to reduce SimpleCov overhead
