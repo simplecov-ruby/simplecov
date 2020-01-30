@@ -606,4 +606,93 @@ describe SimpleCov::SourceFile do
       end
     end
   end
+
+  context "a file entirely ignored with a single # :nocov:" do
+    COVERAGE_FOR_SINGLE_NOCOV_RB = {
+      "lines" => [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
+      "branches" => {
+        [:if, 0, 8, 4, 11, 10] =>
+          {[:then, 1, 9, 6, 9, 10] => 1, [:else, 2, 11, 6, 11, 10] => 0},
+        [:if, 3, 6, 4, 11, 10] =>
+          {[:then, 4, 7, 6, 7, 10] => 0, [:else, 5, 8, 4, 11, 10] => 1},
+        [:if, 6, 4, 4, 12, 7] =>
+          {[:then, 7, 5, 6, 5, 10] => 0, [:else, 8, 6, 4, 11, 10] => 1}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+    end
+
+    describe "line coverage" do
+      it "has all lines skipped" do
+        expect(subject.skipped_lines.size).to eq(subject.lines.size)
+        expect(subject.skipped_lines.size).to eq(14)
+      end
+
+      it "reports 100% coverage on 0/0" do
+        expect(subject.covered_percent).to eq 100.0
+        expect(subject.relevant_lines).to eq 0
+        expect(subject.covered_lines.size).to eq 0
+      end
+    end
+
+    describe "branch coverage" do
+      it "has 100% branch coverage on 0/0" do
+        branch_coverage = subject.coverage_statistics.fetch(:branch)
+
+        expect(branch_coverage.percent).to eq 100.0
+        expect(branch_coverage.total).to eq 0
+        expect(branch_coverage.covered).to eq 0
+      end
+
+      it "has all branches marked as skipped" do
+        expect(subject.branches.all?(&:skipped?)).to eq true
+      end
+    end
+  end
+
+  context "a file with an uneven usage of # :nocov:s" do
+    COVERAGE_FOR_UNEVEN_NOCOV_RB = {
+      "lines" => [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
+      "branches" => {
+        [:if, 0, 9, 4, 13, 10] =>
+          {[:then, 1, 10, 6, 10, 10] => 1, [:else, 2, 13, 6, 13, 10] => 0},
+        [:if, 3, 6, 4, 13, 10] =>
+          {[:then, 4, 7, 6, 7, 10] => 0, [:else, 5, 9, 4, 13, 10] => 1},
+        [:if, 6, 4, 4, 14, 7] =>
+          {[:then, 7, 5, 6, 5, 10] => 0, [:else, 8, 6, 4, 13, 10] => 1}
+      }
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("uneven_nocovs.rb"), COVERAGE_FOR_UNEVEN_NOCOV_RB)
+    end
+
+    describe "line coverage" do
+      it "has 12 lines skipped" do
+        expect(subject.skipped_lines.size).to eq(12)
+      end
+
+      it "reports 100% coverage on 4/4" do
+        expect(subject.covered_percent).to eq 100.0
+        expect(subject.relevant_lines).to eq 4
+        expect(subject.covered_lines.size).to eq 4
+      end
+    end
+
+    describe "branch coverage" do
+      it "has 100% branch coverage on 1/1" do
+        branch_coverage = subject.coverage_statistics.fetch(:branch)
+
+        expect(branch_coverage.percent).to eq 100.0
+        expect(branch_coverage.total).to eq 1
+        expect(branch_coverage.covered).to eq 1
+      end
+
+      it "has 5 branches marked as skipped" do
+        expect(subject.branches.select(&:skipped?).size).to eq 5
+      end
+    end
+  end
 end

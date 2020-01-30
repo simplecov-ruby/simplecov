@@ -2,6 +2,8 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "branch_tester_script"
+require_relative "uneven_nocovs"
+
+UnevenNocov.call(42)
 
 p Coverage.result
