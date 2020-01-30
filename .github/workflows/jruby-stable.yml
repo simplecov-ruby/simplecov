@@ -1,4 +1,4 @@
-name: stable
+name: JRuby stable
 
 on:
   pull_request:
@@ -9,11 +9,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: openjdk:8
 
     strategy:
       matrix:
-        ruby: [2.4.9, 2.5.7, 2.6.5, 2.7.0]
+        ruby: [jruby-9.2.9.0]
 
     steps:
       - uses: actions/checkout@v2
@@ -30,4 +30,4 @@ jobs:
         run:  bundle install --without benchmark --jobs=3 --retry=3
 
       - name: Run tests
-        run: bundle exec rake
+        run: JRUBY_OPTS=--debug bundle exec rake
