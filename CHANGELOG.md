@@ -1,3 +1,11 @@
+0.18.1 (2020-01-31)
+===================
+
+Small Bugfix release.
+
+## Bugfixes
+* Just putting `# :nocov:` on top of a file or having an uneven number of them in general works again and acts as if ignoring until the end of the file. See [#846](https://github.com/colszowka/simplecov/issues/846) and thanks [@DannyBen](https://github.com/DannyBen) for the report.
+
 0.18.0 (2020-01-28)
 ===================
 
