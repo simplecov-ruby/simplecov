@@ -23,10 +23,6 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
 
-      - name: Install java
-        run: sudo apt-get -y install openjdk-8-jre-headless
-        if: matrix.ruby == 'jruby-9.2.9.0'
-
       - name: Install bundler
         run: gem i bundler
 
