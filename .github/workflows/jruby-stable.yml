@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Get some git for our git dependencies
+        run: apt-get install -y git
+
       - name: Install bundler
         run: gem i bundler
 
