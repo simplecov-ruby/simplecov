@@ -9,19 +9,11 @@ on:
 
 jobs:
   test:
-    runs-on: openjdk:8
-
-    strategy:
-      matrix:
-        ruby: [jruby-9.2.9.0]
+    runs-on: ubuntu-latest
+    container: jruby:9.2
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Setup ruby
-        uses: eregon/use-ruby-action@master
-        with:
-          ruby-version: ${{ matrix.ruby }}
 
       - name: Install bundler
         run: gem i bundler
