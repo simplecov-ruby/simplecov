@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::CoverageStatistics do
-  describe ".new" do
+  describe "::new" do
     it "retains statistics and computes new ones" do
       statistics = described_class.new(covered: 4, missed: 6, total_strength: 14)
 
@@ -16,20 +16,20 @@ RSpec.describe SimpleCov::CoverageStatistics do
     end
 
     it "can omit the total strength defaulting to 0.0" do
-      statistics = described_class.new(covered: 4, missed: 6, total_strength: 0.0)
+      statistics = described_class.new(covered: 4, missed: 6)
 
       expect(statistics.strength).to eq 0.0
     end
 
     it "can deal with it if everything is 0" do
-      statistics = described_class.new(covered: 0, missed: 0, total_strength: 0.0)
+      statistics = empty_statistics
 
       expect_all_empty(statistics)
     end
   end
 
   describe ".from" do
-    it "returns an all 0s coverage statistics if there is no statistics" do
+    it "returns an all 0s coverage statistics if there are no statistics" do
       statistics = described_class.from([])
 
       expect_all_empty(statistics)
@@ -67,7 +67,7 @@ RSpec.describe SimpleCov::CoverageStatistics do
     expect(statistics.missed).to eq 0
 
     expect(statistics.total).to eq 0
-    # might be counter intuitive but think of it as "we covered everything we could"
+    # might be counter-intuitive but think of it as "we covered everything we could"
     expect(statistics.percent).to eq 100.0
     expect(statistics.strength).to eq 0.0
   end

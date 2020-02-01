@@ -35,22 +35,22 @@ module SimpleCov
       @covered  = covered
       @missed   = missed
       @total    = covered + missed
-      @percent  = compute_percent(covered, total)
-      @strength = compute_strength(total_strength, @total)
+      @percent  = compute_percent(covered)
+      @strength = compute_strength(total_strength)
     end
 
   private
 
-    def compute_percent(covered, total)
-      return 100.0 if total.zero?
+    def compute_percent(covered)
+      return 100.0 if @missed.zero?
 
-      covered * 100.0 / total
+      covered * 100.0 / @total
     end
 
-    def compute_strength(total_strength, total)
-      return 0.0 if total.zero?
+    def compute_strength(total_strength)
+      return 0.0 if @total.zero?
 
-      total_strength.to_f / total
+      total_strength.to_f / @total
     end
   end
 end
