@@ -160,7 +160,7 @@ describe SimpleCov do
       end
     end
 
-    context "when a non SystemExit occurrs" do
+    context "when a non SystemExit occurs" do
       let(:error) { StandardError.new "NonSystemExit" }
 
       before do
