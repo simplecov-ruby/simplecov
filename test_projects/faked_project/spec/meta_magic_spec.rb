@@ -11,7 +11,7 @@ describe FakedProject do
     expect(subject.an_instance_method).to eq("this is a mixed-in instance method")
   end
 
-  it "should have added a dyntamically-defined instance method to FakedProject" do
+  it "should have added a dynamically-defined instance method to FakedProject" do
     expect(subject.dynamic).to eq("A dynamically defined instance method")
   end
 end

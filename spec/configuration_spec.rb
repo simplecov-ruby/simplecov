@@ -62,7 +62,7 @@ describe SimpleCov::Configuration do
         config.minimum_coverage(100.01)
       end
 
-      it "sets the right converage value when called with a number" do
+      it "sets the right coverage value when called with a number" do
         config.minimum_coverage(80)
 
         expect(config.minimum_coverage).to eq line: 80

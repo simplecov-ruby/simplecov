@@ -1,4 +1,4 @@
-# So much skippping
+# So much skipping
 # :nocov:
 class Foo
   def bar(arg)

@@ -19,7 +19,7 @@ module SimpleCov
           [
             covered + file_coverage_statistics.covered,
             missed + file_coverage_statistics.missed,
-            # gotta remultiply with loc because files have different strenght and loc
+            # gotta remultiply with loc because files have different strength and loc
             # giving them a different "weight" in total
             total_strength + (file_coverage_statistics.strength * file_coverage_statistics.total)
           ]
@@ -35,22 +35,22 @@ module SimpleCov
       @covered  = covered
       @missed   = missed
       @total    = covered + missed
-      @percent  = compute_percent(covered)
-      @strength = compute_strength(total_strength)
+      @percent  = compute_percent(covered, missed, total)
+      @strength = compute_strength(total_strength, total)
     end
 
   private
 
-    def compute_percent(covered)
-      return 100.0 if @missed.zero?
+    def compute_percent(covered, missed, total)
+      return 100.0 if missed.zero?
 
-      covered * 100.0 / @total
+      covered * 100.0 / total
     end
 
-    def compute_strength(total_strength)
-      return 0.0 if @total.zero?
+    def compute_strength(total_strength, total)
+      return 0.0 if total.zero?
 
-      total_strength.to_f / @total
+      total_strength.to_f / total
     end
   end
 end
