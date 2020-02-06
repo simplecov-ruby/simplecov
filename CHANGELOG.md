@@ -25,6 +25,7 @@ You can run with branch coverage by putting `enable_coverage :branch` into your 
 
 ## Noteworthy
 * `FileList` stopped inheriting from Array, it includes Enumerable so if you didn't use Array specific methods on it in formatters you should be fine
+* We needed to change an internal file format, which we use for merging across processes, to accommodate branch coverage. Sadly CodeClimate chose to use this file to report test coverage. Until a resolution is found the code climate test reporter won't work with SimpleCov for 0.18+, see [this issue on the test reporter](https://github.com/codeclimate/test-reporter/issues/413).
 
 0.18.0.beta3 (2020-01-20)
 ========================
