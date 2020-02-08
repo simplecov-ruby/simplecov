@@ -19,13 +19,13 @@ Feature:
     And I should see a branch coverage summary of 2/4
     And I should see the source files:
       | name                                    | coverage | branch coverage |
-      | lib/faked_project.rb                    | 100.0 %  | 100.0 %         |
-      | lib/faked_project/some_class.rb         | 80.0 %   | 50.0 %          |
-      | lib/faked_project/framework_specific.rb | 75.0 %   | 100.0 %         |
-      | lib/faked_project/meta_magic.rb         | 100.0 %  | 100.0 %         |
-      | spec/forking_spec.rb                    | 100.0 %  | 50.0 %          |
-      | spec/meta_magic_spec.rb                 | 100.0 %  | 100.0 %         |
-      | spec/some_class_spec.rb                 | 100.0 %  | 100.0 %         |
+      | lib/faked_project.rb                    | 100.00 %  | 100.00 %         |
+      | lib/faked_project/some_class.rb         | 80.00 %   | 50.00 %          |
+      | lib/faked_project/framework_specific.rb | 75.00 %   | 100.00 %         |
+      | lib/faked_project/meta_magic.rb         | 100.00 %  | 100.00 %         |
+      | spec/forking_spec.rb                    | 100.00 %  | 50.00 %          |
+      | spec/meta_magic_spec.rb                 | 100.00 %  | 100.00 %         |
+      | spec/some_class_spec.rb                 | 100.00 %  | 100.00 %         |
 
     When I open the detailed view for "lib/faked_project/some_class.rb"
     Then I should see a line coverage summary of 12/15 for the file

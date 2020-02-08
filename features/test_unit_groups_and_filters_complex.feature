@@ -32,4 +32,4 @@ Feature: Sophisticated grouping and filtering on Test/Unit
 
     And I should see the source files:
       | name                            | coverage |
-      | lib/faked_project/meta_magic.rb | 100.0 %  |
+      | lib/faked_project/meta_magic.rb | 100.00 %  |
