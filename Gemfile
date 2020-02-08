@@ -6,7 +6,7 @@ source "https://rubygems.org"
 # gem "simplecov-html", path: File.dirname(__FILE__) + "/../simplecov-html"
 
 # Uncomment this to use development version of html formatter from github
-# gem "simplecov-html", github: "colszowka/simplecov-html"
+gem "simplecov-html", github: "colszowka/simplecov-html"
 
 group :development do
   gem "apparition", "0.5.0"

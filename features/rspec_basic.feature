@@ -18,13 +18,13 @@ Feature:
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project.rb                    | 100.0 %  |
-      | lib/faked_project/some_class.rb         | 80.0 %   |
-      | lib/faked_project/framework_specific.rb | 75.0 %   |
-      | lib/faked_project/meta_magic.rb         | 100.0 %  |
-      | spec/forking_spec.rb                    | 100.0 %  |
-      | spec/meta_magic_spec.rb                 | 100.0 %  |
-      | spec/some_class_spec.rb                 | 100.0 %  |
+      | lib/faked_project.rb                    | 100.00 %  |
+      | lib/faked_project/some_class.rb         | 80.00 %   |
+      | lib/faked_project/framework_specific.rb | 75.00 %   |
+      | lib/faked_project/meta_magic.rb         | 100.00 %  |
+      | spec/forking_spec.rb                    | 100.00 %  |
+      | spec/meta_magic_spec.rb                 | 100.00 %  |
+      | spec/some_class_spec.rb                 | 100.00 %  |
 
       # Note: faked_spec.rb is not appearing here since that's the first unit test file
       # loaded by Rake, and only there test_helper is required, which then loads simplecov
