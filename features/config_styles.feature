@@ -6,6 +6,7 @@ Feature:
   preference or project requirements.
 
   Background:
+    Given I'm working on the project "faked_project"
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
@@ -118,4 +119,3 @@ Feature:
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see "4 files in total."
     And I should see "using Config Test Runner" within "#footer"
-

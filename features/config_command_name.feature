@@ -6,6 +6,9 @@ Feature: Custom names for individual test suites
   Test/Unit, RSpec and Cucumber, but if that is insufficient, each test suite
   config can be given a custom command name using SimpleCov.command_name.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

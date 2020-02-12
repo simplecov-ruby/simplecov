@@ -4,6 +4,9 @@ Feature:
   Exit code should be non-zero if the overall coverage is below the
   minimum_coverage threshold.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

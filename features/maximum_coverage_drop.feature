@@ -4,6 +4,9 @@ Feature:
   Exit code should be non-zero if the overall coverage decreases by more than
   the maximum_coverage_drop threshold.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: maximum_coverage_drop configured cam cause spec failure
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -136,4 +139,3 @@ Feature:
         }
       }
       """
-

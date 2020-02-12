@@ -5,6 +5,9 @@ Feature:
   when both have been run recently. The coverage report will feature
   the joined results of all test suites that are using SimpleCov.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

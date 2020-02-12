@@ -11,6 +11,9 @@ Feature:
   and then use the same configuration on all test suites simply
   by doing a 'require "simplecov"'
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given a file named ".simplecov" with:
       """

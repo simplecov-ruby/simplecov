@@ -1,10 +1,12 @@
-@parallel_tests_project @rspec
-@disable-bundler
+@rspec @disable-bundler
 
 Feature:
 
   Parallel tests and its corresponding test project work together with Simplecov
   just fine and they produce the same output like a normal rspec run.
+
+  Background:
+    Given I'm working on the project "parallel_tests"
 
   # see #815
   @wip

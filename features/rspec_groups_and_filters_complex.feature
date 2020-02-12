@@ -6,6 +6,9 @@ Feature: Sophisticated grouping and filtering on RSpec
   and potentially weird conditions to remove files from the report or add them
   to specific groups.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for RSpec is configured with:
       """

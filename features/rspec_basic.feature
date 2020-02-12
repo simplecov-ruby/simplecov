@@ -4,6 +4,9 @@ Feature:
   Simply adding the basic simplecov lines to a project should get
   the user a coverage report after running `rspec`
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for RSpec is configured with:
       """

@@ -8,6 +8,9 @@ Feature:
   It's probably preferrable to generate the individual suite results into separate
   output directories instead (see SimpleCov.coverage_dir), but it is possible :)
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -39,4 +42,3 @@ Feature:
     Given I open the coverage report
     Then the report should be based upon:
       | RSpec |
-

@@ -4,6 +4,9 @@ Feature:
   Defining some groups and filters should give a corresponding
   coverage report that respects those settings after running tests
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

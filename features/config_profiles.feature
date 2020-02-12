@@ -6,7 +6,8 @@ Feature:
   that can be loaded at once.
 
   Background:
-    Given SimpleCov for Test/Unit is configured with:
+    Given I'm working on the project "faked_project"
+    And SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       """

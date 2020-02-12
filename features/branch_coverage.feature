@@ -3,6 +3,9 @@ Feature:
 
   Simply executing branch coverage gives ok results.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for RSpec is configured with:
       """
