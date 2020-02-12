@@ -4,7 +4,6 @@ source "https://rubygems.org"
 
 gem "parallel_tests"
 gem "rspec"
-gem "simplecov-html", github: "colszowka/simplecov-html"
 
 # when the tests are executed the project is in tmp/aruba/project
 # which is a different nesting from its usual place
