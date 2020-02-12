@@ -5,6 +5,7 @@ Feature:
   generating a proper coverage report.
 
   Background:
+    Given I'm working on the project "faked_project"
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'

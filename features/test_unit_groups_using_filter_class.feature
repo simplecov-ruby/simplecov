@@ -6,6 +6,9 @@ Feature: Grouping on Test/Unit using a custom filter class
   must implement the matches? method, which is used to determine whether
   or not a file should be added to the group.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

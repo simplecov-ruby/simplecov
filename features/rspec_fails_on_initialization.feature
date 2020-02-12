@@ -3,6 +3,9 @@ Feature:
 
   Running specs with a failing rspec setup
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: Fail if rspec fails before starting its tests
     Given a file named "spec/spec_helper.rb" with:
       """

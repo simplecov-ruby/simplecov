@@ -3,6 +3,9 @@ Feature:
 
   Running specs without simplecov configuration
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: No config at all
     When I successfully run `bundle exec rspec spec`
     Then no coverage report should have been generated

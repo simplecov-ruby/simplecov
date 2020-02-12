@@ -10,6 +10,9 @@ Feature:
     SimpleCov::Formatter::MultiFormatter is a formatter
     used to call multiple formatters at once.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: With SimpleFormatter
     Given SimpleCov for Test/Unit is configured with:
       """

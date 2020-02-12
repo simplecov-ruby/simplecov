@@ -6,6 +6,9 @@ Feature:
   will be put there instead of the default 'coverage' directory
   in your project's root.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

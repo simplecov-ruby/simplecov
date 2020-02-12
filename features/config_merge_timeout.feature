@@ -12,6 +12,9 @@ Feature:
   are out of date when the second suite finishes and thus does not end up
   in the report.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -36,4 +39,3 @@ Feature:
     And I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec |
-

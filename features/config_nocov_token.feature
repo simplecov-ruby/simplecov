@@ -4,6 +4,9 @@ Feature:
   Code wrapped in # :nocov: will be ignored by coverage reports.
   The name of the token can be configured with SimpleCov.nocov_token or SimpleCov.skip_token
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: Custom nocov token using nocov_token
     Given SimpleCov for Test/Unit is configured with:
       """

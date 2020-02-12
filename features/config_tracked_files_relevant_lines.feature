@@ -4,6 +4,9 @@ Feature:
   Using the setting `tracked_files` should classify whether lines
   are relevant or not (such as whitespace or comments).
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for RSpec is configured with:
       """

@@ -3,6 +3,9 @@ Feature:
 
   Using SimpleCov.collate should get the user a coverage report
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

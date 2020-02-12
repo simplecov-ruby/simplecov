@@ -4,6 +4,9 @@ Feature:
   Exit code should be non-zero if the overall coverage decreases.
   And last_run file should not be overwritten with new coverage value.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario: refuse_coverage_drop configured
     Given SimpleCov for Test/Unit is configured with:
       """

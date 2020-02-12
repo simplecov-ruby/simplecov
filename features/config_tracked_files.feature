@@ -4,6 +4,9 @@ Feature:
   Using the setting `tracked_files` should add files that were not
   required to the report.
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """

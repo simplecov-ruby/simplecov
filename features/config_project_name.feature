@@ -5,6 +5,8 @@ Feature:
   If this is not sufficient for you, you can specify a custom name using
   SimpleCov.project_name('xyz')
 
+  Background:
+    Given I'm working on the project "faked_project"
 
   Scenario: Guessed name
     Given SimpleCov for Test/Unit is configured with:
