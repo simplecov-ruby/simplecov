@@ -1,3 +1,11 @@
+0.18.2 (2020-02-12)
+===================
+
+Small release just to allow you to use the new simplecov-html.
+
+## Enhancements
+* Relax simplecov-html requirement so that you're able to use [0.12.0](https://github.com/colszowka/simplecov-html/blob/master/CHANGELOG.md#0120-2020-02-12)
+
 0.18.1 (2020-01-31)
 ===================
 
