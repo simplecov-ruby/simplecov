@@ -1,5 +1,8 @@
 Feature:
 
+  Background:
+    Given I'm working on the project "faked_project"
+
   Scenario:
     Given SimpleCov for Minitest is configured with:
       """
@@ -16,8 +19,8 @@ Feature:
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project/some_class.rb         | 80.0 %   |
-      | minitest/some_test.rb                   | 100.0 %  |
+      | lib/faked_project/some_class.rb         | 80.00 %   |
+      | minitest/some_test.rb                   | 100.00 %  |
 
   Scenario:
     Given SimpleCov for Minitest is configured with:
@@ -33,4 +36,4 @@ Feature:
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project/some_class.rb         | 80.0 %   |
+      | lib/faked_project/some_class.rb         | 80.00 %   |
