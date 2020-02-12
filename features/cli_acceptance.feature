@@ -1,4 +1,4 @@
-@rspec
+@rspec @branch_coverage
 
 Feature:
   The acceptance testing for CLI process as described in #853.
@@ -7,5 +7,5 @@ Feature:
     Given I'm working on the project "cli_acceptance"
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the source files:
-    | name                  | coverage |
-    | lib/cli_acceptance.rb | 87.50 %  |
+    | name                  | coverage | branch coverage |
+    | lib/cli_acceptance.rb | 87.50 %  | 66.67 %         |
