@@ -1,5 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require "simplecov"
+SimpleCov.command_name "bin_terra_#{ENV['TEST_ENV_NUMBER']}_#{Process.pid}"
+SimpleCov.use_merging true
+ENV["PARALLEL_TEST_GROUPS"] = "true" # see simplecov issue 232
+SimpleCov.start
+
 require_relative "../lib/cli_acceptance"
 CLIAcceptance.dispatch(ARGV)
