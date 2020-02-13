@@ -29,25 +29,9 @@ module_function
     puts "Sorry, can't understand #{command_name}"
   end
 
-  def echo_one(args = nil)
-    if args.nil? || Array(args).empty?
-      1
-    else
-      args
-    end
-  end
-
   def echo_two(args = nil)
     if args.nil? || Array(args).empty?
       2
-    else
-      args
-    end
-  end
-
-  def echo_three(args = nil)
-    if args.nil? || Array(args).empty?
-      3
     else
       args
     end
