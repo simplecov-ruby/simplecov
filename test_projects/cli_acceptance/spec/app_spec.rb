@@ -22,11 +22,10 @@ RSpec.describe "testing through the executable" do
 end
 
 RSpec.describe "direct testing from primary spec process" do
-
   require_relative "../lib/cli_acceptance"
 
-  describe 'CLIAcceptance' do
-    describe '#echo_two' do
+  describe "CLIAcceptance" do
+    describe "#echo_two" do
       context "no args" do
         it "returns 2" do
           expect(CLIAcceptance.echo_two).to eq 2
@@ -39,7 +38,7 @@ RSpec.describe "direct testing from primary spec process" do
       end
       context "with 3 arg" do
         it "returns the args" do
-          expect(CLIAcceptance.echo_two(['a', true, 3])).to eq ['a', true, 3]
+          expect(CLIAcceptance.echo_two(["a", true, 3])).to eq ["a", true, 3]
         end
       end
     end
