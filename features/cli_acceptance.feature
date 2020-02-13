@@ -8,4 +8,4 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the source files:
     | name                  | coverage | branch coverage |
-    | lib/cli_acceptance.rb | 87.50 %  | 66.67 %         |
+    | lib/cli_acceptance.rb | 90.00 %  | 80.00 %         |

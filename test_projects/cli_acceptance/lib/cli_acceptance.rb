@@ -28,4 +28,12 @@ module_function
   def wait_what(command_name)
     puts "Sorry, can't understand #{command_name}"
   end
+
+  def echo_two(args = nil)
+    if args.nil? || Array(args).empty?
+      2
+    else
+      args
+    end
+  end
 end

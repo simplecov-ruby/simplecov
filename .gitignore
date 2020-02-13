@@ -18,10 +18,13 @@ tmtags
 
 ## PROJECT::GENERAL
 /coverage
+coverage/
+coverage.*/
 rdoc
 pkg
 tmp
 .rvmrc
+/.idea/
 
 ## PROJECT::SPECIFIC
 
