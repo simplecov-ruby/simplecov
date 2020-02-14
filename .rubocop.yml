@@ -1,6 +1,9 @@
 AllCops:
   Exclude:
     - "spec/fixtures/iso-8859.rb"
+    - "spec/fixtures/utf-8.rb"
+    - "spec/fixtures/utf-8-magic.rb"
+    - "spec/fixtures/euc-jp.rb"
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
