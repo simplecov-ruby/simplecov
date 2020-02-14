@@ -695,4 +695,42 @@ describe SimpleCov::SourceFile do
       end
     end
   end
+
+  context "a file contains non-ASCII characters" do
+    COVERAGE_FOR_SINGLE_LINE = {"lines" => [nil]}.freeze
+    COVERAGE_FOR_DOUBLE_LINES = {"lines" => [nil]}.freeze
+
+    shared_examples_for "converting to UTF-8" do
+      it "has all source lines of encoding UTF-8" do
+        subject.lines.each do |line|
+          expect(line.source.encoding).to eq(Encoding::UTF_8)
+          expect(line.source).to be_valid_encoding
+        end
+      end
+    end
+
+    describe "UTF-8 without magic comment" do
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("utf-8.rb"), COVERAGE_FOR_SINGLE_LINE)
+      end
+
+      it_behaves_like "converting to UTF-8"
+    end
+
+    describe "UTF-8 with magic comment" do
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("utf-8-magic.rb"), COVERAGE_FOR_DOUBLE_LINES)
+      end
+
+      it_behaves_like "converting to UTF-8"
+    end
+
+    describe "EUC-JP with magic comment" do
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("euc-jp.rb"), COVERAGE_FOR_DOUBLE_LINES)
+      end
+
+      it_behaves_like "converting to UTF-8"
+    end
+  end
 end
