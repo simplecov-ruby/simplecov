@@ -1,0 +1,2 @@
+# encoding: EUC-JP
+puts "135быC"

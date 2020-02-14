@@ -25,7 +25,7 @@ module SimpleCov
     def src
       # We intentionally read source code lazily to
       # suppress reading unused source code.
-      @src ||= File.open(filename, "rb", &:readlines)
+      @src ||= load_source
     end
     alias source src
 
@@ -172,6 +172,32 @@ module SimpleCov
 
       no_cov_lines.each_slice(2).map do |(_line_src_start, index_start), (_line_src_end, index_end)|
         index_start..index_end
+      end
+    end
+
+    def load_source
+      lines = []
+      # The default encoding is UTF-8
+      File.open(filename, "rb:UTF-8") do |file|
+        line = file.gets
+
+        # Check for shbang
+        if /\A#!/.match?(line)
+          lines << line
+          line = file.gets
+        end
+        return lines unless line
+
+        check_magic_comment(file, line)
+        lines.concat([line], file.readlines)
+      end
+    end
+
+    def check_magic_comment(file, line)
+      # Check for encoding magic comment
+      # Encoding magic comment must be placed at first line except for shbang
+      if (match = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.match(line))
+        file.set_encoding(match[1], "UTF-8")
       end
     end
 
