@@ -193,10 +193,11 @@ module SimpleCov
       end
     end
 
+    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
     def check_magic_comment(file, line)
       # Check for encoding magic comment
-      # Encoding magic comment must be placed at first line except for shbang
-      if (match = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.match(line))
+      # Encoding magic comment must be placed at first line except for shebang
+      if (match = RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX.match(line))
         file.set_encoding(match[1], "UTF-8")
       end
     end
