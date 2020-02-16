@@ -4,6 +4,7 @@ AllCops:
     - "spec/fixtures/utf-8.rb"
     - "spec/fixtures/utf-8-magic.rb"
     - "spec/fixtures/euc-jp.rb"
+    - "spec/fixtures/empty_euc-jp.rb"
     - "spec/fixtures/euc-jp-shebang.rb"
     - "tmp/**/*"
     - "vendor/bundle/**/*"
