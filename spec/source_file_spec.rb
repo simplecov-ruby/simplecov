@@ -699,6 +699,7 @@ describe SimpleCov::SourceFile do
   context "a file contains non-ASCII characters" do
     COVERAGE_FOR_SINGLE_LINE = {"lines" => [nil]}.freeze
     COVERAGE_FOR_DOUBLE_LINES = {"lines" => [nil, 1]}.freeze
+    COVERAGE_FOR_TRIPLE_LINES = {"lines" => [nil, nil, 1]}.freeze
     DEGREE_135_LINE = "puts \"135°C\"\n"
 
     shared_examples_for "converting to UTF-8" do
@@ -743,6 +744,22 @@ describe SimpleCov::SourceFile do
 
       it "has the line with 135°C" do
         expect(subject.line(2).source).to eq DEGREE_135_LINE
+      end
+    end
+
+    describe "EUC-JP with magic comment and shebang" do
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("euc-jp-shebang.rb"), COVERAGE_FOR_TRIPLE_LINES)
+      end
+
+      it_behaves_like "converting to UTF-8"
+
+      it "has all the right lines" do
+        expect(subject.lines.map(&:source)).to eq [
+          "#!/usr/bin/env ruby\n",
+          "# encoding: EUC-JP\n",
+          DEGREE_135_LINE
+        ]
       end
     end
   end
