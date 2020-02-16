@@ -762,5 +762,15 @@ describe SimpleCov::SourceFile do
         ]
       end
     end
+
+    describe "empty euc-jp file" do
+      subject do
+        SimpleCov::SourceFile.new(source_fixture("empty_euc-jp.rb"), "lines" => [])
+      end
+
+      it "has empty lines" do
+        expect(subject.lines).to be_empty
+      end
+    end
   end
 end
