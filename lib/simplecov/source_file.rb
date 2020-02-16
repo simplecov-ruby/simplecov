@@ -181,7 +181,7 @@ module SimpleCov
       File.open(filename, "rb:UTF-8") do |file|
         line = file.gets
 
-        # Check for shbang
+        # Check for shebang
         if /\A#!/.match?(line)
           lines << line
           line = file.gets
