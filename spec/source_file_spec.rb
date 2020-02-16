@@ -698,7 +698,8 @@ describe SimpleCov::SourceFile do
 
   context "a file contains non-ASCII characters" do
     COVERAGE_FOR_SINGLE_LINE = {"lines" => [nil]}.freeze
-    COVERAGE_FOR_DOUBLE_LINES = {"lines" => [nil]}.freeze
+    COVERAGE_FOR_DOUBLE_LINES = {"lines" => [nil, 1]}.freeze
+    DEGREE_135_LINE = "puts \"135°C\"\n"
 
     shared_examples_for "converting to UTF-8" do
       it "has all source lines of encoding UTF-8" do
@@ -715,6 +716,10 @@ describe SimpleCov::SourceFile do
       end
 
       it_behaves_like "converting to UTF-8"
+
+      it "has the line with 135°C" do
+        expect(subject.line(1).source).to eq DEGREE_135_LINE
+      end
     end
 
     describe "UTF-8 with magic comment" do
@@ -723,6 +728,10 @@ describe SimpleCov::SourceFile do
       end
 
       it_behaves_like "converting to UTF-8"
+
+      it "has the line with 135°C" do
+        expect(subject.line(2).source).to eq DEGREE_135_LINE
+      end
     end
 
     describe "EUC-JP with magic comment" do
@@ -731,6 +740,10 @@ describe SimpleCov::SourceFile do
       end
 
       it_behaves_like "converting to UTF-8"
+
+      it "has the line with 135°C" do
+        expect(subject.line(2).source).to eq DEGREE_135_LINE
+      end
     end
   end
 end
