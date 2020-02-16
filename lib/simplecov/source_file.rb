@@ -179,22 +179,31 @@ module SimpleCov
       lines = []
       # The default encoding is UTF-8
       File.open(filename, "rb:UTF-8") do |file|
-        line = file.gets
+        current_line = file.gets
 
-        # Check for shebang
-        if /\A#!/.match?(line)
-          lines << line
-          line = file.gets
+        if shebang?(current_line)
+          lines << current_line
+          current_line = file.gets
         end
-        return lines unless line
 
-        check_magic_comment(file, line)
-        lines.concat([line], file.readlines)
+        read_lines(file, lines, current_line)
       end
     end
 
+    SHEBANG_REGEX = /\A#!/.freeze
+    def shebang?(line)
+      SHEBANG_REGEX.match?(line)
+    end
+
+    def read_lines(file, lines, current_line)
+      return lines unless current_line
+
+      set_encoding_based_on_magic_comment(file, current_line)
+      lines.concat([current_line], file.readlines)
+    end
+
     RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
-    def check_magic_comment(file, line)
+    def set_encoding_based_on_magic_comment(file, line)
       # Check for encoding magic comment
       # Encoding magic comment must be placed at first line except for shebang
       if (match = RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX.match(line))
