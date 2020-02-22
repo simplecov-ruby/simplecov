@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/colszowka/simplecov-html.git
-  revision: abf08dc387856f2c22e45e33d7c786d5bfc57d5e
-  branch: revert-encoding-replace
+  revision: ae1d70a6b2888e16fa138b020a0ec24f9cd8812f
+  branch: disable-pagination
   specs:
     simplecov-html (0.12.0)
 

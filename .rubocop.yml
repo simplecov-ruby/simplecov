@@ -7,6 +7,7 @@ AllCops:
     - "spec/fixtures/empty_euc-jp.rb"
     - "spec/fixtures/euc-jp-shebang.rb"
     - "test_projects/encodings/**/*"
+    - "test_projects/pagination/**/*"
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
