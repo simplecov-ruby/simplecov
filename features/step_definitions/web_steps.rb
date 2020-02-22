@@ -57,6 +57,17 @@ Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, se
   end
 end
 
+# the default in our settings is still to check unvisible content
+# as well and until we change that these steps similar to "should (not)
+# see" are necessary
+Then "{string} should be visible" do |text|
+  expect(page).to have_content(:visible, text)
+end
+
+Then "{string} should not be visible" do |text|
+  expect(page).to have_no_content(:visible, text)
+end
+
 Then /^show me the page$/ do
   save_and_open_page # rubocop:disable Lint/Debugger
 end
