@@ -13,20 +13,26 @@ Feature:
   When I open the coverage report generated with `bundle exec rspec spec`
   Then I should see the groups:
     | name      | coverage | files |
-    | All Files | 83.33%   | 3     |
+    | All Files | 55.56%   | 4     |
 
   When I open the detailed view for "lib/utf8.rb"
-  Then I should not see "�"
-  And I should see "🇯🇵"
-  And I should see "おはよう"
+  Then "�" should not be visible
+  And "🇯🇵" should be visible
+  And "おはよう" should be visible
 
 
   When I close the detailed view
   And I open the detailed view for "lib/euc_jp.rb"
-  Then I should not see "�"
-  And I should see "おはよう"
+  Then "�" should not be visible
+  And "おはよう" should be visible
 
   When I close the detailed view
   And I open the detailed view for "lib/euc_jp_not_declared.rb"
-  Then I should not see "�"
-  And I should see "Fun3"
+  Then "�" should not be visible
+  And "Fun3" should be visible
+
+  When I close the detailed view
+  And I open the detailed view for "lib/euc_jp_not_declared_tracked.rb"
+  # no way around it I guess
+  Then "�" should be visible
+  And "NoDeclare" should be visible
