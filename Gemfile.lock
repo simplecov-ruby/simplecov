@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/colszowka/simplecov-html.git
+  revision: abf08dc387856f2c22e45e33d7c786d5bfc57d5e
+  branch: revert-encoding-replace
+  specs:
+    simplecov-html (0.12.0)
+
+GIT
   remote: https://github.com/cucumber/aruba.git
   revision: 8b7dc956daf47051237700488e8d866fb229db29
   specs:
@@ -111,7 +118,6 @@ GEM
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 1.7)
     ruby-progressbar (1.10.1)
-    simplecov-html (0.12.0)
     spoon (0.0.6)
       ffi
     test-unit (3.3.5)
@@ -142,6 +148,7 @@ DEPENDENCIES
   rspec (~> 3.2)
   rubocop
   simplecov!
+  simplecov-html!
   test-unit
 
 BUNDLED WITH
