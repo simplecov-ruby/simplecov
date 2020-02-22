@@ -63,6 +63,10 @@ When /^I open the detailed view for "(.+)"$/ do |file_path|
   expect(page).to have_css(".header h3", visible: true, text: file_path)
 end
 
+When "I close the detailed view" do
+  click_button "cboxClose"
+end
+
 Then /^I should see coverage branch data like "(.+)"$/ do |text|
   expect(find(".hits", visible: true, text: text)).to be_truthy
 end
