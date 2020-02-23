@@ -1,7 +1,10 @@
-unreleased
+0.18.3 (2020-02-23)
 ===========
 
+Small bugfix release. It's especially recommended to upgrade simplecov-html as well because of bugs in the 0.12.0 release.
+
 ## Bugfixes
+* Fix a regression related to file encodings as special characters were missing. Furthermore we now respect the magic `# encoding: ...` comment and read files in the right encoding. Thanks ([@Tietew](https://github.com/Tietew)) - see [#866](https://github.com/colszowka/simplecov/pull/866)
 * Use `Minitest.after_run` hook to trigger post-run hooks if `Minitest` is present. See [#756](https://github.com/colszowka/simplecov/pull/756) and [#855](https://github.com/colszowka/simplecov/pull/855) thanks ([@adam12](https://github.com/adam12))
 
 0.18.2 (2020-02-12)
