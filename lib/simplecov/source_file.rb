@@ -199,7 +199,7 @@ module SimpleCov
       return lines unless current_line
 
       set_encoding_based_on_magic_comment(file, current_line)
-      lines.concat([current_line], file.readlines)
+      lines.concat([current_line], ensure_remove_undefs(file.readlines))
     end
 
     RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
@@ -209,6 +209,15 @@ module SimpleCov
       if (match = RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX.match(line))
         file.set_encoding(match[1], "UTF-8")
       end
+    end
+
+    def ensure_remove_undefs(file_lines)
+      # invalid/undef replace are technically not really necessary but nice to
+      # have and work around a JRuby incompatibility. Also moved here from
+      # simplecov-html to have encoding shenaningans in one place. See #866
+      # also setting these option on `file.set_encoding` doesn't seem to work
+      # properly so it has to be done here.
+      file_lines.each { |line| line.encode!("UTF-8", invalid: :replace, undef: :replace) }
     end
 
     def build_lines
