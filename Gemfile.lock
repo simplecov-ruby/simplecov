@@ -1,7 +1,6 @@
 GIT
   remote: https://github.com/colszowka/simplecov-html.git
-  revision: ae1d70a6b2888e16fa138b020a0ec24f9cd8812f
-  branch: disable-pagination
+  revision: 8433df081f123110e84813a06c02adffcc57a394
   specs:
     simplecov-html (0.12.0)
 
