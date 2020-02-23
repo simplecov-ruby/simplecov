@@ -5,7 +5,7 @@
 module Minitest
   def self.plugin_simplecov_init(_options)
     Minitest.after_run do
-      SimpleCov.at_exit_behvior if SimpleCov.respond_to?(:at_exit_behvior)
+      SimpleCov.at_exit_behavior if SimpleCov.respond_to?(:at_exit_behavior)
     end
   end
 end

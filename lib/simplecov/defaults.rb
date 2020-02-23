@@ -25,7 +25,7 @@ at_exit do
   # Exit hook for Minitest defined in Minitest plugin
   next if defined?(Minitest)
 
-  SimpleCov.at_exit_behvior
+  SimpleCov.at_exit_behavior
 end
 
 # Autoload config from ~/.simplecov if present
