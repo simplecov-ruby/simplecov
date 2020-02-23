@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/colszowka/simplecov-html.git
-  revision: 8433df081f123110e84813a06c02adffcc57a394
+  revision: fa5752b9fcf17ae212b8195c2fac801aff725768
   specs:
-    simplecov-html (0.12.0)
+    simplecov-html (0.12.1)
 
 GIT
   remote: https://github.com/cucumber/aruba.git
@@ -19,7 +19,7 @@ GIT
 PATH
   remote: .
   specs:
-    simplecov (0.18.2)
+    simplecov (0.18.3)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
 
