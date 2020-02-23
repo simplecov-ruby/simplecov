@@ -189,7 +189,7 @@ module SimpleCov
       end
     end
 
-    def at_exit_behvior
+    def at_exit_behavior
       # If we are in a different process than called start, don't interfere.
       return if SimpleCov.pid != Process.pid
 
