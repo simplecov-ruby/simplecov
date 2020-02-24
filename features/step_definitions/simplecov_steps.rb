@@ -76,8 +76,9 @@ Then "the overlay should be open" do
 end
 
 When "I install dependencies" do
+  # bundle may take its time
   steps %(
-    When I successfully run `bundle`
+    When I successfully run `bundle` for up to 120 seconds
   )
 end
 

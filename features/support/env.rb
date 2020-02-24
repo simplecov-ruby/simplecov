@@ -46,6 +46,12 @@ Before("@branch_coverage") do
   skip_this_scenario unless SimpleCov.branch_coverage_supported?
 end
 
+Before("@rails6") do
+  # Rails 6 only supports Ruby 2.5+ and amazingly because string comparison
+  # goes beginning to end the string comparison _should_ work
+  skip_this_scenario if RUBY_VERSION < "2.5"
+end
+
 Aruba.configure do |config|
   config.allow_absolute_paths = true
 
