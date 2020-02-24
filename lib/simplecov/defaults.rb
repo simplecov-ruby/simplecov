@@ -21,9 +21,13 @@ end
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
+class << SimpleCov
+  attr_accessor :external_at_exit
+  alias external_at_exit? external_at_exit
+end
+
 at_exit do
-  # Exit hook for Minitest defined in Minitest plugin
-  next if defined?(Minitest)
+  next if SimpleCov.external_at_exit?
 
   SimpleCov.at_exit_behavior
 end
