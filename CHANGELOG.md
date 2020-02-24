@@ -1,3 +1,12 @@
+0.18.4 (2020-02-24)
+===================
+
+Another small bugfix release 🙈 Fixes SimpleCov running with rspec-rails, which was broken due to our fixed minitest integration.
+
+## Bugfixes
+* SimpleCov will run again correctly when used with rspec-rails. For details recommending the excellent bug report [#873](https://github.com/colszowka/simplecov/issues/873) by [@odlp](https://github.com/odlp) is recommended. Thanks to [@adam12](https://github.com/adam12) for the fix [#874](https://github.com/colszowka/simplecov/pull/874).
+
+
 0.18.3 (2020-02-23)
 ===========
 
