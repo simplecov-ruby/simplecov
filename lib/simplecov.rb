@@ -27,6 +27,11 @@ module SimpleCov
     attr_accessor :pid
     attr_reader :exit_exception
 
+    # Basically, should we take care of at_exit behavior or something else?
+    # Used by the minitest plugin. See lib/minitest/simplecov_plugin.rb
+    attr_accessor :external_at_exit
+    alias external_at_exit? external_at_exit
+
     #
     # Sets up SimpleCov to run against your project.
     # You can optionally specify a profile to use as well as configuration with a block:
