@@ -23,6 +23,9 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
 
+      - name: Get sqlite for Rails test projects
+        run: sudo apt-get install libsqlite3-dev
+
       - name: Install bundler
         run: gem i bundler
 
