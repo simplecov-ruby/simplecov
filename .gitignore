@@ -28,3 +28,4 @@ tmp
 .yardoc
 spec/fixtures/coverage
 spec/fixtures/frameworks/coverage
+test_projects/**/coverage
