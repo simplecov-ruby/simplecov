@@ -1,3 +1,11 @@
+0.18.5 (2020-02-25)
+===================
+
+Can you guess? Another bugfix release!
+
+## Bugfixes
+* minitest won't crash if SimpleCov isn't loaded - aka don't execute SimpleCov code in the minitest plugin if SimpleCov isn't loaded. Thanks to [@edariedl](https://github.com/edariedl) for the report of the peculiar problem in [#877](https://github.com/colszowka/simplecov/issues/877).
+
 0.18.4 (2020-02-24)
 ===================
 
