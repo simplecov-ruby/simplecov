@@ -111,7 +111,7 @@ GEM
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 1.7)
     ruby-progressbar (1.10.1)
-    simplecov-html (0.12.1)
+    simplecov-html (0.12.2)
     spoon (0.0.6)
       ffi
     test-unit (3.3.5)
