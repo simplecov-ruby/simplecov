@@ -197,6 +197,40 @@ module SimpleCov
     end
 
     #
+    # Gets or sets the behavior to start a new forked Process.
+    #
+    # By default, it will add " (Process #{pid})" to the command_name, and start SimpleCov in quiet mode
+    #
+    # Configure with:
+    #
+    #     SimpleCov.at_fork do |pid|
+    #       SimpleCov.start do
+    #         # This needs a unique name so it won't be ovewritten
+    #         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+    #         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+    #         SimpleCov.print_error_status = false
+    #         SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+    #         SimpleCov.minimum_coverage 0
+    #         # start
+    #         SimpleCov.start
+    #       end
+    #     end
+    #
+    def at_fork(&block)
+      @at_fork = block if block_given?
+      @at_fork ||= lambda { |pid|
+        # This needs a unique name so it won't be ovewritten
+        SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+        # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+        SimpleCov.print_error_status = false
+        SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+        SimpleCov.minimum_coverage 0
+        # start
+        SimpleCov.start
+      }
+    end
+
+    #
     # Returns the project name - currently assuming the last dirname in
     # the SimpleCov.root is this.
     #

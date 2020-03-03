@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Enhancements
+* observe forked processes (configure with SimpleCov.at_fork)
+
 0.18.5 (2020-02-25)
 ===================
 

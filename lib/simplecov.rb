@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "English"
+require_relative "simplecov/process"
 
 # Coverage may be inaccurate under JRUBY.
 if defined?(JRUBY_VERSION) && defined?(JRuby)
