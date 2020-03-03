@@ -270,31 +270,6 @@ describe SimpleCov do
       end
     end
 
-    context "with_reports_to_clear_up" do
-      after do
-        clear_mergeable_reports
-      end
-
-      def a_void_method_call_that_wont_warn
-        true
-      end
-
-      it "starts coverage of subprocesses" do
-        SimpleCov.command_name "RSpec"
-        SimpleCov.start
-
-        a_void_method_call_that_wont_warn # this process
-
-        pid = Process.fork do
-          a_void_method_call_that_wont_warn # that process
-        end
-
-        Process.wait(pid) # timings!
-
-        expect(SimpleCov.result.command_name).to eq "RSpec, RSpec (subprocess: #{pid})"
-      end
-    end
-
     context "when files to be merged" do
       before do
         expect(SimpleCov).to receive(:run_exit_tasks!)
@@ -347,14 +322,14 @@ describe SimpleCov do
         SimpleCov::ResultMerger.store_result(result)
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end
-    end
 
-    def clear_mergeable_reports(*names)
-      SimpleCov.clear_result
-      SimpleCov::ResultMerger.clear_resultset
-      FileUtils.rm resultset_path
-      FileUtils.rm "#{resultset_path}.lock"
-      names.each { |name| FileUtils.rm "#{resultset_path}#{name}.final" }
+      def clear_mergeable_reports(*names)
+        SimpleCov.clear_result
+        SimpleCov::ResultMerger.clear_resultset
+        FileUtils.rm resultset_path
+        FileUtils.rm "#{resultset_path}.lock"
+        names.each { |name| FileUtils.rm "#{resultset_path}#{name}.final" }
+      end
     end
   end
 

@@ -12,6 +12,7 @@ module SimpleCov
   #
   module Configuration # rubocop:disable Metrics/ModuleLength
     attr_writer :filters, :groups, :formatter, :print_error_status
+    attr_accessor :enable_for_subprocesses
 
     #
     # The root for the project. This defaults to the

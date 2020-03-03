@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "English"
-require_relative "simplecov/process"
 
 # Coverage may be inaccurate under JRUBY.
 if defined?(JRUBY_VERSION) && defined?(JRuby)
@@ -53,6 +52,8 @@ module SimpleCov
     def start(profile = nil, &block)
       require "coverage"
       initial_setup(profile, &block)
+      require_relative "./simplecov/process" if SimpleCov.enable_for_subprocesses
+
       @result = nil
       self.pid = Process.pid
 

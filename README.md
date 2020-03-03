@@ -616,16 +616,18 @@ end
 
 ## Running simplecov against subprocesses
 
-SimpleCov will cover code run using `Process.fork` automatically, appending `" (subprocess #{pid})"`
+`SimpleCov.enable_for_subprocesses` will allow SimpleCov to observe subprocesses starting using `Process.fork`.
+This modifies ruby's core Process.fork method so that SimpleCov can see into it, appending `" (subprocess #{pid})"`
 to the `SimpleCov.command_name`, with results that can be merged together using SimpleCov's merging feature.
 
 To configure this, use `.at_fork`.
 
 ```ruby
+SimpleCov.enable_for_subprocesses = true
 SimpleCov.at_fork do |pid|
   # This needs a unique name so it won't be ovewritten
   SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
-  # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+  # be quiet, the parent process will be in charge of output and checking coverage totals
   SimpleCov.print_error_status = false
   SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
   SimpleCov.minimum_coverage 0

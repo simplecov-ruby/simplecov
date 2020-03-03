@@ -2,7 +2,7 @@ Unreleased
 ==========
 
 ## Enhancements
-* observe forked processes (configure with SimpleCov.at_fork)
+* observe forked processes (enable with SimpleCov.enable_for_subprocesses)
 
 0.18.5 (2020-02-25)
 ===================
