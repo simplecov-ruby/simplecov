@@ -1,5 +1,5 @@
 require 'bundler/setup'
 require 'simplecov'
-SimpleCov.enable_for_subprocesses = true
+SimpleCov.command_name 'spawn'
 SimpleCov.at_fork.call(Process.pid)
 SimpleCov.start

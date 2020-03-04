@@ -643,13 +643,14 @@ NOTE: SimpleCov must have already been started before `Process.fork` was called.
 Perhaps you're testing a ruby script with `PTY.spawn` or `Open3.popen`, or `Process.spawn` or etc.
 SimpleCov can cover this too.
 
-Add a .simplecov_spawn file to your project root
+Add a .simplecov_spawn.rb file to your project root
 ```ruby
-# .simplecov_spawn
+# .simplecov_spawn.rb
 require 'simplecov' # this will also pick up whatever config is in .simplecov
                     # so ensure it just contains configuration, and doesn't call SimpleCov.start.
-SimpleCov.at_fork.call(Process.pid)
-SimpleCov.start
+SimpleCov.command_name 'spawn' # As this is not for a test runner directly, script doesn't have a pre-defined base command_name
+SimpleCov.at_fork.call(Process.pid) # Use the per-process setup described previously
+SimpleCov.start # only now can we start.
 ```
 Then, instead of calling your script directly, like:
 ```ruby
@@ -657,7 +658,7 @@ PTY.spawn('my_script.rb') do # ...
 ```
 Use bin/ruby to require the new .simplecov_spawn file, then your script
 ```ruby
-PTY.spawn('ruby -r.simplecov_spawn my_script.rb') do # ...
+PTY.spawn('ruby -r./.simplecov_spawn my_script.rb') do # ...
 ```
 
 ## Running coverage only on demand
