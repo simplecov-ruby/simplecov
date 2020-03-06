@@ -623,13 +623,13 @@ to the `SimpleCov.command_name`, with results that can be merged together using 
 To configure this, use `.at_fork`.
 
 ```ruby
-SimpleCov.enable_for_subprocesses = true
+SimpleCov.enable_for_subprocesses true
 SimpleCov.at_fork do |pid|
   # This needs a unique name so it won't be ovewritten
   SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
   # be quiet, the parent process will be in charge of output and checking coverage totals
   SimpleCov.print_error_status = false
-  SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+  SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
   SimpleCov.minimum_coverage 0
   # start
   SimpleCov.start

@@ -52,7 +52,7 @@ module SimpleCov
     def start(profile = nil, &block)
       require "coverage"
       initial_setup(profile, &block)
-      require_relative "./simplecov/process" if SimpleCov.enable_for_subprocesses
+      require_relative "./simplecov/process" if SimpleCov.enabled_for_subprocesses?
 
       @result = nil
       self.pid = Process.pid

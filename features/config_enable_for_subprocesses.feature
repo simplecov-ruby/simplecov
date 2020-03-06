@@ -1,4 +1,4 @@
-@rspec
+@rspec @process_fork
 
 Feature:
   Coverage should include code run by subprocesses
@@ -15,7 +15,7 @@ Feature:
   Scenario: The at_fork proc
   Given a file named ".simplecov" with:
     """
-    SimpleCov.enable_for_subprocesses = true
+    SimpleCov.enable_for_subprocesses true
     SimpleCov.command_name "parent process name"
     SimpleCov.at_fork do |_pid|
       SimpleCov.command_name "child process name"

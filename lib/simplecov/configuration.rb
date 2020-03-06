@@ -12,7 +12,6 @@ module SimpleCov
   #
   module Configuration # rubocop:disable Metrics/ModuleLength
     attr_writer :filters, :groups, :formatter, :print_error_status
-    attr_accessor :enable_for_subprocesses
 
     #
     # The root for the project. This defaults to the
@@ -197,6 +196,18 @@ module SimpleCov
       @at_exit ||= proc { SimpleCov.result.format! }
     end
 
+    # gets or sets the enabled_for_subprocess configuration
+    # when true, this will inject SimpleCov code into Process.fork
+    def enable_for_subprocesses(value = nil)
+      @enable_for_subprocesses = value unless value.nil?
+      @enable_for_subprocesses || false
+    end
+
+    # gets the enabled_for_subprocess configuration
+    def enabled_for_subprocesses?
+      enable_for_subprocesses
+    end
+
     #
     # Gets or sets the behavior to start a new forked Process.
     #
@@ -210,7 +221,7 @@ module SimpleCov
     #         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
     #         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
     #         SimpleCov.print_error_status = false
-    #         SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+    #         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
     #         SimpleCov.minimum_coverage 0
     #         # start
     #         SimpleCov.start
@@ -224,7 +235,7 @@ module SimpleCov
         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
         SimpleCov.print_error_status = false
-        SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter
+        SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
         SimpleCov.minimum_coverage 0
         # start
         SimpleCov.start
