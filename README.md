@@ -614,6 +614,53 @@ namespace :coverage do
 end
 ```
 
+## Running simplecov against subprocesses
+
+`SimpleCov.enable_for_subprocesses` will allow SimpleCov to observe subprocesses starting using `Process.fork`.
+This modifies ruby's core Process.fork method so that SimpleCov can see into it, appending `" (subprocess #{pid})"`
+to the `SimpleCov.command_name`, with results that can be merged together using SimpleCov's merging feature.
+
+To configure this, use `.at_fork`.
+
+```ruby
+SimpleCov.enable_for_subprocesses true
+SimpleCov.at_fork do |pid|
+  # This needs a unique name so it won't be ovewritten
+  SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+  # be quiet, the parent process will be in charge of output and checking coverage totals
+  SimpleCov.print_error_status = false
+  SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
+  SimpleCov.minimum_coverage 0
+  # start
+  SimpleCov.start
+end
+```
+
+NOTE: SimpleCov must have already been started before `Process.fork` was called.
+
+### Running simplecov against spawned subprocesses
+
+Perhaps you're testing a ruby script with `PTY.spawn` or `Open3.popen`, or `Process.spawn` or etc.
+SimpleCov can cover this too.
+
+Add a .simplecov_spawn.rb file to your project root
+```ruby
+# .simplecov_spawn.rb
+require 'simplecov' # this will also pick up whatever config is in .simplecov
+                    # so ensure it just contains configuration, and doesn't call SimpleCov.start.
+SimpleCov.command_name 'spawn' # As this is not for a test runner directly, script doesn't have a pre-defined base command_name
+SimpleCov.at_fork.call(Process.pid) # Use the per-process setup described previously
+SimpleCov.start # only now can we start.
+```
+Then, instead of calling your script directly, like:
+```ruby
+PTY.spawn('my_script.rb') do # ...
+```
+Use bin/ruby to require the new .simplecov_spawn file, then your script
+```ruby
+PTY.spawn('ruby -r./.simplecov_spawn my_script.rb') do # ...
+```
+
 ## Running coverage only on demand
 
 The Ruby STDLIB Coverage library that SimpleCov builds upon is *very* fast (on a ~10 min Rails test suite, the speed

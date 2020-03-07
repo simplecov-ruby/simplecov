@@ -196,6 +196,52 @@ module SimpleCov
       @at_exit ||= proc { SimpleCov.result.format! }
     end
 
+    # gets or sets the enabled_for_subprocess configuration
+    # when true, this will inject SimpleCov code into Process.fork
+    def enable_for_subprocesses(value = nil)
+      @enable_for_subprocesses = value unless value.nil?
+      @enable_for_subprocesses || false
+    end
+
+    # gets the enabled_for_subprocess configuration
+    def enabled_for_subprocesses?
+      enable_for_subprocesses
+    end
+
+    #
+    # Gets or sets the behavior to start a new forked Process.
+    #
+    # By default, it will add " (Process #{pid})" to the command_name, and start SimpleCov in quiet mode
+    #
+    # Configure with:
+    #
+    #     SimpleCov.at_fork do |pid|
+    #       SimpleCov.start do
+    #         # This needs a unique name so it won't be ovewritten
+    #         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+    #         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+    #         SimpleCov.print_error_status = false
+    #         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
+    #         SimpleCov.minimum_coverage 0
+    #         # start
+    #         SimpleCov.start
+    #       end
+    #     end
+    #
+    def at_fork(&block)
+      @at_fork = block if block_given?
+      @at_fork ||= lambda { |pid|
+        # This needs a unique name so it won't be ovewritten
+        SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+        # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+        SimpleCov.print_error_status = false
+        SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
+        SimpleCov.minimum_coverage 0
+        # start
+        SimpleCov.start
+      }
+    end
+
     #
     # Returns the project name - currently assuming the last dirname in
     # the SimpleCov.root is this.

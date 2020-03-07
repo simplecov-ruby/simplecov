@@ -47,9 +47,13 @@ Before("@branch_coverage") do
 end
 
 Before("@rails6") do
-  # Rails 6 only supports Ruby 2.5+ and amazingly because string comparison
-  # goes beginning to end the string comparison _should_ work
-  skip_this_scenario if RUBY_VERSION < "2.5"
+  # Rails 6 only supports Ruby 2.5+
+  skip_this_scenario if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.5")
+end
+
+Before("@process_fork") do
+  # Process.fork is NotImplementedError in jruby
+  skip_this_scenario if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 end
 
 Aruba.configure do |config|
