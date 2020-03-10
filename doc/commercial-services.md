@@ -4,6 +4,11 @@ There is a bunch of services that offer integration with your existing CI pipeli
 reports. Please note these are not associated with the SimpleCov project itself, so please report problems with
 these integrations with their respective owners.
 
+#### [Codacy](https://github.com/codacy/codacy-coverage-reporter)
+*by [Codacy](https://www.codacy.com/)*
+
+Upload coverage reports to [codacy.com](https://www.codacy.com/), a hosted (or self-hosted) software quality analysis and that also includes coverage reporting.
+
 #### [codeclimate](https://github.com/codeclimate/ruby-test-reporter)
 *by [Code Climate](https://codeclimate.com/)*
 
