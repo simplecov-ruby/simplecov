@@ -3,11 +3,11 @@
 # Load default formatter gem
 require "simplecov-html"
 require "pathname"
-require "simplecov/profiles/root_filter"
-require "simplecov/profiles/test_frameworks"
-require "simplecov/profiles/bundler_filter"
-require "simplecov/profiles/hidden_filter"
-require "simplecov/profiles/rails"
+require_relative "profiles/root_filter"
+require_relative "profiles/test_frameworks"
+require_relative "profiles/bundler_filter"
+require_relative "profiles/hidden_filter"
+require_relative "profiles/rails"
 
 # Default configuration
 SimpleCov.configure do
@@ -28,7 +28,7 @@ at_exit do
 end
 
 # Autoload config from ~/.simplecov if present
-require "simplecov/load_global_config"
+require_relative "load_global_config"
 
 # Autoload config from .simplecov if present
 # Recurse upwards until we find .simplecov or reach the root directory
