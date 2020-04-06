@@ -2,7 +2,7 @@
 
 require "fileutils"
 require "docile"
-require "simplecov/formatter/multi_formatter"
+require_relative "formatter/multi_formatter"
 
 module SimpleCov
   #
