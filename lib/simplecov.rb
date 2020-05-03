@@ -247,7 +247,7 @@ module SimpleCov
     def result_exit_status(result, covered_percent)
       covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
       if (minimum_violations = minimum_coverage_violated(result)).any?
-        report_minimum_violated(minimum_violations)
+        report_minimum_violated(minimum_violations) if final_result_process? # If running tests in parallel, only report coverage violation on the last process to finish.
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
         $stderr.printf(
@@ -259,7 +259,7 @@ module SimpleCov
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       elsif (last_run = SimpleCov::LastRun.read)
         coverage_diff = last_run[:result][:covered_percent] - covered_percent
-        if coverage_diff > SimpleCov.maximum_coverage_drop
+        if coverage_diff > SimpleCov.maximum_coverage_drop && final_result_process? # If running tests in parallel, only report coverage violation on the last process to finish.
           $stderr.printf(
             "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
             drop_percent: coverage_diff,
