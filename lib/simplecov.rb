@@ -279,7 +279,7 @@ module SimpleCov
     # @api private
     #
     def final_result_process?
-      # checking for ENV["TEST_ENV_NUMBER"] to determine if the tess are being run in parallel
+      # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
       !defined?(ParallelTests) || !ENV["TEST_ENV_NUMBER"] || ParallelTests.number_of_running_processes <= 1
     end
 
