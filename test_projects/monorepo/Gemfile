@@ -1,0 +1,15 @@
+source "https://rubygems.org"
+
+gem "rspec"
+
+gem "base", path: "base"
+gem "extra", path: "extra"
+
+# when the tests are executed the project is in tmp/aruba/project
+# which is a different nesting from its usual place
+root = File.expand_path("../..", __dir__)
+unless File.exist?("#{root}/simplecov.gemspec")
+  root = File.expand_path("../../..", __dir__)
+end
+
+gem "simplecov", path: root
