@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           bundle config set --local without benchmark
-          bundle install --jobs=3 --retry=3
+          bundle install --jobs=3
 
       - name: Run tests (MRI)
         run: bundle exec rake
