@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup ruby
-        uses: eregon/use-ruby-action@master
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
 
