@@ -30,7 +30,9 @@ jobs:
         run: gem i bundler
 
       - name: Install dependencies
-        run:  bundle install --without benchmark --jobs=3 --retry=3
+        run: |
+          bundle config set --local without benchmark
+          bundle install --jobs=3 --retry=3
 
       - name: Run tests (MRI)
         run: bundle exec rake
