@@ -34,8 +34,8 @@ jobs:
 
       - name: Run tests (MRI)
         run: bundle exec rake
-        if: matrix.ruby != 'jruby-9.2.9.0'
+        if: "!startsWith(matrix.ruby, 'jruby')"
 
       - name: Run tests (JRuby)
         run: JRUBY_OPTS=--debug bundle exec rake
-        if: matrix.ruby == 'jruby-9.2.9.0'
+        if: startsWith(matrix.ruby, 'jruby')
