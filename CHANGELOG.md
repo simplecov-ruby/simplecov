@@ -4,6 +4,9 @@ Unreleased
 ## Enhancements
 * observe forked processes (enable with SimpleCov.enable_for_subprocesses)
 
+## Bugfixes
+* Changing the `SimpleCov.root` combined with the root filtering didn't work. Now they do! Thanks to [@deivid-rodriguez](https://github.com/deivid-rodriguez) and see [#894](https://github.com/colszowka/simplecov/pull/894)
+
 0.18.5 (2020-02-25)
 ===================
 
