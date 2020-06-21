@@ -289,8 +289,8 @@ module SimpleCov
       return @minimum_coverage ||= {} unless coverage
 
       coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
-      coverage.keys.each { |criterion| raise_if_criterion_disabled(criterion) }
-      coverage.values.each do |percent|
+      coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
+      coverage.each_value do |percent|
         minimum_possible_coverage_exceeded("minimum_coverage") if percent && percent > 100
       end
 

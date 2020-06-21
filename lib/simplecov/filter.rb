@@ -14,6 +14,7 @@ module SimpleCov
   #
   class Filter
     attr_reader :filter_argument
+
     def initialize(filter_argument)
       @filter_argument = filter_argument
     end
