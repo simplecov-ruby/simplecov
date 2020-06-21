@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+if ARGV[0]
+  cleaned_file_path = ARGV[0].split("./").last
+  argument_parts = cleaned_file_path.split("/")
+
+  first_part = argument_parts[0]
+
+  if File.directory?(first_part)
+    Dir.chdir(first_part)
+
+    other_parts = argument_parts[1..-1]
+
+    new_args = [!other_parts.empty? ? other_parts.join("/") : nil, *ARGV[1..-1]].compact
+
+    ARGV.replace(new_args)
+  end
+end
+
+load Gem.bin_path("rspec-core", "rspec")
