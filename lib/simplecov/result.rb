@@ -103,9 +103,9 @@ module SimpleCov
     end
 
     def adapt_pre_simplecov_0_18_result(result)
-      result.map do |file_path, line_coverage_data|
-        [file_path, {"lines" => line_coverage_data}]
-      end.to_h
+      result.transform_values do |line_coverage_data|
+        {"lines" => line_coverage_data}
+      end
     end
 
     def coverage

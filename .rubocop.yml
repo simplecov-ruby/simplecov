@@ -143,52 +143,52 @@ Style/FrozenStringLiteralComment:
 
 Layout/EmptyLinesAroundAttributeAccessor:
   Description: Keep blank lines around attribute accessors.
-  Enabled: false
+  Enabled: true
 
 Layout/SpaceAroundMethodCallOperator:
   Description: Checks method call operators to not have spaces around them.
-  Enabled: false
+  Enabled: true
 
 Lint/DeprecatedOpenSSLConstant:
   Description: Don't use algorithm constants for `OpenSSL::Cipher` and `OpenSSL::Digest`.
-  Enabled: false
+  Enabled: true
 
 Lint/MixedRegexpCaptureTypes:
   Description: Do not mix named captures and numbered captures in a Regexp literal.
-  Enabled: false
+  Enabled: true
 
 Lint/RaiseException:
   Description: Checks for `raise` or `fail` statements which are raising `Exception` class.
-  Enabled: false
+  Enabled: true
 
 Lint/StructNewOverride:
   Description: Disallow overriding the `Struct` built-in methods via `Struct.new`.
-  Enabled: false
+  Enabled: true
 
 Style/ExponentialNotation:
   Description: When using exponential notation, favor a mantissa between 1 (inclusive) and 10 (exclusive).
-  Enabled: false
+  Enabled: true
 
 Style/HashEachMethods:
   Description: Use Hash#each_key and Hash#each_value.
-  Enabled: false
+  Enabled: true
 
 Style/HashTransformKeys:
   Description: Prefer `transform_keys` over `each_with_object` and `map`.
-  Enabled: false
+  Enabled: true
 
 Style/HashTransformValues:
   Description: Prefer `transform_values` over `each_with_object` and `map`.
-  Enabled: false
+  Enabled: true
 
 Style/RedundantRegexpCharacterClass:
   Description: Checks for unnecessary single-element Regexp character classes.
-  Enabled: false
+  Enabled: true
 
 Style/RedundantRegexpEscape:
   Description: Checks for redundant escapes in Regexps.
-  Enabled: false
+  Enabled: true
 
 Style/SlicingWithRange:
   Description: Checks array slicing is done with endless ranges when suitable.
-  Enabled: false
+  Enabled: true
