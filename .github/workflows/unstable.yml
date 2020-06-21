@@ -1,11 +1,8 @@
 name: unstable
 
 on:
-  pull_request:
-
-  push:
-    branches:
-      - master
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   test:
@@ -45,11 +42,9 @@ jobs:
           source $HOME/.rvm/scripts/rvm
           bundle exec rake
         if: matrix.ruby == 'ruby-head'
-        continue-on-error: true
 
       - name: Run tests (JRuby)
         run: |
           source $HOME/.rvm/scripts/rvm
           JRUBY_OPTS=--debug bundle exec rake
         if: matrix.ruby == 'jruby-head'
-        continue-on-error: true
