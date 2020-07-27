@@ -15,6 +15,11 @@ A formatter that generates a coverage badge for use in your project's readme usi
 
 A formatter that generates a small coverage badge for use in your project's readme using the SVG.
 
+#### [simplecov_badger](https://github.com/traels-it/simplecov_badger)
+*by traels.it*
+
+A formatter that uploads your coverage to a server, that will then host a SVG badge of the score. No need to have the badge stored in repository.
+
 #### [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
 *by Jesse Bowes*
 
