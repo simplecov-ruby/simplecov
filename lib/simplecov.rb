@@ -236,7 +236,7 @@ module SimpleCov
 
       covered_percent = result.covered_percent.floor(2)
       result_exit_status = result_exit_status(result, covered_percent)
-      write_last_run(covered_percent) if result_exit_status == SimpleCov::ExitCodes::SUCCESS # No result errors
+      write_last_run(covered_percent) if result_exit_status == SimpleCov::ExitCodes::SUCCESS && final_result_process? # No result errors
       final_result_process? ? result_exit_status : SimpleCov::ExitCodes::SUCCESS
     end
 
