@@ -135,21 +135,25 @@ describe SimpleCov::ResultMerger do
     it "blocks other processes" do
       file = Tempfile.new("foo")
 
-      other_process = open("|ruby -e " + Shellwords.escape(<<-CODE) + " 2>/dev/null") # rubocop:disable Security/Open
-        require "simplecov"
-        SimpleCov.coverage_dir(#{SimpleCov.coverage_dir.inspect})
+      test_script = <<-CODE
+      require "simplecov"
+      SimpleCov.coverage_dir(#{SimpleCov.coverage_dir.inspect})
 
-        # ensure the parent process has enough time to get a
-        # lock before we do
-        sleep 0.5
+      # ensure the parent process has enough time to get a
+      # lock before we do
+      sleep 0.5
 
-        $stdout.sync = true
-        puts "running" # see `sleep`s in parent process
+      $stdout.sync = true
+      puts "running" # see `sleep`s in parent process
 
-        SimpleCov::ResultMerger.synchronize_resultset do
-          File.open(#{file.path.inspect}, "a") { |f| f.write("process 2\n") }
-        end
+      SimpleCov::ResultMerger.synchronize_resultset do
+        File.open(#{file.path.inspect}, "a") { |f| f.write("process 2\n") }
+      end
       CODE
+
+      # rubocop:disable Security/Open
+      other_process = open("|ruby -e #{Shellwords.escape(test_script)} 2>/dev/null")
+      # rubocop:enable Security/Open
 
       SimpleCov::ResultMerger.synchronize_resultset do
         # wait until the child process is going, and then wait some more

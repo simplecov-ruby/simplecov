@@ -39,7 +39,7 @@ describe "return codes" do
       end
 
       context "when print_error_status is disabled" do
-        let(:command) { "PRINT_ERROR_STATUS=false " + super() }
+        let(:command) { "PRINT_ERROR_STATUS=false #{super()}" }
 
         it "has a non-zero exit status" do
           expect(@status.exitstatus).not_to be_zero

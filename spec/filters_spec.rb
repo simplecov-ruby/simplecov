@@ -192,8 +192,8 @@ describe SimpleCov::SourceFile do
       end
 
       it "filters even if the sibling directory has SimpleCov.root as a prefix" do
-        sibling_dir = SimpleCov.root + "_cache"
-        expect(SimpleCov.filtered([a_file(sibling_dir + "/foo.rb")]).count).to eq(0)
+        sibling_dir = "#{SimpleCov.root}_cache"
+        expect(SimpleCov.filtered([a_file("#{sibling_dir}/foo.rb")]).count).to eq(0)
       end
     end
   end
