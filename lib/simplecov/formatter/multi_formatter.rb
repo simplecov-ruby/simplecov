@@ -6,12 +6,10 @@ module SimpleCov
       module InstanceMethods
         def format(result)
           formatters.map do |formatter|
-            begin
-              formatter.new.format(result)
-            rescue StandardError => e
-              warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
-              nil
-            end
+            formatter.new.format(result)
+          rescue StandardError => e
+            warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
+            nil
           end
         end
       end

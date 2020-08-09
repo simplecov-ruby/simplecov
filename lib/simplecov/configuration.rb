@@ -285,6 +285,8 @@ module SimpleCov
     #
     # Default is 0% (disabled)
     #
+
+    # rubocop:disable Metrics/CyclomaticComplexity
     def minimum_coverage(coverage = nil)
       return @minimum_coverage ||= {} unless coverage
 
@@ -296,6 +298,7 @@ module SimpleCov
 
       @minimum_coverage = coverage
     end
+    # rubocop:enable Metrics/CyclomaticComplexity
 
     #
     # Defines the maximum coverage drop at once allowed for the testsuite to pass.

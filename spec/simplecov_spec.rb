@@ -120,12 +120,10 @@ describe SimpleCov do
       end
 
       it "captures the current exception" do
-        begin
-          raise error
-        rescue StandardError
-          SimpleCov.set_exit_exception
-          expect(SimpleCov.exit_exception).to be(error)
-        end
+        raise error
+      rescue StandardError
+        SimpleCov.set_exit_exception
+        expect(SimpleCov.exit_exception).to be(error)
       end
     end
 

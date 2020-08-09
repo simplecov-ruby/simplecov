@@ -243,7 +243,7 @@ module SimpleCov
 
     # @api private
     #
-    # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/MethodLength,Metrics/PerceivedComplexity
     def result_exit_status(result, covered_percent)
       covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
       if (minimum_violations = minimum_coverage_violated(result)).any?
@@ -273,7 +273,7 @@ module SimpleCov
         SimpleCov::ExitCodes::SUCCESS
       end
     end
-    # rubocop:enable Metrics/MethodLength
+    # rubocop:enable Metrics/MethodLength,Metrics/PerceivedComplexity
 
     #
     # @api private
