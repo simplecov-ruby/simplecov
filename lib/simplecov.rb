@@ -241,38 +241,15 @@ module SimpleCov
     end
 
     # @api private
-    #
-    # rubocop:disable Metrics/MethodLength,Metrics/PerceivedComplexity
+    CoverageLimits = Struct.new(:minimum_coverage, :minimum_coverage_by_file, :maximum_coverage_drop, keyword_init: true)
     def result_exit_status(result, covered_percent)
-      covered_percentages = result.covered_percentages.map { |percentage| percentage.floor(2) }
-      if (minimum_violations = minimum_coverage_violated(result)).any?
-        report_minimum_violated(minimum_violations)
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
-      elsif covered_percentages.any? { |p| p < SimpleCov.minimum_coverage_by_file }
-        $stderr.printf(
-          "File (%<file>s) is only (%<least_covered_percentage>.2f%%) covered. This is below the expected minimum coverage per file of (%<min_coverage>.2f%%).\n",
-          file: result.least_covered_file,
-          least_covered_percentage: covered_percentages.min,
-          min_coverage: SimpleCov.minimum_coverage_by_file
-        )
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
-      elsif (last_run = SimpleCov::LastRun.read)
-        coverage_diff = last_run[:result][:covered_percent] - covered_percent
-        if coverage_diff > SimpleCov.maximum_coverage_drop
-          $stderr.printf(
-            "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
-            drop_percent: coverage_diff,
-            max_drop: SimpleCov.maximum_coverage_drop
-          )
-          SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
-        else
-          SimpleCov::ExitCodes::SUCCESS
-        end
-      else
-        SimpleCov::ExitCodes::SUCCESS
-      end
+      coverage_limits = CoverageLimits.new(
+        minimum_coverage: minimum_coverage, minimum_coverage_by_file: minimum_coverage_by_file,
+        maximum_coverage_drop: maximum_coverage_drop
+      )
+
+      ExitCodes::ExitCodeHandling.call(result, covered_percent, coverage_limits: coverage_limits)
     end
-    # rubocop:enable Metrics/MethodLength,Metrics/PerceivedComplexity
 
     #
     # @api private
@@ -419,34 +396,10 @@ module SimpleCov
     def result_with_not_loaded_files
       @result = SimpleCov::Result.new(add_not_loaded_files(@result))
     end
-
-    def minimum_coverage_violated(result)
-      coverage_achieved = minimum_coverage.map do |criterion, percent|
-        {
-          criterion: criterion,
-          minimum_expected: percent,
-          actual: result.coverage_statistics[criterion].percent
-        }
-      end
-
-      coverage_achieved.select do |achieved|
-        achieved.fetch(:actual) < achieved.fetch(:minimum_expected)
-      end
-    end
-
-    def report_minimum_violated(violations)
-      violations.each do |violation|
-        $stderr.printf(
-          "%<criterion>s coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
-          covered: violation.fetch(:actual).floor(2),
-          minimum_coverage: violation.fetch(:minimum_expected),
-          criterion: violation.fetch(:criterion).capitalize
-        )
-      end
-    end
   end
 end
 
+# requires are down here here for a load order reason I'm not sure what it is about
 require "set"
 require "forwardable"
 require_relative "simplecov/configuration"
