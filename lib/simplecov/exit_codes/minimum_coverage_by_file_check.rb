@@ -31,7 +31,7 @@ module SimpleCov
 
       def covered_percentages
         @covered_percentages ||=
-          result.covered_percentages.map { |percentage| percentage.floor(2) }
+          result.covered_percentages.map { |percentage| SimpleCov.round_coverage(percentage) }
       end
     end
   end

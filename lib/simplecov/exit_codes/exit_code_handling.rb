@@ -5,8 +5,8 @@ module SimpleCov
     module ExitCodeHandling
     module_function
 
-      def call(result, covered_percent, coverage_limits:)
-        checks = coverage_checks(result, covered_percent, coverage_limits)
+      def call(result, coverage_limits:)
+        checks = coverage_checks(result, coverage_limits)
 
         failing_check = checks.find(&:failing?)
         if failing_check
@@ -17,11 +17,11 @@ module SimpleCov
         end
       end
 
-      def coverage_checks(result, covered_percent, coverage_limits)
+      def coverage_checks(result, coverage_limits)
         [
           MinimumOverallCoverageCheck.new(result, coverage_limits.minimum_coverage),
           MinimumCoverageByFileCheck.new(result, coverage_limits.minimum_coverage_by_file),
-          MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop, covered_percent)
+          MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop)
         ]
       end
     end
