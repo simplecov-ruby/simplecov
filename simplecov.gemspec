@@ -33,7 +33,7 @@ Gem::Specification.new do |gem|
     "source_code_uri"   => "https://github.com/colszowka/simplecov/tree/v#{gem.version}"
   }
 
-  gem.required_ruby_version = ">= 2.4.0"
+  gem.required_ruby_version = ">= 2.5.0"
 
   gem.add_dependency "docile", "~> 1.1"
   gem.add_dependency "simplecov-html", "~> 0.11"

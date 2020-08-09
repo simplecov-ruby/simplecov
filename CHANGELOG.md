@@ -1,6 +1,9 @@
 Unreleased
 ==========
 
+## Breaking Changes
+* Dropped support for Ruby 2.4, it reached EOL
+
 ## Enhancements
 * observe forked processes (enable with SimpleCov.enable_for_subprocesses)
 
