@@ -23,8 +23,7 @@ end
 #
 module SimpleCov
   class << self
-    attr_accessor :running
-    attr_accessor :pid
+    attr_accessor :running, :pid
     attr_reader :exit_exception
 
     # Basically, should we take care of at_exit behavior or something else?

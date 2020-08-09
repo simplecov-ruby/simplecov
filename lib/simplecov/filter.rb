@@ -35,13 +35,14 @@ module SimpleCov
     end
 
     def self.class_for_argument(filter_argument)
-      if filter_argument.is_a?(String)
+      case filter_argument
+      when String
         SimpleCov::StringFilter
-      elsif filter_argument.is_a?(Regexp)
+      when Regexp
         SimpleCov::RegexFilter
-      elsif filter_argument.is_a?(Array)
+      when Array
         SimpleCov::ArrayFilter
-      elsif filter_argument.is_a?(Proc)
+      when Proc
         SimpleCov::BlockFilter
       else
         raise ArgumentError, "You have provided an unrecognized filter type"
