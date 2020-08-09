@@ -16,7 +16,7 @@ module SimpleCov
         minimum_violations.each do |violation|
           $stderr.printf(
             "%<criterion>s coverage (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
-            covered: violation.fetch(:actual).floor(2),
+            covered: SimpleCov.round_coverage(violation.fetch(:actual)),
             minimum_coverage: violation.fetch(:minimum_expected),
             criterion: violation.fetch(:criterion).capitalize
           )

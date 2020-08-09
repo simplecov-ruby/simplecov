@@ -234,21 +234,20 @@ module SimpleCov
     def process_result(result, exit_status)
       return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
 
-      covered_percent = result.covered_percent.floor(2)
-      result_exit_status = result_exit_status(result, covered_percent)
-      write_last_run(covered_percent) if result_exit_status == SimpleCov::ExitCodes::SUCCESS && final_result_process? # No result errors
+      result_exit_status = result_exit_status(result)
+      write_last_run(result) if result_exit_status == SimpleCov::ExitCodes::SUCCESS && final_result_process? # No result errors
       final_result_process? ? result_exit_status : SimpleCov::ExitCodes::SUCCESS
     end
 
     # @api private
     CoverageLimits = Struct.new(:minimum_coverage, :minimum_coverage_by_file, :maximum_coverage_drop, keyword_init: true)
-    def result_exit_status(result, covered_percent)
+    def result_exit_status(result)
       coverage_limits = CoverageLimits.new(
         minimum_coverage: minimum_coverage, minimum_coverage_by_file: minimum_coverage_by_file,
         maximum_coverage_drop: maximum_coverage_drop
       )
 
-      ExitCodes::ExitCodeHandling.call(result, covered_percent, coverage_limits: coverage_limits)
+      ExitCodes::ExitCodeHandling.call(result, coverage_limits: coverage_limits)
     end
 
     #
@@ -271,8 +270,16 @@ module SimpleCov
     #
     # @api private
     #
-    def write_last_run(covered_percent)
-      SimpleCov::LastRun.write(result: {covered_percent: covered_percent})
+    def write_last_run(result)
+      SimpleCov::LastRun.write(result: {covered_percent: round_coverage(result.covered_percent)})
+    end
+
+    #
+    # @api private
+    #
+    # Rounding down to be extra strict, see #679
+    def round_coverage(coverage)
+      coverage.floor(2)
     end
 
   private
