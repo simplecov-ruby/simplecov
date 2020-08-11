@@ -173,22 +173,6 @@ module SimpleCov
       @result = nil
     end
 
-    #
-    # Returns the exit status from the exit exception
-    #
-    def exit_status_from_exception
-      # Capture the current exception if it exists
-      @exit_exception = $ERROR_INFO
-
-      return SimpleCov::ExitCodes::SUCCESS unless @exit_exception
-
-      if @exit_exception.is_a?(SystemExit)
-        @exit_exception.status
-      else
-        SimpleCov::ExitCodes::EXCEPTION
-      end
-    end
-
     def at_exit_behavior
       # If we are in a different process than called start, don't interfere.
       return if SimpleCov.pid != Process.pid
@@ -202,18 +186,58 @@ module SimpleCov
     # Called from at_exit block
     #
     def run_exit_tasks!
-      exit_status = exit_status_from_exception
+      error_exit_status = exit_status_from_exception
 
-      SimpleCov.at_exit.call
+      at_exit.call
 
-      # Don't modify the exit status unless the result has already been
-      # computed
-      exit_status = SimpleCov.process_result(SimpleCov.result, exit_status) if SimpleCov.result?
+      exit_and_report_previous_error(error_exit_status) if previous_error?(error_exit_status)
+      process_results_and_report_error if ready_to_process_results?
+    end
+
+    #
+    # @api private
+    #
+    # Returns the exit status from the exit exception
+    #
+    def exit_status_from_exception
+      # Capture the current exception if it exists
+      @exit_exception = $ERROR_INFO
+      return nil unless @exit_exception
+
+      if @exit_exception.is_a?(SystemExit)
+        @exit_exception.status
+      else
+        SimpleCov::ExitCodes::EXCEPTION
+      end
+    end
+
+    # @api private
+    def previous_error?(error_exit_status)
+      # Normally it'd be enough to check for previous error but when running test_unit
+      # status is 0
+      error_exit_status && error_exit_status != SimpleCov::ExitCodes::SUCCESS
+    end
+
+    #
+    # @api private
+    #
+    # Thinking: Move this behavior earlier so if there was an error we do nothing?
+    def exit_and_report_previous_error(exit_status)
+      warn("Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected") if print_error_status
+      Kernel.exit(exit_status)
+    end
+
+    # @api private
+    def ready_to_process_results?
+      final_result_process? && result?
+    end
+
+    def process_results_and_report_error
+      exit_status = process_result(SimpleCov.result)
 
       # Force exit with stored status (see github issue #5)
-      # unless it's nil or 0 (see github issue #281)
-      if exit_status&.positive?
-        $stderr.printf("SimpleCov failed with exit %<exit_status>d\n", exit_status: exit_status) if print_error_status
+      if exit_status.positive?
+        warn("SimpleCov failed with exit #{exit_status} due to a coverage related error") if print_error_status
         Kernel.exit exit_status
       end
     end
@@ -223,12 +247,10 @@ module SimpleCov
     # Usage:
     #   exit_status = SimpleCov.process_result(SimpleCov.result, exit_status)
     #
-    def process_result(result, exit_status)
-      return exit_status if exit_status != SimpleCov::ExitCodes::SUCCESS # Existing errors
-
+    def process_result(result)
       result_exit_status = result_exit_status(result)
-      write_last_run(result) if result_exit_status == SimpleCov::ExitCodes::SUCCESS && final_result_process? # No result errors
-      final_result_process? ? result_exit_status : SimpleCov::ExitCodes::SUCCESS
+      write_last_run(result) if result_exit_status == SimpleCov::ExitCodes::SUCCESS
+      result_exit_status
     end
 
     # @api private

@@ -112,8 +112,8 @@ describe SimpleCov do
 
   describe ".exit_status_from_exception" do
     context "when no exception has occurred" do
-      it "returns SimpleCov::ExitCodes::SUCCESS" do
-        expect(SimpleCov.exit_status_from_exception).to eq(SimpleCov::ExitCodes::SUCCESS)
+      it "returns nil" do
+        expect(SimpleCov.exit_status_from_exception).to eq(nil)
       end
     end
 
@@ -132,63 +132,43 @@ describe SimpleCov do
         expect(SimpleCov.exit_status_from_exception).to eq(SimpleCov::ExitCodes::EXCEPTION)
       end
     end
+  end
 
-    describe ".process_result" do
+  describe ".process_result" do
+    let(:result) { SimpleCov::Result.new({}) }
+
+    context "when minimum coverage is 100%" do
       before do
-        expect(SimpleCov).to receive(:result_exit_status).and_return SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 100)
+        allow(SimpleCov).to receive(:result?).and_return(true)
       end
-      context "when the final result process" do
-        let(:result) { double(SimpleCov::Result, covered_percent: 0.0) }
-        before { expect(SimpleCov).to receive(:final_result_process?).and_return true }
-        it "returns the exit code from .result_exit_status" do
-          expect(SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)).to eq SimpleCov::ExitCodes::MINIMUM_COVERAGE
-        end
-      end
-      context "when not the final result process" do
-        let(:result) { double(SimpleCov::Result, covered_percent: 0.0) }
-        before { expect(SimpleCov).to receive(:final_result_process?).and_return false }
-        it "returns the success exit code" do
-          expect(SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)).to eq SimpleCov::ExitCodes::SUCCESS
-        end
-      end
-    end
 
-    describe ".process_result" do
-      let(:result) { SimpleCov::Result.new({}) }
-
-      context "when minimum coverage is 100%" do
+      context "when actual coverage is almost 100%" do
         before do
-          allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 100)
-          allow(SimpleCov).to receive(:result?).and_return(true)
+          allow(result).to receive(:coverage_statistics).and_return(line: double("statistics", percent: 100 * 32_847.0 / 32_848))
         end
 
-        context "when actual coverage is almost 100%" do
-          before do
-            allow(result).to receive(:coverage_statistics).and_return(line: double("statistics", percent: 100 * 32_847.0 / 32_848))
-          end
+        it "return SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
+          expect(
+            SimpleCov.process_result(result)
+          ).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+        end
+      end
 
-          it "return SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
-            expect(
-              SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
-            ).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
-          end
+      context "when actual coverage is exactly 100%" do
+        before do
+          allow(result).to receive(:covered_percent).and_return(100.0)
+          allow(result).to receive(:coverage_statistics).and_return(
+            line: double("statistics", percent: 100.0)
+          )
+          allow(result).to receive(:covered_percentages).and_return([])
+          allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
         end
 
-        context "when actual coverage is exactly 100%" do
-          before do
-            allow(result).to receive(:covered_percent).and_return(100.0)
-            allow(result).to receive(:coverage_statistics).and_return(
-              line: double("statistics", percent: 100.0)
-            )
-            allow(result).to receive(:covered_percentages).and_return([])
-            allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
-          end
-
-          it "return SimpleCov::ExitCodes::SUCCESS" do
-            expect(
-              SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
-            ).to eq(SimpleCov::ExitCodes::SUCCESS)
-          end
+        it "return SimpleCov::ExitCodes::SUCCESS" do
+          expect(
+            SimpleCov.process_result(result)
+          ).to eq(SimpleCov::ExitCodes::SUCCESS)
         end
       end
 
@@ -202,7 +182,7 @@ describe SimpleCov do
           allow(result).to receive(:coverage_statistics).and_return(branch: double("statistics", percent: 89.99))
 
           expect(
-            SimpleCov.process_result(result, SimpleCov::ExitCodes::SUCCESS)
+            SimpleCov.process_result(result)
           ).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
         end
       end

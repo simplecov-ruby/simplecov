@@ -34,7 +34,7 @@ describe "return codes" do
         end
 
         it "prints a message to STDERR" do
-          expect(@stderr).to eq "SimpleCov failed with exit #{@status.exitstatus}\n"
+          expect(@stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
         end
       end
 
