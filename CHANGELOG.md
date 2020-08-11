@@ -6,6 +6,7 @@ Unreleased
 
 ## Enhancements
 * observe forked processes (enable with SimpleCov.enable_for_subprocesses)
+* SimpleCov distinguishes better that it stopped processing because of a previous error vs. SimpleCov is the originator of said error due to coverage requirements.
 
 ## Bugfixes
 * Changing the `SimpleCov.root` combined with the root filtering didn't work. Now they do! Thanks to [@deivid-rodriguez](https://github.com/deivid-rodriguez) and see [#894](https://github.com/colszowka/simplecov/pull/894)
