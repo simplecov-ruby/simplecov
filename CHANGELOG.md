@@ -11,6 +11,7 @@ Unreleased
 ## Bugfixes
 * Changing the `SimpleCov.root` combined with the root filtering didn't work. Now they do! Thanks to [@deivid-rodriguez](https://github.com/deivid-rodriguez) and see [#894](https://github.com/colszowka/simplecov/pull/894)
 * in parallel test execution it could happen that the last coverage result was written when it didn't complete yet, changed to only write it once it's the final result
+* if you run parallel tests only the final process will report violations of the configured test coverage, not all previous processes
 
 0.18.5 (2020-02-25)
 ===================
