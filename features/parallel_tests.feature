@@ -59,3 +59,17 @@ Feature:
       """
     When I open the coverage report generated with `bundle exec parallel_rspec spec`
     Then I should see the branch coverage results for the parallel tests project
+
+  # Our detection doesn't work at the moment see https://github.com/grosser/parallel_tests/issues/772
+  @wip
+  Scenario: Coverage violations aren't printed until the end
+    Given I install dependencies
+    And SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        minimum_coverage 89
+      end
+      """
+    When I successfully run `bundle exec parallel_rspec spec`
+    Then the output should not match /+cover.+below.+minimum/
