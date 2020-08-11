@@ -24,7 +24,6 @@ end
 module SimpleCov
   class << self
     attr_accessor :running, :pid
-    attr_reader :exit_exception
 
     # Basically, should we take care of at_exit behavior or something else?
     # Used by the minitest plugin. See lib/minitest/simplecov_plugin.rb
@@ -175,21 +174,16 @@ module SimpleCov
     end
 
     #
-    # Capture the current exception if it exists
-    # This will get called inside the at_exit block
-    #
-    def set_exit_exception
-      @exit_exception = $ERROR_INFO
-    end
-
-    #
     # Returns the exit status from the exit exception
     #
     def exit_status_from_exception
-      return SimpleCov::ExitCodes::SUCCESS unless exit_exception
+      # Capture the current exception if it exists
+      @exit_exception = $ERROR_INFO
 
-      if exit_exception.is_a?(SystemExit)
-        exit_exception.status
+      return SimpleCov::ExitCodes::SUCCESS unless @exit_exception
+
+      if @exit_exception.is_a?(SystemExit)
+        @exit_exception.status
       else
         SimpleCov::ExitCodes::EXCEPTION
       end
@@ -208,9 +202,7 @@ module SimpleCov
     # Called from at_exit block
     #
     def run_exit_tasks!
-      set_exit_exception
-
-      exit_status = SimpleCov.exit_status_from_exception
+      exit_status = exit_status_from_exception
 
       SimpleCov.at_exit.call
 
