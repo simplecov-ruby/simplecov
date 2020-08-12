@@ -8,8 +8,6 @@ Feature:
   Background:
     Given I'm working on the project "parallel_tests"
 
-  # see #815
-  @wip
   Scenario: Running it through parallel_tests produces the same results as a normal rspec run
     Given I install dependencies
     And SimpleCov for RSpec is configured with:
@@ -20,8 +18,8 @@ Feature:
     When I open the coverage report generated with `bundle exec parallel_rspec spec`
     Then I should see the line coverage results for the parallel tests project
 
-  # Note it's better not to do them in the same scenario as
-  # then merging of results might kick in
+  # Note it's better not to test this in the same scenario as before.
+  # Merging of results might kick in and ruin this.
   Scenario: Running the project with normal rspec
     Given I install dependencies
     And SimpleCov for RSpec is configured with:
@@ -45,8 +43,6 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the branch coverage results for the parallel tests project
 
-  # see #815
-  @wip
   @branch_coverage
   Scenario: Running the project with normal rspec and branch coverage
     Given I install dependencies
@@ -60,8 +56,6 @@ Feature:
     When I open the coverage report generated with `bundle exec parallel_rspec spec`
     Then I should see the branch coverage results for the parallel tests project
 
-  # Our detection doesn't work at the moment see https://github.com/grosser/parallel_tests/issues/772
-  @wip
   Scenario: Coverage violations aren't printed until the end
     Given I install dependencies
     And SimpleCov for RSpec is configured with:
