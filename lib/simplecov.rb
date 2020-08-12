@@ -51,6 +51,7 @@ module SimpleCov
       require "coverage"
       initial_setup(profile, &block)
       require_relative "./simplecov/process" if SimpleCov.enabled_for_subprocesses?
+      make_parallel_tests_available
 
       @result = nil
       self.pid = Process.pid
@@ -103,7 +104,6 @@ module SimpleCov
       return @result if result?
 
       # Collect our coverage result
-
       process_coverage_result if running
 
       # If we're using merging of results, store the current result
@@ -233,7 +233,7 @@ module SimpleCov
     end
 
     def process_results_and_report_error
-      exit_status = process_result(SimpleCov.result)
+      exit_status = process_result(result)
 
       # Force exit with stored status (see github issue #5)
       if exit_status.positive?
@@ -269,7 +269,7 @@ module SimpleCov
     #
     def final_result_process?
       # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
-      !defined?(ParallelTests) || !ENV["TEST_ENV_NUMBER"] || ParallelTests.number_of_running_processes <= 1
+      !defined?(ParallelTests) || !ENV["TEST_ENV_NUMBER"] || ParallelTests.last_process?
     end
 
     #
@@ -416,6 +416,20 @@ module SimpleCov
     #
     def result_with_not_loaded_files
       @result = SimpleCov::Result.new(add_not_loaded_files(@result))
+    end
+
+    # parallel_tests isn't always available, see: https://github.com/grosser/parallel_tests/issues/772
+    def make_parallel_tests_available
+      return if defined?(ParallelTests)
+      return unless probably_running_parallel_tests?
+
+      require "parallel_tests"
+    rescue LoadError
+      warn("SimpleCov guessed you were running inside parallel tests but couldn't load it. Please file a bug report with us!")
+    end
+
+    def probably_running_parallel_tests?
+      ENV["TEST_ENV_NUMBER"] && ENV["PARALLEL_TEST_GROUPS"]
     end
   end
 end
