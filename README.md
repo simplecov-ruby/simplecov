@@ -1,4 +1,4 @@
-SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge.fury.io/rb/simplecov) [![Build Status](https://github.com/colszowka/simplecov/workflows/stable/badge.svg?branch=master)][Continuous Integration] [![Code Climate](https://codeclimate.com/github/colszowka/simplecov.svg)](https://codeclimate.com/github/colszowka/simplecov) [![Inline docs](http://inch-ci.org/github/colszowka/simplecov.svg)](http://inch-ci.org/github/colszowka/simplecov)
+SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge.fury.io/rb/simplecov) [![Build Status](https://github.com/simplecov-ruby/simplecov/workflows/stable/badge.svg?branch=master)][Continuous Integration] [![Maintainability](https://api.codeclimate.com/v1/badges/c071d197d61953a7e482/maintainability)](https://codeclimate.com/github/simplecov-ruby/simplecov/maintainability) [![Inline docs](http://inch-ci.org/github/simplecov-ruby/simplecov.svg?branch=master)](http://inch-ci.org/github/simplecov-ruby/simplecov)
 =========
 
 **Code coverage for Ruby**
