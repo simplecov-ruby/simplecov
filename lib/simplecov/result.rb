@@ -86,7 +86,7 @@ module SimpleCov
     # We changed the format of the raw result data in simplecov, as people are likely
     # to have "old" resultsets lying around (but not too old so that they're still
     # considered we can adapt them).
-    # See https://github.com/colszowka/simplecov/pull/824#issuecomment-576049747
+    # See https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
     def adapt_result(result)
       if pre_simplecov_0_18_result?(result)
         adapt_pre_simplecov_0_18_result(result)

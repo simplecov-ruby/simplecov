@@ -1,7 +1,7 @@
 ## Alternate coverage report formatters
 
 The community around simplecov provides a whole bunch of alternate formatters beyond the official
-[simplecov-html](https://github.com/colszowka/simplecov-html) gem.
+[simplecov-html](https://github.com/simplecov-ruby/simplecov-html) gem.
 
 If you have built or found one that is missing here, please send a Pull Request for this document!
 
