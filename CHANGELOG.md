@@ -4,7 +4,8 @@ Unreleased
 ## Breaking Changes
 * Dropped support for Ruby 2.4, it reached EOL
 
-## Primary Branch Switch
+## Noteworthy
+* The repo has moved to https://github.com/simplecov-ruby/simplecov - everything stays the same, redirects should work but you might wanna update anyhow
 * The primary development branch is now `main`, not `master` anymore. If you get simplecov directly from github change your reference. For a while `master` will still be occasionally updated but that's no long term solion.
 
 ## Enhancements
