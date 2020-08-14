@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# How minitest plugins. See https://github.com/colszowka/simplecov/pull/756 for why we need this.
+# How minitest plugins. See https://github.com/simplecov-ruby/simplecov/pull/756 for why we need this.
 # https://github.com/seattlerb/minitest#writing-extensions
 module Minitest
   def self.plugin_simplecov_init(_options)
