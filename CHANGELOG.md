@@ -50,7 +50,7 @@ Small bugfix release. It's especially recommended to upgrade simplecov-html as w
 Small release just to allow you to use the new simplecov-html.
 
 ## Enhancements
-* Relax simplecov-html requirement so that you're able to use [0.12.0](https://github.com/simplecov-ruby/simplecov-html/blob/master/CHANGELOG.md#0120-2020-02-12)
+* Relax simplecov-html requirement so that you're able to use [0.12.0](https://github.com/simplecov-ruby/simplecov-html/blob/main/CHANGELOG.md#0120-2020-02-12)
 
 0.18.1 (2020-01-31)
 ===================

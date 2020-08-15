@@ -27,7 +27,7 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
   gem.metadata    = {
     "bug_tracker_uri"   => "https://github.com/simplecov-ruby/simplecov/issues",
-    "changelog_uri"     => "https://github.com/simplecov-ruby/simplecov/blob/master/CHANGELOG.md",
+    "changelog_uri"     => "https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
     "mailing_list_uri"  => "https://groups.google.com/forum/#!forum/simplecov",
     "source_code_uri"   => "https://github.com/simplecov-ruby/simplecov/tree/v#{gem.version}"
