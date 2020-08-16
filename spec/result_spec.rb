@@ -76,7 +76,7 @@ describe SimpleCov::Result do
 
         context "loaded back with from_hash" do
           let(:dumped_result) do
-            SimpleCov::Result.from_hash(subject.to_hash)
+            SimpleCov::Result.from_hash(subject.to_hash).first
           end
 
           it "has 3 source files" do
