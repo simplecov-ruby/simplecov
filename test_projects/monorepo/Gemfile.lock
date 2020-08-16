@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    simplecov (0.18.5)
+    simplecov (0.19.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
 

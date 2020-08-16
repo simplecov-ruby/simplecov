@@ -1,22 +1,22 @@
-Unreleased
+0.19.0 (2020-08-16)
 ==========
 
 ## Breaking Changes
 * Dropped support for Ruby 2.4, it reached EOL
 
-## Noteworthy
-* The repo has moved to https://github.com/simplecov-ruby/simplecov - everything stays the same, redirects should work but you might wanna update anyhow
-* The primary development branch is now `main`, not `master` anymore. If you get simplecov directly from github change your reference. For a while `master` will still be occasionally updated but that's no long term solion.
-
 ## Enhancements
-* observe forked processes (enable with SimpleCov.enable_for_subprocesses)
+* observe forked processes (enable with SimpleCov.enable_for_subprocesses). See [#881](https://github.com/simplecov-ruby/simplecov/pull/881), thanks to [@robotdana](https://github.com/robotdana)
 * SimpleCov distinguishes better that it stopped processing because of a previous error vs. SimpleCov is the originator of said error due to coverage requirements.
 
 ## Bugfixes
 * Changing the `SimpleCov.root` combined with the root filtering didn't work. Now they do! Thanks to [@deivid-rodriguez](https://github.com/deivid-rodriguez) and see [#894](https://github.com/simplecov-ruby/simplecov/pull/894)
-* in parallel test execution it could happen that the last coverage result was written when it didn't complete yet, changed to only write it once it's the final result
+* in parallel test execution it could happen that the last coverage result was written to disk when it didn't complete yet, changed to only write it once it's the final result
 * if you run parallel tests only the final process will report violations of the configured test coverage, not all previous processes
 * changed the parallel_tests merging mechanisms to do the waiting always in the last process, should reduce race conditions
+
+## Noteworthy
+* The repo has moved to https://github.com/simplecov-ruby/simplecov - everything stays the same, redirects should work but you might wanna update anyhow
+* The primary development branch is now `main`, not `master` anymore. If you get simplecov directly from github change your reference. For a while `master` will still be occasionally updated but that's no long term solion.
 
 0.18.5 (2020-02-25)
 ===================
