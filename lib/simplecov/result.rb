@@ -25,9 +25,11 @@ module SimpleCov
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
-    def initialize(original_result)
+    def initialize(original_result, command_name: nil, created_at: nil)
       result = adapt_result(original_result)
       @original_result = result.freeze
+      @command_name = command_name
+      @created_at = created_at
       @files = SimpleCov::FileList.new(result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
       end.compact.sort_by(&:filename))
@@ -70,15 +72,15 @@ module SimpleCov
       }
     end
 
+    def time_since_creation
+      Time.now - created_at
+    end
+
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
-      command_name, data = hash.first
-
-      result = SimpleCov::Result.new(data["coverage"])
-
-      result.command_name = command_name
-      result.created_at = Time.at(data["timestamp"])
-      result
+      hash.map do |command_name, data|
+        new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]))
+      end
     end
 
   private

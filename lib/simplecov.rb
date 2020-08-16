@@ -85,13 +85,11 @@ module SimpleCov
 
       results = result_filenames.flat_map do |filename|
         # Re-create each included instance of SimpleCov::Result from the stored run data.
-        (JSON.parse(File.read(filename)) || {}).map do |command_name, coverage|
-          SimpleCov::Result.from_hash(command_name => coverage)
-        end
+        Result.from_hash(JSON.parse(File.read(filename)) || {})
       end
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = SimpleCov::ResultMerger.merge_and_store(*results)
+      @result = ResultMerger.merge_and_store(*results)
 
       run_exit_tasks!
     end
