@@ -205,6 +205,36 @@ describe SimpleCov::Result do
         end
       end
     end
+
+    describe ".from_hash" do
+      let(:other_result) do
+        {
+          source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
+        }
+      end
+      let(:created_at) { Time.now.to_i }
+
+      it "can consume multiple commands" do
+        input = {
+          "rspec" => {
+            "coverage" => original_result,
+            "timestamp" => created_at
+          },
+          "cucumber" => {
+            "coverage" => other_result,
+            "timestamp" => created_at
+          }
+        }
+
+        result = described_class.from_hash(input)
+
+        expect(result.size).to eq 2
+        sorted = result.sort_by(&:command_name)
+        expect(sorted.map(&:command_name)).to eq %w[cucumber rspec]
+        expect(sorted.map(&:created_at).map(&:to_i)).to eq [created_at, created_at]
+        expect(sorted.map(&:original_result)).to eq [other_result, original_result]
+      end
+    end
   end
 
   context "with outdated result format" do
