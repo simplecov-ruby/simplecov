@@ -19,8 +19,8 @@ Gem::Specification.new do |gem|
   gem.name        = "simplecov"
   gem.version     = version
   gem.platform    = Gem::Platform::RUBY
-  gem.authors     = ["Christoph Olszowka"]
-  gem.email       = ["christoph at olszowka de"]
+  gem.authors     = ["Christoph Olszowka", "Tobias Pfeiffer"]
+  gem.email       = ["christoph at olszowka de", "pragtob@gmail.com"]
   gem.homepage    = "https://github.com/simplecov-ruby/simplecov"
   gem.summary     = "Code coverage for Ruby"
   gem.description = %(Code coverage for Ruby with a powerful configuration library and automatic merging of coverage across test suites)
