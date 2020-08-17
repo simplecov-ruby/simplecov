@@ -36,6 +36,8 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 2.5.0"
 
   gem.add_dependency "docile", "~> 1.1"
+  gem.add_dependency "etc", "~> 1.1"
+  gem.add_dependency "json", "~> 1.8"
   gem.add_dependency "simplecov-html", "~> 0.11"
 
   gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "*.md", "doc/*"]
