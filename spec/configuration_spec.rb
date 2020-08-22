@@ -74,7 +74,6 @@ describe SimpleCov::Configuration do
         expect(config.minimum_coverage).to eq line: 85.0
       end
 
-      # TODO: add method cov
       it "sets the right coverage when called with a hash of just branch" do
         config.enable_coverage :branch
         config.minimum_coverage branch: 85.0
@@ -82,11 +81,19 @@ describe SimpleCov::Configuration do
         expect(config.minimum_coverage).to eq branch: 85.0
       end
 
-      it "sets the right coverage when called withboth line and branch" do
+      it "sets the right coverage when called with both line and branch" do
         config.enable_coverage :branch
         config.minimum_coverage branch: 85.0, line: 95.4
 
         expect(config.minimum_coverage).to eq branch: 85.0, line: 95.4
+      end
+
+      it "sets the right coverage when called with line, branch and method" do
+        config.enable_coverage :branch
+        config.enable_coverage :method
+        config.minimum_coverage branch: 85.0, line: 95.4, method: 91.5
+
+        expect(config.minimum_coverage).to eq branch: 85.0, line: 95.4, method: 91.5
       end
 
       it "raises when trying to set branch coverage but not enabled" do
@@ -129,6 +136,12 @@ describe SimpleCov::Configuration do
         config.coverage_criterion :branch
 
         expect(config.coverage_criterion).to eq :branch
+      end
+
+      it "works fine with :method" do
+        config.coverage_criterion :method
+
+        expect(config.coverage_criterion).to eq :method
       end
 
       it "works fine setting it back and forth" do
@@ -182,6 +195,20 @@ describe SimpleCov::Configuration do
         config.coverage_criterion :line
 
         expect(config).not_to be_branch_coverage
+      end
+    end
+
+    describe "#method_coverage?", if: SimpleCov.method_coverage_supported? do
+      it "returns true of method coverage is being measured" do
+        config.enable_coverage :method
+
+        expect(config).to be_method_coverage
+      end
+
+      it "returns false for line coverage" do
+        config.coverage_criterion :line
+
+        expect(config).not_to be_method_coverage
       end
     end
   end

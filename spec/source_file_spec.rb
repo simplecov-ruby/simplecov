@@ -4,7 +4,7 @@ require "helper"
 
 describe SimpleCov::SourceFile do
   COVERAGE_FOR_SAMPLE_RB = {
-    "lines" =>       [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
+    "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
     "branches" => {}
   }.freeze
 
@@ -95,7 +95,7 @@ describe SimpleCov::SourceFile do
 
   context "file with branches" do
     COVERAGE_FOR_BRANCHES_RB = {
-      "lines" =>         [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
+      "lines" => [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
       "branches" => {
         [:if, 0, 3, 4, 3, 21] =>
           {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
@@ -185,7 +185,7 @@ describe SimpleCov::SourceFile do
 
   context "A file that has inline branches" do
     COVERAGE_FOR_INLINE = {
-      "lines" =>         [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
+      "lines" => [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
       "branches" => {
         [:if, 0, 3, 11, 3, 33] =>
           {[:then, 1, 3, 23, 3, 27] => 1, [:else, 2, 3, 30, 3, 33] => 0},
@@ -331,7 +331,7 @@ describe SimpleCov::SourceFile do
 
   context "a file with more complex skipping" do
     COVERAGE_FOR_NOCOV_COMPLEX_RB = {
-      "lines" =>         [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
+      "lines" => [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
       "branches" => {
         [:if, 0, 6, 4, 11, 7] =>
           {[:then, 1, 7, 6, 7, 7] => 0, [:else, 2, 10, 6, 10, 7] => 1},
@@ -392,7 +392,7 @@ describe SimpleCov::SourceFile do
 
   context "a file with nested branches" do
     COVERAGE_FOR_NESTED_BRANCHES_RB = {
-      "lines" =>         [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
+      "lines" => [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
       "branches" => {
         [:while, 0, 7, 8, 7, 31] =>
           {[:body, 1, 7, 8, 7, 16] => 2},
@@ -428,7 +428,7 @@ describe SimpleCov::SourceFile do
 
   context "a file with case" do
     COVERAGE_FOR_CASE_STATEMENT_RB = {
-      "lines" =>         [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
+      "lines" => [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
       "branches" => {
         [:case, 0, 3, 4, 12, 7] => {
           [:when, 1, 5, 6, 5, 10] => 0,
@@ -471,7 +471,7 @@ describe SimpleCov::SourceFile do
 
   context "a file with case without else" do
     COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB = {
-      "lines" =>         [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
+      "lines" => [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
       "branches" => {
         [:case, 0, 3, 4, 10, 7] => {
           [:when, 1, 5, 6, 5, 10] => 0,
@@ -556,7 +556,7 @@ describe SimpleCov::SourceFile do
 
   context "the branch tester script" do
     COVERAGE_FOR_BRANCH_TESTER_RB = {
-      "lines" =>         [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
+      "lines" => [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
       "branches" => {
         [:if, 0, 4, 0, 4, 19] =>
           {[:then, 1, 4, 12, 4, 15] => 0, [:else, 2, 4, 18, 4, 19] => 1},

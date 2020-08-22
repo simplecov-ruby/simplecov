@@ -291,10 +291,18 @@ describe SimpleCov do
       SimpleCov.send :start_coverage_measurement
     end
 
-    it "starts coverage with lines and branches if branches is activated" do
+    it "starts coverage with lines and branches if branch coverage is activated" do
       expect(Coverage).to receive(:start).with(lines: true, branches: true)
 
       SimpleCov.enable_coverage :branch
+
+      SimpleCov.send :start_coverage_measurement
+    end
+
+    it "starts coverage with lines and methods if method coverage is activated" do
+      expect(Coverage).to receive(:start).with(lines: true, methods: true)
+
+      SimpleCov.enable_coverage :method
 
       SimpleCov.send :start_coverage_measurement
     end
