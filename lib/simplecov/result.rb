@@ -30,9 +30,11 @@ module SimpleCov
     def initialize(original_result)
       result = adapt_result(original_result)
       @original_result = result.freeze
+
       @files = SimpleCov::FileList.new(result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
+        SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
+
       filter!
     end
 
@@ -70,17 +72,6 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       SimpleCov::ResultSerialization.deserialize(hash)
-    end
-
-    # Loads a SimpleCov::Result#to_hash dump
-    def self.from_hash(hash)
-      command_name, data = hash.first
-
-      result = SimpleCov::Result.new(data["coverage"])
-
-      result.command_name = command_name
-      result.created_at = Time.at(data["timestamp"])
-      result
     end
 
     def coverage

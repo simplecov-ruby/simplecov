@@ -234,9 +234,9 @@ module SimpleCov
     end
 
     def build_lines
-      coverage_exceeding_source_warn if coverage_data["lines"].size > src.size
+      coverage_exceeding_source_warn if coverage_data.fetch(:lines).size > src.size
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage_data["lines"][i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, coverage_data.fetch(:lines)[i - 1])
       end
       process_skipped_lines(lines)
     end
@@ -278,7 +278,7 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      coverage_branch_data = coverage_data.fetch("branches", {})
+      coverage_branch_data = coverage_data.fetch(:branches, {})
       branches = coverage_branch_data.flat_map do |condition, coverage_branches|
         build_branches_from(condition, coverage_branches)
       end
@@ -342,7 +342,7 @@ module SimpleCov
     end
 
     def build_methods
-      coverage_data.fetch("methods", []).map do |info, coverage|
+      coverage_data.fetch(:methods, []).map do |info, coverage|
         SourceFile::Method.new(self, info, coverage)
       end
     end
