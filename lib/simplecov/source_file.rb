@@ -34,6 +34,7 @@ module SimpleCov
         {
           **line_coverage_statistics,
           **branch_coverage_statistics
+          # TODO: add method cov
         }
     end
 

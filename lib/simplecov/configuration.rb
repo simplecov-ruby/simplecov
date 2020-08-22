@@ -360,6 +360,7 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
+    # TODO: add method cov
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch].freeze
     DEFAULT_COVERAGE_CRITERION = :line
     #

@@ -8,6 +8,7 @@ describe SimpleCov::Result do
       source_fixture("sample.rb") => {
         "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
         "branches" => {}
+        # TODO: add method cov
       },
       source_fixture("app/models/user.rb") => {
         "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],

@@ -74,6 +74,7 @@ describe SimpleCov::Configuration do
         expect(config.minimum_coverage).to eq line: 85.0
       end
 
+      # TODO: add method cov
       it "sets the right coverage when called with a hash of just branch" do
         config.enable_coverage :branch
         config.minimum_coverage branch: 85.0

@@ -100,6 +100,7 @@ module SimpleCov
 
   private
 
+    # TODO: add method cov
     def compute_coverage_statistics
       total_coverage_statistics = @files.each_with_object(line: [], branch: []) do |file, together|
         together[:line] << file.coverage_statistics[:line]
