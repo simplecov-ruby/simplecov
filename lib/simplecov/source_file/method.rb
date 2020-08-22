@@ -21,6 +21,10 @@ module SimpleCov
         @skipped = lines.all?(&:skipped?)
       end
 
+      def missed?
+        !skipped? && coverage.zero?
+      end
+
       def lines
         @lines ||= source_file.lines[(start_line - 1)..(end_line - 1)]
       end

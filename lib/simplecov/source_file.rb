@@ -33,8 +33,8 @@ module SimpleCov
       @coverage_statistics ||=
         {
           **line_coverage_statistics,
-          **branch_coverage_statistics
-          # TODO: add method cov
+          **branch_coverage_statistics,
+          **method_coverage_statistics,
         }
     end
 
@@ -153,6 +153,18 @@ module SimpleCov
     #
     def line_with_missed_branch?(line_number)
       branches_for_line(line_number).select { |_type, count| count.zero? }.any?
+    end
+
+    def methods
+      @methods ||= build_methods
+    end
+
+    def covered_methods
+      methods.select(&:covered?)
+    end
+
+    def missed_methods
+      methods.select(&:missed?)
     end
 
   private
@@ -293,6 +305,7 @@ module SimpleCov
     # See #801
     #
     def restore_ruby_data_structure(structure)
+      return structure # TODO[@tycooon]: remove
       # Tests use the real data structures (except for integration tests) so no need to
       # put them through here.
       return structure if structure.is_a?(Array)
@@ -328,12 +341,18 @@ module SimpleCov
       )
     end
 
+    def build_methods
+      coverage_data.fetch("methods", []).map do |info, coverage|
+        SourceFile::Method.new(self, info, coverage)
+      end
+    end
+
     def line_coverage_statistics
       {
         line: CoverageStatistics.new(
           total_strength: lines_strength,
-          covered:  covered_lines.size,
-          missed:   missed_lines.size
+          covered: covered_lines.size,
+          missed: missed_lines.size
         )
       }
     end
@@ -342,7 +361,16 @@ module SimpleCov
       {
         branch: CoverageStatistics.new(
           covered: covered_branches.size,
-          missed:  missed_branches.size
+          missed: missed_branches.size
+        )
+      }
+    end
+
+    def method_coverage_statistics
+      {
+        method: CoverageStatistics.new(
+          covered: covered_methods.size,
+          missed: missed_methods.size
         )
       }
     end
