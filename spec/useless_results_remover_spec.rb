@@ -9,13 +9,13 @@ describe SimpleCov::UselessResultsRemover do
   let(:result_set) do
     {
       gem_file_path => {
-        "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-        "branches" => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
+        lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+        branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
         # TODO: add method cov?
       },
       source_path => {
-        "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        "branches" => {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
+        lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
       }
     }
   end
@@ -31,6 +31,6 @@ describe SimpleCov::UselessResultsRemover do
 
   it "still retains the app path" do
     expect(subject).to have_key(source_path)
-    expect(subject[source_path]["lines"]).to be_kind_of(Array)
+    expect(subject[source_path][:lines]).to be_kind_of(Array)
   end
 end

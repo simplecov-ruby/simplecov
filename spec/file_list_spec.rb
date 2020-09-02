@@ -6,17 +6,17 @@ describe SimpleCov::Result do
   subject do
     original_result = {
       source_fixture("sample.rb") => {
-        "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-        "branches" => {}
+        lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+        branches: {}
         # TODO: add method cov
       },
       source_fixture("app/models/user.rb") => {
-        "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        "branches" => {}
+        lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        branches: {}
       },
       source_fixture("app/controllers/sample_controller.rb") => {
-        "lines" => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil],
-        "branches" => {}
+        lines: [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil],
+        branches: {}
       }
     }
     SimpleCov::Result.new(original_result).files

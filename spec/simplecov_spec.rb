@@ -192,11 +192,11 @@ describe SimpleCov do
 
   describe ".collate" do
     let(:resultset1) do
-      {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset2) do
-      {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {lines: [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }

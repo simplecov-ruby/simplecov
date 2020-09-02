@@ -234,9 +234,9 @@ module SimpleCov
     end
 
     def build_lines
-      coverage_exceeding_source_warn if coverage_data.fetch(:lines).size > src.size
+      coverage_exceeding_source_warn if lines_data.size > src.size
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage_data.fetch(:lines)[i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, lines_data[i - 1])
       end
       process_skipped_lines(lines)
     end
@@ -254,9 +254,13 @@ module SimpleCov
       lines.map(&:coverage).compact.reduce(:+)
     end
 
+    def lines_data
+      coverage_data.fetch(:lines)
+    end
+
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage_data['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
+      warn "Warning: coverage data provided by Coverage [#{lines_data.size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     #
@@ -296,35 +300,15 @@ module SimpleCov
       branches
     end
 
-    # Since we are dumping to and loading from JSON, and we have arrays as keys those
-    # don't make their way back to us intact e.g. just as a string
-    #
-    # We should probably do something different here, but as it stands these are
-    # our data structures that we write so eval isn't _too_ bad.
-    #
-    # See #801
-    #
-    def restore_ruby_data_structure(structure)
-      return structure # TODO[@tycooon]: remove
-      # Tests use the real data structures (except for integration tests) so no need to
-      # put them through here.
-      return structure if structure.is_a?(Array)
-
-      # rubocop:disable Security/Eval
-      eval structure
-      # rubocop:enable Security/Eval
-    end
-
     def build_branches_from(condition, branches)
       # the format handed in from the coverage data is like this:
       #
       #     [:then, 4, 6, 6, 6, 10]
       #
       # which is [type, id, start_line, start_col, end_line, end_col]
-      _condition_type, _condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
+      _condition_type, _condition_id, condition_start_line, * = condition
 
       branches.map do |branch_data, hit_count|
-        branch_data = restore_ruby_data_structure(branch_data)
         build_branch(branch_data, hit_count, condition_start_line)
       end
     end

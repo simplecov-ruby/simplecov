@@ -102,7 +102,7 @@ module SimpleCov
 
     def adapt_pre_simplecov_0_18_result(result)
       result.transform_values do |line_coverage_data|
-        {"lines" => line_coverage_data}
+        {lines: line_coverage_data}
       end
     end
 

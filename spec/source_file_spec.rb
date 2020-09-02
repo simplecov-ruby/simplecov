@@ -4,12 +4,12 @@ require "helper"
 
 describe SimpleCov::SourceFile do
   COVERAGE_FOR_SAMPLE_RB = {
-    "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
-    "branches" => {}
+    lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
+    branches: {}
   }.freeze
 
   COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES = {
-    "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil, nil]
+    lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, nil, nil, nil, nil, nil, nil]
   }.freeze
 
   context "a source file initialized with some coverage data" do
@@ -95,8 +95,8 @@ describe SimpleCov::SourceFile do
 
   context "file with branches" do
     COVERAGE_FOR_BRANCHES_RB = {
-      "lines" => [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
+      branches: {
         [:if, 0, 3, 4, 3, 21] =>
           {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
         [:if, 3, 5, 4, 5, 26] =>
@@ -185,8 +185,8 @@ describe SimpleCov::SourceFile do
 
   context "A file that has inline branches" do
     COVERAGE_FOR_INLINE = {
-      "lines" => [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
+      branches: {
         [:if, 0, 3, 11, 3, 33] =>
           {[:then, 1, 3, 23, 3, 27] => 1, [:else, 2, 3, 30, 3, 33] => 0},
         [:if, 3, 6, 6, 10, 9] =>
@@ -217,7 +217,7 @@ describe SimpleCov::SourceFile do
   end
 
   context "a file that is never relevant" do
-    COVERAGE_FOR_NEVER_RB = {"lines" => [nil, nil], "branches" => {}}.freeze
+    COVERAGE_FOR_NEVER_RB = {lines: [nil, nil], branches: {}}.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("never.rb"), COVERAGE_FOR_NEVER_RB)
@@ -237,7 +237,7 @@ describe SimpleCov::SourceFile do
   end
 
   context "a file where nothing is ever executed mixed with skipping #563" do
-    COVERAGE_FOR_SKIPPED_RB = {"lines" => [nil, nil, nil, nil]}.freeze
+    COVERAGE_FOR_SKIPPED_RB = {lines: [nil, nil, nil, nil]}.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("skipped.rb"), COVERAGE_FOR_SKIPPED_RB)
@@ -253,7 +253,7 @@ describe SimpleCov::SourceFile do
   end
 
   context "a file where everything is skipped and missed #563" do
-    COVERAGE_FOR_SKIPPED_RB_2 = {"lines" => [nil, nil, 0, nil]}.freeze
+    COVERAGE_FOR_SKIPPED_RB_2 = {lines: [nil, nil, 0, nil]}.freeze
 
     subject do
       SimpleCov::SourceFile.new(source_fixture("skipped.rb"), COVERAGE_FOR_SKIPPED_RB_2)
@@ -275,8 +275,8 @@ describe SimpleCov::SourceFile do
 
   context "a file where everything is skipped/irrelevant but executed #563" do
     COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = {
-      "lines" => [nil, nil, 1, 1, 0, 0, nil, 0, nil, nil, nil, nil],
-      "branches" => {
+      lines: [nil, nil, 1, 1, 0, 0, nil, 0, nil, nil, nil, nil],
+      branches: {
         [:if, 0, 5, 4, 9, 7] =>
           {[:then, 1, 6, 6, 6, 7] => 1, [:else, 2, 8, 6, 8, 7] => 0}
       }
@@ -331,8 +331,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with more complex skipping" do
     COVERAGE_FOR_NOCOV_COMPLEX_RB = {
-      "lines" => [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
-      "branches" => {
+      lines: [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
+      branches: {
         [:if, 0, 6, 4, 11, 7] =>
           {[:then, 1, 7, 6, 7, 7] => 0, [:else, 2, 10, 6, 10, 7] => 1},
         [:if, 3, 13, 4, 13, 24] =>
@@ -392,8 +392,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with nested branches" do
     COVERAGE_FOR_NESTED_BRANCHES_RB = {
-      "lines" => [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
-      "branches" => {
+      lines: [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
+      branches: {
         [:while, 0, 7, 8, 7, 31] =>
           {[:body, 1, 7, 8, 7, 16] => 2},
         [:if, 2, 6, 6, 9, 9] =>
@@ -428,8 +428,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with case" do
     COVERAGE_FOR_CASE_STATEMENT_RB = {
-      "lines" => [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
+      branches: {
         [:case, 0, 3, 4, 12, 7] => {
           [:when, 1, 5, 6, 5, 10] => 0,
           [:when, 2, 7, 6, 7, 10] => 1,
@@ -471,8 +471,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with case without else" do
     COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB = {
-      "lines" => [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
+      branches: {
         [:case, 0, 3, 4, 10, 7] => {
           [:when, 1, 5, 6, 5, 10] => 0,
           [:when, 2, 7, 6, 7, 10] => 1,
@@ -518,8 +518,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with if/elsif" do
     COVERAGE_FOR_ELSIF_RB = {
-      "lines" => [1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
+      branches: {
         [:if, 0, 7, 4, 10, 10] =>
           {[:then, 1, 8, 6, 8, 10] => 1, [:else, 2, 10, 6, 10, 10] => 0},
         [:if, 3, 5, 4, 10, 10] =>
@@ -556,8 +556,8 @@ describe SimpleCov::SourceFile do
 
   context "the branch tester script" do
     COVERAGE_FOR_BRANCH_TESTER_RB = {
-      "lines" => [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
+      branches: {
         [:if, 0, 4, 0, 4, 19] =>
           {[:then, 1, 4, 12, 4, 15] => 0, [:else, 2, 4, 18, 4, 19] => 1},
         [:unless, 3, 6, 0, 6, 23] =>
@@ -610,8 +610,8 @@ describe SimpleCov::SourceFile do
 
   context "a file entirely ignored with a single # :nocov:" do
     COVERAGE_FOR_SINGLE_NOCOV_RB = {
-      "lines" => [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
+      branches: {
         [:if, 0, 8, 4, 11, 10] =>
           {[:then, 1, 9, 6, 9, 10] => 1, [:else, 2, 11, 6, 11, 10] => 0},
         [:if, 3, 6, 4, 11, 10] =>
@@ -655,8 +655,8 @@ describe SimpleCov::SourceFile do
 
   context "a file with an uneven usage of # :nocov:s" do
     COVERAGE_FOR_UNEVEN_NOCOV_RB = {
-      "lines" => [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
-      "branches" => {
+      lines: [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
+      branches: {
         [:if, 0, 9, 4, 13, 10] =>
           {[:then, 1, 10, 6, 10, 10] => 1, [:else, 2, 13, 6, 13, 10] => 0},
         [:if, 3, 6, 4, 13, 10] =>
@@ -698,9 +698,9 @@ describe SimpleCov::SourceFile do
   end
 
   context "a file contains non-ASCII characters" do
-    COVERAGE_FOR_SINGLE_LINE = {"lines" => [nil]}.freeze
-    COVERAGE_FOR_DOUBLE_LINES = {"lines" => [nil, 1]}.freeze
-    COVERAGE_FOR_TRIPLE_LINES = {"lines" => [nil, nil, 1]}.freeze
+    COVERAGE_FOR_SINGLE_LINE = {lines: [nil]}.freeze
+    COVERAGE_FOR_DOUBLE_LINES = {lines: [nil, 1]}.freeze
+    COVERAGE_FOR_TRIPLE_LINES = {lines: [nil, nil, 1]}.freeze
     DEGREE_135_LINE = "puts \"135°C\"\n"
 
     shared_examples_for "converting to UTF-8" do
@@ -766,7 +766,7 @@ describe SimpleCov::SourceFile do
 
     describe "empty euc-jp file" do
       subject do
-        SimpleCov::SourceFile.new(source_fixture("empty_euc-jp.rb"), "lines" => [])
+        SimpleCov::SourceFile.new(source_fixture("empty_euc-jp.rb"), lines: [])
       end
 
       it "has empty lines" do

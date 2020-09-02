@@ -21,9 +21,9 @@ describe SimpleCov::Result do
 
     let(:original_result) do
       {
-        source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
-        source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
-        source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
+        source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
+        source_fixture("app/models/user.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+        source_fixture("app/controllers/sample_controller.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]}
       }
     end
 
@@ -212,7 +212,7 @@ describe SimpleCov::Result do
       old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
 
       expect(described_class.new(old_resultset).original_result).to eq(
-        source_fixture("three.rb") => {"lines" => [nil, 1, 2]}
+        source_fixture("three.rb") => {lines: [nil, 1, 2]}
       )
     end
   end

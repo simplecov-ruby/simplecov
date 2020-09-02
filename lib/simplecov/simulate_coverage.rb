@@ -19,11 +19,11 @@ module SimpleCov
       lines = File.foreach(absolute_path)
 
       {
-        "lines" => LinesClassifier.new.classify(lines),
+        lines: LinesClassifier.new.classify(lines),
         # we don't want to parse branches ourselves...
         # requiring files can have side effects and we don't want to trigger that
-        "branches" => {}
-        # TODO: add method cov?
+        branches: {},
+        methods: {},
       }
     end
   end

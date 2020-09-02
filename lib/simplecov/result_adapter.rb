@@ -20,7 +20,7 @@ module SimpleCov
 
       result.each_with_object({}) do |(file_name, cover_statistic), adapted_result|
         if cover_statistic.is_a?(Array)
-          adapted_result.merge!(file_name => {"lines" => cover_statistic})
+          adapted_result.merge!(file_name => {lines: cover_statistic})
         else
           adapted_result.merge!(file_name => cover_statistic)
         end
