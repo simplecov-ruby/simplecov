@@ -3,8 +3,7 @@
 module SimpleCov
   class SourceFile
     class Method
-      attr_reader :source_file, :coverage
-      attr_reader :klass, :method, :start_line, :start_col, :end_line, :end_col
+      attr_reader :source_file, :coverage, :klass, :method, :start_line, :start_col, :end_line, :end_col
 
       def initialize(source_file, info, coverage)
         @source_file = source_file
@@ -18,6 +17,7 @@ module SimpleCov
 
       def skipped?
         return @skipped if defined?(@skipped)
+
         @skipped = lines.all?(&:skipped?)
       end
 

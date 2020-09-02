@@ -34,7 +34,7 @@ module SimpleCov
         {
           **line_coverage_statistics,
           **branch_coverage_statistics,
-          **method_coverage_statistics,
+          **method_coverage_statistics
         }
     end
 

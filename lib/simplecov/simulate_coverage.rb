@@ -23,7 +23,7 @@ module SimpleCov
         # we don't want to parse branches ourselves...
         # requiring files can have side effects and we don't want to trigger that
         branches: {},
-        methods: {},
+        methods: {}
       }
     end
   end

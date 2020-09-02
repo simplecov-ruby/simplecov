@@ -356,7 +356,7 @@ module SimpleCov
     CRITERION_TO_RUBY_COVERAGE = {
       branch: :branches,
       line: :lines,
-      method: :methods,
+      method: :methods
     }.freeze
     def lookup_corresponding_ruby_coverage_name(criterion)
       CRITERION_TO_RUBY_COVERAGE.fetch(criterion)
@@ -460,7 +460,7 @@ require_relative "simplecov/version"
 require_relative "simplecov/result_adapter"
 require_relative "simplecov/combine"
 require_relative "simplecov/combine/branches_combiner"
-# require_relative "simplecov/combine/methods_combiner"
+require_relative "simplecov/combine/methods_combiner"
 require_relative "simplecov/combine/files_combiner"
 require_relative "simplecov/combine/lines_combiner"
 require_relative "simplecov/combine/results_combiner"

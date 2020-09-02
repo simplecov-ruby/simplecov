@@ -9,11 +9,11 @@ describe SimpleCov::Combine::ResultsCombiner do
         source_fixture("sample.rb") => {
           lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
           branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
-          # TODO: add method cov?
         },
         source_fixture("app/models/user.rb") => {
           lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-          branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}}
+          branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 47, [:else, 5, 8, 6, 8, 36] => 24}},
+          methods: {["#<Class:FakedProject>", "foo", 4, 2, 6, 5] => 1}
         },
         source_fixture("app/controllers/sample_controller.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset1.rb") => {lines: [1, 1, 1, 1]},
@@ -28,7 +28,8 @@ describe SimpleCov::Combine::ResultsCombiner do
         source_fixture("sample.rb") => {lines: [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
         source_fixture("app/models/user.rb") => {
           lines: [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil],
-          branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 1, [:else, 5, 8, 6, 8, 36] => 2}}
+          branches: {[:if, 3, 8, 6, 8, 36] => {[:then, 4, 8, 6, 8, 12] => 1, [:else, 5, 8, 6, 8, 36] => 2}},
+          methods: {["#<Class:FakedProject>", "foo", 4, 2, 6, 5] => 5, ["#<Class:FakedProject>", "bar", 1, 2, 3, 4] => 3}
         },
         source_fixture("app/controllers/sample_controller.rb") => {lines: [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset2.rb") => {lines: [nil, 1, 1, nil]},
@@ -58,14 +59,11 @@ describe SimpleCov::Combine::ResultsCombiner do
       it "has proper results for sample.rb" do
         expect(subject[source_fixture("sample.rb")][:lines]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
 
-        # TODO: add method cov
-
         # gotta configure max line so it doesn't get ridiculous
-        # rubocop:disable Style/IfUnlessModifier
         if SimpleCov.branch_coverage_supported?
           expect(subject[source_fixture("sample.rb")][:branches][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(47)
+          expect(subject[source_fixture("sample.rb")][:methods]).to eq(nil)
         end
-        # rubocop:enable Style/IfUnlessModifier
       end
 
       it "has proper results for user.rb" do
@@ -74,6 +72,10 @@ describe SimpleCov::Combine::ResultsCombiner do
         if SimpleCov.branch_coverage_supported?
           expect(subject[source_fixture("app/models/user.rb")][:branches][[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
           expect(subject[source_fixture("app/models/user.rb")][:branches][[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
+          expect(subject[source_fixture("app/models/user.rb")][:methods]).to eq(
+            ["#<Class:FakedProject>", "foo", 4, 2, 6, 5] => 6,
+            ["#<Class:FakedProject>", "bar", 1, 2, 3, 4] => 3
+          )
         end
       end
 

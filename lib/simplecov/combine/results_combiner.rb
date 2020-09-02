@@ -16,7 +16,7 @@ module SimpleCov
       # ==> FileCombiner: collect result of next combine levels lines and branches.
       # ===> LinesCombiner: combine lines results.
       # ===> BranchesCombiner: combine branches results.
-      # TODO: add method cov
+      # ===> MethodsCombiner: combine methods results.
       #
       # @return [Hash]
       #

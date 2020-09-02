@@ -20,9 +20,8 @@ module SimpleCov
 
         if SimpleCov.branch_coverage?
           combination[:branches] = Combine.combine(BranchesCombiner, coverage_a[:branches], coverage_b[:branches])
+          combination[:methods] = Combine.combine(MethodsCombiner, coverage_a[:methods], coverage_b[:methods])
         end
-
-        # TODO: add method cov
 
         combination
       end

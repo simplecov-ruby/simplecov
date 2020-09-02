@@ -98,21 +98,24 @@ module SimpleCov
       coverage_statistics[:branch]&.percent
     end
 
-    # TODO: add method cov methods for html report
+  # TODO: add method cov methods for html report
 
   private
 
     def compute_coverage_statistics
-      total_coverage_statistics = @files.each_with_object(line: [], branch: [], method: []) do |file, together|
-        together[:line] << file.coverage_statistics[:line]
-        together[:branch] << file.coverage_statistics[:branch] if SimpleCov.branch_coverage?
-        together[:method] << file.coverage_statistics[:method] if SimpleCov.method_coverage?
-      end
-
+      total_coverage_statistics = compute_total_coverage_statistics
       coverage_statistics = {line: CoverageStatistics.from(total_coverage_statistics[:line])}
       coverage_statistics[:branch] = CoverageStatistics.from(total_coverage_statistics[:branch]) if SimpleCov.branch_coverage?
       coverage_statistics[:method] = CoverageStatistics.from(total_coverage_statistics[:method]) if SimpleCov.method_coverage?
       coverage_statistics
+    end
+
+    def compute_total_coverage_statistics
+      @files.each_with_object(line: [], branch: [], method: []) do |file, together|
+        together[:line] << file.coverage_statistics[:line]
+        together[:branch] << file.coverage_statistics[:branch] if SimpleCov.branch_coverage?
+        together[:method] << file.coverage_statistics[:method] if SimpleCov.method_coverage?
+      end
     end
   end
 end
