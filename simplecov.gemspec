@@ -19,18 +19,18 @@ Gem::Specification.new do |gem|
   gem.name        = "simplecov"
   gem.version     = version
   gem.platform    = Gem::Platform::RUBY
-  gem.authors     = ["Christoph Olszowka"]
-  gem.email       = ["christoph at olszowka de"]
-  gem.homepage    = "https://github.com/colszowka/simplecov"
+  gem.authors     = ["Christoph Olszowka", "Tobias Pfeiffer"]
+  gem.email       = ["christoph at olszowka de", "pragtob@gmail.com"]
+  gem.homepage    = "https://github.com/simplecov-ruby/simplecov"
   gem.summary     = "Code coverage for Ruby"
   gem.description = %(Code coverage for Ruby with a powerful configuration library and automatic merging of coverage across test suites)
   gem.license     = "MIT"
   gem.metadata    = {
-    "bug_tracker_uri"   => "https://github.com/colszowka/simplecov/issues",
-    "changelog_uri"     => "https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md",
+    "bug_tracker_uri"   => "https://github.com/simplecov-ruby/simplecov/issues",
+    "changelog_uri"     => "https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
     "mailing_list_uri"  => "https://groups.google.com/forum/#!forum/simplecov",
-    "source_code_uri"   => "https://github.com/colszowka/simplecov/tree/v#{gem.version}"
+    "source_code_uri"   => "https://github.com/simplecov-ruby/simplecov/tree/v#{gem.version}"
   }
 
   gem.required_ruby_version = ">= 2.5.0"

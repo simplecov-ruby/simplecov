@@ -7,8 +7,8 @@ if defined?(JRUBY_VERSION) && defined?(JRuby)
 
   # @see https://github.com/jruby/jruby/issues/1196
   # @see https://github.com/metricfu/metric_fu/pull/226
-  # @see https://github.com/colszowka/simplecov/issues/420
-  # @see https://github.com/colszowka/simplecov/issues/86
+  # @see https://github.com/simplecov-ruby/simplecov/issues/420
+  # @see https://github.com/simplecov-ruby/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
   unless org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
@@ -85,13 +85,11 @@ module SimpleCov
 
       results = result_filenames.flat_map do |filename|
         # Re-create each included instance of SimpleCov::Result from the stored run data.
-        (JSON.parse(File.read(filename)) || {}).map do |command_name, coverage|
-          SimpleCov::Result.from_hash(command_name => coverage)
-        end
+        Result.from_hash(JSON.parse(File.read(filename)) || {})
       end
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = SimpleCov::ResultMerger.merge_and_store(*results)
+      @result = ResultMerger.merge_and_store(*results)
 
       run_exit_tasks!
     end
@@ -314,7 +312,7 @@ module SimpleCov
       # This blog post gives a good run down of the coverage criterias introduced
       # in Ruby 2.5: https://blog.bigbinary.com/2018/04/11/ruby-2-5-supports-measuring-branch-and-method-coverages.html
       # There is also a nice writeup of the different coverage criteria made in this
-      # comment  https://github.com/colszowka/simplecov/pull/692#discussion_r281836176 :
+      # comment  https://github.com/simplecov-ruby/simplecov/pull/692#discussion_r281836176 :
       # Ruby < 2.5:
       # https://github.com/ruby/ruby/blob/v1_9_3_374/ext/coverage/coverage.c
       # traditional mode (Array)

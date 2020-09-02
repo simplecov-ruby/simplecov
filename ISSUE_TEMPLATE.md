@@ -8,7 +8,7 @@ To make sure that we can help you quickly please include and check the following
     - please ensure you are requiring and starting SimpleCov before requiring any application code.
     - If running via rake, please ensure you are requiring SimpleCov at the top of your Rakefile
       For example, if running via RSpec, this would be at the top of your spec_helper.
-    - Have you tried using a [`.simplecov` file](https://github.com/colszowka/simplecov#using-simplecov-for-centralized-config)?
+    - Have you tried using a [`.simplecov` file](https://github.com/simplecov-ruby/simplecov#using-simplecov-for-centralized-config)?
  * Include the SimpleCov version you are running in your report.
  * If you are not running the latest version (please check), and you cannot update it,
    please specify in your report why you can't update to the latest version.

@@ -6,7 +6,7 @@ module SimpleCov
       def serialize(result)
         coverage = {}
 
-        result.coverage.each do |file_path, file_data|
+        result.original_result.each do |file_path, file_data|
           serializable_file_data = {}
 
           file_data.each do |key, value|
@@ -21,25 +21,25 @@ module SimpleCov
       end
 
       def deserialize(hash) # rubocop:disable Metrics/MethodLength
-        command_name, data = hash.first
+        hash.map do |command_name, data|
+          coverage = {}
 
-        coverage = {}
+          data["coverage"].each do |file_name, file_data|
+            parsed_file_data = {}
 
-        data["coverage"].each do |file_name, file_data|
-          parsed_file_data = {}
+            file_data.each do |key, value|
+              key = key.to_sym
+              parsed_file_data[key] = deserialize_value(key, value)
+            end
 
-          file_data.each do |key, value|
-            key = key.to_sym
-            parsed_file_data[key] = deserialize_value(key, value)
+            coverage[file_name] = parsed_file_data
           end
 
-          coverage[file_name] = parsed_file_data
+          result = SimpleCov::Result.new(coverage)
+          result.command_name = command_name
+          result.created_at = Time.at(data["timestamp"])
+          result
         end
-
-        result = SimpleCov::Result.new(coverage)
-        result.command_name = command_name
-        result.created_at = Time.at(data["timestamp"])
-        result
       end
 
     private

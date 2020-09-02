@@ -1,4 +1,4 @@
-# Adapted from https://github.com/colszowka/simplecov/pull/694#issuecomment-562097006
+# Adapted from https://github.com/simplecov-ruby/simplecov/pull/694#issuecomment-562097006
 # rubocop:disable all
 x = 1
 x.eql?(4) ? "4" : x

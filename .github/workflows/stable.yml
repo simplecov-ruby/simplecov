@@ -1,12 +1,6 @@
 name: stable
 
-on:
-  pull_request:
-
-  push:
-    # TODO[@tycooon]: uncomment
-    # branches:
-    #   - master
+on: [push, pull_request]
 
 jobs:
   test:

@@ -6,7 +6,7 @@ require "simplecov/formatter/multi_formatter"
 
 describe SimpleCov::Formatter::MultiFormatter do
   describe ".[]" do
-    # Regression test for https://github.com/colszowka/simplecov/issues/428
+    # Regression test for https://github.com/simplecov-ruby/simplecov/issues/428
     it "constructs a formatter with multiple children" do
       # Silence deprecation warnings.
       allow(described_class).to receive(:warn)

@@ -1,4 +1,4 @@
-SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge.fury.io/rb/simplecov) [![Build Status](https://github.com/simplecov-ruby/simplecov/workflows/stable/badge.svg?branch=master)][Continuous Integration] [![Maintainability](https://api.codeclimate.com/v1/badges/c071d197d61953a7e482/maintainability)](https://codeclimate.com/github/simplecov-ruby/simplecov/maintainability) [![Inline docs](http://inch-ci.org/github/simplecov-ruby/simplecov.svg?branch=master)](http://inch-ci.org/github/simplecov-ruby/simplecov)
+SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge.fury.io/rb/simplecov) [![Build Status](https://github.com/simplecov-ruby/simplecov/workflows/stable/badge.svg?branch=main)][Continuous Integration] [![Maintainability](https://api.codeclimate.com/v1/badges/c071d197d61953a7e482/maintainability)](https://codeclimate.com/github/simplecov-ruby/simplecov/maintainability) [![Inline docs](http://inch-ci.org/github/simplecov-ruby/simplecov.svg?branch=main)](http://inch-ci.org/github/simplecov-ruby/simplecov)
 =========
 
 **Code coverage for Ruby**
@@ -10,14 +10,14 @@ SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge
   * [Continuous Integration]
 
 [Coverage]: https://ruby-doc.org/stdlib/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby's Coverage library"
-[Source Code]: https://github.com/colszowka/simplecov "Source Code @ GitHub"
+[Source Code]: https://github.com/simplecov-ruby/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
-[Changelog]: https://github.com/colszowka/simplecov/blob/master/CHANGELOG.md "Project Changelog"
+[Changelog]: https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md "Project Changelog"
 [Rubygem]: http://rubygems.org/gems/simplecov "SimpleCov @ rubygems.org"
-[Continuous Integration]: https://github.com/colszowka/simplecov/actions?query=workflow%3Astable "SimpleCov is built around the clock by github.com"
-[Dependencies]: https://gemnasium.com/colszowka/simplecov "SimpleCov dependencies on Gemnasium"
-[simplecov-html]: https://github.com/colszowka/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
+[Continuous Integration]: https://github.com/simplecov-ruby/simplecov/actions?query=workflow%3Astable "SimpleCov is built around the clock by github.com"
+[Dependencies]: https://gemnasium.com/simplecov-ruby/simplecov "SimpleCov dependencies on Gemnasium"
+[simplecov-html]: https://github.com/simplecov-ruby/simplecov-html "SimpleCov HTML Formatter Source Code @ GitHub"
 
 SimpleCov is a code coverage analysis tool for Ruby. It uses [Ruby's built-in Coverage][Coverage] library to gather code
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format,
@@ -37,8 +37,8 @@ configured automatically when you launch SimpleCov. If you're curious, you can f
 
 *Code and Bug Reports*
 
-* [Issue Tracker](https://github.com/colszowka/simplecov/issues)
-* See [CONTRIBUTING](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md) for how to contribute along
+* [Issue Tracker](https://github.com/simplecov-ruby/simplecov/issues)
+* See [CONTRIBUTING](https://github.com/simplecov-ruby/simplecov/blob/main/CONTRIBUTING.md) for how to contribute along
 with some common problems to check out before creating an issue.
 
 *Questions, Problems, Suggestions, etc.*
@@ -167,8 +167,8 @@ to use SimpleCov with them. Here's an overview of the known ones:
       race conditions occur when results are merged.
     </td>
     <td>
-      <a href="https://github.com/colszowka/simplecov/issues/64">#64</a> &amp;
-      <a href="https://github.com/colszowka/simplecov/pull/185">#185</a>
+      <a href="https://github.com/simplecov-ruby/simplecov/issues/64">#64</a> &amp;
+      <a href="https://github.com/simplecov-ruby/simplecov/pull/185">#185</a>
     </td>
   </tr>
   <tr>
@@ -192,7 +192,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
       to explicitly set the output root using `SimpleCov.root('foo/bar/baz')`
     </td>
     <td>
-      <a href="https://github.com/colszowka/simplecov/issues/95">#95</a>
+      <a href="https://github.com/simplecov-ruby/simplecov/issues/95">#95</a>
     </td>
   </tr>
   <tr>
@@ -203,11 +203,11 @@ to use SimpleCov with them. Here's an overview of the known ones:
       Because of how Spork works internally (using preforking), there used to
       be trouble when using SimpleCov with it, but that has apparently been
       resolved with a specific configuration strategy. See <a
-      href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">this</a>
+      href="https://github.com/simplecov-ruby/simplecov/issues/42#issuecomment-4440284">this</a>
       comment.
     </td>
     <td>
-      <a href="https://github.com/colszowka/simplecov/issues/42#issuecomment-4440284">#42</a>
+      <a href="https://github.com/simplecov-ruby/simplecov/issues/42#issuecomment-4440284">#42</a>
     </td>
   </tr>
   <tr>
@@ -218,7 +218,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
       <a href="#want-to-use-spring-with-simplecov">See section below.</a>
     </td>
     <td>
-      <a href="https://github.com/colszowka/simplecov/issues/381">#381</a>
+      <a href="https://github.com/simplecov-ruby/simplecov/issues/381">#381</a>
     </td>
   </tr>
   <tr>
@@ -231,7 +231,7 @@ to use SimpleCov with them. Here's an overview of the known ones:
       (Dec 11th, 2011) should have this problem resolved.
     </td>
     <td>
-      <a href="https://github.com/colszowka/simplecov/issues/45">#45</a> &amp;
+      <a href="https://github.com/simplecov-ruby/simplecov/issues/45">#45</a> &amp;
       <a href="https://github.com/test-unit/test-unit/pull/12">test-unit/test-unit#12</a>
     </td>
   </tr>
@@ -429,7 +429,7 @@ end
 # :nocov:
 ```
 
-The name of the token can be changed to your liking. [Learn more about the nocov feature.]( https://github.com/colszowka/simplecov/blob/master/features/config_nocov_token.feature)
+The name of the token can be changed to your liking. [Learn more about the nocov feature.]( https://github.com/simplecov-ruby/simplecov/blob/main/features/config_nocov_token.feature)
 
 **Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If
 you appropriately test the public interface of your classes and objects you should automatically get full coverage of
@@ -440,7 +440,7 @@ your private methods.
 By default, SimpleCov filters everything outside of the `SimpleCov.root` directory. However, sometimes you may want
 to include coverage reports for things you include as a gem, for example a Rails Engine.
 
-Here's an example by [@lsaffie](https://github.com/lsaffie) from [#221](https://github.com/colszowka/simplecov/issues/221)
+Here's an example by [@lsaffie](https://github.com/lsaffie) from [#221](https://github.com/simplecov-ruby/simplecov/issues/221)
 that shows how you can achieve just that:
 
 ```ruby
@@ -856,7 +856,7 @@ with them, you'll find that it often misreports coverage with the default config
 issue. Don't despair!
 
 One solution is to [explicitly call eager
-load](https://github.com/colszowka/simplecov/issues/381#issuecomment-347651728)
+load](https://github.com/simplecov-ruby/simplecov/issues/381#issuecomment-347651728)
 in your `test_helper.rb` / `spec_helper.rb` after calling `SimpleCov.start`.
 
 ```ruby
@@ -915,7 +915,7 @@ Everyone participating in this project's development, issue trackers and other c
 
 ## Contributing
 
-See the [contributing guide](https://github.com/colszowka/simplecov/blob/master/CONTRIBUTING.md).
+See the [contributing guide](https://github.com/simplecov-ruby/simplecov/blob/main/CONTRIBUTING.md).
 
 ## Kudos
 

@@ -27,10 +27,11 @@ module SimpleCov
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
-    def initialize(original_result)
+    def initialize(original_result, command_name: nil, created_at: nil)
       result = adapt_result(original_result)
       @original_result = result.freeze
-
+      @command_name = command_name
+      @created_at = created_at
       @files = SimpleCov::FileList.new(result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
@@ -72,11 +73,13 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       SimpleCov::ResultSerialization.deserialize(hash)
+      # hash.map do |command_name, data|
+      #   new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]))
+      # end
     end
 
-    def coverage
-      keys = original_result.keys & filenames
-      Hash[keys.zip(original_result.values_at(*keys))]
+    def time_since_creation
+      Time.now - created_at
     end
 
   private
@@ -84,7 +87,7 @@ module SimpleCov
     # We changed the format of the raw result data in simplecov, as people are likely
     # to have "old" resultsets lying around (but not too old so that they're still
     # considered we can adapt them).
-    # See https://github.com/colszowka/simplecov/pull/824#issuecomment-576049747
+    # See https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
     def adapt_result(result)
       if pre_simplecov_0_18_result?(result)
         adapt_pre_simplecov_0_18_result(result)

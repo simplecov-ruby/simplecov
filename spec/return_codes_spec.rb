@@ -3,7 +3,7 @@
 require "helper"
 
 # Make sure that exit codes of tests are propagated properly
-# See https://github.com/colszowka/simplecov/issues/5
+# See https://github.com/simplecov-ruby/simplecov/issues/5
 describe "return codes" do
   context "inside fixtures/frameworks" do
     around do |test|
