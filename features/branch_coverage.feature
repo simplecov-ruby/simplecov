@@ -21,7 +21,7 @@ Feature:
     And I should see a line coverage summary of 56/61
     And I should see a branch coverage summary of 2/4
     And I should see the source files:
-      | name                                    | coverage | branch coverage |
+      | name                                    | coverage  | branch coverage  |
       | lib/faked_project.rb                    | 100.00 %  | 100.00 %         |
       | lib/faked_project/some_class.rb         | 80.00 %   | 50.00 %          |
       | lib/faked_project/framework_specific.rb | 75.00 %   | 100.00 %         |

@@ -207,32 +207,135 @@ describe SimpleCov::Result do
     end
 
     describe ".from_hash" do
-      let(:other_result) do
-        {
-          source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
-        }
-      end
       let(:created_at) { Time.now.to_i }
 
-      it "can consume multiple commands" do
-        input = {
+      let(:input) do
+        {
           "rspec" => {
             "coverage" => original_result,
             "timestamp" => created_at
-          },
-          "cucumber" => {
-            "coverage" => other_result,
-            "timestamp" => created_at
           }
         }
+      end
 
-        result = described_class.from_hash(input)
+      let(:expected_branch_coverage) do
+        {
+          [:unless, 0, 8, 4, 8, 90] => {
+            [:else, 1, 8, 4, 8, 90] => 0,
+            [:then, 2, 8, 4, 8, 35] => 1
+          }
+        }
+      end
 
-        expect(result.size).to eq 2
-        sorted = result.sort_by(&:command_name)
-        expect(sorted.map(&:command_name)).to eq %w[cucumber rspec]
-        expect(sorted.map(&:created_at).map(&:to_i)).to eq [created_at, created_at]
-        expect(sorted.map(&:original_result)).to eq [other_result, original_result]
+      context "multiple commands" do
+        let(:other_result) do
+          {
+            source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
+          }
+        end
+
+        let(:input) do
+          {
+            "rspec" => {
+              "coverage" => original_result,
+              "timestamp" => created_at
+            },
+            "cucumber" => {
+              "coverage" => other_result,
+              "timestamp" => created_at
+            }
+          }
+        end
+
+        it "can consume multiple commands" do
+          result = described_class.from_hash(input)
+
+          expect(result.size).to eq 2
+          sorted = result.sort_by(&:command_name)
+          expect(sorted.map(&:command_name)).to eq %w[cucumber rspec]
+          expect(sorted.map(&:created_at).map(&:to_i)).to eq [created_at, created_at]
+          expect(sorted.map(&:original_result)).to eq [other_result, original_result]
+        end
+      end
+
+      context "branch and method coverage present" do
+        let(:original_result) do
+          {
+            source_fixture("sample.rb") => {
+              "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+              "branches" => [
+                [
+                  ["unless", 0, 8, 4, 8, 90],
+                  [
+                    [["else", 1, 8, 4, 8, 90], 0],
+                    [["then", 2, 8, 4, 8, 35], 1]
+                  ]
+                ]
+              ],
+              "methods" => [
+                [["RSpec::ExampleGroups::SomeClass::LetDefinitions", "subject", 6, 10, 6, 34], 2]
+              ]
+            }
+          }
+        end
+
+        it "parses that properly" do
+          result = described_class.from_hash(input)
+
+          expect(result.size).to eq(1)
+          expect(result.first.original_result.size).to eq(1)
+
+          expect(result.first.original_result.values.last).to eq(
+            lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+            branches: expected_branch_coverage,
+            methods: {
+              ["RSpec::ExampleGroups::SomeClass::LetDefinitions", :subject, 6, 10, 6, 34] => 2
+            }
+          )
+        end
+      end
+
+      context "old style line coverage format" do
+        let(:original_result) do
+          { source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil] }
+        end
+
+        it "parses that properly" do
+          result = described_class.from_hash(input)
+
+          expect(result.size).to eq(1)
+          expect(result.first.original_result.size).to eq(1)
+
+          expect(result.first.original_result.values.last).to eq(
+            lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+          )
+        end
+      end
+
+      context "old style branch coverage format" do
+        let(:original_result) do
+          {
+            source_fixture("sample.rb") => {
+              "branches" => {
+                "[:unless, 0, 8, 4, 8, 90]": {
+                  "[:else, 1, 8, 4, 8, 90]": 0,
+                  "[:then, 2, 8, 4, 8, 35]": 1
+                }
+              }
+            }
+          }
+        end
+
+        it "parses that properly" do
+          result = described_class.from_hash(input)
+
+          expect(result.size).to eq(1)
+          expect(result.first.original_result.size).to eq(1)
+
+          expect(result.first.original_result.values.last).to eq(
+            branches: expected_branch_coverage
+          )
+        end
       end
     end
   end

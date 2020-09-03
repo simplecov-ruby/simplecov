@@ -27,6 +27,8 @@ module SimpleCov
           data["coverage"].each do |file_name, file_data|
             parsed_file_data = {}
 
+            file_data = {lines: file_data} if file_data.is_a?(Array)
+
             file_data.each do |key, value|
               key = key.to_sym
               parsed_file_data[key] = deserialize_value(key, value)
@@ -91,6 +93,7 @@ module SimpleCov
       end
 
       def deserialize_branch_info(value)
+        value = adapt_old_style_branch_info(value) if value.is_a?(Symbol)
         type, *info = value
         [type.to_sym, *info]
       end
@@ -106,6 +109,10 @@ module SimpleCov
         end
 
         result
+      end
+
+      def adapt_old_style_branch_info(value)
+        eval(value.to_s) # rubocop:disable Security/Eval
       end
     end
   end
