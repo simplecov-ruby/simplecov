@@ -172,7 +172,6 @@ describe SimpleCov do
         end
       end
 
-      # TODO: add method cov
       context "branch coverage" do
         before do
           allow(SimpleCov).to receive(:minimum_coverage).and_return(branch: 90)

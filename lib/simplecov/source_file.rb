@@ -159,12 +159,20 @@ module SimpleCov
       @methods ||= build_methods
     end
 
+    def total_methods
+      @total_methods ||= covered_methods + missed_methods
+    end
+
     def covered_methods
       methods.select(&:covered?)
     end
 
     def missed_methods
       methods.select(&:missed?)
+    end
+
+    def methods_coverage_percent
+      coverage_statistics[:method]&.percent
     end
 
   private

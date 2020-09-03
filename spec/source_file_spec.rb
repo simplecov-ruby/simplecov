@@ -69,7 +69,7 @@ describe SimpleCov::SourceFile do
       end
     end
 
-    # TODO: add method cov
+    # TODO[@tycooon]: add method cov
     describe "branch coverage" do
       it "has total branches count 0" do
         expect(subject.total_branches.size).to eq(0)

@@ -10,7 +10,7 @@ module SimpleCov
     module_function
 
       #
-      # Return merged branches or the existed brach if other is missing.
+      # Return merged branches or the existing branch if other is missing.
       #
       # Branches inside files are always same if they exist, the difference only in coverage count.
       # Branch coverage report for any conditional case is built from hash, it's key is a condition and

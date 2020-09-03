@@ -7,16 +7,18 @@ describe SimpleCov::Result do
     original_result = {
       source_fixture("sample.rb") => {
         lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
-        branches: {}
-        # TODO: add method cov
+        branches: {},
+        methods: {}
       },
       source_fixture("app/models/user.rb") => {
         lines: [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
-        branches: {}
+        branches: {},
+        methods: {}
       },
       source_fixture("app/controllers/sample_controller.rb") => {
         lines: [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil],
-        branches: {}
+        branches: {},
+        methods: {}
       }
     }
     SimpleCov::Result.new(original_result).files

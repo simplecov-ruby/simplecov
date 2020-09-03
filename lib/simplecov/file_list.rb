@@ -98,7 +98,24 @@ module SimpleCov
       coverage_statistics[:branch]&.percent
     end
 
-  # TODO: add method cov methods for html report
+    # Return total count of methods in all files
+    def total_methods
+      coverage_statistics[:method]&.total
+    end
+
+    # Return total count of covered methods
+    def covered_methods
+      coverage_statistics[:method]&.covered
+    end
+
+    # Return total count of covered methods
+    def missed_methods
+      coverage_statistics[:method]&.missed
+    end
+
+    def method_covered_percent
+      coverage_statistics[:method]&.percent
+    end
 
   private
 

@@ -10,7 +10,7 @@ module SimpleCov
     module_function
 
       #
-      # TODO[@tycooon]: add description
+      # Combine method coverage from 2 sources
       #
       # @return [Hash]
       #
