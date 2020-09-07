@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 # Load default formatter gem
-require "simplecov-html"
-require "simplecov_json_formatter"
 require "pathname"
 require_relative "default_formatter"
 require_relative "profiles/root_filter"
