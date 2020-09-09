@@ -11,6 +11,10 @@ require "capybara/cucumber"
 require "capybara/cuprite"
 require "simplecov"
 
+Capybara.register_driver(:cuprite) do |app|
+  Capybara::Cuprite::Driver.new(app, process_timeout: 5)
+end
+
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
 Capybara.app = lambda { |env|
   request_path = env["REQUEST_PATH"] || "/"
