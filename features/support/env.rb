@@ -12,7 +12,7 @@ require "capybara/cuprite"
 require "simplecov"
 
 Capybara.register_driver(:cuprite) do |app|
-  Capybara::Cuprite::Driver.new(app, process_timeout: 10)
+  Capybara::Cuprite::Driver.new(app, process_timeout: 10, timeout: 10)
 end
 
 # Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
