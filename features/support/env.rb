@@ -11,30 +11,12 @@ require "capybara/cucumber"
 require "capybara/apparition"
 require "simplecov"
 
-# Fake rack app for capybara that just returns the latest coverage report from aruba temp project dir
-Capybara.app = lambda { |env|
-  request_path = env["REQUEST_PATH"] || "/"
-  request_path = "/index.html" if request_path == "/"
-  corresponding_file_path =
-    File.join(File.dirname(__FILE__), "../../tmp/aruba/project/coverage", request_path)
-
-  content =
-    if File.exist?(corresponding_file_path)
-      File.read(corresponding_file_path)
-    else
-      # See #776 for whatever reason sometimes JRuby in one feature couldn't
-      # find the loading.gif - which isn't essential so answering empty string
-      # should be good enough
-      warn "Couldn't find #{corresponding_file_path} generating empty response"
-      ""
-    end
-
-  [
-    200,
-    {"Content-Type" => "text/html"},
-    [content]
-  ]
-}
+# Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
+coverage_dir = File.expand_path("../../tmp/aruba/project/coverage/", __dir__)
+Capybara.app = Rack::Builder.new do
+  use Rack::Static, urls: {"/" => "index.html"}, root: coverage_dir
+  run Rack::Directory.new(coverage_dir)
+end.to_app
 
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
