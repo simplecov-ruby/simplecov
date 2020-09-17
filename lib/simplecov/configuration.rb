@@ -22,6 +22,7 @@ module SimpleCov
     def root(root = nil)
       return @root if defined?(@root) && root.nil?
 
+      @coverage_path = nil # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
     end
 
