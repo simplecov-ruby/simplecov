@@ -2,11 +2,14 @@
 
 source "https://rubygems.org"
 
-# Uncomment this to use local copy of simplecov-html in development when checked out
-gem "simplecov-html", path: File.dirname(__FILE__) + "/../simplecov-html"
-
-# Uncomment this to use development version of html formatter from github
-# gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+case ENV["SIMPLECOV_HTML_MODE"]
+when "local"
+  # Use local copy of simplecov-html in development when checked out
+  gem "simplecov-html", path: File.dirname(__FILE__) + "/../simplecov-html"
+when "github"
+  # Use development version of html formatter from github
+  gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+end
 
 group :development do
   gem "apparition", "~> 0.6.0"
