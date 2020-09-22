@@ -245,7 +245,7 @@ describe SimpleCov::Result do
                 ]
               }
             },
-            "timestamp" => be_a(Integer),
+            "timestamp" => be_a(Integer)
           }
         )
       end
@@ -310,7 +310,7 @@ describe SimpleCov::Result do
 
       context "old style line coverage format" do
         let(:dumped_result) do
-          { source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil] }
+          {source_fixture("sample.rb") => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}
         end
 
         it "parses that properly" do
@@ -320,7 +320,7 @@ describe SimpleCov::Result do
           expect(result.first.original_result.size).to eq(1)
 
           expect(result.first.original_result.values.last).to eq(
-            lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+            lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]
           )
         end
       end

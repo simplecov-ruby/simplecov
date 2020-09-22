@@ -2,14 +2,16 @@
 
 source "https://rubygems.org"
 
+# rubocop:disable Bundler/DuplicatedGem
 case ENV["SIMPLECOV_HTML_MODE"]
 when "local"
   # Use local copy of simplecov-html in development when checked out
-  gem "simplecov-html", path: File.dirname(__FILE__) + "/../simplecov-html"
+  gem "simplecov-html", path: "#{File.dirname(__FILE__)}/../simplecov-html"
 when "github"
   # Use development version of html formatter from github
   gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
 end
+# rubocop:enable Bundler/DuplicatedGem
 
 group :development do
   gem "apparition", "~> 0.6.0"
