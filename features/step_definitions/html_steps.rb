@@ -2,9 +2,8 @@
 
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
-  available_groups = all("#content .file_list_container")
   # Given group names should be the same number than those rendered in report
-  expect(expected_groups.count).to eq(available_groups.count)
+  expect(page).to have_css("#content .file_list_container", count: expected_groups.count)
 
   # Verify each of the expected groups has a file list container and corresponding title and coverage number
   # as well as the correct number of links to files.
@@ -23,9 +22,8 @@ end
 
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
-  available_source_files = all(".t-file", visible: true)
+  available_source_files = all(".t-file", visible: true, count: expected_files.count)
 
-  expect(expected_files.length).to eq(available_source_files.count)
   include_branch_coverage = table.column_names.include?("branch coverage")
 
   # Find all filenames and their coverage present in coverage report
