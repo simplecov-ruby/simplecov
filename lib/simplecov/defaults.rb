@@ -11,7 +11,10 @@ require_relative "profiles/rails"
 
 # Default configuration
 SimpleCov.configure do
-  formatter SimpleCov::Formatter.from_env
+  formatter SimpleCov::Formatter::MultiFormatter.new(
+    SimpleCov::Formatter.from_env(ENV)
+  )
+
   load_profile "bundler_filter"
   load_profile "hidden_filter"
   # Exclude files outside of SimpleCov.root
