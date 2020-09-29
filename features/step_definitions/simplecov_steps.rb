@@ -46,6 +46,16 @@ Then /^a coverage report should have been generated(?: in "([^"]*)")?$/ do |cove
     )
 end
 
+Then /^a JSON coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
+  coverage_dir ||= "coverage"
+  steps %(
+    Then the output should contain "Coverage report generated"
+    And a directory named "#{coverage_dir}" should exist
+    And the following files should exist:
+      | #{coverage_dir}/coverage.json      |
+    )
+end
+
 Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
   coverage_dir ||= "coverage"
   steps %(
