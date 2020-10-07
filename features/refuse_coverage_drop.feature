@@ -24,7 +24,7 @@ Feature:
       """
       {
         "result": {
-          "covered_percent": 88.09
+          "line": 88.09
         }
       }
       """
@@ -48,7 +48,7 @@ Feature:
       """
       {
         "result": {
-          "covered_percent": 88.09
+          "line": 88.09
         }
       }
       """
@@ -69,7 +69,7 @@ Feature:
       """
       {
         "result": {
-          "covered_percent": 88.09
+          "line": 88.09
         }
       }
       """
@@ -92,7 +92,7 @@ Feature:
       """
       {
         "result": {
-          "covered_percent": 84.78
+          "line": 84.78
         }
       }
       """

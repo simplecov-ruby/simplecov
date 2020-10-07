@@ -287,20 +287,22 @@ module SimpleCov
     #
     # Default is 0% (disabled)
     #
-
-    # rubocop:disable Metrics/CyclomaticComplexity
     def minimum_coverage(coverage = nil)
       return @minimum_coverage ||= {} unless coverage
 
       coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
-      coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
-      coverage.each_value do |percent|
-        minimum_possible_coverage_exceeded("minimum_coverage") if percent && percent > 100
-      end
+
+      validate_coverage!(coverage, "minimum_coverage")
 
       @minimum_coverage = coverage
     end
-    # rubocop:enable Metrics/CyclomaticComplexity
+
+    def validate_coverage!(coverage, coverage_setting)
+      coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
+      coverage.each_value do |percent|
+        minimum_possible_coverage_exceeded(coverage_setting) if percent && percent > 100
+      end
+    end
 
     #
     # Defines the maximum coverage drop at once allowed for the testsuite to pass.
@@ -309,7 +311,13 @@ module SimpleCov
     # Default is 100% (disabled)
     #
     def maximum_coverage_drop(coverage_drop = nil)
-      @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
+      return @maximum_coverage_drop ||= {} unless coverage_drop
+
+      coverage_drop = {DEFAULT_COVERAGE_CRITERION => coverage_drop} if coverage_drop.is_a?(Numeric)
+
+      validate_coverage!(coverage_drop, "maximum_coverage_drop")
+
+      @maximum_coverage_drop = coverage_drop
     end
 
     #
@@ -320,16 +328,21 @@ module SimpleCov
     # Default is 0% (disabled)
     #
     def minimum_coverage_by_file(coverage = nil)
-      minimum_possible_coverage_exceeded("minimum_coverage_by_file") if coverage && coverage > 100
-      @minimum_coverage_by_file ||= (coverage || 0).to_f.round(2)
+      return @minimum_coverage_by_file ||= {} unless coverage
+
+      coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
+
+      validate_coverage!(coverage, "minimum_coverage_by_file")
+
+      @minimum_coverage_by_file = coverage
     end
 
     #
     # Refuses any coverage drop. That is, coverage is only allowed to increase.
     # SimpleCov will return non-zero if the coverage decreases.
     #
-    def refuse_coverage_drop
-      maximum_coverage_drop 0
+    def refuse_coverage_drop(criteria = [DEFAULT_COVERAGE_CRITERION])
+      maximum_coverage_drop(criteria.map { |c| [c, 0] }.to_h)
     end
 
     #

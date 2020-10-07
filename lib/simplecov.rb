@@ -285,7 +285,10 @@ module SimpleCov
     # @api private
     #
     def write_last_run(result)
-      SimpleCov::LastRun.write(result: {covered_percent: round_coverage(result.covered_percent)})
+      SimpleCov::LastRun.write(result:
+        result.coverage_statistics.transform_values do |stats|
+          round_coverage(stats.percent)
+        end)
     end
 
     #

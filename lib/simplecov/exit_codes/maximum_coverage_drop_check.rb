@@ -11,15 +11,17 @@ module SimpleCov
       def failing?
         return false unless maximum_coverage_drop && last_run
 
-        coverage_diff > maximum_coverage_drop
+        coverage_drop_violations.any?
       end
 
       def report
-        $stderr.printf(
-          "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
-          drop_percent: coverage_diff,
-          max_drop: maximum_coverage_drop
-        )
+        coverage_drop_violations.each do |violation|
+          $stderr.printf(
+            "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            drop_percent: SimpleCov.round_coverage(violation[:drop_percent]),
+            max_drop: violation[:max_drop]
+          )
+        end
       end
 
       def exit_code
@@ -36,14 +38,24 @@ module SimpleCov
         @last_run = SimpleCov::LastRun.read
       end
 
-      def coverage_diff
-        raise "Trying to access coverage_diff although there is no last run" unless last_run
-
-        @coverage_diff ||= last_run[:result][:covered_percent] - covered_percent
+      def coverage_drop_violations
+        @coverage_drop_violations ||=
+          compute_coverage_drop_violations.select do |achieved|
+            achieved.fetch(:max_drop) < achieved.fetch(:drop_percent)
+          end
       end
 
-      def covered_percent
-        SimpleCov.round_coverage(result.covered_percent)
+      def compute_coverage_drop_violations
+        maximum_coverage_drop.map do |criterion, percent|
+          {
+            criterion: criterion,
+            max_drop: percent,
+            drop_percent: last_run[:result][criterion] -
+              SimpleCov.round_coverage(
+                result.coverage_statistics.fetch(criterion).percent
+              )
+          }
+        end
       end
     end
   end
