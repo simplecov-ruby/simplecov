@@ -60,6 +60,11 @@ A formatter that prints the coverage of the file under test when you run a singl
 
 t_wada AA formatter for SimpleCov
 
+#### [simplecov-tailwindcss](https://github.com/chiefpansancolt/simplecov-tailwindcss)
+*by [Chiefpansancolt](https://github.com/chiefpansancolt)*
+
+A TailwindCSS & TailwindUI Designed HTML formatter with clean and easy search of files with a tabular left Navigation.
+
 #### [simplecov-material](https://github.com/chiefpansancolt/simplecov-material)
 *by [Chiefpansancolt](https://github.com/chiefpansancolt)*
 
