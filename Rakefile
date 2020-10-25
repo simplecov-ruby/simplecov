@@ -26,7 +26,7 @@ end
 
 require "cucumber/rake/task"
 Cucumber::Rake::Task.new do |t|
-  t.cucumber_opts = %w[--retry 3]
+  t.cucumber_opts = %w[--retry 3 --no-strict-flaky]
 end
 
 task default: %i[rubocop spec cucumber]
