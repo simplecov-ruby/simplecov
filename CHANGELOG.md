@@ -1,3 +1,11 @@
+0.19.1 (2020-10-25)
+==========
+
+## Bugfixes
+
+* No more warnings triggered by `enable_for_subprocesses`. Thanks to [@mame](https://github.com/mame)
+* Avoid trying to patch `Process.fork` when it isn't available. Thanks to [@MSP-Greg](https://github.com/MSP-Greg)
+
 0.19.0 (2020-08-16)
 ==========
 
