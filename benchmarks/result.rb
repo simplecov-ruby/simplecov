@@ -6,7 +6,7 @@ require "coverage"
 Coverage.start
 # such meta, many wow
 require_relative "../lib/simplecov"
-require_relative "../spec/faked_project/lib/faked_project"
+require_relative "../test_projects/faked_project/lib/faked_project"
 result = Coverage.result
 
 class MyFormatter

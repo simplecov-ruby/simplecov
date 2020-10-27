@@ -199,8 +199,9 @@ module SimpleCov
     # gets or sets the enabled_for_subprocess configuration
     # when true, this will inject SimpleCov code into Process.fork
     def enable_for_subprocesses(value = nil)
-      @enable_for_subprocesses = value unless value.nil?
-      @enable_for_subprocesses || false
+      return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
+
+      @enable_for_subprocesses = value || false
     end
 
     # gets the enabled_for_subprocess configuration

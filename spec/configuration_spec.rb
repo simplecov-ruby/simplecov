@@ -211,5 +211,24 @@ describe SimpleCov::Configuration do
         expect(config).not_to be_method_coverage
       end
     end
+
+    describe "#enable_for_subprocesses" do
+      it "returns false by default" do
+        expect(config.enable_for_subprocesses).to eq false
+      end
+
+      it "can be set to true" do
+        config.enable_for_subprocesses true
+
+        expect(config.enable_for_subprocesses).to eq true
+      end
+
+      it "can be enabled and then disabled again" do
+        config.enable_for_subprocesses true
+        config.enable_for_subprocesses false
+
+        expect(config.enable_for_subprocesses).to eq false
+      end
+    end
   end
 end

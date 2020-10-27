@@ -50,7 +50,9 @@ module SimpleCov
     def start(profile = nil, &block)
       require "coverage"
       initial_setup(profile, &block)
-      require_relative "./simplecov/process" if SimpleCov.enabled_for_subprocesses?
+      require_relative "./simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
+                                                ::Process.respond_to?(:fork)
+
       make_parallel_tests_available
 
       @result = nil
