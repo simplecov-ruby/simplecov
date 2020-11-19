@@ -17,14 +17,14 @@ module SimpleCov
     end
 
     def self.no_cov_line?(line)
-      line =~ no_cov_line
+      no_cov_line.match?(line)
     rescue ArgumentError
       # E.g., line contains an invalid byte sequence in UTF-8
       false
     end
 
     def self.whitespace_line?(line)
-      line =~ WHITESPACE_OR_COMMENT_LINE
+      WHITESPACE_OR_COMMENT_LINE.match?(line)
     rescue ArgumentError
       # E.g., line contains an invalid byte sequence in UTF-8
       false
