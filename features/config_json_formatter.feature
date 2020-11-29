@@ -7,6 +7,7 @@ Feature:
 
   Background:
     Given I'm working on the project "faked_project"
+
   Scenario: With JSONFormatter
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -28,7 +29,6 @@ Feature:
   Scenario: When CC_TEST_REPORTER_ID is set in the environment
     Given SimpleCov for Test/Unit is configured with:
       """
-      ENV['CC_TEST_REPORTER_ID'] = "9719ac886877886b7e325d1e828373114f633683e429107d1221d25270baeabf"
       require 'simplecov'
       SimpleCov.at_exit do
         puts SimpleCov.result.format!
@@ -37,7 +37,11 @@ Feature:
         add_group 'Libs', 'lib/faked_project/'
       end
       """
+    And I set the environment variables to:
+      | variable            | value   |
+      | CC_TEST_REPORTER_ID | some-id |
 
     When I successfully run `bundle exec rake test`
+
     Then a JSON coverage report should have been generated in "coverage"
     And the output should contain "JSON Coverage report generated"
