@@ -73,9 +73,10 @@ Getting started
     analysis to happen on. When testing a server process (e.g. a JSON API
     endpoint) via a separate test process (e.g. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
-    executed in your actual test files, you'll want to add something like this
+    executed in your actual test files, you need to require SimpleCov in the
+    server process. For rails for instance, you'll want to add something like this
     to the top of `bin/rails`, but below the "shebang" line (`#! /usr/bin/env
-    ruby`):
+    ruby`) and after config/boot is required:
 
     ```ruby
     if ENV['RAILS_ENV'] == 'test'
