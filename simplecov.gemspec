@@ -39,6 +39,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency "simplecov-html", "~> 0.11"
   gem.add_dependency "simplecov_json_formatter", "~> 0.1"
 
-  gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "*.md", "doc/*"]
+  gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
   gem.require_paths = ["lib"]
 end
