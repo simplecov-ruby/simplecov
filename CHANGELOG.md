@@ -1,3 +1,13 @@
+0.20.0 (2020-11-29)
+==========
+
+The "JSON formatter" release. Starting now a JSON formatter is included by default in the release. This is mostly done for Code Climate reasons, you can find more details [in this issue](https://github.com/codeclimate/test-reporter/issues/413).
+Shipping with so much by default is sub-optimal, we know. It's the long term plan to also provide `simplecov-core` without the HTML or JSON formatters for those who don't need them/for other formatters to rely on.
+
+## Enhancements
+* `simplecov_json_formatter` included by default ([docs](https://github.com/simplecov-ruby/simplecov#json-formatter)), this should enable the Code Climate test reporter to work again once it's updated
+* invalidate internal cache after switching `SimpleCov.root`, should help with some bugs
+
 0.19.1 (2020-10-25)
 ==========
 
