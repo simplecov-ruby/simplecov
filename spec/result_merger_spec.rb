@@ -6,7 +6,6 @@ require "timeout"
 
 describe SimpleCov::ResultMerger do
   after do
-    SimpleCov::ResultMerger.clear_resultset
     File.delete(SimpleCov::ResultMerger.resultset_path) if File.exist?(SimpleCov::ResultMerger.resultset_path)
   end
 
@@ -34,13 +33,13 @@ describe SimpleCov::ResultMerger do
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is empty" do
       File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
-      expect(SimpleCov::ResultMerger.resultset).to be_empty
+      expect(SimpleCov::ResultMerger.read_resultset).to be_empty
     end
 
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is not present" do
       system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
-      expect(SimpleCov::ResultMerger.resultset).to be_empty
+      expect(SimpleCov::ResultMerger.read_resultset).to be_empty
     end
 
     context "and results generated from those" do
@@ -63,7 +62,7 @@ describe SimpleCov::ResultMerger do
         end
 
         it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
-          expect(SimpleCov::ResultMerger.resultset.keys.sort).to eq %w[result1 result2]
+          expect(SimpleCov::ResultMerger.read_resultset.keys.sort).to eq %w[result1 result2]
         end
 
         it "returns proper values for merged_result" do
@@ -77,25 +76,60 @@ describe SimpleCov::ResultMerger do
           end
 
           it "has only one result in SimpleCov::ResultMerger.results" do
-            expect(SimpleCov::ResultMerger.results.length).to eq(1)
+            # second result does not appear in the merged results
+            merged_coverage = SimpleCov::ResultMerger.merged_result
+
+            expect(merged_coverage.command_name).to eq "result1"
+            expect(merged_coverage.original_result).to eq @resultset1
           end
         end
       end
     end
   end
 
+  describe ".merge_and_store" do
+    context "pre 0.18 result format" do
+      let(:file_path) { "old_resultset.json" }
+      let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }
+
+      before :each do
+        data = {
+          "some command name" => {
+            "coverage" => content,
+            "timestamp" => Time.now.to_i
+          }
+        }
+        File.open(file_path, "w+") do |f|
+          f.puts JSON.pretty_generate(data)
+        end
+      end
+
+      after :each do
+        FileUtils.rm file_path
+      end
+
+      it "gets the same content back but under \"lines\"" do
+        result = SimpleCov::ResultMerger.merge_and_store(file_path)
+
+        expect(result.original_result).to eq(
+          source_fixture("three.rb") => {"lines" => [nil, 1, 2]}
+        )
+      end
+    end
+  end
+
   describe ".store_result" do
     it "refreshes the resultset" do
-      set = SimpleCov::ResultMerger.resultset
+      set = SimpleCov::ResultMerger.read_resultset
       SimpleCov::ResultMerger.store_result({})
-      new_set = SimpleCov::ResultMerger.resultset
+      new_set = SimpleCov::ResultMerger.read_resultset
       expect(new_set).not_to be(set)
     end
 
     it "persists to disk" do
       SimpleCov::ResultMerger.store_result("a" => [1])
-      SimpleCov::ResultMerger.clear_resultset
-      new_set = SimpleCov::ResultMerger.resultset
+
+      new_set = SimpleCov::ResultMerger.read_resultset
       expect(new_set).to eq("a" => [1])
     end
 
@@ -106,15 +140,9 @@ describe SimpleCov::ResultMerger do
   end
 
   describe ".resultset" do
-    it "caches" do
-      set = SimpleCov::ResultMerger.resultset
-      new_set = SimpleCov::ResultMerger.resultset
-      expect(new_set).to be(set)
-    end
-
     it "synchronizes reads" do
       expect(SimpleCov::ResultMerger).to receive(:synchronize_resultset)
-      SimpleCov::ResultMerger.resultset
+      SimpleCov::ResultMerger.read_resultset
     end
   end
 

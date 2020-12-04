@@ -10,7 +10,7 @@ module SimpleCov
   # defined here are usable from SimpleCov directly. Please check out
   # SimpleCov documentation for further info.
   #
-  module Configuration # rubocop:disable Metrics/ModuleLength
+  module Configuration
     attr_writer :filters, :groups, :formatter, :print_error_status
 
     #

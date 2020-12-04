@@ -207,7 +207,7 @@ describe SimpleCov do
         expect do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
-        end.to raise_error("There's no reports to be merged")
+        end.to raise_error("There are no reports to be merged")
       end
     end
 
@@ -222,7 +222,7 @@ describe SimpleCov do
         end
 
         after do
-          clear_mergeable_reports("result1")
+          clear_mergeable_reports
         end
 
         it "creates a merged report identical to the original" do
@@ -242,7 +242,7 @@ describe SimpleCov do
         end
 
         after do
-          clear_mergeable_reports("result1", "result2")
+          clear_mergeable_reports
         end
 
         it "creates a merged report" do
@@ -264,12 +264,9 @@ describe SimpleCov do
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end
 
-      def clear_mergeable_reports(*names)
+      def clear_mergeable_reports
         SimpleCov.clear_result
-        SimpleCov::ResultMerger.clear_resultset
-        FileUtils.rm resultset_path
-        FileUtils.rm "#{resultset_path}.lock"
-        names.each { |name| FileUtils.rm "#{resultset_path}#{name}.final" }
+        FileUtils.rm Dir.glob("#{resultset_path}*")
       end
     end
   end

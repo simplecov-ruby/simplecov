@@ -81,17 +81,13 @@ module SimpleCov
     # information about coverage collation
     #
     def collate(result_filenames, profile = nil, &block)
-      raise "There's no reports to be merged" if result_filenames.empty?
+      raise "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &block)
 
-      results = result_filenames.flat_map do |filename|
-        # Re-create each included instance of SimpleCov::Result from the stored run data.
-        Result.from_hash(JSON.parse(File.read(filename)) || {})
-      end
-
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*results)
+      # TODO: Did/does collate ignore old results? It probably shouldn't, right?
+      @result = ResultMerger.merge_and_store(*result_filenames)
 
       run_exit_tasks!
     end
