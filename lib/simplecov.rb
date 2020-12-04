@@ -96,6 +96,45 @@ module SimpleCov
       run_exit_tasks!
     end
 
+    def collate2(result_filenames, profile = nil, &block)
+      raise "There's no reports to be merged" if result_filenames.empty?
+
+      puts "COLLATE 2"
+
+      initial_setup(profile, &block)
+
+      # Use the ResultMerger to produce a single, merged result, ready to use.
+      @result = merge_results_2(result_filenames)
+      ResultMerger.store_result(@result) if @result
+
+      run_exit_tasks!
+    end
+
+    def merge_results_2(file_names)
+      first = file_names.shift
+      first_parsed = JSON.parse(File.read(first))
+
+      i = 1
+
+      all = file_names.reduce(first_parsed) do |merged, file|
+        file_parsed = JSON.parse(File.read(file))
+        # p file_parsed.class
+        # p merged.class
+        combined = SimpleCov::Combine::ResultsCombiner.combine(merged, file_parsed)
+        puts "combined #{i}"
+        i += 1
+        combined
+      end
+
+      puts "merged all"
+
+      result = SimpleCov::Result.new(all)
+      # Specify the command name
+      result.command_name = "don't care right now buddy"
+      result
+    end
+
+
     #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
