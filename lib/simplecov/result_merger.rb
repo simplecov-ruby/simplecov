@@ -19,81 +19,110 @@ module SimpleCov
         File.join(SimpleCov.coverage_path, ".resultset.json.lock")
       end
 
-      # Loads the cached resultset from JSON and returns it as a Hash,
-      # caching it for subsequent accesses.
-      def resultset
-        @resultset ||= begin
-          data = stored_data
-          if data
-            begin
-              JSON.parse(data) || {}
-            rescue StandardError
-              {}
-            end
-          else
-            {}
-          end
-        end
-      end
-
-      # Returns the contents of the resultset cache as a string or if the file is missing or empty nil
-      def stored_data
-        synchronize_resultset do
-          return unless File.exist?(resultset_path)
-
-          data = File.read(resultset_path)
-          return if data.nil? || data.length < 2
-
-          data
-        end
-      end
-
-      # Gets the resultset hash and re-creates all included instances
-      # of SimpleCov::Result from that.
-      # All results that are above the SimpleCov.merge_timeout will be
-      # dropped. Returns an array of SimpleCov::Result items.
-      def results
-        results = Result.from_hash(resultset)
-        results.select { |result| result.time_since_creation < SimpleCov.merge_timeout }
-      end
-
-      def merge_and_store(*results)
-        result = merge_results(*results)
+      def merge_and_store(*file_paths)
+        result = merge_results(*file_paths)
         store_result(result) if result
         result
       end
 
-      # Merge two or more SimpleCov::Results into a new one with merged
-      # coverage data and the command_name for the result consisting of a join
-      # on all source result's names
-      def merge_results(*results)
-        parsed_results = JSON.parse(JSON.dump(results.map(&:original_result)))
-        combined_result = SimpleCov::Combine::ResultsCombiner.combine(*parsed_results)
-        result = SimpleCov::Result.new(combined_result)
-        # Specify the command name
-        result.command_name = results.map(&:command_name).sort.join(", ")
-        result
+      def merge_results(*file_paths)
+        # It is intentional here that files are only read in and parsed one at a time.
+        #
+        # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
+        # of data. Reading them all in easily produces Gigabytes of memory consumption which
+        # we want to avoid.
+        #
+        # For similar reasons a SimpleCov::Result is only created in the end as that'd create
+        # even more data especially when it also reads in all source files.
+        initial_memo = valid_results(file_paths.shift)
+
+        command_names, coverage = file_paths.reduce(initial_memo) do |memo, file_path|
+          merge_coverage(memo, valid_results(file_path))
+        end
+
+        SimpleCov::Result.new(coverage, command_name: Array(command_names).sort.join(", "))
+      end
+
+      def valid_results(file_path)
+        parsed = parse_file(file_path)
+        valid_results = parsed.select { |_command_name, data| within_merge_timeout?(data) }
+        command_plus_coverage = valid_results.map { |command_name, data| [[command_name], adapt_result(data.fetch("coverage"))] }
+
+        # one file itself _might_ include multiple test runs
+        merge_coverage(*command_plus_coverage)
+      end
+
+      def parse_file(path)
+        data = read_file(path)
+        parse_json(data)
+      end
+
+      def read_file(path)
+        return unless File.exist?(path)
+
+        data = File.read(path)
+        return if data.nil? || data.length < 2
+
+        data
+      end
+
+      def parse_json(content)
+        return {} unless content
+
+        JSON.parse(content) || {}
+      rescue StandardError
+        warn "[SimpleCov]: Warning! Parsing JSON content of resultset file failed"
+        {}
+      end
+
+      def within_merge_timeout?(data)
+        time_since_result_creation(data) < SimpleCov.merge_timeout
+      end
+
+      def time_since_result_creation(data)
+        Time.now - Time.at(data.fetch("timestamp"))
+      end
+
+      def merge_coverage(*results)
+        return results.first if results.size == 1
+
+        results.reduce do |(memo_command, memo_coverage), (command, coverage)|
+          # timestamp is dropped here, which is intentional
+          merged_coverage = SimpleCov::Combine::ResultsCombiner.combine(memo_coverage, coverage)
+          merged_command = memo_command + command
+
+          [merged_command, merged_coverage]
+        end
       end
 
       #
-      # Gets all SimpleCov::Results from cache, merges them and produces a new
+      # Gets all SimpleCov::Results stored in resultset, merges them and produces a new
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
       #
+      # TODO: Maybe put synchronization just around the reading?
       def merged_result
-        merge_results(*results)
+        synchronize_resultset do
+          merge_results(resultset_path)
+        end
+      end
+
+      def read_resultset
+        synchronize_resultset do
+          parse_file(resultset_path)
+        end
       end
 
       # Saves the given SimpleCov::Result in the resultset cache
       def store_result(result)
         synchronize_resultset do
           # Ensure we have the latest, in case it was already cached
-          clear_resultset
-          new_set = resultset
+          new_resultset = read_resultset
+          # FIXME
           command_name, data = result.to_hash.first
-          new_set[command_name] = data
+          new_resultset[command_name] = data
           File.open(resultset_path, "w+") do |f_|
-            f_.puts JSON.pretty_generate(new_set)
+            f_.puts JSON.pretty_generate(new_resultset)
           end
         end
         true
@@ -116,9 +145,29 @@ module SimpleCov
         end
       end
 
-      # Clear out the previously cached .resultset
-      def clear_resultset
-        @resultset = nil
+      # We changed the format of the raw result data in simplecov, as people are likely
+      # to have "old" resultsets lying around (but not too old so that they're still
+      # considered we can adapt them).
+      # See https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
+      def adapt_result(result)
+        if pre_simplecov_0_18_result?(result)
+          adapt_pre_simplecov_0_18_result(result)
+        else
+          result
+        end
+      end
+
+      # pre 0.18 coverage data pointed from file directly to an array of line coverage
+      def pre_simplecov_0_18_result?(result)
+        _key, data = result.first
+
+        data.is_a?(Array)
+      end
+
+      def adapt_pre_simplecov_0_18_result(result)
+        result.transform_values do |line_coverage_data|
+          {"lines" => line_coverage_data}
+        end
       end
     end
   end

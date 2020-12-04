@@ -236,14 +236,4 @@ describe SimpleCov::Result do
       end
     end
   end
-
-  context "with outdated result format" do
-    it "adapts pre 0.18 results correctly to a new result format" do
-      old_resultset = {source_fixture("three.rb") => [nil, 1, 2]}
-
-      expect(described_class.new(old_resultset).original_result).to eq(
-        source_fixture("three.rb") => {"lines" => [nil, 1, 2]}
-      )
-    end
-  end
 end
