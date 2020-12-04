@@ -114,19 +114,16 @@ module SimpleCov
       first = file_names.shift
       first_parsed = JSON.parse(File.read(first))
 
+      first_parsed[first_parsed.keys.first]["coverage"]
+
       i = 1
 
-      all = file_names.reduce(first_parsed) do |merged, file|
+      all = file_names.reduce(first_parsed[first_parsed.keys.first]["coverage"]) do |merged, file|
         file_parsed = JSON.parse(File.read(file))
-        # p file_parsed.class
-        # p merged.class
-        combined = SimpleCov::Combine::ResultsCombiner.combine(merged, file_parsed)
-        puts "combined #{i}"
+        combined = SimpleCov::Combine::ResultsCombiner.combine(merged, file_parsed[file_parsed.keys.first]["coverage"])
         i += 1
         combined
       end
-
-      puts "merged all"
 
       result = SimpleCov::Result.new(all)
       # Specify the command name
