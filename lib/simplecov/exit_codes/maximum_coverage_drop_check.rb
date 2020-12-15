@@ -4,6 +4,7 @@ module SimpleCov
   module ExitCodes
     class MaximumCoverageDropCheck
       def initialize(result, maximum_coverage_drop)
+        puts "REPORTING*****"
         @result = result
         @maximum_coverage_drop = maximum_coverage_drop
       end
@@ -17,7 +18,8 @@ module SimpleCov
       def report
         coverage_drop_violations.each do |violation|
           $stderr.printf(
-            "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            criterion: violation[:criterion].capitalize,
             drop_percent: SimpleCov.round_coverage(violation[:drop_percent]),
             max_drop: violation[:max_drop]
           )
@@ -40,21 +42,29 @@ module SimpleCov
 
       def coverage_drop_violations
         @coverage_drop_violations ||=
-          compute_coverage_drop_violations.select do |achieved|
+          compute_coverage_drop_data.select do |achieved|
             achieved.fetch(:max_drop) < achieved.fetch(:drop_percent)
           end
       end
 
-      def compute_coverage_drop_violations
+      def compute_coverage_drop_data
         maximum_coverage_drop.map do |criterion, percent|
           {
             criterion: criterion,
             max_drop: percent,
-            drop_percent: last_run[:result][criterion] -
+            drop_percent: last_coverage(criterion) -
               SimpleCov.round_coverage(
                 result.coverage_statistics.fetch(criterion).percent
               )
           }
+        end
+      end
+
+      def last_coverage(criterion)
+        last_run[:result][criterion].tap do |last_coverage_percent|
+          if !last_coverage_percent && criterion == "line"
+            return last_run[:result][:covered_percent]
+          end
         end
       end
     end

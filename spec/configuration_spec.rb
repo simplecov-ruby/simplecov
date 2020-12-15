@@ -47,70 +47,104 @@ describe SimpleCov::Configuration do
       end
     end
 
-    shared_examples "checks coverage settings" do |coverage_setting|
+    shared_examples "setting coverage expectations" do |coverage_setting|
       after :each do
         config.clear_coverage_criteria
       end
 
       it "does not warn you about your usage" do
         expect(config).not_to receive(:warn)
-        config.send(coverage_setting, 100.00)
+        config.public_send(coverage_setting, 100.00)
       end
 
       it "warns you about your usage" do
         expect(config).to receive(:warn).with("The coverage you set for #{coverage_setting} is greater than 100%")
-        config.send(coverage_setting, 100.01)
+        config.public_send(coverage_setting, 100.01)
       end
 
       it "sets the right coverage value when called with a number" do
-        config.send(coverage_setting, 80)
+        config.public_send(coverage_setting, 80)
 
-        expect(config.send(coverage_setting)).to eq line: 80
+        expect(config.public_send(coverage_setting)).to eq line: 80
       end
 
       it "sets the right coverage when called with a hash of just line" do
-        config.send(coverage_setting, {line: 85.0})
+        config.public_send(coverage_setting, {line: 85.0})
 
-        expect(config.send(coverage_setting)).to eq line: 85.0
+        expect(config.public_send(coverage_setting)).to eq line: 85.0
       end
 
       it "sets the right coverage when called with a hash of just branch" do
         config.enable_coverage :branch
-        config.send(coverage_setting, {branch: 85.0})
+        config.public_send(coverage_setting, {branch: 85.0})
 
-        expect(config.send(coverage_setting)).to eq branch: 85.0
+        expect(config.public_send(coverage_setting)).to eq branch: 85.0
       end
 
       it "sets the right coverage when called withboth line and branch" do
         config.enable_coverage :branch
-        config.send(coverage_setting, {branch: 85.0, line: 95.4})
+        config.public_send(coverage_setting, {branch: 85.0, line: 95.4})
 
-        expect(config.send(coverage_setting)).to eq branch: 85.0, line: 95.4
+        expect(config.public_send(coverage_setting)).to eq branch: 85.0, line: 95.4
       end
 
       it "raises when trying to set branch coverage but not enabled" do
         expect do
-          config.send(coverage_setting, {branch: 42})
+          config.public_send(coverage_setting, {branch: 42})
         end.to raise_error(/branch.*disabled/i)
       end
 
       it "raises when unknown coverage criteria provided" do
         expect do
-          config.send(coverage_setting, {unknown: 42})
+          config.public_send(coverage_setting, {unknown: 42})
         end.to raise_error(/unsupported.*unknown/i)
       end
     end
 
     describe "#minimum_coverage" do
-      it_behaves_like "checks coverage settings", :minimum_coverage
+      it_behaves_like "setting coverage expectations", :minimum_coverage
     end
 
     describe "#minimum_coverage_by_file" do
-      it_behaves_like "checks coverage settings", :minimum_coverage_by_file
+      it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
     end
 
     describe "#maximum_coverage_drop" do
-      it_behaves_like "checks coverage settings", :maximum_coverage_drop
+      it_behaves_like "setting coverage expectations", :maximum_coverage_drop
+    end
+
+    describe "#refuse_coverage_drop" do
+      after :each do
+        config.clear_coverage_criteria
+      end
+
+      it "sets the right coverage value when called with `:line`" do
+        config.public_send(:refuse_coverage_drop, :line)
+
+        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0
+      end
+
+      it "sets the right coverage value when called with `:branch`" do
+        config.enable_coverage :branch
+        config.public_send(:refuse_coverage_drop, :branch)
+
+        expect(config.public_send(:maximum_coverage_drop)).to eq branch: 0
+      end
+
+      it "sets the right coverage value when called with `:line` and `:branch`" do
+        config.enable_coverage :branch
+        config.public_send(:refuse_coverage_drop, :line, :branch)
+
+        expect(config.public_send(:maximum_coverage_drop)).
+          to eq line: 0, branch: 0
+      end
+
+      it "sets the right coverage value when called with no args" do
+        config.public_send(:refuse_coverage_drop)
+
+        expect(config.public_send(:maximum_coverage_drop)).
+          to eq line: 0, branch: 0
+      end
     end
 
     describe "#coverage_criterion" do

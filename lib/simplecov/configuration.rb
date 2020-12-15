@@ -292,12 +292,12 @@ module SimpleCov
 
       coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
 
-      validate_coverage!(coverage, "minimum_coverage")
+      raise_on_invalid_coverage(coverage, "minimum_coverage")
 
       @minimum_coverage = coverage
     end
 
-    def validate_coverage!(coverage, coverage_setting)
+    def raise_on_invalid_coverage(coverage, coverage_setting)
       coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
       coverage.each_value do |percent|
         minimum_possible_coverage_exceeded(coverage_setting) if percent && percent > 100
@@ -315,7 +315,7 @@ module SimpleCov
 
       coverage_drop = {DEFAULT_COVERAGE_CRITERION => coverage_drop} if coverage_drop.is_a?(Numeric)
 
-      validate_coverage!(coverage_drop, "maximum_coverage_drop")
+      raise_on_invalid_coverage(coverage_drop, "maximum_coverage_drop")
 
       @maximum_coverage_drop = coverage_drop
     end
@@ -332,7 +332,7 @@ module SimpleCov
 
       coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
 
-      validate_coverage!(coverage, "minimum_coverage_by_file")
+      raise_on_invalid_coverage(coverage, "minimum_coverage_by_file")
 
       @minimum_coverage_by_file = coverage
     end
@@ -341,7 +341,14 @@ module SimpleCov
     # Refuses any coverage drop. That is, coverage is only allowed to increase.
     # SimpleCov will return non-zero if the coverage decreases.
     #
-    def refuse_coverage_drop(criteria = [DEFAULT_COVERAGE_CRITERION])
+    def refuse_coverage_drop(*criteria)
+      if criteria.empty?
+        SUPPORTED_COVERAGE_CRITERIA.each do |coverage_criteria|
+          enable_coverage(coverage_criteria)
+        end
+        criteria = SUPPORTED_COVERAGE_CRITERIA
+      end
+
       maximum_coverage_drop(criteria.map { |c| [c, 0] }.to_h)
     end
 
