@@ -143,7 +143,7 @@ describe SimpleCov::Configuration do
         config.public_send(:refuse_coverage_drop)
 
         expect(config.public_send(:maximum_coverage_drop)).
-          to eq line: 0, branch: 0
+          to eq line: 0
       end
     end
 

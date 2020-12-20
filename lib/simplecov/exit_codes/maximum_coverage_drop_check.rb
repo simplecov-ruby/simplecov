@@ -4,7 +4,6 @@ module SimpleCov
   module ExitCodes
     class MaximumCoverageDropCheck
       def initialize(result, maximum_coverage_drop)
-        puts "REPORTING*****"
         @result = result
         @maximum_coverage_drop = maximum_coverage_drop
       end
@@ -61,10 +60,12 @@ module SimpleCov
       end
 
       def last_coverage(criterion)
-        last_run[:result][criterion].tap do |last_coverage_percent|
-          if !last_coverage_percent && criterion == "line"
-            return last_run[:result][:covered_percent]
-          end
+        last_coverage_percent = last_run[:result][criterion]
+
+        if !last_coverage_percent && criterion == "line"
+          last_run[:result][:covered_percent]
+        else
+          last_coverage_percent
         end
       end
     end

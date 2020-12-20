@@ -342,12 +342,7 @@ module SimpleCov
     # SimpleCov will return non-zero if the coverage decreases.
     #
     def refuse_coverage_drop(*criteria)
-      if criteria.empty?
-        SUPPORTED_COVERAGE_CRITERIA.each do |coverage_criteria|
-          enable_coverage(coverage_criteria)
-        end
-        criteria = SUPPORTED_COVERAGE_CRITERIA
-      end
+      criteria = coverage_criteria if criteria.empty?
 
       maximum_coverage_drop(criteria.map { |c| [c, 0] }.to_h)
     end
