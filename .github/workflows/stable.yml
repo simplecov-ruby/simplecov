@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.5.8, 2.6.6, 2.7.1, jruby-9.2.11.1]
+        ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0-rc1, jruby-9.2.14.0]
 
     steps:
       - uses: actions/checkout@v2
