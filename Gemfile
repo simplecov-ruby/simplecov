@@ -19,6 +19,8 @@ group :development do
   gem "pry"
   gem "rubocop"
   gem "test-unit"
+  # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
+  gem "webrick"
 end
 
 group :benchmark do
