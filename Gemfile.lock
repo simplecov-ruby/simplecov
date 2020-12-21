@@ -151,6 +151,7 @@ GEM
     tzinfo (1.2.8)
       thread_safe (~> 0.1)
     unicode-display_width (1.7.0)
+    webrick (1.7.0)
     websocket-driver (0.7.3)
       websocket-extensions (>= 0.1.0)
     websocket-driver (0.7.3-java)
@@ -177,6 +178,7 @@ DEPENDENCIES
   rubocop
   simplecov!
   test-unit
+  webrick
 
 BUNDLED WITH
    2.1.4
