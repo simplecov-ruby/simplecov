@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Enhancements
+* Can now define the minimum_coverage_by_file, maximum_coverage_drop and refuse_coverage_drop by branch as well as line coverage
+
 0.20.0 (2020-11-29)
 ==========
 
