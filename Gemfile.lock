@@ -164,6 +164,7 @@ GEM
 PLATFORMS
   java
   ruby
+  universal-java-1.8
 
 DEPENDENCIES
   apparition (~> 0.6.0)
@@ -181,4 +182,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.1.4
+   2.2.2
