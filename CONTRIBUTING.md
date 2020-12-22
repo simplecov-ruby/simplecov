@@ -33,6 +33,10 @@ To fetch & test the library for development, do:
     $ bundle
     $ bundle exec rake
 
+To run the cucumber tests make sure:
+* chrome/chromium is installed
+* you can successfully install the sqlite gem (so you have the appropriate dev headers)
+
 If you want to contribute, please:
 
   * Fork the project.
