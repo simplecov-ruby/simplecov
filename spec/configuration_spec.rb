@@ -135,15 +135,13 @@ describe SimpleCov::Configuration do
         config.enable_coverage :branch
         config.public_send(:refuse_coverage_drop, :line, :branch)
 
-        expect(config.public_send(:maximum_coverage_drop)).
-          to eq line: 0, branch: 0
+        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0, branch: 0
       end
 
       it "sets the right coverage value when called with no args" do
         config.public_send(:refuse_coverage_drop)
 
-        expect(config.public_send(:maximum_coverage_drop)).
-          to eq line: 0
+        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0
       end
     end
 
