@@ -55,6 +55,11 @@ GEM
     activerecord (6.1.0)
       activemodel (= 6.1.0)
       activesupport (= 6.1.0)
+    activerecord-jdbc-adapter (61.0-java)
+      activerecord (~> 6.1.0)
+    activerecord-jdbcsqlite3-adapter (61.0-java)
+      activerecord-jdbc-adapter (= 61.0)
+      jdbc-sqlite3 (~> 3.8, < 3.30)
     activestorage (6.1.0)
       actionpack (= 6.1.0)
       activejob (= 6.1.0)
@@ -96,6 +101,7 @@ GEM
       concurrent-ruby (~> 1.0)
     jbuilder (2.10.1)
       activesupport (>= 5.0.0)
+    jdbc-sqlite3 (3.28.0)
     loofah (2.8.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
@@ -178,7 +184,6 @@ GEM
       actionpack (>= 4.0)
       activesupport (>= 4.0)
       sprockets (>= 3.0.0)
-    sqlite3 (1.4.2)
     thor (1.0.1)
     tzinfo (2.0.4)
       concurrent-ruby (~> 1.0)
@@ -201,8 +206,10 @@ GEM
 PLATFORMS
   java
   ruby
+  universal-java-1.8
 
 DEPENDENCIES
+  activerecord-jdbcsqlite3-adapter (~> 61.0)
   bootsnap (>= 1.4.4)
   byebug
   capybara (>= 3.26)
@@ -212,9 +219,8 @@ DEPENDENCIES
   rspec-rails
   simplecov!
   spring
-  sqlite3 (~> 1.4)
   tzinfo-data
   web-console (>= 4.1.0)
 
 BUNDLED WITH
-   2.1.4
+   2.2.2

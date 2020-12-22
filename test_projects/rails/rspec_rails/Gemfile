@@ -8,7 +8,7 @@ gem "rspec-rails"
 gem "simplecov", path: "../../.."
 
 if defined?(JRUBY_VERSION)
-  gem "activerecord-jdbcsqlite3-adapter", "~> 61.0", platforms: %i[jruby]
+  gem "activerecord-jdbcsqlite3-adapter", "~> 61.0", platform: :jruby
 else
   gem "sqlite3", "~> 1.4"
 end
