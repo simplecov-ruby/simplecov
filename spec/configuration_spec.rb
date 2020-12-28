@@ -81,7 +81,7 @@ describe SimpleCov::Configuration do
         expect(config.public_send(coverage_setting)).to eq branch: 85.0
       end
 
-      it "sets the right coverage when called withboth line and branch" do
+      it "sets the right coverage when called with both line and branch" do
         config.enable_coverage :branch
         config.public_send(coverage_setting, {branch: 85.0, line: 95.4})
 
@@ -98,6 +98,19 @@ describe SimpleCov::Configuration do
         expect do
           config.public_send(coverage_setting, {unknown: 42})
         end.to raise_error(/unsupported.*unknown/i)
+      end
+
+      context "when primary coverage is set" do
+        before(:each) do
+          config.enable_coverage :branch
+          config.primary_coverage :branch
+        end
+
+        it "sets the right coverage value when called with a number" do
+          config.public_send(coverage_setting, 80)
+
+          expect(config.public_send(coverage_setting)).to eq branch: 80
+        end
       end
     end
 
@@ -232,6 +245,40 @@ describe SimpleCov::Configuration do
         config.enable_for_subprocesses false
 
         expect(config.enable_for_subprocesses).to eq false
+      end
+    end
+
+    describe "#primary_coverage" do
+      context "when branch coverage is enabled" do
+        before(:each) { config.enable_coverage :branch }
+
+        it "can set primary coverage to branch" do
+          config.primary_coverage :branch
+
+          expect(config.coverage_criteria).to contain_exactly :line, :branch
+          expect(config.default_coverage_criterion).to eq :branch
+        end
+      end
+
+      context "when branch coverage is not enabled" do
+        it "cannot set primary coverage to branch " do
+          expect do
+            config.primary_coverage :branch
+          end.to raise_error(/branch.*disabled/i)
+        end
+      end
+
+      it "can set primary coverage to line" do
+        config.primary_coverage :line
+
+        expect(config.coverage_criteria).to contain_exactly :line
+        expect(config.default_coverage_criterion).to eq :line
+      end
+
+      it "can't set primary coverage to arbitrary things" do
+        expect do
+          config.primary_coverage :unknown
+        end.to raise_error(/unsupported.*unknown.*line/i)
       end
     end
   end

@@ -290,11 +290,11 @@ module SimpleCov
     def minimum_coverage(coverage = nil)
       return @minimum_coverage ||= {} unless coverage
 
-      coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
+      coverage = {default_coverage_criterion => coverage} if coverage.is_a?(Numeric)
 
       raise_on_invalid_coverage(coverage, "minimum_coverage")
 
-      @minimum_coverage = coverage
+      @minimum_coverage = order_default_first(coverage)
     end
 
     def raise_on_invalid_coverage(coverage, coverage_setting)
@@ -313,11 +313,11 @@ module SimpleCov
     def maximum_coverage_drop(coverage_drop = nil)
       return @maximum_coverage_drop ||= {} unless coverage_drop
 
-      coverage_drop = {DEFAULT_COVERAGE_CRITERION => coverage_drop} if coverage_drop.is_a?(Numeric)
+      coverage_drop = {default_coverage_criterion => coverage_drop} if coverage_drop.is_a?(Numeric)
 
       raise_on_invalid_coverage(coverage_drop, "maximum_coverage_drop")
 
-      @maximum_coverage_drop = coverage_drop
+      @maximum_coverage_drop = order_default_first(coverage_drop)
     end
 
     #
@@ -330,11 +330,11 @@ module SimpleCov
     def minimum_coverage_by_file(coverage = nil)
       return @minimum_coverage_by_file ||= {} unless coverage
 
-      coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
+      coverage = {default_coverage_criterion => coverage} if coverage.is_a?(Numeric)
 
       raise_on_invalid_coverage(coverage, "minimum_coverage_by_file")
 
-      @minimum_coverage_by_file = coverage
+      @minimum_coverage_by_file = order_default_first(coverage)
     end
 
     #
@@ -391,7 +391,7 @@ module SimpleCov
     # @param [Symbol] criterion
     #
     def coverage_criterion(criterion = nil)
-      return @coverage_criterion ||= DEFAULT_COVERAGE_CRITERION unless criterion
+      return @coverage_criterion ||= default_coverage_criterion unless criterion
 
       raise_if_criterion_unsupported(criterion)
 
@@ -404,8 +404,21 @@ module SimpleCov
       coverage_criteria << criterion
     end
 
+    def primary_coverage(criterion)
+      default_coverage_criterion(criterion)
+    end
+
     def coverage_criteria
-      @coverage_criteria ||= Set[DEFAULT_COVERAGE_CRITERION]
+      @coverage_criteria ||= Set[default_coverage_criterion]
+    end
+
+    def default_coverage_criterion(criterion = nil)
+      if criterion.nil?
+        @default_coverage_criterion ||= DEFAULT_COVERAGE_CRITERION
+      else
+        raise_if_criterion_disabled(criterion)
+        @default_coverage_criterion = criterion
+      end
     end
 
     def coverage_criterion_enabled?(criterion)
@@ -454,6 +467,12 @@ module SimpleCov
 
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
+    end
+
+    def order_default_first(coverage)
+      {
+        default_coverage_criterion => coverage[default_coverage_criterion]
+      }.merge(coverage).compact
     end
 
     #
