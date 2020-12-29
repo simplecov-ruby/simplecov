@@ -267,6 +267,7 @@ Feature:
     And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"
 
+  @branch_coverage
   Scenario: Can set branch as primary coverage and it will fail if branch is below maximum coverage drop
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -314,6 +315,7 @@ Feature:
     And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"
 
+  @branch_coverage
   Scenario: Can set branch as primary coverage and it will fail if branch is below maximum coverage drop
     Given SimpleCov for Test/Unit is configured with:
       """

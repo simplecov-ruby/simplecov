@@ -80,6 +80,7 @@ Feature:
     And the output should contain "Branch coverage (50.00%) is below the expected minimum coverage (80.00%)."
     And the output should contain "SimpleCov failed with exit 2"
 
+  @branch_coverage
   Scenario: Can set branch as primary coverage and it will fail if branch is below minimum coverage
     Given SimpleCov for Test/Unit is configured with:
       """
