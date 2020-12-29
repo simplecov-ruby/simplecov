@@ -267,7 +267,6 @@ Feature:
     And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"
 
-  @primary_coverage
   Scenario: Can set branch as primary coverage and it will fail if branch is below maximum coverage drop
     Given SimpleCov for Test/Unit is configured with:
       """
@@ -275,7 +274,7 @@ Feature:
       SimpleCov.start do
         add_filter 'test.rb'
         enable_coverage :branch
-	primary_coverage :branch
+        primary_coverage :branch
         maximum_coverage_drop 0
       end
       """
@@ -304,7 +303,7 @@ Feature:
       {
         "result": {
           "line": 100.0,
-	  "branch": 100.0
+          "branch": 100.0
         }
       }
       """
@@ -358,5 +357,6 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%).\nLine coverage has dropped by 15.22% since the last time (maximum allowed: 0.00%)."
+    And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
+    And the output should contain "Line coverage has dropped by 15.22% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"

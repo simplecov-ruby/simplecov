@@ -295,7 +295,6 @@ information to be lost.
 Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.
 
 ```ruby
-# or in configure or just SimpleCov.enable_coverage :branch
 SimpleCov.start do
   enable_coverage :branch
 end

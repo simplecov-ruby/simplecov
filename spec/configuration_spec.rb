@@ -256,7 +256,7 @@ describe SimpleCov::Configuration do
           config.primary_coverage :branch
 
           expect(config.coverage_criteria).to contain_exactly :line, :branch
-          expect(config.default_coverage_criterion).to eq :branch
+          expect(config.primary_coverage).to eq :branch
         end
       end
 
@@ -272,7 +272,7 @@ describe SimpleCov::Configuration do
         config.primary_coverage :line
 
         expect(config.coverage_criteria).to contain_exactly :line
-        expect(config.default_coverage_criterion).to eq :line
+        expect(config.primary_coverage).to eq :line
       end
 
       it "can't set primary coverage to arbitrary things" do
