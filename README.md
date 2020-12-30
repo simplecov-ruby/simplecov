@@ -295,7 +295,6 @@ information to be lost.
 Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.
 
 ```ruby
-# or in configure or just SimpleCov.enable_coverage :branch
 SimpleCov.start do
   enable_coverage :branch
 end
@@ -340,6 +339,22 @@ branches covered as 100% (as everything that can be covered was covered).
 Hence, we recommend looking at both metrics together. Branch coverage might also be a good
 overall metric to look at - while you might be missing only 10% of your lines that might
 account for 50% of your branches for instance.
+
+## Primary Coverage
+
+By default, the primary coverage type is `line`. To set the primary coverage to something else, use the following:
+
+```ruby
+# or in configure SimpleCov.primary_coverage :branch
+SimpleCov.start do
+  enable_coverage :branch
+  primary_coverage :branch
+end
+```
+
+Primary coverage determines what will come in first all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
+
+Note that coverage must first be enabled for non-default coverage types.
 
 ## Filters
 

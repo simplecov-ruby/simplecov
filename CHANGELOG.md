@@ -3,6 +3,7 @@ Unreleased
 
 ## Enhancements
 * Can now define the minimum_coverage_by_file, maximum_coverage_drop and refuse_coverage_drop by branch as well as line coverage
+* Can set primary coverage to something other than line by setting `primary_coverage :branch` in SimpleCov Configuration
 
 0.20.0 (2020-11-29)
 ==========

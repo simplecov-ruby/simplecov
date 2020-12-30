@@ -266,3 +266,99 @@ Feature:
     And the output should contain "Line coverage has dropped by 15.22% since the last time (maximum allowed: 0.00%)."
     And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"
+
+  @branch_coverage
+  Scenario: Can set branch as primary coverage and it will fail if branch is below maximum coverage drop
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        enable_coverage :branch
+        primary_coverage :branch
+        maximum_coverage_drop 0
+      end
+      """
+    And a file named "lib/faked_project/missed.rb" with:
+      """
+      class UncoveredSourceCode
+        def foo
+          never_reached
+        rescue => err
+          but no one cares about invalid ruby here
+        end
+      end
+      """
+
+    And a file named "spec/failing_spec.rb" with:
+      """
+      require "spec_helper"
+      describe FakedProject do
+        it "fails" do
+          false ? true : expect(false).to eq(true)
+        end
+      end
+      """
+    And the file named "coverage/.last_run.json" with:
+      """
+      {
+        "result": {
+          "line": 100.0,
+          "branch": 100.0
+        }
+      }
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should not be 0
+    And the output should not contain "Line coverage"
+    And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
+    And the output should contain "SimpleCov failed with exit 3"
+
+  @branch_coverage
+  Scenario: Can set branch as primary coverage and it will fail if branch is below maximum coverage drop
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        enable_coverage :branch
+	primary_coverage :branch
+	maximum_coverage_drop line: 0, branch: 0
+      end
+      """
+    And a file named "lib/faked_project/missed.rb" with:
+      """
+      class UncoveredSourceCode
+        def foo
+          never_reached
+        rescue => err
+          but no one cares about invalid ruby here
+        end
+      end
+      """
+
+    And a file named "spec/failing_spec.rb" with:
+      """
+      require "spec_helper"
+      describe FakedProject do
+        it "fails" do
+          false ? true : expect(false).to eq(true)
+        end
+      end
+      """
+    And the file named "coverage/.last_run.json" with:
+      """
+      {
+        "result": {
+          "line": 100.0,
+	  "branch": 100.0
+        }
+      }
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should not be 0
+    And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
+    And the output should contain "Line coverage has dropped by 15.22% since the last time (maximum allowed: 0.00%)."
+    And the output should contain "SimpleCov failed with exit 3"
