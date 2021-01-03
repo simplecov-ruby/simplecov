@@ -58,6 +58,10 @@ Lint/AmbiguousRegexpLiteral:
 Lint/BinaryOperatorWithIdenticalOperands:
   Enabled: true
 
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - "spec/**/*_spec.rb"
+
 Lint/DeprecatedOpenSSLConstant:
   Description: Don't use algorithm constants for `OpenSSL::Cipher` and `OpenSSL::Digest`.
   Enabled: true
@@ -141,16 +145,16 @@ Naming/FileName:
     - "spec/fixtures/utf-8.rb"
 
 Style/AccessorGrouping:
-    Enabled: true
+  Enabled: true
 
 Style/ArrayCoercion:
-    Enabled: true
+  Enabled: true
 
 Style/BisectedAttrAccessor:
-    Enabled: true
+  Enabled: true
 
 Style/CaseLikeIf:
-    Enabled: true
+  Enabled: true
 
 Style/CollectionMethods:
   Description: Enforces the use of consistent method names from the Enumerable module.
@@ -170,8 +174,8 @@ Style/DoubleNegation:
   Enabled: false
 
 Style/ExplicitBlockArgument:
-    # capturing as a proc has a performance hit, so is a case by case choice
-    Enabled: false
+  # capturing as a proc has a performance hit, so is a case by case choice
+  Enabled: false
 
 Style/ExponentialNotation:
   Description: When using exponential notation, favor a mantissa between 1 (inclusive) and 10 (exclusive).
@@ -187,21 +191,21 @@ Style/FrozenStringLiteralComment:
     - "spec/fixtures/**/*"
 
 Style/GlobalStdStream:
-    Enabled: true
+  Enabled: true
 
 Style/GuardClause:
   Description: Use a guard clause instead of wrapping the code inside a conditional expression.
   Enabled: false
 
 Style/HashAsLastArrayItem:
-    Enabled: true
+  Enabled: true
 
 Style/HashEachMethods:
   Description: Use Hash#each_key and Hash#each_value.
   Enabled: true
 
 Style/HashLikeCase:
-    Enabled: true
+  Enabled: true
 
 Style/HashTransformKeys:
   Description: Prefer `transform_keys` over `each_with_object` and `map`.
@@ -216,16 +220,16 @@ Style/HashSyntax:
   EnforcedStyle: ruby19
 
 Style/OptionalBooleanParameter:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantAssignment:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantFetchBlock:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantFileExtensionInRequire:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantRegexpCharacterClass:
   Description: Checks for unnecessary single-element Regexp character classes.
@@ -241,7 +245,7 @@ Style/RegexpLiteral:
   Enabled: false
 
 Style/SingleArgumentDig:
-    Enabled: true
+  Enabled: true
 
 Style/SlicingWithRange:
   Description: Checks array slicing is done with endless ranges when suitable.
@@ -255,7 +259,7 @@ Style/SpecialGlobalVars:
     - "lib/simplecov/defaults.rb"
 
 Style/StringConcatenation:
-    Enabled: true
+  Enabled: true
 
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.

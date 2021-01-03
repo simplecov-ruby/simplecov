@@ -3,7 +3,7 @@
 require "English"
 
 # Coverage may be inaccurate under JRUBY.
-if defined?(JRUBY_VERSION) && defined?(JRuby)
+if defined?(JRUBY_VERSION) && defined?(JRuby) && !org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
 
   # @see https://github.com/jruby/jruby/issues/1196
   # @see https://github.com/metricfu/metric_fu/pull/226
@@ -11,11 +11,9 @@ if defined?(JRUBY_VERSION) && defined?(JRuby)
   # @see https://github.com/simplecov-ruby/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
-  unless org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
-    warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
-      ' or do JRUBY_OPTS="--debug"' \
-      ' or set the "debug.fullTrace=true" option in your .jrubyrc'
-  end
+  warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
+    ' or do JRUBY_OPTS="--debug"' \
+    ' or set the "debug.fullTrace=true" option in your .jrubyrc'
 end
 
 #

@@ -31,7 +31,7 @@ describe SimpleCov::ResultMerger do
     }
   end
 
-  let(:merged_resultset_1_and_2) do
+  let(:merged_resultset1_and2) do
     {
       source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]},
       source_fixture("app/models/user.rb") => {"lines" => [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil]},
@@ -293,6 +293,6 @@ private
 
   def expect_resultset_1_and_2_merged(result_hash)
     merged_coverage = result_hash.fetch("result1, result2").fetch("coverage")
-    expect(merged_coverage).to eq(merged_resultset_1_and_2)
+    expect(merged_coverage).to eq(merged_resultset1_and2)
   end
 end
