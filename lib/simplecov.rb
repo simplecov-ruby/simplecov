@@ -63,6 +63,7 @@ module SimpleCov
 
     #
     # Collate a series of SimpleCov result files into a single SimpleCov output.
+    #
     # You can optionally specify configuration with a block:
     #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"]
     #    OR
@@ -86,8 +87,7 @@ module SimpleCov
       initial_setup(profile, &block)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      # TODO: Did/does collate ignore old results? It probably shouldn't, right?
-      @result = ResultMerger.merge_and_store(*result_filenames)
+      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: true)
 
       run_exit_tasks!
     end

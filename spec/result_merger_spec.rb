@@ -31,9 +31,21 @@ describe SimpleCov::ResultMerger do
     }
   end
 
+  let(:merged_resultset_1_and_2) do
+    {
+      source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]},
+      source_fixture("app/models/user.rb") => {"lines" => [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil]},
+      source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 4, 2, 1, nil, nil, 2, 0, nil, nil]},
+      source_fixture("resultset1.rb") => {"lines" => [1, 1, 1, 1]},
+      source_fixture("parallel_tests.rb") => {"lines" => [nil, nil, nil, 0]},
+      source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]},
+      source_fixture("resultset2.rb") => {"lines" => [nil, 1, 1, nil]},
+      source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]}
+    }
+  end
+
   let(:result1) { SimpleCov::Result.new(resultset1, command_name: "result1") }
   let(:result2) { SimpleCov::Result.new(resultset2, command_name: "result2") }
-
 
   describe "resultset handling" do
     # See GitHub issue #6
@@ -65,12 +77,15 @@ describe SimpleCov::ResultMerger do
     end
 
     it "returns proper values for merged_result" do
-      expect(SimpleCov::ResultMerger.merged_result.source_files.find { |s| s.filename =~ /user/ }.lines.map(&:coverage)).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
+      result = SimpleCov::ResultMerger.merged_result
+
+      expect_resultset_1_and_2_merged(result.to_hash)
     end
 
     context "with second result way above the merge_timeout" do
+      let(:result2) { outdated(super()) }
+
       before do
-        result2.created_at = Time.now - 172_800 # two days ago
         SimpleCov::ResultMerger.store_result(result2)
       end
 
@@ -85,6 +100,73 @@ describe SimpleCov::ResultMerger do
   end
 
   describe ".merge_and_store" do
+    let(:resultset_prefix) { "test_resultset" }
+    let(:resultset1_path) { "#{resultset_prefix}1.json" }
+    let(:resultset2_path) { "#{resultset_prefix}2.json" }
+
+    describe "merging behavior" do
+      before :each do
+        store_result(result1, path: resultset1_path)
+        store_result(result2, path: resultset2_path)
+      end
+
+      after :each do
+        FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
+      end
+
+      context "2 normal results" do
+        it "correctly merges the 2 results" do
+          result = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+          expect_resultset_1_and_2_merged(result.to_hash)
+        end
+
+        it "has the result stored" do
+          SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+
+          expect_resultset_1_and_2_merged(SimpleCov::ResultMerger.read_resultset)
+        end
+      end
+
+      context "1 resultset is outdated" do
+        let(:result1) { outdated(super()) }
+
+        it "completely omits the result from the merge" do
+          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path).to_hash
+
+          expect(result_hash.keys).to eq ["result2"]
+
+          merged_coverage = result_hash.fetch("result2").fetch("coverage")
+          expect(merged_coverage).to eq(resultset2)
+        end
+
+        it "includes it when we say ignore_timeout: true" do
+          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
+
+          expect_resultset_1_and_2_merged(result_hash)
+        end
+      end
+
+      context "both resultsets outdated" do
+        let(:result1) { outdated(super()) }
+        let(:result2) { outdated(super()) }
+
+        it "completely omits the result from the merge" do
+          allow(SimpleCov::ResultMerger).to receive(:store)
+
+          result = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+
+          expect(result).to eq nil
+          expect(SimpleCov::ResultMerger).not_to have_received(:store)
+        end
+
+        it "includes both when we say ignore_timeout: true" do
+          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
+
+          expect_resultset_1_and_2_merged(result_hash)
+        end
+      end
+    end
+
     context "pre 0.18 result format" do
       let(:file_path) { "old_resultset.json" }
       let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }
@@ -196,5 +278,21 @@ describe SimpleCov::ResultMerger do
 
       expect(file.read).to eq("process 1\nprocess 2\n")
     end
+  end
+
+private
+
+  def store_result(result, path:)
+    File.open(path, "w+") { |f| f.puts JSON.pretty_generate(result.to_hash) }
+  end
+
+  def outdated(result)
+    result.created_at = Time.now - 172_800
+    result
+  end
+
+  def expect_resultset_1_and_2_merged(result_hash)
+    merged_coverage = result_hash.fetch("result1, result2").fetch("coverage")
+    expect(merged_coverage).to eq(merged_resultset_1_and_2)
   end
 end
