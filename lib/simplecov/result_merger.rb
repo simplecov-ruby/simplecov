@@ -19,13 +19,13 @@ module SimpleCov
         File.join(SimpleCov.coverage_path, ".resultset.json.lock")
       end
 
-      def merge_and_store(*file_paths)
-        result = merge_results(*file_paths)
+      def merge_and_store(*file_paths, ignore_timeout: false)
+        result = merge_results(*file_paths, ignore_timeout: ignore_timeout)
         store_result(result) if result
         result
       end
 
-      def merge_results(*file_paths)
+      def merge_results(*file_paths, ignore_timeout: false)
         # It is intentional here that files are only read in and parsed one at a time.
         #
         # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
@@ -34,19 +34,22 @@ module SimpleCov
         #
         # For similar reasons a SimpleCov::Result is only created in the end as that'd create
         # even more data especially when it also reads in all source files.
-        initial_memo = valid_results(file_paths.shift)
+        initial_memo = valid_results(file_paths.shift, ignore_timeout: ignore_timeout)
 
         command_names, coverage = file_paths.reduce(initial_memo) do |memo, file_path|
-          merge_coverage(memo, valid_results(file_path))
+          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
         end
 
-        SimpleCov::Result.new(coverage, command_name: Array(command_names).sort.join(", "))
+        SimpleCov::Result.new(coverage, command_name: command_names.reject(&:empty?).sort.join(", ")) if coverage
       end
 
-      def valid_results(file_path)
-        parsed = parse_file(file_path)
-        valid_results = parsed.select { |_command_name, data| within_merge_timeout?(data) }
-        command_plus_coverage = valid_results.map { |command_name, data| [[command_name], adapt_result(data.fetch("coverage"))] }
+      def valid_results(file_path, ignore_timeout: false)
+        results = parse_file(file_path)
+        results = results.select { |_command_name, data| within_merge_timeout?(data) } unless ignore_timeout
+
+        command_plus_coverage = results.map do |command_name, data|
+          [[command_name], adapt_result(data.fetch("coverage"))]
+        end
 
         # one file itself _might_ include multiple test runs
         merge_coverage(*command_plus_coverage)
@@ -84,11 +87,12 @@ module SimpleCov
       end
 
       def merge_coverage(*results)
+        return [[""], nil] if results.empty?
         return results.first if results.size == 1
 
         results.reduce do |(memo_command, memo_coverage), (command, coverage)|
           # timestamp is dropped here, which is intentional
-          merged_coverage = SimpleCov::Combine::ResultsCombiner.combine(memo_coverage, coverage)
+          merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
           merged_command = memo_command + command
 
           [merged_command, merged_coverage]
