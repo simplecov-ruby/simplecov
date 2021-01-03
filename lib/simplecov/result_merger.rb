@@ -40,19 +40,12 @@ module SimpleCov
           merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
         end
 
-        SimpleCov::Result.new(coverage, command_name: command_names.reject(&:empty?).sort.join(", ")) if coverage
+        create_result(command_names, coverage)
       end
 
       def valid_results(file_path, ignore_timeout: false)
         results = parse_file(file_path)
-        results = results.select { |_command_name, data| within_merge_timeout?(data) } unless ignore_timeout
-
-        command_plus_coverage = results.map do |command_name, data|
-          [[command_name], adapt_result(data.fetch("coverage"))]
-        end
-
-        # one file itself _might_ include multiple test runs
-        merge_coverage(*command_plus_coverage)
+        merge_valid_results(results, ignore_timeout: ignore_timeout)
       end
 
       def parse_file(path)
@@ -78,6 +71,17 @@ module SimpleCov
         {}
       end
 
+      def merge_valid_results(results, ignore_timeout: false)
+        results = results.select { |_command_name, data| within_merge_timeout?(data) } unless ignore_timeout
+
+        command_plus_coverage = results.map do |command_name, data|
+          [[command_name], adapt_result(data.fetch("coverage"))]
+        end
+
+        # one file itself _might_ include multiple test runs
+        merge_coverage(*command_plus_coverage)
+      end
+
       def within_merge_timeout?(data)
         time_since_result_creation(data) < SimpleCov.merge_timeout
       end
@@ -86,12 +90,19 @@ module SimpleCov
         Time.now - Time.at(data.fetch("timestamp"))
       end
 
+      def create_result(command_names, coverage)
+        return nil unless coverage
+
+        command_name = command_names.reject(&:empty?).sort.join(", ")
+        SimpleCov::Result.new(coverage, command_name: command_name)
+      end
+
       def merge_coverage(*results)
         return [[""], nil] if results.empty?
         return results.first if results.size == 1
 
         results.reduce do |(memo_command, memo_coverage), (command, coverage)|
-          # timestamp is dropped here, which is intentional
+          # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
           merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
           merged_command = memo_command + command
 
@@ -103,18 +114,22 @@ module SimpleCov
       # Gets all SimpleCov::Results stored in resultset, merges them and produces a new
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
-      #
-      # TODO: Maybe put synchronization just around the reading?
       def merged_result
-        synchronize_resultset do
-          merge_results(resultset_path)
-        end
+        # conceptually this is just doing `merge_results(resultset_path)`
+        # it's more involved to make syre `synchronize_resultset` is only used around reading
+        resultset_hash = read_resultset
+        command_names, coverage = merge_valid_results(resultset_hash)
+
+        create_result(command_names, coverage)
       end
 
       def read_resultset
-        synchronize_resultset do
-          parse_file(resultset_path)
-        end
+        resultset_content =
+          synchronize_resultset do
+            read_file(resultset_path)
+          end
+
+        parse_json(resultset_content)
       end
 
       # Saves the given SimpleCov::Result in the resultset cache
