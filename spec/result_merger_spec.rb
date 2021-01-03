@@ -9,27 +9,33 @@ describe SimpleCov::ResultMerger do
     File.delete(SimpleCov::ResultMerger.resultset_path) if File.exist?(SimpleCov::ResultMerger.resultset_path)
   end
 
-  describe "with two faked coverage resultsets" do
-    before do
-      @resultset1 = {
-        source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
-        source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
-        source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
-        source_fixture("resultset1.rb") => {"lines" => [1, 1, 1, 1]},
-        source_fixture("parallel_tests.rb") => {"lines" => [nil, 0, nil, 0]},
-        source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]} # loaded only in the first resultset
-      }
+  let(:resultset1) do
+    {
+      source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
+      source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+      source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
+      source_fixture("resultset1.rb") => {"lines" => [1, 1, 1, 1]},
+      source_fixture("parallel_tests.rb") => {"lines" => [nil, 0, nil, 0]},
+      source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]} # loaded only in the first resultset
+    }
+  end
 
-      @resultset2 = {
-        source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
-        source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil]},
-        source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
-        source_fixture("resultset2.rb") => {"lines" => [nil, 1, 1, nil]},
-        source_fixture("parallel_tests.rb") => {"lines" => [nil, nil, 0, 0]},
-        source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]} # loaded only in the second resultset
-      }
-    end
+  let(:resultset2) do
+    {
+      source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
+      source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil]},
+      source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 3, 1, nil, nil, nil, 1, 0, nil, nil]},
+      source_fixture("resultset2.rb") => {"lines" => [nil, 1, 1, nil]},
+      source_fixture("parallel_tests.rb") => {"lines" => [nil, nil, 0, 0]},
+      source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]} # loaded only in the second resultset
+    }
+  end
 
+  let(:result1) { SimpleCov::Result.new(resultset1, command_name: "result1") }
+  let(:result2) { SimpleCov::Result.new(resultset2, command_name: "result2") }
+
+
+  describe "resultset handling" do
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is empty" do
       File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
@@ -41,48 +47,39 @@ describe SimpleCov::ResultMerger do
       system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
       expect(SimpleCov::ResultMerger.read_resultset).to be_empty
     end
+  end
 
-    context "and results generated from those" do
+  describe "basic workings with 2 resultsets" do
+    before do
+      system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
+      SimpleCov::ResultMerger.store_result(result1)
+      SimpleCov::ResultMerger.store_result(result2)
+    end
+
+    it "has stored data in resultset_path JSON file" do
+      expect(File.readlines(SimpleCov::ResultMerger.resultset_path).length).to be > 50
+    end
+
+    it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
+      expect(SimpleCov::ResultMerger.read_resultset.keys.sort).to eq %w[result1 result2]
+    end
+
+    it "returns proper values for merged_result" do
+      expect(SimpleCov::ResultMerger.merged_result.source_files.find { |s| s.filename =~ /user/ }.lines.map(&:coverage)).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
+    end
+
+    context "with second result way above the merge_timeout" do
       before do
-        system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
-        @result1 = SimpleCov::Result.new(@resultset1)
-        @result1.command_name = "result1"
-        @result2 = SimpleCov::Result.new(@resultset2)
-        @result2.command_name = "result2"
+        result2.created_at = Time.now - 172_800 # two days ago
+        SimpleCov::ResultMerger.store_result(result2)
       end
 
-      context "with stored results" do
-        before do
-          SimpleCov::ResultMerger.store_result(@result1)
-          SimpleCov::ResultMerger.store_result(@result2)
-        end
+      it "has only one result in SimpleCov::ResultMerger.results" do
+        # second result does not appear in the merged results
+        merged_coverage = SimpleCov::ResultMerger.merged_result
 
-        it "has stored data in resultset_path JSON file" do
-          expect(File.readlines(SimpleCov::ResultMerger.resultset_path).length).to be > 50
-        end
-
-        it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
-          expect(SimpleCov::ResultMerger.read_resultset.keys.sort).to eq %w[result1 result2]
-        end
-
-        it "returns proper values for merged_result" do
-          expect(SimpleCov::ResultMerger.merged_result.source_files.find { |s| s.filename =~ /user/ }.lines.map(&:coverage)).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
-        end
-
-        context "with second result way above the merge_timeout" do
-          before do
-            @result2.created_at = Time.now - 172_800 # two days ago
-            SimpleCov::ResultMerger.store_result(@result2)
-          end
-
-          it "has only one result in SimpleCov::ResultMerger.results" do
-            # second result does not appear in the merged results
-            merged_coverage = SimpleCov::ResultMerger.merged_result
-
-            expect(merged_coverage.command_name).to eq "result1"
-            expect(merged_coverage.original_result).to eq @resultset1
-          end
-        end
+        expect(merged_coverage.command_name).to eq "result1"
+        expect(merged_coverage.original_result).to eq resultset1
       end
     end
   end
