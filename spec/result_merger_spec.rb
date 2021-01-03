@@ -233,6 +233,7 @@ describe SimpleCov::ResultMerger do
         Timeout.timeout(1) do
           SimpleCov::ResultMerger.synchronize_resultset do
             SimpleCov::ResultMerger.synchronize_resultset do
+              # nothing
             end
           end
         end

@@ -43,10 +43,16 @@ Layout/SpaceAroundMethodCallOperator:
   Description: Checks method call operators to not have spaces around them.
   Enabled: true
 
+Layout/SpaceBeforeBrackets:
+  Enabled: true
+
 Layout/SpaceInsideHashLiteralBraces:
   Description: Use spaces inside hash literal braces - or don't.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#spaces-operators
   EnforcedStyle: no_space
+
+Lint/AmbiguousAssignment:
+  Enabled: true
 
 Lint/AmbiguousRegexpLiteral:
   Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
@@ -66,10 +72,22 @@ Lint/DeprecatedOpenSSLConstant:
   Description: Don't use algorithm constants for `OpenSSL::Cipher` and `OpenSSL::Digest`.
   Enabled: true
 
+Lint/DuplicateBranch:
+  Enabled: true
+
 Lint/DuplicateElsifCondition:
   Enabled: true
 
+Lint/DuplicateRegexpCharacterClassElement:
+  Enabled: true
+
 Lint/DuplicateRescueException:
+  Enabled: true
+
+Lint/EmptyBlock:
+  Enabled: true
+
+Lint/EmptyClass:
   Enabled: true
 
 Lint/EmptyConditionalBody:
@@ -83,6 +101,9 @@ Lint/MissingSuper:
 
 Lint/MixedRegexpCaptureTypes:
   Description: Do not mix named captures and numbered captures in a Regexp literal.
+  Enabled: true
+
+Lint/NoReturnInBeginEndBlocks:
   Enabled: true
 
 Lint/OutOfRangeRegexpRef:
@@ -99,7 +120,16 @@ Lint/StructNewOverride:
   Description: Disallow overriding the `Struct` built-in methods via `Struct.new`.
   Enabled: true
 
+Lint/ToEnumArguments:
+  Enabled: true
+
 Lint/TopLevelReturnWithArgument:
+  Enabled: true
+
+Lint/UnexpectedBlockArity:
+  Enabled: true
+
+Lint/UnmodifiedReduceAccumulator:
   Enabled: true
 
 Lint/UnreachableLoop:
@@ -147,6 +177,9 @@ Naming/FileName:
 Style/AccessorGrouping:
   Enabled: true
 
+Style/ArgumentsForwarding:
+  Enabled: true
+
 Style/ArrayCoercion:
   Enabled: true
 
@@ -154,6 +187,9 @@ Style/BisectedAttrAccessor:
   Enabled: true
 
 Style/CaseLikeIf:
+  Enabled: true
+
+Style/CollectionCompact:
   Enabled: true
 
 Style/CollectionMethods:
@@ -172,6 +208,9 @@ Style/DoubleNegation:
   Description: Checks for uses of double negation (!!).
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#no-bang-bang
   Enabled: false
+
+Style/DocumentDynamicEvalDefinition:
+  Enabled: true
 
 Style/ExplicitBlockArgument:
   # capturing as a proc has a performance hit, so is a case by case choice
@@ -204,6 +243,9 @@ Style/HashEachMethods:
   Description: Use Hash#each_key and Hash#each_value.
   Enabled: true
 
+Style/HashExcept:
+  Enabled: true
+
 Style/HashLikeCase:
   Enabled: true
 
@@ -219,7 +261,16 @@ Style/HashSyntax:
   Description: Checks hash literal syntax.
   EnforcedStyle: ruby19
 
+Style/NegatedIfElseCondition:
+  Enabled: true
+
+Style/NilLambda:
+  Enabled: true
+
 Style/OptionalBooleanParameter:
+  Enabled: true
+
+Style/RedundantArgument:
   Enabled: true
 
 Style/RedundantAssignment:
@@ -264,6 +315,9 @@ Style/StringConcatenation:
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
+
+Style/SwapValues:
+  Enabled: true
 
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: no_comma
