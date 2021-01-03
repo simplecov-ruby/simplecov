@@ -1,9 +1,16 @@
-Unreleased
+0.21.0 (2021-01-03)
 ==========
 
+The "Collate++" release making it more viable for big CI setups by limiting memory consumption. Also includes some nice new additions for branch coverage settings.
+
 ## Enhancements
-* Can now define the minimum_coverage_by_file, maximum_coverage_drop and refuse_coverage_drop by branch as well as line coverage
-* Can set primary coverage to something other than line by setting `primary_coverage :branch` in SimpleCov Configuration
+* Performance of `SimpleCov.collate` improved - it should both run faster and consume much less memory esp. when run with many files (memory consumption should not increase with number of files any more)
+* Can now define the minimum_coverage_by_file, maximum_coverage_drop and refuse_coverage_drop by branch as well as line coverage. Thanks to [@jemmaissroff](https://github.com/jemmaissroff)
+* Can set primary coverage to something other than line by setting `primary_coverage :branch` in SimpleCov Configuration. Thanks to [@jemmaissroff](https://github.com/jemmaissroff)
+
+## Misc
+* reduce gem size by splitting Changelog into `Changelog.md` and a pre 0.18 `Changelog.old.md`, the latter of which is not included in the gem
+* The interface of `ResultMeger.merge_and_store` is changed to support the `collate` performance improvements mentioned above. It's not considered an official API, hence this is not in the breaking section. For people using it to merge results from different machines, it's recommended to migrate to [collate](https://github.com/simplecov-ruby/simplecov#merging-test-runs-under-different-execution-environments).
 
 0.20.0 (2020-11-29)
 ==========
