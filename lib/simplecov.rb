@@ -81,13 +81,17 @@ module SimpleCov
     # available config options, or checkout the README for more in-depth
     # information about coverage collation
     #
-    def collate(result_filenames, profile = nil, &block)
+    # By default `collate` ignores the merge_timeout so all results of all files specified will be
+    # merged together. If you want to honor the merge_timeout then provide the keyword argument
+    # `ignore_timeout: false`.
+    #
+    def collate(result_filenames, profile = nil, ignore_timeout: true, &block)
       raise "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &block)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: true)
+      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout)
 
       run_exit_tasks!
     end
