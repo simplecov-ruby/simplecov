@@ -137,7 +137,8 @@ module SimpleCov
         synchronize_resultset do
           # Ensure we have the latest, in case it was already cached
           new_resultset = read_resultset
-          # FIXME
+
+          # A single result only ever has one command_name, see `SimpleCov::Result#to_hash`
           command_name, data = result.to_hash.first
           new_resultset[command_name] = data
           File.open(resultset_path, "w+") do |f_|
