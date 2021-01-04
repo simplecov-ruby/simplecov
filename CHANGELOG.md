@@ -1,3 +1,9 @@
+0.21.1 (2021-01-04)
+==========
+
+## Bugfixes
+* `minimum_coverage_by_file` works again as expected (errored out before 😱)
+
 0.21.0 (2021-01-03)
 ==========
 
