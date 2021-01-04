@@ -106,8 +106,8 @@ module SimpleCov
 
     def compute_coverage_statistics_by_file
       @files.each_with_object(line: [], branch: []) do |file, together|
-        together[:line] << file.coverage_statistics[:line]
-        together[:branch] << file.coverage_statistics[:branch] if SimpleCov.branch_coverage?
+        together[:line] << file.coverage_statistics.fetch(:line)
+        together[:branch] << file.coverage_statistics.fetch(:branch) if SimpleCov.branch_coverage?
       end
     end
 
