@@ -62,7 +62,7 @@ module SimpleCov
       def last_coverage(criterion)
         last_coverage_percent = last_run[:result][criterion]
 
-        if !last_coverage_percent && criterion == "line"
+        if !last_coverage_percent && criterion == :line
           last_run[:result][:covered_percent]
         else
           last_coverage_percent
