@@ -145,6 +145,7 @@ Feature:
       require 'simplecov'
       SimpleCov.start do
         add_filter 'test.rb'
+        maximum_coverage_drop 0
       end
       """
     And the file "coverage/.last_run.json" with:
