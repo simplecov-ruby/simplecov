@@ -1,3 +1,11 @@
+0.21.2 (2021-01-09)
+==========
+
+## Bugfixes
+* `maximum_coverage_drop` won't fail any more if `.last_run.json` is still in the old format. Thanks [@petertellgren](https://github.com/petertellgren)
+* `maximum_coverage_drop` won't fail if an expectation is specified for a previous unrecorded criterion, it will just pass (there's nothing, so nothing to drop)
+* fixed bug in `maximum_coverage_drop` calculation that could falsely report it had dropped for minimal differences
+
 0.21.1 (2021-01-04)
 ==========
 
