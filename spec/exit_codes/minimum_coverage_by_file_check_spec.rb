@@ -26,7 +26,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
     let(:minimum_coverage_by_file) { {line: 90} }
 
     it "fails" do
-      p minimum_coverage_by_file
       expect(subject).to be_failing
     end
   end

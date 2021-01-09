@@ -51,22 +51,32 @@ module SimpleCov
           {
             criterion: criterion,
             max_drop: percent,
-            drop_percent: last_coverage(criterion) -
-              SimpleCov.round_coverage(
-                result.coverage_statistics.fetch(criterion).percent
-              )
+            drop_percent: drop_percent(criterion)
           }
         end
+      end
+
+      # if anyone says "max_coverage_drop 0.000000000000000001" I appologize. Please don't.
+      MAX_DROP_ACCURACY = 10
+      def drop_percent(criterion)
+        drop = last_coverage(criterion) -
+               SimpleCov.round_coverage(
+                 result.coverage_statistics.fetch(criterion).percent
+               )
+
+        # floats, I tell ya.
+        # irb(main):001:0* 80.01 - 80.0
+        # => 0.010000000000005116
+        drop.floor(MAX_DROP_ACCURACY)
       end
 
       def last_coverage(criterion)
         last_coverage_percent = last_run[:result][criterion]
 
-        if !last_coverage_percent && criterion == :line
-          last_run[:result][:covered_percent]
-        else
-          last_coverage_percent
-        end
+        # fallback for old file format
+        last_coverage_percent = last_run[:result][:covered_percent] if !last_coverage_percent && criterion == :line
+
+        last_coverage_percent || 0
       end
     end
   end
