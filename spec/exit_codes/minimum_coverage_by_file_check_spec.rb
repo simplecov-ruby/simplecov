@@ -17,16 +17,12 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
   context "all files passing requirements" do
     let(:minimum_coverage_by_file) { {line: 80} }
 
-    it "passes" do
-      expect(subject).not_to be_failing
-    end
+    it { is_expected.not_to be_failing }
   end
 
   context "one file violating requirements" do
     let(:minimum_coverage_by_file) { {line: 90} }
 
-    it "fails" do
-      expect(subject).to be_failing
-    end
+    it { is_expected.to be_failing }
   end
 end
