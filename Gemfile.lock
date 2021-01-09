@@ -83,7 +83,7 @@ GEM
     middleware (0.1.0)
     mini_mime (1.0.2)
     mini_portile2 (2.4.0)
-    minitest (5.14.2)
+    minitest (5.14.3)
     multi_test (0.1.2)
     nokogiri (1.10.10)
       mini_portile2 (~> 2.4.0)
