@@ -88,6 +88,7 @@ Feature:
         }
       }
       """
+
   Scenario: test failures do not update the resultset
     Given SimpleCov for RSpec is configured with:
       """
@@ -139,7 +140,8 @@ Feature:
         }
       }
       """
-  Scenario: When the previous last_run file has covered_percent
+
+  Scenario: When the previous last_run file has legacy covered_percent it still works
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
@@ -169,7 +171,7 @@ Feature:
       }
       """
 
-  Scenario: When the previous last_run file has covered_percent does not update resultset
+  Scenario: When the previous last_run file has covered_percent and we fail does not update it
     Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
@@ -257,7 +259,7 @@ Feature:
       {
         "result": {
           "line": 100.0,
-	  "branch": 100.0
+	        "branch": 100.0
         }
       }
       """
@@ -324,8 +326,8 @@ Feature:
       SimpleCov.start do
         add_filter 'test.rb'
         enable_coverage :branch
-	primary_coverage :branch
-	maximum_coverage_drop line: 0, branch: 0
+	      primary_coverage :branch
+	      maximum_coverage_drop line: 0, branch: 0
       end
       """
     And a file named "lib/faked_project/missed.rb" with:
@@ -353,7 +355,7 @@ Feature:
       {
         "result": {
           "line": 100.0,
-	  "branch": 100.0
+	        "branch": 100.0
         }
       }
       """
