@@ -11,6 +11,8 @@ AllCops:
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
   TargetRubyVersion: 2.5
+  # we might wanna adopt rspec and rake but it's a bit annoying for now
+  SuggestExtensions: false
 
 Bundler/OrderedGems:
   Description: Gems should be alphabetically sorted within groups.
