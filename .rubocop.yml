@@ -68,6 +68,9 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - "spec/**/*_spec.rb"
 
+Lint/DeprecatedConstants:
+  Enabled: true
+
 Lint/DeprecatedOpenSSLConstant:
   Description: Don't use algorithm constants for `OpenSSL::Cipher` and `OpenSSL::Digest`.
   Enabled: true
@@ -96,6 +99,9 @@ Lint/EmptyConditionalBody:
 Lint/FloatComparison:
   Enabled: true
 
+Lint/LambdaWithoutLiteralBlock:
+  Enabled: true
+
 Lint/MissingSuper:
   Enabled: true
 
@@ -106,11 +112,20 @@ Lint/MixedRegexpCaptureTypes:
 Lint/NoReturnInBeginEndBlocks:
   Enabled: true
 
+Lint/NumberedParameterAssignment:
+  Enabled: true
+
+Lint/OrAssignmentToConstant:
+  Enabled: true
+
 Lint/OutOfRangeRegexpRef:
   Enabled: true
 
 Lint/RaiseException:
   Description: Checks for `raise` or `fail` statements which are raising `Exception` class.
+  Enabled: true
+
+Lint/RedundantDirGlobSort:
   Enabled: true
 
 Lint/SelfAssignment:
@@ -120,10 +135,16 @@ Lint/StructNewOverride:
   Description: Disallow overriding the `Struct` built-in methods via `Struct.new`.
   Enabled: true
 
+Lint/SymbolConversion:
+  Enabled: true
+
 Lint/ToEnumArguments:
   Enabled: true
 
 Lint/TopLevelReturnWithArgument:
+  Enabled: true
+
+Lint/TripleQuotes:
   Enabled: true
 
 Lint/UnexpectedBlockArity:
@@ -212,6 +233,9 @@ Style/DoubleNegation:
 Style/DocumentDynamicEvalDefinition:
   Enabled: true
 
+Style/EndlessMethod:
+  Enabled: true
+
 Style/ExplicitBlockArgument:
   # capturing as a proc has a performance hit, so is a case by case choice
   Enabled: false
@@ -260,6 +284,9 @@ Style/HashTransformValues:
 Style/HashSyntax:
   Description: Checks hash literal syntax.
   EnforcedStyle: ruby19
+
+Style/IfWithBooleanLiteralBranches:
+  Enabled: true
 
 Style/NegatedIfElseCondition:
   Enabled: true
