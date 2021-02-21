@@ -170,15 +170,13 @@ describe SimpleCov::SourceFile do
 
     it "has 16 source lines regardless of extra data in coverage array" do
       # Do not litter test output with known warning
-      capture_stderr { expect(subject.lines.count).to eq(16) }
+      lines = nil
+      expect { lines = subject.lines }.to output.to_stderr
+      expect(lines.count).to eq(16)
     end
 
     it "prints a warning to stderr if coverage array contains more data than lines in the file" do
-      captured_output = capture_stderr do
-        subject.lines
-      end
-
-      expect(captured_output).to match(/^Warning: coverage data provided/)
+      expect { subject.lines }.to output(/\AWarning: coverage data provided/).to_stderr
     end
   end
 

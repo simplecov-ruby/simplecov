@@ -53,13 +53,11 @@ describe SimpleCov::Configuration do
       end
 
       it "does not warn you about your usage" do
-        expect(config).not_to receive(:warn)
-        config.public_send(coverage_setting, 100.00)
+        expect { config.public_send(coverage_setting, 100.00) }.not_to output.to_stderr
       end
 
       it "warns you about your usage" do
-        expect(config).to receive(:warn).with("The coverage you set for #{coverage_setting} is greater than 100%")
-        config.public_send(coverage_setting, 100.01)
+        expect { config.public_send(coverage_setting, 100.01) }.to output("The coverage you set for #{coverage_setting} is greater than 100%\n").to_stderr
       end
 
       it "sets the right coverage value when called with a number" do
