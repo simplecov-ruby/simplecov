@@ -505,7 +505,7 @@ make this distinction, simplecov has the concept of "test suite names".
 ### Test suite names
 
 SimpleCov tries to guess the name of the currently running test suite based upon the shell command the tests
-are running on. This should work fine for Unit Tests, RSpec, and Cucumber. If it fails, it will use the shell
+are running on. This should work fine for Unit Tests, RSpec, Minitest, and Cucumber. If it fails, it will use the shell
 command that invoked the test suite as a command name.
 
 If you have some non-standard setup and still want nicely labeled test suites, you have to give Simplecov a
