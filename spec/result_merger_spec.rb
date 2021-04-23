@@ -123,7 +123,7 @@ describe SimpleCov::ResultMerger do
         it "has the result stored" do
           SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
 
-          expect_resultset_1_and_2_merged(SimpleCov::ResultMerger.read_resultset)
+          expect_resultset_1_and_2_merged(SimpleCov::ResultMerger.merged_result.to_hash)
         end
       end
 

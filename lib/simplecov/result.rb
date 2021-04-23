@@ -73,18 +73,14 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       SimpleCov::ResultSerialization.deserialize(hash)
-      # hash.map do |command_name, data|
-      #   new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]))
-      # end
     end
 
   private
 
-    # TODO[@tycooon]: remove?
-    # def coverage
-    #   keys = original_result.keys & filenames
-    #   Hash[keys.zip(original_result.values_at(*keys))]
-    # end
+    def coverage
+      keys = original_result.keys & filenames
+      Hash[keys.zip(original_result.values_at(*keys))]
+    end
 
     # Applies all configured SimpleCov filters on this result's source files
     def filter!

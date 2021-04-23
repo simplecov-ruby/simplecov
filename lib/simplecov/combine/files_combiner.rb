@@ -16,6 +16,7 @@ module SimpleCov
       #
       def combine(cov_a, cov_b)
         combination = {}
+
         combination[:lines] = Combine.combine(LinesCombiner, cov_a[:lines], cov_b[:lines])
 
         if SimpleCov.branch_coverage? # rubocop:disable Style/IfUnlessModifier

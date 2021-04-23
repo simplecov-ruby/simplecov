@@ -207,7 +207,7 @@ describe SimpleCov do
         "result1, result2" => {
           "coverage" => {
             source_fixture("sample.rb") => {
-              "lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
+              lines: [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
             }
           }
         }
@@ -215,7 +215,10 @@ describe SimpleCov do
     end
 
     let(:collated) do
-      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+      JSON.parse(File.read(resultset_path)).transform_values do |data|
+        data["coverage"].values.first.transform_keys!(&:to_sym)
+        data.reject { |k| k == "timestamp" }
+      end
     end
 
     context "when no files to be merged" do
