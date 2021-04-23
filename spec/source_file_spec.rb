@@ -69,7 +69,6 @@ describe SimpleCov::SourceFile do
       end
     end
 
-    # TODO[@tycooon]: add method cov
     describe "branch coverage" do
       it "has total branches count 0" do
         expect(subject.total_branches.size).to eq(0)
@@ -91,23 +90,43 @@ describe SimpleCov::SourceFile do
         expect(subject.branches_report).to eq({})
       end
     end
+
+    describe "method coverage" do
+      it "has total methods count 0" do
+        expect(subject.total_methods.size).to eq(0)
+      end
+
+      it "has covered methods count 0" do
+        expect(subject.covered_methods.size).to eq(0)
+      end
+
+      it "has missed methods count 0" do
+        expect(subject.missed_methods.size).to eq(0)
+      end
+
+      it "is considered 100% methods covered" do
+        expect(subject.methods_coverage_percent).to eq(100.0)
+      end
+    end
   end
 
   context "file with branches" do
-    COVERAGE_FOR_BRANCHES_RB = {
-      lines: [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
-      branches: {
-        [:if, 0, 3, 4, 3, 21] =>
-          {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
-        [:if, 3, 5, 4, 5, 26] =>
-          {[:then, 4, 5, 16, 5, 20] => 1, [:else, 5, 5, 23, 5, 26] => 0},
-        [:if, 6, 7, 4, 11, 7] =>
-          {[:then, 7, 8, 6, 8, 10] => 0, [:else, 8, 10, 6, 10, 9] => 1}
+    let(:coverage_for_branches_rb) do
+      {
+        lines: [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
+        branches: {
+          [:if, 0, 3, 4, 3, 21] =>
+            {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
+          [:if, 3, 5, 4, 5, 26] =>
+            {[:then, 4, 5, 16, 5, 20] => 1, [:else, 5, 5, 23, 5, 26] => 0},
+          [:if, 6, 7, 4, 11, 7] =>
+            {[:then, 7, 8, 6, 8, 10] => 0, [:else, 8, 10, 6, 10, 9] => 1}
+        }
       }
-    }.freeze
+    end
 
     subject do
-      SimpleCov::SourceFile.new(source_fixture("branches.rb"), COVERAGE_FOR_BRANCHES_RB)
+      SimpleCov::SourceFile.new(source_fixture("branches.rb"), coverage_for_branches_rb)
     end
 
     describe "branch coverage" do
@@ -160,6 +179,60 @@ describe SimpleCov::SourceFile do
 
       it "has 7 relevant lines" do
         expect(subject.relevant_lines).to eq 7
+      end
+    end
+  end
+
+  context "file with methods" do
+    let(:coverage_for_methods_rb) do
+      {
+        lines: [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
+        branches: {},
+        methods: {
+          ["A", :method3, 13, 2, 15, 5] => 0,
+          ["A", :method2, 9, 2, 11, 5] => 1,
+          ["A", :method1, 2, 2, 5, 5] => 1
+        }
+      }
+    end
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("methods.rb"), coverage_for_methods_rb)
+    end
+
+    describe "method coverage" do
+      it "has total methods count 0" do
+        expect(subject.total_methods.size).to eq(3)
+      end
+
+      it "has covered methods count 0" do
+        expect(subject.covered_methods.size).to eq(2)
+      end
+
+      it "has missed methods count 0" do
+        expect(subject.missed_methods.size).to eq(1)
+      end
+
+      it "is considered 66.(6)% methods covered" do
+        expect(subject.methods_coverage_percent).to eq(66.66666666666667)
+      end
+    end
+
+    describe "line coverage" do
+      it "has line coverage" do
+        expect(subject.covered_percent).to eq 90.0
+      end
+
+      it "has 9 covered lines" do
+        expect(subject.covered_lines.size).to eq 9
+      end
+
+      it "has 1 missed line" do
+        expect(subject.missed_lines.size).to eq 1
+      end
+
+      it "has 10 relevant lines" do
+        expect(subject.relevant_lines).to eq 10
       end
     end
   end
@@ -233,6 +306,10 @@ describe SimpleCov::SourceFile do
 
     it "has 100.0 branch coverage" do
       expect(subject.branches_coverage_percent).to eq(100.00)
+    end
+
+    it "has 100.0 method coverage" do
+      expect(subject.methods_coverage_percent).to eq(100.00)
     end
   end
 
@@ -325,6 +402,17 @@ describe SimpleCov::SourceFile do
       it "does has neither covered nor missed branches" do
         expect(subject.missed_branches.size).to eq 0
         expect(subject.covered_branches.size).to eq 0
+      end
+    end
+
+    describe "method coverage" do
+      it "has no methods" do
+        expect(subject.total_methods.size).to eq 0
+      end
+
+      it "does has neither covered nor missed methods" do
+        expect(subject.missed_methods.size).to eq 0
+        expect(subject.covered_methods.size).to eq 0
       end
     end
   end

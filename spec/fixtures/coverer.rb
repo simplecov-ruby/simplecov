@@ -2,8 +2,5 @@
 
 require "coverage"
 Coverage.start(:all)
-require_relative "uneven_nocovs"
-
-UnevenNocov.call(42)
-
+require_relative "methods"
 p Coverage.result
