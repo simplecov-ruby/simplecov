@@ -49,6 +49,7 @@ describe SimpleCov::Combine::ResultsCombiner do
 
     before do
       SimpleCov.enable_coverage :branch
+      SimpleCov.enable_coverage :method
     end
 
     context "a merge" do
