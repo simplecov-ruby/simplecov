@@ -10,6 +10,7 @@ when "github"
   # Use development version of html formatter from github
   gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
 end
+
 group :development do
   gem "apparition", "~> 0.6.0"
   gem "aruba", "~> 1.0"
