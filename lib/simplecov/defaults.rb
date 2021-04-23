@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Load default formatter gem
-require "simplecov-html"
 require "pathname"
+require_relative "default_formatter"
 require_relative "profiles/root_filter"
 require_relative "profiles/test_frameworks"
 require_relative "profiles/bundler_filter"
@@ -11,7 +11,10 @@ require_relative "profiles/rails"
 
 # Default configuration
 SimpleCov.configure do
-  formatter SimpleCov::Formatter::HTMLFormatter
+  formatter SimpleCov::Formatter::MultiFormatter.new(
+    SimpleCov::Formatter.from_env(ENV)
+  )
+
   load_profile "bundler_filter"
   load_profile "hidden_filter"
   # Exclude files outside of SimpleCov.root

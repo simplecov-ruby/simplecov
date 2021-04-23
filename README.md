@@ -73,9 +73,10 @@ Getting started
     analysis to happen on. When testing a server process (e.g. a JSON API
     endpoint) via a separate test process (e.g. when using Selenium) where you
     want to see all code executed by the `rails server`, and not just code
-    executed in your actual test files, you'll want to add something like this
+    executed in your actual test files, you need to require SimpleCov in the
+    server process. For rails for instance, you'll want to add something like this
     to the top of `bin/rails`, but below the "shebang" line (`#! /usr/bin/env
-    ruby`):
+    ruby`) and after config/boot is required:
 
     ```ruby
     if ENV['RAILS_ENV'] == 'test'
@@ -294,7 +295,6 @@ information to be lost.
 Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.
 
 ```ruby
-# or in configure or just SimpleCov.enable_coverage :branch
 SimpleCov.start do
   enable_coverage :branch
 end
@@ -339,6 +339,22 @@ branches covered as 100% (as everything that can be covered was covered).
 Hence, we recommend looking at both metrics together. Branch coverage might also be a good
 overall metric to look at - while you might be missing only 10% of your lines that might
 account for 50% of your branches for instance.
+
+## Primary Coverage
+
+By default, the primary coverage type is `line`. To set the primary coverage to something else, use the following:
+
+```ruby
+# or in configure SimpleCov.primary_coverage :branch
+SimpleCov.start do
+  enable_coverage :branch
+  primary_coverage :branch
+end
+```
+
+Primary coverage determines what will come in first all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
+
+Note that coverage must first be enabled for non-default coverage types.
 
 ## Filters
 
@@ -786,9 +802,11 @@ to help ensure coverage is relatively consistent, rather than being skewed by pa
 
 ```ruby
 SimpleCov.minimum_coverage_by_file 80
+# same as above (the default is to check line coverage by file)
+SimpleCov.minimum_coverage_by_file line: 80
+# check for a minimum line coverage by file of 90% and minimum 80% branch coverage
+SimpleCov.minimum_coverage_by_file line: 90, branch: 80
 ```
-
-(not yet supported for branch coverage)
 
 ### Maximum coverage drop
 
@@ -796,9 +814,11 @@ You can define the maximum coverage drop percentage at once. SimpleCov will retu
 
 ```ruby
 SimpleCov.maximum_coverage_drop 5
+# same as above (the default is to check line drop)
+SimpleCov.maximum_coverage_drop line: 5
+# check for a maximum line drop of 5% and maximum 10% branch drop
+SimpleCov.maximum_coverage_drop line: 5, branch: 10
 ```
-
-(not yet supported for branch coverage)
 
 ### Refuse dropping coverage
 
@@ -806,9 +826,11 @@ You can also entirely refuse dropping coverage between test runs:
 
 ```ruby
 SimpleCov.refuse_coverage_drop
+# same as above (the default is to only refuse line drop)
+SimpleCov.refuse_coverage_drop :line
+# refuse drop for line and branch
+SimpleCov.refuse_coverage_drop :line, :branch
 ```
-
-(not yet supported for branch coverage)
 
 ## Using your own formatter
 
@@ -832,6 +854,20 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
   SimpleCov::Formatter::CSVFormatter,
 ])
 ```
+
+## JSON formatter
+
+SimpleCov is packaged with a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter) that provides you with a JSON formatter, this formatter could be useful for different use cases, such as for CI consumption or for reporting to external services.
+
+In order to use it you will need to manually load the installed gem like so:
+
+```ruby
+require "simplecov_json_formatter"
+SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
+```
+
+> _Note:_ In case you plan to report your coverage results to CodeClimate services, know that SimpleCov will automatically use the
+>  JSON formatter along with the HTML formatter when the `CC_TEST_REPORTER_ID` variable is present in the environment.
 
 ## Available formatters, editor integrations and hosted services
 

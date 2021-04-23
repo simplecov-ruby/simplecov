@@ -3,7 +3,7 @@
 require "English"
 
 # Coverage may be inaccurate under JRUBY.
-if defined?(JRUBY_VERSION) && defined?(JRuby)
+if defined?(JRUBY_VERSION) && defined?(JRuby) && !org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
 
   # @see https://github.com/jruby/jruby/issues/1196
   # @see https://github.com/metricfu/metric_fu/pull/226
@@ -11,11 +11,9 @@ if defined?(JRUBY_VERSION) && defined?(JRuby)
   # @see https://github.com/simplecov-ruby/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
-  unless org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
-    warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
-      ' or do JRUBY_OPTS="--debug"' \
-      ' or set the "debug.fullTrace=true" option in your .jrubyrc'
-  end
+  warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
+    ' or do JRUBY_OPTS="--debug"' \
+    ' or set the "debug.fullTrace=true" option in your .jrubyrc'
 end
 
 #
@@ -63,6 +61,7 @@ module SimpleCov
 
     #
     # Collate a series of SimpleCov result files into a single SimpleCov output.
+    #
     # You can optionally specify configuration with a block:
     #   SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"]
     #    OR
@@ -80,18 +79,17 @@ module SimpleCov
     # available config options, or checkout the README for more in-depth
     # information about coverage collation
     #
-    def collate(result_filenames, profile = nil, &block)
-      raise "There's no reports to be merged" if result_filenames.empty?
+    # By default `collate` ignores the merge_timeout so all results of all files specified will be
+    # merged together. If you want to honor the merge_timeout then provide the keyword argument
+    # `ignore_timeout: false`.
+    #
+    def collate(result_filenames, profile = nil, ignore_timeout: true, &block)
+      raise "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &block)
 
-      results = result_filenames.flat_map do |filename|
-        # Re-create each included instance of SimpleCov::Result from the stored run data.
-        Result.from_hash(JSON.parse(File.read(filename)) || {})
-      end
-
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*results)
+      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout)
 
       run_exit_tasks!
     end
@@ -285,7 +283,10 @@ module SimpleCov
     # @api private
     #
     def write_last_run(result)
-      SimpleCov::LastRun.write(result: {covered_percent: round_coverage(result.covered_percent)})
+      SimpleCov::LastRun.write(result:
+        result.coverage_statistics.transform_values do |stats|
+          round_coverage(stats.percent)
+        end)
     end
 
     #

@@ -11,6 +11,8 @@ AllCops:
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
   TargetRubyVersion: 2.5
+  # we might wanna adopt rspec and rake but it's a bit annoying for now
+  SuggestExtensions: false
 
 Bundler/OrderedGems:
   Description: Gems should be alphabetically sorted within groups.
@@ -43,10 +45,16 @@ Layout/SpaceAroundMethodCallOperator:
   Description: Checks method call operators to not have spaces around them.
   Enabled: true
 
+Layout/SpaceBeforeBrackets:
+  Enabled: true
+
 Layout/SpaceInsideHashLiteralBraces:
   Description: Use spaces inside hash literal braces - or don't.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#spaces-operators
   EnforcedStyle: no_space
+
+Lint/AmbiguousAssignment:
+  Enabled: true
 
 Lint/AmbiguousRegexpLiteral:
   Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
@@ -58,20 +66,42 @@ Lint/AmbiguousRegexpLiteral:
 Lint/BinaryOperatorWithIdenticalOperands:
   Enabled: true
 
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - "spec/**/*_spec.rb"
+
+Lint/DeprecatedConstants:
+  Enabled: true
+
 Lint/DeprecatedOpenSSLConstant:
   Description: Don't use algorithm constants for `OpenSSL::Cipher` and `OpenSSL::Digest`.
+  Enabled: true
+
+Lint/DuplicateBranch:
   Enabled: true
 
 Lint/DuplicateElsifCondition:
   Enabled: true
 
+Lint/DuplicateRegexpCharacterClassElement:
+  Enabled: true
+
 Lint/DuplicateRescueException:
+  Enabled: true
+
+Lint/EmptyBlock:
+  Enabled: true
+
+Lint/EmptyClass:
   Enabled: true
 
 Lint/EmptyConditionalBody:
   Enabled: true
 
 Lint/FloatComparison:
+  Enabled: true
+
+Lint/LambdaWithoutLiteralBlock:
   Enabled: true
 
 Lint/MissingSuper:
@@ -81,11 +111,23 @@ Lint/MixedRegexpCaptureTypes:
   Description: Do not mix named captures and numbered captures in a Regexp literal.
   Enabled: true
 
+Lint/NoReturnInBeginEndBlocks:
+  Enabled: true
+
+Lint/NumberedParameterAssignment:
+  Enabled: true
+
+Lint/OrAssignmentToConstant:
+  Enabled: true
+
 Lint/OutOfRangeRegexpRef:
   Enabled: true
 
 Lint/RaiseException:
   Description: Checks for `raise` or `fail` statements which are raising `Exception` class.
+  Enabled: true
+
+Lint/RedundantDirGlobSort:
   Enabled: true
 
 Lint/SelfAssignment:
@@ -95,7 +137,22 @@ Lint/StructNewOverride:
   Description: Disallow overriding the `Struct` built-in methods via `Struct.new`.
   Enabled: true
 
+Lint/SymbolConversion:
+  Enabled: true
+
+Lint/ToEnumArguments:
+  Enabled: true
+
 Lint/TopLevelReturnWithArgument:
+  Enabled: true
+
+Lint/TripleQuotes:
+  Enabled: true
+
+Lint/UnexpectedBlockArity:
+  Enabled: true
+
+Lint/UnmodifiedReduceAccumulator:
   Enabled: true
 
 Lint/UnreachableLoop:
@@ -125,6 +182,7 @@ Metrics/MethodLength:
 
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
+  Max: 300
   Exclude:
     - "lib/simplecov.rb"
 
@@ -140,16 +198,22 @@ Naming/FileName:
     - "spec/fixtures/utf-8.rb"
 
 Style/AccessorGrouping:
-    Enabled: true
+  Enabled: true
+
+Style/ArgumentsForwarding:
+  Enabled: true
 
 Style/ArrayCoercion:
-    Enabled: true
+  Enabled: true
 
 Style/BisectedAttrAccessor:
-    Enabled: true
+  Enabled: true
 
 Style/CaseLikeIf:
-    Enabled: true
+  Enabled: true
+
+Style/CollectionCompact:
+  Enabled: true
 
 Style/CollectionMethods:
   Description: Enforces the use of consistent method names from the Enumerable module.
@@ -168,9 +232,15 @@ Style/DoubleNegation:
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#no-bang-bang
   Enabled: false
 
+Style/DocumentDynamicEvalDefinition:
+  Enabled: true
+
+Style/EndlessMethod:
+  Enabled: true
+
 Style/ExplicitBlockArgument:
-    # capturing as a proc has a performance hit, so is a case by case choice
-    Enabled: false
+  # capturing as a proc has a performance hit, so is a case by case choice
+  Enabled: false
 
 Style/ExponentialNotation:
   Description: When using exponential notation, favor a mantissa between 1 (inclusive) and 10 (exclusive).
@@ -186,21 +256,24 @@ Style/FrozenStringLiteralComment:
     - "spec/fixtures/**/*"
 
 Style/GlobalStdStream:
-    Enabled: true
+  Enabled: true
 
 Style/GuardClause:
   Description: Use a guard clause instead of wrapping the code inside a conditional expression.
   Enabled: false
 
 Style/HashAsLastArrayItem:
-    Enabled: true
+  Enabled: true
 
 Style/HashEachMethods:
   Description: Use Hash#each_key and Hash#each_value.
   Enabled: true
 
+Style/HashExcept:
+  Enabled: true
+
 Style/HashLikeCase:
-    Enabled: true
+  Enabled: true
 
 Style/HashTransformKeys:
   Description: Prefer `transform_keys` over `each_with_object` and `map`.
@@ -214,17 +287,29 @@ Style/HashSyntax:
   Description: Checks hash literal syntax.
   EnforcedStyle: ruby19
 
+Style/IfWithBooleanLiteralBranches:
+  Enabled: true
+
+Style/NegatedIfElseCondition:
+  Enabled: true
+
+Style/NilLambda:
+  Enabled: true
+
 Style/OptionalBooleanParameter:
-    Enabled: true
+  Enabled: true
+
+Style/RedundantArgument:
+  Enabled: true
 
 Style/RedundantAssignment:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantFetchBlock:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantFileExtensionInRequire:
-    Enabled: true
+  Enabled: true
 
 Style/RedundantRegexpCharacterClass:
   Description: Checks for unnecessary single-element Regexp character classes.
@@ -240,7 +325,7 @@ Style/RegexpLiteral:
   Enabled: false
 
 Style/SingleArgumentDig:
-    Enabled: true
+  Enabled: true
 
 Style/SlicingWithRange:
   Description: Checks array slicing is done with endless ranges when suitable.
@@ -254,11 +339,14 @@ Style/SpecialGlobalVars:
     - "lib/simplecov/defaults.rb"
 
 Style/StringConcatenation:
-    Enabled: true
+  Enabled: true
 
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
+
+Style/SwapValues:
+  Enabled: true
 
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: no_comma

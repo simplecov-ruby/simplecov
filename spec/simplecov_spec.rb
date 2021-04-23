@@ -202,12 +202,28 @@ describe SimpleCov do
 
     let(:resultset_folder) { File.dirname(resultset_path) }
 
+    let(:merged_result) do
+      {
+        "result1, result2" => {
+          "coverage" => {
+            source_fixture("sample.rb") => {
+              "lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
+            }
+          }
+        }
+      }
+    end
+
+    let(:collated) do
+      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+    end
+
     context "when no files to be merged" do
       it "shows an error message" do
         expect do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
-        end.to raise_error("There's no reports to be merged")
+        end.to raise_error("There are no reports to be merged")
       end
     end
 
@@ -222,15 +238,14 @@ describe SimpleCov do
         end
 
         after do
-          clear_mergeable_reports("result1")
+          clear_mergeable_reports
         end
 
         it "creates a merged report identical to the original" do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
 
-          expected = {"result1" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}}}
-          collated = JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+          expected = {"result1" => {"coverage" => resultset1}}
           expect(collated).to eq(expected)
         end
       end
@@ -242,34 +257,61 @@ describe SimpleCov do
         end
 
         after do
-          clear_mergeable_reports("result1", "result2")
+          clear_mergeable_reports
         end
 
         it "creates a merged report" do
           glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
           SimpleCov.collate glob
 
-          expected = {"result1, result2" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]}}}}
-          collated = JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+          expect(collated).to eq(merged_result)
+        end
+      end
+
+      context "and multiple reports to be merged, one of them outdated" do
+        before do
+          create_mergeable_report("result1", resultset1)
+          create_mergeable_report("result2", resultset2, outdated: true)
+        end
+
+        after do
+          clear_mergeable_reports
+        end
+
+        it "ignores timeout by default creating a report with all values" do
+          glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
+          SimpleCov.collate glob
+
+          expect(collated).to eq(merged_result)
+        end
+
+        it "creates a merged report with only the results from the current resultset if ignore_timeout: false" do
+          glob = Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
+          SimpleCov.collate glob, ignore_timeout: false
+
+          expected = {"result1" => {"coverage" => resultset1}}
           expect(collated).to eq(expected)
         end
       end
 
     private
 
-      def create_mergeable_report(name, resultset)
+      def create_mergeable_report(name, resultset, outdated: false)
         result = SimpleCov::Result.new(resultset)
         result.command_name = name
+        result.created_at = Time.now - 172_800 if outdated
         SimpleCov::ResultMerger.store_result(result)
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end
 
-      def clear_mergeable_reports(*names)
+      def clear_mergeable_reports
         SimpleCov.clear_result
-        SimpleCov::ResultMerger.clear_resultset
-        FileUtils.rm resultset_path
-        FileUtils.rm "#{resultset_path}.lock"
-        names.each { |name| FileUtils.rm "#{resultset_path}#{name}.final" }
+        FileUtils.rm Dir.glob("#{resultset_path}*")
+      end
+
+      def expect_merged
+        expected = {"result1, result2" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]}}}}
+        expect(collated).to eq(expected)
       end
     end
   end

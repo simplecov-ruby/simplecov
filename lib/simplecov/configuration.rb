@@ -10,7 +10,7 @@ module SimpleCov
   # defined here are usable from SimpleCov directly. Please check out
   # SimpleCov documentation for further info.
   #
-  module Configuration # rubocop:disable Metrics/ModuleLength
+  module Configuration
     attr_writer :filters, :groups, :formatter, :print_error_status
 
     #
@@ -22,6 +22,7 @@ module SimpleCov
     def root(root = nil)
       return @root if defined?(@root) && root.nil?
 
+      @coverage_path = nil # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
     end
 
@@ -190,7 +191,7 @@ module SimpleCov
     #     end
     #
     def at_exit(&block)
-      return proc {} unless running || block_given?
+      return Proc.new unless running || block_given?
 
       @at_exit = block if block_given?
       @at_exit ||= proc { SimpleCov.result.format! }
@@ -286,20 +287,22 @@ module SimpleCov
     #
     # Default is 0% (disabled)
     #
-
-    # rubocop:disable Metrics/CyclomaticComplexity
     def minimum_coverage(coverage = nil)
       return @minimum_coverage ||= {} unless coverage
 
-      coverage = {DEFAULT_COVERAGE_CRITERION => coverage} if coverage.is_a?(Numeric)
-      coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
-      coverage.each_value do |percent|
-        minimum_possible_coverage_exceeded("minimum_coverage") if percent && percent > 100
-      end
+      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
+
+      raise_on_invalid_coverage(coverage, "minimum_coverage")
 
       @minimum_coverage = coverage
     end
-    # rubocop:enable Metrics/CyclomaticComplexity
+
+    def raise_on_invalid_coverage(coverage, coverage_setting)
+      coverage.each_key { |criterion| raise_if_criterion_disabled(criterion) }
+      coverage.each_value do |percent|
+        minimum_possible_coverage_exceeded(coverage_setting) if percent && percent > 100
+      end
+    end
 
     #
     # Defines the maximum coverage drop at once allowed for the testsuite to pass.
@@ -308,7 +311,13 @@ module SimpleCov
     # Default is 100% (disabled)
     #
     def maximum_coverage_drop(coverage_drop = nil)
-      @maximum_coverage_drop ||= (coverage_drop || 100).to_f.round(2)
+      return @maximum_coverage_drop ||= {} unless coverage_drop
+
+      coverage_drop = {primary_coverage => coverage_drop} if coverage_drop.is_a?(Numeric)
+
+      raise_on_invalid_coverage(coverage_drop, "maximum_coverage_drop")
+
+      @maximum_coverage_drop = coverage_drop
     end
 
     #
@@ -319,16 +328,23 @@ module SimpleCov
     # Default is 0% (disabled)
     #
     def minimum_coverage_by_file(coverage = nil)
-      minimum_possible_coverage_exceeded("minimum_coverage_by_file") if coverage && coverage > 100
-      @minimum_coverage_by_file ||= (coverage || 0).to_f.round(2)
+      return @minimum_coverage_by_file ||= {} unless coverage
+
+      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
+
+      raise_on_invalid_coverage(coverage, "minimum_coverage_by_file")
+
+      @minimum_coverage_by_file = coverage
     end
 
     #
     # Refuses any coverage drop. That is, coverage is only allowed to increase.
     # SimpleCov will return non-zero if the coverage decreases.
     #
-    def refuse_coverage_drop
-      maximum_coverage_drop 0
+    def refuse_coverage_drop(*criteria)
+      criteria = coverage_criteria if criteria.empty?
+
+      maximum_coverage_drop(criteria.map { |c| [c, 0] }.to_h)
     end
 
     #
@@ -375,7 +391,7 @@ module SimpleCov
     # @param [Symbol] criterion
     #
     def coverage_criterion(criterion = nil)
-      return @coverage_criterion ||= DEFAULT_COVERAGE_CRITERION unless criterion
+      return @coverage_criterion ||= primary_coverage unless criterion
 
       raise_if_criterion_unsupported(criterion)
 
@@ -388,8 +404,17 @@ module SimpleCov
       coverage_criteria << criterion
     end
 
+    def primary_coverage(criterion = nil)
+      if criterion.nil?
+        @primary_coverage ||= DEFAULT_COVERAGE_CRITERION
+      else
+        raise_if_criterion_disabled(criterion)
+        @primary_coverage = criterion
+      end
+    end
+
     def coverage_criteria
-      @coverage_criteria ||= Set[DEFAULT_COVERAGE_CRITERION]
+      @coverage_criteria ||= Set[primary_coverage]
     end
 
     def coverage_criterion_enabled?(criterion)

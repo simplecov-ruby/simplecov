@@ -27,6 +27,10 @@ module SimpleCov
       @coverage_statistics ||= compute_coverage_statistics
     end
 
+    def coverage_statistics_by_file
+      @coverage_statistics_by_file ||= compute_coverage_statistics_by_file
+    end
+
     # Returns the count of lines that have coverage
     def covered_lines
       coverage_statistics[:line]&.covered
@@ -119,20 +123,19 @@ module SimpleCov
 
   private
 
-    def compute_coverage_statistics
-      total_coverage_statistics = compute_total_coverage_statistics
-      coverage_statistics = {line: CoverageStatistics.from(total_coverage_statistics[:line])}
-      coverage_statistics[:branch] = CoverageStatistics.from(total_coverage_statistics[:branch]) if SimpleCov.branch_coverage?
-      coverage_statistics[:method] = CoverageStatistics.from(total_coverage_statistics[:method]) if SimpleCov.method_coverage?
-      coverage_statistics
+    def compute_coverage_statistics_by_file
+      @files.each_with_object(line: [], branch: [], method: []) do |file, together|
+        together[:line] << file.coverage_statistics.fetch(:line)
+        together[:branch] << file.coverage_statistics.fetch(:branch) if SimpleCov.branch_coverage?
+        together[:method] << file.coverage_statistics.fetch(:method) if SimpleCov.method_coverage?
+      end
     end
 
-    def compute_total_coverage_statistics
-      @files.each_with_object(line: [], branch: [], method: []) do |file, together|
-        together[:line] << file.coverage_statistics[:line]
-        together[:branch] << file.coverage_statistics[:branch] if SimpleCov.branch_coverage?
-        together[:method] << file.coverage_statistics[:method] if SimpleCov.method_coverage?
-      end
+    def compute_coverage_statistics
+      coverage_statistics = {line: CoverageStatistics.from(coverage_statistics_by_file[:line])}
+      coverage_statistics[:branch] = CoverageStatistics.from(coverage_statistics_by_file[:branch]) if SimpleCov.branch_coverage?
+      coverage_statistics[:method] = CoverageStatistics.from(coverage_statistics_by_file[:method]) if SimpleCov.method_coverage?
+      coverage_statistics
     end
   end
 end

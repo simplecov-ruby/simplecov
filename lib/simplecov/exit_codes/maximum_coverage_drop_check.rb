@@ -11,15 +11,18 @@ module SimpleCov
       def failing?
         return false unless maximum_coverage_drop && last_run
 
-        coverage_diff > maximum_coverage_drop
+        coverage_drop_violations.any?
       end
 
       def report
-        $stderr.printf(
-          "Coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
-          drop_percent: coverage_diff,
-          max_drop: maximum_coverage_drop
-        )
+        coverage_drop_violations.each do |violation|
+          $stderr.printf(
+            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            criterion: violation[:criterion].capitalize,
+            drop_percent: SimpleCov.round_coverage(violation[:drop_percent]),
+            max_drop: violation[:max_drop]
+          )
+        end
       end
 
       def exit_code
@@ -36,14 +39,44 @@ module SimpleCov
         @last_run = SimpleCov::LastRun.read
       end
 
-      def coverage_diff
-        raise "Trying to access coverage_diff although there is no last run" unless last_run
-
-        @coverage_diff ||= last_run[:result][:covered_percent] - covered_percent
+      def coverage_drop_violations
+        @coverage_drop_violations ||=
+          compute_coverage_drop_data.select do |achieved|
+            achieved.fetch(:max_drop) < achieved.fetch(:drop_percent)
+          end
       end
 
-      def covered_percent
-        SimpleCov.round_coverage(result.covered_percent)
+      def compute_coverage_drop_data
+        maximum_coverage_drop.map do |criterion, percent|
+          {
+            criterion: criterion,
+            max_drop: percent,
+            drop_percent: drop_percent(criterion)
+          }
+        end
+      end
+
+      # if anyone says "max_coverage_drop 0.000000000000000001" I appologize. Please don't.
+      MAX_DROP_ACCURACY = 10
+      def drop_percent(criterion)
+        drop = last_coverage(criterion) -
+               SimpleCov.round_coverage(
+                 result.coverage_statistics.fetch(criterion).percent
+               )
+
+        # floats, I tell ya.
+        # irb(main):001:0* 80.01 - 80.0
+        # => 0.010000000000005116
+        drop.floor(MAX_DROP_ACCURACY)
+      end
+
+      def last_coverage(criterion)
+        last_coverage_percent = last_run[:result][criterion]
+
+        # fallback for old file format
+        last_coverage_percent = last_run[:result][:covered_percent] if !last_coverage_percent && criterion == :line
+
+        last_coverage_percent || 0
       end
     end
   end

@@ -1,49 +1,33 @@
 @test_unit @config
 Feature:
 
-  Exit code should be non-zero if the overall coverage is below the
-  minimum_coverage threshold.
+  Exit code should be non-zero if the coverage of any one file is below the configured value.
 
   Background:
     Given I'm working on the project "faked_project"
 
-  Scenario: It fails against too high coverage
+  Scenario: slightly under minimum coverage by file
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
         add_filter 'test.rb'
-        minimum_coverage 90
+        minimum_coverage_by_file 75.01
       end
       """
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Line coverage (88.09%) is below the expected minimum coverage (90.00%)."
+    And the output should contain "Line coverage by file (75.00%) is below the expected minimum coverage (75.01%)."
     And the output should contain "SimpleCov failed with exit 2"
 
-  Scenario: It fails if it's just 0.01% too low
+  Scenario: Just passing it
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
       SimpleCov.start do
         add_filter 'test.rb'
-        minimum_coverage 88.10
-      end
-      """
-
-    When I run `bundle exec rake test`
-    Then the exit status should not be 0
-    And the output should contain "Line coverage (88.09%) is below the expected minimum coverage (88.10%)."
-    And the output should contain "SimpleCov failed with exit 2"
-
-  Scenario: It passes when it is exactly the coverage
-    Given SimpleCov for Test/Unit is configured with:
-      """
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage 88.09
+        minimum_coverage_by_file 75
       end
       """
 
@@ -58,14 +42,14 @@ Feature:
       SimpleCov.start do
         add_filter 'test.rb'
         enable_coverage :branch
-        minimum_coverage line: 90, branch: 80
+        minimum_coverage_by_file line: 90, branch: 70
       end
       """
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Line coverage (88.09%) is below the expected minimum coverage (90.00%)."
-    And the output should contain "Branch coverage (50.00%) is below the expected minimum coverage (80.00%)."
+    And the output should contain "Line coverage by file (80.00%) is below the expected minimum coverage (90.00%)."
+    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%)."
     And the output should contain "SimpleCov failed with exit 2"
 
   @branch_coverage
@@ -77,12 +61,12 @@ Feature:
         add_filter 'test.rb'
         enable_coverage :branch
         primary_coverage :branch
-        minimum_coverage 80
+        minimum_coverage_by_file 70
       end
       """
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Branch coverage (50.00%) is below the expected minimum coverage (80.00%)."
+    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%)."
     And the output should not contain "Line coverage"
     And the output should contain "SimpleCov failed with exit 2"
