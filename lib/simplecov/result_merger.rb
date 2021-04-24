@@ -32,11 +32,16 @@ module SimpleCov
         # of data. Reading them all in easily produces Gigabytes of memory consumption which
         # we want to avoid.
 
-        results = file_paths.map { |path| valid_results(path, ignore_timeout: ignore_timeout) }
-        merge_coverage(results)
+        file_paths = file_paths.dup
+        initial_result = merge_file_results(file_paths.shift, ignore_timeout: ignore_timeout)
+
+        file_paths.reduce(initial_result) do |memo, path|
+          file_result = merge_file_results(path, ignore_timeout: ignore_timeout)
+          merge_coverage([memo, file_result])
+        end
       end
 
-      def valid_results(file_path, ignore_timeout: false)
+      def merge_file_results(file_path, ignore_timeout:)
         raw_results = parse_file(file_path)
         results = Result.from_hash(raw_results)
         merge_valid_results(results, ignore_timeout: ignore_timeout)

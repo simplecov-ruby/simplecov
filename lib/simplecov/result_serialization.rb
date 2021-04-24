@@ -24,7 +24,7 @@ module SimpleCov
         hash.map do |command_name, data|
           coverage = {}
 
-          data["coverage"].each do |file_name, file_data|
+          data.fetch("coverage").each do |file_name, file_data|
             parsed_file_data = {}
 
             file_data = {lines: file_data} if file_data.is_a?(Array)
@@ -39,7 +39,7 @@ module SimpleCov
 
           result = SimpleCov::Result.new(coverage)
           result.command_name = command_name
-          result.created_at = Time.at(data["timestamp"])
+          result.created_at = Time.at(data.fetch("timestamp"))
           result
         end
       end
