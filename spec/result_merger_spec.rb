@@ -165,6 +165,73 @@ describe SimpleCov::ResultMerger do
           expect_resultset_1_and_2_merged(result_hash)
         end
       end
+
+      describe "method coverage", if: SimpleCov.method_coverage_supported? do
+        before do
+          SimpleCov.enable_coverage :method
+          store_result(result3, path: resultset3_path)
+        end
+
+        after do
+          SimpleCov.clear_coverage_criteria
+        end
+
+        let(:resultset1) do
+          {
+            source_fixture("methods.rb") => {
+              methods: {
+                ["A", :method1, 2, 2, 5, 5] => 1,
+                ["A", :method2, 9, 2, 11, 5] => 0,
+                ["A", :method3, 13, 2, 15, 5] => 0
+              }
+            }
+          }
+        end
+
+        let(:resultset2) do
+          {
+            source_fixture("methods.rb") => {
+              methods: {
+                ["A", :method1, 2, 2, 5, 5] => 0,
+                ["A", :method2, 9, 2, 11, 5] => 1,
+                ["A", :method3, 13, 2, 15, 5] => 0
+              }
+            }
+          }
+        end
+
+        let(:resultset3) do
+          {
+            source_fixture("methods.rb") => {
+              methods: {
+                ["B", :method1, 2, 2, 5, 5] => 1,
+                ["B", :method2, 9, 2, 11, 5] => 0,
+                ["B", :method3, 13, 2, 15, 5] => 0
+              }
+            }
+          }
+        end
+
+        let(:result3) { SimpleCov::Result.new(resultset3, command_name: "result3") }
+        let(:resultset3_path) { "#{resultset_prefix}3.json" }
+
+        it "correctly merges the 3 results" do
+          result = SimpleCov::ResultMerger.merge_and_store(
+            resultset1_path, resultset2_path, resultset3_path
+          )
+
+          merged_coverage = result.original_result.fetch(source_fixture("methods.rb"))
+
+          expect(merged_coverage.fetch(:methods)).to eq(
+            ["A", :method1, 2, 2, 5, 5] => 1,
+            ["A", :method2, 9, 2, 11, 5] => 1,
+            ["A", :method3, 13, 2, 15, 5] => 0,
+            ["B", :method1, 2, 2, 5, 5] => 1,
+            ["B", :method2, 9, 2, 11, 5] => 0,
+            ["B", :method3, 13, 2, 15, 5] => 0
+          )
+        end
+      end
     end
 
     context "pre 0.18 result format" do

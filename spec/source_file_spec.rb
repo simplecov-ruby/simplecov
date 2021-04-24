@@ -189,9 +189,9 @@ describe SimpleCov::SourceFile do
         lines: [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
         branches: {},
         methods: {
-          ["A", :method3, 13, 2, 15, 5] => 0,
+          ["A", :method1, 2, 2, 5, 5] => 1,
           ["A", :method2, 9, 2, 11, 5] => 1,
-          ["A", :method1, 2, 2, 5, 5] => 1
+          ["A", :method3, 13, 2, 15, 5] => 0
         }
       }
     end
