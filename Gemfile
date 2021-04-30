@@ -9,6 +9,8 @@ when "local"
 when "github"
   # Use development version of html formatter from github
   gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+when "methods"
+  gem "simplecov-html", github: "umbrellio/simplecov-html", branch: "add-method-coverage-support"
 end
 
 group :development do

@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/umbrellio/simplecov-html.git
+  revision: fc9c7a1beaa75bad3a925d1296b94fcd0c96b126
+  branch: add-method-coverage-support
+  specs:
+    simplecov-html (0.12.3)
+
 PATH
   remote: .
   specs:
@@ -101,6 +108,10 @@ GEM
     pry (0.13.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
+    pry (0.13.1-java)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+      spoon (~> 0.0)
     public_suffix (4.0.6)
     racc (1.5.2)
     racc (1.5.2-java)
@@ -136,8 +147,9 @@ GEM
     rubocop-ast (1.4.1)
       parser (>= 2.7.1.5)
     ruby-progressbar (1.11.0)
-    simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.2)
+    spoon (0.0.6)
+      ffi
     sys-uname (1.2.2)
       ffi (~> 1.1)
     test-unit (3.3.6)
@@ -175,6 +187,7 @@ DEPENDENCIES
   rspec (~> 3.2)
   rubocop
   simplecov!
+  simplecov-html!
   test-unit
   webrick
 

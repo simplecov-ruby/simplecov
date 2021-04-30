@@ -25,6 +25,7 @@ Then /^I should see the source files:$/ do |table|
   available_source_files = all(".t-file", visible: true, count: expected_files.count)
 
   include_branch_coverage = table.column_names.include?("branch coverage")
+  include_method_coverage = table.column_names.include?("method coverage")
 
   # Find all filenames and their coverage present in coverage report
   files = available_source_files.map do |file_row|
@@ -35,6 +36,7 @@ Then /^I should see the source files:$/ do |table|
       }
 
     coverage_data["branch coverage"] = file_row.find(".t-file__branch-coverage").text if include_branch_coverage
+    coverage_data["method coverage"] = file_row.find(".t-file__method-coverage").text if include_method_coverage
 
     coverage_data
   end
@@ -67,4 +69,10 @@ end
 
 Then /^I should see coverage branch data like "(.+)"$/ do |text|
   expect(find(".hits", visible: true, text: text)).to be_truthy
+end
+
+Then /^I should see missed methods list:$/ do |table|
+  expected_list = table.hashes.map { |x| x.fetch("name") }
+  list = all(".t-missed-method-summary li", visible: true).map(&:text)
+  expect(list).to eq(expected_list)
 end
