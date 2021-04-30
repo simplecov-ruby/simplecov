@@ -10,8 +10,9 @@ Feature:
     Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
+
       SimpleCov.start do
-      enable_coverage :method
+        enable_coverage :method
       end
       """
     When I open the coverage report generated with `bundle exec rspec spec`
