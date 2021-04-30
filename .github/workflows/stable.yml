@@ -10,6 +10,9 @@ jobs:
       matrix:
         ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0, jruby-9.2.14.0]
 
+    env:
+      SIMPLECOV_HTML_MODE: methods
+
     steps:
       - uses: actions/checkout@v2
 
@@ -20,9 +23,6 @@ jobs:
 
       - name: Get sqlite for Rails test projects
         run: sudo apt-get install libsqlite3-dev
-
-      - name: Install bundler
-        run: gem i bundler
 
       - name: Install dependencies
         run: |
