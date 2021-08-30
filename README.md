@@ -106,10 +106,6 @@ Getting started
    are not tracked by Git (optional):
 
    ```
-   echo "coverage" >> .gitignore
-   ```
-   Or if you use Windows:
-   ```
    echo coverage >> .gitignore
    ```
 
