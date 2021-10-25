@@ -18,7 +18,7 @@ module SimpleCov
 
     # The path to this source file relative to the projects directory
     def project_filename
-      @filename.sub(Regexp.new("^#{Regexp.escape(SimpleCov.root)}"), "")
+      @filename.delete_prefix(SimpleCov.root)
     end
 
     # The source code for this file. Aliased as :source
@@ -217,7 +217,13 @@ module SimpleCov
       # simplecov-html to have encoding shenaningans in one place. See #866
       # also setting these option on `file.set_encoding` doesn't seem to work
       # properly so it has to be done here.
-      file_lines.each { |line| line.encode!("UTF-8", invalid: :replace, undef: :replace) }
+      file_lines.each do |line|
+        if line.encoding == Encoding::UTF_8
+          line
+        else
+          line.encode!("UTF-8", invalid: :replace, undef: :replace)
+        end
+      end
     end
 
     def build_lines
@@ -238,7 +244,7 @@ module SimpleCov
     end
 
     def lines_strength
-      lines.map(&:coverage).compact.reduce(:+)
+      lines.sum { |line| line.coverage.to_i }
     end
 
     # Warning to identify condition from Issue #56
