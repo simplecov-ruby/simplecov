@@ -285,16 +285,8 @@ module SimpleCov
     def write_last_run(result)
       SimpleCov::LastRun.write(result:
         result.coverage_statistics.transform_values do |stats|
-          round_coverage(stats.percent)
+          SimpleCov::Utils.round_coverage(stats.percent)
         end)
-    end
-
-    #
-    # @api private
-    #
-    # Rounding down to be extra strict, see #679
-    def round_coverage(coverage)
-      coverage.floor(2)
     end
 
   private
@@ -467,6 +459,7 @@ require_relative "simplecov/combine/lines_combiner"
 require_relative "simplecov/combine/results_combiner"
 require_relative "simplecov/useless_results_remover"
 require_relative "simplecov/simulate_coverage"
+require_relative "simplecov/utils"
 
 # Load default config
 require_relative "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]
