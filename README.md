@@ -846,9 +846,11 @@ and `result` is an instance of `SimpleCov::Result`. Do whatever your wish with t
 
 ## Using multiple formatters
 
-As of SimpleCov 0.9, you can specify multiple result formats:
+As of SimpleCov 0.9, you can specify multiple result formats. Formatters besides the default HTML formatter require separate gems, however.
 
 ```ruby
+require "simplecov-html"
+
 SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CSVFormatter,
