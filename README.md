@@ -840,8 +840,8 @@ You can use your own formatter with:
 SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 ```
 
-When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result),
-"result" being an instance of SimpleCov::Result. Do whatever your wish with that!
+Calling `SimpleCov.result.format!` will be invoked with `SimpleCov::Formatter::YourFormatter.new.format(result)`,
+and `result` is an instance of `SimpleCov::Result`. Do whatever your wish with that!
 
 
 ## Using multiple formatters
