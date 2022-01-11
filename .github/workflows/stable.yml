@@ -21,8 +21,11 @@ jobs:
       - name: Get sqlite for Rails test projects
         run: sudo apt-get install libsqlite3-dev
 
+      - name: Get the newest rubygems version to rid ourselves of warnings
+        run: gem update --system --no-document
+
       - name: Install bundler
-        run: gem i bundler
+        run: gem i bundler --no-document
 
       - name: Install dependencies
         run: |
