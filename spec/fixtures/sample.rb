@@ -8,9 +8,9 @@ class Foo
     @foo
   end
 
-  #:nocov:
+  # :nocov:
   def skipped
     @foo * 2
   end
-  #:nocov:
+  # :nocov:
 end
