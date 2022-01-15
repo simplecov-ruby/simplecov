@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0, jruby-9.2.14.0]
+        ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0, jruby-9.2.20.1]
 
     steps:
       - uses: actions/checkout@v2
@@ -21,8 +21,11 @@ jobs:
       - name: Get sqlite for Rails test projects
         run: sudo apt-get install libsqlite3-dev
 
+      - name: Get the newest rubygems version to rid ourselves of warnings
+        run: gem update --system --no-document
+
       - name: Install bundler
-        run: gem i bundler
+        run: gem i bundler --no-document
 
       - name: Install dependencies
         run: |
