@@ -69,6 +69,8 @@ Getting started
     The `SimpleCov.start` **must** be issued **before any of your application
     code is required!**
 
+    This is especially true if you use anything that keeps your tests application loaded like spring, check out the **[spring section](#want-to-use-spring-with-simplecov)**.
+
     SimpleCov must be running in the process that you want the code coverage
     analysis to happen on. When testing a server process (e.g. a JSON API
     endpoint) via a separate test process (e.g. when using Selenium) where you
