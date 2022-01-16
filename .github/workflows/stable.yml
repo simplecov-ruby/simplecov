@@ -8,18 +8,23 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0, jruby-9.2.20.1]
+        ruby: [2.5, 2.6, 2.7, '3.0', 3.1, jruby-9.2, jruby-9.3]
+
+    env:
+      BUNDLE_WITHOUT: "benchmark"
+      JRUBY_OPTS: "--debug"
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Get sqlite for Rails test projects
+        run: sudo apt-get install libsqlite3-dev
 
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-
-      - name: Get sqlite for Rails test projects
-        run: sudo apt-get install libsqlite3-dev
+          bundler-cache: true # 'bundle install' and cache
 
       - name: Get the newest rubygems version to rid ourselves of warnings
         run: gem update --system --no-document
@@ -32,10 +37,5 @@ jobs:
           bundle config set --local without benchmark
           bundle install --jobs=3
 
-      - name: Run tests (MRI)
+      - name: Run tests
         run: bundle exec rake
-        if: "!startsWith(matrix.ruby, 'jruby')"
-
-      - name: Run tests (JRuby)
-        run: JRUBY_OPTS=--debug bundle exec rake
-        if: startsWith(matrix.ruby, 'jruby')
