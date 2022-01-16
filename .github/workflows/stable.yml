@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.5, 2.6, 2.7, '3.0', jruby-9.2, jruby-9.3]
+        ruby: [2.5, 2.6, 2.7, '3.0', jruby-9.2]
 
     env:
       BUNDLE_WITHOUT: "benchmark"
