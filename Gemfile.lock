@@ -1,3 +1,11 @@
+GIT
+  remote: https://github.com/twalpole/apparition.git
+  revision: ca86be4d54af835d531dbcd2b86e7b2c77f85f34
+  specs:
+    apparition (0.6.0)
+      capybara (~> 3.13, < 4)
+      websocket-driver (>= 0.6.5)
+
 PATH
   remote: .
   specs:
@@ -17,9 +25,6 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.8.0)
       public_suffix (>= 2.0.2, < 5.0)
-    apparition (0.6.0)
-      capybara (~> 3.13, < 4)
-      websocket-driver (>= 0.6.5)
     aruba (1.1.2)
       bundler (>= 1.17, < 3.0)
       childprocess (>= 2.0, < 5.0)
@@ -172,7 +177,7 @@ PLATFORMS
   universal-java-1.8
 
 DEPENDENCIES
-  apparition (~> 0.6.0)
+  apparition!
   aruba (~> 1.0)
   benchmark-ips
   capybara (~> 3.31)

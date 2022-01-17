@@ -11,7 +11,7 @@ source "https://rubygems.org"
 gem "matrix"
 
 group :development do
-  gem "apparition", "~> 0.6.0"
+  gem "apparition", github: "twalpole/apparition" # LOCKED: When this is released, use a released version https://github.com/twalpole/apparition/pull/79
   gem "aruba", "~> 1.0"
   gem "capybara", "~> 3.31"
   gem "cucumber", "~> 4.0"
