@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/PragTob/simplecov_json_formatter.git
+  revision: 9c78d46bd6577b2e74fba91335f013750f57dd14
+  branch: group-support
+  specs:
+    simplecov_json_formatter (0.1.3)
+
+GIT
   remote: https://github.com/twalpole/apparition.git
   revision: ca86be4d54af835d531dbcd2b86e7b2c77f85f34
   specs:
@@ -148,7 +155,6 @@ GEM
       parser (>= 3.0.1.1)
     ruby-progressbar (1.11.0)
     simplecov-html (0.12.3)
-    simplecov_json_formatter (0.1.3)
     spoon (0.0.6)
       ffi
     sys-uname (1.2.2)
@@ -189,6 +195,7 @@ DEPENDENCIES
   rspec (~> 3.2)
   rubocop
   simplecov!
+  simplecov_json_formatter!
   test-unit
   webrick
 

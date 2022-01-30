@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "simplecov_version": "STUB_VERSION"
+  },
+  "coverage": {
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/lib/faked_project.rb": {
+      "lines": [
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null,
+        5,
+        3,
+        null,
+        null,
+        1
+      ]
+    },
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/lib/faked_project/framework_specific.rb": {
+      "lines": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        1,
+        1,
+        1,
+        0,
+        null,
+        null,
+        1,
+        0,
+        null,
+        null,
+        1,
+        1,
+        null,
+        null,
+        null
+      ]
+    },
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/lib/faked_project/meta_magic.rb": {
+      "lines": [
+        null,
+        null,
+        1,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/lib/faked_project/some_class.rb": {
+      "lines": [
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        1,
+        2,
+        null,
+        null,
+        1,
+        1,
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        0,
+        null,
+        null,
+        0,
+        null,
+        null,
+        1,
+        null,
+        1,
+        0,
+        null,
+        null
+      ]
+    },
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/test/meta_magic_test.rb": {
+      "lines": [
+        null,
+        null,
+        1,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null,
+        1,
+        1,
+        1,
+        1,
+        null,
+        null
+      ]
+    },
+    "/STUB_BASE_DIRECTORY/tmp/aruba/project/test/some_class_test.rb": {
+      "lines": [
+        null,
+        null,
+        1,
+        null,
+        1,
+        1,
+        2,
+        null,
+        null,
+        1,
+        1,
+        null,
+        null,
+        1,
+        1,
+        null,
+        null
+      ]
+    }
+  },
+  "groups": {
+    "Libs": {
+      "lines": {
+        "covered_percent": 86.11111111111111
+      }
+    },
+    "Ungrouped": {
+      "lines": {
+        "covered_percent": 100.0
+      }
+    }
+  }
+}
