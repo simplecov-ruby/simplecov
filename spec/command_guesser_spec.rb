@@ -45,4 +45,11 @@ describe SimpleCov::CommandGuesser do
     subject.original_run_command = "some_arbitrary_command with arguments"
     expect(subject.guess).to eq("RSpec")
   end
+
+  it "appends parallel data" do
+    subject.original_run_command = "/some/path/spec/foo.rb"
+    expect(ENV).to receive(:[]).with("TEST_ENV_NUMBER").at_least(:once).and_return("1")
+    expect(ENV).to receive(:[]).with("PARALLEL_TEST_GROUPS").at_least(:once).and_return("2")
+    expect(subject.guess).to eq("RSpec (1/2)")
+  end
 end

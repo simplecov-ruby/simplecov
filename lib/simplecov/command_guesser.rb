@@ -14,12 +14,12 @@ module SimpleCov
       attr_accessor :original_run_command
 
       def guess
-        from_env || from_command_line_options || from_defined_constants
+        [from_command_line_options || from_defined_constants, parallel_data].compact.join(" ")
       end
 
     private
 
-      def from_env
+      def parallel_data
         # If being run from inside parallel_tests set the command name according to the process number
         return unless ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
 
