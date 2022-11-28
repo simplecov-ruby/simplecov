@@ -342,7 +342,7 @@ module SimpleCov
       if coverage_start_arguments_supported?
         start_coverage_with_criteria
       else
-        Coverage.start
+        Coverage.start unless Coverage.running?
       end
     end
 
@@ -351,7 +351,7 @@ module SimpleCov
         [lookup_corresponding_ruby_coverage_name(criterion), true]
       end.to_h
 
-      Coverage.start(start_arguments)
+      Coverage.start(start_arguments) unless Coverage.running?
     end
 
     CRITERION_TO_RUBY_COVERAGE = {
