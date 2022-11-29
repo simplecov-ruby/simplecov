@@ -440,7 +440,9 @@ module SimpleCov
       end
     end
 
-    alias branch_coverage_supported? coverage_start_arguments_supported?
+    def branch_coverage_supported?
+      coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
+    end
 
   private
 
