@@ -354,6 +354,18 @@ Primary coverage determines what will come in first all output, and the type of 
 
 Note that coverage must first be enabled for non-default coverage types.
 
+## Coverage for eval
+
+You can measure coverage for code that is evaluated by `Kernel#eval`. Supported in CRuby versions 3.2+.
+
+```ruby
+SimpleCov.start do
+  enable_coverage_for_eval
+end
+```
+
+This is typically useful for ERB. Set `ERB#filename=` to make it possible for SimpleCov to trace the original .erb source file.
+
 ## Filters
 
 Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all

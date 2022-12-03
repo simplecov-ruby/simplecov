@@ -351,6 +351,8 @@ module SimpleCov
         [lookup_corresponding_ruby_coverage_name(criterion), true]
       end.to_h
 
+      start_arguments[:eval] = true if coverage_for_eval_enabled?
+
       Coverage.start(start_arguments) unless Coverage.running?
     end
 
