@@ -53,7 +53,7 @@ Feature:
     # version seems to work.
     And I set the environment variables to:
       | variable                     | value   |
-      | SIMPLECOV_NO_REQUIRE_VERSION | 0.21.2 |
+      | SIMPLECOV_NO_REQUIRE_VERSION | 0.22.0 |
 
     When I successfully run `bundle exec rake minitest`
     Then no coverage report should have been generated
