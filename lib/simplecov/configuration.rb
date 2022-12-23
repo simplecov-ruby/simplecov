@@ -444,6 +444,23 @@ module SimpleCov
       coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
     end
 
+    def coverage_for_eval_supported?
+      require "coverage"
+      defined?(Coverage.supported?) && Coverage.supported?(:eval)
+    end
+
+    def coverage_for_eval_enabled?
+      @coverage_for_eval_enabled ||= false
+    end
+
+    def enable_coverage_for_eval
+      if coverage_for_eval_supported?
+        @coverage_for_eval_enabled = true
+      else
+        warn "Coverage for eval is not available; Use Ruby 3.2.0 or later"
+      end
+    end
+
   private
 
     def raise_if_criterion_disabled(criterion)
