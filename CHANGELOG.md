@@ -1,3 +1,13 @@
+0.22.0 (2022-12-23
+==========
+
+## Enhancements
+
+* On Ruby 3.2+, you can now use the new Coverage library feature for `eval` - See https://github.com/simplecov-ruby/simplecov/pull/1037. Thanks [@mame](https://github.com/mame)!
+
+## Bugfixes
+* Fix for making the test suite pass against the upcoming Ruby 3.2 - See https://github.com/simplecov-ruby/simplecov/pull/1035. Thanks [@mame](https://github.com/mame)
+
 0.21.2 (2021-01-09)
 ==========
 
