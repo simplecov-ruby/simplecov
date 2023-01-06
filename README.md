@@ -9,7 +9,7 @@ SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge
   * [Rubygem]
   * [Continuous Integration]
 
-[Coverage]: https://ruby-doc.org/stdlib/libdoc/coverage/rdoc/Coverage.html "API doc for Ruby's Coverage library"
+[Coverage]: https://docs.ruby-lang.org/en/3.2/Coverage.html "API doc for Ruby's Coverage library"
 [Source Code]: https://github.com/simplecov-ruby/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
