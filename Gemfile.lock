@@ -81,13 +81,13 @@ GEM
     method_source (1.0.0)
     middleware (0.1.0)
     mini_mime (1.0.2)
-    mini_portile2 (2.5.0)
+    mini_portile2 (2.8.1)
     minitest (5.14.3)
     multi_test (0.1.2)
-    nokogiri (1.11.1)
-      mini_portile2 (~> 2.5.0)
+    nokogiri (1.13.10)
+      mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
-    nokogiri (1.11.1-java)
+    nokogiri (1.13.10-java)
       racc (~> 1.4)
     parallel (1.20.1)
     parser (3.0.0.0)
@@ -106,8 +106,8 @@ GEM
       method_source (~> 1.0)
       spoon (~> 0.0)
     public_suffix (4.0.6)
-    racc (1.5.2)
-    racc (1.5.2-java)
+    racc (1.6.2)
+    racc (1.6.2-java)
     rack (2.2.3)
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
@@ -185,4 +185,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.2.31
+   2.4.3
