@@ -13,9 +13,7 @@ jobs:
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
-
-    env:
-      SIMPLECOV_HTML_MODE: methods
+      SIMPLECOV_HTML_MODE: "methods"
 
     steps:
       - uses: actions/checkout@v3
