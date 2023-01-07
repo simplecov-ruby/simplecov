@@ -29,4 +29,5 @@ tmp
 .ruby-version
 spec/fixtures/coverage
 spec/fixtures/frameworks/coverage
+spec/fixtures/eval_test/coverage
 test_projects/**/coverage

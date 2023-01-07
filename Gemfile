@@ -5,7 +5,7 @@ source "https://rubygems.org"
 case ENV["SIMPLECOV_HTML_MODE"]
 when "local"
   # Use local copy of simplecov-html in development when checked out
-  gem "simplecov-html", path: "#{File.dirname(__FILE__)}/../simplecov-html"
+  gem "simplecov-html", path: File.join(__dir__, "../simplecov-html")
 when "github"
   # Use development version of html formatter from github
   gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
@@ -13,8 +13,10 @@ when "methods"
   gem "simplecov-html", github: "umbrellio/simplecov-html", branch: "add-method-coverage-support"
 end
 
+gem "matrix"
+
 group :development do
-  gem "apparition", "~> 0.6.0"
+  gem "apparition", github: "twalpole/apparition" # LOCKED: When this is released, use a released version https://github.com/twalpole/apparition/pull/79
   gem "aruba", "~> 1.0"
   gem "capybara", "~> 3.31"
   gem "cucumber", "~> 4.0"

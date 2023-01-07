@@ -9,4 +9,4 @@ class Foo
     end
   end
 end
-#:nocov:
+# :nocov:

@@ -6,7 +6,6 @@ $LOAD_PATH.push File.expand_path("lib", __dir__)
 # See the cuke that is setting this.
 # Basically to really reproduce #877 we needed a gemspec that doesn't
 # (indirectly) define a SimpleCov module... so this is the workaround.
-# No one ever but hat test should set that environment variable. Please.
 version =
   if ENV["SIMPLECOV_NO_REQUIRE_VERSION"]
     ENV["SIMPLECOV_NO_REQUIRE_VERSION"]

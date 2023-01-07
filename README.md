@@ -69,6 +69,8 @@ Getting started
     The `SimpleCov.start` **must** be issued **before any of your application
     code is required!**
 
+    This is especially true if you use anything that keeps your tests application loaded like spring, check out the **[spring section](#want-to-use-spring-with-simplecov)**.
+
     SimpleCov must be running in the process that you want the code coverage
     analysis to happen on. When testing a server process (e.g. a JSON API
     endpoint) via a separate test process (e.g. when using Selenium) where you
@@ -105,10 +107,6 @@ Getting started
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
 
-   ```
-   echo "coverage" >> .gitignore
-   ```
-   Or if you use Windows:
    ```
    echo coverage >> .gitignore
    ```
@@ -355,6 +353,18 @@ end
 Primary coverage determines what will come in first all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
 
 Note that coverage must first be enabled for non-default coverage types.
+
+## Coverage for eval
+
+You can measure coverage for code that is evaluated by `Kernel#eval`. Supported in CRuby versions 3.2+.
+
+```ruby
+SimpleCov.start do
+  enable_coverage_for_eval
+end
+```
+
+This is typically useful for ERB. Set `ERB#filename=` to make it possible for SimpleCov to trace the original .erb source file.
 
 ## Filters
 
@@ -840,15 +850,17 @@ You can use your own formatter with:
 SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 ```
 
-When calling SimpleCov.result.format!, it will be invoked with SimpleCov::Formatter::YourFormatter.new.format(result),
-"result" being an instance of SimpleCov::Result. Do whatever your wish with that!
+Calling `SimpleCov.result.format!` will be invoked with `SimpleCov::Formatter::YourFormatter.new.format(result)`,
+and `result` is an instance of `SimpleCov::Result`. Do whatever your wish with that!
 
 
 ## Using multiple formatters
 
-As of SimpleCov 0.9, you can specify multiple result formats:
+As of SimpleCov 0.9, you can specify multiple result formats. Formatters besides the default HTML formatter require separate gems, however.
 
 ```ruby
+require "simplecov-html"
+
 SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CSVFormatter,
@@ -877,7 +889,7 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 ## Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 2.5+ as well as JRuby 9.2+.
+SimpleCov is built in [Continuous Integration] on Ruby 2.7+ as well as JRuby 9.3+.
 
 Note for JRuby => You need to pass JRUBY_OPTS="--debug" or create .jrubyrc and add debug.fullTrace=true
 
