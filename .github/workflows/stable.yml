@@ -13,7 +13,7 @@ jobs:
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
-      SIMPLECOV_HTML_MODE: "methods"
+      SIMPLECOV_HTML_MODE: "methods" # TODO: remove after simplecov-html release
 
     steps:
       - uses: actions/checkout@v3
