@@ -29,13 +29,5 @@ jobs:
       - name: Get the newest rubygems version to rid ourselves of warnings
         run: gem update --system --no-document
 
-      - name: Install bundler
-        run: gem i bundler --no-document
-
-      - name: Install dependencies
-        run: |
-          bundle config set --local without benchmark
-          bundle install --jobs=3
-
       - name: Run tests
         run: bundle exec rake
