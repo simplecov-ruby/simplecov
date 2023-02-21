@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [ruby-head, jruby-head]
+        ruby: [ruby-head, jruby-head, truffleruby-head]
 
     env:
       BUNDLE_WITHOUT: "benchmark"
@@ -36,3 +36,8 @@ jobs:
 
       - name: Run tests
         run: bundle exec rake
+        if: matrix.ruby != 'truffleruby'
+
+      - name: Run specs (truffleruby)
+        run: bundle exec rake spec
+        if: matrix.ruby == 'truffleruby'
