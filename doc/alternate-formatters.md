@@ -69,3 +69,8 @@ A TailwindCSS & TailwindUI Designed HTML formatter with clean and easy search of
 *by [Chiefpansancolt](https://github.com/chiefpansancolt)*
 
 A Material Designed HTML formatter with clean and easy search of files with a tabular left Navigation.
+
+#### [simplecov-bitbucket-server](https://github.com/funbox/simplecov-bitbucket-server)
+*by [Ilya Vassilevsky](https://github.com/vassilevsky)*
+
+Uploads coverage to a Bitbucket Server instance via Code Coverage plugin.
