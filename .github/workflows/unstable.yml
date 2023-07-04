@@ -28,9 +28,6 @@ jobs:
         run: sudo apt-get -y install openjdk-8-jre-headless
         if: matrix.ruby == 'jruby-head'
 
-      - name: Get sqlite for Rails test projects
-        run: sudo apt-get install libsqlite3-dev
-
       - name: Install dependencies
         run: |
           source $HOME/.rvm/scripts/rvm

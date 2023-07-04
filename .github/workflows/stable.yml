@@ -17,9 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get sqlite for Rails test projects
-        run: sudo apt-get install libsqlite3-dev
-
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
