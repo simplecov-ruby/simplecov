@@ -24,13 +24,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
+          rubygems: latest
           bundler-cache: true # 'bundle install' and cache
-
-      - name: Get the newest rubygems version to rid ourselves of warnings
-        run: gem update --system --no-document
-
-      - name: Install bundler
-        run: gem i bundler --no-document
 
       - name: Run tests
         run: bundle exec rake
