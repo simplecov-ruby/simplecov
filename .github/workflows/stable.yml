@@ -32,10 +32,5 @@ jobs:
       - name: Install bundler
         run: gem i bundler --no-document
 
-      - name: Install dependencies
-        run: |
-          bundle config set --local without benchmark
-          bundle install --jobs=3
-
       - name: Run tests
         run: bundle exec rake
