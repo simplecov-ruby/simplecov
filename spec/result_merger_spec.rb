@@ -259,9 +259,7 @@ describe SimpleCov::ResultMerger do
       end
       CODE
 
-      # rubocop:disable Security/Open
-      other_process = open("|ruby -e #{Shellwords.escape(test_script)} 2>/dev/null")
-      # rubocop:enable Security/Open
+      other_process = IO.popen("ruby -e #{Shellwords.escape(test_script)} 2>/dev/null")
 
       SimpleCov::ResultMerger.synchronize_resultset do
         # wait until the child process is going, and then wait some more
