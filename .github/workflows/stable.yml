@@ -15,7 +15,7 @@ jobs:
       JRUBY_OPTS: "--debug"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
