@@ -260,7 +260,6 @@ describe SimpleCov::ResultMerger do
       CODE
 
       IO.popen("ruby -e #{Shellwords.escape(test_script)} 2>/dev/null") do |other_process|
-
         SimpleCov::ResultMerger.synchronize_resultset do
           # wait until the child process is going, and then wait some more
           # so we can be sure it blocks on the lock we already have.
