@@ -8,6 +8,10 @@ source "https://rubygems.org"
 # Uncomment this to use development version of html formatter from github
 # gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
 
+# Since simplecov-html has not had a release recently and we need the updated gem for rack to address a
+# security finding, forcing simplecov to use this version where rack was updated.
+gem "simplecov-html", github: "simplecov-ruby/simplecov-html", ref: '663e3fe'
+
 gem "matrix"
 
 group :development do
