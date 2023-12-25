@@ -358,7 +358,7 @@ module SimpleCov
     #     SimpleCov.add_filter do |src_file|
     #       File.basename(src_file.filename) == 'environment.rb'
     #     end # Will exclude environment.rb files from the results
-    # * as an array of strings that are matched against all sorce files' file
+    # * as an array of strings that are matched against all source files' file
     #   paths and then ignored (basically string filter multiple times)
     #     SimpleCov.add_filter ['app/models', 'app/helpers'] # ignores both dirs
     # * as an instance of a subclass of SimpleCov::Filter. See the documentation there

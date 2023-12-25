@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        ruby: [2.7, '3.0', 3.1, 3.2, ruby-head, jruby-9.3]
+        ruby: [2.7, '3.0', 3.1, 3.2, ruby-head, jruby-9.4]
 
     env:
       BUNDLE_WITHOUT: "benchmark"
@@ -16,24 +16,14 @@ jobs:
       SIMPLECOV_HTML_MODE: "methods" # TODO: remove after simplecov-html release
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Get sqlite for Rails test projects
-        run: sudo apt-get install libsqlite3-dev
+      - uses: actions/checkout@v4
 
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
+          rubygems: latest
           bundler-cache: true # 'bundle install' and cache
-
-      - name: Get the newest rubygems version to rid ourselves of warnings
-        run: gem update --system --no-document
-
-      - name: Install dependencies
-        run: |
-          bundle config set --local without benchmark
-          bundle install --jobs=3
 
       - name: Run tests
         run: bundle exec rake

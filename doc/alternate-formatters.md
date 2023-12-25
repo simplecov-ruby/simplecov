@@ -64,8 +64,3 @@ t_wada AA formatter for SimpleCov
 *by [Chiefpansancolt](https://github.com/chiefpansancolt)*
 
 A TailwindCSS & TailwindUI Designed HTML formatter with clean and easy search of files with a tabular left Navigation.
-
-#### [simplecov-material](https://github.com/chiefpansancolt/simplecov-material)
-*by [Chiefpansancolt](https://github.com/chiefpansancolt)*
-
-A Material Designed HTML formatter with clean and easy search of files with a tabular left Navigation.

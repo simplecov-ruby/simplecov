@@ -326,23 +326,21 @@ describe SimpleCov::ResultMerger do
       end
       CODE
 
-      # rubocop:disable Security/Open
-      other_process = open("|ruby -e #{Shellwords.escape(test_script)} 2>/dev/null")
-      # rubocop:enable Security/Open
+      IO.popen("ruby -e #{Shellwords.escape(test_script)} 2>/dev/null") do |other_process|
+        SimpleCov::ResultMerger.synchronize_resultset do
+          # wait until the child process is going, and then wait some more
+          # so we can be sure it blocks on the lock we already have.
+          sleep 0.1 until other_process.gets == "running\n"
+          sleep 1
 
-      SimpleCov::ResultMerger.synchronize_resultset do
-        # wait until the child process is going, and then wait some more
-        # so we can be sure it blocks on the lock we already have.
-        sleep 0.1 until other_process.gets == "running\n"
-        sleep 1
+          # despite the sleeps, this will be written first since we got
+          # the first lock
+          File.open(file.path, "a") { |f| f.write("process 1\n") }
+        end
 
-        # despite the sleeps, this will be written first since we got
-        # the first lock
-        File.open(file.path, "a") { |f| f.write("process 1\n") }
+        # wait for it to finish
+        other_process.gets
       end
-
-      # wait for it to finish
-      other_process.gets
 
       expect(file.read).to eq("process 1\nprocess 2\n")
     end

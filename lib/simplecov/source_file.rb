@@ -87,7 +87,7 @@ module SimpleCov
     end
 
     def no_lines?
-      lines.length.zero? || (lines.length == never_lines.size)
+      lines.empty? || (lines.length == never_lines.size)
     end
 
     def relevant_lines
