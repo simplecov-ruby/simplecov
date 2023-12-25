@@ -8,7 +8,7 @@ GIT
 
 GIT
   remote: https://github.com/umbrellio/simplecov-html.git
-  revision: dea7be12fce6364e9d7a7529a4fcd52075c18af8
+  revision: 54879bd1080865cf8013bcda12e0c03ac687d7a9
   branch: add-method-coverage-support
   specs:
     simplecov-html (0.12.3)
