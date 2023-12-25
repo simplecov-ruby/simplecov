@@ -31,20 +31,19 @@ module SimpleCov
         # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
         # of data. Reading them all in easily produces Gigabytes of memory consumption which
         # we want to avoid.
-        #
-        # For similar reasons a SimpleCov::Result is only created in the end as that'd create
-        # even more data especially when it also reads in all source files.
-        initial_memo = valid_results(file_paths.shift, ignore_timeout: ignore_timeout)
 
-        command_names, coverage = file_paths.reduce(initial_memo) do |memo, file_path|
-          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
+        file_paths = file_paths.dup
+        initial_result = merge_file_results(file_paths.shift, ignore_timeout: ignore_timeout)
+
+        file_paths.reduce(initial_result) do |memo, path|
+          file_result = merge_file_results(path, ignore_timeout: ignore_timeout)
+          merge_coverage([memo, file_result])
         end
-
-        create_result(command_names, coverage)
       end
 
-      def valid_results(file_path, ignore_timeout: false)
-        results = parse_file(file_path)
+      def merge_file_results(file_path, ignore_timeout:)
+        raw_results = parse_file(file_path)
+        results = Result.from_hash(raw_results)
         merge_valid_results(results, ignore_timeout: ignore_timeout)
       end
 
@@ -72,42 +71,25 @@ module SimpleCov
       end
 
       def merge_valid_results(results, ignore_timeout: false)
-        results = results.select { |_command_name, data| within_merge_timeout?(data) } unless ignore_timeout
-
-        command_plus_coverage = results.map do |command_name, data|
-          [[command_name], adapt_result(data.fetch("coverage"))]
-        end
-
-        # one file itself _might_ include multiple test runs
-        merge_coverage(*command_plus_coverage)
+        results = results.select { |x| within_merge_timeout?(x) } unless ignore_timeout
+        merge_coverage(results)
       end
 
-      def within_merge_timeout?(data)
-        time_since_result_creation(data) < SimpleCov.merge_timeout
+      def within_merge_timeout?(result)
+        Time.now - result.created_at < SimpleCov.merge_timeout
       end
 
-      def time_since_result_creation(data)
-        Time.now - Time.at(data.fetch("timestamp"))
-      end
+      def merge_coverage(results)
+        results = results.compact
 
-      def create_result(command_names, coverage)
-        return nil unless coverage
-
-        command_name = command_names.reject(&:empty?).sort.join(", ")
-        SimpleCov::Result.new(coverage, command_name: command_name)
-      end
-
-      def merge_coverage(*results)
-        return [[""], nil] if results.empty?
+        return nil if results.empty?
         return results.first if results.size == 1
 
-        results.reduce do |(memo_command, memo_coverage), (command, coverage)|
-          # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
-          merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
-          merged_command = memo_command + command
-
-          [merged_command, merged_coverage]
-        end
+        parsed_results = results.map(&:original_result)
+        combined_result = SimpleCov::Combine::ResultsCombiner.combine(*parsed_results)
+        result = SimpleCov::Result.new(combined_result)
+        result.command_name = results.map(&:command_name).reject(&:empty?).sort.join(", ")
+        result
       end
 
       #
@@ -118,9 +100,8 @@ module SimpleCov
         # conceptually this is just doing `merge_results(resultset_path)`
         # it's more involved to make syre `synchronize_resultset` is only used around reading
         resultset_hash = read_resultset
-        command_names, coverage = merge_valid_results(resultset_hash)
-
-        create_result(command_names, coverage)
+        results = Result.from_hash(resultset_hash)
+        merge_valid_results(results)
       end
 
       def read_resultset
@@ -162,31 +143,6 @@ module SimpleCov
           end
         ensure
           @resultset_locked = false
-        end
-      end
-
-      # We changed the format of the raw result data in simplecov, as people are likely
-      # to have "old" resultsets lying around (but not too old so that they're still
-      # considered we can adapt them).
-      # See https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
-      def adapt_result(result)
-        if pre_simplecov_0_18_result?(result)
-          adapt_pre_simplecov_0_18_result(result)
-        else
-          result
-        end
-      end
-
-      # pre 0.18 coverage data pointed from file directly to an array of line coverage
-      def pre_simplecov_0_18_result?(result)
-        _key, data = result.first
-
-        data.is_a?(Array)
-      end
-
-      def adapt_pre_simplecov_0_18_result(result)
-        result.transform_values do |line_coverage_data|
-          {"lines" => line_coverage_data}
         end
       end
     end

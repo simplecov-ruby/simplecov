@@ -68,5 +68,4 @@ Feature:
     When I run `bundle exec rake test`
     Then the exit status should not be 0
     And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%)."
-    And the output should not contain "Line coverage"
     And the output should contain "SimpleCov failed with exit 2"

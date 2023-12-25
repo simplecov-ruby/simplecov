@@ -28,6 +28,10 @@ Before("@branch_coverage") do
   skip_this_scenario unless SimpleCov.branch_coverage_supported?
 end
 
+Before("@method_coverage") do
+  skip_this_scenario unless SimpleCov.method_coverage_supported?
+end
+
 Before("@rails6") do
   # Rails 6 only supports Ruby 2.5+
   skip_this_scenario if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.5")

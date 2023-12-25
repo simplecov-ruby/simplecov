@@ -13,6 +13,7 @@ jobs:
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
+      SIMPLECOV_HTML_MODE: "methods" # TODO: remove after simplecov-html release
 
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +22,6 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          rubygems: latest
           bundler-cache: true # 'bundle install' and cache
 
       - name: Run tests

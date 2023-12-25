@@ -19,7 +19,7 @@ RSpec.describe "coverage for eval" do
       let(:command) { "ruby eval_test.rb" }
 
       it "records coverage for erb" do
-        expect(@stdout).to include(" 2 / 3 LOC")
+        expect(@stdout).to include("Line coverage: 2 / 3")
       end
     end
   end

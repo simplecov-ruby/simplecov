@@ -14,9 +14,19 @@ module SimpleCov
       #
       # @return [Hash]
       #
-      def combine(coverage_a, coverage_b)
-        combination = {"lines" => Combine.combine(LinesCombiner, coverage_a["lines"], coverage_b["lines"])}
-        combination["branches"] = Combine.combine(BranchesCombiner, coverage_a["branches"], coverage_b["branches"]) if SimpleCov.branch_coverage?
+      def combine(cov_a, cov_b)
+        combination = {}
+
+        combination[:lines] = Combine.combine(LinesCombiner, cov_a[:lines], cov_b[:lines])
+
+        if SimpleCov.branch_coverage? # rubocop:disable Style/IfUnlessModifier
+          combination[:branches] = Combine.combine(BranchesCombiner, cov_a[:branches], cov_b[:branches])
+        end
+
+        if SimpleCov.method_coverage? # rubocop:disable Style/IfUnlessModifier
+          combination[:methods] = Combine.combine(MethodsCombiner, cov_a[:methods], cov_b[:methods])
+        end
+
         combination
       end
     end

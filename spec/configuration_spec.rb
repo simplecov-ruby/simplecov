@@ -88,6 +88,14 @@ describe SimpleCov::Configuration do
         expect(config.public_send(coverage_setting)).to eq branch: 85.0, line: 95.4
       end
 
+      it "sets the right coverage when called with line, branch and method" do
+        config.enable_coverage :branch
+        config.enable_coverage :method
+        config.minimum_coverage branch: 85.0, line: 95.4, method: 91.5
+
+        expect(config.minimum_coverage).to eq branch: 85.0, line: 95.4, method: 91.5
+      end
+
       it "raises when trying to set branch coverage but not enabled" do
         expect do
           config.public_send(coverage_setting, {branch: 42})
@@ -175,6 +183,12 @@ describe SimpleCov::Configuration do
         expect(config.coverage_criterion).to eq :branch
       end
 
+      it "works fine with :method" do
+        config.coverage_criterion :method
+
+        expect(config.coverage_criterion).to eq :method
+      end
+
       it "works fine setting it back and forth" do
         config.coverage_criterion :branch
         config.coverage_criterion :line
@@ -226,6 +240,20 @@ describe SimpleCov::Configuration do
         config.coverage_criterion :line
 
         expect(config).not_to be_branch_coverage
+      end
+    end
+
+    describe "#method_coverage?", if: SimpleCov.method_coverage_supported? do
+      it "returns true of method coverage is being measured" do
+        config.enable_coverage :method
+
+        expect(config).to be_method_coverage
+      end
+
+      it "returns false for line coverage" do
+        config.coverage_criterion :line
+
+        expect(config).not_to be_method_coverage
       end
     end
 

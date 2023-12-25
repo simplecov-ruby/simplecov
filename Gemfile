@@ -2,11 +2,16 @@
 
 source "https://rubygems.org"
 
-# Uncomment this to use local copy of simplecov-html in development when checked out
-# gem "simplecov-html", path: File.join(__dir__, "../simplecov-html")
-
-# Uncomment this to use development version of html formatter from github
-# gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+case ENV["SIMPLECOV_HTML_MODE"]
+when "local"
+  # Use local copy of simplecov-html in development when checked out
+  gem "simplecov-html", path: File.join(__dir__, "../simplecov-html")
+when "github"
+  # Use development version of html formatter from github
+  gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+when "methods" # TODO: remove after simplecov-html release
+  gem "simplecov-html", github: "umbrellio/simplecov-html", branch: "add-method-coverage-support"
+end
 
 gem "matrix"
 

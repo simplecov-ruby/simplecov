@@ -191,11 +191,11 @@ describe SimpleCov do
 
   describe ".collate" do
     let(:resultset1) do
-      {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset2) do
-      {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
+      {source_fixture("sample.rb") => {lines: [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
@@ -207,7 +207,7 @@ describe SimpleCov do
         "result1, result2" => {
           "coverage" => {
             source_fixture("sample.rb") => {
-              "lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
+              lines: [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
             }
           }
         }
@@ -215,7 +215,10 @@ describe SimpleCov do
     end
 
     let(:collated) do
-      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+      JSON.parse(File.read(resultset_path)).transform_values do |data|
+        data["coverage"].values.first.transform_keys!(&:to_sym)
+        data.reject { |k| k == "timestamp" }
+      end
     end
 
     context "when no files to be merged" do
@@ -332,10 +335,18 @@ describe SimpleCov do
       SimpleCov.send :start_coverage_measurement
     end
 
-    it "starts coverage with lines and branches if branches is activated" do
+    it "starts coverage with lines and branches if branch coverage is activated" do
       expect(Coverage).to receive(:start).with(lines: true, branches: true)
 
       SimpleCov.enable_coverage :branch
+
+      SimpleCov.send :start_coverage_measurement
+    end
+
+    it "starts coverage with lines and methods if method coverage is activated" do
+      expect(Coverage).to receive(:start).with(lines: true, methods: true)
+
+      SimpleCov.enable_coverage :method
 
       SimpleCov.send :start_coverage_measurement
     end
