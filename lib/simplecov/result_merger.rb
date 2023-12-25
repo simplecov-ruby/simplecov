@@ -82,7 +82,7 @@ module SimpleCov
       def merge_coverage(results)
         results = results.compact
 
-        return nil if results.size.zero?
+        return nil if results.empty?
         return results.first if results.size == 1
 
         parsed_results = results.map(&:original_result)
