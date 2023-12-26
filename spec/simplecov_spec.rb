@@ -327,13 +327,13 @@ describe SimpleCov do
     end
 
     it "starts coverage in lines mode by default" do
-      expect(Coverage).to receive(:start).with(lines: true)
+      expect(Coverage).to receive(:start).with({lines: true})
 
       SimpleCov.send :start_coverage_measurement
     end
 
     it "starts coverage with lines and branches if branches is activated" do
-      expect(Coverage).to receive(:start).with(lines: true, branches: true)
+      expect(Coverage).to receive(:start).with({lines: true, branches: true})
 
       SimpleCov.enable_coverage :branch
 
