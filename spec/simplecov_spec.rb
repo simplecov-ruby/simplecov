@@ -13,7 +13,7 @@ describe SimpleCov do
     context "with merging disabled" do
       before do
         allow(SimpleCov).to receive(:use_merging).once.and_return(false)
-        expect(SimpleCov).to_not receive(:wait_for_other_processes)
+        expect(SimpleCov).not_to receive(:wait_for_other_processes)
       end
 
       context "when not running" do
@@ -319,7 +319,7 @@ describe SimpleCov do
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
   describe ".start_coverage_measurement", if: SimpleCov.coverage_start_arguments_supported? do
-    after :each do
+    after do
       # SimpleCov is a Singleton/global object so once any test enables
       # any kind of coverage data it stays there.
       # Hence, we use clear_coverage_data to create a "clean slate" for these tests

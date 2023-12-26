@@ -11,9 +11,9 @@ if defined?(JRUBY_VERSION) && defined?(JRuby) && !org.jruby.RubyInstanceConfig.F
   # @see https://github.com/simplecov-ruby/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
-  warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
-    ' or do JRUBY_OPTS="--debug"' \
-    ' or set the "debug.fullTrace=true" option in your .jrubyrc'
+  warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
+       'or do JRUBY_OPTS="--debug" ' \
+       'or set the "debug.fullTrace=true" option in your .jrubyrc'
 end
 
 #
@@ -301,7 +301,7 @@ module SimpleCov
 
     def initial_setup(profile, &block)
       load_profile(profile) if profile
-      configure(&block) if block_given?
+      configure(&block) if block
       self.running = true
     end
 
@@ -347,9 +347,9 @@ module SimpleCov
     end
 
     def start_coverage_with_criteria
-      start_arguments = coverage_criteria.map do |criterion|
+      start_arguments = coverage_criteria.to_h do |criterion|
         [lookup_corresponding_ruby_coverage_name(criterion), true]
-      end.to_h
+      end
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
@@ -432,7 +432,7 @@ module SimpleCov
     end
 
     def probably_running_parallel_tests?
-      ENV["TEST_ENV_NUMBER"] && ENV["PARALLEL_TEST_GROUPS"]
+      ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
     end
   end
 end

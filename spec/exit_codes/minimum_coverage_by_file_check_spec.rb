@@ -3,6 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
+  subject { described_class.new(result, minimum_coverage_by_file) }
+
   let(:result) do
     instance_double(SimpleCov::Result, coverage_statistics_by_file: stats)
   end
@@ -11,8 +13,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
       line: [SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)]
     }
   end
-
-  subject { described_class.new(result, minimum_coverage_by_file) }
 
   context "all files passing requirements" do
     let(:minimum_coverage_by_file) { {line: 80} }
