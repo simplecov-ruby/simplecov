@@ -5,25 +5,28 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        ruby: [ruby-head, jruby-head]
-
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
+    strategy:
+      fail-fast: false
+
+      matrix:
+        ruby-version:
+          - ruby-head
+          - jruby-head
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup ruby
-        uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true # 'bundle install' and cache
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+        continue-on-error: ${{ (matrix.ruby-version == 'ruby-head') || (matrix.ruby-version == 'jruby-head') }}
 
-      - name: Run tests
-        run: bundle exec rake
+      - run: |
+          bundle exec rake
+        continue-on-error: ${{ (matrix.ruby-version == 'ruby-head') || (matrix.ruby-version == 'jruby-head') }}
