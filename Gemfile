@@ -10,6 +10,8 @@ source "https://rubygems.org"
 
 gem "matrix"
 
+gem "simplecov_json_formatter", github: "PragTob/simplecov_json_formatter", branch: "group-support"
+
 group :development do
   gem "apparition", github: "twalpole/apparition" # LOCKED: When this is released, use a released version https://github.com/twalpole/apparition/pull/79
   gem "aruba", "~> 1.0"

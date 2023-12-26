@@ -24,6 +24,7 @@ Feature:
 
     When I successfully run `bundle exec rake test`
     Then a JSON coverage report should have been generated in "coverage"
+    And the JSON report should have the right content
     And the output should contain "JSON Coverage report generated"
 
   Scenario: When CC_TEST_REPORTER_ID is set in the environment
@@ -44,4 +45,5 @@ Feature:
     When I successfully run `bundle exec rake test`
 
     Then a JSON coverage report should have been generated in "coverage"
+    And the JSON report should have the right content
     And the output should contain "JSON Coverage report generated"

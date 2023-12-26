@@ -55,6 +55,31 @@ Then /^a JSON coverage report should have been generated(?: in "([^"]*)")?$/ do 
     )
 end
 
+# this is highly bound to the test itself right now and might need
+# adjustments in the future
+Then /^the JSON report should have the right content$/ do
+  with_file_content "coverage/coverage.json" do |content|
+    expect(JSON.parse(content)).to eq(json_fixture)
+  end
+end
+
+DEFAULT_WORKING_DIRECTORY = "STUB_BASE_DIRECTORY"
+def use_current_working_directory(file)
+  current_working_directory = File.expand_path("../..", File.dirname(__FILE__))
+  file.gsub!("/#{DEFAULT_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+
+  file
+end
+
+VERSION_STUB = "STUB_VERSION"
+def json_fixture
+  content = File.read("features/fixtures/json_formatter.json")
+  content = use_current_working_directory(content)
+  content.gsub!("STUB_VERSION", SimpleCov::VERSION)
+
+  JSON.parse(content)
+end
+
 Then /^no coverage report should have been generated(?: in "([^"]*)")?$/ do |coverage_dir|
   coverage_dir ||= "coverage"
   steps %(
