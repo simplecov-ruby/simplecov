@@ -6,7 +6,7 @@ module Process
       if defined?(SimpleCov) && SimpleCov.running
         fork_without_simplecov do
           SimpleCov.at_fork.call(Process.pid)
-          block.call if block_given?
+          yield if block
         end
       else
         fork_without_simplecov(&block)

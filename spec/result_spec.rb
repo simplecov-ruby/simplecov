@@ -125,16 +125,16 @@ describe SimpleCov::Result do
     end
 
     context "with groups set up for all files" do
+      subject do
+        SimpleCov::Result.new(original_result)
+      end
+
       before do
         SimpleCov.add_group "Models", "app/models"
         SimpleCov.add_group "Controllers", ["app/controllers"]
         SimpleCov.add_group "Other" do |src_file|
           File.basename(src_file.filename) == "sample.rb"
         end
-      end
-
-      subject do
-        SimpleCov::Result.new(original_result)
       end
 
       it "has 3 groups" do
@@ -176,14 +176,14 @@ describe SimpleCov::Result do
     end
 
     context "with groups set up that do not match all files" do
+      subject { SimpleCov::Result.new(original_result) }
+
       before do
         SimpleCov.configure do
           add_group "Models", "app/models"
           add_group "Controllers", "app/controllers"
         end
       end
-
-      subject { SimpleCov::Result.new(original_result) }
 
       it "has 3 groups" do
         expect(subject.groups.length).to eq(3)

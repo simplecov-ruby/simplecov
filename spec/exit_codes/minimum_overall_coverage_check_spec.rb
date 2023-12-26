@@ -3,6 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
+  subject { described_class.new(result, minimum_coverage) }
+
   let(:result) do
     instance_double(SimpleCov::Result, coverage_statistics: stats)
   end
@@ -12,8 +14,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
       branch: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)
     }
   end
-
-  subject { described_class.new(result, minimum_coverage) }
 
   context "everything exactly ok" do
     let(:minimum_coverage) { {line: 80.0} }

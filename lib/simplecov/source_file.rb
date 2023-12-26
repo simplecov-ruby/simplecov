@@ -151,7 +151,7 @@ module SimpleCov
     # @return [Boolean]
     #
     def line_with_missed_branch?(line_number)
-      branches_for_line(line_number).select { |_type, count| count.zero? }.any?
+      branches_for_line(line_number).any? { |_type, count| count.zero? }
     end
 
   private

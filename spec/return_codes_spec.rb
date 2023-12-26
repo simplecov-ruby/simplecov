@@ -53,21 +53,25 @@ describe "return codes" do
 
     context "when running testunit_good.rb" do
       let(:command) { "ruby testunit_good.rb" }
+
       it_behaves_like "good tests"
     end
 
     context "when running rspec_good.rb" do
       let(:command) { "rspec rspec_good.rb" }
+
       it_behaves_like "good tests"
     end
 
     context "when running testunit_bad.rb" do
       let(:command) { "ruby testunit_bad.rb" }
+
       it_behaves_like "bad tests"
     end
 
     context "when running rspec_bad.rb" do
       let(:command) { "rspec rspec_bad.rb" }
+
       it_behaves_like "bad tests"
     end
   end

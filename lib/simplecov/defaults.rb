@@ -44,7 +44,7 @@ loop do
       load filename
     rescue LoadError, StandardError
       warn "Warning: Error occurred while trying to load #{filename}. " \
-        "Error message: #{$!.message}"
+           "Error message: #{$!.message}"
     end
     break
   end

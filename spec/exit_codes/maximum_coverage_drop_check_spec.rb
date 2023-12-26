@@ -3,6 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck do
+  subject { described_class.new(result, maximum_coverage_drop) }
+
   let(:result) do
     instance_double(SimpleCov::Result, coverage_statistics: stats)
   end
@@ -19,9 +21,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck do
   end
   let(:last_coverage) { {line: 80.0, branch: 80.0} }
   let(:maximum_coverage_drop) { {line: 0, branch: 0} }
-  subject { described_class.new(result, maximum_coverage_drop) }
 
-  before :each do
+  before do
     expect(SimpleCov::LastRun).to receive(:read).and_return(last_run)
   end
 
