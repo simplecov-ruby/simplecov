@@ -350,7 +350,7 @@ SimpleCov.start do
 end
 ```
 
-Primary coverage determines what will come in first all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
+Primary coverage determines what will come first in all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
 
 Note that coverage must first be enabled for non-default coverage types.
 
