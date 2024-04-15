@@ -35,14 +35,14 @@ end
 
 Before("@process_fork") do
   # Process.fork is NotImplementedError in jruby
-  skip_this_scenario if is_jruby?
+  skip_this_scenario if jruby?
 end
 
 Before("@no_jruby") do
-  skip_this_scenario if is_jruby?
+  skip_this_scenario if jruby?
 end
 
-def is_jruby?
+def jruby?
   defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 end
 
