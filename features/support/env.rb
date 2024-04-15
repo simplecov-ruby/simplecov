@@ -35,7 +35,15 @@ end
 
 Before("@process_fork") do
   # Process.fork is NotImplementedError in jruby
-  skip_this_scenario if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
+  skip_this_scenario if jruby?
+end
+
+Before("@no_jruby") do
+  skip_this_scenario if jruby?
+end
+
+def jruby?
+  defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 end
 
 Aruba.configure do |config|

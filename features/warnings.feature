@@ -1,4 +1,5 @@
-@rspec
+# deactivating on JRuby due to https://github.com/jruby/jruby/issues/8200
+@rspec @no_jruby
 Feature:
 
   Running SimpleCov with verbosity enabled does not yield warnings.
