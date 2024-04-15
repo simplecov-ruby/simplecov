@@ -33,6 +33,9 @@ jobs:
         run: bundle exec rake
         if: matrix.ruby-version != 'truffleruby'
 
+      # Run only `rake spec` on truffleruby, because just `rake` runs `rubocop spec cucumber`.
+      # There is no value to rerun rubocop here.
+      # cucumber fails because it uses an old childprocess which depends on fork.
       - name: Run specs (truffleruby)
         run: bundle exec rake spec
         if: matrix.ruby-version == 'truffleruby'
