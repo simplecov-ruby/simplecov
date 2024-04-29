@@ -35,7 +35,8 @@ describe "return codes" do
 
         it "prints a message to STDERR" do
           # https://github.com/oracle/truffleruby/issues/3535
-          skip "fails on truffleruby" if RUBY_ENGINE == "truffleruby" && command.include?("testunit_bad.rb")
+          skip "fails on truffleruby" if RUBY_ENGINE == "truffleruby" && Object::Object::RUBY_ENGINE_VERSION < "24.1" && command.include?("testunit_bad.rb")
+
           expect(@stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
         end
       end
