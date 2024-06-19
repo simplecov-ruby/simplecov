@@ -861,10 +861,10 @@ As of SimpleCov 0.9, you can specify multiple result formats. Formatters besides
 ```ruby
 require "simplecov-html"
 
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
+SimpleCov.formatters = [
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CSVFormatter,
-])
+]
 ```
 
 ## JSON formatter
