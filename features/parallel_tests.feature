@@ -66,4 +66,4 @@ Feature:
       end
       """
     When I successfully run `bundle exec parallel_rspec spec`
-    Then the output should not match /+cover.+below.+minimum/
+    Then the output should not match /.*cover.+below.+minimum/
