@@ -10,7 +10,7 @@ AllCops:
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.0
   NewCops: enable
   # we might wanna adopt rspec and rake but it's a bit annoying for now
   SuggestExtensions: false
