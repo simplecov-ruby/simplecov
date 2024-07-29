@@ -15,10 +15,11 @@ module SimpleCov
       def report
         minimum_violations.each do |violation|
           $stderr.printf(
-            "%<criterion>s coverage by file (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%).\n",
+            "%<criterion>s coverage by file (%<covered>.2f%%) is below the expected minimum coverage (%<minimum_coverage>.2f%%) in %<filename>s.\n",
             covered: SimpleCov.round_coverage(violation.fetch(:actual)),
             minimum_coverage: violation.fetch(:minimum_expected),
-            criterion: violation.fetch(:criterion).capitalize
+            criterion: violation.fetch(:criterion).capitalize,
+            filename: File.basename(violation.fetch(:filename))
           )
         end
       end
@@ -40,11 +41,12 @@ module SimpleCov
 
       def compute_minimum_coverage_data
         minimum_coverage_by_file.flat_map do |criterion, expected_percent|
-          result.coverage_statistics_by_file.fetch(criterion).map do |actual_coverage|
+          result.files.collect(&:filename).zip(result.coverage_statistics_by_file.fetch(criterion)).map do |filename, actual_coverage|
             {
               criterion: criterion,
               minimum_expected: expected_percent,
-              actual: SimpleCov.round_coverage(actual_coverage.percent)
+              actual: SimpleCov.round_coverage(actual_coverage.percent),
+              filename: filename
             }
           end
         end
