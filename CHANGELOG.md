@@ -4,12 +4,12 @@
 ## Enhancements
 
 * You can now define `minimum_coverage_by_group` - See https://github.com/simplecov-ruby/simplecov/pull/1105. Thanks [@mikhliuk-k](https://github.com/mikhliuk-k)!
+* `minimum_coverage_by_file` prints the name of the violating file. - [@philipritchey](https://github.com/philipritchey)
 
 0.22.0 (2022-12-23)
 ==========
 
 ## Enhancements
-
 * On Ruby 3.2+, you can now use the new Coverage library feature for `eval` - See https://github.com/simplecov-ruby/simplecov/pull/1037. Thanks [@mame](https://github.com/mame)!
 
 ## Bugfixes
