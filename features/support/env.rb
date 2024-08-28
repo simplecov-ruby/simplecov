@@ -5,16 +5,21 @@
 
 require "bundler"
 Bundler.setup
-# require order matters, capybara needs to be there before aruba for the RSpec shadowing fix to work (see slightly below)
 require "capybara/cucumber"
 require "capybara/apparition"
 require "aruba/cucumber"
 require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require "simplecov"
 
-# Small workaround I found for the RSpec/aruba shadowing problem showcased in https://github.com/PragTob/all_conflict/
-# It _seems_ to work for now but it's definitely not ideal. Wish this was fixed in Capybara.
-Aruba::Api::Core.include(Capybara::RSpecMatcherProxies)
+# Monkey-patching Capybara::DSL if Capybara::DSLRSpecProxyInstaller has no `extended` hook
+unless Module.new.extend(RSpec::Matchers).extend(Capybara::DSL).singleton_class.ancestors.include?(Capybara::RSpecMatcherProxies)
+  Capybara::DSL.extend(Module.new {
+    def extended(base)
+      base.extend(::Capybara::RSpecMatcherProxies) if defined?(::RSpec::Matchers) && base.is_a?(::RSpec::Matchers)
+      super
+    end
+  })
+end
 
 # Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
 coverage_dir = File.expand_path("../../tmp/aruba/project/coverage/", __dir__)
