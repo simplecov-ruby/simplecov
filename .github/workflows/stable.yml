@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   tests:
     runs-on: ubuntu-latest
+
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
@@ -13,6 +14,7 @@ jobs:
 
       matrix:
         ruby-version:
+          - '2.6'
           - '2.7'
           - '3.0'
           - '3.1'
