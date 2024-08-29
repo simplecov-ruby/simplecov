@@ -13,8 +13,6 @@ else
   gem "sqlite3", "~> 1.4"
 end
 
-gem "nokogiri", "~> 1.13.10"
-
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem "rails", "~> 6.1.4"
 # Use Puma as the app server
