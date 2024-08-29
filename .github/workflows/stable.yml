@@ -32,6 +32,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
+          rubygems: ${{ (matrix.ruby_version < '2.6' && '3.3.26') || 'default' }}
           bundler-cache: true
 
       - name: Run Rubocop
