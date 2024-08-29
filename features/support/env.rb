@@ -13,12 +13,12 @@ require "simplecov"
 
 # Monkey-patching Capybara::DSL if Capybara::DSLRSpecProxyInstaller has no `extended` hook
 unless Module.new.extend(RSpec::Matchers).extend(Capybara::DSL).singleton_class.ancestors.include?(Capybara::RSpecMatcherProxies)
-  Capybara::DSL.extend(Module.new {
+  Capybara::DSL.extend(Module.new do
     def extended(base)
-      base.extend(::Capybara::RSpecMatcherProxies) if defined?(::RSpec::Matchers) && base.is_a?(::RSpec::Matchers)
+      base.extend(Capybara::RSpecMatcherProxies) if defined?(RSpec::Matchers) && base.is_a?(RSpec::Matchers)
       super
     end
-  })
+  end)
 end
 
 # Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
