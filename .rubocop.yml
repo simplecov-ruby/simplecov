@@ -239,6 +239,9 @@ Style/DocumentDynamicEvalDefinition:
 Style/EndlessMethod:
   Enabled: true
 
+Style/EnvHome:
+  Enabled: false
+
 Style/ExplicitBlockArgument:
   # capturing as a proc has a performance hit, so is a case by case choice
   Enabled: false
