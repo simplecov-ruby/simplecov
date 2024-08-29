@@ -347,9 +347,9 @@ module SimpleCov
     end
 
     def start_coverage_with_criteria
-      start_arguments = coverage_criteria.to_h do |criterion|
+      start_arguments = coverage_criteria.map do |criterion|
         [lookup_corresponding_ruby_coverage_name(criterion), true]
-      end
+      end.to_h
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 

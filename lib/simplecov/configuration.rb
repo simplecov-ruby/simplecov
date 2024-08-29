@@ -344,7 +344,7 @@ module SimpleCov
     def refuse_coverage_drop(*criteria)
       criteria = coverage_criteria if criteria.empty?
 
-      maximum_coverage_drop(criteria.to_h { |c| [c, 0] })
+      maximum_coverage_drop(criteria.map { |c| [c, 0] }.to_h)
     end
 
     #
