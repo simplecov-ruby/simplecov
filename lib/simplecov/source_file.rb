@@ -190,7 +190,7 @@ module SimpleCov
       end
     end
 
-    SHEBANG_REGEX = /\A#!/
+    SHEBANG_REGEX = /\A#!/.freeze
     def shebang?(line)
       SHEBANG_REGEX.match?(line)
     end
@@ -202,7 +202,7 @@ module SimpleCov
       lines.concat([current_line], ensure_remove_undefs(file.readlines))
     end
 
-    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/
+    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
     def set_encoding_based_on_magic_comment(file, line)
       # Check for encoding magic comment
       # Encoding magic comment must be placed at first line except for shebang
