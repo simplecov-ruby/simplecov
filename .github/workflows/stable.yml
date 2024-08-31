@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   tests:
     runs-on: ubuntu-latest
+
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
@@ -13,6 +14,8 @@ jobs:
 
       matrix:
         ruby-version:
+          - '2.5'
+          - '2.6'
           - '2.7'
           - '3.0'
           - '3.1'
@@ -24,11 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: rm Gemfile.lock
+      - run: rm Gemfile.lock && rm test_projects/rails/rspec_rails/Gemfile.lock
 
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
+          rubygems: ${{ (matrix.ruby_version < '2.6' && '3.3.26') || 'default' }}
           bundler-cache: true
 
       - name: Run Rubocop

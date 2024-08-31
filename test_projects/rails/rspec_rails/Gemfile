@@ -13,10 +13,8 @@ else
   gem "sqlite3", "~> 1.4"
 end
 
-gem "nokogiri", "~> 1.13.10"
-
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem "rails", "~> 6.1.4"
+gem "rails", "~> 6.1.0"
 # Use Puma as the app server
 gem "puma", "~> 5.0"
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
@@ -41,7 +39,7 @@ end
 
 group :test do
   # Adds support for Capybara system testing and selenium driver
-  gem "capybara", ">= 3.36.0"
+  gem "capybara", ">= 3.26"
   # 'selenium-webdriver' and 'webdrivers' did not work with Ruby 3.0 at the
   # moment this file was updated. Since they are not needed to run
   # SimpleCov's specs, they have been commented out
