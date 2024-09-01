@@ -33,7 +33,7 @@ module SimpleCov
       end
 
       #
-      # Check if branche missed or not
+      # Check if branch missed or not
       #
       # @return [Boolean]
       #
