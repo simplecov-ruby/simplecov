@@ -836,6 +836,19 @@ SimpleCov.minimum_coverage_by_file line: 80
 SimpleCov.minimum_coverage_by_file line: 90, branch: 80
 ```
 
+### Minimum coverage by group
+
+You can define the minimum coverage percentage expected for specific groups. SimpleCov will return non-zero if unmet, 
+ensuring that coverage is consistent across different parts of your codebase.
+
+```ruby
+SimpleCov.minimum_coverage_by_group 'Models' => 80, 'Controllers' => 60
+# same as above (the default is to check line coverage)
+SimpleCov.minimum_coverage_by_group 'Models' => { line: 80 }, 'Controllers' => { line: 60 }
+# check for a minimum line and branch coverage for 'Models' and 'Controllers' groups
+SimpleCov.minimum_coverage_by_group 'Models' => { line: 90, branch: 80 }, 'Controllers' => { line: 60, branch: 50 }
+```
+
 ### Maximum coverage drop
 
 You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.
