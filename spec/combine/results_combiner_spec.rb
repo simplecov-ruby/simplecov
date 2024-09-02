@@ -101,6 +101,10 @@ describe SimpleCov::Combine::ResultsCombiner do
       it "has proper results for three.rb" do
         expect(subject[source_fixture("three.rb")]["lines"]).to eq([nil, 3, 7])
       end
+
+      it "always returns a Hash object for branches", if: SimpleCov.branch_coverage_supported? do
+        expect(subject[source_fixture("three.rb")]["branches"]).to eq({})
+      end
     end
   end
 
