@@ -1,8 +1,13 @@
+0.22.1 (YYYY-MM-DD)
+==========
+
+## Enhancements
+* `minimum_coverage_by_file` prints the name of the violating file. - (@philipritchey)[https://github.com/philipritchey]
+
 0.22.0 (2022-12-23)
 ==========
 
 ## Enhancements
-
 * On Ruby 3.2+, you can now use the new Coverage library feature for `eval` - See https://github.com/simplecov-ruby/simplecov/pull/1037. Thanks [@mame](https://github.com/mame)!
 
 ## Bugfixes
