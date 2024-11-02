@@ -14,7 +14,7 @@ module SimpleCov
           output << ("=" * 40)
           output << "\n"
           files.each do |file|
-            output << "#{file.filename} (coverage: #{file.covered_percent.round(2)}%)\n"
+            output << "#{file.filename} (coverage: #{file.covered_percent.floor(2)}%)\n"
           end
           output << "\n"
         end
