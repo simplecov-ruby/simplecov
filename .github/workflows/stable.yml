@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: rm Gemfile.lock && rm test_projects/rails/rspec_rails/Gemfile.lock
+      - run: rm Gemfile.lock
 
       - uses: ruby/setup-ruby@v1
         with:
