@@ -5,15 +5,16 @@ module SimpleCov
   #
   # This is uniform across coverage criteria as they all have:
   #
+  # * filename - the full name of the file
   # * total - how many things to cover there are (total relevant loc/branches)
   # * covered - how many of the coverables are hit
   # * missed - how many of the coverables are missed
   # * percent - percentage as covered/missed
   # * strength - average hits per/coverable (will not exist for one shot lines format)
   class CoverageStatistics
-    attr_reader :total, :covered, :missed, :strength, :percent
+    attr_reader :filename, :total, :covered, :missed, :strength, :percent
 
-    def self.from(coverage_statistics)
+    def self.from(filename:, coverage_statistics:)
       sum_covered, sum_missed, sum_total_strength =
         coverage_statistics.reduce([0, 0, 0.0]) do |(covered, missed, total_strength), file_coverage_statistics|
           [
@@ -25,13 +26,14 @@ module SimpleCov
           ]
         end
 
-      new(covered: sum_covered, missed: sum_missed, total_strength: sum_total_strength)
+      new(filename: filename, covered: sum_covered, missed: sum_missed, total_strength: sum_total_strength)
     end
 
     # Requires only covered, missed and strength to be initialized.
     #
     # Other values are computed by this class.
-    def initialize(covered:, missed:, total_strength: 0.0)
+    def initialize(filename:, covered:, missed:, total_strength: 0.0)
+      @filename = filename
       @covered  = covered
       @missed   = missed
       @total    = covered + missed
