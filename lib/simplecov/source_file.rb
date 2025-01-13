@@ -218,11 +218,7 @@ module SimpleCov
       # also setting these option on `file.set_encoding` doesn't seem to work
       # properly so it has to be done here.
       file_lines.each do |line|
-        if line.encoding == Encoding::UTF_8
-          line
-        else
-          line.encode!("UTF-8", invalid: :replace, undef: :replace)
-        end
+        line.encode!("UTF-8", invalid: :replace, undef: :replace) unless line.encoding == Encoding::UTF_8
       end
     end
 
