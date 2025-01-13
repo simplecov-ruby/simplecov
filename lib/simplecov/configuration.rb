@@ -338,6 +338,25 @@ module SimpleCov
     end
 
     #
+    # Defines the minimum coverage per group required for the testsuite to pass.
+    # SimpleCov will return non-zero if the current coverage of the least covered group
+    # is below this threshold.
+    #
+    # Default is 0% (disabled)
+    #
+    def minimum_coverage_by_group(coverage = nil)
+      return @minimum_coverage_by_group ||= {} unless coverage
+
+      @minimum_coverage_by_group = coverage.dup.transform_values do |group_coverage|
+        group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
+
+        raise_on_invalid_coverage(group_coverage, "minimum_coverage_by_group")
+
+        group_coverage
+      end
+    end
+
+    #
     # Refuses any coverage drop. That is, coverage is only allowed to increase.
     # SimpleCov will return non-zero if the coverage decreases.
     #
