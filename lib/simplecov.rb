@@ -438,7 +438,12 @@ module SimpleCov
     end
 
     def probably_running_parallel_tests?
-      ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
+      # As a result of the inherent difficulty of intelligently determining parallel testing,
+      #   and for scenarios where the normal ENV variables may not get set,
+      #   use an explicit trigger defined internally: SIMPLECOV_PARALLEL
+      ENV.fetch("SIMPLECOV_PARALLEL", nil) || (
+        ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
+      )
     end
   end
 end
