@@ -267,14 +267,20 @@ module SimpleCov
     #
     def final_result_process?
       # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
-      !ENV["TEST_ENV_NUMBER"] || (defined?(ParallelTests) && ParallelTests.last_process?)
+      # Short circuit if not parallel
+      return false unless ENV["TEST_ENV_NUMBER"]
+
+      make_parallel_tests_available
+      return false unless defined?(ParallelTests)
+
+      ParallelTests.last_process?
     end
 
     #
     # @api private
     #
     def wait_for_other_processes
-      return unless defined?(ParallelTests) && final_result_process?
+      return unless final_result_process?
 
       ParallelTests.wait_for_other_processes_to_finish
     end
