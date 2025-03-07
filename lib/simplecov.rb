@@ -268,10 +268,10 @@ module SimpleCov
     def final_result_process?
       # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
       # Short circuit if not parallel
-      return false unless ENV["TEST_ENV_NUMBER"]
+      return true unless ENV["TEST_ENV_NUMBER"]
 
       make_parallel_tests_available
-      return false unless defined?(ParallelTests)
+      return true unless defined?(ParallelTests)
 
       ParallelTests.last_process?
     end
@@ -281,6 +281,7 @@ module SimpleCov
     #
     def wait_for_other_processes
       return unless final_result_process?
+      return unless defined?(ParallelTests)
 
       ParallelTests.wait_for_other_processes_to_finish
     end
@@ -447,14 +448,14 @@ module SimpleCov
       # As a result of the inherent difficulty of intelligently determining parallel testing,
       #   and for scenarios where the normal ENV variables may not get set,
       #   use an explicit trigger defined internally: SIMPLECOV_PARALLEL
-      ENV.fetch("SIMPLECOV_PARALLEL", nil) || (
-        ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
-      )
+      return true if ENV.fetch("SIMPLECOV_PARALLEL", nil)
+
+      ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
     end
   end
 end
 
-# requires are down here here for a load order reason I'm not sure what it is about
+# requires are down here for a load order reason I'm not sure what it is about
 require "set"
 require "forwardable"
 require_relative "simplecov/configuration"
