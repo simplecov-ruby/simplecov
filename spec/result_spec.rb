@@ -95,6 +95,10 @@ describe SimpleCov::Result do
             expect(dumped_result.created_at.to_i).to eq(subject.created_at.to_i)
           end
 
+          it "has the same started_at" do
+            expect(dumped_result.started_at.to_i).to eq(subject.started_at.to_i)
+          end
+
           it "has the same command_name" do
             expect(dumped_result.command_name).to eq(subject.command_name)
           end
@@ -212,17 +216,20 @@ describe SimpleCov::Result do
           source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
         }
       end
-      let(:created_at) { Time.now.to_i }
+      let(:created_at) { SimpleCov::Timer.wall.truncate }
+      let(:started_at) { SimpleCov::Timer.monotonic.truncate }
 
       it "can consume multiple commands" do
         input = {
           "rspec" => {
             "coverage" => original_result,
-            "timestamp" => created_at
+            "timestamp" => created_at,
+            "started_at" => started_at
           },
           "cucumber" => {
             "coverage" => other_result,
-            "timestamp" => created_at
+            "timestamp" => created_at,
+            "started_at" => started_at
           }
         }
 
@@ -232,6 +239,7 @@ describe SimpleCov::Result do
         sorted = result.sort_by(&:command_name)
         expect(sorted.map(&:command_name)).to eq %w[cucumber rspec]
         expect(sorted.map(&:created_at).map(&:to_i)).to eq [created_at, created_at]
+        expect(sorted.map(&:started_at).map(&:to_i)).to eq [started_at, started_at]
         expect(sorted.map(&:original_result)).to eq [other_result, original_result]
       end
     end

@@ -175,7 +175,8 @@ describe SimpleCov::ResultMerger do
         data = {
           "some command name" => {
             "coverage" => content,
-            "timestamp" => Time.now.to_i
+            "timestamp" => SimpleCov::Timer.wall.truncate,
+            "started_at" => SimpleCov::Timer.monotonic.truncate
           }
         }
         File.open(file_path, "w+") do |f|
@@ -286,7 +287,7 @@ private
   end
 
   def outdated(result)
-    result.created_at = Time.now - 172_800
+    result.started_at = SimpleCov::Timer.monotonic.truncate - 172_800
     result
   end
 
