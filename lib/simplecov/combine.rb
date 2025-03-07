@@ -10,7 +10,7 @@ module SimpleCov
     # Combine two coverage based on the given combiner_module.
     #
     # Combiners should always be called through this interface,
-    # as it takes care of short-circuiting of one of the coverages is nil.
+    # as it takes care of short-circuiting if one of the coverages is nil.
     #
     # @return [Hash]
     def combine(combiner_module, coverage_a, coverage_b)

@@ -15,7 +15,8 @@ Given "the timestamp in the .resultset.json is current" do
   in_current_directory do
     resultset_json = File.read(RESULTSET_JSON_PATH)
     resultset_hash = JSON.parse(resultset_json)
-    resultset_hash[COMMAND_NAME]["timestamp"] = SimpleCov::Timer.monotonic.truncate
+    resultset_hash[COMMAND_NAME]["timestamp"] = SimpleCov::Timer.wall.truncate
+    resultset_hash[COMMAND_NAME]["started_at"] = SimpleCov::Timer.monotonic.truncate
     File.write(RESULTSET_JSON_PATH, JSON.pretty_generate(resultset_hash))
   end
 end

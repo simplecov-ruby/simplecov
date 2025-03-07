@@ -15,8 +15,10 @@ module SimpleCov
     # Returns all files that are applicable to this result (sans filters!) as instances of SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
     alias source_files files
-    # Explicitly set the Time this result has been created
+    # Explicitly set the Time (Wall) this result has been created
     attr_writer :created_at
+    # Explicitly set the Time (Monotonic) this result has been created for elapsed time calculations
+    attr_writer :started_at
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
 
@@ -25,11 +27,12 @@ module SimpleCov
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
-    def initialize(original_result, command_name: nil, created_at: nil)
+    def initialize(original_result, command_name: nil, created_at: nil, started_at: nil)
       result = original_result
       @original_result = result.freeze
       @command_name = command_name
       @created_at = created_at
+      @started_at = started_at
       @files = SimpleCov::FileList.new(result.map do |filename, coverage|
         SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
       end.compact.sort_by(&:filename))
@@ -51,9 +54,19 @@ module SimpleCov
       SimpleCov.formatter.new.format(self)
     end
 
-    # Defines when this result has been created. Defaults to current truncated system monotonic uptime
+    # Defines when this result has been created. Defaults to current wall clock time.
+    # Wall Clock (Realtime) is for knowing what time it is; it cannot be used for elapsed time calculations.
+    # Ref: https://blog.dnsimple.com/2018/03/elapsed-time-with-ruby-the-right-way/
+    # See: #started_at
     def created_at
-      @created_at ||= SimpleCov::Timer.monotonic.truncate
+      @created_at ||= Time.at(SimpleCov::Timer.wall.truncate)
+    end
+
+    # Monotonic Clock is for calculating elapsed time accurately.
+    # Ref: https://blog.dnsimple.com/2018/03/elapsed-time-with-ruby-the-right-way/
+    # See: #created_at
+    def started_at
+      @started_at ||= SimpleCov::Timer.monotonic.truncate
     end
 
     # The command name that launched this result.
@@ -67,7 +80,8 @@ module SimpleCov
       {
         command_name => {
           "coverage" => coverage,
-          "timestamp" => created_at.to_i
+          "timestamp" => created_at.to_i,
+          "started_at" => started_at.to_i
         }
       }
     end
@@ -75,7 +89,12 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       hash.map do |command_name, data|
-        new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]))
+        new(
+          data.fetch("coverage"),
+          command_name: command_name,
+          created_at: Time.at(data["timestamp"]),
+          started_at: data["started_at"]
+        )
       end
     end
 

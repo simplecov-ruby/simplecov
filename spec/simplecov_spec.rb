@@ -215,7 +215,7 @@ describe SimpleCov do
     end
 
     let(:collated) do
-      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k.start_with?("timestamp", "started_at") } }
     end
 
     context "when no files to be merged" do
@@ -299,7 +299,9 @@ describe SimpleCov do
       def create_mergeable_report(name, resultset, outdated: false)
         result = SimpleCov::Result.new(resultset)
         result.command_name = name
-        result.created_at = SimpleCov::Timer.monotonic.truncate - 172_800 if outdated
+        result.created_at = SimpleCov::Timer.wall.truncate
+        result.started_at = SimpleCov::Timer.monotonic.truncate
+        result.started_at -= 172_800 if outdated
         SimpleCov::ResultMerger.store_result(result)
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end

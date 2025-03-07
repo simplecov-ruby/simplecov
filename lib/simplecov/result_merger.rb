@@ -87,8 +87,16 @@ module SimpleCov
       end
 
       def time_since_result_creation(data)
-        timestamp = data.fetch("timestamp")
-        timer = SimpleCov::Timer.new(timestamp)
+        started_at = data.fetch("started_at", nil)
+        timer =
+          if started_at
+            # Use monotonic time
+            SimpleCov::Timer.new(started_at, Process::CLOCK_MONOTONIC)
+          else
+            # Fall back to using wall clock (support transparent upgrade from old result set data)
+            created_at = data.fetch("timestamp", nil)
+            SimpleCov::Timer.new(created_at, Process::CLOCK_REALTIME)
+          end
         timer.elapsed_seconds
       end
 
@@ -104,7 +112,7 @@ module SimpleCov
         return results.first if results.size == 1
 
         results.reduce do |(memo_command, memo_coverage), (command, coverage)|
-          # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
+          # timestamp & started_at are dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
           merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
           merged_command = memo_command + command
 
