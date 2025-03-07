@@ -3,6 +3,9 @@
 source "https://rubygems.org"
 
 # added gems
+# former std libs that have been ejected
+gem "logger"
+gem "ostruct"
 
 gem "rspec-rails"
 gem "simplecov", path: "../../.."

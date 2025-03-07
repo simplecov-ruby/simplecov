@@ -8,8 +8,9 @@ source "https://rubygems.org"
 # Uncomment this to use development version of html formatter from github
 # gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
 
-# std lib gems removed from std lib
+# former std libs that have been ejected
 gem "logger"
+gem "ostruct"
 
 gem "matrix"
 
