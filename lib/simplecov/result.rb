@@ -51,9 +51,9 @@ module SimpleCov
       SimpleCov.formatter.new.format(self)
     end
 
-    # Defines when this result has been created. Defaults to Time.now
+    # Defines when this result has been created. Defaults to current truncated system monotonic uptime
     def created_at
-      @created_at ||= Time.now
+      @created_at ||= SimpleCov::Timer.monotonic.truncate
     end
 
     # The command name that launched this result.

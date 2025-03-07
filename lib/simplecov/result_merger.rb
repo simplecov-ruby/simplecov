@@ -87,7 +87,9 @@ module SimpleCov
       end
 
       def time_since_result_creation(data)
-        Time.now - Time.at(data.fetch("timestamp"))
+        timestamp = data.fetch("timestamp")
+        timer = SimpleCov::Timer.new(timestamp)
+        timer.elapsed_seconds
       end
 
       def create_result(command_names, coverage)

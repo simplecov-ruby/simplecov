@@ -212,7 +212,7 @@ describe SimpleCov::Result do
           source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
         }
       end
-      let(:created_at) { Time.now.to_i }
+      let(:created_at) { SimpleCov::Timer.monotonic.truncate }
 
       it "can consume multiple commands" do
         input = {

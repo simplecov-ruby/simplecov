@@ -299,7 +299,7 @@ describe SimpleCov do
       def create_mergeable_report(name, resultset, outdated: false)
         result = SimpleCov::Result.new(resultset)
         result.command_name = name
-        result.created_at = Time.now - 172_800 if outdated
+        result.created_at = SimpleCov::Timer.monotonic.truncate - 172_800 if outdated
         SimpleCov::ResultMerger.store_result(result)
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end

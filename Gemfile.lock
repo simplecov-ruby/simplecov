@@ -83,6 +83,7 @@ GEM
     json (2.9.1)
     json (2.9.1-java)
     language_server-protocol (3.17.0.3)
+    logger (1.6.6)
     matrix (0.4.2)
     method_source (1.1.0)
     mini_mime (1.1.5)
@@ -180,6 +181,7 @@ DEPENDENCIES
   benchmark-ips
   capybara
   cucumber
+  logger
   matrix
   minitest
   pry
@@ -192,4 +194,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.7.0.dev
+   2.6.5

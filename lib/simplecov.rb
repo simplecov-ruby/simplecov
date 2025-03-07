@@ -267,7 +267,7 @@ module SimpleCov
     #
     def final_result_process?
       # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
-      !defined?(ParallelTests) || !ENV["TEST_ENV_NUMBER"] || ParallelTests.last_process?
+      !ENV["TEST_ENV_NUMBER"] || (defined?(ParallelTests) && ParallelTests.last_process?)
     end
 
     #
@@ -448,6 +448,7 @@ require "set"
 require "forwardable"
 require_relative "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
+require_relative "simplecov/timer"
 require_relative "simplecov/coverage_statistics"
 require_relative "simplecov/exit_codes"
 require_relative "simplecov/profiles"
