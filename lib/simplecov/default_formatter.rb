@@ -8,10 +8,7 @@ module SimpleCov
         formatters = [SimpleCov::Formatter::HTMLFormatter]
 
         # When running under a CI that uses CodeClimate, JSON output is expected
-        if env.fetch("CC_TEST_REPORTER_ID", nil)
-          require "simplecov_json_formatter"
-          formatters.push(SimpleCov::Formatter::JSONFormatter)
-        end
+        formatters.push(SimpleCov::Formatter::JSONFormatter) if env.fetch("CC_TEST_REPORTER_ID", nil)
 
         formatters
       end
