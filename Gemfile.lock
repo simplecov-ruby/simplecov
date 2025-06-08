@@ -83,6 +83,7 @@ GEM
     json (2.9.1)
     json (2.9.1-java)
     language_server-protocol (3.17.0.3)
+    logger (1.7.0)
     matrix (0.4.2)
     method_source (1.1.0)
     mini_mime (1.1.5)

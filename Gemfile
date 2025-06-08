@@ -27,6 +27,7 @@ group :development do
   gem "pry"
   gem "rubocop"
   gem "test-unit"
+  gem "logger"
   # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
   gem "webrick"
 end
