@@ -10,11 +10,9 @@ module SimpleCov
     module_function
 
       def combine(coverage_a, coverage_b)
-        coverage_a
-          .zip(coverage_b)
-          .map do |coverage_a_val, coverage_b_val|
-            merge_line_coverage(coverage_a_val, coverage_b_val)
-          end
+        coverage_a.map.with_index do |coverage_a_val, index|
+          merge_line_coverage(coverage_a_val, coverage_b[index])
+        end
       end
 
       # Return depends on coverage in a specific line
@@ -30,12 +28,12 @@ module SimpleCov
       #
       # @return [Integer || nil]
       def merge_line_coverage(first_val, second_val)
-        sum = first_val.to_i + second_val.to_i
-
-        if sum.zero? && (first_val.nil? || second_val.nil?)
-          nil
-        else
-          sum
+        if first_val && second_val
+          first_val + second_val
+        elsif first_val
+          first_val.zero? ? nil : first_val
+        elsif second_val
+          second_val.zero? ? nil : second_val
         end
       end
     end
