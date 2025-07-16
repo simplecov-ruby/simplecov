@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "helper"
-require "simplecov_json_formatter"
 
 describe SimpleCov::Formatter do
   describe ".from_env" do
