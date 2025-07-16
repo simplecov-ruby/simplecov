@@ -3,6 +3,7 @@
 source "https://rubygems.org"
 
 # added gems
+gem "logger"
 
 gem "rspec-rails"
 gem "simplecov", path: "../../.."
