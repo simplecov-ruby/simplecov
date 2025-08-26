@@ -39,7 +39,7 @@ Feature:
   Scenario:
     Given SimpleCov for Test/Unit is configured with:
       """
-      ENV['CC_TEST_REPORTER_ID'] = "9719ac886877886b7e325d1e828373114f633683e429107d1221d25270baeabf"
+      ENV['QLTY_COVERAGE_TOKEN'] = "9719ac886877886b7e325d1e828373114f633683e429107d1221d25270baeabf"
       require 'simplecov'
       SimpleCov.start
       """

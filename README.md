@@ -878,8 +878,8 @@ require "simplecov_json_formatter"
 SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 ```
 
-> _Note:_ In case you plan to report your coverage results to CodeClimate services, know that SimpleCov will automatically use the
->  JSON formatter along with the HTML formatter when the `CC_TEST_REPORTER_ID` variable is present in the environment.
+> _Note:_ In case you plan to report your coverage results to [Qlty Cloud](https://qlty.sh) services, know that SimpleCov will automatically use the
+>  JSON formatter along with the HTML formatter when the `QLTY_COVERAGE_TOKEN` variable is present in the environment.
 
 ## Available formatters, editor integrations and hosted services
 
