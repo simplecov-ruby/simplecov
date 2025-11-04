@@ -29,6 +29,7 @@ describe SimpleCov::SourceFile::Line do
       before do
         subject.skipped!
       end
+
       it "is not covered" do
         expect(subject).not_to be_covered
       end

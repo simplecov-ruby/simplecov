@@ -35,7 +35,7 @@ module SimpleCov
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
 
       @coverage_path = nil # invalidate cache
-      @coverage_dir = (dir || "coverage")
+      @coverage_dir = dir || "coverage"
     end
 
     #
@@ -140,7 +140,7 @@ module SimpleCov
     def nocov_token(nocov_token = nil)
       return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
 
-      @nocov_token = (nocov_token || "nocov")
+      @nocov_token = nocov_token || "nocov"
     end
     alias skip_token nocov_token
 
@@ -191,9 +191,9 @@ module SimpleCov
     #     end
     #
     def at_exit(&block)
-      return Proc.new unless running || block_given?
+      return Proc.new unless running || block
 
-      @at_exit = block if block_given?
+      @at_exit = block if block
       @at_exit ||= proc { SimpleCov.result.format! }
     end
 
@@ -231,7 +231,7 @@ module SimpleCov
     #     end
     #
     def at_fork(&block)
-      @at_fork = block if block_given?
+      @at_fork = block if block
       @at_fork ||= lambda { |pid|
         # This needs a unique name so it won't be ovewritten
         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"

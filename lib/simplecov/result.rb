@@ -79,7 +79,7 @@ module SimpleCov
 
     def coverage
       keys = original_result.keys & filenames
-      Hash[keys.zip(original_result.values_at(*keys))]
+      keys.zip(original_result.values_at(*keys)).to_h
     end
 
     # Applies all configured SimpleCov filters on this result's source files

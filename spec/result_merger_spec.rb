@@ -6,7 +6,7 @@ require "timeout"
 
 describe SimpleCov::ResultMerger do
   after do
-    File.delete(SimpleCov::ResultMerger.resultset_path) if File.exist?(SimpleCov::ResultMerger.resultset_path)
+    FileUtils.rm_f(SimpleCov::ResultMerger.resultset_path)
   end
 
   let(:resultset1) do
@@ -105,12 +105,12 @@ describe SimpleCov::ResultMerger do
     let(:resultset2_path) { "#{resultset_prefix}2.json" }
 
     describe "merging behavior" do
-      before :each do
+      before do
         store_result(result1, path: resultset1_path)
         store_result(result2, path: resultset2_path)
       end
 
-      after :each do
+      after do
         FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
       end
 
@@ -238,7 +238,7 @@ describe SimpleCov::ResultMerger do
       let(:file_path) { "old_resultset.json" }
       let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }
 
-      before :each do
+      before do
         data = {
           "some command name" => {
             "coverage" => content,
@@ -250,7 +250,7 @@ describe SimpleCov::ResultMerger do
         end
       end
 
-      after :each do
+      after do
         FileUtils.rm file_path
       end
 

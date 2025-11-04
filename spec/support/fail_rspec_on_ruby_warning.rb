@@ -54,9 +54,7 @@ private
     output_dir = File.join(@app_root, "tmp")
     FileUtils.mkdir_p(output_dir)
     output_file = File.join(output_dir, "warnings.txt")
-    File.open(output_file, "w") do |file|
-      file.write(other_warnings.join("\n") << "\n")
-    end
+    File.write(output_file, other_warnings.join("\n") << "\n")
     puts
     puts "Non-app warnings written to tmp/warnings.txt"
     puts

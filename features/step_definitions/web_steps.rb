@@ -46,14 +46,14 @@ end
 
 Then /^(?:|I )should not see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
   with_scope(selector) do
-    expect(page).to have_no_content(text)
+    expect(page).not_to have_content(text)
   end
 end
 
 Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
-    expect(page).to have_no_xpath("//*", text: regexp)
+    expect(page).not_to have_xpath("//*", text: regexp)
   end
 end
 
@@ -65,7 +65,7 @@ Then "{string} should be visible" do |text|
 end
 
 Then "{string} should not be visible" do |text|
-  expect(page).to have_no_content(:visible, text)
+  expect(page).not_to have_content(:visible, text)
 end
 
 Then /^show me the page$/ do

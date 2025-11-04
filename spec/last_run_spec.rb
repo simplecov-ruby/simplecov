@@ -18,7 +18,7 @@ describe SimpleCov::LastRun do
 
   context "reading" do
     context "but the last_run file does not exist" do
-      before { File.delete(subject.last_run_path) if File.exist?(subject.last_run_path) }
+      before { FileUtils.rm_f(subject.last_run_path) }
 
       it "returns nil" do
         expect(subject.read).to be_nil

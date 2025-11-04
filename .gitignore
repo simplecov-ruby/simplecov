@@ -26,7 +26,6 @@ tmp
 ## PROJECT::SPECIFIC
 
 .yardoc
-.ruby-version
 spec/fixtures/coverage
 spec/fixtures/frameworks/coverage
 spec/fixtures/eval_test/coverage

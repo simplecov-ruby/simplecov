@@ -11,10 +11,10 @@ module SimpleCov
         output = +""
         result.groups.each do |name, files|
           output << "Group: #{name}\n"
-          output << "=" * 40
+          output << ("=" * 40)
           output << "\n"
           files.each do |file|
-            output << "#{file.filename} (coverage: #{file.covered_percent.round(2)}%)\n"
+            output << "#{file.filename} (coverage: #{file.covered_percent.floor(2)}%)\n"
           end
           output << "\n"
         end

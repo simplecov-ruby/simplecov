@@ -13,7 +13,7 @@ describe SimpleCov do
     context "with merging disabled" do
       before do
         allow(SimpleCov).to receive(:use_merging).once.and_return(false)
-        expect(SimpleCov).to_not receive(:wait_for_other_processes)
+        expect(SimpleCov).not_to receive(:wait_for_other_processes)
       end
 
       context "when not running" do
@@ -322,7 +322,7 @@ describe SimpleCov do
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
   describe ".start_coverage_measurement", if: SimpleCov.coverage_start_arguments_supported? do
-    after :each do
+    after do
       # SimpleCov is a Singleton/global object so once any test enables
       # any kind of coverage data it stays there.
       # Hence, we use clear_coverage_data to create a "clean slate" for these tests
@@ -330,13 +330,13 @@ describe SimpleCov do
     end
 
     it "starts coverage in lines mode by default" do
-      expect(Coverage).to receive(:start).with(lines: true)
+      expect(Coverage).to receive(:start).with({lines: true})
 
       SimpleCov.send :start_coverage_measurement
     end
 
     it "starts coverage with lines and branches if branch coverage is activated" do
-      expect(Coverage).to receive(:start).with(lines: true, branches: true)
+      expect(Coverage).to receive(:start).with({lines: true, branches: true})
 
       SimpleCov.enable_coverage :branch
 
@@ -344,7 +344,7 @@ describe SimpleCov do
     end
 
     it "starts coverage with lines and methods if method coverage is activated" do
-      expect(Coverage).to receive(:start).with(lines: true, methods: true)
+      expect(Coverage).to receive(:start).with({lines: true, methods: true})
 
       SimpleCov.enable_coverage :method
 

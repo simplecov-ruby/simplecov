@@ -11,6 +11,7 @@ AllCops:
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
   TargetRubyVersion: 2.5
+  NewCops: enable
   # we might wanna adopt rspec and rake but it's a bit annoying for now
   SuggestExtensions: false
 
@@ -237,6 +238,9 @@ Style/DocumentDynamicEvalDefinition:
 
 Style/EndlessMethod:
   Enabled: true
+
+Style/EnvHome:
+  Enabled: false
 
 Style/ExplicitBlockArgument:
   # capturing as a proc has a performance hit, so is a case by case choice

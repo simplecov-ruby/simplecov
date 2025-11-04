@@ -23,9 +23,9 @@ module SimpleCov
         # If being run from inside parallel_tests set the command name according to the process number
         return unless ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
 
-        number = ENV["TEST_ENV_NUMBER"]
+        number = ENV.fetch("TEST_ENV_NUMBER", nil)
         number = "1" if number.empty?
-        "(#{number}/#{ENV['PARALLEL_TEST_GROUPS']})"
+        "(#{number}/#{ENV.fetch('PARALLEL_TEST_GROUPS', nil)})"
       end
 
       def from_command_line_options

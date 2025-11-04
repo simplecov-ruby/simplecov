@@ -2,31 +2,42 @@
 
 source "https://rubygems.org"
 
-case ENV["SIMPLECOV_HTML_MODE"]
+case ENV.fetch("SIMPLECOV_HTML_MODE", nil)
 when "local"
   # Use local copy of simplecov-html in development when checked out
   gem "simplecov-html", path: File.join(__dir__, "../simplecov-html")
 when "github"
   # Use development version of html formatter from github
-  gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
+  gem "simplecov-html", git: "https://github.com/simplecov-ruby/simplecov-html.git"
 when "methods" # TODO: remove after simplecov-html release
-  gem "simplecov-html", github: "umbrellio/simplecov-html", branch: "add-method-coverage-support"
+  gem "simplecov-html", git: "https://github.com/umbrellio/simplecov-html.git", branch: "add-method-coverage-support-update"
 end
 
+gem "base64"
+gem "bigdecimal"
 gem "matrix"
+gem "mutex_m"
+gem "ostruct"
 
 group :development do
-  gem "apparition", github: "twalpole/apparition" # LOCKED: When this is released, use a released version https://github.com/twalpole/apparition/pull/79
-  gem "aruba", "~> 1.0"
-  gem "capybara", "~> 3.31"
-  gem "rackup"
-  gem "cucumber", "~> 4.0"
+  gem "apparition", git: "https://github.com/twalpole/apparition.git"
+  gem "activesupport", "~> 6.1"
+  gem "aruba"
+  gem "capybara"
+  if RUBY_VERSION < "2.7"
+    gem "rack", "< 3"
+  else
+    gem "rackup"
+  end
+  gem "cucumber"
   gem "minitest"
-  gem "rake", "~> 13.0"
-  gem "rspec", "~> 3.2"
+  gem "rake"
+  gem "rspec"
   gem "pry"
-  gem "rubocop"
+  gem "rubocop", "~> 1.70.0" if RUBY_VERSION > "3.2"
   gem "test-unit"
+  gem "logger"
+  gem "power_assert", "~> 2.0" if RUBY_VERSION < "3.0"
   # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
   gem "webrick"
 end

@@ -29,7 +29,8 @@ Gem::Specification.new do |gem|
     "changelog_uri"     => "https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
     "mailing_list_uri"  => "https://groups.google.com/forum/#!forum/simplecov",
-    "source_code_uri"   => "https://github.com/simplecov-ruby/simplecov/tree/v#{gem.version}"
+    "source_code_uri"   => "https://github.com/simplecov-ruby/simplecov/tree/v#{gem.version}",
+"rubygems_mfa_required" => "true"
   }
 
   gem.required_ruby_version = ">= 2.5.0"

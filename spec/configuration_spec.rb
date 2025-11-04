@@ -19,6 +19,7 @@ describe SimpleCov::Configuration do
 
     context "when manually set" do
       before { config.print_error_status = false }
+
       it { is_expected.to be false }
     end
   end
@@ -26,6 +27,7 @@ describe SimpleCov::Configuration do
   describe "#tracked_files" do
     context "when configured" do
       let(:glob) { "{app,lib}/**/*.rb" }
+
       before { config.track_files(glob) }
 
       it "returns the configured glob" do
@@ -48,7 +50,7 @@ describe SimpleCov::Configuration do
     end
 
     shared_examples "setting coverage expectations" do |coverage_setting|
-      after :each do
+      after do
         config.clear_coverage_criteria
       end
 
@@ -109,7 +111,7 @@ describe SimpleCov::Configuration do
       end
 
       context "when primary coverage is set" do
-        before(:each) do
+        before do
           config.enable_coverage :branch
           config.primary_coverage :branch
         end
@@ -135,34 +137,34 @@ describe SimpleCov::Configuration do
     end
 
     describe "#refuse_coverage_drop" do
-      after :each do
+      after do
         config.clear_coverage_criteria
       end
 
       it "sets the right coverage value when called with `:line`" do
-        config.public_send(:refuse_coverage_drop, :line)
+        config.refuse_coverage_drop(:line)
 
-        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0
+        expect(config.maximum_coverage_drop).to eq line: 0
       end
 
       it "sets the right coverage value when called with `:branch`" do
         config.enable_coverage :branch
-        config.public_send(:refuse_coverage_drop, :branch)
+        config.refuse_coverage_drop(:branch)
 
-        expect(config.public_send(:maximum_coverage_drop)).to eq branch: 0
+        expect(config.maximum_coverage_drop).to eq branch: 0
       end
 
       it "sets the right coverage value when called with `:line` and `:branch`" do
         config.enable_coverage :branch
-        config.public_send(:refuse_coverage_drop, :line, :branch)
+        config.refuse_coverage_drop(:line, :branch)
 
-        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0, branch: 0
+        expect(config.maximum_coverage_drop).to eq line: 0, branch: 0
       end
 
       it "sets the right coverage value when called with no args" do
-        config.public_send(:refuse_coverage_drop)
+        config.refuse_coverage_drop
 
-        expect(config.public_send(:maximum_coverage_drop)).to eq line: 0
+        expect(config.maximum_coverage_drop).to eq line: 0
       end
     end
 
@@ -278,7 +280,7 @@ describe SimpleCov::Configuration do
 
     describe "#primary_coverage" do
       context "when branch coverage is enabled" do
-        before(:each) { config.enable_coverage :branch }
+        before { config.enable_coverage :branch }
 
         it "can set primary coverage to branch" do
           config.primary_coverage :branch
@@ -289,7 +291,7 @@ describe SimpleCov::Configuration do
       end
 
       context "when branch coverage is not enabled" do
-        it "cannot set primary coverage to branch " do
+        it "cannot set primary coverage to branch" do
           expect do
             config.primary_coverage :branch
           end.to raise_error(/branch.*disabled/i)

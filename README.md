@@ -9,7 +9,7 @@ SimpleCov [![Gem Version](https://badge.fury.io/rb/simplecov.svg)](https://badge
   * [Rubygem]
   * [Continuous Integration]
 
-[Coverage]: https://docs.ruby-lang.org/en/3.2/Coverage.html "API doc for Ruby's Coverage library"
+[Coverage]: https://docs.ruby-lang.org/en/master/Coverage.html "API doc for Ruby's Coverage library"
 [Source Code]: https://github.com/simplecov-ruby/simplecov "Source Code @ GitHub"
 [API documentation]: http://rubydoc.info/gems/simplecov/frames "RDoc API Documentation at Rubydoc.info"
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"
@@ -350,7 +350,7 @@ SimpleCov.start do
 end
 ```
 
-Primary coverage determines what will come in first all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
+Primary coverage determines what will come first in all output, and the type of coverage to check if you don't specify the type of coverage when customizing exit behavior (`SimpleCov.minimum_coverage 90`).
 
 Note that coverage must first be enabled for non-default coverage types.
 
@@ -861,10 +861,10 @@ As of SimpleCov 0.9, you can specify multiple result formats. Formatters besides
 ```ruby
 require "simplecov-html"
 
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
+SimpleCov.formatters = [
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CSVFormatter,
-])
+]
 ```
 
 ## JSON formatter
@@ -889,7 +889,7 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 ## Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 2.7+ as well as JRuby 9.3+.
+SimpleCov is built in [Continuous Integration] on Ruby 2.5+ as well as JRuby 9.2+.
 
 Note for JRuby => You need to pass JRUBY_OPTS="--debug" or create .jrubyrc and add debug.fullTrace=true
 

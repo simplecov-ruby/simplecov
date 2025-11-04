@@ -34,6 +34,9 @@ describe "return codes" do
         end
 
         it "prints a message to STDERR" do
+          # https://github.com/oracle/truffleruby/issues/3535
+          skip "fails on truffleruby" if RUBY_ENGINE == "truffleruby" && Object::Object::RUBY_ENGINE_VERSION < "24.1" && command.include?("testunit_bad.rb")
+
           expect(@stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
         end
       end
@@ -53,21 +56,25 @@ describe "return codes" do
 
     context "when running testunit_good.rb" do
       let(:command) { "ruby testunit_good.rb" }
+
       it_behaves_like "good tests"
     end
 
     context "when running rspec_good.rb" do
       let(:command) { "rspec rspec_good.rb" }
+
       it_behaves_like "good tests"
     end
 
     context "when running testunit_bad.rb" do
       let(:command) { "ruby testunit_bad.rb" }
+
       it_behaves_like "bad tests"
     end
 
     context "when running rspec_bad.rb" do
       let(:command) { "rspec rspec_bad.rb" }
+
       it_behaves_like "bad tests"
     end
   end

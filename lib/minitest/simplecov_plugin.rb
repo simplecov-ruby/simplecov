@@ -4,7 +4,7 @@
 # https://github.com/seattlerb/minitest#writing-extensions
 module Minitest
   def self.plugin_simplecov_init(_options)
-    if defined?(SimpleCov)
+    if defined?(SimpleCov) && SimpleCov.respond_to?(:at_exit_behavior)
       SimpleCov.external_at_exit = true
 
       Minitest.after_run do

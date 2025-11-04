@@ -5,11 +5,21 @@
 
 require "bundler"
 Bundler.setup
-require "aruba/cucumber"
-require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require "capybara/cucumber"
 require "capybara/apparition"
+require "aruba/cucumber"
+require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require "simplecov"
+
+# Monkey-patching Capybara::DSL if Capybara::DSLRSpecProxyInstaller has no `extended` hook
+unless Module.new.extend(RSpec::Matchers).extend(Capybara::DSL).singleton_class.ancestors.include?(Capybara::RSpecMatcherProxies)
+  Capybara::DSL.extend(Module.new do
+    def extended(base)
+      base.extend(Capybara::RSpecMatcherProxies) if defined?(RSpec::Matchers) && base.is_a?(RSpec::Matchers)
+      super
+    end
+  end)
+end
 
 # Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
 coverage_dir = File.expand_path("../../tmp/aruba/project/coverage/", __dir__)
@@ -39,7 +49,15 @@ end
 
 Before("@process_fork") do
   # Process.fork is NotImplementedError in jruby
-  skip_this_scenario if defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
+  skip_this_scenario if jruby?
+end
+
+Before("@no_jruby") do
+  skip_this_scenario if jruby?
+end
+
+def jruby?
+  defined?(RUBY_ENGINE) && RUBY_ENGINE == "jruby"
 end
 
 Aruba.configure do |config|

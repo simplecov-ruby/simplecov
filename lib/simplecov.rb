@@ -11,9 +11,9 @@ if defined?(JRUBY_VERSION) && defined?(JRuby) && !org.jruby.RubyInstanceConfig.F
   # @see https://github.com/simplecov-ruby/simplecov/issues/86
   # @see https://jira.codehaus.org/browse/JRUBY-6106
 
-  warn 'Coverage may be inaccurate; set the "--debug" command line option,' \
-    ' or do JRUBY_OPTS="--debug"' \
-    ' or set the "debug.fullTrace=true" option in your .jrubyrc'
+  warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
+       'or do JRUBY_OPTS="--debug" ' \
+       'or set the "debug.fullTrace=true" option in your .jrubyrc'
 end
 
 #
@@ -48,8 +48,8 @@ module SimpleCov
     def start(profile = nil, &block)
       require "coverage"
       initial_setup(profile, &block)
-      require_relative "./simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
-                                                ::Process.respond_to?(:fork)
+      require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
+                                              ::Process.respond_to?(:fork)
 
       make_parallel_tests_available
 
@@ -293,7 +293,7 @@ module SimpleCov
 
     def initial_setup(profile, &block)
       load_profile(profile) if profile
-      configure(&block) if block_given?
+      configure(&block) if block
       self.running = true
     end
 
@@ -334,7 +334,7 @@ module SimpleCov
       if coverage_start_arguments_supported?
         start_coverage_with_criteria
       else
-        Coverage.start unless Coverage.running?
+        Coverage.start unless coverage_running?
       end
     end
 
@@ -345,7 +345,13 @@ module SimpleCov
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
-      Coverage.start(start_arguments) unless Coverage.running?
+      Coverage.start(start_arguments) unless coverage_running?
+    end
+
+    def coverage_running?
+      # for ruby versions which do not implement Coverage.running?,
+      # Coverage.start may be called multiple times without raising.
+      Coverage.respond_to?(:running?) && Coverage.running?
     end
 
     CRITERION_TO_RUBY_COVERAGE = {
@@ -425,7 +431,7 @@ module SimpleCov
     end
 
     def probably_running_parallel_tests?
-      ENV["TEST_ENV_NUMBER"] && ENV["PARALLEL_TEST_GROUPS"]
+      ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
     end
   end
 end

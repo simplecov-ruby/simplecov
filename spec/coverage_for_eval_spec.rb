@@ -16,10 +16,10 @@ RSpec.describe "coverage for eval" do
     end
 
     context "foo" do
-      let(:command) { "ruby eval_test.rb" }
+      let(:command) { "bundle e ruby eval_test.rb" }
 
       it "records coverage for erb" do
-        expect(@stdout).to include("Line coverage: 2 / 3")
+        expect(@stdout).to include("Line coverage: 2 / 3 (66.67%)")
       end
     end
   end
