@@ -10,7 +10,7 @@ when "github"
   # Use development version of html formatter from github
   gem "simplecov-html", git: "https://github.com/simplecov-ruby/simplecov-html.git"
 when "methods" # TODO: remove after simplecov-html release
-  gem "simplecov-html", git: "https://github.com/umbrellio/simplecov-html.git", branch: "add-method-coverage-support-update"
+  gem "simplecov-html", git: "https://github.com/umbrellio/simplecov-html.git", branch: "add-method-coverage-support"
 end
 
 gem "base64"
