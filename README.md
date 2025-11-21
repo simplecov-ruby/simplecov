@@ -325,8 +325,8 @@ In the HTML report the lines of code will be annotated like `branch_type: hit_co
 * `then: 2` - the then branch (of an `if`) was executed twice
 * `else: 0` - the else branch (of an `if` or `case`) was never executed
 
-Not that even if you don't declare an `else` branch it will still show up in the coverage
-reports meaning that the condition of the `if` was not hit or that no `when` of `case`
+Note that even if you don't declare an `else` branch, it will still show up in the coverage
+reports, meaning that the condition of the `if` was not hit or that no `when` of `case`
 was hit during the test runs.
 
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
