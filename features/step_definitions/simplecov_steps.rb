@@ -21,7 +21,7 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
   steps %(
     Given a file named "#{framework_dir}/simplecov_config.rb" with:
       """
-      #{config_body}
+#{config_body.gsub(/^/, ' ' * 6)}
       """
     )
 end

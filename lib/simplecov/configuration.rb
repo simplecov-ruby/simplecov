@@ -377,7 +377,7 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
-    SUPPORTED_COVERAGE_CRITERIA = %i[line branch].freeze
+    SUPPORTED_COVERAGE_CRITERIA = %i[line branch method].freeze
     DEFAULT_COVERAGE_CRITERION = :line
     #
     # Define which coverage criterion should be evaluated.
@@ -429,9 +429,12 @@ module SimpleCov
       branch_coverage_supported? && coverage_criterion_enabled?(:branch)
     end
 
+    def method_coverage?
+      method_coverage_supported? && coverage_criterion_enabled?(:method)
+    end
+
     def coverage_start_arguments_supported?
-      # safe to cache as within one process this value should never
-      # change
+      # safe to cache as within one process this value should never change
       return @coverage_start_arguments_supported if defined?(@coverage_start_arguments_supported)
 
       @coverage_start_arguments_supported = begin
@@ -443,6 +446,8 @@ module SimpleCov
     def branch_coverage_supported?
       coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
     end
+
+    alias method_coverage_supported? branch_coverage_supported?
 
     def coverage_for_eval_supported?
       require "coverage"
@@ -465,19 +470,16 @@ module SimpleCov
 
     def raise_if_criterion_disabled(criterion)
       raise_if_criterion_unsupported(criterion)
-      # rubocop:disable Style/IfUnlessModifier
-      unless coverage_criterion_enabled?(criterion)
-        raise "Coverage criterion #{criterion}, is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
+
+      unless coverage_criterion_enabled?(criterion) # rubocop:disable Style/IfUnlessModifier
+        raise "Coverage criterion #{criterion} is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
       end
-      # rubocop:enable Style/IfUnlessModifier
     end
 
     def raise_if_criterion_unsupported(criterion)
-      # rubocop:disable Style/IfUnlessModifier
-      unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+      unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion) # rubocop:disable Style/IfUnlessModifier
         raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
       end
-      # rubocop:enable Style/IfUnlessModifier
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)

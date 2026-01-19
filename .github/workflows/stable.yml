@@ -9,6 +9,7 @@ jobs:
     env:
       BUNDLE_WITHOUT: "benchmark"
       JRUBY_OPTS: "--debug"
+      SIMPLECOV_HTML_MODE: "methods" # TODO: remove after simplecov-html release
     strategy:
       fail-fast: false
 

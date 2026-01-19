@@ -33,7 +33,8 @@ module SimpleCov
       @coverage_statistics ||=
         {
           **line_coverage_statistics,
-          **branch_coverage_statistics
+          **branch_coverage_statistics,
+          **method_coverage_statistics
         }
     end
 
@@ -154,6 +155,26 @@ module SimpleCov
       branches_for_line(line_number).any? { |_type, count| count.zero? }
     end
 
+    def methods
+      @methods ||= build_methods
+    end
+
+    def total_methods
+      @total_methods ||= covered_methods + missed_methods
+    end
+
+    def covered_methods
+      methods.select(&:covered?)
+    end
+
+    def missed_methods
+      methods.select(&:missed?)
+    end
+
+    def methods_coverage_percent
+      coverage_statistics[:method]&.percent
+    end
+
   private
 
     # no_cov_chunks is zero indexed to work directly with the array holding the lines
@@ -223,9 +244,9 @@ module SimpleCov
     end
 
     def build_lines
-      coverage_exceeding_source_warn if coverage_data["lines"].size > src.size
+      coverage_exceeding_source_warn if lines_data.size > src.size
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage_data["lines"][i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, lines_data[i - 1])
       end
       process_skipped_lines(lines)
     end
@@ -243,9 +264,13 @@ module SimpleCov
       lines.sum { |line| line.coverage.to_i }
     end
 
+    def lines_data
+      coverage_data.fetch(:lines)
+    end
+
     # Warning to identify condition from Issue #56
     def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage_data['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
+      warn "Warning: coverage data provided by Coverage [#{lines_data.size}] exceeds number of lines in #{filename} [#{src.size}]"
     end
 
     #
@@ -267,7 +292,7 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      coverage_branch_data = coverage_data.fetch("branches", {})
+      coverage_branch_data = coverage_data.fetch(:branches, {})
       branches = coverage_branch_data.flat_map do |condition, coverage_branches|
         build_branches_from(condition, coverage_branches)
       end
@@ -285,34 +310,15 @@ module SimpleCov
       branches
     end
 
-    # Since we are dumping to and loading from JSON, and we have arrays as keys those
-    # don't make their way back to us intact e.g. just as a string
-    #
-    # We should probably do something different here, but as it stands these are
-    # our data structures that we write so eval isn't _too_ bad.
-    #
-    # See #801
-    #
-    def restore_ruby_data_structure(structure)
-      # Tests use the real data structures (except for integration tests) so no need to
-      # put them through here.
-      return structure if structure.is_a?(Array)
-
-      # rubocop:disable Security/Eval
-      eval structure
-      # rubocop:enable Security/Eval
-    end
-
     def build_branches_from(condition, branches)
       # the format handed in from the coverage data is like this:
       #
       #     [:then, 4, 6, 6, 6, 10]
       #
       # which is [type, id, start_line, start_col, end_line, end_col]
-      _condition_type, _condition_id, condition_start_line, * = restore_ruby_data_structure(condition)
+      _condition_type, _condition_id, condition_start_line, * = condition
 
       branches.map do |branch_data, hit_count|
-        branch_data = restore_ruby_data_structure(branch_data)
         build_branch(branch_data, hit_count, condition_start_line)
       end
     end
@@ -329,12 +335,18 @@ module SimpleCov
       )
     end
 
+    def build_methods
+      coverage_data.fetch(:methods, []).map do |info, coverage|
+        SourceFile::Method.new(self, info, coverage)
+      end
+    end
+
     def line_coverage_statistics
       {
         line: CoverageStatistics.new(
           total_strength: lines_strength,
-          covered:  covered_lines.size,
-          missed:   missed_lines.size
+          covered: covered_lines.size,
+          missed: missed_lines.size
         )
       }
     end
@@ -343,7 +355,16 @@ module SimpleCov
       {
         branch: CoverageStatistics.new(
           covered: covered_branches.size,
-          missed:  missed_branches.size
+          missed: missed_branches.size
+        )
+      }
+    end
+
+    def method_coverage_statistics
+      {
+        method: CoverageStatistics.new(
+          covered: covered_methods.size,
+          missed: missed_methods.size
         )
       }
     end

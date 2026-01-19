@@ -102,18 +102,39 @@ module SimpleCov
       coverage_statistics[:branch]&.percent
     end
 
+    # Return total count of methods in all files
+    def total_methods
+      coverage_statistics[:method]&.total
+    end
+
+    # Return total count of covered methods
+    def covered_methods
+      coverage_statistics[:method]&.covered
+    end
+
+    # Return total count of covered methods
+    def missed_methods
+      coverage_statistics[:method]&.missed
+    end
+
+    def method_covered_percent
+      coverage_statistics[:method]&.percent
+    end
+
   private
 
     def compute_coverage_statistics_by_file
-      @files.each_with_object(line: [], branch: []) do |file, together|
+      @files.each_with_object(line: [], branch: [], method: []) do |file, together|
         together[:line] << file.coverage_statistics.fetch(:line)
         together[:branch] << file.coverage_statistics.fetch(:branch) if SimpleCov.branch_coverage?
+        together[:method] << file.coverage_statistics.fetch(:method) if SimpleCov.method_coverage?
       end
     end
 
     def compute_coverage_statistics
       coverage_statistics = {line: CoverageStatistics.from(coverage_statistics_by_file[:line])}
       coverage_statistics[:branch] = CoverageStatistics.from(coverage_statistics_by_file[:branch]) if SimpleCov.branch_coverage?
+      coverage_statistics[:method] = CoverageStatistics.from(coverage_statistics_by_file[:method]) if SimpleCov.method_coverage?
       coverage_statistics
     end
   end

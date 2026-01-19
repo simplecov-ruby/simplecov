@@ -285,16 +285,8 @@ module SimpleCov
     def write_last_run(result)
       SimpleCov::LastRun.write(result:
         result.coverage_statistics.transform_values do |stats|
-          round_coverage(stats.percent)
+          SimpleCov::Utils.round_coverage(stats.percent)
         end)
-    end
-
-    #
-    # @api private
-    #
-    # Rounding down to be extra strict, see #679
-    def round_coverage(coverage)
-      coverage.floor(2)
     end
 
   private
@@ -364,7 +356,8 @@ module SimpleCov
 
     CRITERION_TO_RUBY_COVERAGE = {
       branch: :branches,
-      line: :lines
+      line: :lines,
+      method: :methods
     }.freeze
     def lookup_corresponding_ruby_coverage_name(criterion)
       CRITERION_TO_RUBY_COVERAGE.fetch(criterion)
@@ -453,6 +446,7 @@ require_relative "simplecov/exit_codes"
 require_relative "simplecov/profiles"
 require_relative "simplecov/source_file/line"
 require_relative "simplecov/source_file/branch"
+require_relative "simplecov/source_file/method"
 require_relative "simplecov/source_file"
 require_relative "simplecov/file_list"
 require_relative "simplecov/result"
@@ -461,16 +455,19 @@ require_relative "simplecov/formatter"
 require_relative "simplecov/last_run"
 require_relative "simplecov/lines_classifier"
 require_relative "simplecov/result_merger"
+require_relative "simplecov/result_serialization"
 require_relative "simplecov/command_guesser"
 require_relative "simplecov/version"
 require_relative "simplecov/result_adapter"
 require_relative "simplecov/combine"
 require_relative "simplecov/combine/branches_combiner"
+require_relative "simplecov/combine/methods_combiner"
 require_relative "simplecov/combine/files_combiner"
 require_relative "simplecov/combine/lines_combiner"
 require_relative "simplecov/combine/results_combiner"
 require_relative "simplecov/useless_results_remover"
 require_relative "simplecov/simulate_coverage"
+require_relative "simplecov/utils"
 
 # Load default config
 require_relative "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]

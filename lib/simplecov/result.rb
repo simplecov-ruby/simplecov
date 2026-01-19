@@ -20,7 +20,9 @@ module SimpleCov
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
 
-    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength, :covered_lines, :missed_lines, :total_branches, :covered_branches, :missed_branches, :coverage_statistics, :coverage_statistics_by_file
+    def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength,
+                   :covered_lines, :missed_lines, :total_branches, :covered_branches, :missed_branches,
+                   :coverage_statistics, :coverage_statistics_by_file
     def_delegator :files, :lines_of_code, :total_lines
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
@@ -31,8 +33,9 @@ module SimpleCov
       @command_name = command_name
       @created_at = created_at
       @files = SimpleCov::FileList.new(result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
+        SimpleCov::SourceFile.new(filename, coverage) if File.file?(filename)
       end.compact.sort_by(&:filename))
+
       filter!
     end
 
@@ -64,19 +67,12 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      {
-        command_name => {
-          "coverage" => coverage,
-          "timestamp" => created_at.to_i
-        }
-      }
+      SimpleCov::ResultSerialization.serialize(self)
     end
 
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
-      hash.map do |command_name, data|
-        new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]))
-      end
+      SimpleCov::ResultSerialization.deserialize(hash)
     end
 
   private

@@ -17,10 +17,11 @@ module SimpleCov
       def report
         coverage_drop_violations.each do |violation|
           $stderr.printf(
-            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            "%<criterion>s coverage has dropped by %<drop_percent>s since the last time " \
+            "(maximum allowed: %<max_drop>s).\n",
             criterion: violation[:criterion].capitalize,
-            drop_percent: SimpleCov.round_coverage(violation[:drop_percent]),
-            max_drop: violation[:max_drop]
+            drop_percent: SimpleCov::Utils.render_coverage(violation[:drop_percent]),
+            max_drop: SimpleCov::Utils.render_coverage(violation[:max_drop])
           )
         end
       end
@@ -60,9 +61,7 @@ module SimpleCov
       MAX_DROP_ACCURACY = 10
       def drop_percent(criterion)
         drop = last_coverage(criterion) -
-               SimpleCov.round_coverage(
-                 result.coverage_statistics.fetch(criterion).percent
-               )
+               SimpleCov::Utils.round_coverage(result.coverage_statistics.fetch(criterion).percent)
 
         # floats, I tell ya.
         # irb(main):001:0* 80.01 - 80.0

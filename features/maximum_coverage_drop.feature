@@ -314,7 +314,6 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should not contain "Line coverage"
     And the output should contain "Branch coverage has dropped by 50.00% since the last time (maximum allowed: 0.00%)."
     And the output should contain "SimpleCov failed with exit 3"
 
