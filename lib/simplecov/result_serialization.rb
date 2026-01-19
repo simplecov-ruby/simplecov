@@ -54,7 +54,7 @@ module SimpleCov
           value.map do |methods_data, coverage|
             klass, *info = methods_data
             # Replace all memory addresses with 0 since they are inconsistent between test runs
-            serialized_klass = klass.to_s.sub(/0x[0-9a-f]{16}/, "0x0000000000000000")
+            serialized_klass = klass.to_s.gsub(/0x[0-9a-f]{16}/, "0x0000000000000000")
             serialized_methods_data = [serialized_klass, *info]
             [serialized_methods_data, coverage]
           end
