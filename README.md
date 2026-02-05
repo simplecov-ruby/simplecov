@@ -338,6 +338,24 @@ Hence, we recommend looking at both metrics together. Branch coverage might also
 overall metric to look at - while you might be missing only 10% of your lines that might
 account for 50% of your branches for instance.
 
+## Oneshot lines coverage (ruby ">= 2.6")
+
+Oneshot lines coverage is a faster alternative to line coverage. Supported in CRuby versions 2.6+.
+
+Traditional coverage tells us "how many times each line was executed". However, it is often
+enough just to know "whether each line was executed at least once, or not". In this case,
+the counting just bring unneeded overhead.
+
+Oneshot coverage records only the first execution of each line. The hook for each line is
+executed just once, so after it was fired, the program can run with zero-overhead.
+
+```ruby
+SimpleCov.start do
+  enable_coverage :oneshot_line
+  primary_coverage :oneshot_line
+end
+```
+
 ## Primary Coverage
 
 By default, the primary coverage type is `line`. To set the primary coverage to something else, use the following:

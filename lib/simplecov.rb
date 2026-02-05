@@ -364,7 +364,8 @@ module SimpleCov
 
     CRITERION_TO_RUBY_COVERAGE = {
       branch: :branches,
-      line: :lines
+      line: :lines,
+      oneshot_line: :oneshot_lines
     }.freeze
     def lookup_corresponding_ruby_coverage_name(criterion)
       CRITERION_TO_RUBY_COVERAGE.fetch(criterion)
@@ -392,8 +393,8 @@ module SimpleCov
     # @return [Hash]
     #
     def process_coverage_result
-      adapt_coverage_result
       remove_useless_results
+      adapt_coverage_result
       result_with_not_loaded_files
     end
 
@@ -403,7 +404,7 @@ module SimpleCov
     # @return [Hash]
     #
     def adapt_coverage_result
-      @result = SimpleCov::ResultAdapter.call(Coverage.result)
+      @result = SimpleCov::ResultAdapter.call(@result)
     end
 
     #
@@ -414,7 +415,7 @@ module SimpleCov
     # @return [Hash]
     #
     def remove_useless_results
-      @result = SimpleCov::UselessResultsRemover.call(@result)
+      @result = SimpleCov::UselessResultsRemover.call(Coverage.result)
     end
 
     #

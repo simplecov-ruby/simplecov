@@ -377,8 +377,9 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
-    SUPPORTED_COVERAGE_CRITERIA = %i[line branch].freeze
+    SUPPORTED_COVERAGE_CRITERIA = %i[line branch oneshot_line].freeze
     DEFAULT_COVERAGE_CRITERION = :line
+    ONESHOT_LINE_COVERAGE_CRITERION = :oneshot_line
     #
     # Define which coverage criterion should be evaluated.
     #
@@ -400,6 +401,9 @@ module SimpleCov
 
     def enable_coverage(criterion)
       raise_if_criterion_unsupported(criterion)
+
+      # :oneshot_lines can not be combined with :lines
+      coverage_criteria.delete(DEFAULT_COVERAGE_CRITERION) if criterion == ONESHOT_LINE_COVERAGE_CRITERION
 
       coverage_criteria << criterion
     end
