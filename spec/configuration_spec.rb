@@ -277,6 +277,14 @@ describe SimpleCov::Configuration do
         expect(config.primary_coverage).to eq :line
       end
 
+      it "can set primary coverage to oneshot_line" do
+        config.enable_coverage :oneshot_line
+        config.primary_coverage :oneshot_line
+
+        expect(config.coverage_criteria).to contain_exactly :oneshot_line
+        expect(config.primary_coverage).to eq :oneshot_line
+      end
+
       it "can't set primary coverage to arbitrary things" do
         expect do
           config.primary_coverage :unknown

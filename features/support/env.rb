@@ -43,6 +43,11 @@ Before("@rails6") do
   skip_this_scenario if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.5")
 end
 
+Before("@ruby26") do
+  # oneshot_lines coverage is supported by Ruby 2.6+
+  skip_this_scenario if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6")
+end
+
 Before("@process_fork") do
   # Process.fork is NotImplementedError in jruby
   skip_this_scenario if jruby?
