@@ -124,6 +124,73 @@ describe SimpleCov::Configuration do
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
     end
 
+    describe "#minimum_coverage_by_group" do
+      after do
+        config.clear_coverage_criteria
+      end
+
+      it "does not warn you about your usage" do
+        expect(config).not_to receive(:warn)
+        config.minimum_coverage_by_group({"Test Group 1" => 100.00})
+      end
+
+      it "warns you about your usage" do
+        expect(config).to receive(:warn).with("The coverage you set for minimum_coverage_by_group is greater than 100%")
+        config.minimum_coverage_by_group({"Test Group 1" => 100.01})
+      end
+
+      it "sets the right coverage value when called with a number" do
+        config.minimum_coverage_by_group({"Test Group 1" => 80})
+
+        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {line: 80}})
+      end
+
+      it "sets the right coverage when called with a hash of just line" do
+        config.minimum_coverage_by_group({"Test Group 1" => {line: 85.0}})
+
+        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {line: 85.0}})
+      end
+
+      it "sets the right coverage when called with a hash of just branch" do
+        config.enable_coverage :branch
+        config.minimum_coverage_by_group({"Test Group 1" => {branch: 85.0}})
+
+        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 85.0}})
+      end
+
+      it "sets the right coverage when called with both line and branch" do
+        config.enable_coverage :branch
+        config.minimum_coverage_by_group({"Test Group 1" => {branch: 85.0, line: 95.4}})
+
+        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 85.0, line: 95.4}})
+      end
+
+      it "raises when trying to set branch coverage but not enabled" do
+        expect do
+          config.minimum_coverage_by_group({"Test Group 1" => {branch: 42}})
+        end.to raise_error(/branch.*disabled/i)
+      end
+
+      it "raises when unknown coverage criteria provided" do
+        expect do
+          config.minimum_coverage_by_group({"Test Group 1" => {unknown: 42}})
+        end.to raise_error(/unsupported.*unknown/i)
+      end
+
+      context "when primary coverage is set" do
+        before do
+          config.enable_coverage :branch
+          config.primary_coverage :branch
+        end
+
+        it "sets the right coverage value when called with a number" do
+          config.minimum_coverage_by_group({"Test Group 1" => 80})
+
+          expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 80}})
+        end
+      end
+    end
+
     describe "#maximum_coverage_drop" do
       it_behaves_like "setting coverage expectations", :maximum_coverage_drop
     end

@@ -1,3 +1,10 @@
+0.22.1 (2024-09-02)
+==========
+
+## Enhancements
+
+* You can now define `minimum_coverage_by_group` - See https://github.com/simplecov-ruby/simplecov/pull/1105. Thanks [@mikhliuk-k](https://github.com/mikhliuk-k)!
+
 0.22.0 (2022-12-23)
 ==========
 
