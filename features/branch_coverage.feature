@@ -15,7 +15,15 @@ Feature:
       end
       """
     When I open the coverage report generated with `bundle exec rspec spec`
-    Then I should see the groups:
+    Then the output should contain:
+      """
+      56 / 61 LOC (91.8%) covered
+      """
+    And the output should contain:
+      """
+      2 / 4 branches (50.0%) covered
+      """
+    And I should see the groups:
       | name      | coverage | files |
       | All Files | 91.8%    | 7     |
     And I should see a line coverage summary of 56/61
