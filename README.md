@@ -23,7 +23,7 @@ SimpleCov is a code coverage analysis tool for Ruby. It uses [Ruby's built-in Co
 coverage data, but makes processing its results much easier by providing a clean API to filter, group, merge, format,
 and display those results, giving you a complete code coverage suite that can be set up with just a couple lines of
 code.
-SimpleCov/Coverage track covered ruby code, gathering coverage for common templating solutions like erb, slim and haml is not supported.
+SimpleCov/Coverage tracks covered Ruby code. Gathering coverage for common templating solutions like ERB, Slim, and Haml is not supported.
 
 In most cases, you'll want overall coverage results for your projects, including all types of tests, Cucumber features,
 etc. SimpleCov automatically takes care of this by caching and merging results when generating reports, so your
@@ -69,7 +69,7 @@ Getting started
     The `SimpleCov.start` **must** be issued **before any of your application
     code is required!**
 
-    This is especially true if you use anything that keeps your tests application loaded like spring, check out the **[spring section](#want-to-use-spring-with-simplecov)**.
+    This is especially true if you use anything that keeps your test application loaded like Spring; check out the **[Spring section](#want-to-use-spring-with-simplecov)**.
 
     SimpleCov must be running in the process that you want the code coverage
     analysis to happen on. When testing a server process (e.g. a JSON API
@@ -95,7 +95,7 @@ Getting started
    ```
    open coverage/index.html
    ```
-   in a debian/ubuntu Terminal,
+   in a Debian/Ubuntu Terminal,
 
    ```
    xdg-open coverage/index.html
@@ -150,7 +150,7 @@ report about it.
 
 ### Notes on specific frameworks and test utilities
 
-For some frameworks and testing tools there are quirks and problems you might want to know about if you want
+For some frameworks and testing tools, there are quirks and problems you might want to know about if you want
 to use SimpleCov with them. Here's an overview of the known ones:
 
 <table>
@@ -289,7 +289,7 @@ Using `.simplecov` rather than separately requiring SimpleCov multiple times is 
 test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage
 information to be lost.
 
-## Branch coverage (ruby "~> 2.5")
+## Branch coverage (Ruby "~> 2.5")
 Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.
 
 ```ruby
@@ -308,7 +308,7 @@ This comes in handy for instance for one line conditionals:
 number.odd? ? "odd" : "even"
 ```
 
-In line coverage this line would always be marked as executed but you'd never know if both
+In line coverage, this line would always be marked as executed, but you'd never know if both
 conditions were met. Guard clauses have a similar story:
 
 ```ruby
@@ -325,8 +325,8 @@ In the HTML report the lines of code will be annotated like `branch_type: hit_co
 * `then: 2` - the then branch (of an `if`) was executed twice
 * `else: 0` - the else branch (of an `if` or `case`) was never executed
 
-Not that even if you don't declare an `else` branch it will still show up in the coverage
-reports meaning that the condition of the `if` was not hit or that no `when` of `case`
+Note that even if you don't declare an `else` branch, it will still show up in the coverage
+reports, meaning that the condition of the `if` was not hit or that no `when` of `case`
 was hit during the test runs.
 
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
@@ -336,7 +336,7 @@ branches covered as 100% (as everything that can be covered was covered).
 
 Hence, we recommend looking at both metrics together. Branch coverage might also be a good
 overall metric to look at - while you might be missing only 10% of your lines that might
-account for 50% of your branches for instance.
+account for 50% of your branches, for instance.
 
 ## Oneshot lines coverage (ruby ">= 2.6")
 
@@ -558,7 +558,7 @@ SimpleCov.command_name "features"
 Note that this only has to be invoked ONCE PER TEST SUITE, so even if you have 200 unit test files,
 specifying it in `some_test.rb` is enough.
 
-Last but not least **if multiple suites resolve to the same `command_name`** be aware that the coverage results **will
+Last but not least, **if multiple suites resolve to the same `command_name`**, be aware that the coverage results **will
 clobber each other instead of being merged**.  SimpleCov is smart enough to detect unique names for the most common
 setups, but if you have more than one test suite that doesn't follow a common pattern then you will want to manually
 ensure that each suite gets a unique `command_name`.
@@ -566,7 +566,7 @@ ensure that each suite gets a unique `command_name`.
 If you are running tests in parallel each process has the potential to clobber results from the other test processes.
 If you are relying on the default `command_name` then SimpleCov will attempt to detect and avoid parallel test suite
 `command_name` collisions based on the presence of `ENV['PARALLEL_TEST_GROUPS']` and `ENV['TEST_ENV_NUMBER']`.  If your
-parallel test runner does not set one or both of these then *you must* set a `command_name` and ensure that it is unique
+parallel test runner does not set one or both of these, then *you must* set a `command_name` and ensure that it is unique
 per process (eg. `command_name "Unit Tests PID #{$$}"`).
 
 If you are using parallel_tests, you must incorporate `TEST_ENV_NUMBER` into the command name yourself, in
@@ -614,7 +614,7 @@ namespace :coverage do
 end
 ```
 
-`SimpleCov.collate` also takes an optional simplecov profile and an optional
+`SimpleCov.collate` also takes an optional SimpleCov profile and an optional
 block for configuration, just the same as `SimpleCov.start` or
 `SimpleCov.configure`.  This means you can configure a separate formatter for
 the collated output. For instance, you can make the formatter in
@@ -661,7 +661,7 @@ end
 ## Running simplecov against subprocesses
 
 `SimpleCov.enable_for_subprocesses` will allow SimpleCov to observe subprocesses starting using `Process.fork`.
-This modifies ruby's core Process.fork method so that SimpleCov can see into it, appending `" (subprocess #{pid})"`
+This modifies Ruby's core Process.fork method so that SimpleCov can see into it, appending `" (subprocess #{pid})"`
 to the `SimpleCov.command_name`, with results that can be merged together using SimpleCov's merging feature.
 
 To configure this, use `.at_fork`.
@@ -684,7 +684,7 @@ NOTE: SimpleCov must have already been started before `Process.fork` was called.
 
 ### Running simplecov against spawned subprocesses
 
-Perhaps you're testing a ruby script with `PTY.spawn` or `Open3.popen`, or `Process.spawn` or etc.
+Perhaps you're testing a Ruby script with `PTY.spawn` or `Open3.popen`, or `Process.spawn` or etc.
 SimpleCov can cover this too.
 
 Add a .simplecov_spawn.rb file to your project root
@@ -869,7 +869,7 @@ SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 ```
 
 Calling `SimpleCov.result.format!` will be invoked with `SimpleCov::Formatter::YourFormatter.new.format(result)`,
-and `result` is an instance of `SimpleCov::Result`. Do whatever your wish with that!
+and `result` is an instance of `SimpleCov::Result`. Do whatever you wish with that!
 
 
 ## Using multiple formatters
@@ -887,7 +887,7 @@ SimpleCov.formatters = [
 
 ## JSON formatter
 
-SimpleCov is packaged with a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter) that provides you with a JSON formatter, this formatter could be useful for different use cases, such as for CI consumption or for reporting to external services.
+SimpleCov is packaged with a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter) that provides you with a JSON formatter. This formatter could be useful for different use cases, such as for CI consumption or for reporting to external services.
 
 In order to use it you will need to manually load the installed gem like so:
 
@@ -942,10 +942,10 @@ Or you could remove `gem 'spring'` from your `Gemfile`.
 ## Troubleshooting
 
 The **most common problem is that simplecov isn't required and started before everything else**. In order to track
-coverage for your whole application **simplecov needs to be the first one** so that it (and the underlying coverage
+coverage for your whole application, **SimpleCov needs to be the first one** so that it (and the underlying coverage
 library) can subsequently track loaded files and their usage.
 
-If you are missing coverage for some code a simple trick is to put a puts statement in there and right after
+If you are missing coverage for some code, a simple trick is to put a puts statement in there and right after
 `SimpleCov.start` so you can see if the file really was loaded after simplecov was started.
 
 ```ruby
@@ -972,7 +972,7 @@ SimpleCov started successfully!
 MyCode is being loaded!
 ```
 
-then it's good otherwise you likely have a problem :)
+then it's good; otherwise, you likely have a problem :)
 
 ## Code of Conduct
 
