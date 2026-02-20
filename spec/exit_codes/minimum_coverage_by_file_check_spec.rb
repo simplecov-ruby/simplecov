@@ -6,12 +6,24 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
   subject { described_class.new(result, minimum_coverage_by_file) }
 
   let(:result) do
-    instance_double(SimpleCov::Result, coverage_statistics_by_file: stats)
+    instance_double(SimpleCov::Result, coverage_statistics_by_file: stats, files: files)
   end
   let(:stats) do
     {
       line: [SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)]
     }
+  end
+  let(:files) do
+    SimpleCov::FileList.new(
+      [
+        SimpleCov::SourceFile.new(
+          "foo.rb",
+          {
+            "lines" => [nil, 8, 6, 7, 5, 3, 0, 9, 0, 3, 5, nil]
+          }
+        )
+      ]
+    )
   end
 
   context "all files passing requirements" do
