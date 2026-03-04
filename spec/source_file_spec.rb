@@ -92,6 +92,40 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  # Regression: coverage data can have "branches" => nil when another gem
+  # interferes with Coverage, or .resultset.json contains "branches": null.
+  # Hash#fetch returns nil (not the default {}) when the key exists with nil value.
+  context "when branches coverage data is explicitly nil" do
+    COVERAGE_WITH_NIL_BRANCHES = {
+      "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
+      "branches" => nil
+    }.freeze
+
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_WITH_NIL_BRANCHES)
+    end
+
+    it "returns empty branches without raising NoMethodError" do
+      expect(subject.branches).to eq []
+    end
+
+    it "has 0 total branches" do
+      expect(subject.total_branches.size).to eq 0
+    end
+
+    it "has 0 covered branches" do
+      expect(subject.covered_branches.size).to eq 0
+    end
+
+    it "has 0 missed branches" do
+      expect(subject.missed_branches.size).to eq 0
+    end
+
+    it "reports 100% branch coverage (no branches to miss)" do
+      expect(subject.branches_coverage_percent).to eq 100.0
+    end
+  end
+
   context "file with branches" do
     COVERAGE_FOR_BRANCHES_RB = {
       "lines" =>         [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
