@@ -12,7 +12,7 @@ gem "matrix"
 
 group :development do
   gem "apparition", github: "twalpole/apparition"
-  gem "activesupport", "~> 6.1"
+  gem "activesupport"
   gem "aruba"
   gem "capybara"
   if RUBY_VERSION < "2.7"
@@ -25,7 +25,7 @@ group :development do
   gem "rake"
   gem "rspec"
   gem "pry"
-  gem "rubocop", "~> 1.70.0" if RUBY_VERSION > "3.2"
+  gem "rubocop" if RUBY_VERSION > "3.2"
   gem "test-unit"
   gem "logger"
   # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0

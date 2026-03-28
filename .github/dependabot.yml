@@ -8,3 +8,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: bundler
+    directory: "/test_projects/monorepo"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: bundler
+    directory: "/test_projects/parallel_tests"
+    schedule:
+      interval: "weekly"

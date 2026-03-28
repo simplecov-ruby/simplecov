@@ -133,7 +133,7 @@ module SimpleCov
       end
 
       # Saves the given SimpleCov::Result in the resultset cache
-      def store_result(result)
+      def store_result(result) # rubocop:disable Naming/PredicateMethod
         synchronize_resultset do
           # Ensure we have the latest, in case it was already cached
           new_resultset = read_resultset

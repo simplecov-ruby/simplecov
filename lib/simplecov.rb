@@ -21,6 +21,12 @@ end
 #
 module SimpleCov
   class << self
+    CRITERION_TO_RUBY_COVERAGE = {
+      branch: :branches,
+      line: :lines,
+      oneshot_line: :oneshot_lines
+    }.freeze
+
     attr_accessor :running, :pid
 
     # Basically, should we take care of at_exit behavior or something else?
@@ -362,11 +368,6 @@ module SimpleCov
       Coverage.respond_to?(:running?) && Coverage.running?
     end
 
-    CRITERION_TO_RUBY_COVERAGE = {
-      branch: :branches,
-      line: :lines,
-      oneshot_line: :oneshot_lines
-    }.freeze
     def lookup_corresponding_ruby_coverage_name(criterion)
       CRITERION_TO_RUBY_COVERAGE.fetch(criterion)
     end
