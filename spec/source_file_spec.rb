@@ -90,6 +90,104 @@ describe SimpleCov::SourceFile do
         expect(subject.branches_report).to eq({})
       end
     end
+
+    describe "method coverage" do
+      it "has no methods" do
+        expect(subject.covered_methods.size).to eq(0)
+        expect(subject.missed_methods.size).to eq(0)
+      end
+
+      it "is considered 100% methods covered" do
+        expect(subject.methods_coverage_percent).to eq(100.0)
+      end
+    end
+  end
+
+  context "file with methods" do
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("methods.rb"), coverage_for_methods_rb)
+    end
+
+    let(:coverage_for_methods_rb) do
+      {
+        "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
+        "branches" => {},
+        "methods" => {
+          ["A", :method1, 2, 2, 5, 5] => 1,
+          ["A", :method2, 9, 2, 11, 5] => 1,
+          ["A", :method3, 13, 2, 15, 5] => 0
+        }
+      }
+    end
+
+    describe "method coverage" do
+      it "has 3 total methods" do
+        expect(subject.methods.size).to eq(3)
+      end
+
+      it "has 2 covered methods" do
+        expect(subject.covered_methods.size).to eq(2)
+      end
+
+      it "has 1 missed method" do
+        expect(subject.missed_methods.size).to eq(1)
+      end
+
+      it "is considered 66.(6)% methods covered" do
+        expect(subject.methods_coverage_percent).to eq(66.66666666666667)
+      end
+    end
+
+    describe "line coverage" do
+      it "has line coverage" do
+        expect(subject.covered_percent).to eq 90.0
+      end
+
+      it "has 9 covered lines" do
+        expect(subject.covered_lines.size).to eq 9
+      end
+
+      it "has 1 missed line" do
+        expect(subject.missed_lines.size).to eq 1
+      end
+
+      it "has 10 relevant lines" do
+        expect(subject.relevant_lines).to eq 10
+      end
+    end
+  end
+
+  context "file with methods from JSON round-trip" do
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("methods.rb"), coverage_data)
+    end
+
+    let(:coverage_data) do
+      # Simulates what happens after JSON.parse(JSON.dump(...)):
+      # Array keys become their string representation
+      {
+        "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
+        "branches" => {},
+        "methods" => {
+          '["A", :method1, 2, 2, 5, 5]' => 1,
+          '["A", :method2, 9, 2, 11, 5]' => 1,
+          '["A", :method3, 13, 2, 15, 5]' => 0
+        }
+      }
+    end
+
+    it "correctly parses stringified method keys" do
+      expect(subject.methods.size).to eq(3)
+      expect(subject.covered_methods.size).to eq(2)
+      expect(subject.missed_methods.size).to eq(1)
+    end
+
+    it "restores method info correctly" do
+      method = subject.methods.first
+      expect(method.class_name).to eq("A")
+      expect(method.method_name).to eq(:method1)
+      expect(method.start_line).to eq(2)
+    end
   end
 
   # Regression: coverage data can have "branches" => nil when another gem

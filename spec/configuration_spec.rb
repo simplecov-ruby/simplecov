@@ -298,6 +298,36 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#method_coverage?", if: SimpleCov.method_coverage_supported? do
+      it "returns true if method coverage is being measured" do
+        config.enable_coverage :method
+
+        expect(config).to be_method_coverage
+      end
+
+      it "returns false for line coverage" do
+        config.coverage_criterion :line
+
+        expect(config).not_to be_method_coverage
+      end
+    end
+
+    describe "#enable_coverage with :method" do
+      it "can enable method coverage" do
+        config.enable_coverage :method
+
+        expect(config.coverage_criteria).to contain_exactly :line, :method
+      end
+    end
+
+    describe "#coverage_criterion with :method" do
+      it "works fine with :method" do
+        config.coverage_criterion :method
+
+        expect(config.coverage_criterion).to eq :method
+      end
+    end
+
     describe "#enable_for_subprocesses" do
       it "returns false by default" do
         expect(config.enable_for_subprocesses).to eq false

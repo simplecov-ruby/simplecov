@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "strscan"
+
 module SimpleCov
   #
   # Representation of a source file including it's coverage data, source code,
@@ -36,7 +38,8 @@ module SimpleCov
       @coverage_statistics ||=
         {
           **line_coverage_statistics,
-          **branch_coverage_statistics
+          **branch_coverage_statistics,
+          **method_coverage_statistics
         }
     end
 
@@ -155,6 +158,25 @@ module SimpleCov
     #
     def line_with_missed_branch?(line_number)
       branches_for_line(line_number).any? { |_type, count| count.zero? }
+    end
+
+    # Return all methods detected in this source file
+    def methods
+      @methods ||= build_methods
+    end
+
+    # Return all covered methods
+    def covered_methods
+      @covered_methods ||= methods.select(&:covered?)
+    end
+
+    # Return all missed methods
+    def missed_methods
+      @missed_methods ||= methods.select(&:missed?)
+    end
+
+    def methods_coverage_percent
+      coverage_statistics[:method]&.percent
     end
 
   private
@@ -287,22 +309,59 @@ module SimpleCov
     end
 
     # Since we are dumping to and loading from JSON, and we have arrays as keys those
-    # don't make their way back to us intact e.g. just as a string
+    # don't make their way back to us intact e.g. just as a string.
     #
-    # We should probably do something different here, but as it stands these are
-    # our data structures that we write so eval isn't _too_ bad.
-    #
-    # See #801
+    # This safely parses the string representation back to a Ruby array
+    # without using eval. See #801.
     #
     def restore_ruby_data_structure(structure)
       # Tests use the real data structures (except for integration tests) so no need to
       # put them through here.
       return structure if structure.is_a?(Array)
 
-      # rubocop:disable Security/Eval
-      eval structure
-      # rubocop:enable Security/Eval
+      parse_ruby_array_string(structure.to_s)
     end
+
+    # Parse a string like '[:if, 0, 3, 4, 3, 21]' or '["ClassName", :method1, 2, 2, 5, 5]'
+    # back into a Ruby array, handling integers, symbols, and quoted strings.
+    # rubocop:disable Style/RedundantRegexpArgument -- StringScanner#scan requires Regexp on Ruby < 3.0
+    def parse_ruby_array_string(str) # rubocop:disable Metrics
+      scanner = StringScanner.new(str.strip)
+      scanner.skip(/\[/)
+      elements = []
+
+      until scanner.eos?
+        scanner.skip(/\s*,?\s*/)
+        break if scanner.scan(/\]/) || scanner.eos?
+
+        if scanner.scan(/"/)
+          elements << scan_quoted_string(scanner)
+        elsif scanner.scan(/:(\w+[?!]?)/)
+          elements << scanner[1].to_sym
+        elsif scanner.scan(/-?\d+/)
+          elements << scanner.matched.to_i
+        else
+          scanner.scan(/./)
+        end
+      end
+
+      elements
+    end
+
+    def scan_quoted_string(scanner)
+      string = +""
+      until scanner.scan(/"/)
+        if scanner.scan(/\\(.)/)
+          string << scanner[1]
+        elsif scanner.scan(/[^"\\]+/)
+          string << scanner.matched
+        else
+          break
+        end
+      end
+      string
+    end
+    # rubocop:enable Style/RedundantRegexpArgument
 
     def build_branches_from(condition, branches)
       # the format handed in from the coverage data is like this:
@@ -345,6 +404,22 @@ module SimpleCov
         branch: CoverageStatistics.new(
           covered: covered_branches.size,
           missed:  missed_branches.size
+        )
+      }
+    end
+
+    def build_methods
+      coverage_data.fetch("methods", {}).map do |info, hit_count|
+        info = restore_ruby_data_structure(info)
+        SourceFile::Method.new(self, info, hit_count)
+      end
+    end
+
+    def method_coverage_statistics
+      {
+        method: CoverageStatistics.new(
+          covered: covered_methods.size,
+          missed: missed_methods.size
         )
       }
     end

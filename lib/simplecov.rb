@@ -24,6 +24,7 @@ module SimpleCov
     CRITERION_TO_RUBY_COVERAGE = {
       branch: :branches,
       line: :lines,
+      method: :methods,
       oneshot_line: :oneshot_lines
     }.freeze
 
@@ -455,6 +456,7 @@ require_relative "simplecov/exit_codes"
 require_relative "simplecov/profiles"
 require_relative "simplecov/source_file/line"
 require_relative "simplecov/source_file/branch"
+require_relative "simplecov/source_file/method"
 require_relative "simplecov/source_file"
 require_relative "simplecov/file_list"
 require_relative "simplecov/result"
@@ -468,6 +470,7 @@ require_relative "simplecov/version"
 require_relative "simplecov/result_adapter"
 require_relative "simplecov/combine"
 require_relative "simplecov/combine/branches_combiner"
+require_relative "simplecov/combine/methods_combiner"
 require_relative "simplecov/combine/files_combiner"
 require_relative "simplecov/combine/lines_combiner"
 require_relative "simplecov/combine/results_combiner"

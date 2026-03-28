@@ -167,6 +167,49 @@ describe SimpleCov::ResultMerger do
       end
     end
 
+    context "with method coverage", if: SimpleCov.method_coverage_supported? do
+      let(:method_lines) { [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1] }
+      let(:method_resultset1_path) { "#{resultset_prefix}_method1.json" }
+      let(:method_resultset2_path) { "#{resultset_prefix}_method2.json" }
+
+      before do
+        SimpleCov.enable_coverage :method
+      end
+
+      after do
+        SimpleCov.clear_coverage_criteria
+        FileUtils.rm Dir.glob("#{resultset_prefix}_method*.json")
+      end
+
+      it "correctly merges method coverage across results" do
+        rs1 = {
+          source_fixture("methods.rb") => {
+            "lines" => method_lines,
+            "methods" => {["A", :method1, 2, 2, 5, 5] => 1, ["A", :method2, 9, 2, 11, 5] => 0}
+          }
+        }
+        rs2 = {
+          source_fixture("methods.rb") => {
+            "lines" => method_lines,
+            "methods" => {["A", :method1, 2, 2, 5, 5] => 0, ["A", :method2, 9, 2, 11, 5] => 3}
+          }
+        }
+
+        r1 = SimpleCov::Result.new(rs1, command_name: "r1")
+        r2 = SimpleCov::Result.new(rs2, command_name: "r2")
+
+        File.open(method_resultset1_path, "w+") { |f| f.puts JSON.pretty_generate(r1.to_hash) }
+        File.open(method_resultset2_path, "w+") { |f| f.puts JSON.pretty_generate(r2.to_hash) }
+
+        result = SimpleCov::ResultMerger.merge_and_store(method_resultset1_path, method_resultset2_path)
+        methods = result.original_result.fetch(source_fixture("methods.rb"))["methods"]
+
+        # After JSON round-trip, array keys become string representations.
+        # The combiner merges by these string keys, summing counts.
+        expect(methods.values.sort).to eq([1, 3])
+      end
+    end
+
     context "pre 0.18 result format" do
       let(:file_path) { "old_resultset.json" }
       let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }

@@ -13,9 +13,10 @@ module SimpleCov
       #
       # Combine process explanation
       # => ResultCombiner: define all present files between results and start combine on file level.
-      # ==> FileCombiner: collect result of next combine levels lines and branches.
+      # ==> FileCombiner: collect result of next combine levels lines, branches, and methods.
       # ===> LinesCombiner: combine lines results.
       # ===> BranchesCombiner: combine branches results.
+      # ===> MethodsCombiner: combine methods results.
       #
       # @return [Hash]
       #
