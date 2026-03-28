@@ -19,7 +19,7 @@ module SimpleCov
             covered: SimpleCov.round_coverage(violation.fetch(:actual)),
             minimum_coverage: violation.fetch(:minimum_expected),
             criterion: violation.fetch(:criterion).capitalize,
-            filename: File.basename(violation.fetch(:filename))
+            filename: violation.fetch(:filename)
           )
         end
       end
@@ -41,12 +41,13 @@ module SimpleCov
 
       def compute_minimum_coverage_data
         minimum_coverage_by_file.flat_map do |criterion, expected_percent|
-          result.files.collect(&:filename).zip(result.coverage_statistics_by_file.fetch(criterion)).map do |filename, actual_coverage|
+          result.files.map do |file|
+            actual_coverage = file.coverage_statistics.fetch(criterion)
             {
               criterion: criterion,
               minimum_expected: expected_percent,
               actual: SimpleCov.round_coverage(actual_coverage.percent),
-              filename: filename
+              filename: file.project_filename
             }
           end
         end
