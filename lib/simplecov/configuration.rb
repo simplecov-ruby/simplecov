@@ -396,7 +396,7 @@ module SimpleCov
       groups[group_name] = parse_filter(filter_argument, &filter_proc)
     end
 
-    SUPPORTED_COVERAGE_CRITERIA = %i[line branch oneshot_line].freeze
+    SUPPORTED_COVERAGE_CRITERIA = %i[line branch method oneshot_line].freeze
     DEFAULT_COVERAGE_CRITERION = :line
     ONESHOT_LINE_COVERAGE_CRITERION = :oneshot_line
     #
@@ -464,6 +464,14 @@ module SimpleCov
     end
 
     def branch_coverage_supported?
+      coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
+    end
+
+    def method_coverage?
+      method_coverage_supported? && coverage_criterion_enabled?(:method)
+    end
+
+    def method_coverage_supported?
       coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
     end
 

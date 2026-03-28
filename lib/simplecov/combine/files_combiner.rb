@@ -17,6 +17,7 @@ module SimpleCov
       def combine(coverage_a, coverage_b)
         combination = {"lines" => Combine.combine(LinesCombiner, coverage_a["lines"], coverage_b["lines"])}
         combination["branches"] = Combine.combine(BranchesCombiner, coverage_a["branches"], coverage_b["branches"]) || {} if SimpleCov.branch_coverage?
+        combination["methods"] = Combine.combine(MethodsCombiner, coverage_a["methods"], coverage_b["methods"]) if SimpleCov.method_coverage?
         combination
       end
     end

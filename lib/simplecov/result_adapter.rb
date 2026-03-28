@@ -23,12 +23,30 @@ module SimpleCov
           adapted_result.merge!(file_name => {"lines" => cover_statistic})
         else
           adapt_oneshot_lines_if_needed(file_name, cover_statistic)
+          normalize_method_keys(cover_statistic)
           adapted_result.merge!(file_name => cover_statistic)
         end
       end
     end
 
   private
+
+    # Normalize memory addresses in method coverage keys so that results
+    # from different processes can be merged. Anonymous class names like
+    # "#<Class:0x00007ff19ab24790>" get inconsistent addresses across runs.
+    def normalize_method_keys(cover_statistic)
+      methods = cover_statistic[:methods]
+      return unless methods
+
+      normalized = {}
+      methods.each do |key, count|
+        normalized_key = key.dup
+        normalized_key[0] = normalized_key[0].to_s.gsub(/0x\h{16}/, "0x0000000000000000")
+        # Keys might collide after normalization (two anonymous classes with same method)
+        normalized[normalized_key] = normalized.fetch(normalized_key, 0) + count
+      end
+      cover_statistic[:methods] = normalized
+    end
 
     def adapt_oneshot_lines_if_needed(file_name, cover_statistic)
       return unless cover_statistic.key?(:oneshot_lines)

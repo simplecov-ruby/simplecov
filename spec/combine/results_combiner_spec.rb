@@ -108,6 +108,33 @@ describe SimpleCov::Combine::ResultsCombiner do
     end
   end
 
+  describe "with method coverage", if: SimpleCov.method_coverage_supported? do
+    before { SimpleCov.enable_coverage :method }
+    after { SimpleCov.clear_coverage_criteria }
+
+    it "merges method coverage data" do
+      resultset_a = {
+        source_fixture("sample.rb") => {
+          "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+          "methods" => {["FakedProject", :foo, 4, 2, 6, 5] => 1, ["FakedProject", :bar, 1, 2, 3, 4] => 0}
+        }
+      }
+      resultset_b = {
+        source_fixture("sample.rb") => {
+          "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+          "methods" => {["FakedProject", :foo, 4, 2, 6, 5] => 5, ["FakedProject", :baz, 7, 2, 9, 4] => 3}
+        }
+      }
+
+      merged = described_class.combine(resultset_a, resultset_b)
+      methods = merged[source_fixture("sample.rb")]["methods"]
+
+      expect(methods[["FakedProject", :foo, 4, 2, 6, 5]]).to eq(6)
+      expect(methods[["FakedProject", :bar, 1, 2, 3, 4]]).to eq(0)
+      expect(methods[["FakedProject", :baz, 7, 2, 9, 4]]).to eq(3)
+    end
+  end
+
   it "merges frozen resultsets" do
     resultset1 = {
       source_fixture("sample.rb").freeze => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
