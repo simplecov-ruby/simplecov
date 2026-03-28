@@ -85,6 +85,8 @@ Then "the overlay should be open" do
 end
 
 When "I install dependencies" do
+  # Remove lock file to avoid bundler version conflicts across Ruby versions
+  in_current_directory { FileUtils.rm_f("Gemfile.lock") }
   # bundle may take its time
   steps %(
     When I successfully run `bundle` for up to 120 seconds
@@ -92,9 +94,8 @@ When "I install dependencies" do
 end
 
 When "I pry" do
-  require "pry"
   # rubocop:disable Lint/Debugger
-  binding.pry
+  binding.irb
   # rubocop:enable Lint/Debugger
 end
 

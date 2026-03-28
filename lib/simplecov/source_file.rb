@@ -6,6 +6,9 @@ module SimpleCov
   # source lines and featuring helpers to interpret that data.
   #
   class SourceFile
+    SHEBANG_REGEX = /\A#!/.freeze
+    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
+
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename
     # The array of coverage data received from the Coverage.result
@@ -190,7 +193,6 @@ module SimpleCov
       end
     end
 
-    SHEBANG_REGEX = /\A#!/.freeze
     def shebang?(line)
       SHEBANG_REGEX.match?(line)
     end
@@ -202,7 +204,6 @@ module SimpleCov
       lines.concat([current_line], ensure_remove_undefs(file.readlines))
     end
 
-    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
     def set_encoding_based_on_magic_comment(file, line)
       # Check for encoding magic comment
       # Encoding magic comment must be placed at first line except for shebang

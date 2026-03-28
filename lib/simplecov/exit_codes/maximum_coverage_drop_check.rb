@@ -3,6 +3,8 @@
 module SimpleCov
   module ExitCodes
     class MaximumCoverageDropCheck
+      MAX_DROP_ACCURACY = 10
+
       def initialize(result, maximum_coverage_drop)
         @result = result
         @maximum_coverage_drop = maximum_coverage_drop
@@ -56,8 +58,6 @@ module SimpleCov
         end
       end
 
-      # if anyone says "max_coverage_drop 0.000000000000000001" I appologize. Please don't.
-      MAX_DROP_ACCURACY = 10
       def drop_percent(criterion)
         drop = last_coverage(criterion) -
                SimpleCov.round_coverage(

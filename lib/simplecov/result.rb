@@ -10,6 +10,7 @@ module SimpleCov
   #
   class Result
     extend Forwardable
+
     # Returns the original Coverage.result used for this instance of SimpleCov::Result
     attr_reader :original_result
     # Returns all files that are applicable to this result (sans filters!) as instances of SimpleCov::SourceFile. Aliased as :source_files
