@@ -37,11 +37,11 @@ module SimpleCov
       def combine_result_sets(combined_results, result)
         results_files = combined_results.keys | result.keys
 
-        results_files.each_with_object({}) do |file_name, file_combination|
-          file_combination[file_name] = combine_file_coverage(
+        results_files.to_h do |file_name|
+          [file_name, combine_file_coverage(
             combined_results[file_name],
             result[file_name]
-          )
+          )]
         end
       end
 

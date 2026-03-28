@@ -29,10 +29,11 @@ jobs:
 
       - name: Run tests
         run: bundle exec rake test
-        if: matrix.ruby-version != 'truffleruby-head'
+        if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby-head'"
 
-      # Run only `rake spec` on truffleruby, because just `rake` runs cucumber
-      # which fails because it uses an old childprocess which depends on fork.
-      - name: Run specs (truffleruby)
+      # Run only `rake spec` on truffleruby and jruby, because `rake` runs
+      # cucumber which requires headless Chrome via cuprite/ferrum — this is
+      # unreliable on alternative Ruby implementations.
+      - name: Run specs (alternative implementations)
         run: bundle exec rake spec
-        if: matrix.ruby-version == 'truffleruby-head'
+        if: "contains(matrix.ruby-version, 'jruby') || matrix.ruby-version == 'truffleruby-head'"

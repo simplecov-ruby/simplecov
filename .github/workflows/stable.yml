@@ -14,15 +14,15 @@ jobs:
 
       matrix:
         ruby-version:
-          - '2.5'
-          - '2.6'
           - '2.7'
           - '3.0'
           - '3.1'
           - '3.2'
           - '3.3'
           - '3.4'
+          - '4.0'
           - jruby-9.4
+          - jruby-10.0
           - truffleruby
 
     steps:
@@ -33,7 +33,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
-          rubygems: ${{ (matrix.ruby_version < '2.6' && '3.3.26') || 'default' }}
+          rubygems: default
           bundler-cache: true
 
       - name: Run Rubocop
@@ -43,10 +43,11 @@ jobs:
 
       - name: Run tests
         run: bundle exec rake test
-        if: matrix.ruby-version != 'truffleruby'
+        if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby'"
 
-      # Run only `rake spec` on truffleruby, because just `rake` runs cucumber
-      # which fails because it uses an old childprocess which depends on fork.
-      - name: Run specs (truffleruby)
+      # Run only `rake spec` on truffleruby and jruby, because `rake` runs
+      # cucumber which requires headless Chrome via cuprite/ferrum — this is
+      # unreliable on alternative Ruby implementations.
+      - name: Run specs (alternative implementations)
         run: bundle exec rake spec
-        if: matrix.ruby-version == 'truffleruby'
+        if: "contains(matrix.ruby-version, 'jruby') || matrix.ruby-version == 'truffleruby'"
