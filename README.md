@@ -507,12 +507,12 @@ Add your groups with:
 
 ```ruby
 SimpleCov.start do
-  add_group "Models", "app/models"
-  add_group "Controllers", "app/controllers"
+  add_group "Models", %r{^/app/models}
+  add_group "Controllers", %r{^/app/controllers}
   add_group "Long files" do |src_file|
     src_file.lines.count > 100
   end
-  add_group "Multiple Files", ["app/models", "app/controllers"] # You can also pass in an array
+  add_group "Multiple Files", [%r{^/app/models}, %r{^/app/controllers}] # You can also pass in an array
   add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
 end
 ```
@@ -756,10 +756,10 @@ SimpleCov.profiles.define 'rails' do
   add_filter '/test/'
   add_filter '/config/'
 
-  add_group 'Controllers', 'app/controllers'
-  add_group 'Models', 'app/models'
-  add_group 'Helpers', 'app/helpers'
-  add_group 'Libraries', 'lib'
+  add_group 'Controllers', %r{^/app/controllers}
+  add_group 'Models', %r{^/app/models}
+  add_group 'Helpers', %r{^/app/helpers}
+  add_group 'Libraries', %r{^/lib/}
 end
 ```
 
