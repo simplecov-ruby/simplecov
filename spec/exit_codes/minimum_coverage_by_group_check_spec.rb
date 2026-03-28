@@ -32,4 +32,15 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck do
 
     it { is_expected.to be_failing }
   end
+
+  context "group does not exist in result" do
+    let(:minimum_coverage_by_group) { {"Nonexistent Group" => {line: 80.0}} }
+
+    it "warns about the missing group and does not fail" do
+      expect { subject.failing? }.to output(
+        /minimum_coverage_by_group: no group named 'Nonexistent Group' exists/
+      ).to_stderr
+      expect(subject).not_to be_failing
+    end
+  end
 end

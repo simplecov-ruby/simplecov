@@ -25,11 +25,11 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    aruba (2.3.0)
-      bundler (>= 1.17, < 3.0)
+    aruba (2.3.3)
+      bundler (>= 1.17)
       contracts (>= 0.16.0, < 0.18.0)
-      cucumber (>= 8.0, < 10.0)
-      rspec-expectations (~> 3.4)
+      cucumber (>= 8.0, < 11.0)
+      rspec-expectations (>= 3.4, < 5.0)
       thor (~> 1.0)
     ast (2.4.2)
     base64 (0.2.0)
@@ -181,6 +181,7 @@ DEPENDENCIES
   benchmark-ips
   capybara
   cucumber
+  logger
   matrix
   minitest
   pry
@@ -193,4 +194,4 @@ DEPENDENCIES
   webrick
 
 BUNDLED WITH
-   2.7.0.dev
+  4.0.9

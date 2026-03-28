@@ -40,16 +40,22 @@ module SimpleCov
       end
 
       def compute_minimum_coverage_data
-        minimum_coverage_data = []
+        minimum_coverage_by_group.flat_map do |group_name, minimum_group_coverage|
+          group = find_group(group_name)
+          next [] unless group
 
-        minimum_coverage_by_group.each do |group_name, minimum_group_coverage|
-          minimum_group_coverage.each do |criterion, expected_percent|
-            actual_coverage = result.groups.fetch(group_name).coverage_statistics.fetch(criterion)
-            minimum_coverage_data << minimum_coverage_hash(group_name, criterion, expected_percent, SimpleCov.round_coverage(actual_coverage.percent))
+          minimum_group_coverage.map do |criterion, expected_percent|
+            actual_coverage = group.coverage_statistics.fetch(criterion)
+            minimum_coverage_hash(group_name, criterion, expected_percent, SimpleCov.round_coverage(actual_coverage.percent))
           end
         end
+      end
 
-        minimum_coverage_data
+      def find_group(group_name)
+        result.groups[group_name] || begin
+          warn "minimum_coverage_by_group: no group named '#{group_name}' exists. Available groups: #{result.groups.keys.join(', ')}"
+          nil
+        end
       end
 
       def minimum_coverage_hash(group_name, criterion, minimum_expected, actual)
