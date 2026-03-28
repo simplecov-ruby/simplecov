@@ -267,10 +267,10 @@ module SimpleCov
     # @return [Array]
     #
     def build_branches
-      coverage_branch_data = coverage_data.fetch("branches", {})
-      branches = coverage_branch_data&.flat_map do |condition, coverage_branches|
+      coverage_branch_data = coverage_data["branches"] || {}
+      branches = coverage_branch_data.flat_map do |condition, coverage_branches|
         build_branches_from(condition, coverage_branches)
-      end || []
+      end
 
       process_skipped_branches(branches)
     end
