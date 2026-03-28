@@ -9,11 +9,6 @@ these integrations with their respective owners.
 
 Upload coverage reports to [codacy.com](https://www.codacy.com/), a hosted (or self-hosted) software quality analysis platform that also includes coverage reporting.
 
-#### [codeclimate](https://github.com/codeclimate/ruby-test-reporter)
-*by [Code Climate](https://codeclimate.com/)*
-
-Upload coverage reports to [codeclimate.com](https://codeclimate.com/), a hosted software quality analysis and that also includes coverage reporting.
-
 #### [codecov](https://github.com/codecov/codecov-ruby)
 *by [Codecov](https://codecov.io/)*
 
@@ -23,3 +18,8 @@ Upload coverage reports to [codecov.io](https://codecov.io/), a hosted coverage 
 *by [Coveralls](https://coveralls.io/)*
 
 Upload coverage reports to [coveralls.io](https://coveralls.io/), a hosted coverage reporting solution.
+
+#### [Qlty Cloud](https://github.com/qltysh/qlty)
+*by [Qlty Software](https://qlty.sh/)*
+
+Upload coverage reports to [Qlty Cloud](https://qlty.sh/), a hosted software quality analysis and that also includes coverage reporting.
