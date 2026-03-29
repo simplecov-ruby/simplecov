@@ -6,7 +6,7 @@
 require "bundler"
 Bundler.setup
 require "capybara/cucumber"
-require "capybara/apparition"
+require "capybara/cuprite"
 require "aruba/cucumber"
 require "aruba/config/jruby" if RUBY_ENGINE == "jruby"
 require "simplecov"
@@ -31,7 +31,7 @@ end.to_app
 Capybara.configure do |config|
   config.ignore_hidden_elements = false
   config.server = :webrick
-  config.default_driver = :apparition
+  config.default_driver = :cuprite
 end
 
 Before("@branch_coverage") do

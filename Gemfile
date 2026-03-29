@@ -9,7 +9,7 @@ source "https://rubygems.org"
 # gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
 
 group :development do
-  gem "apparition", github: "twalpole/apparition"
+  gem "cuprite"
   gem "aruba"
   gem "capybara"
   if RUBY_VERSION < "2.7"
