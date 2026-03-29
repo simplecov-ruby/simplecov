@@ -26,7 +26,7 @@ Feature:
     Then a JSON coverage report should have been generated in "coverage"
     And the output should contain "JSON Coverage report generated"
 
-  Scenario: When CC_TEST_REPORTER_ID is set in the environment
+  Scenario: When QLTY_COVERAGE_TOKEN is set in the environment
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
@@ -39,7 +39,7 @@ Feature:
       """
     And I set the environment variables to:
       | variable            | value   |
-      | CC_TEST_REPORTER_ID | some-id |
+      | QLTY_COVERAGE_TOKEN | some-id |
 
     When I successfully run `bundle exec rake test`
 
