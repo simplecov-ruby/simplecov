@@ -65,6 +65,20 @@ describe SimpleCov::LinesClassifier do
         end
       end
 
+      describe ":nocov: one liner" do
+        it "determines :nocov: lines are not-relevant" do
+          classified_lines = subject.classify [
+            "def hi",
+            "raise NotImplementedError # :nocov:",
+            "end",
+            ""
+          ]
+
+          expect(classified_lines.length).to eq 4
+          expect(classified_lines[1]).to be_irrelevant
+        end
+      end
+
       describe ":nocov: blocks" do
         it "determines :nocov: blocks are not-relevant" do
           classified_lines = subject.classify [
@@ -80,21 +94,23 @@ describe SimpleCov::LinesClassifier do
 
         it "determines all lines after a non-closing :nocov: as not-relevant" do
           classified_lines = subject.classify [
+            "puts 'Not relevant' # :nocov:",
             "# :nocov:",
             "puts 'Not relevant'",
             "# :nocov:",
             "puts 'Relevant again'",
             "puts 'Still relevant'",
             "# :nocov:",
-            "puts 'Not relevant till the end'",
+            "puts 'Not relevant till the end' # :nocov:",
             "puts 'Ditto'"
           ]
 
-          expect(classified_lines.length).to eq 8
+          expect(classified_lines.length).to eq 9
 
-          expect(classified_lines[0..2]).to all be_irrelevant
-          expect(classified_lines[3..4]).to all be_relevant
-          expect(classified_lines[5..7]).to all be_irrelevant
+          expect(classified_lines[0]).to be_irrelevant
+          expect(classified_lines[1..3]).to all be_irrelevant
+          expect(classified_lines[4..5]).to all be_relevant
+          expect(classified_lines[6..8]).to all be_irrelevant
         end
       end
     end
