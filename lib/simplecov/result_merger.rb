@@ -141,9 +141,14 @@ module SimpleCov
           # A single result only ever has one command_name, see `SimpleCov::Result#to_hash`
           command_name, data = result.to_hash.first
           new_resultset[command_name] = data
-          File.open(resultset_path, "w+") do |f_|
+
+          # Write to a temp file first, then atomically rename to avoid
+          # other processes reading a truncated/incomplete .resultset.json
+          temp_path = "#{resultset_path}.#{Process.pid}.tmp"
+          File.open(temp_path, "w") do |f_|
             f_.puts JSON.pretty_generate(new_resultset)
           end
+          File.rename(temp_path, resultset_path)
         end
         true
       end
