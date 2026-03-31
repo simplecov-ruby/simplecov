@@ -336,10 +336,12 @@ module SimpleCov
 
         if scanner.scan(/"/)
           elements << scan_quoted_string(scanner)
-        elsif scanner.scan(/:(\w+[?!]?)/)
+        elsif scanner.scan(/:(\w+[?!=]?)/)
           elements << scanner[1].to_sym
         elsif scanner.scan(/-?\d+/)
           elements << scanner.matched.to_i
+        elsif scanner.scan(/[^,\]\s]+/)
+          elements << scanner.matched
         else
           scanner.scan(/./)
         end

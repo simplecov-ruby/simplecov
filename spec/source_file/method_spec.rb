@@ -32,6 +32,18 @@ describe SimpleCov::SourceFile::Method do
     expect(subject.to_s).to eq("A#method1")
   end
 
+  context "with nil line info" do
+    let(:info) { ["A", :method1, nil, nil, nil, nil] }
+
+    it "returns empty lines" do
+      expect(subject.lines).to eq([])
+    end
+
+    it "is skipped" do
+      expect(subject.skipped?).to eq(true)
+    end
+  end
+
   context "uncovered method" do
     let(:coverage) { 0 }
 

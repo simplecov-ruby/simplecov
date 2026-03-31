@@ -190,6 +190,67 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  context "method keys with bare class names from JSON round-trip" do
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("methods.rb"), coverage_data)
+    end
+
+    let(:coverage_data) do
+      # When Ruby's Coverage API returns a class object (not a string) as the
+      # first element of a method key, JSON round-trip produces an unquoted
+      # class name like [A, :method1, 2, 2, 5, 5] instead of ["A", :method1, ...]
+      {
+        "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
+        "branches" => {},
+        "methods" => methods_data
+      }
+    end
+
+    context "with a simple bare class name" do
+      let(:methods_data) { {"[A, :method1, 2, 2, 5, 5]" => 1} }
+
+      it "parses the bare class name" do
+        method = subject.methods.first
+        expect(method.class_name).to eq("A")
+        expect(method.method_name).to eq(:method1)
+        expect(method.start_line).to eq(2)
+      end
+    end
+
+    context "with a namespaced class name" do
+      let(:methods_data) { {"[Foo::Bar::Baz, :process, 2, 2, 5, 5]" => 1} }
+
+      it "parses the full namespace as the class name" do
+        method = subject.methods.first
+        expect(method.class_name).to eq("Foo::Bar::Baz")
+        expect(method.method_name).to eq(:process)
+        expect(method.start_line).to eq(2)
+      end
+    end
+
+    context "with a setter method name" do
+      let(:methods_data) { {"[A, :name=, 2, 2, 5, 5]" => 1} }
+
+      it "parses the setter method name including the =" do
+        method = subject.methods.first
+        expect(method.class_name).to eq("A")
+        expect(method.method_name).to eq(:name=)
+        expect(method.start_line).to eq(2)
+      end
+    end
+
+    context "with a singleton class" do
+      let(:methods_data) { {"[#<Class:Foo>, :bar, 2, 2, 5, 5]" => 1} }
+
+      it "parses the singleton class name" do
+        method = subject.methods.first
+        expect(method.class_name).to eq("#<Class:Foo>")
+        expect(method.method_name).to eq(:bar)
+        expect(method.start_line).to eq(2)
+      end
+    end
+  end
+
   # Regression: coverage data can have "branches" => nil when another gem
   # interferes with Coverage, or .resultset.json contains "branches": null.
   # Hash#fetch returns nil (not the default {}) when the key exists with nil value.
