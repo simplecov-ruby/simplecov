@@ -38,3 +38,29 @@ end
 
 task test: %i[spec cucumber test_html]
 task default: %i[rubocop spec cucumber test_html]
+
+namespace :assets do
+  desc "Compile frontend assets (JS + CSS) using esbuild"
+  task :compile do
+    frontend = File.expand_path("html_frontend", __dir__)
+    outdir = File.expand_path("lib/simplecov/formatter/html_formatter/public", __dir__)
+
+    puts "Compiling assets..."
+
+    # JS: esbuild bundles TypeScript + highlight.js and minifies
+    sh "cd #{frontend} && esbuild src/app.ts --bundle --minify --target=es2015 --outfile=#{outdir}/application.js"
+
+    # CSS: concatenate in order and minify
+    css = %w[
+      assets/stylesheets/reset.css
+      assets/stylesheets/plugins/highlight.css
+      assets/stylesheets/screen.css
+    ].map { |f| File.read(File.join(frontend, f)) }.join("\n")
+
+    IO.popen(%w[esbuild --minify --loader=css], "r+") do |io|
+      io.write(css)
+      io.close_write
+      File.write("#{outdir}/application.css", io.read)
+    end
+  end
+end

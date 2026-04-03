@@ -258,6 +258,7 @@ abbr.timeago {
 
 .group_tabs {
   display: flex;
+  align-self: flex-end;
   gap: var(--sp-1);
   overflow-x: auto;
 }
@@ -874,6 +875,7 @@ table.file_list .totals-row td {
   font-size: 16px;
   font-family: var(--font-sans);
   cursor: pointer;
+  white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
 
