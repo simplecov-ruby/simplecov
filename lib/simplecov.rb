@@ -284,6 +284,26 @@ module SimpleCov
       return unless defined?(ParallelTests) && final_result_process?
 
       ParallelTests.wait_for_other_processes_to_finish
+
+      # ParallelTests signals "done" before at_exit handlers finish, so other
+      # processes may still be writing their results. Poll the resultset until
+      # all parallel groups have reported or a timeout is reached.
+      wait_for_parallel_results
+    end
+
+    # @api private
+    def wait_for_parallel_results
+      expected = ENV["PARALLEL_TEST_GROUPS"]&.to_i
+      return unless expected && expected > 1
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 10
+      loop do
+        resultset = SimpleCov::ResultMerger.read_resultset
+        break if resultset.size >= expected
+        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+        sleep 0.1
+      end
     end
 
     #

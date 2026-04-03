@@ -9,6 +9,9 @@ World(WithinHelpers)
 
 When /^I open the coverage report$/ do
   visit "/"
+  # New simplecov-html shows #wrapper via jQuery .show() after JS init;
+  # wait for that or for old format where #content is always present
+  page.has_css?("#content", visible: true, wait: 10)
 end
 
 Given /^(?:|I )am on (.+)$/ do |path|

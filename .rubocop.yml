@@ -71,6 +71,10 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - "spec/**/*_spec.rb"
 
+Lint/Void:
+  Exclude:
+    - "test/html_formatter/fixtures/**/*"
+
 Lint/DeprecatedConstants:
   Enabled: true
 
@@ -167,6 +171,7 @@ Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:
     - "spec/**/*.rb"
+    - "features/step_definitions/**/*.rb"
 
 Metrics/BlockNesting:
   Description: Avoid excessive block nesting.
@@ -175,6 +180,8 @@ Metrics/BlockNesting:
 
 Metrics/ClassLength:
   Max: 300
+  Exclude:
+    - "test/**/*.rb"
 
 Metrics/MethodLength:
   Description: Checks if the length of a method exceeds some maximum value.
@@ -190,13 +197,15 @@ Metrics/ModuleLength:
 Metrics/ParameterLists:
   Description: Avoid parameter lists longer than three or four parameters.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#too-many-params
-  Max: 4
+  Max: 5
   CountKeywordArgs: true
 
 Naming/FileName:
   Description: makes sure that Ruby source files have snake_case names.
   Exclude:
     - "spec/fixtures/utf-8.rb"
+    - "lib/simplecov-html.rb"
+    - "test/html_formatter/test_simple_cov-html.rb"
 
 Style/AccessorGrouping:
   Enabled: true
@@ -258,6 +267,7 @@ Style/FrozenStringLiteralComment:
   EnforcedStyle: always
   Exclude:
     - "spec/fixtures/**/*"
+    - "test/html_formatter/fixtures/**/*"
 
 Style/GlobalStdStream:
   Enabled: true

@@ -2,13 +2,8 @@
 
 source "https://rubygems.org"
 
-# Uncomment this to use local copy of simplecov-html in development when checked out
-# gem "simplecov-html", path: File.join(__dir__, "../simplecov-html")
-
-# Uncomment this to use development version of html formatter from github
-# gem "simplecov-html", github: "simplecov-ruby/simplecov-html"
-
 group :development do
+  gem "nokogiri"
   gem "cuprite"
   gem "aruba"
   gem "capybara"

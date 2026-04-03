@@ -32,4 +32,4 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
      And I follow "lib/not_loaded.rb"
     Then the overlay should be open
-     And I should see "3 relevant lines" within "#cboxContent"
+     And I should see "3 relevant lines" within "#source-dialog"

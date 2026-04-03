@@ -18,9 +18,9 @@ Feature:
     When I open the coverage report generated with `bin/rspec_binstub_that_chdirs extra/spec/extra_spec.rb`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 100.0%   | 2     |
+      | All Files | 100.00%  | 2     |
 
     And I should see the source files:
       | name                        | coverage |
-      | base/lib/monorepo/base.rb   | 100.00 % |
-      | extra/lib/monorepo/extra.rb | 100.00 % |
+      | base/lib/monorepo/base.rb   | 100.00%  |
+      | extra/lib/monorepo/extra.rb | 100.00%  |

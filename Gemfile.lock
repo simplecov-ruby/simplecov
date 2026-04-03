@@ -3,7 +3,6 @@ PATH
   specs:
     simplecov (0.22.0)
       docile (~> 1.1)
-      simplecov-html (~> 0.12)
       simplecov_json_formatter (~> 0.1)
 
 GEM
@@ -136,7 +135,6 @@ GEM
       parser (>= 3.3.7.2)
       prism (~> 1.7)
     ruby-progressbar (1.13.0)
-    simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     sys-uname (1.5.1)
       ffi (~> 1.1)
@@ -171,6 +169,7 @@ DEPENDENCIES
   cucumber
   cuprite
   minitest
+  nokogiri
   rackup
   rake
   rspec

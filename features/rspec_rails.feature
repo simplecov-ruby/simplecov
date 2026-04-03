@@ -15,10 +15,10 @@ Feature:
     Then I should see the groups:
       | name        | coverage | files |
       | All Files   | 36.36%   | 5     |
-      | Controllers | 0.0%     | 1     |
-      | Channels    | 100.0%   | 0     |
-      | Models      | 50.0%    | 2     |
-      | Mailers     | 100.0%   | 0     |
-      | Helpers     | 100.0%   | 1     |
-      | Jobs        | 0.0%     | 1     |
-      | Libraries   | 100.0%   | 0     |
+      | Controllers | 0.00%    | 1     |
+      | Channels    | 100.00%  | 0     |
+      | Models      | 50.00%   | 2     |
+      | Mailers     | 100.00%  | 0     |
+      | Helpers     | 100.00%  | 1     |
+      | Jobs        | 0.00%    | 1     |
+      | Libraries   | 100.00%  | 0     |

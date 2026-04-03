@@ -8,7 +8,6 @@ module SimpleCov
     class Branch
       attr_reader :start_line, :end_line, :coverage, :type
 
-      # rubocop:disable Metrics/ParameterLists
       def initialize(start_line:, end_line:, coverage:, inline:, type:)
         @start_line = start_line
         @end_line   = end_line
@@ -17,7 +16,6 @@ module SimpleCov
         @type       = type
         @skipped    = false
       end
-      # rubocop:enable Metrics/ParameterLists
 
       def inline?
         @inline

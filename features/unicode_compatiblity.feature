@@ -26,15 +26,15 @@ Feature:
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 86.67%   | 5     |
+      | All Files | 86.66%   | 5     |
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project.rb                    | 100.00 %  |
-      | lib/faked_project/some_class.rb         | 80.00 %   |
-      | lib/faked_project/framework_specific.rb | 75.00 %   |
-      | lib/faked_project/meta_magic.rb         | 100.00 %  |
-      | lib/faked_project/unicode.rb            | 66.67 %  |
+      | lib/faked_project.rb                    | 100.00%  |
+      | lib/faked_project/some_class.rb         | 80.00%   |
+      | lib/faked_project/framework_specific.rb | 75.00%   |
+      | lib/faked_project/meta_magic.rb         | 100.00%  |
+      | lib/faked_project/unicode.rb            | 66.66%   |
 
     And the report should be based upon:
       | Unit Tests |
@@ -54,15 +54,15 @@ Feature:
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 86.67%   | 5     |
+      | All Files | 86.66%   | 5     |
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project.rb                    | 100.00 %  |
-      | lib/faked_project/some_class.rb         | 80.00 %   |
-      | lib/faked_project/framework_specific.rb | 75.00 %   |
-      | lib/faked_project/meta_magic.rb         | 100.00 %  |
-      | lib/faked_project/unicode.rb            | 66.67 %  |
+      | lib/faked_project.rb                    | 100.00%  |
+      | lib/faked_project/some_class.rb         | 80.00%   |
+      | lib/faked_project/framework_specific.rb | 75.00%   |
+      | lib/faked_project/meta_magic.rb         | 100.00%  |
+      | lib/faked_project/unicode.rb            | 66.66%   |
 
     And the report should be based upon:
       | Unit Tests |

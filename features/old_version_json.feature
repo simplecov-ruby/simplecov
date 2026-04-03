@@ -14,7 +14,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 88.89%    | 2     |
+      | All Files | 88.88%   | 2     |
     And I should see a line coverage summary of 8/9
 
   Scenario: Running the tests succeeds even with a current time stamp
@@ -23,5 +23,5 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 88.89%   | 2     |
+      | All Files | 88.88%   | 2     |
     And I should see a line coverage summary of 8/9

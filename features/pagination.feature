@@ -12,7 +12,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 100.0%   | 12    |
+      | All Files | 100.00%  | 12    |
 
     When I open the detailed view for "lib/a.rb"
     Then "nothing to see here" should be visible

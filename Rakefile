@@ -29,5 +29,12 @@ Cucumber::Rake::Task.new do |t|
   t.cucumber_opts = %w[--retry 3 --no-strict-flaky]
 end
 
-task test: %i[spec cucumber]
-task default: %i[rubocop spec cucumber]
+require "rake/testtask"
+Rake::TestTask.new(:test_html) do |t|
+  t.libs << "test/html_formatter"
+  t.pattern = "test/html_formatter/**/test_*.rb"
+  t.verbose = true
+end
+
+task test: %i[spec cucumber test_html]
+task default: %i[rubocop spec cucumber test_html]

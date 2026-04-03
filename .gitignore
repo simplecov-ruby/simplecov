@@ -24,6 +24,7 @@ tmp
 .rvmrc
 
 ## PROJECT::SPECIFIC
+html_frontend/node_modules
 
 .yardoc
 spec/fixtures/coverage

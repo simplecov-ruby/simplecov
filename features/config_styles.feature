@@ -22,7 +22,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Inside start block, using instance var from outside
@@ -36,7 +36,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Inside start block, using local var from outside
@@ -50,7 +50,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Explicitly before start block
@@ -62,7 +62,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Explicitly after start block
@@ -74,7 +74,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Using configure block after start
@@ -88,7 +88,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Using configure block before start
@@ -102,7 +102,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
   Scenario: Mixing configure and start block config
@@ -117,5 +117,5 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"

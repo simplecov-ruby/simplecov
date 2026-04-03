@@ -26,7 +26,7 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using Profile Command" within "#footer"
 
   Scenario: Using existing profile in custom profile and supplying profile to start command
@@ -41,5 +41,5 @@ Feature:
       """
 
     When I open the coverage report generated with `bundle exec rake test`
-    Then I should see "4 files in total."
+    Then I should see "4 files"
     And I should see "using My Profile" within "#footer"

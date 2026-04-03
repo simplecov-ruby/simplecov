@@ -10,7 +10,7 @@ Feature:
   When I open the coverage report generated with `bundle exec rspec spec/simple_spec.rb`
   Then I should see the groups:
     | name      | coverage | files |
-    | All Files | 100.0%   | 1     |
+    | All Files | 100.00%  | 1     |
 
   Scenario: The at_fork proc
   Given a file named ".simplecov" with:
@@ -25,7 +25,7 @@ Feature:
   When I open the coverage report generated with `bundle exec rspec spec/simple_spec.rb`
   Then I should see the groups:
     | name      | coverage | files |
-    | All Files | 100.0%   | 1     |
+    | All Files | 100.00%  | 1     |
   And the report should be based upon:
       | child process name  |
       | parent process name |
@@ -34,4 +34,4 @@ Feature:
   When I open the coverage report generated with `bundle exec rspec spec/spawn_spec.rb`
   Then I should see the groups:
     | name      | coverage | files |
-    | All Files | 100.0%   | 1     |
+    | All Files | 100.00%  | 1     |

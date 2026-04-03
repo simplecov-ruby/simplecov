@@ -81,7 +81,7 @@ When /^I wait for (\d+) seconds$/ do |seconds|
 end
 
 Then "the overlay should be open" do
-  expect(page).to have_css("#cboxContent")
+  expect(page).to have_css("#source-dialog[open]")
 end
 
 When "I install dependencies" do

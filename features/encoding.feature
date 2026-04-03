@@ -13,7 +13,7 @@ Feature:
   When I open the coverage report generated with `bundle exec rspec spec`
   Then I should see the groups:
     | name      | coverage | files |
-    | All Files | 55.56%   | 4     |
+    | All Files | 55.55%   | 4     |
 
   When I open the detailed view for "lib/utf8.rb"
   Then "�" should not be visible

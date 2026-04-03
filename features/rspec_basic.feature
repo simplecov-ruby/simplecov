@@ -17,17 +17,17 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 91.8%   | 7     |
+      | All Files | 91.80%  | 7     |
 
     And I should see the source files:
       | name                                    | coverage |
-      | lib/faked_project.rb                    | 100.00 %  |
-      | lib/faked_project/some_class.rb         | 80.00 %   |
-      | lib/faked_project/framework_specific.rb | 75.00 %   |
-      | lib/faked_project/meta_magic.rb         | 100.00 %  |
-      | spec/forking_spec.rb                    | 100.00 %  |
-      | spec/meta_magic_spec.rb                 | 100.00 %  |
-      | spec/some_class_spec.rb                 | 100.00 %  |
+      | lib/faked_project.rb                    | 100.00%  |
+      | lib/faked_project/some_class.rb         | 80.00%   |
+      | lib/faked_project/framework_specific.rb | 75.00%   |
+      | lib/faked_project/meta_magic.rb         | 100.00%  |
+      | spec/forking_spec.rb                    | 100.00%  |
+      | spec/meta_magic_spec.rb                 | 100.00%  |
+      | spec/some_class_spec.rb                 | 100.00%  |
 
       # Note: faked_spec.rb is not appearing here since that's the first unit test file
       # loaded by Rake, and only there test_helper is required, which then loads simplecov

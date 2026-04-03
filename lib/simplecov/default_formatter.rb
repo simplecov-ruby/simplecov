@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "simplecov-html"
+require_relative "formatter/html_formatter"
 module SimpleCov
   module Formatter
     class << self

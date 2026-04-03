@@ -30,11 +30,11 @@ Feature: Sophisticated grouping and filtering on RSpec
     When I open the coverage report generated with `bundle exec rspec spec`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 100.0%   | 1     |
-      | By block  | 100.0%   | 1     |
-      | By string | 100.0%   | 1     |
-      | By array  | 100.0%   | 1     |
+      | All Files | 100.00%  | 1     |
+      | By block  | 100.00%  | 1     |
+      | By string | 100.00%  | 1     |
+      | By array  | 100.00%  | 1     |
 
     And I should see the source files:
       | name                            | coverage |
-      | lib/faked_project/meta_magic.rb | 100.00 %  |
+      | lib/faked_project/meta_magic.rb | 100.00%  |
