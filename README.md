@@ -124,12 +124,11 @@ Getting started
 
 **Coverage results report, fully browsable locally with sorting and much more:**
 
-![SimpleCov coverage report](https://cloud.githubusercontent.com/assets/137793/17071162/db6f253e-502d-11e6-9d84-e40c3d75f333.png)
-
+![SimpleCov coverage report](https://github.com/user-attachments/assets/33275385-e0f3-482d-b63e-2a6cd4965fe0)
 
 **Source file coverage details view:**
 
-![SimpleCov source file detail view](https://cloud.githubusercontent.com/assets/137793/17071163/db6f9f0a-502d-11e6-816c-edb2c66fad8d.png)
+![SimpleCov source file detail view](https://github.com/user-attachments/assets/abcd93b4-a45d-48bb-a0e4-6129c4429193)
 
 ## Use it with any framework!
 
