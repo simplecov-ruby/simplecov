@@ -958,11 +958,33 @@ describe SimpleCov::SourceFile do
 
     describe "empty euc-jp file" do
       subject do
-        SimpleCov::SourceFile.new(source_fixture("empty_euc-jp.rb"), "lines" => [])
+        SimpleCov::SourceFile.new(source_fixture("empty_euc-jp.rb"), {"lines" => []})
       end
 
       it "has empty lines" do
         expect(subject.lines).to be_empty
+      end
+    end
+
+    context "a not loaded file (tracked but not required)" do
+      subject do
+        SimpleCov::SourceFile.new(
+          source_fixture("sample.rb"),
+          {"lines" => [nil, 1, nil, 1, nil, nil, nil], "branches" => {}, "methods" => {}},
+          loaded: false
+        )
+      end
+
+      it "is marked as not loaded" do
+        expect(subject.not_loaded?).to eq true
+      end
+
+      it "reports 0% branch coverage instead of 100%" do
+        expect(subject.branches_coverage_percent).to eq 0.0
+      end
+
+      it "reports 0% method coverage instead of 100%" do
+        expect(subject.coverage_statistics[:method].percent).to eq 0.0
       end
     end
   end

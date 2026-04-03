@@ -378,15 +378,20 @@ module SimpleCov
     # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
     #
     def add_not_loaded_files(result)
+      not_loaded_files = Set.new
+
       if tracked_files
         result = result.dup
         Dir[tracked_files].each do |file|
           absolute_path = File.expand_path(file)
-          result[absolute_path] ||= SimulateCoverage.call(absolute_path)
+          unless result.key?(absolute_path)
+            result[absolute_path] = SimulateCoverage.call(absolute_path)
+            not_loaded_files << absolute_path
+          end
         end
       end
 
-      result
+      [result, not_loaded_files]
     end
 
     #
@@ -427,7 +432,8 @@ module SimpleCov
     # @return [Hash]
     #
     def result_with_not_loaded_files
-      @result = SimpleCov::Result.new(add_not_loaded_files(@result))
+      result, not_loaded_files = add_not_loaded_files(@result)
+      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files)
     end
 
     # parallel_tests isn't always available, see: https://github.com/grosser/parallel_tests/issues/772

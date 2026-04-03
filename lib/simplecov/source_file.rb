@@ -16,9 +16,10 @@ module SimpleCov
     # The array of coverage data received from the Coverage.result
     attr_reader :coverage_data
 
-    def initialize(filename, coverage_data)
+    def initialize(filename, coverage_data, loaded: true)
       @filename = filename
       @coverage_data = coverage_data
+      @loaded = loaded
     end
 
     # The path to this source file relative to the projects directory
@@ -177,6 +178,11 @@ module SimpleCov
 
     def methods_coverage_percent
       coverage_statistics[:method]&.percent
+    end
+
+    # Whether this file was added via track_files but never loaded/required.
+    def not_loaded?
+      !@loaded
     end
 
   private
@@ -402,6 +408,10 @@ module SimpleCov
     end
 
     def branch_coverage_statistics
+      # Files added via track_files but never loaded/required have no branch
+      # data. Report 0% instead of misleading 100% (see #902).
+      return {branch: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)} if not_loaded? && covered_branches.empty? && missed_branches.empty?
+
       {
         branch: CoverageStatistics.new(
           covered: covered_branches.size,
@@ -418,10 +428,12 @@ module SimpleCov
     end
 
     def method_coverage_statistics
+      return {method: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)} if not_loaded? && covered_methods.empty? && missed_methods.empty?
+
       {
         method: CoverageStatistics.new(
           covered: covered_methods.size,
-          missed: missed_methods.size
+          missed:  missed_methods.size
         )
       }
     end
