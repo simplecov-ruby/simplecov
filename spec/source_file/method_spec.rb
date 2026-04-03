@@ -6,7 +6,7 @@ describe SimpleCov::SourceFile::Method do
   subject { described_class.new(source_file, info, coverage) }
 
   let(:source_file) do
-    SimpleCov::SourceFile.new(source_fixture("methods.rb"), "lines" => {})
+    SimpleCov::SourceFile.new(source_fixture("methods.rb"), {"lines" => {}})
   end
 
   let(:info) { ["A", :method1, 2, 2, 5, 5] }

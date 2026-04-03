@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Bugfixes
+* Don't report misleading 100% branch/method coverage for files added via `track_files` that were never loaded. See #902
+
 0.22.1 (2024-09-02)
 ==========
 

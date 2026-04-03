@@ -37,7 +37,7 @@ describe SimpleCov do
         end
 
         it "adds not-loaded-files" do
-          expect(SimpleCov).to receive(:add_not_loaded_files).once.and_return({})
+          expect(SimpleCov).to receive(:add_not_loaded_files).once.and_return([{}, Set.new])
           SimpleCov.result
         end
 
@@ -89,7 +89,7 @@ describe SimpleCov do
         end
 
         it "adds not-loaded-files" do
-          expect(SimpleCov).to receive(:add_not_loaded_files).once.and_return({})
+          expect(SimpleCov).to receive(:add_not_loaded_files).once.and_return([{}, Set.new])
           SimpleCov.result
         end
 

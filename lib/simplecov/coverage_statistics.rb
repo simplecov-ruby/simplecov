@@ -31,11 +31,11 @@ module SimpleCov
     # Requires only covered, missed and strength to be initialized.
     #
     # Other values are computed by this class.
-    def initialize(covered:, missed:, total_strength: 0.0)
+    def initialize(covered:, missed:, total_strength: 0.0, percent: nil)
       @covered  = covered
       @missed   = missed
       @total    = covered + missed
-      @percent  = compute_percent(covered, missed, total)
+      @percent  = percent || compute_percent(covered, missed, total)
       @strength = compute_strength(total_strength, total)
     end
 

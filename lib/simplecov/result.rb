@@ -30,14 +30,15 @@ module SimpleCov
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data)
-    def initialize(original_result, command_name: nil, created_at: nil)
+    def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new)
       result = original_result
       @original_result = result.freeze
       @command_name = command_name
       @created_at = created_at
-      @files = SimpleCov::FileList.new(result.map do |filename, coverage|
-        SimpleCov::SourceFile.new(filename, JSON.parse(JSON.dump(coverage))) if File.file?(filename)
-      end.compact.sort_by(&:filename))
+      @files = SimpleCov::FileList.new(
+        result.filter_map { |filename, coverage| build_source_file(filename, coverage, not_loaded_files) }
+              .sort_by(&:filename)
+      )
       filter!
     end
 
@@ -85,6 +86,16 @@ module SimpleCov
     end
 
   private
+
+    def build_source_file(filename, coverage, not_loaded_files)
+      return unless File.file?(filename)
+
+      SimpleCov::SourceFile.new(
+        filename,
+        JSON.parse(JSON.dump(coverage)),
+        loaded: !not_loaded_files.include?(filename)
+      )
+    end
 
     def coverage
       keys = original_result.keys & filenames
