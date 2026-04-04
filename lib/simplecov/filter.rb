@@ -70,15 +70,13 @@ module SimpleCov
           # match within the last path segment (e.g. "test.rb" matches
           # "faked_test.rb") while still anchoring to a "/" boundary.
           %r{/[^/]*#{Regexp.escape(normalized)}}
+        elsif normalized.end_with?("/")
+          # Trailing slash signals directory-only matching
+          %r{/#{Regexp.escape(normalized)}}
         else
           # No dot — looks like a directory or path. Require segment-boundary
           # match so "lib" matches "/lib/" but not "/library/".
-          if normalized.end_with?("/")
-            # Trailing slash signals directory-only matching
-            %r{/#{Regexp.escape(normalized)}}
-          else
-            %r{/#{Regexp.escape(normalized)}(?=[/.]|$)}
-          end
+          %r{/#{Regexp.escape(normalized)}(?=[/.]|$)}
         end
       end
     end
