@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "fileutils"
-require "docile"
 require_relative "formatter/multi_formatter"
 
 module SimpleCov
@@ -175,7 +174,17 @@ module SimpleCov
     # options at once.
     #
     def configure(&block)
-      Docile.dsl_eval(self, &block)
+      block_context = block.binding.receiver
+
+      # If the block was defined in our own context, instance_exec is sufficient
+      return instance_exec(&block) if equal?(block_context)
+
+      # Copy the caller's instance variables in so that references like @filter
+      # inside the block resolve to the caller's values, not ours.
+      saved = swap_ivars_from(block_context)
+      instance_exec(&block)
+    ensure
+      restore_ivars(block_context, saved) if defined?(saved) && saved
     end
 
     #
@@ -513,6 +522,26 @@ module SimpleCov
 
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
+    end
+
+    # Copy instance variables from block_context into self, saving any of ours
+    # that would be clobbered. Returns the saved values for later restoration.
+    def swap_ivars_from(block_context)
+      saved = {}
+      our_ivars = instance_variables
+      block_context.instance_variables.each do |ivar|
+        saved[ivar] = instance_variable_get(ivar) if our_ivars.include?(ivar)
+        instance_variable_set(ivar, block_context.instance_variable_get(ivar))
+      end
+      saved
+    end
+
+    # Copy instance variables back to block_context and restore our saved values.
+    def restore_ivars(block_context, saved)
+      block_context.instance_variables.each do |ivar|
+        block_context.instance_variable_set(ivar, instance_variable_get(ivar))
+      end
+      saved.each { |ivar, value| instance_variable_set(ivar, value) }
     end
 
     #

@@ -2,7 +2,6 @@ PATH
   remote: .
   specs:
     simplecov (0.22.0)
-      docile (~> 1.1)
 
 GEM
   remote: https://rubygems.org/
@@ -61,7 +60,6 @@ GEM
       capybara (~> 3.0)
       ferrum (~> 0.17.0)
     diff-lcs (1.6.2)
-    docile (1.4.1)
     drb (2.2.3)
     ferrum (0.17.2)
       addressable (~> 2.5)
