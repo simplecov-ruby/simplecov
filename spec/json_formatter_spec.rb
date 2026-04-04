@@ -16,9 +16,23 @@ describe SimpleCov::Formatter::JSONFormatter do
 
   describe "format" do
     context "with line coverage" do
-      it "works" do
+      it "includes line coverage and covered_percent per file" do
         subject.format(result)
         expect(json_output).to eq(json_result("sample"))
+      end
+
+      it "preserves raw percentage and strength precision" do
+        unrounded_result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
+
+        subject.format(unrounded_result)
+
+        expect(json_output.fetch("total").fetch("lines")).to include(
+          "percent" => 66.66666666666667,
+          "strength" => 0.6666666666666666
+        )
+        expect(json_output.fetch("coverage").fetch(source_fixture("json/sample.rb"))).to include(
+          "lines_covered_percent" => 66.66666666666667
+        )
       end
     end
 
@@ -51,13 +65,51 @@ describe SimpleCov::Formatter::JSONFormatter do
         enable_branch_coverage
       end
 
-      it "works" do
+      it "includes branch data and branches_covered_percent per file" do
         subject.format(result)
         expect(json_output).to eq(json_result("sample_with_branch"))
       end
     end
 
+    context "with method coverage" do
+      let(:original_lines) do
+        [nil, 1, 1, 1, 1, nil, nil, 1, 1,
+         nil, nil, 1, 1, 0, nil, 1, nil,
+         nil, nil, nil, 1, 0, nil, nil, nil]
+      end
+
+      let(:original_methods) do
+        {
+          ["Foo", :initialize, 3, 2, 6, 5] => 1,
+          ["Foo", :bar, 8, 2, 10, 5] => 1,
+          ["Foo", :foo, 12, 2, 18, 5] => 1,
+          ["Foo", :skipped, 21, 2, 23, 5] => 0
+        }
+      end
+
+      let(:result) do
+        SimpleCov::Result.new({
+                                source_fixture("json/sample.rb") => {
+                                  "lines" => original_lines,
+                                  "methods" => original_methods
+                                }
+                              })
+      end
+
+      before do
+        enable_method_coverage
+      end
+
+      # total.methods.total is 3, not 4, because Foo#skipped is inside a :nocov: block
+      it "includes methods array and methods_covered_percent per file" do
+        subject.format(result)
+        expect(json_output).to eq(json_result("sample_with_method"))
+      end
+    end
+
     context "with groups" do
+      let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 8, missed: 2) }
+
       let(:result) do
         res = SimpleCov::Result.new({
                                       source_fixture("json/sample.rb") => {"lines" => [
@@ -68,7 +120,9 @@ describe SimpleCov::Formatter::JSONFormatter do
 
         # right now SimpleCov works mostly on global state, hence setting the groups that way
         # would be global state --> Mocking is better here
-        allow(res).to receive_messages(groups: {"My Group" => double("File List", covered_percent: 80.0)})
+        allow(res).to receive_messages(
+          groups: {"My Group" => double("File List", coverage_statistics: {line: line_stats})}
+        )
         res
       end
 
@@ -81,6 +135,10 @@ describe SimpleCov::Formatter::JSONFormatter do
 
   def enable_branch_coverage
     allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
+  end
+
+  def enable_method_coverage
+    allow(SimpleCov).to receive(:method_coverage?).and_return(true)
   end
 
   def json_output

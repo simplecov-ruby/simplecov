@@ -10,11 +10,11 @@
       "percent": 90.0,
       "strength": 1.0
     },
-    "branches": {
-      "covered": 1,
-      "missed": 1,
-      "total": 2,
-      "percent": 50.0,
+    "methods": {
+      "covered": 3,
+      "missed": 0,
+      "total": 3,
+      "percent": 100.0,
       "strength": 0.0
     }
   },
@@ -48,21 +48,33 @@
         null
       ],
       "lines_covered_percent": 90.0,
-      "branches": [
+      "methods": [
         {
-          "type": "then",
-          "start_line": 14,
-          "end_line": 14,
-          "coverage": 0
+          "name": "Foo#initialize",
+          "start_line": 3,
+          "end_line": 6,
+          "coverage": 1
         },
         {
-          "type": "else",
-          "start_line": 16,
-          "end_line": 16,
+          "name": "Foo#bar",
+          "start_line": 8,
+          "end_line": 10,
           "coverage": 1
+        },
+        {
+          "name": "Foo#foo",
+          "start_line": 12,
+          "end_line": 18,
+          "coverage": 1
+        },
+        {
+          "name": "Foo#skipped",
+          "start_line": 21,
+          "end_line": 23,
+          "coverage": "ignored"
         }
       ],
-      "branches_covered_percent": 50.0
+      "methods_covered_percent": 100.0
     }
   },
   "groups": {}

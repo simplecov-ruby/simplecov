@@ -2,6 +2,15 @@
   "meta": {
     "simplecov_version": "0.22.0"
   },
+  "total": {
+    "lines": {
+      "covered": 9,
+      "missed": 1,
+      "total": 10,
+      "percent": 90.0,
+      "strength": 1.0
+    }
+  },
   "coverage": {
     "/STUB_WORKING_DIRECTORY/spec/fixtures/json/sample.rb": {
       "lines": [
@@ -30,7 +39,8 @@
         "ignored",
         "ignored",
         null
-      ]
+      ],
+      "lines_covered_percent": 90.0
     }
   },
   "groups": {}
