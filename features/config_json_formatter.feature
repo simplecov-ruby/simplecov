@@ -12,7 +12,6 @@ Feature:
     Given SimpleCov for Test/Unit is configured with:
       """
       require 'simplecov'
-      require 'simplecov_json_formatter'
       SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
       SimpleCov.at_exit do
         puts SimpleCov.result.format!

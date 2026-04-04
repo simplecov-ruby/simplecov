@@ -8,3 +8,4 @@ end
 
 require_relative "formatter/simple_formatter"
 require_relative "formatter/multi_formatter"
+require_relative "formatter/json_formatter"
