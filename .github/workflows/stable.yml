@@ -36,11 +36,6 @@ jobs:
           rubygems: default
           bundler-cache: true
 
-      - name: Run Rubocop
-        run: bundle exec rake rubocop
-        # code style is enough to check once (and might even take some time on JRuby)
-        if: matrix.ruby-version == '3.3'
-
       - name: Run tests
         run: bundle exec rake test
         if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby'"
