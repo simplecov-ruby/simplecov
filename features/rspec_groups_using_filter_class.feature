@@ -20,7 +20,7 @@ Feature: Grouping on RSpec using a custom filter class
       end
       SimpleCov.start do
         add_group 'By filter class', CoverageFilter.new(90)
-        add_group 'By string', 'project/meta_magic'
+        add_group 'By string', 'faked_project/meta_magic'
       end
       """
 

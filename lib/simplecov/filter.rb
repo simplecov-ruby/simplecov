@@ -52,9 +52,35 @@ module SimpleCov
 
   class StringFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
-    # string configured when initializing this Filter with StringFilter.new('somestring')
+    # string configured when initializing this Filter with StringFilter.new('somestring').
+    # Matching is path-segment-aware: the argument must appear immediately after a "/"
+    # and be followed by "/" or end-of-string, so "lib" matches "/lib/foo.rb" but not
+    # "/app/models/library.rb".
     def matches?(source_file)
-      source_file.project_filename.include?(filter_argument)
+      source_file.project_filename.match?(segment_pattern)
+    end
+
+  private
+
+    def segment_pattern
+      @segment_pattern ||= begin
+        normalized = filter_argument.delete_prefix("/")
+        if normalized.include?(".")
+          # Contains a dot — looks like a filename pattern. Allow substring
+          # match within the last path segment (e.g. "test.rb" matches
+          # "faked_test.rb") while still anchoring to a "/" boundary.
+          %r{/[^/]*#{Regexp.escape(normalized)}}
+        else
+          # No dot — looks like a directory or path. Require segment-boundary
+          # match so "lib" matches "/lib/" but not "/library/".
+          if normalized.end_with?("/")
+            # Trailing slash signals directory-only matching
+            %r{/#{Regexp.escape(normalized)}}
+          else
+            %r{/#{Regexp.escape(normalized)}(?=[/.]|$)}
+          end
+        end
+      end
     end
   end
 

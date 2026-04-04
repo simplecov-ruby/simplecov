@@ -27,6 +27,18 @@ describe SimpleCov::SourceFile do
     expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches subject
   end
 
+  it "matches a new SimpleCov::StringFilter 'sample' (basename without extension)" do
+    expect(SimpleCov::StringFilter.new("sample")).to be_matches subject
+  end
+
+  it "doesn't match at non-segment boundaries" do
+    library_file = SimpleCov::SourceFile.new(
+      File.join(SimpleCov.root, "app/models/library.rb"),
+      [nil, 1, 1]
+    )
+    expect(SimpleCov::StringFilter.new("lib")).not_to be_matches library_file
+  end
+
   it "doesn't match a new SimpleCov::StringFilter '.pl'" do
     expect(SimpleCov::StringFilter.new(".pl")).not_to be_matches subject
   end

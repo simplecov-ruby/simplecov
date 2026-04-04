@@ -17,8 +17,8 @@ Feature: Sophisticated grouping and filtering on RSpec
         add_group 'By block' do |src_file|
           src_file.filename =~ /MaGiC/i
         end
-        add_group 'By string', 'project/meta_magic'
-        add_group 'By array', ['project/meta_magic']
+        add_group 'By string', 'faked_project/meta_magic'
+        add_group 'By array', ['faked_project/meta_magic']
 
         add_filter 'faked_project.rb'
         # Remove all files that include "describe" in their source
