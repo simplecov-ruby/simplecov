@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Coverage</title>
+    <script src="application.js" type="text/javascript"></script>
+    <link href="application.css" media="screen, projection, print" rel="stylesheet" type="text/css" />
+    <script type="text/javascript">
+      (function() {
+        var pref = localStorage.getItem('simplecov-dark-mode');
+        if (pref === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        } else if (pref === 'light') {
+          document.documentElement.classList.add('light-mode');
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="loading" style="display: none">
+      <div id="loading-inner">
+        <div id="loading-bar-track">
+          <div id="loading-bar-fill"></div>
+        </div>
+        <div id="loading-text">Loading...</div>
+      </div>
+    </div>
+
+    <div id="wrapper" class="hide">
+      <div class="tab-bar">
+        <ul class="group_tabs" role="tablist"></ul>
+        <button id="dark-mode-toggle" aria-label="Toggle dark mode"></button>
+      </div>
+
+      <div id="content"></div>
+
+      <div id="footer"></div>
+
+      <div class="source_files" style="display:none"></div>
+    </div>
+
+    <dialog id="source-dialog" class="source-dialog">
+      <div class="source-dialog__header">
+        <div class="source-dialog__title" id="source-dialog-title"></div>
+        <div class="source-legend" id="source-legend"></div>
+        <button class="source-dialog__close" aria-label="Close" title="Close">&times;</button>
+      </div>
+      <div class="source-dialog__body" id="source-dialog-body" tabindex="0"></div>
+    </dialog>
+
+    <script src="coverage_data.js" type="text/javascript"></script>
+  </body>
+</html>
