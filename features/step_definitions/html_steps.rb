@@ -60,7 +60,29 @@ Then /^I should see the source files:$/ do |table|
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
-  count = page.evaluate_script("document.querySelectorAll('.source_files template').length > 0 ? Array.from(document.querySelectorAll('.source_files template')).reduce(function(sum, t) { return sum + t.content.querySelectorAll('ol li.skipped').length; }, 0) : document.querySelectorAll('.source_table ol li.skipped').length")
+  # Materialize all source files (renders them from coverage data), then count skipped lines
+  count = page.evaluate_script(<<~JS)
+    (function() {
+      // Check for pre-rendered templates (old simplecov-html)
+      var templates = document.querySelectorAll('.source_files template');
+      if (templates.length > 0) {
+        return Array.from(templates).reduce(function(sum, t) {
+          return sum + t.content.querySelectorAll('ol li.skipped').length;
+        }, 0);
+      }
+      // New architecture: count skipped lines directly from coverage data
+      if (window.SIMPLECOV_DATA) {
+        var count = 0;
+        var coverage = window.SIMPLECOV_DATA.coverage;
+        Object.keys(coverage).forEach(function(fn) {
+          var lines = coverage[fn].lines;
+          lines.forEach(function(l) { if (l === 'ignored') count++; });
+        });
+        return count;
+      }
+      return document.querySelectorAll('.source_table ol li.skipped').length;
+    })()
+  JS
   expect(count).to eq(expected_count.to_i)
 end
 

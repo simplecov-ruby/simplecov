@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "source_file_formatter"
+require "time"
 
 module SimpleCov
   module Formatter
@@ -34,7 +34,9 @@ module SimpleCov
 
         def format_groups
           @result.groups.each do |name, file_list|
-            formatted_result[:groups][name] = format_coverage_statistics(file_list.coverage_statistics)
+            group_data = format_coverage_statistics(file_list.coverage_statistics)
+            group_data[:files] = file_list.map(&:filename)
+            formatted_result[:groups][name] = group_data
           end
         end
 
@@ -83,20 +85,90 @@ module SimpleCov
         end
 
         def formatted_result
-          @formatted_result ||= {
-            meta: {
-              simplecov_version: SimpleCov::VERSION
-            },
-            total: {},
-            coverage: {},
-            groups: {},
-            errors: {}
+          @formatted_result ||= {meta: format_meta, total: {}, coverage: {}, groups: {}, errors: {}}
+        end
+
+        def format_meta
+          {
+            simplecov_version: SimpleCov::VERSION,
+            command_name: @result.command_name,
+            project_name: SimpleCov.project_name,
+            timestamp: @result.created_at.iso8601,
+            root: SimpleCov.root,
+            branch_coverage: SimpleCov.branch_coverage?,
+            method_coverage: SimpleCov.method_coverage?
           }
         end
 
         def format_source_file(source_file)
-          source_file_formatter = SourceFileFormatter.new(source_file)
-          source_file_formatter.format
+          result = format_line_coverage(source_file)
+          result.merge!(format_source_code(source_file))
+          result.merge!(format_branch_coverage(source_file)) if SimpleCov.branch_coverage?
+          result.merge!(format_method_coverage(source_file)) if SimpleCov.method_coverage?
+          result
+        end
+
+        def format_source_code(source_file)
+          {source: source_file.lines.map { |line| ensure_utf8(line.src.chomp) }}
+        end
+
+        def ensure_utf8(str)
+          str.encode("UTF-8", invalid: :replace, undef: :replace)
+        end
+
+        def format_line_coverage(source_file)
+          {
+            lines: source_file.lines.map { |line| format_line(line) },
+            lines_covered_percent: source_file.covered_percent,
+            covered_lines: source_file.covered_lines.count,
+            missed_lines: source_file.missed_lines.count
+          }
+        end
+
+        def format_branch_coverage(source_file)
+          {
+            branches: source_file.branches.map { |branch| format_branch(branch) },
+            branches_covered_percent: source_file.branches_coverage_percent,
+            covered_branches: source_file.covered_branches.count,
+            missed_branches: source_file.missed_branches.count,
+            total_branches: source_file.total_branches.count
+          }
+        end
+
+        def format_method_coverage(source_file)
+          {
+            methods: source_file.methods.map { |method| format_method(method) },
+            methods_covered_percent: source_file.methods_coverage_percent,
+            covered_methods: source_file.covered_methods.count,
+            missed_methods: source_file.missed_methods.count,
+            total_methods: source_file.methods.count
+          }
+        end
+
+        def format_line(line)
+          return line.coverage unless line.skipped?
+
+          "ignored"
+        end
+
+        def format_branch(branch)
+          {
+            type: branch.type,
+            start_line: branch.start_line,
+            end_line: branch.end_line,
+            coverage: format_line(branch),
+            inline: branch.inline?,
+            report_line: branch.report_line
+          }
+        end
+
+        def format_method(method)
+          {
+            name: method.to_s,
+            start_line: method.start_line,
+            end_line: method.end_line,
+            coverage: format_line(method)
+          }
         end
 
         def format_coverage_statistics(statistics)

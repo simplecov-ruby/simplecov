@@ -5,13 +5,17 @@ require "helper"
 describe SimpleCov::Formatter::JSONFormatter do
   subject { described_class.new(silent: true) }
 
+  let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
+
   let(:result) do
-    SimpleCov::Result.new({
-                            source_fixture("json/sample.rb") => {"lines" => [
-                              nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                            ]}
-                          })
+    res = SimpleCov::Result.new({
+                                  source_fixture("json/sample.rb") => {"lines" => [
+                                    nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+                                    1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+                                  ]}
+                                })
+    res.created_at = fixed_time
+    res
   end
 
   describe "format" do
@@ -53,12 +57,14 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       let(:result) do
-        SimpleCov::Result.new({
-                                source_fixture("json/sample.rb") => {
-                                  "lines" => original_lines,
-                                  "branches" => original_branches
-                                }
-                              })
+        res = SimpleCov::Result.new({
+                                      source_fixture("json/sample.rb") => {
+                                        "lines" => original_lines,
+                                        "branches" => original_branches
+                                      }
+                                    })
+        res.created_at = fixed_time
+        res
       end
 
       before do
@@ -88,12 +94,14 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       let(:result) do
-        SimpleCov::Result.new({
-                                source_fixture("json/sample.rb") => {
-                                  "lines" => original_lines,
-                                  "methods" => original_methods
-                                }
-                              })
+        res = SimpleCov::Result.new({
+                                      source_fixture("json/sample.rb") => {
+                                        "lines" => original_lines,
+                                        "methods" => original_methods
+                                      }
+                                    })
+        res.created_at = fixed_time
+        res
       end
 
       before do
@@ -192,19 +200,21 @@ describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with minimum_coverage_by_group below threshold" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 7, missed: 3) }
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {"lines" => [
+                                      sample_filename => {"lines" => [
                                         nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
                                         1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
                                       ]}
                                     })
 
-        allow(res).to receive_messages(
-          groups: {"Models" => double("File List", coverage_statistics: {line: line_stats})}
-        )
+        mock_file_list = double("File List",
+                                coverage_statistics: {line: line_stats},
+                                map: [sample_filename])
+        allow(res).to receive_messages(groups: {"Models" => mock_file_list})
         res
       end
 
@@ -265,20 +275,26 @@ describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with groups" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
+
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 8, missed: 2) }
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {"lines" => [
+                                      sample_filename => {"lines" => [
                                         nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
                                         1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
                                       ]}
                                     })
+        res.created_at = fixed_time
 
         # right now SimpleCov works mostly on global state, hence setting the groups that way
         # would be global state --> Mocking is better here
+        mock_file_list = double("File List",
+                                coverage_statistics: {line: line_stats},
+                                map: [sample_filename])
         allow(res).to receive_messages(
-          groups: {"My Group" => double("File List", coverage_statistics: {line: line_stats})}
+          groups: {"My Group" => mock_file_list}
         )
         res
       end
@@ -304,13 +320,20 @@ describe SimpleCov::Formatter::JSONFormatter do
 
   def json_result(filename)
     file = File.read(source_fixture("json/#{filename}.json"))
-    file = use_current_working_directory(file)
+    file = replace_stubs(file)
     JSON.parse(file)
   end
 
   STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
-  def use_current_working_directory(file)
+  STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
+  STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
+
+  def replace_stubs(file)
     current_working_directory = File.expand_path("..", File.dirname(__FILE__))
-    file.gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+    file
+      .gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+      .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")
+      .gsub("\"#{STUB_COMMAND_NAME}\"", "\"#{SimpleCov.command_name}\"")
+      .gsub("\"#{STUB_PROJECT_NAME}\"", "\"#{SimpleCov.project_name}\"")
   end
 end

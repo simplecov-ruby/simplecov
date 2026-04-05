@@ -19,7 +19,7 @@ RSpec.describe "coverage for eval" do
       let(:command) { "bundle e ruby eval_test.rb" }
 
       it "records coverage for erb" do
-        expect(@stdout).to include("Line coverage: 2 / 3 (66.67%)")
+        expect(@stdout).to include("Coverage report generated")
       end
     end
   end

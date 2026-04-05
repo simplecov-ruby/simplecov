@@ -1,6 +1,12 @@
 {
   "meta": {
-    "simplecov_version": "0.22.0"
+    "simplecov_version": "0.22.0",
+    "command_name": "STUB_COMMAND_NAME",
+    "project_name": "STUB_PROJECT_NAME",
+    "timestamp": "2024-01-01T00:00:00+00:00",
+    "root": "/STUB_WORKING_DIRECTORY",
+    "branch_coverage": true,
+    "method_coverage": false
   },
   "total": {
     "lines": {
@@ -48,22 +54,58 @@
         "ignored",
         null
       ],
+      "source": [
+        "# Foo class",
+        "class Foo",
+        "  def initialize",
+        "    @foo = \"bar\"",
+        "    @bar = \"foo\"",
+        "  end",
+        "",
+        "  def bar",
+        "    @foo",
+        "  end",
+        "",
+        "  def foo(param)",
+        "    if param",
+        "      @bar",
+        "    else",
+        "      @foo",
+        "    end",
+        "  end",
+        "",
+        "  # :nocov:",
+        "  def skipped",
+        "    @foo * 2",
+        "  end",
+        "  # :nocov:",
+        "end"
+      ],
       "lines_covered_percent": 90.0,
+      "covered_lines": 9,
+      "missed_lines": 1,
       "branches": [
         {
           "type": "then",
           "start_line": 14,
           "end_line": 14,
-          "coverage": 0
+          "coverage": 0,
+          "inline": false,
+          "report_line": 13
         },
         {
           "type": "else",
           "start_line": 16,
           "end_line": 16,
-          "coverage": 1
+          "coverage": 1,
+          "inline": false,
+          "report_line": 15
         }
       ],
-      "branches_covered_percent": 50.0
+      "branches_covered_percent": 50.0,
+      "covered_branches": 1,
+      "missed_branches": 1,
+      "total_branches": 2
     }
   },
   "groups": {},

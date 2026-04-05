@@ -1,5 +1,0 @@
-<div class="summary-stats">
-  <%= coverage_type_summary("line", "Line coverage", _summary, enabled: true, suffix: "relevant lines covered") %>
-  <%= coverage_type_summary("branch", "Branch coverage", _summary, enabled: branch_coverage?, missed_class: "missed-branch-text") %>
-  <%= coverage_type_summary("method", "Method coverage", _summary, enabled: method_coverage?, missed_class: "missed-method-text-color", toggle: _summary[:show_method_toggle]) %>
-</div>

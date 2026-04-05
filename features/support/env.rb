@@ -23,8 +23,23 @@ end
 
 # Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
 coverage_dir = File.expand_path("../../tmp/aruba/project/coverage/", __dir__)
+
+# Prevent the browser from caching coverage_data.js between scenario visits
+class NoCacheMiddleware
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    status, headers, body = @app.call(env)
+    headers["cache-control"] = "no-store"
+    [status, headers, body]
+  end
+end
+
 Capybara.app = Rack::Builder.new do
-  use Rack::Static, urls: {"/" => "index.html"}, root: coverage_dir, header_rules: [[:all, {"cache-control" => "no-store"}]]
+  use NoCacheMiddleware
+  use Rack::Static, urls: {"/" => "index.html"}, root: coverage_dir
   run Rack::Directory.new(coverage_dir)
 end.to_app
 
