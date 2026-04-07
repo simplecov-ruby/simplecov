@@ -107,6 +107,163 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with minimum_coverage below threshold" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 95)
+      end
+
+      it "reports the violation in errors" do
+        subject.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage" => {"lines" => {"expected" => 95, "actual" => 90.0}}
+        )
+      end
+    end
+
+    context "with minimum_coverage above threshold" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 80)
+      end
+
+      it "returns empty errors" do
+        subject.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with minimum_coverage_by_file for lines" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(line: 95)
+      end
+
+      it "reports files below the threshold in errors" do
+        subject.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage_by_file" => {
+            "lines" => {source_fixture("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
+          }
+        )
+      end
+    end
+
+    context "with minimum_coverage_by_file for branches" do
+      let(:result) do
+        SimpleCov::Result.new({
+                                source_fixture("json/sample.rb") => {
+                                  "lines" => [nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+                                              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil],
+                                  "branches" => {
+                                    [:if, 0, 13, 4, 17, 7] => {
+                                      [:then, 1, 14, 6, 14, 10] => 0,
+                                      [:else, 2, 16, 6, 16, 10] => 1
+                                    }
+                                  }
+                                }
+                              })
+      end
+
+      before do
+        enable_branch_coverage
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(branch: 75)
+      end
+
+      it "reports files below the threshold in errors" do
+        subject.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage_by_file" => {
+            "branches" => {source_fixture("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
+          }
+        )
+      end
+    end
+
+    context "with minimum_coverage_by_file when all files pass" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(line: 80)
+      end
+
+      it "returns empty errors" do
+        subject.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with minimum_coverage_by_group below threshold" do
+      let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 7, missed: 3) }
+
+      let(:result) do
+        res = SimpleCov::Result.new({
+                                      source_fixture("json/sample.rb") => {"lines" => [
+                                        nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+                                        1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+                                      ]}
+                                    })
+
+        allow(res).to receive_messages(
+          groups: {"Models" => double("File List", coverage_statistics: {line: line_stats})}
+        )
+        res
+      end
+
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_group).and_return("Models" => {line: 80})
+      end
+
+      it "reports the group violation in errors" do
+        subject.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage_by_group" => {
+            "Models" => {"lines" => {"expected" => 80, "actual" => 70.0}}
+          }
+        )
+      end
+    end
+
+    context "with maximum_coverage_drop exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return({result: {line: 95.0}})
+      end
+
+      it "reports the drop in errors" do
+        subject.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "maximum_coverage_drop" => {
+            "lines" => {"maximum" => 2, "actual" => 5.0}
+          }
+        )
+      end
+    end
+
+    context "with maximum_coverage_drop not exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return({result: {line: 91.0}})
+      end
+
+      it "returns empty errors" do
+        subject.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with maximum_coverage_drop and no last run" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
+      end
+
+      it "returns empty errors" do
+        subject.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
     context "with groups" do
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 8, missed: 2) }
 
