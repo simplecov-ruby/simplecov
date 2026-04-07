@@ -65,5 +65,6 @@
       "branches_covered_percent": 50.0
     }
   },
-  "groups": {}
+  "groups": {},
+  "errors": {}
 }

@@ -77,5 +77,6 @@
       "methods_covered_percent": 100.0
     }
   },
-  "groups": {}
+  "groups": {},
+  "errors": {}
 }
