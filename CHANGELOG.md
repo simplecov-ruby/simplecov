@@ -14,15 +14,11 @@ Unreleased
 * JSON formatter: added `silent:` keyword to `JSONFormatter.new` to suppress console output
 * Merged `simplecov-html` formatter into the main gem. A backward-compatibility shim ensures `require "simplecov-html"` still works.
 * Merged `simplecov_json_formatter` into the main gem. A backward-compatibility shim ensures `require "simplecov_json_formatter"` still works.
-* Added `rake assets:compile` task for building the HTML formatter's frontend assets via esbuild
-* Added TypeScript type checking CI workflow
-* Separated rubocop into its own `lint.yml` CI workflow
 * `CommandGuesser` now appends the framework name to parallel test data (e.g. `"RSpec (1/2)"` instead of `"(1/2)"`)
 
 ## Bugfixes
 * Don't report misleading 100% branch/method coverage for files added via `track_files` that were never loaded. See #902
 * Fix HTML formatter tab bar layout: dark mode toggle no longer wraps onto two lines, and tabs connect seamlessly with the content panel
-* Fix branch coverage cucumber feature to match the HTML formatter's updated output format
 
 0.22.1 (2024-09-02)
 ==========
