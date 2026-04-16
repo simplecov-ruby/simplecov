@@ -5,7 +5,7 @@ source "https://rubygems.org"
 group :development do
   gem "nokogiri"
   gem "cuprite"
-  gem "aruba"
+  gem "aruba", "~> 2.0"
   gem "capybara"
   gem "rackup"
   gem "cucumber"
