@@ -8,7 +8,7 @@ Unreleased
 * Removed `docile` gem dependency. The `SimpleCov.configure` DSL block is now evaluated via `instance_exec` with instance variable proxying.
 
 ## Enhancements
-* JSON formatter: added `total` section with aggregate coverage statistics (covered, missed, total, percent, strength) for line, branch, and method coverage
+* JSON formatter: added `total` section with aggregate coverage statistics (covered, missed, total, percent, strength) for line, branch, and method coverage. Line stats additionally include `omitted` (count of blank/comment lines, i.e. lines that cannot be covered)
 * JSON formatter: per-file output now includes `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`
 * JSON formatter: group stats now include full statistics for all enabled coverage types, not just line coverage percent
 * JSON formatter: added `silent:` keyword to `JSONFormatter.new` to suppress console output

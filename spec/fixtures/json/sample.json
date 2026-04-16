@@ -6,6 +6,7 @@
     "lines": {
       "covered": 9,
       "missed": 1,
+      "omitted": 10,
       "total": 10,
       "percent": 90.0,
       "strength": 1.0
