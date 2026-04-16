@@ -50,7 +50,7 @@ module SimpleCov
 
         def format_minimum_coverage_errors
           SimpleCov.minimum_coverage.each do |criterion, expected_percent|
-            actual = @result.coverage_statistics.fetch(criterion).percent
+            actual = SimpleCov.round_coverage(@result.coverage_statistics.fetch(criterion).percent)
             next unless actual < expected_percent
 
             key = CRITERION_KEYS.fetch(criterion)
