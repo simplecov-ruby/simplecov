@@ -51,11 +51,12 @@ module SimpleCov
         def format_minimum_coverage_errors
           SimpleCov.minimum_coverage.each do |criterion, expected_percent|
             actual = SimpleCov.round_coverage(@result.coverage_statistics.fetch(criterion).percent)
-            next unless actual < expected_percent
 
-            key = CRITERION_KEYS.fetch(criterion)
-            minimum_coverage = formatted_result[:errors][:minimum_coverage] ||= {}
-            minimum_coverage[key] = {expected: expected_percent, actual: actual}
+            if actual < expected_percent
+              key = CRITERION_KEYS.fetch(criterion)
+              minimum_coverage = formatted_result[:errors][:minimum_coverage] ||= {}
+              minimum_coverage[key] = {expected: expected_percent, actual: actual}
+            end
           end
         end
 
@@ -63,12 +64,13 @@ module SimpleCov
           SimpleCov.minimum_coverage_by_file.each do |criterion, expected_percent|
             @result.files.each do |file|
               actual = SimpleCov.round_coverage(file.coverage_statistics.fetch(criterion).percent)
-              next unless actual < expected_percent
 
-              key = CRITERION_KEYS.fetch(criterion)
-              by_file = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
-              criterion_errors = by_file[key] ||= {}
-              criterion_errors[file.filename] = {expected: expected_percent, actual: actual}
+              if actual < expected_percent
+                key = CRITERION_KEYS.fetch(criterion)
+                by_file = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
+                criterion_errors = by_file[key] ||= {}
+                criterion_errors[file.filename] = {expected: expected_percent, actual: actual}
+              end
             end
           end
         end
@@ -76,12 +78,15 @@ module SimpleCov
         def format_minimum_coverage_by_group_errors
           SimpleCov.minimum_coverage_by_group.each do |group_name, minimum_group_coverage|
             group = @result.groups[group_name]
-            next unless group
+            format_group_minimum_coverage_errors(group_name, group, minimum_group_coverage) if group
+          end
+        end
 
-            minimum_group_coverage.each do |criterion, expected_percent|
-              actual = SimpleCov.round_coverage(group.coverage_statistics.fetch(criterion).percent)
-              next unless actual < expected_percent
+        def format_group_minimum_coverage_errors(group_name, group, minimum_group_coverage)
+          minimum_group_coverage.each do |criterion, expected_percent|
+            actual = SimpleCov.round_coverage(group.coverage_statistics.fetch(criterion).percent)
 
+            if actual < expected_percent
               key = CRITERION_KEYS.fetch(criterion)
               by_group = formatted_result[:errors][:minimum_coverage_by_group] ||= {}
               group_errors = by_group[group_name] ||= {}
@@ -98,11 +103,12 @@ module SimpleCov
 
           SimpleCov.maximum_coverage_drop.each do |criterion, max_drop|
             drop = coverage_drop_for(criterion, last_run)
-            next unless drop && drop > max_drop
 
-            key = CRITERION_KEYS.fetch(criterion)
-            coverage_drop = formatted_result[:errors][:maximum_coverage_drop] ||= {}
-            coverage_drop[key] = {maximum: max_drop, actual: drop}
+            if drop && drop > max_drop
+              key = CRITERION_KEYS.fetch(criterion)
+              coverage_drop = formatted_result[:errors][:maximum_coverage_drop] ||= {}
+              coverage_drop[key] = {maximum: max_drop, actual: drop}
+            end
           end
         end
 

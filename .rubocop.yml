@@ -188,6 +188,10 @@ Metrics/MethodLength:
   CountComments: false
   Max: 12 # TODO: Lower to 10
 
+Style/Next:
+  Description: Prefer `if` guards over `next` inside loops for readability.
+  Enabled: false
+
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
   Max: 300
