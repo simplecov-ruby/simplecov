@@ -133,10 +133,21 @@ module SimpleCov
         end
 
         def format_coverage_statistics(statistics)
-          result = {lines: format_single_statistic(statistics[:line])}
+          result = {lines: format_line_statistic(statistics[:line])}
           result[:branches] = format_single_statistic(statistics[:branch]) if SimpleCov.branch_coverage? && statistics[:branch]
           result[:methods] = format_single_statistic(statistics[:method]) if SimpleCov.method_coverage? && statistics[:method]
           result
+        end
+
+        def format_line_statistic(stat)
+          {
+            covered: stat.covered,
+            missed: stat.missed,
+            omitted: stat.omitted,
+            total: stat.total,
+            percent: stat.percent,
+            strength: stat.strength
+          }
         end
 
         def format_single_statistic(stat)

@@ -5,17 +5,24 @@ require "helper"
 RSpec.describe SimpleCov::CoverageStatistics do
   describe ".new" do
     it "retains statistics and computes new ones" do
-      statistics = described_class.new(covered: 4, missed: 6, total_strength: 14)
+      statistics = described_class.new(covered: 4, missed: 6, omitted: 2, total_strength: 14)
 
       expect(statistics.covered).to eq 4
       expect(statistics.missed).to eq 6
+      expect(statistics.omitted).to eq 2
 
       expect(statistics.total).to eq 10
       expect(statistics.percent).to eq 40.0
       expect(statistics.strength).to eq 1.4
     end
 
-    it "can omit the total strength defaulting to 0.0" do
+    it "defaults omitted to 0" do
+      statistics = described_class.new(covered: 4, missed: 6)
+
+      expect(statistics.omitted).to eq 0
+    end
+
+    it "can omitted the total strength defaulting to 0.0" do
       statistics = described_class.new(covered: 4, missed: 6)
 
       expect(statistics.strength).to eq 0.0
@@ -44,14 +51,15 @@ RSpec.describe SimpleCov::CoverageStatistics do
     it "produces sensible total results" do
       statistics = described_class.from(
         [
-          described_class.new(covered: 3, missed: 4, total_strength: 54),
-          described_class.new(covered: 0, missed: 13, total_strength: 0),
-          described_class.new(covered: 37, missed: 0, total_strength: 682)
+          described_class.new(covered: 3, missed: 4, omitted: 2, total_strength: 54),
+          described_class.new(covered: 0, missed: 13, omitted: 5, total_strength: 0),
+          described_class.new(covered: 37, missed: 0, omitted: 8, total_strength: 682)
         ]
       )
 
       expect(statistics.covered).to eq 40
       expect(statistics.missed).to eq 17
+      expect(statistics.omitted).to eq 15
       expect(statistics.total).to eq 57
       expect(statistics.percent).to be_within(0.01).of(70.18)
       expect(statistics.strength).to be_within(0.01).of(12.91)
@@ -65,6 +73,7 @@ RSpec.describe SimpleCov::CoverageStatistics do
   def expect_all_empty(statistics)
     expect(statistics.covered).to eq 0
     expect(statistics.missed).to eq 0
+    expect(statistics.omitted).to eq 0
 
     expect(statistics.total).to eq 0
     # might be counter-intuitive but think of it as "we covered everything we could"

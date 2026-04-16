@@ -8,32 +8,35 @@ module SimpleCov
   # * total - how many things to cover there are (total relevant loc/branches)
   # * covered - how many of the coverables are hit
   # * missed - how many of the coverables are missed
+  # * omitted - how many lines cannot be covered (blank lines/comments); only meaningful for line coverage
   # * percent - percentage as covered/missed
   # * strength - average hits per/coverable (will not exist for one shot lines format)
   class CoverageStatistics
-    attr_reader :total, :covered, :missed, :strength, :percent
+    attr_reader :total, :covered, :missed, :omitted, :strength, :percent
 
     def self.from(coverage_statistics)
-      sum_covered, sum_missed, sum_total_strength =
-        coverage_statistics.reduce([0, 0, 0.0]) do |(covered, missed, total_strength), file_coverage_statistics|
+      sum_covered, sum_missed, sum_omitted, sum_total_strength =
+        coverage_statistics.reduce([0, 0, 0, 0.0]) do |(covered, missed, omitted, total_strength), file_coverage_statistics|
           [
             covered + file_coverage_statistics.covered,
             missed + file_coverage_statistics.missed,
+            omitted + file_coverage_statistics.omitted,
             # gotta remultiply with loc because files have different strength and loc
             # giving them a different "weight" in total
             total_strength + (file_coverage_statistics.strength * file_coverage_statistics.total)
           ]
         end
 
-      new(covered: sum_covered, missed: sum_missed, total_strength: sum_total_strength)
+      new(covered: sum_covered, missed: sum_missed, omitted: sum_omitted, total_strength: sum_total_strength)
     end
 
     # Requires only covered, missed and strength to be initialized.
     #
     # Other values are computed by this class.
-    def initialize(covered:, missed:, total_strength: 0.0, percent: nil)
+    def initialize(covered:, missed:, omitted: 0, total_strength: 0.0, percent: nil)
       @covered  = covered
       @missed   = missed
+      @omitted  = omitted
       @total    = covered + missed
       @percent  = percent || compute_percent(covered, missed, total)
       @strength = compute_strength(total_strength, total)

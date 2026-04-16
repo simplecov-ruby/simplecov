@@ -402,7 +402,8 @@ module SimpleCov
         line: CoverageStatistics.new(
           total_strength: lines_strength,
           covered:  covered_lines.size,
-          missed:   missed_lines.size
+          missed:   missed_lines.size,
+          omitted:  never_lines.size
         )
       }
     end
