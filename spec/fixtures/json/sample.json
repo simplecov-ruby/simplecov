@@ -3,7 +3,7 @@
     "simplecov_version": "0.22.0",
     "command_name": "STUB_COMMAND_NAME",
     "project_name": "STUB_PROJECT_NAME",
-    "timestamp": "2024-01-01T00:00:00+00:00",
+    "timestamp": "2024-01-01T00:00:00.000+00:00",
     "root": "/STUB_WORKING_DIRECTORY",
     "branch_coverage": false,
     "method_coverage": false

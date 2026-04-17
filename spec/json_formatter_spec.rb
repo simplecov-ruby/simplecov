@@ -331,7 +331,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       it "still writes the new file" do
         capture_stderr { subject.format(result) }
 
-        expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601)
+        expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601(3))
       end
     end
 
