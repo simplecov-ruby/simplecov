@@ -478,6 +478,7 @@ require "forwardable"
 require_relative "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
 require_relative "simplecov/coverage_statistics"
+require_relative "simplecov/coverage_violations"
 require_relative "simplecov/exit_codes"
 require_relative "simplecov/profiles"
 require_relative "simplecov/source_file/line"
