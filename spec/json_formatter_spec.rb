@@ -34,7 +34,7 @@ describe SimpleCov::Formatter::JSONFormatter do
           "percent" => 66.66666666666667,
           "strength" => 0.6666666666666666
         )
-        expect(json_output.fetch("coverage").fetch(source_fixture("json/sample.rb"))).to include(
+        expect(json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))).to include(
           "lines_covered_percent" => 66.66666666666667
         )
       end
@@ -150,7 +150,7 @@ describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "lines" => {source_fixture("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
+            "lines" => {project_fixture_filename("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
           }
         )
       end
@@ -182,7 +182,7 @@ describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "branches" => {source_fixture("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
+            "branches" => {project_fixture_filename("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
           }
         )
       end
@@ -289,10 +289,11 @@ describe SimpleCov::Formatter::JSONFormatter do
         res.created_at = fixed_time
 
         # right now SimpleCov works mostly on global state, hence setting the groups that way
-        # would be global state --> Mocking is better here
+        # would be global state --> Mocking is better here. `map` ignores the block
+        # and returns the stubbed value — so stub it to the project-relative path directly.
         mock_file_list = double("File List",
                                 coverage_statistics: {line: line_stats},
-                                map: [sample_filename])
+                                map: [project_fixture_filename("json/sample.rb")])
         allow(res).to receive_messages(
           groups: {"My Group" => mock_file_list}
         )
@@ -322,6 +323,10 @@ describe SimpleCov::Formatter::JSONFormatter do
     file = File.read(source_fixture("json/#{filename}.json"))
     file = replace_stubs(file)
     JSON.parse(file)
+  end
+
+  def project_fixture_filename(path)
+    source_fixture(path).delete_prefix(SimpleCov.root)
   end
 
   STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"

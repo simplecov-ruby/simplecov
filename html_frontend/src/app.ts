@@ -272,8 +272,9 @@ function fmtPct(pct: number): string {
   return (Math.floor(pct * 100) / 100).toFixed(2);
 }
 
-function shortenFilename(filename: string, root: string): string {
-  return filename.replace(root, '.').replace(/^\.\//, '');
+function shortenFilename(filename: string): string {
+  // Paths in the JSON output are already root-relative with a leading `/`.
+  return filename.replace(/^\//, '');
 }
 
 function fileId(filename: string): string {
@@ -413,9 +414,9 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
   return set;
 }
 
-function renderSourceFile(filename: string, data: FileCoverage, root: string, branchCoverage: boolean, methodCoverage: boolean): string {
+function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
   const id = fileId(filename);
-  const shortName = shortenFilename(filename, root);
+  const shortName = shortenFilename(filename);
   const coveredLines = data.covered_lines;
   const missedLines = data.missed_lines;
   const totalLines = coveredLines + missedLines;
@@ -481,7 +482,6 @@ function renderFileList(
   title: string,
   filenames: string[],
   allCoverage: Record<string, FileCoverage>,
-  root: string,
   branchCoverage: boolean,
   methodCoverage: boolean
 ): string {
@@ -534,7 +534,7 @@ function renderFileList(
   for (const fn of filenames) {
     const f = allCoverage[fn];
     if (!f) continue;
-    const shortName = shortenFilename(fn, root);
+    const shortName = shortenFilename(fn);
     const id = fileId(fn);
     const coveredLines = f.covered_lines;
     const relevantLines = coveredLines + f.missed_lines;
@@ -569,7 +569,6 @@ function renderPage(data: CoverageData): void {
   const meta = data.meta;
   const branchCoverage = meta.branch_coverage;
   const methodCoverage = meta.method_coverage;
-  const root = meta.root;
 
   // Page title and favicon
   document.title = `Code coverage for ${meta.project_name}`;
@@ -585,11 +584,11 @@ function renderPage(data: CoverageData): void {
 
   // Content: file lists
   const content = document.getElementById('content')!;
-  content.innerHTML = renderFileList('All Files', allFiles, data.coverage, root, branchCoverage, methodCoverage);
+  content.innerHTML = renderFileList('All Files', allFiles, data.coverage, branchCoverage, methodCoverage);
 
   for (const groupName of Object.keys(data.groups)) {
     const groupFiles = data.groups[groupName].files || [];
-    content.innerHTML += renderFileList(groupName, groupFiles, data.coverage, root, branchCoverage, methodCoverage);
+    content.innerHTML += renderFileList(groupName, groupFiles, data.coverage, branchCoverage, methodCoverage);
   }
 
   // Build id → filename lookup map for O(1) source file materialization
@@ -599,7 +598,6 @@ function renderPage(data: CoverageData): void {
   }
   (window as any)._simplecovIdMap = idToFilename;
   (window as any)._simplecovFiles = data.coverage;
-  (window as any)._simplecovRoot = root;
   (window as any)._simplecovBranchCoverage = branchCoverage;
   (window as any)._simplecovMethodCoverage = methodCoverage;
 
@@ -849,14 +847,13 @@ function materializeSourceFile(sourceFileId: string): HTMLElement | null {
 
   const idMap = (window as any)._simplecovIdMap as Record<string, string>;
   const coverage = (window as any)._simplecovFiles as Record<string, FileCoverage>;
-  const root = (window as any)._simplecovRoot as string;
   const branchCov = (window as any)._simplecovBranchCoverage as boolean;
   const methodCov = (window as any)._simplecovMethodCoverage as boolean;
 
   const targetFilename = idMap[sourceFileId];
   if (!targetFilename) return null;
 
-  const html = renderSourceFile(targetFilename, coverage[targetFilename], root, branchCov, methodCov);
+  const html = renderSourceFile(targetFilename, coverage[targetFilename], branchCov, methodCov);
   const container = document.querySelector('.source_files')!;
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
