@@ -27,7 +27,7 @@ module SimpleCov
 
         def format_files
           @result.files.each do |source_file|
-            formatted_result[:coverage][source_file.filename] =
+            formatted_result[:coverage][source_file.project_filename] =
               format_source_file(source_file)
           end
         end
@@ -35,7 +35,7 @@ module SimpleCov
         def format_groups
           @result.groups.each do |name, file_list|
             group_data = format_coverage_statistics(file_list.coverage_statistics)
-            group_data[:files] = file_list.map(&:filename)
+            group_data[:files] = file_list.map(&:project_filename)
             formatted_result[:groups][name] = group_data
           end
         end
@@ -63,7 +63,7 @@ module SimpleCov
             key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
             bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
             criterion_errors = bucket[key] ||= {}
-            criterion_errors[violation.fetch(:filename)] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
+            criterion_errors[violation.fetch(:project_filename)] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
           end
         end
 

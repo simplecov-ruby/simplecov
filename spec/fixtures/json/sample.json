@@ -19,7 +19,7 @@
     }
   },
   "coverage": {
-    "/STUB_WORKING_DIRECTORY/spec/fixtures/json/sample.rb": {
+    "/spec/fixtures/json/sample.rb": {
       "lines": [
         null,
         1,

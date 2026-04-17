@@ -19,7 +19,7 @@
     }
   },
   "coverage": {
-    "/STUB_WORKING_DIRECTORY/spec/fixtures/json/sample.rb": {
+    "/spec/fixtures/json/sample.rb": {
       "lines": [
         null,
         1,
@@ -90,7 +90,7 @@
         "strength": 0.0
       },
       "files": [
-        "/STUB_WORKING_DIRECTORY/spec/fixtures/json/sample.rb"
+        "/spec/fixtures/json/sample.rb"
       ]
     }
   },
