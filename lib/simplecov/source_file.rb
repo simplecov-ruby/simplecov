@@ -272,11 +272,6 @@ module SimpleCov
       lines.sum { |line| line.coverage.to_i }
     end
 
-    # Warning to identify condition from Issue #56
-    def coverage_exceeding_source_warn
-      warn "Warning: coverage data provided by Coverage [#{coverage_data['lines'].size}] exceeds number of lines in #{filename} [#{src.size}]"
-    end
-
     #
     # Build full branches report
     # Root branches represent the wrapper of all condition state that

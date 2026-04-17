@@ -356,22 +356,37 @@ describe SimpleCov::SourceFile do
     end
   end
 
-  context "simulating potential Ruby 1.9 defect -- see Issue #56" do
+  context "when coverage data contains more entries than the source has lines" do
     subject do
       SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES)
     end
 
     it "has 16 source lines regardless of extra data in coverage array" do
-      # Do not litter test output with known warning
-      capture_stderr { expect(subject.lines.count).to eq(16) }
+      expect(subject.lines.count).to eq(16)
     end
 
-    it "prints a warning to stderr if coverage array contains more data than lines in the file" do
-      captured_output = capture_stderr do
-        subject.lines
-      end
+    it "does not emit a warning now that excess entries are trimmed" do
+      expect(capture_stderr { subject.lines }).to eq("")
+    end
+  end
 
-      expect(captured_output).to match(/^Warning: coverage data provided/)
+  # Reproduces https://github.com/simplecov-ruby/simplecov/issues/1057
+  # ERB compiles a template into Ruby with a trailing `_erbout` line, so when
+  # `enable_coverage_for_eval` is on (common for Rails view specs), Ruby's
+  # Coverage reports more lines than the .erb file has.
+  context "a source file tracked via enable_coverage_for_eval on an ERB template" do
+    require "erb"
+    let(:lines) { ERB.new(File.read(erb_file), trim_mode: "<>").src.lines }
+    let(:erb_file) { source_fixture("issue_1057.erb") }
+    let(:compiled_line_count) { lines.size }
+    let(:coverage_data) { {"lines" => Array.new(compiled_line_count, 1), "branches" => {}} }
+
+    subject { SimpleCov::SourceFile.new(erb_file, coverage_data) }
+
+    it "does not emit a warning about coverage exceeding source" do
+      puts lines
+      expect(compiled_line_count).to be > File.readlines(erb_file).size
+      expect(capture_stderr { subject.lines }).to eq("")
     end
   end
 
