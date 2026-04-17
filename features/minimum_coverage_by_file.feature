@@ -18,7 +18,7 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Line coverage by file (75.00%) is below the expected minimum coverage (75.01%) in /lib/faked_project/framework_specific.rb."
+    And the output should contain "Line coverage by file (75.00%) is below the expected minimum coverage (75.01%) in lib/faked_project/framework_specific.rb."
     And the output should contain "SimpleCov failed with exit 2"
 
   Scenario: Just passing it
@@ -48,8 +48,8 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Line coverage by file (80.00%) is below the expected minimum coverage (90.00%) in /lib/faked_project/some_class.rb."
-    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%) in /lib/faked_project/some_class.rb."
+    And the output should contain "Line coverage by file (80.00%) is below the expected minimum coverage (90.00%) in lib/faked_project/some_class.rb."
+    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%) in lib/faked_project/some_class.rb."
     And the output should contain "SimpleCov failed with exit 2"
 
   @branch_coverage
@@ -67,6 +67,6 @@ Feature:
 
     When I run `bundle exec rake test`
     Then the exit status should not be 0
-    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%) in /lib/faked_project/some_class.rb."
+    And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%) in lib/faked_project/some_class.rb."
     And the output should not contain "Line coverage ("
     And the output should contain "SimpleCov failed with exit 2"

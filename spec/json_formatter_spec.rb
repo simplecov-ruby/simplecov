@@ -382,7 +382,7 @@ describe SimpleCov::Formatter::JSONFormatter do
   end
 
   def project_fixture_filename(path)
-    source_fixture(path).delete_prefix(SimpleCov.root)
+    SimpleCov::SourceFile.new(source_fixture(path), []).project_filename
   end
 
   STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"

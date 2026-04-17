@@ -24,7 +24,7 @@ module SimpleCov
 
     # The path to this source file relative to the projects directory
     def project_filename
-      @filename.delete_prefix(SimpleCov.root)
+      @filename.delete_prefix(SimpleCov.root).sub(%r{\A[/\\]}, "")
     end
 
     # The source code for this file. Aliased as :source

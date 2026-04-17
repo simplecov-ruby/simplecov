@@ -26,7 +26,7 @@ describe SimpleCov::SourceFile do
     end
 
     it "has a project filename which removes the project directory" do
-      expect(subject.project_filename).to eq("/spec/fixtures/sample.rb")
+      expect(subject.project_filename).to eq("spec/fixtures/sample.rb")
     end
 
     it "has source_lines equal to lines" do
