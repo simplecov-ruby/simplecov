@@ -252,7 +252,6 @@ module SimpleCov
     end
 
     def build_lines
-      coverage_exceeding_source_warn if coverage_data["lines"].size > src.size
       lines = src.map.with_index(1) do |src, i|
         SimpleCov::SourceFile::Line.new(src, i, coverage_data["lines"][i - 1])
       end
