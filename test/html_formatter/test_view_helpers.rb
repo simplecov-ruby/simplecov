@@ -136,46 +136,6 @@ class TestViewHelpers < Minitest::Test
     assert_equal "12,345", formatter.send(:fmt, "12345")
   end
 
-  cover "SimpleCov::Formatter::HTMLFormatter::ViewHelpers#build_stats" if respond_to?(:cover)
-
-  def test_build_stats_basic
-    stats = formatter.send(:build_stats, 80, 100)
-
-    assert_equal 80, stats[:covered]
-    assert_equal 100, stats[:total]
-    assert_equal 20, stats[:missed]
-    assert_in_delta 80.0, stats[:pct], 0.01
-  end
-
-  def test_build_stats_zero_total
-    stats = formatter.send(:build_stats, 0, 0)
-
-    assert_equal 0, stats[:covered]
-    assert_equal 0, stats[:total]
-    assert_equal 0, stats[:missed]
-    assert_in_delta 100.0, stats[:pct], 0.01
-  end
-
-  def test_build_stats_full_coverage
-    stats = formatter.send(:build_stats, 50, 50)
-
-    assert_equal 0, stats[:missed]
-    assert_in_delta 100.0, stats[:pct], 0.01
-  end
-
-  def test_build_stats_no_coverage
-    stats = formatter.send(:build_stats, 0, 100)
-
-    assert_equal 100, stats[:missed]
-    assert_in_delta 0.0, stats[:pct], 0.01
-  end
-
-  def test_build_stats_returns_hash_with_four_keys
-    stats = formatter.send(:build_stats, 3, 7)
-
-    assert_equal %i[covered missed pct total], stats.keys.sort
-  end
-
   cover "SimpleCov::Formatter::HTMLFormatter::ViewHelpers#line_status?" if respond_to?(:cover)
 
   def test_line_status_missed_branch
@@ -256,7 +216,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_summary_defaults_branch_and_method_to_zero
     f = new_formatter_with(branch: true, method: true)
-    result = f.send(:coverage_summary, {covered_lines: 80, total_lines: 100})
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 80, total_lines: 100))
 
     assert_includes result, "Line coverage:"
     assert_includes result, "Branch coverage:"
@@ -324,86 +284,36 @@ class TestViewHelpers < Minitest::Test
     assert_includes result, "50"
   end
 
-  def test_coverage_summary_uses_build_stats_for_line
+  def test_coverage_summary_renders_line_counts
     f = new_formatter_with(branch: false, method: false)
-    result = f.send(:coverage_summary, {covered_lines: 75, total_lines: 100})
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 75, total_lines: 100))
 
     assert_includes result, "75.00%"
     assert_includes result, "75"
     assert_includes result, "100"
   end
 
-  def test_coverage_summary_uses_build_stats_for_branches
+  def test_coverage_summary_renders_branch_counts
     f = new_formatter_with(branch: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_branches: 6, total_branches: 8
-                    })
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_branches: 6, total_branches: 8))
 
     assert_includes result, "75.00%"
     assert_includes result, "6"
     assert_includes result, "8"
   end
 
-  def test_coverage_summary_uses_build_stats_for_methods
+  def test_coverage_summary_renders_method_counts
     f = new_formatter_with(method: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_methods: 3, total_methods: 4
-                    })
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_methods: 3, total_methods: 4))
 
     assert_includes result, "75.00%"
     assert_includes result, "3"
     assert_includes result, "4"
   end
 
-  def test_coverage_summary_fetch_defaults_branch_covered_to_zero
-    f = new_formatter_with(branch: true, method: false)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      total_branches: 10
-                    })
-
-    assert_includes result, "0/10 covered"
-  end
-
-  def test_coverage_summary_fetch_defaults_branch_total_to_zero
-    f = new_formatter_with(branch: true, method: false)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_branches: 0
-                    })
-
-    assert_includes result, "0/0 covered"
-  end
-
-  def test_coverage_summary_fetch_defaults_method_covered_to_zero
-    f = new_formatter_with(branch: false, method: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      total_methods: 10
-                    })
-
-    assert_includes result, "0/10 covered"
-  end
-
-  def test_coverage_summary_fetch_defaults_method_total_to_zero
-    f = new_formatter_with(branch: false, method: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_methods: 0
-                    })
-
-    assert_includes result, "0/0 covered"
-  end
-
   def test_coverage_summary_branch_missed_shown_when_nonzero
     f = new_formatter_with(branch: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_branches: 5, total_branches: 10,
-                      covered_methods: 0, total_methods: 0
-                    })
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_branches: 5, total_branches: 10))
 
     assert_includes result, "missed-branch-text"
     assert_includes result, "5"
@@ -411,11 +321,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_summary_method_missed_shown_when_nonzero_no_toggle
     f = new_formatter_with(method: true)
-    result = f.send(:coverage_summary, {
-                      covered_lines: 80, total_lines: 100,
-                      covered_branches: 0, total_branches: 0,
-                      covered_methods: 3, total_methods: 10
-                    }, show_method_toggle: false)
+    result = f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_methods: 3, total_methods: 10), show_method_toggle: false)
 
     assert_includes result, "missed-method-text-color"
     assert_includes result, "7"
@@ -920,7 +826,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_enabled_returns_div_with_type_class
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, 'class="t-line-summary"'
@@ -936,7 +842,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_contains_formatted_percent
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 85.999, covered: 85, total: 100, missed: 15}}
+    summary = line_summary(pct: 85.999, covered: 85, total: 100, missed: 15)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "85.99%"
@@ -944,7 +850,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_percent_is_floored
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 85.999, covered: 85, total: 100, missed: 15}}
+    summary = line_summary(pct: 85.999, covered: 85, total: 100, missed: 15)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "85.99%"
@@ -953,7 +859,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_contains_css_class_from_pct
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 95.0, covered: 95, total: 100, missed: 5}}
+    summary = line_summary(pct: 95.0, covered: 95, total: 100, missed: 5)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, '"green"'
@@ -961,7 +867,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_css_class_red_for_low
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 50.0, covered: 50, total: 100, missed: 50}}
+    summary = line_summary(pct: 50.0, covered: 50, total: 100, missed: 50)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, '"red"'
@@ -969,7 +875,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_contains_covered_and_total
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "80/100"
@@ -977,7 +883,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_default_suffix_is_covered
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "covered"
@@ -985,7 +891,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_custom_suffix
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true, suffix: "relevant lines covered")
 
     assert_includes result, "relevant lines covered"
@@ -993,7 +899,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_suffix_key_is_used
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 100.0, covered: 10, total: 10, missed: 0}}
+    summary = line_summary(pct: 100.0, covered: 10, total: 10, missed: 0)
     result_default = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
     result_custom = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true, suffix: "unique_suffix_text")
 
@@ -1004,7 +910,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_ends_with_closing_div
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 100.0, covered: 100, total: 100, missed: 0}}
+    summary = line_summary(pct: 100.0, covered: 100, total: 100, missed: 0)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert result.end_with?("</div>"), "Expected closing </div>, got: ...#{result[-30..]}"
@@ -1012,7 +918,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_contains_label
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 100.0, covered: 100, total: 100, missed: 0}}
+    summary = line_summary(pct: 100.0, covered: 100, total: 100, missed: 0)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "Line coverage:"
@@ -1020,7 +926,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_with_missed_includes_missed_count
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, "<b>20</b> missed"
@@ -1028,7 +934,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_no_missed_when_zero
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 100.0, covered: 100, total: 100, missed: 0}}
+    summary = line_summary(pct: 100.0, covered: 100, total: 100, missed: 0)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     refute_includes result, "missed"
@@ -1036,7 +942,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_missed_uses_default_red_class
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, 'class="red"'
@@ -1044,7 +950,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_missed_uses_custom_missed_class
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true, missed_class: "missed-branch-text")
 
     assert_includes result, 'class="missed-branch-text"'
@@ -1053,7 +959,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_toggle_false_uses_span
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true, toggle: false)
 
     assert_includes result, "<span"
@@ -1062,7 +968,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_toggle_true_uses_anchor
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true, toggle: true)
 
     assert_includes result, "t-missed-method-toggle"
@@ -1078,7 +984,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_missed_includes_comma_separator
     f = new_formatter_with(branch: false, method: false)
-    summary = {line: {pct: 80.0, covered: 80, total: 100, missed: 20}}
+    summary = line_summary(pct: 80.0, covered: 80, total: 100, missed: 20)
     result = f.send(:coverage_type_summary, "line", "Line coverage", summary, enabled: true)
 
     assert_includes result, %(<span class="coverage-cell__fraction">,</span>)
@@ -1086,7 +992,7 @@ class TestViewHelpers < Minitest::Test
 
   def test_coverage_type_summary_type_appears_in_enabled_div_class
     f = new_formatter_with(branch: false, method: false)
-    summary = {branch: {pct: 75.0, covered: 15, total: 20, missed: 5}}
+    summary = {branch: SimpleCov::CoverageStatistics.new(covered: 15, missed: 5, percent: 75.0)}
     result = f.send(:coverage_type_summary, "branch", "Branch coverage", summary, enabled: true)
 
     assert_includes result, "t-branch-summary"
@@ -1229,31 +1135,34 @@ private
 
   def render_summary(covered_lines:, total_lines:)
     f = SimpleCov::Formatter::HTMLFormatter.new
-    f.send(:coverage_summary, zero_stats(covered_lines: covered_lines, total_lines: total_lines))
+    f.send(:coverage_summary, stub_source_file_with_stats(covered_lines: covered_lines, total_lines: total_lines))
   end
 
   def full_stats
-    {
-      covered_lines: 80, total_lines: 100,
-      covered_branches: 10, total_branches: 20,
-      covered_methods: 5, total_methods: 10
-    }
+    stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_branches: 10, total_branches: 20, covered_methods: 5, total_methods: 10)
   end
 
   def zero_stats(covered_lines: 0, total_lines: 0)
-    {
-      covered_lines: covered_lines, total_lines: total_lines,
-      covered_branches: 0, total_branches: 0,
-      covered_methods: 0, total_methods: 0
-    }
+    stub_source_file_with_stats(covered_lines: covered_lines, total_lines: total_lines)
   end
 
   def method_stats
-    {
-      covered_lines: 80, total_lines: 100,
-      covered_branches: 0, total_branches: 0,
-      covered_methods: 5, total_methods: 10
+    stub_source_file_with_stats(covered_lines: 80, total_lines: 100, covered_methods: 5, total_methods: 10)
+  end
+
+  def stub_source_file_with_stats(covered_lines: 0, total_lines: 0, covered_branches: 0, total_branches: 0, covered_methods: 0, total_methods: 0) # rubocop:disable Metrics/ParameterLists
+    stats = {
+      line: SimpleCov::CoverageStatistics.new(covered: covered_lines, missed: total_lines - covered_lines),
+      branch: SimpleCov::CoverageStatistics.new(covered: covered_branches, missed: total_branches - covered_branches),
+      method: SimpleCov::CoverageStatistics.new(covered: covered_methods, missed: total_methods - covered_methods)
     }
+    obj = Object.new
+    obj.define_singleton_method(:coverage_statistics) { stats }
+    obj
+  end
+
+  def line_summary(pct:, covered:, missed:, **)
+    {line: SimpleCov::CoverageStatistics.new(covered: covered, missed: missed, percent: pct)}
   end
 
   def make_method_stub(start_line, end_line)

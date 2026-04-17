@@ -47,19 +47,15 @@ module SimpleCov
           enabled_type_summary(type, label, summary.fetch(type.to_sym), opts)
         end
 
-        def coverage_summary(stats, show_method_toggle: false)
+        def coverage_summary(source_file, show_method_toggle: false)
+          stats = source_file.coverage_statistics
           _summary = {
-            line: build_stats(stats.fetch(:covered_lines), stats.fetch(:total_lines)),
-            branch: build_stats(stats.fetch(:covered_branches, 0), stats.fetch(:total_branches, 0)),
-            method: build_stats(stats.fetch(:covered_methods, 0), stats.fetch(:total_methods, 0)),
+            line: stats[:line],
+            branch: stats[:branch],
+            method: stats[:method],
             show_method_toggle: show_method_toggle
           }
           template("coverage_summary").result(binding)
-        end
-
-        def build_stats(covered, total)
-          pct = total.positive? ? (covered * 100.0 / total) : 100.0
-          {covered: covered, total: total, missed: total - covered, pct: pct}
         end
 
       private
@@ -104,12 +100,12 @@ module SimpleCov
         end
 
         def enabled_type_summary(type, label, stats, opts)
-          css = coverage_css_class(stats.fetch(:pct))
-          missed = stats.fetch(:missed)
+          css = coverage_css_class(stats.percent)
+          missed = stats.missed
           parts = [
             %(<div class="t-#{type}-summary">\n    #{label}: ),
-            %(<span class="#{css}"><b>#{Kernel.format('%.2f', stats.fetch(:pct).floor(2))}%</b></span>),
-            %(<span class="coverage-cell__fraction"> #{stats.fetch(:covered)}/#{stats.fetch(:total)} #{opts.fetch(:suffix, 'covered')}</span>)
+            %(<span class="#{css}"><b>#{Kernel.format('%.2f', stats.percent.floor(2))}%</b></span>),
+            %(<span class="coverage-cell__fraction"> #{stats.covered}/#{stats.total} #{opts.fetch(:suffix, 'covered')}</span>)
           ]
           parts << missed_summary_html(missed, opts.fetch(:missed_class, "red"), opts.fetch(:toggle, false)) if missed.positive?
           parts << "\n  </div>"

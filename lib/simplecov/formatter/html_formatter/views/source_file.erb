@@ -1,11 +1,7 @@
 <div class="source_table" id="<%= id source_file %>">
   <div class="header">
     <h2><%= shortened_filename source_file %></h2>
-    <%= coverage_summary({
-      covered_lines: source_file.covered_lines.count, total_lines: source_file.covered_lines.count + source_file.missed_lines.count,
-      covered_branches: branch_coverage? ? source_file.covered_branches.count : 0, total_branches: branch_coverage? ? source_file.total_branches.count : 0,
-      covered_methods: method_coverage? ? source_file.covered_methods.count : 0, total_methods: method_coverage? ? source_file.methods.count : 0
-    }, show_method_toggle: method_coverage? && source_file.missed_methods.any?) %>
+    <%= coverage_summary(source_file, show_method_toggle: method_coverage? && source_file.missed_methods.any?) %>
 <%- if method_coverage? && source_file.missed_methods.any? -%>
     <div class="t-missed-method-list" style="display: none">
       <ul>
