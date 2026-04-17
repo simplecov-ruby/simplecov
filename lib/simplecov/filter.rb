@@ -65,18 +65,20 @@ module SimpleCov
     def segment_pattern
       @segment_pattern ||= begin
         normalized = filter_argument.delete_prefix("/")
+        escaped = Regexp.escape(normalized)
+        boundary = '(?:\A|/)'
         if normalized.include?(".")
           # Contains a dot — looks like a filename pattern. Allow substring
           # match within the last path segment (e.g. "test.rb" matches
-          # "faked_test.rb") while still anchoring to a "/" boundary.
-          %r{/[^/]*#{Regexp.escape(normalized)}}
+          # "faked_test.rb") while still anchoring to a segment boundary.
+          /#{boundary}[^\/]*#{escaped}/
         elsif normalized.end_with?("/")
           # Trailing slash signals directory-only matching
-          %r{/#{Regexp.escape(normalized)}}
+          /#{boundary}#{escaped}/
         else
           # No dot — looks like a directory or path. Require segment-boundary
-          # match so "lib" matches "/lib/" but not "/library/".
-          %r{/#{Regexp.escape(normalized)}(?=[/.]|$)}
+          # match so "lib" matches "lib/" but not "library/".
+          /#{boundary}#{escaped}(?=[\/.]|\z)/
         end
       end
     end

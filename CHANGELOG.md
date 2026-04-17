@@ -5,6 +5,7 @@ Unreleased
 * JSON formatter: group stats changed from `{ "covered_percent": 80.0 }` to full stats shape `{ "covered": 8, "missed": 2, "total": 10, "percent": 80.0, "strength": 0.0 }`. The key `covered_percent` is renamed to `percent`.
 * JSON formatter: `simplecov_json_formatter` gem is now built in. `require "simplecov_json_formatter"` continues to work via a shim.
 * `StringFilter` now matches at path-segment boundaries. `"lib"` matches `/lib/` but no longer matches `/library/`. Use a `Regexp` filter for substring matching.
+* `SourceFile#project_filename` now returns a truly relative path with no leading separator (e.g. `lib/foo.rb` instead of `/lib/foo.rb`). This also removes the leading `/` from file path keys in `coverage.json` and from the filename in `minimum_coverage_by_file` error messages. Anchored `RegexFilter`s that relied on a leading `/` (e.g. `%r{^/lib/}`) should be rewritten (e.g. `%r{\Alib/}`).
 * Removed `docile` gem dependency. The `SimpleCov.configure` DSL block is now evaluated via `instance_exec` with instance variable proxying.
 
 ## Enhancements

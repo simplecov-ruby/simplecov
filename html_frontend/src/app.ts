@@ -272,11 +272,6 @@ function fmtPct(pct: number): string {
   return (Math.floor(pct * 100) / 100).toFixed(2);
 }
 
-function shortenFilename(filename: string): string {
-  // Paths in the JSON output are already root-relative with a leading `/`.
-  return filename.replace(/^\//, '');
-}
-
 function fileId(filename: string): string {
   return md5Hex(filename);
 }
@@ -416,7 +411,6 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
 
 function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
   const id = fileId(filename);
-  const shortName = shortenFilename(filename);
   const coveredLines = data.covered_lines;
   const missedLines = data.missed_lines;
   const totalLines = coveredLines + missedLines;
@@ -433,7 +427,7 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
 
   let html = `<div class="source_table" id="${id}">`;
   html += '<div class="header">';
-  html += `<h2>${escapeHTML(shortName)}</h2>`;
+  html += `<h2>${escapeHTML(filename)}</h2>`;
   html += renderCoverageSummary(coveredLines, totalLines, coveredBranches, totalBranches, coveredMethods, totalMethods, branchCoverage, methodCoverage, showMethodToggle);
 
   if (showMethodToggle) {
@@ -534,7 +528,6 @@ function renderFileList(
   for (const fn of filenames) {
     const f = allCoverage[fn];
     if (!f) continue;
-    const shortName = shortenFilename(fn);
     const id = fileId(fn);
     const coveredLines = f.covered_lines;
     const relevantLines = coveredLines + f.missed_lines;
@@ -548,7 +541,7 @@ function renderFileList(
     }
 
     html += `<tr class="t-file" ${dataAttrs}>`;
-    html += `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(shortName)}">${escapeHTML(shortName)}</a></td>`;
+    html += `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`;
     html += renderCoverageCells(f.lines_covered_percent, coveredLines, relevantLines, 'line', false);
     if (branchCoverage) {
       html += renderCoverageCells(f.branches_covered_percent || 100.0, f.covered_branches || 0, f.total_branches || 0, 'branch', false);
