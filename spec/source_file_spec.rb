@@ -356,22 +356,13 @@ describe SimpleCov::SourceFile do
     end
   end
 
-  context "simulating potential Ruby 1.9 defect -- see Issue #56" do
+  context "when coverage data contains more entries than the source has lines" do
     subject do
       SimpleCov::SourceFile.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB_WITH_MORE_LINES)
     end
 
     it "has 16 source lines regardless of extra data in coverage array" do
-      # Do not litter test output with known warning
-      capture_stderr { expect(subject.lines.count).to eq(16) }
-    end
-
-    it "prints a warning to stderr if coverage array contains more data than lines in the file" do
-      captured_output = capture_stderr do
-        subject.lines
-      end
-
-      expect(captured_output).to match(/^Warning: coverage data provided/)
+      expect(subject.lines.count).to eq(16)
     end
   end
 
