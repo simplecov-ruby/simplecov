@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
 require "helper"
+require "fileutils"
 
 describe SimpleCov::Formatter::JSONFormatter do
   subject { described_class.new(silent: true) }
 
   let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
+
+  # Prevent stale coverage.json from prior tests from triggering the
+  # concurrent-overwrite warning.
+  before { FileUtils.rm_f("tmp/coverage/coverage.json") }
 
   let(:result) do
     res = SimpleCov::Result.new({
@@ -303,6 +308,57 @@ describe SimpleCov::Formatter::JSONFormatter do
       it "displays groups correctly in the JSON" do
         subject.format(result)
         expect(json_output).to eq(json_result("sample_groups"))
+      end
+    end
+
+    context "when an existing coverage.json was written after this process started" do
+      let(:coverage_path) { "tmp/coverage/coverage.json" }
+      let(:future_timestamp) { (Time.now + 3600).iso8601 }
+
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write(coverage_path, JSON.generate(meta: {timestamp: future_timestamp}))
+      end
+
+      it "warns that a concurrent process may have written it" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to include("simplecov:")
+        expect(stderr).to include(future_timestamp)
+        expect(stderr).to include("concurrent test run")
+      end
+
+      it "still writes the new file" do
+        capture_stderr { subject.format(result) }
+
+        expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601)
+      end
+    end
+
+    context "when an existing coverage.json predates this process" do
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        past_timestamp = (Time.now - 3600).iso8601
+        File.write("tmp/coverage/coverage.json", JSON.generate(meta: {timestamp: past_timestamp}))
+      end
+
+      it "does not warn" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to be_empty
+      end
+    end
+
+    context "when the existing coverage.json is malformed" do
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write("tmp/coverage/coverage.json", "not-json")
+      end
+
+      it "does not warn or raise" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to be_empty
       end
     end
   end
