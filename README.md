@@ -905,9 +905,6 @@ SimpleCov includes a `SimpleCov::Formatter::JSONFormatter` that provides you wit
 SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 ```
 
-> _Note:_ In case you plan to report your coverage results to CodeClimate services, know that SimpleCov will automatically use the
->  JSON formatter along with the HTML formatter when the `CC_TEST_REPORTER_ID` variable is present in the environment.
-
 > The JSON formatter was originally a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and loaded by default. Existing code that does `require "simplecov_json_formatter"` will continue to work.
 
 ## Available formatters, editor integrations and hosted services

@@ -7,6 +7,7 @@ Unreleased
 * `StringFilter` now matches at path-segment boundaries. `"lib"` matches `/lib/` but no longer matches `/library/`. Use a `Regexp` filter for substring matching.
 * `SourceFile#project_filename` now returns a truly relative path with no leading separator (e.g. `lib/foo.rb` instead of `/lib/foo.rb`). This also removes the leading `/` from file path keys in `coverage.json` and from the filename in `minimum_coverage_by_file` error messages. Anchored `RegexFilter`s that relied on a leading `/` (e.g. `%r{^/lib/}`) should be rewritten (e.g. `%r{\Alib/}`).
 * Removed `docile` gem dependency. The `SimpleCov.configure` DSL block is now evaluated via `instance_exec` with instance variable proxying.
+* Removed automatic activation of `JSONFormatter` when the `CC_TEST_REPORTER_ID` environment variable is set. The default `HTMLFormatter` now always writes `coverage.json`, so the env-var special case is no longer needed.
 
 ## Enhancements
 * JSON formatter: `meta.timestamp` is now emitted with millisecond precision (`iso8601(3)`) so the concurrent-overwrite warning can distinguish writes within the same wall-clock second
