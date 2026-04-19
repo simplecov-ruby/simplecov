@@ -30,6 +30,11 @@ module SimpleCov
 
     attr_accessor :running, :pid
 
+    # When this process started tracking coverage. Captured by SimpleCov.start
+    # so JSONFormatter can detect when an existing coverage.json was written
+    # by a sibling process running concurrently.
+    attr_accessor :process_start_time
+
     # Basically, should we take care of at_exit behavior or something else?
     # Used by the minitest plugin. See lib/minitest/simplecov_plugin.rb
     attr_accessor :external_at_exit
@@ -62,6 +67,7 @@ module SimpleCov
 
       @result = nil
       self.pid = Process.pid
+      self.process_start_time = Time.now
 
       start_coverage_measurement
     end

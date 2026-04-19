@@ -12,6 +12,11 @@ describe SimpleCov::Formatter::JSONFormatter do
   # concurrent-overwrite warning.
   before { FileUtils.rm_f("tmp/coverage/coverage.json") }
 
+  # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
+  # concurrent-overwrite checks have a reference point.
+  before { SimpleCov.process_start_time = Time.now }
+  after  { SimpleCov.process_start_time = nil }
+
   let(:result) do
     res = SimpleCov::Result.new({
                                   source_fixture("json/sample.rb") => {"lines" => [
