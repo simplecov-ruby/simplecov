@@ -1,8 +1,87 @@
 import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
+import { hash } from './hash';
 
 hljs.registerLanguage('ruby', ruby);
 
+// --- Types for coverage data ---------------------------------
+
+interface CoverageData {
+  meta: {
+    simplecov_version: string;
+    command_name: string;
+    project_name: string;
+    timestamp: string;
+    root: string;
+    branch_coverage: boolean;
+    method_coverage: boolean;
+  };
+  total: StatGroup;
+  coverage: Record<string, FileCoverage>;
+  groups: Record<string, GroupData>;
+}
+
+interface StatGroup {
+  lines: CoverageStat;
+  branches?: CoverageStat;
+  methods?: CoverageStat;
+}
+
+interface CoverageStat {
+  covered: number;
+  missed: number;
+  total: number;
+  percent: number;
+  strength: number;
+}
+
+interface FileCoverage {
+  lines: (number | null | 'ignored')[];
+  source: string[];
+  lines_covered_percent: number;
+  covered_lines: number;
+  missed_lines: number;
+  total_lines: number;
+  branches?: BranchEntry[];
+  branches_covered_percent?: number;
+  covered_branches?: number;
+  missed_branches?: number;
+  total_branches?: number;
+  methods?: MethodEntry[];
+  methods_covered_percent?: number;
+  covered_methods?: number;
+  missed_methods?: number;
+  total_methods?: number;
+}
+
+interface BranchEntry {
+  type: string;
+  start_line: number;
+  end_line: number;
+  coverage: number | 'ignored';
+  inline: boolean;
+  report_line: number;
+}
+
+interface MethodEntry {
+  name: string;
+  start_line: number;
+  end_line: number;
+  coverage: number | 'ignored';
+}
+
+interface GroupData {
+  lines: CoverageStat;
+  branches?: CoverageStat;
+  methods?: CoverageStat;
+  files?: string[];
+}
+
+declare global {
+  interface Window {
+    SIMPLECOV_DATA: CoverageData;
+  }
+}
 
 // --- Constants ------------------------------------------------
 
@@ -39,21 +118,49 @@ function on(
   }
 }
 
+function escapeHTML(str: string): string {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
 // --- Timeago --------------------------------------------------
+
+// Thresholds in seconds and their display unit.  Ordered largest-first so
+// the first match wins.
+const TIMEAGO_INTERVALS: [number, string][] = [
+  [31536000, 'year'], [2592000, 'month'], [86400, 'day'],
+  [3600, 'hour'], [60, 'minute'], [1, 'second']
+];
 
 function timeago(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  const intervals: [number, string][] = [
-    [31536000, 'year'], [2592000, 'month'], [86400, 'day'],
-    [3600, 'hour'], [60, 'minute'], [1, 'second']
-  ];
-  for (const [secs, label] of intervals) {
+  for (const [secs, label] of TIMEAGO_INTERVALS) {
     const count = Math.floor(seconds / secs);
     if (count >= 1) {
       return count === 1 ? `about 1 ${label} ago` : `${count} ${label}s ago`;
     }
   }
   return 'just now';
+}
+
+// Returns the number of milliseconds until the displayed timeago text would
+// change for the given date.  For example, if "3 minutes ago" is displayed,
+// the text won't change until the 4th minute boundary, so we return the
+// remaining ms until that boundary (plus a small buffer).
+function timeagoNextTick(date: Date): number {
+  const elapsedSec = (Date.now() - date.getTime()) / 1000;
+  for (const [secs] of TIMEAGO_INTERVALS) {
+    const count = Math.floor(elapsedSec / secs);
+    if (count >= 1) {
+      // The text will next change when elapsed reaches (count + 1) * secs
+      const nextBoundary = (count + 1) * secs;
+      // Add 500ms buffer so we land just after the boundary, not right on it
+      return Math.max((nextBoundary - elapsedSec) * 1000 + 500, 1000);
+    }
+  }
+  // Currently "just now" — update in 1 second (when it becomes "1 second ago")
+  return 1000;
 }
 
 // --- Coverage helpers -----------------------------------------
@@ -68,30 +175,340 @@ function fmtNum(n: number): string {
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-function updateCoverageCells(
-  container: Element,
-  prefix: string,
-  covered: number,
-  total: number
-): void {
-  const covCell = $(prefix + '-pct', container);
-  const numEl = $(prefix + '-num', container);
-  const denEl = $(prefix + '-den', container);
-  if (total === 0) {
-    if (covCell) { covCell.innerHTML = ''; covCell.className = covCell.className.replace(/green|yellow|red/g, '').trim(); }
-    if (numEl) numEl.textContent = '';
-    if (denEl) denEl.textContent = '';
-    return;
-  }
-  const p = (covered * 100.0) / total;
-  const cls = pctClass(p);
-  if (covCell) {
-    covCell.innerHTML = `<div class="coverage-cell"><div class="bar-sizer"><div class="coverage-bar"><div class="coverage-bar__fill coverage-bar__fill--${cls}" style="width: ${p.toFixed(1)}%"></div></div></div><span class="coverage-pct">${p.toFixed(2)}%</span></div>`;
-    covCell.className = `${covCell.className.replace(/green|yellow|red/g, '').trim()} ${cls}`;
-  }
-  if (numEl) numEl.textContent = fmtNum(covered) + '/';
-  if (denEl) denEl.textContent = fmtNum(total);
+function fmtPct(pct: number): string {
+  return (Math.floor(pct * 100) / 100).toFixed(2);
 }
+
+// Populated by precomputeFileIds before any rendering happens.
+const fileIds: Record<string, string> = {};
+
+function fileId(filename: string): string {
+  return fileIds[filename];
+}
+
+async function precomputeFileIds(filenames: string[]): Promise<void> {
+  const hashes = await Promise.all(filenames.map(hash));
+  filenames.forEach((fn, i) => { fileIds[fn] = hashes[i]; });
+}
+
+function toHtmlId(value: string): string {
+  return value.replace(/^[^a-zA-Z]+/, '').replace(/[^a-zA-Z0-9\-_]/g, '');
+}
+
+// --- Coverage rendering helpers -------------------------------
+
+function renderCoverageBar(pct: number): string {
+  const css = pctClass(pct);
+  const width = fmtPct(pct);
+  return `<div class="bar-sizer"><div class="coverage-bar"><div class="coverage-bar__fill coverage-bar__fill--${css}" style="width: ${width}%"></div></div></div>`;
+}
+
+function renderCoverageCells(pct: number, covered: number, total: number, type: string, totals: boolean): string {
+  const css = pctClass(pct);
+  const pctStr = fmtPct(pct);
+  const barAndPct = `<div class="coverage-cell">${renderCoverageBar(pct)}<span class="coverage-pct">${pctStr}%</span></div>`;
+
+  if (totals) {
+    return `<td class="cell--coverage strong t-totals__${type}-pct ${css}">${barAndPct}</td>` +
+           `<td class="cell--numerator strong t-totals__${type}-num">${fmtNum(covered)}/</td>` +
+           `<td class="cell--denominator strong t-totals__${type}-den">${fmtNum(total)}</td>`;
+  }
+  const order = ` data-order="${fmtPct(pct)}"`;
+  return `<td class="cell--coverage cell--${type}-pct ${css}"${order}>${barAndPct}</td>` +
+         `<td class="cell--numerator">${fmtNum(covered)}/</td>` +
+         `<td class="cell--denominator">${fmtNum(total)}</td>`;
+}
+
+function renderHeaderCells(label: string, type: string, coveredLabel: string, totalLabel: string): string {
+  return `<th class="cell--coverage">
+      <div class="th-with-filter">
+        <span class="th-label">${label}</span>
+        <div class="col-filter__coverage">
+          <select class="col-filter__op" data-type="${type}"><option value="lt">&lt;</option><option value="lte" selected>&le;</option><option value="eq">=</option><option value="gte">&ge;</option><option value="gt">&gt;</option></select>
+          <span class="col-filter__pct-wrap"><input type="number" class="col-filter__value" min="0" max="100" data-type="${type}" value="100" step="any"></span>
+        </div>
+      </div>
+    </th>
+    <th class="cell--numerator">${coveredLabel}</th>
+    <th class="cell--denominator">${totalLabel}</th>`;
+}
+
+// --- Rendering: Coverage summary (per source file) ------------
+
+function renderTypeSummary(type: string, label: string, covered: number, total: number, enabled: boolean, opts: { suffix?: string; missedClass?: string; toggle?: boolean } = {}): string {
+  if (!enabled) {
+    return `<div class="t-${type}-summary">\n    ${label}: <span class="coverage-disabled">disabled</span>\n  </div>`;
+  }
+  const missed = total - covered;
+  const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
+  const css = pctClass(pct);
+  const suffix = opts.suffix || 'covered';
+  const missedClass = opts.missedClass || 'red';
+
+  let parts = `<div class="t-${type}-summary">\n    ${label}: ` +
+    `<span class="${css}"><b>${fmtPct(pct)}%</b></span>` +
+    `<span class="coverage-cell__fraction"> ${covered}/${total} ${suffix}</span>`;
+
+  if (missed > 0) {
+    const missedHtml = opts.toggle
+      ? `<a href="#" class="t-missed-method-toggle"><b>${missed}</b> missed</a>`
+      : `<span class="${missedClass}"><b>${missed}</b> missed</span>`;
+    parts += `<span class="coverage-cell__fraction">,</span>\n    ${missedHtml}`;
+  }
+  parts += '\n  </div>';
+  return parts;
+}
+
+function renderCoverageSummary(
+  coveredLines: number, totalLines: number,
+  coveredBranches: number, totalBranches: number,
+  coveredMethods: number, totalMethods: number,
+  branchCoverage: boolean, methodCoverage: boolean,
+  showMethodToggle: boolean
+): string {
+  return '<div class="summary-stats">' +
+    renderTypeSummary('line', 'Line coverage', coveredLines, totalLines, true, { suffix: 'relevant lines covered' }) +
+    renderTypeSummary('branch', 'Branch coverage', coveredBranches, totalBranches, branchCoverage, { missedClass: 'missed-branch-text' }) +
+    renderTypeSummary('method', 'Method coverage', coveredMethods, totalMethods, methodCoverage, { missedClass: 'missed-method-text-color', toggle: showMethodToggle }) +
+    '</div>';
+}
+
+// --- Rendering: Source file view ------------------------------
+
+function lineStatus(
+  lineIndex: number,
+  lineCov: number | null | 'ignored',
+  branchesReport: Record<number, [string, number][]>,
+  missedMethodLines: Set<number>,
+  branchCoverage: boolean,
+  methodCoverage: boolean
+): string {
+  const lineNum = lineIndex + 1;
+
+  // Check basic status
+  if (lineCov === 'ignored') return 'skipped';
+
+  // Branch miss takes priority
+  if (branchCoverage) {
+    const branches = branchesReport[lineNum];
+    if (branches && branches.some(([, count]) => count === 0)) return 'missed-branch';
+  }
+
+  // Method miss
+  if (methodCoverage && missedMethodLines.has(lineNum)) return 'missed-method';
+
+  if (lineCov === null) return 'never';
+  if (lineCov === 0) return 'missed';
+  return 'covered';
+}
+
+function buildBranchesReport(branches: BranchEntry[] | undefined): Record<number, [string, number][]> {
+  const report: Record<number, [string, number][]> = {};
+  if (!branches) return report;
+  for (const b of branches) {
+    if (b.coverage === 'ignored') continue;
+    if (!report[b.report_line]) report[b.report_line] = [];
+    report[b.report_line].push([b.type, b.coverage as number]);
+  }
+  return report;
+}
+
+function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number> {
+  const set = new Set<number>();
+  if (!methods) return set;
+  for (const m of methods) {
+    if (m.coverage === 0 && m.start_line && m.end_line) {
+      for (let i = m.start_line; i <= m.end_line; i++) set.add(i);
+    }
+  }
+  return set;
+}
+
+function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
+  const id = fileId(filename);
+  const coveredLines = data.covered_lines;
+  const totalLines = data.total_lines;
+  const coveredBranches = branchCoverage ? (data.covered_branches || 0) : 0;
+  const totalBranches = branchCoverage ? (data.total_branches || 0) : 0;
+  const coveredMethods = methodCoverage ? (data.covered_methods || 0) : 0;
+  const totalMethods = methodCoverage ? (data.total_methods || 0) : 0;
+
+  const missedMethodsList = (data.methods || []).filter(m => m.coverage === 0);
+  const showMethodToggle = methodCoverage && missedMethodsList.length > 0;
+
+  const branchesReport = buildBranchesReport(data.branches);
+  const missedMethodLineSet = buildMissedMethodLines(data.methods);
+
+  let html = `<div class="source_table" id="${id}">`;
+  html += '<div class="header">';
+  html += `<h2>${escapeHTML(filename)}</h2>`;
+  html += renderCoverageSummary(coveredLines, totalLines, coveredBranches, totalBranches, coveredMethods, totalMethods, branchCoverage, methodCoverage, showMethodToggle);
+
+  if (showMethodToggle) {
+    html += '<div class="t-missed-method-list" style="display: none"><ul>';
+    for (const m of missedMethodsList) {
+      html += `<li><tt>${escapeHTML(m.name)}</tt></li>`;
+    }
+    html += '</ul></div>';
+  }
+  html += '</div>';
+
+  // Source lines
+  html += '<pre><ol>';
+  for (let i = 0; i < data.source.length; i++) {
+    const lineCov = data.lines[i];
+    const status = lineStatus(i, lineCov, branchesReport, missedMethodLineSet, branchCoverage, methodCoverage);
+    const lineNum = i + 1;
+    const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
+
+    html += `<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`;
+
+    if (status === 'covered' || (lineCov !== null && lineCov !== 'ignored' && lineCov !== 0)) {
+      html += `<span class="hits" data-content="${lineCov}"></span>`;
+    } else if (lineCov === 'ignored') {
+      html += '<span class="hits" data-content="skipped"></span>';
+    }
+
+    if (branchCoverage) {
+      const lineBranches = branchesReport[lineNum];
+      if (lineBranches) {
+        for (const [branchType, hitCount] of lineBranches) {
+          html += `<span class="hits" data-content="${branchType}: ${hitCount}" title="${branchType} branch hit ${hitCount} times"></span>`;
+        }
+      }
+    }
+
+    html += `<code class="ruby">${escapeHTML(data.source[i])}</code></li>`;
+  }
+  html += '</ol></pre></div>';
+  return html;
+}
+
+// --- Rendering: File list table --------------------------------
+
+function renderFileList(
+  title: string,
+  filenames: string[],
+  stats: StatGroup,
+  allCoverage: Record<string, FileCoverage>,
+  branchCoverage: boolean,
+  methodCoverage: boolean
+): string {
+  const containerId = toHtmlId(title);
+
+  const lineStats = stats.lines;
+  const branchStats = branchCoverage ? stats.branches : undefined;
+  const methodStats = methodCoverage ? stats.methods : undefined;
+
+  let html = `<div class="file_list_container" id="${containerId}" data-total-files="${filenames.length}">`;
+  html += `<span class="group_name hide">${escapeHTML(title)}</span>`;
+  html += `<span class="covered_percent hide"><span class="${pctClass(lineStats.percent)}">${fmtPct(lineStats.percent)}%</span></span>`;
+
+  html += '<div class="file_list--responsive"><table class="file_list"><thead><tr>';
+  html += `<th class="cell--left"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths\u2026"></div></th>`;
+  html += renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines');
+  if (branchCoverage) html += renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches');
+  if (methodCoverage) html += renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods');
+  html += '</tr>';
+
+  // Totals row
+  const fileLabel = filenames.length === 1 ? 'file' : 'files';
+  html += `<tr class="totals-row"><td class="strong t-file-count">${fmtNum(filenames.length)} ${fileLabel}</td>`;
+  html += renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true);
+  if (branchStats) html += renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true);
+  if (methodStats) html += renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true);
+  html += '</tr></thead><tbody>';
+
+  // File rows
+  for (const fn of filenames) {
+    const f = allCoverage[fn];
+    if (!f) continue;
+    const id = fileId(fn);
+
+    let dataAttrs = `data-covered-lines="${f.covered_lines}" data-relevant-lines="${f.total_lines}"`;
+    if (branchCoverage) {
+      dataAttrs += ` data-covered-branches="${f.covered_branches || 0}" data-total-branches="${f.total_branches || 0}"`;
+    }
+    if (methodCoverage) {
+      dataAttrs += ` data-covered-methods="${f.covered_methods || 0}" data-total-methods="${f.total_methods || 0}"`;
+    }
+
+    html += `<tr class="t-file" ${dataAttrs}>`;
+    html += `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`;
+    html += renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false);
+    if (branchCoverage) {
+      html += renderCoverageCells(f.branches_covered_percent || 100.0, f.covered_branches || 0, f.total_branches || 0, 'branch', false);
+    }
+    if (methodCoverage) {
+      html += renderCoverageCells(f.methods_covered_percent || 100.0, f.covered_methods || 0, f.total_methods || 0, 'method', false);
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+// --- Rendering: Full page from data ---------------------------
+
+function renderPage(data: CoverageData): void {
+  const meta = data.meta;
+  const branchCoverage = meta.branch_coverage;
+  const methodCoverage = meta.method_coverage;
+
+  // Page title and favicon
+  document.title = `Code coverage for ${meta.project_name}`;
+  const allFiles = Object.keys(data.coverage);
+  const overallPct = data.total.lines.total > 0 ? data.total.lines.percent : 100.0;
+  const faviconLink = document.createElement('link');
+  faviconLink.rel = 'icon';
+  faviconLink.type = 'image/png';
+  faviconLink.href = `favicon_${pctClass(overallPct)}.png`;
+  document.head.appendChild(faviconLink);
+
+  if (branchCoverage) document.body.setAttribute('data-branch-coverage', 'true');
+
+  // Content: file lists
+  const content = document.getElementById('content')!;
+  content.innerHTML = renderFileList('All Files', allFiles, data.total, data.coverage, branchCoverage, methodCoverage);
+
+  for (const groupName of Object.keys(data.groups)) {
+    const group = data.groups[groupName];
+    const groupFiles = group.files || [];
+    content.innerHTML += renderFileList(groupName, groupFiles, group, data.coverage, branchCoverage, methodCoverage);
+  }
+
+  // Build id → filename lookup map for O(1) source file materialization
+  const idToFilename: Record<string, string> = {};
+  for (const fn of allFiles) {
+    idToFilename[fileId(fn)] = fn;
+  }
+  (window as any)._simplecovIdMap = idToFilename;
+  (window as any)._simplecovFiles = data.coverage;
+  (window as any)._simplecovBranchCoverage = branchCoverage;
+  (window as any)._simplecovMethodCoverage = methodCoverage;
+
+  // Footer
+  const timestamp = new Date(meta.timestamp);
+  const footer = document.getElementById('footer')!;
+  footer.innerHTML = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
+    ` by <a href="https://github.com/simplecov-ruby/simplecov">simplecov</a> v${escapeHTML(meta.simplecov_version)}` +
+    ` using ${escapeHTML(meta.command_name)}`;
+
+  // Source legend
+  const legend = document.getElementById('source-legend')!;
+  let legendHtml = '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
+    '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
+    '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>';
+  if (branchCoverage) {
+    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-branch"></span>Missed branch</span>';
+  }
+  if (methodCoverage) {
+    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>';
+  }
+  legend.innerHTML = legendHtml;
+}
+
 
 // --- Sort state -----------------------------------------------
 
@@ -284,22 +701,53 @@ function updateTotalsRow(container: Element): void {
   }
 }
 
-// --- Template materialization ----------------------------------
+function updateCoverageCells(
+  container: Element,
+  prefix: string,
+  covered: number,
+  total: number
+): void {
+  const covCell = $(prefix + '-pct', container);
+  const numEl = $(prefix + '-num', container);
+  const denEl = $(prefix + '-den', container);
+  if (total === 0) {
+    if (covCell) { covCell.innerHTML = ''; covCell.className = covCell.className.replace(/green|yellow|red/g, '').trim(); }
+    if (numEl) numEl.textContent = '';
+    if (denEl) denEl.textContent = '';
+    return;
+  }
+  const p = (covered * 100.0) / total;
+  const cls = pctClass(p);
+  if (covCell) {
+    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p)}<span class="coverage-pct">${p.toFixed(2)}%</span></div>`;
+    covCell.className = `${covCell.className.replace(/green|yellow|red/g, '').trim()} ${cls}`;
+  }
+  if (numEl) numEl.textContent = fmtNum(covered) + '/';
+  if (denEl) denEl.textContent = fmtNum(total);
+}
+
+// --- Source file rendering (on demand) -------------------------
 
 function materializeSourceFile(sourceFileId: string): HTMLElement | null {
   const existing = document.getElementById(sourceFileId);
   if (existing) return existing;
 
-  const tmpl = document.getElementById('tmpl-' + sourceFileId) as HTMLTemplateElement | null;
-  if (!tmpl) return null;
+  const idMap = (window as any)._simplecovIdMap as Record<string, string>;
+  const coverage = (window as any)._simplecovFiles as Record<string, FileCoverage>;
+  const branchCov = (window as any)._simplecovBranchCoverage as boolean;
+  const methodCov = (window as any)._simplecovMethodCoverage as boolean;
 
-  const clone = document.importNode(tmpl.content, true);
-  document.querySelector('.source_files')!.appendChild(clone);
+  const targetFilename = idMap[sourceFileId];
+  if (!targetFilename) return null;
 
-  const el = document.getElementById(sourceFileId);
-  if (el) {
-    $$('pre code', el).forEach(e => { hljs.highlightElement(e as HTMLElement); });
-  }
+  const html = renderSourceFile(targetFilename, coverage[targetFilename], branchCov, methodCov);
+  const container = document.querySelector('.source_files')!;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  const el = wrapper.firstElementChild as HTMLElement;
+  container.appendChild(el);
+
+  $$('pre code', el).forEach(e => { hljs.highlightElement(e as HTMLElement); });
   return el;
 }
 
@@ -328,9 +776,6 @@ function equalizeBarWidths(): void {
 
     wrapper.style.visibility = 'hidden';
 
-    // Binary search for the largest bar width that fits without scrolling,
-    // scaling gradually from MAX_BAR_WIDTH down to MIN_BAR_WIDTH.
-    // If the table overflows even at MIN_BAR_WIDTH, use MIN_BAR_WIDTH anyway.
     let lo = MIN_BAR_WIDTH, hi = MAX_BAR_WIDTH;
     while (lo < hi) {
       const mid = Math.ceil((lo + hi) / 2);
@@ -559,16 +1004,44 @@ function initDarkMode(): void {
 
 // --- Initialization -------------------------------------------
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Timeago
-  $$('abbr.timeago').forEach(el => {
-    const date = new Date(el.getAttribute('title') || '');
-    if (!isNaN(date.getTime())) el.textContent = timeago(date);
-  });
+// Wait for coverage data to be available, then render
+async function init(): Promise<void> {
+  if (!window.SIMPLECOV_DATA) {
+    // Data not loaded yet - the coverage_data.js script tag is at the end of body,
+    // so if DOMContentLoaded fires first, wait for it
+    window.addEventListener('load', init);
+    return;
+  }
+
+  const data = window.SIMPLECOV_DATA;
+
+  // Show loading indicator
+  const loadingEl = document.getElementById('loading');
+  if (loadingEl) loadingEl.style.display = '';
+
+  // Web Crypto's digest API is async, so resolve every file's id up front;
+  // every renderer downstream looks them up synchronously.
+  await precomputeFileIds(Object.keys(data.coverage));
+
+  // Render all content from data
+  renderPage(data);
+
+  // Timeago — schedule the next update for exactly when the text would change
+  function scheduleTimeago(): void {
+    let minDelay = Infinity;
+    $$('abbr.timeago').forEach(el => {
+      const date = new Date(el.getAttribute('title') || '');
+      if (isNaN(date.getTime())) return;
+      el.textContent = timeago(date);
+      minDelay = Math.min(minDelay, timeagoNextTick(date));
+    });
+    if (minDelay < Infinity) setTimeout(scheduleTimeago, minDelay);
+  }
+  scheduleTimeago();
 
   initDarkMode();
 
-  // Table sorting — compute td index dynamically at click time
+  // Table sorting
   function thToTdIndex(table: Element, clickedTh: Element): number {
     let idx = 0;
     for (const th of $$('thead tr:first-child th', table)) {
@@ -609,7 +1082,6 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     const inInput = (e.target as Element).matches('input, select, textarea');
 
-    // "/" to focus search
     if (e.key === '/' && !inInput) {
       e.preventDefault();
       const visible = $$('.file_list_container').filter(c => (c as HTMLElement).style.display !== 'none');
@@ -618,7 +1090,6 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Escape — close dialog or clear focus
     if (e.key === 'Escape') {
       if (dialog.open) {
         e.preventDefault();
@@ -633,14 +1104,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (inInput) return;
 
-    // Source view shortcuts (dialog open)
     if (dialog.open) {
       if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); jumpToMissedLine(1); }
       if (e.key === 'N' || (e.key === 'n' && e.shiftKey) || e.key === 'p') { e.preventDefault(); jumpToMissedLine(-1); }
       return;
     }
 
-    // File list shortcuts (dialog closed)
     if (e.key === 'j') { e.preventDefault(); moveFocus(1); }
     if (e.key === 'k') { e.preventDefault(); moveFocus(-1); }
     if (e.key === 'Enter' && focusedRow) { e.preventDefault(); openFocusedRow(); }
@@ -684,7 +1153,6 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('hashchange', navigateToHash);
 
   // Tab system
-  document.querySelector('.source_files')!.setAttribute('style', 'display:none');
   $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
 
   $$('.file_list_container').forEach(container => {
@@ -707,17 +1175,13 @@ document.addEventListener('DOMContentLoaded', function () {
     window.location.hash = this.getAttribute('href')!.replace('#', '#_');
   });
 
-  // Equalize bar column widths within each table
+  // Equalize bar column widths
   window.addEventListener('resize', scheduleEqualizeBarWidths);
 
   // Initial state
   navigateToHash();
 
   // Finalize loading
-  clearInterval((window as any)._simplecovLoadingTimer);
-  clearTimeout((window as any)._simplecovShowTimeout);
-
-  const loadingEl = document.getElementById('loading');
   if (loadingEl) {
     loadingEl.style.transition = 'opacity 0.3s';
     loadingEl.style.opacity = '0';
@@ -727,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const wrapperEl = document.getElementById('wrapper');
   if (wrapperEl) wrapperEl.classList.remove('hide');
 
-  // Equalize bar widths now that wrapper is visible
   equalizeBarWidths();
+}
 
-});
+document.addEventListener('DOMContentLoaded', init);

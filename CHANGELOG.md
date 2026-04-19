@@ -5,11 +5,14 @@ Unreleased
 * JSON formatter: group stats changed from `{ "covered_percent": 80.0 }` to full stats shape `{ "covered": 8, "missed": 2, "total": 10, "percent": 80.0, "strength": 0.0 }`. The key `covered_percent` is renamed to `percent`.
 * JSON formatter: `simplecov_json_formatter` gem is now built in. `require "simplecov_json_formatter"` continues to work via a shim.
 * `StringFilter` now matches at path-segment boundaries. `"lib"` matches `/lib/` but no longer matches `/library/`. Use a `Regexp` filter for substring matching.
+* `SourceFile#project_filename` now returns a truly relative path with no leading separator (e.g. `lib/foo.rb` instead of `/lib/foo.rb`). This also removes the leading `/` from file path keys in `coverage.json` and from the filename in `minimum_coverage_by_file` error messages. Anchored `RegexFilter`s that relied on a leading `/` (e.g. `%r{^/lib/}`) should be rewritten (e.g. `%r{\Alib/}`).
 * Removed `docile` gem dependency. The `SimpleCov.configure` DSL block is now evaluated via `instance_exec` with instance variable proxying.
+* Removed automatic activation of `JSONFormatter` when the `CC_TEST_REPORTER_ID` environment variable is set. The default `HTMLFormatter` now emits `coverage.json` alongside the HTML report (using `JSONFormatter.build_hash` to serialize the same payload `JSONFormatter` writes), so the env-var special case is no longer needed.
 
 ## Enhancements
+* JSON formatter: `meta.timestamp` is now emitted with millisecond precision (`iso8601(3)`) so the concurrent-overwrite warning can distinguish writes within the same wall-clock second
 * JSON formatter: added `total` section with aggregate coverage statistics (covered, missed, total, percent, strength) for line, branch, and method coverage. Line stats additionally include `omitted` (count of blank/comment lines, i.e. lines that cannot be covered)
-* JSON formatter: per-file output now includes `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`
+* JSON formatter: per-file output now includes `total_lines`, `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`
 * JSON formatter: group stats now include full statistics for all enabled coverage types, not just line coverage percent
 * JSON formatter: added `silent:` keyword to `JSONFormatter.new` to suppress console output
 * Merged `simplecov-html` formatter into the main gem. A backward-compatibility shim ensures `require "simplecov-html"` still works.

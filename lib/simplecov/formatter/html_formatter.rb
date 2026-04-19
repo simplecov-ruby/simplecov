@@ -1,104 +1,60 @@
 # frozen_string_literal: true
 
-require "erb"
 require "fileutils"
-require "time"
-require_relative "html_formatter/view_helpers"
+require "json"
+require_relative "json_formatter"
 
 module SimpleCov
   module Formatter
-    # Generates an HTML coverage report from SimpleCov results.
+    # Generates an HTML coverage report by writing a coverage_data.js file
+    # alongside pre-compiled static assets (index.html, application.js/css).
+    # Uses JSONFormatter.build_hash to serialize the result, then writes both
+    # coverage.json and coverage_data.js from the same in-memory hash.
     class HTMLFormatter
-      VERSION = "0.13.2"
+      DATA_FILENAME = "coverage_data.js"
 
-      # Only have a few content types, just hardcode them
-      CONTENT_TYPES = {
-        ".js" => "text/javascript",
-        ".png" => "image/png",
-        ".gif" => "image/gif",
-        ".css" => "text/css"
-      }.freeze
-
-      include ViewHelpers
-
-      def initialize(silent: false, inline_assets: false)
-        @branch_coverage = SimpleCov.branch_coverage?
-        @method_coverage = SimpleCov.method_coverage?
-        @templates = {}
-        @inline_assets = inline_assets || ENV.key?("SIMPLECOV_INLINE_ASSETS")
-        @public_assets_dir = File.join(__dir__, "html_formatter/public/")
+      def initialize(silent: false)
         @silent = silent
       end
 
       def format(result)
-        unless @inline_assets
-          Dir[File.join(@public_assets_dir, "*")].each do |path|
-            FileUtils.cp_r(path, asset_output_path, remove_destination: true)
-          end
-        end
+        json = JSON.pretty_generate(JSONFormatter.build_hash(result))
 
-        File.write(File.join(output_path, "index.html"), template("layout").result(binding), mode: "wb")
+        File.write(File.join(output_path, JSONFormatter::FILENAME), json)
+        File.write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n", mode: "wb")
+
+        copy_static_assets
         puts output_message(result) unless @silent
+      end
+
+      # Generate HTML from a pre-existing coverage.json file without
+      # needing a live SimpleCov::Result or even a running test suite.
+      def format_from_json(json_path, output_dir)
+        FileUtils.mkdir_p(output_dir)
+        json = File.read(json_path)
+        File.write(File.join(output_dir, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n", mode: "wb")
+        copy_static_assets(output_dir)
       end
 
     private
 
-      def branch_coverage?
-        @branch_coverage
-      end
-
-      def method_coverage?
-        @method_coverage
+      def copy_static_assets(dest_dir = output_path)
+        Dir[File.join(public_dir, "*")].each do |path|
+          FileUtils.cp_r(path, dest_dir, remove_destination: true)
+        end
       end
 
       def output_message(result)
-        lines = ["Coverage report generated for #{result.command_name} to #{output_path}"]
-        lines << "Line coverage: #{render_stats(result, :line)}"
-        lines << "Branch coverage: #{render_stats(result, :branch)}" if branch_coverage?
-        lines << "Method coverage: #{render_stats(result, :method)}" if method_coverage?
-        lines.join("\n")
-      end
-
-      def template(name)
-        @templates[name] ||= ERB.new(File.read(File.join(__dir__, "html_formatter/views/", "#{name}.erb")), trim_mode: "-")
+        "Coverage report generated for #{result.command_name} to #{output_path}. " \
+          "#{result.covered_lines} / #{result.total_lines} LOC (#{result.covered_percent.round(2)}%) covered."
       end
 
       def output_path
         SimpleCov.coverage_path
       end
 
-      def asset_output_path
-        @asset_output_path ||= File.join(output_path, "assets", VERSION).tap do |path|
-          FileUtils.mkdir_p(path)
-        end
-      end
-
-      def assets_path(name)
-        return asset_inline(name) if @inline_assets
-
-        File.join("./assets", VERSION, name)
-      end
-
-      def asset_inline(name)
-        path = File.join(@public_assets_dir, name)
-        base64_content = [File.read(path)].pack("m0")
-        "data:#{CONTENT_TYPES.fetch(File.extname(name))};base64,#{base64_content}"
-      end
-
-      def formatted_source_file(source_file)
-        template("source_file").result(binding)
-      rescue Encoding::CompatibilityError => e
-        puts "Encoding problems with file #{source_file.filename}. Simplecov/ERB can't handle non ASCII characters in filenames. Error: #{e.message}."
-        %(<div class="source_table" id="#{id(source_file)}"><div class="header"><h2>Encoding Error</h2><p>#{ERB::Util.html_escape(e.message)}</p></div></div>)
-      end
-
-      def formatted_file_list(title, source_files)
-        template("file_list").result(binding)
-      end
-
-      def render_stats(result, criterion)
-        stats = result.coverage_statistics.fetch(criterion)
-        Kernel.format("%<covered>d / %<total>d (%<percent>.2f%%)", covered: stats.covered, total: stats.total, percent: stats.percent)
+      def public_dir
+        File.join(__dir__, "html_formatter/public/")
       end
     end
   end

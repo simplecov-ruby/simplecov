@@ -11,7 +11,7 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
   let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }
   let(:files) do
     [
-      instance_double(SimpleCov::SourceFile, coverage_statistics: coverage_statistics, filename: "/abs/lib/foo.rb", project_filename: "/lib/foo.rb")
+      instance_double(SimpleCov::SourceFile, coverage_statistics: coverage_statistics, filename: "/abs/lib/foo.rb", project_filename: "lib/foo.rb")
     ]
   end
 
