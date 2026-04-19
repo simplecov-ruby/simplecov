@@ -12,7 +12,7 @@ Unreleased
 ## Enhancements
 * JSON formatter: `meta.timestamp` is now emitted with millisecond precision (`iso8601(3)`) so the concurrent-overwrite warning can distinguish writes within the same wall-clock second
 * JSON formatter: added `total` section with aggregate coverage statistics (covered, missed, total, percent, strength) for line, branch, and method coverage. Line stats additionally include `omitted` (count of blank/comment lines, i.e. lines that cannot be covered)
-* JSON formatter: per-file output now includes `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`
+* JSON formatter: per-file output now includes `total_lines`, `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`
 * JSON formatter: group stats now include full statistics for all enabled coverage types, not just line coverage percent
 * JSON formatter: added `silent:` keyword to `JSONFormatter.new` to suppress console output
 * Merged `simplecov-html` formatter into the main gem. A backward-compatibility shim ensures `require "simplecov-html"` still works.

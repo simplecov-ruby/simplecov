@@ -41,6 +41,7 @@ interface FileCoverage {
   lines_covered_percent: number;
   covered_lines: number;
   missed_lines: number;
+  total_lines: number;
   branches?: BranchEntry[];
   branches_covered_percent?: number;
   covered_branches?: number;
@@ -326,8 +327,7 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
 function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
   const id = fileId(filename);
   const coveredLines = data.covered_lines;
-  const missedLines = data.missed_lines;
-  const totalLines = coveredLines + missedLines;
+  const totalLines = data.total_lines;
   const coveredBranches = branchCoverage ? (data.covered_branches || 0) : 0;
   const totalBranches = branchCoverage ? (data.total_branches || 0) : 0;
   const coveredMethods = methodCoverage ? (data.covered_methods || 0) : 0;
@@ -389,39 +389,20 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
 function renderFileList(
   title: string,
   filenames: string[],
+  stats: StatGroup,
   allCoverage: Record<string, FileCoverage>,
   branchCoverage: boolean,
   methodCoverage: boolean
 ): string {
   const containerId = toHtmlId(title);
 
-  // Compute totals across all files in this list
-  let totalCoveredLines = 0, totalRelevantLines = 0;
-  let totalCoveredBranches = 0, totalAllBranches = 0;
-  let totalCoveredMethods = 0, totalAllMethods = 0;
-
-  for (const fn of filenames) {
-    const f = allCoverage[fn];
-    if (!f) continue;
-    totalCoveredLines += f.covered_lines;
-    totalRelevantLines += f.covered_lines + f.missed_lines;
-    if (branchCoverage) {
-      totalCoveredBranches += f.covered_branches || 0;
-      totalAllBranches += f.total_branches || 0;
-    }
-    if (methodCoverage) {
-      totalCoveredMethods += f.covered_methods || 0;
-      totalAllMethods += f.total_methods || 0;
-    }
-  }
-
-  const linePct = totalRelevantLines > 0 ? totalCoveredLines * 100.0 / totalRelevantLines : 100.0;
-  const branchPct = branchCoverage && totalAllBranches > 0 ? totalCoveredBranches * 100.0 / totalAllBranches : 100.0;
-  const methodPct = methodCoverage && totalAllMethods > 0 ? totalCoveredMethods * 100.0 / totalAllMethods : 100.0;
+  const lineStats = stats.lines;
+  const branchStats = branchCoverage ? stats.branches : undefined;
+  const methodStats = methodCoverage ? stats.methods : undefined;
 
   let html = `<div class="file_list_container" id="${containerId}" data-total-files="${filenames.length}">`;
   html += `<span class="group_name hide">${escapeHTML(title)}</span>`;
-  html += `<span class="covered_percent hide"><span class="${pctClass(linePct)}">${fmtPct(linePct)}%</span></span>`;
+  html += `<span class="covered_percent hide"><span class="${pctClass(lineStats.percent)}">${fmtPct(lineStats.percent)}%</span></span>`;
 
   html += '<div class="file_list--responsive"><table class="file_list"><thead><tr>';
   html += `<th class="cell--left"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths\u2026"></div></th>`;
@@ -433,9 +414,9 @@ function renderFileList(
   // Totals row
   const fileLabel = filenames.length === 1 ? 'file' : 'files';
   html += `<tr class="totals-row"><td class="strong t-file-count">${fmtNum(filenames.length)} ${fileLabel}</td>`;
-  html += renderCoverageCells(linePct, totalCoveredLines, totalRelevantLines, 'line', true);
-  if (branchCoverage) html += renderCoverageCells(branchPct, totalCoveredBranches, totalAllBranches, 'branch', true);
-  if (methodCoverage) html += renderCoverageCells(methodPct, totalCoveredMethods, totalAllMethods, 'method', true);
+  html += renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true);
+  if (branchStats) html += renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true);
+  if (methodStats) html += renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true);
   html += '</tr></thead><tbody>';
 
   // File rows
@@ -443,10 +424,8 @@ function renderFileList(
     const f = allCoverage[fn];
     if (!f) continue;
     const id = fileId(fn);
-    const coveredLines = f.covered_lines;
-    const relevantLines = coveredLines + f.missed_lines;
 
-    let dataAttrs = `data-covered-lines="${coveredLines}" data-relevant-lines="${relevantLines}"`;
+    let dataAttrs = `data-covered-lines="${f.covered_lines}" data-relevant-lines="${f.total_lines}"`;
     if (branchCoverage) {
       dataAttrs += ` data-covered-branches="${f.covered_branches || 0}" data-total-branches="${f.total_branches || 0}"`;
     }
@@ -456,7 +435,7 @@ function renderFileList(
 
     html += `<tr class="t-file" ${dataAttrs}>`;
     html += `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`;
-    html += renderCoverageCells(f.lines_covered_percent, coveredLines, relevantLines, 'line', false);
+    html += renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false);
     if (branchCoverage) {
       html += renderCoverageCells(f.branches_covered_percent || 100.0, f.covered_branches || 0, f.total_branches || 0, 'branch', false);
     }
@@ -491,11 +470,12 @@ function renderPage(data: CoverageData): void {
 
   // Content: file lists
   const content = document.getElementById('content')!;
-  content.innerHTML = renderFileList('All Files', allFiles, data.coverage, branchCoverage, methodCoverage);
+  content.innerHTML = renderFileList('All Files', allFiles, data.total, data.coverage, branchCoverage, methodCoverage);
 
   for (const groupName of Object.keys(data.groups)) {
-    const groupFiles = data.groups[groupName].files || [];
-    content.innerHTML += renderFileList(groupName, groupFiles, data.coverage, branchCoverage, methodCoverage);
+    const group = data.groups[groupName];
+    const groupFiles = group.files || [];
+    content.innerHTML += renderFileList(groupName, groupFiles, group, data.coverage, branchCoverage, methodCoverage);
   }
 
   // Build id → filename lookup map for O(1) source file materialization

@@ -76,7 +76,8 @@
       ],
       "lines_covered_percent": 90.0,
       "covered_lines": 9,
-      "missed_lines": 1
+      "missed_lines": 1,
+      "total_lines": 10
     }
   },
   "groups": {
