@@ -117,11 +117,14 @@ module SimpleCov
         end
 
         def format_line_coverage(source_file)
+          covered = source_file.covered_lines.count
+          missed = source_file.missed_lines.count
           {
             lines: source_file.lines.map { |line| format_line(line) },
             lines_covered_percent: source_file.covered_percent,
-            covered_lines: source_file.covered_lines.count,
-            missed_lines: source_file.missed_lines.count
+            covered_lines: covered,
+            missed_lines: missed,
+            total_lines: covered + missed
           }
         end
 
