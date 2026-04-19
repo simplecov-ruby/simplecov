@@ -9,13 +9,6 @@ module SimpleCov
     class JSONFormatter
       FILENAME = "coverage.json"
 
-      # Captured when the class loads, which is close enough to "when this
-      # Ruby process started tracking coverage". Used to detect whether an
-      # existing coverage.json was written by a sibling process running
-      # concurrently (see #warn_if_concurrent_overwrite).
-      PROCESS_START_TIME = Time.now
-      private_constant :PROCESS_START_TIME
-
       def initialize(silent: false)
         @silent = silent
       end
@@ -38,11 +31,12 @@ module SimpleCov
       # (e.g., parallel_tests) wrote it while we were running, and that our
       # write is about to clobber their data.
       def warn_if_concurrent_overwrite(path)
+        start_time = SimpleCov.process_start_time or return
         existing_ts = existing_timestamp(path) or return
-        return unless existing_ts > PROCESS_START_TIME
+        return unless existing_ts > start_time
 
         warn "simplecov: #{path} was written at #{existing_ts.iso8601} — after " \
-             "this process started at #{PROCESS_START_TIME.iso8601}. Overwriting " \
+             "this process started at #{start_time.iso8601}. Overwriting " \
              "likely loses coverage data from a concurrent test run. For " \
              "parallel test setups, use SimpleCov::ResultMerger or run a single " \
              "collation step after all workers finish."
