@@ -30,7 +30,7 @@ jobs:
 
       - run: rm Gemfile.lock
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1.301.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
           rubygems: default
