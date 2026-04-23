@@ -1,17 +1,31 @@
 # frozen_string_literal: true
 
 require "helper"
+require "fileutils"
 
 describe SimpleCov::Formatter::JSONFormatter do
   subject { described_class.new(silent: true) }
 
+  let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
+
+  # Prevent stale coverage.json from prior tests from triggering the
+  # concurrent-overwrite warning.
+  before { FileUtils.rm_f("tmp/coverage/coverage.json") }
+
+  # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
+  # concurrent-overwrite checks have a reference point.
+  before { SimpleCov.process_start_time = Time.now }
+  after  { SimpleCov.process_start_time = nil }
+
   let(:result) do
-    SimpleCov::Result.new({
-                            source_fixture("json/sample.rb") => {"lines" => [
-                              nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                            ]}
-                          })
+    res = SimpleCov::Result.new({
+                                  source_fixture("json/sample.rb") => {"lines" => [
+                                    nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+                                    1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+                                  ]}
+                                })
+    res.created_at = fixed_time
+    res
   end
 
   describe "format" do
@@ -30,7 +44,7 @@ describe SimpleCov::Formatter::JSONFormatter do
           "percent" => 66.66666666666667,
           "strength" => 0.6666666666666666
         )
-        expect(json_output.fetch("coverage").fetch(source_fixture("json/sample.rb"))).to include(
+        expect(json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))).to include(
           "lines_covered_percent" => 66.66666666666667
         )
       end
@@ -53,12 +67,14 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       let(:result) do
-        SimpleCov::Result.new({
-                                source_fixture("json/sample.rb") => {
-                                  "lines" => original_lines,
-                                  "branches" => original_branches
-                                }
-                              })
+        res = SimpleCov::Result.new({
+                                      source_fixture("json/sample.rb") => {
+                                        "lines" => original_lines,
+                                        "branches" => original_branches
+                                      }
+                                    })
+        res.created_at = fixed_time
+        res
       end
 
       before do
@@ -88,12 +104,14 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       let(:result) do
-        SimpleCov::Result.new({
-                                source_fixture("json/sample.rb") => {
-                                  "lines" => original_lines,
-                                  "methods" => original_methods
-                                }
-                              })
+        res = SimpleCov::Result.new({
+                                      source_fixture("json/sample.rb") => {
+                                        "lines" => original_lines,
+                                        "methods" => original_methods
+                                      }
+                                    })
+        res.created_at = fixed_time
+        res
       end
 
       before do
@@ -142,7 +160,7 @@ describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "lines" => {source_fixture("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
+            "lines" => {project_fixture_filename("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
           }
         )
       end
@@ -174,7 +192,7 @@ describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "branches" => {source_fixture("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
+            "branches" => {project_fixture_filename("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
           }
         )
       end
@@ -192,19 +210,21 @@ describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with minimum_coverage_by_group below threshold" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 7, missed: 3) }
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {"lines" => [
+                                      sample_filename => {"lines" => [
                                         nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
                                         1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
                                       ]}
                                     })
 
-        allow(res).to receive_messages(
-          groups: {"Models" => double("File List", coverage_statistics: {line: line_stats})}
-        )
+        mock_file_list = double("File List",
+                                coverage_statistics: {line: line_stats},
+                                map: [sample_filename])
+        allow(res).to receive_messages(groups: {"Models" => mock_file_list})
         res
       end
 
@@ -265,20 +285,27 @@ describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with groups" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
+
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 8, missed: 2) }
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {"lines" => [
+                                      sample_filename => {"lines" => [
                                         nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
                                         1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
                                       ]}
                                     })
+        res.created_at = fixed_time
 
         # right now SimpleCov works mostly on global state, hence setting the groups that way
-        # would be global state --> Mocking is better here
+        # would be global state --> Mocking is better here. `map` ignores the block
+        # and returns the stubbed value — so stub it to the project-relative path directly.
+        mock_file_list = double("File List",
+                                coverage_statistics: {line: line_stats},
+                                map: [project_fixture_filename("json/sample.rb")])
         allow(res).to receive_messages(
-          groups: {"My Group" => double("File List", coverage_statistics: {line: line_stats})}
+          groups: {"My Group" => mock_file_list}
         )
         res
       end
@@ -286,6 +313,57 @@ describe SimpleCov::Formatter::JSONFormatter do
       it "displays groups correctly in the JSON" do
         subject.format(result)
         expect(json_output).to eq(json_result("sample_groups"))
+      end
+    end
+
+    context "when an existing coverage.json was written after this process started" do
+      let(:coverage_path) { "tmp/coverage/coverage.json" }
+      let(:future_timestamp) { (Time.now + 3600).iso8601 }
+
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write(coverage_path, JSON.generate(meta: {timestamp: future_timestamp}))
+      end
+
+      it "warns that a concurrent process may have written it" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to include("simplecov:")
+        expect(stderr).to include(future_timestamp)
+        expect(stderr).to include("concurrent test run")
+      end
+
+      it "still writes the new file" do
+        capture_stderr { subject.format(result) }
+
+        expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601(3))
+      end
+    end
+
+    context "when an existing coverage.json predates this process" do
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        past_timestamp = (Time.now - 3600).iso8601
+        File.write("tmp/coverage/coverage.json", JSON.generate(meta: {timestamp: past_timestamp}))
+      end
+
+      it "does not warn" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to be_empty
+      end
+    end
+
+    context "when the existing coverage.json is malformed" do
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write("tmp/coverage/coverage.json", "not-json")
+      end
+
+      it "does not warn or raise" do
+        stderr = capture_stderr { subject.format(result) }
+
+        expect(stderr).to be_empty
       end
     end
   end
@@ -304,13 +382,24 @@ describe SimpleCov::Formatter::JSONFormatter do
 
   def json_result(filename)
     file = File.read(source_fixture("json/#{filename}.json"))
-    file = use_current_working_directory(file)
+    file = replace_stubs(file)
     JSON.parse(file)
   end
 
+  def project_fixture_filename(path)
+    SimpleCov::SourceFile.new(source_fixture(path), []).project_filename
+  end
+
   STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
-  def use_current_working_directory(file)
+  STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
+  STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
+
+  def replace_stubs(file)
     current_working_directory = File.expand_path("..", File.dirname(__FILE__))
-    file.gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+    file
+      .gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+      .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")
+      .gsub("\"#{STUB_COMMAND_NAME}\"", "\"#{SimpleCov.command_name}\"")
+      .gsub("\"#{STUB_PROJECT_NAME}\"", "\"#{SimpleCov.project_name}\"")
   end
 end

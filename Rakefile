@@ -40,7 +40,7 @@ task test: %i[spec cucumber test_html]
 task default: %i[rubocop spec cucumber test_html]
 
 namespace :assets do
-  desc "Compile frontend assets (JS + CSS) using esbuild"
+  desc "Compile frontend assets (HTML, JS, CSS) using esbuild"
   task :compile do
     frontend = File.expand_path("html_frontend", __dir__)
     outdir = File.expand_path("lib/simplecov/formatter/html_formatter/public", __dir__)
@@ -62,5 +62,8 @@ namespace :assets do
       io.close_write
       File.write("#{outdir}/application.css", io.read)
     end
+
+    # HTML: copy static index.html
+    FileUtils.cp(File.join(frontend, "src/index.html"), File.join(outdir, "index.html"))
   end
 end
