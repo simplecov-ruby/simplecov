@@ -364,6 +364,10 @@ describe SimpleCov::SourceFile do
     it "has 16 source lines regardless of extra data in coverage array" do
       expect(subject.lines.count).to eq(16)
     end
+
+    it "does not output to stderr" do
+      expect { subject.lines }.not_to output.to_stderr
+    end
   end
 
   context "A file that has inline branches" do
