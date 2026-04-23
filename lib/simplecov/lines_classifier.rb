@@ -16,8 +16,19 @@ module SimpleCov
       /^(\s*)#(\s*)(:#{SimpleCov.nocov_token}:)/o
     end
 
+    def self.no_cov_inline
+      /\S.*#\s*:#{SimpleCov.nocov_token}:\s*$/o
+    end
+
     def self.no_cov_line?(line)
       no_cov_line.match?(line)
+    rescue ArgumentError
+      # E.g., line contains an invalid byte sequence in UTF-8
+      false
+    end
+
+    def self.no_cov_inline?(line)
+      no_cov_inline.match?(line)
     rescue ArgumentError
       # E.g., line contains an invalid byte sequence in UTF-8
       false
@@ -37,7 +48,7 @@ module SimpleCov
         if self.class.no_cov_line?(line)
           skipping = !skipping
           NOT_RELEVANT
-        elsif skipping || self.class.whitespace_line?(line)
+        elsif skipping || self.class.no_cov_inline?(line) || self.class.whitespace_line?(line)
           NOT_RELEVANT
         else
           RELEVANT
