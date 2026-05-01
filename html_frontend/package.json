@@ -3,7 +3,7 @@
   "devDependencies": {
     "esbuild": "^0.28.0",
     "highlight.js": "^11.11.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "scripts": {
     "build": "rake assets:compile",
