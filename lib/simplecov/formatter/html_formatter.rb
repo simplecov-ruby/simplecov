@@ -39,8 +39,17 @@ module SimpleCov
     private
 
       def copy_static_assets(dest_dir = output_path)
-        Dir[File.join(public_dir, "*")].each do |path|
-          FileUtils.cp_r(path, dest_dir, remove_destination: true)
+        # Copy via temp file + atomic rename so parallel test workers writing
+        # to the same coverage directory don't race on the unlink step.
+        Dir[File.join(public_dir, "*")].each do |src|
+          dest = File.join(dest_dir, File.basename(src))
+          temp = "#{dest}.#{Process.pid}.#{rand(2**32).to_s(36)}"
+          begin
+            FileUtils.cp(src, temp)
+            File.rename(temp, dest)
+          ensure
+            FileUtils.rm_f(temp)
+          end
         end
       end
 
