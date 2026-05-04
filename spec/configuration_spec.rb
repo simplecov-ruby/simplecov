@@ -24,6 +24,53 @@ describe SimpleCov::Configuration do
     end
   end
 
+  describe "#nocov_token" do
+    it "warns of deprecation when called as a getter" do
+      stderr = capture_stderr { config.nocov_token }
+
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("`SimpleCov.nocov_token`")
+      expect(stderr).to include("`# simplecov:disable`")
+      expect(stderr).to include("`# simplecov:enable`")
+    end
+
+    it "warns of deprecation when called as a setter" do
+      stderr = capture_stderr { config.nocov_token("skippit") }
+
+      expect(stderr).to include("[DEPRECATION]")
+    end
+
+    it "still returns the configured token (after the deprecation warning)" do
+      capture_stderr { config.nocov_token("skippit") }
+      stderr = capture_stderr { @value = config.nocov_token }
+
+      expect(@value).to eq "skippit"
+      expect(stderr).to include("[DEPRECATION]") # the read still warns
+    end
+
+    it "is aliased as #skip_token, which also warns" do
+      stderr = capture_stderr { config.skip_token("skippit") }
+
+      expect(stderr).to include("[DEPRECATION]")
+      expect(config.current_nocov_token).to eq "skippit"
+    end
+  end
+
+  describe "#current_nocov_token" do
+    it "returns the configured token without emitting a deprecation warning" do
+      stderr = capture_stderr { @value = config.current_nocov_token }
+
+      expect(@value).to eq "nocov"
+      expect(stderr).to be_empty
+    end
+
+    it "honours a value previously set via #nocov_token" do
+      capture_stderr { config.nocov_token("skippit") }
+
+      expect(config.current_nocov_token).to eq "skippit"
+    end
+  end
+
   describe "#tracked_files" do
     context "when configured" do
       let(:glob) { "{app,lib}/**/*.rb" }

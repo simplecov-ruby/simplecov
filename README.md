@@ -64,10 +64,11 @@ Getting started
     # Previous content of test helper now starts here
     ```
 
-    **Note:** If SimpleCov starts after your application code is already loaded
-    (via `require`), it won't be able to track your files and their coverage!
-    The `SimpleCov.start` **must** be issued **before any of your application
-    code is required!**
+    > [!IMPORTANT]
+    > If SimpleCov starts after your application code is already loaded
+    > (via `require`), it won't be able to track your files and their coverage!
+    > The `SimpleCov.start` **must** be issued **before any of your application
+    > code is required!**
 
     This is especially true if you use anything that keeps your test application loaded like Spring; check out the **[Spring section](#want-to-use-spring-with-simplecov)**.
 
@@ -101,8 +102,9 @@ Getting started
    xdg-open coverage/index.html
    ```
 
-   **Note:** [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
-   operating system requires.
+   > [!NOTE]
+   > [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
+   > operating system requires.
 
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
@@ -462,21 +464,41 @@ You can pass in an array containing any of the other filter types.
 
 #### Ignoring/skipping code
 
-You can exclude code from the coverage report by wrapping it in `# :nocov:`.
+You can disable coverage by category with `# simplecov:disable` and `# simplecov:enable` comments. The available
+categories are `line`, `branch`, and `method`; they may be combined with commas, and omitting them targets all three.
+Anything trailing the directive is treated as a free-form reason and ignored — no separator is required, though `--`
+or any other visual marker is fine if you prefer one.
 
 ```ruby
-# :nocov:
-def skip_this_method
+# simplecov:disable line
+def skipped_lines
   never_reached
 end
-# :nocov:
+# simplecov:enable line
+
+# simplecov:disable branch, method legacy adapter, scheduled for removal
+class LegacyAdapter
+  def call(value)
+    value ? :yes : :no
+  end
+end
+# simplecov:enable
+
+raise "absurd" # simplecov:disable
 ```
 
-The name of the token can be changed to your liking. [Learn more about the nocov feature.]( https://github.com/simplecov-ruby/simplecov/blob/main/features/config_nocov_token.feature)
+Inline directives (trailing real code) only affect the line they sit on. Block directives sit on their own line and
+remain in effect until the matching `# simplecov:enable` for the same category — or end of file if never closed.
+Directive markers inside string literals or heredocs are ignored.
 
-**Note:** You shouldn't have to use the nocov token to skip private methods that are being included in your coverage. If
-you appropriately test the public interface of your classes and objects you should automatically get full coverage of
-your private methods.
+> [!WARNING]
+> The older `# :nocov:` toggle still works but is **deprecated** and will be removed in a future release. Each file
+> that uses it emits a one-time deprecation warning pointing at the recommended `# simplecov:disable` /
+> `# simplecov:enable` replacement. The configurable token name (`SimpleCov.nocov_token`) is similarly deprecated.
+
+> [!NOTE]
+> You shouldn't have to skip private methods that are being included in your coverage. If you appropriately test
+> the public interface of your classes and objects you should automatically get full coverage of your private methods.
 
 ## Default root filter and coverage for things outside of it
 

@@ -36,8 +36,12 @@ private
     lines
   end
 
+  # The :nocov: deprecation warning is fired by fixtures that legitimately
+  # exercise the deprecated toggle. Filter only that exact warning so any
+  # future app-side deprecation still fails the build.
   def split_lines(lines)
-    lines.partition { |line| line.include?(@app_root) }
+    nocov_deprecation_marker = "Replace with `# simplecov:disable` / `# simplecov:enable`"
+    lines.partition { |line| line.include?(@app_root) && !line.include?(nocov_deprecation_marker) }
   end
 
   def print_own_warnings(app_warnings)

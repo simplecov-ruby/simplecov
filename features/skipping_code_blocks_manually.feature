@@ -4,6 +4,11 @@ Feature:
   When code is wrapped in :nocov: comment blocks, it does not count
   against the coverage numbers.
 
+  NOTE: `# :nocov:` is deprecated. Each file that uses it emits a one-time
+  deprecation warning to stderr at load time. New code should prefer
+  `# simplecov:disable` / `# simplecov:enable` (see
+  features/skipping_with_directives.feature).
+
   Background:
     Given I'm working on the project "faked_project"
     Given SimpleCov for Test/Unit is configured with:

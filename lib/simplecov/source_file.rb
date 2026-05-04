@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "set"
 require "strscan"
+require_relative "directive"
 
 module SimpleCov
   #
@@ -195,6 +197,8 @@ module SimpleCov
     def build_no_cov_chunks
       no_cov_lines = src.map.with_index(1).select { |line_src, _index| LinesClassifier.no_cov_line?(line_src) }
 
+      warn_no_cov_deprecation(no_cov_lines.first.last) if no_cov_lines.any?
+
       # if we have an uneven number of nocovs we assume they go to the
       # end of the file, the source doesn't really matter
       # Can't deal with this within the each_slice due to differing
@@ -204,6 +208,27 @@ module SimpleCov
       no_cov_lines.each_slice(2).map do |(_line_src_start, index_start), (_line_src_end, index_end)|
         index_start..index_end
       end
+    end
+
+    @nocov_warned = Set.new
+
+    class << self
+      attr_reader :nocov_warned
+    end
+
+    # Emit a one-time-per-file deprecation warning pointing the user at the
+    # `# simplecov:disable` / `# simplecov:enable` replacement.
+    def warn_no_cov_deprecation(first_line_number)
+      return unless self.class.nocov_warned.add?(filename)
+
+      token = SimpleCov.current_nocov_token
+      warn "#{filename}:#{first_line_number}: [DEPRECATION] `# :#{token}:` is deprecated and will be removed " \
+           "in a future release. Replace with `# simplecov:disable` / `# simplecov:enable` block comments."
+    end
+
+    # Per-category disabled line ranges from `# simplecov:disable` directives.
+    def directive_chunks
+      @directive_chunks ||= Directive.disabled_ranges(src)
     end
 
     def load_source
@@ -263,6 +288,7 @@ module SimpleCov
       # chunks are 1-based and are expected to be like this in other parts (and it's also
       # arguably more understandable)
       no_cov_chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
+      directive_chunks.fetch(:line).each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
 
       lines
     end
@@ -299,10 +325,16 @@ module SimpleCov
     end
 
     def process_skipped_branches(branches)
-      return branches if no_cov_chunks.empty?
+      chunks = no_cov_chunks + directive_chunks.fetch(:branch)
+      return branches if chunks.empty?
 
+      # A non-inline branch's source range starts on its arm body (e.g. the
+      # `:yes` line of `if cond / :yes / else / :no / end`), but `report_line`
+      # is the condition line above it — that's where the user sees the
+      # branch in the report and where they would naturally place an inline
+      # `# simplecov:disable branch` directive. Honour both.
       branches.each do |branch|
-        branch.skipped! if no_cov_chunks.any? { |no_cov_chunk| branch.overlaps_with?(no_cov_chunk) }
+        branch.skipped! if chunks.any? { |chunk| branch.overlaps_with?(chunk) || chunk.include?(branch.report_line) }
       end
 
       branches
@@ -416,10 +448,23 @@ module SimpleCov
     end
 
     def build_methods
-      coverage_data.fetch("methods", {}).map do |info, hit_count|
+      methods = coverage_data.fetch("methods", {}).map do |info, hit_count|
         info = restore_ruby_data_structure(info)
         SourceFile::Method.new(self, info, hit_count)
       end
+
+      process_skipped_methods(methods)
+    end
+
+    def process_skipped_methods(methods)
+      method_chunks = directive_chunks.fetch(:method)
+      return methods if method_chunks.empty?
+
+      methods.each do |method|
+        method.skipped! if method_chunks.any? { |chunk| method.overlaps_with?(chunk) }
+      end
+
+      methods
     end
 
     def method_coverage_statistics

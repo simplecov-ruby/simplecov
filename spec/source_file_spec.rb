@@ -365,8 +365,12 @@ describe SimpleCov::SourceFile do
       expect(subject.lines.count).to eq(16)
     end
 
-    it "does not output to stderr" do
-      expect { subject.lines }.not_to output.to_stderr
+    it "does not output to stderr (apart from the :nocov: deprecation)" do
+      SimpleCov::SourceFile.nocov_warned.clear
+      output = capture_stderr { subject.lines }
+      noise = output.lines.reject { |line| line.include?("[DEPRECATION]") }
+
+      expect(noise).to be_empty
     end
   end
 
@@ -795,6 +799,32 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  context "a file using the deprecated # :nocov: directive" do
+    subject do
+      SimpleCov::SourceFile.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+    end
+
+    before { SimpleCov::SourceFile.nocov_warned.clear }
+
+    it "warns once per file with the recommended replacement" do
+      stderr = capture_stderr { subject.lines }
+
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("# :nocov:")
+      expect(stderr).to include("# simplecov:disable")
+      expect(stderr).to include("# simplecov:enable")
+      expect(stderr).to include(source_fixture("single_nocov.rb"))
+    end
+
+    it "deduplicates the warning for the same file across SourceFile instances" do
+      capture_stderr { subject.lines }
+      another = SimpleCov::SourceFile.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+      stderr = capture_stderr { another.lines }
+
+      expect(stderr).to be_empty
+    end
+  end
+
   context "a file entirely ignored with a single # :nocov:" do
     COVERAGE_FOR_SINGLE_NOCOV_RB = {
       "lines" => [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
@@ -980,6 +1010,232 @@ describe SimpleCov::SourceFile do
 
       it "reports 0% method coverage instead of 100%" do
         expect(subject.coverage_statistics[:method].percent).to eq 0.0
+      end
+    end
+  end
+
+  context "with simplecov:disable / enable directives" do
+    def build(coverage_data, source_lines)
+      file = SimpleCov::SourceFile.new("dummy.rb", coverage_data)
+      file.instance_variable_set(:@src, source_lines)
+      file
+    end
+
+    describe "block disable of line coverage" do
+      subject do
+        build(
+          {"lines" => [1, nil, 5, 5, nil, 1], "branches" => {}, "methods" => {}},
+          [
+            "x = 1\n",                       # 1
+            "# simplecov:disable line\n",    # 2
+            "y = 2\n",                       # 3
+            "z = 3\n",                       # 4
+            "# simplecov:enable line\n",     # 5
+            "w = 4\n"                        # 6
+          ]
+        )
+      end
+
+      it "skips lines covered by the directive instead of counting them" do
+        expect(subject.skipped_lines.map(&:line_number)).to eq [2, 3, 4, 5]
+        expect(subject.covered_lines.map(&:line_number)).to eq [1, 6]
+        expect(subject.missed_lines).to eq []
+      end
+    end
+
+    describe "inline disable of line coverage" do
+      subject do
+        build(
+          {"lines" => [1, 0, 1], "branches" => {}, "methods" => {}},
+          [
+            "x = 1\n",
+            "raise \"absurd\" # simplecov:disable\n",
+            "z = 3\n"
+          ]
+        )
+      end
+
+      it "skips only the trailing line" do
+        expect(subject.skipped_lines.map(&:line_number)).to eq [2]
+        expect(subject.covered_lines.map(&:line_number)).to eq [1, 3]
+        expect(subject.missed_lines).to eq []
+      end
+    end
+
+    describe "block disable of method coverage" do
+      subject do
+        build(
+          {
+            "lines"    => [1, nil, 1, nil, nil, 1, nil, nil],
+            "branches" => {},
+            "methods"  => {
+              ["Demo", :covered, 1, 0, 3, 3] => 1,
+              ["Demo", :method_skipped, 6, 0, 8, 3] => 0
+            }
+          },
+          [
+            "def covered\n",                # 1
+            "  1\n",                        # 2
+            "end\n",                        # 3
+            "\n",                           # 4
+            "# simplecov:disable method\n", # 5
+            "def method_skipped\n",         # 6
+            "  1\n",                        # 7
+            "end\n"                         # 8
+          ]
+        )
+      end
+
+      it "marks methods overlapping the region as skipped" do
+        skipped = subject.methods.select(&:skipped?)
+        expect(skipped.map(&:method_name)).to eq [:method_skipped]
+      end
+
+      it "removes skipped methods from covered and missed totals" do
+        expect(subject.covered_methods.map(&:method_name)).to eq [:covered]
+        expect(subject.missed_methods).to eq []
+      end
+
+      it "leaves the lines themselves alone when only method is disabled" do
+        # The method's body lines (6..8) should not be marked skipped solely
+        # because of `simplecov:disable method`.
+        expect(subject.skipped_lines.map(&:line_number)).to eq []
+      end
+    end
+
+    describe "block disable of branch coverage" do
+      subject do
+        build(
+          {
+            "lines"    => [nil, 1, 1, nil, 1, nil, nil],
+            "branches" => {
+              [:if, 0, 2, 0, 6, 3] => {
+                [:then, 1, 3, 2, 3, 7] => 1,
+                [:else, 2, 5, 2, 5, 7] => 0
+              }
+            },
+            "methods" => {}
+          },
+          [
+            "# simplecov:disable branch\n", # 1
+            "if cond\n",                    # 2
+            "  :yes\n",                     # 3
+            "else\n",                       # 4
+            "  :no\n",                      # 5
+            "end\n",                        # 6
+            "# simplecov:enable branch\n"   # 7
+          ]
+        )
+      end
+
+      it "marks the branches inside the region as skipped" do
+        expect(subject.total_branches).to eq []
+        expect(subject.covered_branches).to eq []
+        expect(subject.missed_branches).to eq []
+      end
+    end
+
+    describe "branch coverage with an inline directive on the condition line" do
+      # The directive sits on the `if` line itself. The :then arm's source
+      # range starts on the next line (`:yes`), so a pure overlap check would
+      # miss it. The arm's `report_line` is the condition line, which is
+      # where the user typed the directive — process_skipped_branches honours
+      # report_line membership in addition to range overlap.
+      subject do
+        build(
+          {
+            "lines"    => [1, 1, nil, 1, nil],
+            "branches" => {
+              [:if, 0, 1, 0, 5, 3] => {
+                [:then, 1, 2, 2, 2, 7] => 1,
+                [:else, 2, 4, 2, 4, 7] => 0
+              }
+            },
+            "methods" => {}
+          },
+          [
+            "if cond # simplecov:disable branch\n", # 1
+            "  :yes\n",                              # 2
+            "else\n",                                # 3
+            "  :no\n",                               # 4
+            "end\n"                                  # 5
+          ]
+        )
+      end
+
+      it "skips the :then arm whose report_line falls on the directive" do
+        skipped = subject.branches.select(&:skipped?)
+        expect(skipped.map(&:type)).to include(:then)
+      end
+    end
+
+    describe "branch coverage with a directive inside the branch body" do
+      # A `# simplecov:disable branch` placed inside a single arm of an `if`
+      # should still mark the enclosing branch as skipped, because the branch's
+      # source range (start..end) overlaps the disabled range.
+      subject do
+        build(
+          {
+            "lines"    => [1, 1, nil, 1, 1, nil, 1],
+            "branches" => {
+              [:if, 0, 1, 0, 6, 3] => {
+                [:then, 1, 2, 2, 3, 7] => 1,
+                [:else, 2, 4, 2, 5, 7] => 0
+              }
+            },
+            "methods" => {}
+          },
+          [
+            "if cond\n", # 1
+            "  # simplecov:disable branch\n", # 2
+            "  :yes\n",                     # 3
+            "else\n",                       # 4
+            "  :no\n",                      # 5
+            "end\n",                        # 6
+            "# simplecov:enable branch\n"   # 7
+          ]
+        )
+      end
+
+      it "skips any branch whose range overlaps the disabled region" do
+        expect(subject.branches.select(&:skipped?).size).to eq 2
+        expect(subject.total_branches).to eq []
+      end
+
+      it "leaves line classification untouched when only branch is disabled" do
+        expect(subject.skipped_lines).to eq []
+      end
+    end
+
+    describe "method coverage with a directive inside the method body" do
+      # The directive at line 4 sits inside a method spanning lines 3..6.
+      # `Method#overlaps_with?` should detect the intersection and skip the
+      # method even though the directive isn't on the method's start line.
+      subject do
+        build(
+          {
+            "lines" => [1, nil, 1, nil, nil, nil, nil],
+            "branches" => {},
+            "methods" => {
+              ["Demo", :inner_directive, 3, 0, 6, 3] => 0
+            }
+          },
+          [
+            "x = 1\n", # 1
+            "\n",                             # 2
+            "def inner_directive\n",          # 3
+            "  # simplecov:disable method\n", # 4
+            "  raise 'absurd'\n",             # 5
+            "end\n",                          # 6
+            "# simplecov:enable method\n"     # 7
+          ]
+        )
+      end
+
+      it "skips the method even though the directive is mid-body" do
+        expect(subject.methods.map(&:skipped?)).to eq [true]
+        expect(subject.covered_methods).to eq []
+        expect(subject.missed_methods).to eq []
       end
     end
   end

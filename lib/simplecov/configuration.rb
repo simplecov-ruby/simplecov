@@ -136,12 +136,25 @@ module SimpleCov
     #
     # Configure with SimpleCov.nocov_token('skip') or it's alias SimpleCov.skip_token('skip')
     #
+    # DEPRECATED: prefer `# simplecov:disable` / `# simplecov:enable` block comments
+    # (see SimpleCov::Directive). The `# :nocov:` toggle and this configuration hook
+    # will be removed in a future release.
+    #
     def nocov_token(nocov_token = nil)
-      return @nocov_token if defined?(@nocov_token) && nocov_token.nil?
-
-      @nocov_token = nocov_token || "nocov"
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
+           "Replace with `# simplecov:disable` / `# simplecov:enable` block comments."
+      current_nocov_token(nocov_token)
     end
     alias skip_token nocov_token
+
+    # Internal accessor used by SimpleCov to recognise `# :nocov:` markers
+    # without emitting the public-API deprecation warning. Will be removed
+    # alongside the deprecated `nocov_token` setter.
+    def current_nocov_token(value = nil)
+      return @nocov_token if defined?(@nocov_token) && value.nil?
+
+      @nocov_token = value || "nocov"
+    end
 
     #
     # Returns the configured groups. Add groups using SimpleCov.add_group

@@ -59,4 +59,35 @@ describe SimpleCov::SourceFile::Method do
       expect(subject.missed?).to eq(true)
     end
   end
+
+  describe "#skipped!" do
+    it "marks the method as skipped regardless of its line coverage" do
+      subject.skipped!
+
+      expect(subject.skipped?).to be true
+      expect(subject.covered?).to be false
+      expect(subject.missed?).to be false
+    end
+  end
+
+  describe "#overlaps_with?" do
+    it "is true when the method's range intersects the given range" do
+      expect(subject.overlaps_with?(3..4)).to be true
+      expect(subject.overlaps_with?(1..2)).to be true
+      expect(subject.overlaps_with?(5..7)).to be true
+    end
+
+    it "is false when the method's range sits entirely outside the given range" do
+      expect(subject.overlaps_with?(6..10)).to be false
+      expect(subject.overlaps_with?(0..1)).to be false
+    end
+
+    context "with nil line info" do
+      let(:info) { ["A", :method1, nil, nil, nil, nil] }
+
+      it "is false" do
+        expect(subject.overlaps_with?(1..10)).to be false
+      end
+    end
+  end
 end
