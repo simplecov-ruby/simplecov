@@ -16,3 +16,12 @@ end
 def source_fixture_base_directory
   @source_fixture_base_directory ||= File.dirname(__FILE__)
 end
+
+def capture_stderr
+  previous_stderr = $stderr
+  $stderr = StringIO.new
+  yield
+  $stderr.string
+ensure
+  $stderr = previous_stderr
+end
