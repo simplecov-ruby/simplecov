@@ -9,7 +9,11 @@ Unreleased
 * Removed `docile` gem dependency. The `SimpleCov.configure` DSL block is now evaluated via `instance_exec` with instance variable proxying.
 * Removed automatic activation of `JSONFormatter` when the `CC_TEST_REPORTER_ID` environment variable is set. The default `HTMLFormatter` now emits `coverage.json` alongside the HTML report (using `JSONFormatter.build_hash` to serialize the same payload `JSONFormatter` writes), so the env-var special case is no longer needed.
 
+## Deprecations
+* `# :nocov:` toggle comments (and the configurable `SimpleCov.nocov_token` / `SimpleCov.skip_token`) are deprecated in favor of the new `# simplecov:disable` / `# simplecov:enable` directives. Each file that still uses `# :nocov:` emits a one-time deprecation warning to stderr at load time pointing at the recommended replacement, and any call to `SimpleCov.nocov_token` or `SimpleCov.skip_token` (getter or setter) likewise warns. The directive will be removed in a future release.
+
 ## Enhancements
+* Added `# simplecov:disable` / `# simplecov:enable` directive comments for selectively skipping `line`, `branch`, and `method` coverage. Block form (own line) opens a region until the matching `# simplecov:enable`; inline form (trailing a code line) skips just that line. Categories may be combined (`# simplecov:disable line, branch`); omitting categories targets all three. Any trailing text is treated as a free-form reason and discarded (e.g. `# simplecov:disable line legacy adapter`). Directive markers inside string literals or heredocs are ignored.
 * JSON formatter: `meta.timestamp` is now emitted with millisecond precision (`iso8601(3)`) so the concurrent-overwrite warning can distinguish writes within the same wall-clock second
 * JSON formatter: added `total` section with aggregate coverage statistics (covered, missed, total, percent, strength) for line, branch, and method coverage. Line stats additionally include `omitted` (count of blank/comment lines, i.e. lines that cannot be covered)
 * JSON formatter: per-file output now includes `total_lines`, `lines_covered_percent`, and when enabled: `branches_covered_percent`, `methods` array, and `methods_covered_percent`

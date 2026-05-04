@@ -24,12 +24,24 @@ module SimpleCov
         @skipped = lines.all?(&:skipped?)
       end
 
+      # Flag the method as skipped directly, without going through its lines.
+      def skipped!
+        @skipped = true
+      end
+
       def missed?
         !skipped? && coverage.zero?
       end
 
       def lines
         @lines ||= start_line && end_line ? source_file.lines[(start_line - 1)..(end_line - 1)] : []
+      end
+
+      # Whether this method's source range intersects the given inclusive line range.
+      def overlaps_with?(line_range)
+        return false unless start_line && end_line
+
+        start_line <= line_range.end && end_line >= line_range.begin
       end
 
       def to_s

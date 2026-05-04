@@ -2,7 +2,12 @@
 Feature:
 
   Code wrapped in # :nocov: will be ignored by coverage reports.
-  The name of the token can be configured with SimpleCov.nocov_token or SimpleCov.skip_token
+  The name of the token can be configured with SimpleCov.nocov_token or SimpleCov.skip_token.
+
+  NOTE: `# :nocov:` and the configurable token are deprecated. Each file that
+  uses the token emits a one-time deprecation warning to stderr at load time
+  pointing at the recommended `# simplecov:disable` / `# simplecov:enable`
+  replacement.
 
   Background:
     Given I'm working on the project "faked_project"

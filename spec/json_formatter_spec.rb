@@ -340,6 +340,16 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    # The `json/sample.rb` fixture used in `let(:result)` exercises the
+    # deprecated `# :nocov:` toggle, which writes a one-time deprecation line
+    # to stderr the first time the SourceFile is built. Strip it here so the
+    # "did the formatter itself emit a warning?" assertions stay focused.
+    NOCOV_DEPRECATION_MARKER = "Replace with `# simplecov:disable` / `# simplecov:enable`"
+
+    def reject_nocov_deprecation(stderr)
+      stderr.lines.reject { |line| line.include?(NOCOV_DEPRECATION_MARKER) }.join
+    end
+
     context "when an existing coverage.json predates this process" do
       before do
         FileUtils.mkdir_p("tmp/coverage")
@@ -350,7 +360,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       it "does not warn" do
         stderr = capture_stderr { subject.format(result) }
 
-        expect(stderr).to be_empty
+        expect(reject_nocov_deprecation(stderr)).to be_empty
       end
     end
 
@@ -363,7 +373,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       it "does not warn or raise" do
         stderr = capture_stderr { subject.format(result) }
 
-        expect(stderr).to be_empty
+        expect(reject_nocov_deprecation(stderr)).to be_empty
       end
     end
   end

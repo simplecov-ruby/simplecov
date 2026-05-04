@@ -97,6 +97,57 @@ describe SimpleCov::LinesClassifier do
           expect(classified_lines[5..7]).to all be_irrelevant
         end
       end
+
+      describe "# simplecov:disable line / enable line directives" do
+        it "marks lines inside a paired disable/enable block as not-relevant" do
+          classified_lines = subject.classify [
+            "puts 'before'",
+            "# simplecov:disable line",
+            "puts 'inside 1'",
+            "puts 'inside 2'",
+            "# simplecov:enable line",
+            "puts 'after'"
+          ]
+
+          expect(classified_lines[0]).to be_relevant
+          expect(classified_lines[1..4]).to all be_irrelevant
+          expect(classified_lines[5]).to be_relevant
+        end
+
+        it "treats an unclosed disable as running through end of file" do
+          classified_lines = subject.classify [
+            "puts 'before'",
+            "# simplecov:disable",
+            "puts 'after 1'",
+            "puts 'after 2'"
+          ]
+
+          expect(classified_lines[0]).to be_relevant
+          expect(classified_lines[1..3]).to all be_irrelevant
+        end
+
+        it "applies inline disable to only the trailing line" do
+          classified_lines = subject.classify [
+            "puts 'kept'",
+            "raise 'absurd' # simplecov:disable",
+            "puts 'kept too'"
+          ]
+
+          expect(classified_lines[0]).to be_relevant
+          expect(classified_lines[1]).to be_irrelevant
+          expect(classified_lines[2]).to be_relevant
+        end
+
+        it "does not affect line classification when only branch is disabled" do
+          classified_lines = subject.classify [
+            "# simplecov:disable branch",
+            "puts 'still relevant'",
+            "# simplecov:enable branch"
+          ]
+
+          expect(classified_lines[1]).to be_relevant
+        end
+      end
     end
   end
 
