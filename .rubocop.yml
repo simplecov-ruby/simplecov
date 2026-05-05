@@ -58,10 +58,6 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - "spec/**/*_spec.rb"
 
-Lint/Void:
-  Exclude:
-    - "spec/fixtures/html_formatter/**/*"
-
 Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:
