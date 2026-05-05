@@ -158,6 +158,10 @@ GEM
     rubocop-capybara (2.23.0)
       lint_roller (~> 1.1)
       rubocop (~> 1.81)
+    rubocop-performance (1.26.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.75.0, < 2.0)
+      rubocop-ast (>= 1.47.1, < 2.0)
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
@@ -202,6 +206,7 @@ DEPENDENCIES
   rspec
   rubocop
   rubocop-capybara
+  rubocop-performance
   rubocop-rake
   simplecov!
   test-unit

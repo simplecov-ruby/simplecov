@@ -231,7 +231,7 @@ describe SimpleCov::Result do
         expect(result.size).to eq 2
         sorted = result.sort_by(&:command_name)
         expect(sorted.map(&:command_name)).to eq %w[cucumber rspec]
-        expect(sorted.map(&:created_at).map(&:to_i)).to eq [created_at, created_at]
+        expect(sorted.map { |r| r.created_at.to_i }).to eq [created_at, created_at]
         expect(sorted.map(&:original_result)).to eq [other_result, original_result]
       end
     end

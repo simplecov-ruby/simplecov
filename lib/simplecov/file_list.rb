@@ -45,14 +45,14 @@ module SimpleCov
     def never_lines
       return 0.0 if empty?
 
-      map { |f| f.never_lines.count }.inject(:+)
+      sum { |f| f.never_lines.count }
     end
 
     # Returns the count of skipped lines
     def skipped_lines
       return 0.0 if empty?
 
-      map { |f| f.skipped_lines.count }.inject(:+)
+      sum { |f| f.skipped_lines.count }
     end
 
     # Computes the coverage based upon lines covered and lines missed for each file

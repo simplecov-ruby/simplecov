@@ -14,6 +14,7 @@ group :development do
   if RUBY_VERSION > "3.2"
     gem "rubocop"
     gem "rubocop-capybara"
+    gem "rubocop-performance"
     gem "rubocop-rake"
   end
   gem "test-unit"

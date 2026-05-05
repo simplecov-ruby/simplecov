@@ -1,5 +1,6 @@
 plugins:
   - rubocop-capybara
+  - rubocop-performance
   - rubocop-rake
 
 AllCops:

@@ -909,7 +909,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "has 5 branches marked as skipped" do
-        expect(subject.branches.select(&:skipped?).size).to eq 5
+        expect(subject.branches.count(&:skipped?)).to eq 5
       end
     end
   end
@@ -1198,7 +1198,7 @@ describe SimpleCov::SourceFile do
       end
 
       it "skips any branch whose range overlaps the disabled region" do
-        expect(subject.branches.select(&:skipped?).size).to eq 2
+        expect(subject.branches.count(&:skipped?)).to eq 2
         expect(subject.total_branches).to eq []
       end
 
