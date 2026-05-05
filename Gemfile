@@ -14,6 +14,7 @@ group :development do
   gem "rspec"
   if RUBY_VERSION > "3.2"
     gem "rubocop"
+    gem "rubocop-minitest"
     gem "rubocop-rake"
   end
   gem "test-unit"

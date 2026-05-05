@@ -1,4 +1,5 @@
 plugins:
+  - rubocop-minitest
   - rubocop-rake
 
 AllCops:

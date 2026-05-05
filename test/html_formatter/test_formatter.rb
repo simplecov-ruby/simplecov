@@ -144,8 +144,8 @@ class TestFormatter < Minitest::Test
       assert meta.key?("project_name")
       assert meta.key?("timestamp")
       assert meta.key?("root")
-      assert [true, false].include?(meta["branch_coverage"])
-      assert [true, false].include?(meta["method_coverage"])
+      assert_includes [true, false], meta["branch_coverage"]
+      assert_includes [true, false], meta["method_coverage"]
     end
   end
 

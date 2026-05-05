@@ -159,6 +159,10 @@ GEM
     rubocop-ast (1.49.1)
       parser (>= 3.3.7.2)
       prism (~> 1.7)
+    rubocop-minitest (0.39.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.75.0, < 2.0)
+      rubocop-ast (>= 1.38.0, < 2.0)
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
@@ -203,6 +207,7 @@ DEPENDENCIES
   rake
   rspec
   rubocop
+  rubocop-minitest
   rubocop-rake
   simplecov!
   test-unit
