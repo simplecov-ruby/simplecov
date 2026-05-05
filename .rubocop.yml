@@ -1,3 +1,6 @@
+plugins:
+  - rubocop-rake
+
 AllCops:
   Exclude:
     - "spec/fixtures/iso-8859.rb"
@@ -12,8 +15,6 @@ AllCops:
     - "vendor/bundle/**/.*"
   TargetRubyVersion: 2.7
   NewCops: enable
-  # we might wanna adopt rspec and rake but it's a bit annoying for now
-  SuggestExtensions: false
 
 Bundler/OrderedGems:
   Description: Gems should be alphabetically sorted within groups.

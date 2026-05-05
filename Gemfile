@@ -12,7 +12,10 @@ group :development do
   gem "minitest"
   gem "rake"
   gem "rspec"
-  gem "rubocop" if RUBY_VERSION > "3.2"
+  if RUBY_VERSION > "3.2"
+    gem "rubocop"
+    gem "rubocop-rake"
+  end
   gem "test-unit"
   # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
   gem "webrick"

@@ -159,6 +159,9 @@ GEM
     rubocop-ast (1.49.1)
       parser (>= 3.3.7.2)
       prism (~> 1.7)
+    rubocop-rake (0.7.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.72.1)
     ruby-progressbar (1.13.0)
     stringio (3.2.0)
     sys-uname (1.5.1)
@@ -200,6 +203,7 @@ DEPENDENCIES
   rake
   rspec
   rubocop
+  rubocop-rake
   simplecov!
   test-unit
   webrick
