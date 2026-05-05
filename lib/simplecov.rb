@@ -153,15 +153,16 @@ module SimpleCov
     # Applies the configured groups to the given array of SimpleCov::SourceFile items
     #
     def grouped(files)
-      grouped = {}
-      grouped_files = []
-      groups.each do |name, filter|
-        grouped[name] = SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
-        grouped_files += grouped[name]
+      return {} if groups.empty?
+
+      grouped = groups.transform_values do |filter|
+        SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
       end
-      if !groups.empty? && !(other_files = files.reject { |source_file| grouped_files.include?(source_file) }).empty?
-        grouped["Ungrouped"] = SimpleCov::FileList.new(other_files)
-      end
+
+      in_group  = grouped.values.flat_map(&:to_a)
+      ungrouped = files.reject { |source_file| in_group.include?(source_file) }
+      grouped["Ungrouped"] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
+
       grouped
     end
 

@@ -284,13 +284,16 @@ module SimpleCov
     end
 
     def process_skipped_lines(lines)
-      # the array the lines are kept in is 0-based whereas the line numbers in the nocov
-      # chunks are 1-based and are expected to be like this in other parts (and it's also
-      # arguably more understandable)
-      no_cov_chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
-      directive_chunks.fetch(:line).each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
-
+      mark_chunks_skipped(lines, no_cov_chunks)
+      mark_chunks_skipped(lines, directive_chunks.fetch(:line))
       lines
+    end
+
+    # The array the lines are kept in is 0-based whereas the line numbers
+    # in the chunks are 1-based (more understandable elsewhere), so each
+    # range needs to be shifted down by one to slice into `lines`.
+    def mark_chunks_skipped(lines, chunks)
+      chunks.each { |chunk| lines[(chunk.begin - 1)..(chunk.end - 1)].each(&:skipped!) }
     end
 
     def lines_strength

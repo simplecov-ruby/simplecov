@@ -62,10 +62,6 @@ Lint/Void:
   Exclude:
     - "spec/fixtures/html_formatter/**/*"
 
-Metrics/AbcSize:
-  Description: Checks that the ABC size of methods is not higher than the configured maximum.
-  Max: 25 # TODO: Lower to 15
-
 Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:

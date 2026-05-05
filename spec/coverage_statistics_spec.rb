@@ -71,13 +71,15 @@ RSpec.describe SimpleCov::CoverageStatistics do
   end
 
   def expect_all_empty(statistics)
-    expect(statistics.covered).to eq 0
-    expect(statistics.missed).to eq 0
-    expect(statistics.omitted).to eq 0
-
-    expect(statistics.total).to eq 0
-    # might be counter-intuitive but think of it as "we covered everything we could"
-    expect(statistics.percent).to eq 100.0
-    expect(statistics.strength).to eq 0.0
+    # 100% / 0.0 strength might be counter-intuitive but think of it as "we
+    # covered everything we could".
+    expect(statistics).to have_attributes(
+      covered:  0,
+      missed:   0,
+      omitted:  0,
+      total:    0,
+      percent:  100.0,
+      strength: 0.0
+    )
   end
 end
