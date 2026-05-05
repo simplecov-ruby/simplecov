@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# Test frameworks the cucumber scenarios run against this project.
+gem "cucumber"
+gem "minitest"
+gem "rake"
+gem "rspec"
+gem "test-unit"
+
+# When the cucumber tests run, this project gets copied to tmp/aruba/project,
+# so the path to the simplecov gemspec sits one level deeper than during
+# normal in-place development.
+if File.exist?("../../simplecov.gemspec")
+  gem "simplecov", path: "../.."
+else
+  gem "simplecov", path: "../../.." # rubocop:disable Bundler/DuplicatedGem
+end

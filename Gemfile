@@ -9,13 +9,11 @@ group :development do
   gem "capybara"
   gem "rackup"
   gem "cucumber"
-  gem "minitest"
   gem "rake"
   gem "rspec"
   if RUBY_VERSION > "3.2"
     gem "rubocop"
     gem "rubocop-capybara"
-    gem "rubocop-minitest"
     gem "rubocop-rake"
   end
   gem "test-unit"

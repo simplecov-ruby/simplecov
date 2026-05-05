@@ -1,10 +1,11 @@
-@minitest
+@minitest @disable-bundler
 
 Feature:
   "Working with minitest"
 
   Background:
     Given I'm working on the project "faked_project"
+    And I install dependencies
 
   Scenario:
     Given SimpleCov for Minitest is configured with:

@@ -63,7 +63,6 @@ GEM
     date (3.5.1)
     date (3.5.1-java)
     diff-lcs (1.6.2)
-    drb (2.2.3)
     erb (6.0.4)
     erb (6.0.4-java)
     ferrum (0.17.2)
@@ -91,9 +90,6 @@ GEM
     memoist3 (1.0.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
-    minitest (6.0.6)
-      drb (~> 2.0)
-      prism (~> 1.5)
     multi_test (1.1.0)
     nokogiri (1.19.3)
       mini_portile2 (~> 2.8.2)
@@ -162,10 +158,6 @@ GEM
     rubocop-capybara (2.23.0)
       lint_roller (~> 1.1)
       rubocop (~> 1.81)
-    rubocop-minitest (0.39.1)
-      lint_roller (~> 1.1)
-      rubocop (>= 1.75.0, < 2.0)
-      rubocop-ast (>= 1.38.0, < 2.0)
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
@@ -204,14 +196,12 @@ DEPENDENCIES
   capybara
   cucumber
   cuprite
-  minitest
   nokogiri
   rackup
   rake
   rspec
   rubocop
   rubocop-capybara
-  rubocop-minitest
   rubocop-rake
   simplecov!
   test-unit

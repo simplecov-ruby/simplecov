@@ -1,6 +1,5 @@
 plugins:
   - rubocop-capybara
-  - rubocop-minitest
   - rubocop-rake
 
 AllCops:
@@ -76,7 +75,7 @@ Lint/ConstantDefinitionInBlock:
 
 Lint/Void:
   Exclude:
-    - "test/html_formatter/fixtures/**/*"
+    - "spec/fixtures/html_formatter/**/*"
 
 Lint/DeprecatedConstants:
   Enabled: true
@@ -183,8 +182,6 @@ Metrics/BlockNesting:
 
 Metrics/ClassLength:
   Max: 300
-  Exclude:
-    - "test/**/*.rb"
 
 Metrics/MethodLength:
   Description: Checks if the length of a method exceeds some maximum value.
@@ -212,7 +209,6 @@ Naming/FileName:
   Exclude:
     - "spec/fixtures/utf-8.rb"
     - "lib/simplecov-html.rb"
-    - "test/html_formatter/test_simple_cov-html.rb"
 
 Style/AccessorGrouping:
   Enabled: true
@@ -274,7 +270,6 @@ Style/FrozenStringLiteralComment:
   EnforcedStyle: always
   Exclude:
     - "spec/fixtures/**/*"
-    - "test/html_formatter/fixtures/**/*"
 
 Style/GlobalStdStream:
   Enabled: true
