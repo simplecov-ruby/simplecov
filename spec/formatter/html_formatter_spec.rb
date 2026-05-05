@@ -3,7 +3,7 @@
 require "helper"
 require "fileutils"
 require "json"
-require "support/html_formatter_coverage_fixtures"
+require "support/coverage_fixtures"
 
 describe SimpleCov::Formatter::HTMLFormatter do
   subject(:formatter) { described_class.new(silent: true) }
@@ -21,7 +21,7 @@ describe SimpleCov::Formatter::HTMLFormatter do
     File.join(fixtures_path, name)
   end
 
-  def make_result(coverage = {"sample.rb" => HTMLFormatterCoverageFixtures::SAMPLE_RB})
+  def make_result(coverage = {"sample.rb" => CoverageFixtures::SAMPLE_RB})
     SimpleCov::Result.new(coverage.transform_keys { |name| fixture_path(name) })
   end
 
@@ -146,7 +146,7 @@ describe SimpleCov::Formatter::HTMLFormatter do
     let!(:original_criteria) { SimpleCov.coverage_criteria.dup }
     let!(:original_filters)  { SimpleCov.filters.dup }
 
-    let(:full_coverage) { HTMLFormatterCoverageFixtures::ALL_FIXTURES }
+    let(:full_coverage) { CoverageFixtures::ALL_FIXTURES }
 
     before do
       SimpleCov.enable_coverage(:branch)

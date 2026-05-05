@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "helper"
+require "support/coverage_fixtures"
 
 COVERAGE_FOR_SAMPLE_RB = {
   "lines" =>       [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
@@ -16,30 +17,6 @@ COVERAGE_WITH_NIL_BRANCHES = {
   "branches" => nil
 }.freeze
 
-COVERAGE_FOR_BRANCHES_RB = {
-  "lines" =>         [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 3, 4, 3, 21] =>
-      {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 3, 4, 3, 21] => 1},
-    [:if, 3, 5, 4, 5, 26] =>
-      {[:then, 4, 5, 16, 5, 20] => 1, [:else, 5, 5, 23, 5, 26] => 0},
-    [:if, 6, 7, 4, 11, 7] =>
-      {[:then, 7, 8, 6, 8, 10] => 0, [:else, 8, 10, 6, 10, 9] => 1}
-  }
-}.freeze
-
-COVERAGE_FOR_INLINE = {
-  "lines" =>         [1, 1, 1, nil, 1, 1, 0, nil, 1, nil, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 3, 11, 3, 33] =>
-      {[:then, 1, 3, 23, 3, 27] => 1, [:else, 2, 3, 30, 3, 33] => 0},
-    [:if, 3, 6, 6, 10, 9] =>
-      {[:then, 4, 7, 8, 7, 12] => 0, [:else, 5, 9, 8, 9, 11] => 1}
-  }
-}.freeze
-
-COVERAGE_FOR_NEVER_RB = {"lines" => [nil, nil], "branches" => {}}.freeze
-
 COVERAGE_FOR_SKIPPED_RB = {"lines" => [nil, nil, nil, nil]}.freeze
 
 COVERAGE_FOR_SKIPPED_RB_2 = {"lines" => [nil, nil, 0, nil]}.freeze
@@ -49,125 +26,6 @@ COVERAGE_FOR_SKIPPED_AND_EXECUTED_RB = {
   "branches" => {
     [:if, 0, 5, 4, 9, 7] =>
       {[:then, 1, 6, 6, 6, 7] => 1, [:else, 2, 8, 6, 8, 7] => 0}
-  }
-}.freeze
-
-COVERAGE_FOR_NOCOV_COMPLEX_RB = {
-  "lines" =>         [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 6, 4, 11, 7] =>
-      {[:then, 1, 7, 6, 7, 7] => 0, [:else, 2, 10, 6, 10, 7] => 1},
-    [:if, 3, 13, 4, 13, 24] =>
-      {[:then, 4, 13, 4, 13, 12] => 1, [:else, 5, 13, 4, 13, 24] => 0},
-    [:while, 6, 16, 4, 16, 27] =>
-      {[:body, 7, 16, 4, 16, 12] => 2},
-    [:case, 8, 18, 4, 24, 7] => {
-      [:when, 9, 20, 6, 20, 11] => 0,
-      [:when, 10, 23, 6, 23, 10] => 1,
-      [:else, 11, 18, 4, 24, 7] => 0
-    }
-  }
-}.freeze
-
-COVERAGE_FOR_NESTED_BRANCHES_RB = {
-  "lines" =>         [nil, nil, 1, 1, 1, 1, 1, 1, nil, nil, 0, nil, nil, nil, nil],
-  "branches" => {
-    [:while, 0, 7, 8, 7, 31] =>
-      {[:body, 1, 7, 8, 7, 16] => 2},
-    [:if, 2, 6, 6, 9, 9] =>
-      {[:then, 3, 7, 8, 8, 11] => 1, [:else, 4, 6, 6, 9, 9] => 0},
-    [:if, 5, 5, 4, 12, 7] =>
-      {[:then, 6, 6, 6, 9, 9] => 1, [:else, 7, 11, 6, 11, 11] => 0}
-  }
-}.freeze
-
-COVERAGE_FOR_CASE_STATEMENT_RB = {
-  "lines" =>         [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:case, 0, 3, 4, 12, 7] => {
-      [:when, 1, 5, 6, 5, 10] => 0,
-      [:when, 2, 7, 6, 7, 10] => 1,
-      [:when, 3, 9, 6, 9, 10] => 0,
-      [:else, 4, 11, 6, 11, 11] => 0
-    }
-  }
-}.freeze
-
-COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB = {
-  "lines" =>         [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:case, 0, 3, 4, 10, 7] => {
-      [:when, 1, 5, 6, 5, 10] => 0,
-      [:when, 2, 7, 6, 7, 10] => 1,
-      [:when, 3, 9, 6, 9, 10] => 0,
-      [:else, 4, 3, 4, 10, 7] => 0
-    }
-  }
-}.freeze
-
-COVERAGE_FOR_ELSIF_RB = {
-  "lines" => [1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 7, 4, 10, 10] =>
-      {[:then, 1, 8, 6, 8, 10] => 1, [:else, 2, 10, 6, 10, 10] => 0},
-    [:if, 3, 5, 4, 10, 10] =>
-      {[:then, 4, 6, 6, 6, 10] => 0, [:else, 5, 7, 4, 10, 10] => 1},
-    [:if, 6, 3, 4, 11, 7] =>
-      {[:then, 7, 4, 6, 4, 10] => 0, [:else, 8, 5, 4, 10, 10] => 1}
-  }
-}.freeze
-
-COVERAGE_FOR_BRANCH_TESTER_RB = {
-  "lines" =>         [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1, 1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 4, 0, 4, 19] =>
-      {[:then, 1, 4, 12, 4, 15] => 0, [:else, 2, 4, 18, 4, 19] => 1},
-    [:unless, 3, 6, 0, 6, 23] =>
-      {[:else, 4, 6, 0, 6, 23] => 0, [:then, 5, 6, 0, 6, 6] => 1},
-    [:unless, 6, 8, 0, 10, 3] =>
-      {[:else, 7, 8, 0, 10, 3] => 0, [:then, 8, 9, 2, 9, 14] => 1},
-    [:unless, 9, 12, 0, 14, 3] =>
-      {[:else, 10, 12, 0, 14, 3] => 1, [:then, 11, 13, 2, 13, 14] => 0},
-    [:unless, 12, 16, 0, 20, 3] =>
-      {[:else, 13, 19, 2, 19, 13] => 1, [:then, 14, 17, 2, 17, 14] => 0},
-    [:if, 15, 22, 0, 22, 19] =>
-      {[:then, 16, 22, 0, 22, 6] => 0, [:else, 17, 22, 0, 22, 19] => 1},
-    [:if, 18, 23, 0, 25, 3] =>
-      {[:then, 19, 24, 2, 24, 14] => 1, [:else, 20, 23, 0, 25, 3] => 0},
-    [:if, 21, 27, 0, 29, 3] =>
-      {[:then, 22, 28, 2, 28, 14] => 0, [:else, 23, 27, 0, 29, 3] => 1},
-    [:if, 24, 31, 0, 35, 3] =>
-      {[:then, 25, 32, 2, 32, 14] => 1, [:else, 26, 34, 2, 34, 13] => 0},
-    [:if, 27, 42, 0, 47, 8] =>
-      {[:then, 28, 43, 2, 45, 13] => 0, [:else, 29, 47, 2, 47, 8] => 0},
-    [:if, 30, 40, 0, 47, 8] =>
-      {[:then, 31, 41, 2, 41, 25] => 1, [:else, 32, 42, 0, 47, 8] => 0},
-    [:if, 33, 37, 0, 48, 3] =>
-      {[:then, 34, 38, 2, 39, 21] => 0, [:else, 35, 40, 0, 47, 8] => 1}
-  }
-}.freeze
-
-COVERAGE_FOR_SINGLE_NOCOV_RB = {
-  "lines" => [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 8, 4, 11, 10] =>
-      {[:then, 1, 9, 6, 9, 10] => 1, [:else, 2, 11, 6, 11, 10] => 0},
-    [:if, 3, 6, 4, 11, 10] =>
-      {[:then, 4, 7, 6, 7, 10] => 0, [:else, 5, 8, 4, 11, 10] => 1},
-    [:if, 6, 4, 4, 12, 7] =>
-      {[:then, 7, 5, 6, 5, 10] => 0, [:else, 8, 6, 4, 11, 10] => 1}
-  }
-}.freeze
-
-COVERAGE_FOR_UNEVEN_NOCOV_RB = {
-  "lines" => [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
-  "branches" => {
-    [:if, 0, 9, 4, 13, 10] =>
-      {[:then, 1, 10, 6, 10, 10] => 1, [:else, 2, 13, 6, 13, 10] => 0},
-    [:if, 3, 6, 4, 13, 10] =>
-      {[:then, 4, 7, 6, 7, 10] => 0, [:else, 5, 9, 4, 13, 10] => 1},
-    [:if, 6, 4, 4, 14, 7] =>
-      {[:then, 7, 5, 6, 5, 10] => 0, [:else, 8, 6, 4, 13, 10] => 1}
   }
 }.freeze
 
@@ -448,7 +306,7 @@ describe SimpleCov::SourceFile do
 
   context "when file with branches" do
     subject(:source_file) do
-      described_class.new(source_fixture("branches.rb"), COVERAGE_FOR_BRANCHES_RB)
+      described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
     end
 
     describe "branch coverage" do
@@ -525,7 +383,7 @@ describe SimpleCov::SourceFile do
 
   context "when A file that has inline branches" do
     subject(:source_file) do
-      described_class.new(source_fixture("inline.rb"), COVERAGE_FOR_INLINE)
+      described_class.new(source_fixture("inline.rb"), CoverageFixtures::INLINE_RB)
     end
 
     it "has branches report on 3 lines" do
@@ -548,7 +406,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file that is never relevant" do
     subject(:source_file) do
-      described_class.new(source_fixture("never.rb"), COVERAGE_FOR_NEVER_RB)
+      described_class.new(source_fixture("never.rb"), CoverageFixtures::NEVER_RB)
     end
 
     it "has 0.0 covered_strength" do
@@ -647,7 +505,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with more complex skipping" do
     subject(:source_file) do
-      described_class.new(source_fixture("nocov_complex.rb"), COVERAGE_FOR_NOCOV_COMPLEX_RB)
+      described_class.new(source_fixture("nocov_complex.rb"), CoverageFixtures::NOCOV_COMPLEX_RB)
     end
 
     describe "line coverage" do
@@ -691,7 +549,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with nested branches" do
     subject(:source_file) do
-      described_class.new(source_fixture("nested_branches.rb"), COVERAGE_FOR_NESTED_BRANCHES_RB)
+      described_class.new(source_fixture("nested_branches.rb"), CoverageFixtures::NESTED_BRANCHES_RB)
     end
 
     describe "line coverage" do
@@ -715,7 +573,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with case" do
     subject(:source_file) do
-      described_class.new(source_fixture("case.rb"), COVERAGE_FOR_CASE_STATEMENT_RB)
+      described_class.new(source_fixture("case.rb"), CoverageFixtures::CASE_RB)
     end
 
     describe "line coverage" do
@@ -746,7 +604,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with case without else" do
     subject(:source_file) do
-      described_class.new(source_fixture("case_without_else.rb"), COVERAGE_FOR_CASE_WITHOUT_ELSE_STATEMENT_RB)
+      described_class.new(source_fixture("case_without_else.rb"), CoverageFixtures::CASE_WITHOUT_ELSE_RB)
     end
 
     describe "line coverage" do
@@ -781,7 +639,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with if/elsif" do
     subject(:source_file) do
-      described_class.new(source_fixture("elsif.rb"), COVERAGE_FOR_ELSIF_RB)
+      described_class.new(source_fixture("elsif.rb"), CoverageFixtures::ELSIF_RB)
     end
 
     describe "line coverage" do
@@ -807,7 +665,7 @@ describe SimpleCov::SourceFile do
 
   context "when the branch tester script" do
     subject(:source_file) do
-      described_class.new(source_fixture("branch_tester_script.rb"), COVERAGE_FOR_BRANCH_TESTER_RB)
+      described_class.new(source_fixture("branch_tester_script.rb"), CoverageFixtures::BRANCH_TESTER_RB)
     end
 
     describe "line coverage" do
@@ -831,7 +689,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file using the deprecated # :nocov: directive" do
     subject(:source_file) do
-      described_class.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+      described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
     end
 
     before { described_class.nocov_warned.clear }
@@ -848,7 +706,7 @@ describe SimpleCov::SourceFile do
 
     it "deduplicates the warning for the same file across SourceFile instances" do
       capture_stderr { source_file.lines }
-      another = described_class.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+      another = described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
       stderr = capture_stderr { another.lines }
 
       expect(stderr).to be_empty
@@ -857,7 +715,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file entirely ignored with a single # :nocov:" do
     subject(:source_file) do
-      described_class.new(source_fixture("single_nocov.rb"), COVERAGE_FOR_SINGLE_NOCOV_RB)
+      described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
     end
 
     describe "line coverage" do
@@ -890,7 +748,7 @@ describe SimpleCov::SourceFile do
 
   context "when a file with an uneven usage of # :nocov:s" do
     subject(:source_file) do
-      described_class.new(source_fixture("uneven_nocovs.rb"), COVERAGE_FOR_UNEVEN_NOCOV_RB)
+      described_class.new(source_fixture("uneven_nocovs.rb"), CoverageFixtures::UNEVEN_NOCOVS_RB)
     end
 
     describe "line coverage" do

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Coverage data hashes that pair with the Ruby fixture files in
-# spec/fixtures/html_formatter/. Each constant maps the fixture's filename
-# to a coverage hash in the shape `Coverage.result` returns.
-module HTMLFormatterCoverageFixtures
+# spec/fixtures/. Each constant matches a fixture file and provides a
+# coverage hash in the shape `Coverage.result` returns.
+module CoverageFixtures
   BRANCHES_RB = {
     "lines" => [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],
     "branches" => {
