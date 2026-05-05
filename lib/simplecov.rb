@@ -354,33 +354,9 @@ module SimpleCov
     # With Negative branch it supports only line coverage measurement type
     #
     def start_coverage_measurement
-      # This blog post gives a good run down of the coverage criterias introduced
-      # in Ruby 2.5: https://blog.bigbinary.com/2018/04/11/ruby-2-5-supports-measuring-branch-and-method-coverages.html
-      # There is also a nice writeup of the different coverage criteria made in this
-      # comment  https://github.com/simplecov-ruby/simplecov/pull/692#discussion_r281836176 :
-      # Ruby < 2.5:
-      # https://github.com/ruby/ruby/blob/v1_9_3_374/ext/coverage/coverage.c
-      # traditional mode (Array)
-      #
-      # Ruby 2.5:
-      # https://bugs.ruby-lang.org/issues/13901
-      # https://github.com/ruby/ruby/blob/v2_5_3/ext/coverage/coverage.c
-      # default: traditional/compatible mode (Array)
-      # :lines - like traditional mode but using Hash
-      # :branches
-      # :methods
-      # :all - same as lines + branches + methods
-      #
-      # Ruby >= 2.6:
-      # https://bugs.ruby-lang.org/issues/15022
-      # https://github.com/ruby/ruby/blob/v2_6_3/ext/coverage/coverage.c
-      # default: traditional/compatible mode (Array)
-      # :lines - like traditional mode but using Hash
-      # :branches
-      # :methods
-      # :oneshot_lines - can not be combined with lines
-      # :all - same as lines + branches + methods
-      #
+      # CRuby's `Coverage.start` accepts a criteria hash since 2.5; alternate
+      # engines (older JRuby/TruffleRuby) may still ship the no-arg form, so
+      # fall back when the runtime doesn't accept arguments.
       if coverage_start_arguments_supported?
         start_coverage_with_criteria
       else

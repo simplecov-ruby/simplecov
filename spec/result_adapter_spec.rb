@@ -10,9 +10,7 @@ describe SimpleCov::ResultAdapter do
 
   describe "with oneshot_lines coverage" do
     before do
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6") || RUBY_ENGINE == "truffleruby"
-        skip "oneshot_lines coverage not supported"
-      end
+      skip "oneshot_lines coverage not supported on truffleruby" if RUBY_ENGINE == "truffleruby"
     end
 
     context "when all tracked files exist" do

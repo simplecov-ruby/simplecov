@@ -1,4 +1,4 @@
-@rspec @disable-bundler @rails6
+@rspec @disable-bundler
 
 Feature:
   Make sure that a fairly standard rspec-rails setup within a rails

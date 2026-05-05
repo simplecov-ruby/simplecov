@@ -8,10 +8,9 @@ module SimpleCov
   module_function
 
     #
-    # Simulate normal file coverage report on
-    # ruby 2.5 and return similar hash with lines and branches keys
-    #
-    # Happens when a file wasn't required but still tracked.
+    # Simulate a file coverage report for a file that was tracked but never
+    # required. Returns the same hash shape as `Coverage.result` (lines,
+    # branches, methods).
     #
     # @return [Hash]
     #

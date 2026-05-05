@@ -1,4 +1,4 @@
-@rspec @oneshot_line_coverage @ruby26
+@rspec @oneshot_line_coverage
 Feature:
 
   Simply executing oneshot_line coverage gives ok results.
