@@ -6,6 +6,9 @@ require "time"
 
 module SimpleCov
   module Formatter
+    # Writes coverage results as JSON to coverage/coverage.json. Used
+    # standalone, alongside the HTML formatter, or by external tools that
+    # consume SimpleCov output.
     class JSONFormatter
       FILENAME = "coverage.json"
 

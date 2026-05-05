@@ -2,6 +2,8 @@
 
 module SimpleCov
   module ExitCodes
+    # Runs every coverage check against the result and returns the exit
+    # code from the first failing one (or SUCCESS if all pass).
     module ExitCodeHandling
     module_function
 

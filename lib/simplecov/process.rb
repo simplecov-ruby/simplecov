@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Patches `Process.fork` so child processes inherit SimpleCov's coverage
+# tracking when `SimpleCov.enable_for_subprocesses?` is set.
 module Process
   class << self
     def fork_with_simplecov(&block)

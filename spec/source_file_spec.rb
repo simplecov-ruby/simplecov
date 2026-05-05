@@ -4,7 +4,7 @@ require "helper"
 require "support/coverage_fixtures"
 
 COVERAGE_FOR_SAMPLE_RB = {
-  "lines" =>       [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
+  "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1, 0, nil, nil, nil],
   "branches" => {}
 }.freeze
 
@@ -925,9 +925,9 @@ describe SimpleCov::SourceFile do
       subject(:source_file) do
         build(
           {
-            "lines"    => [1, nil, 1, nil, nil, 1, nil, nil],
+            "lines" => [1, nil, 1, nil, nil, 1, nil, nil],
             "branches" => {},
-            "methods"  => {
+            "methods" => {
               ["Demo", :covered, 1, 0, 3, 3] => 1,
               ["Demo", :method_skipped, 6, 0, 8, 3] => 0
             }
@@ -966,7 +966,7 @@ describe SimpleCov::SourceFile do
       subject(:source_file) do
         build(
           {
-            "lines"    => [nil, 1, 1, nil, 1, nil, nil],
+            "lines" => [nil, 1, 1, nil, 1, nil, nil],
             "branches" => {
               [:if, 0, 2, 0, 6, 3] => {
                 [:then, 1, 3, 2, 3, 7] => 1,
@@ -1003,7 +1003,7 @@ describe SimpleCov::SourceFile do
       subject(:source_file) do
         build(
           {
-            "lines"    => [1, 1, nil, 1, nil],
+            "lines" => [1, 1, nil, 1, nil],
             "branches" => {
               [:if, 0, 1, 0, 5, 3] => {
                 [:then, 1, 2, 2, 2, 7] => 1,
@@ -1035,7 +1035,7 @@ describe SimpleCov::SourceFile do
       subject(:source_file) do
         build(
           {
-            "lines"    => [1, 1, nil, 1, 1, nil, 1],
+            "lines" => [1, 1, nil, 1, 1, nil, 1],
             "branches" => {
               [:if, 0, 1, 0, 6, 3] => {
                 [:then, 1, 2, 2, 3, 7] => 1,

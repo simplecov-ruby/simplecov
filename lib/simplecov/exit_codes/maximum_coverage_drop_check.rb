@@ -2,6 +2,8 @@
 
 module SimpleCov
   module ExitCodes
+    # Fails when any coverage criterion has dropped by more than the
+    # configured maximum since the last recorded run.
     class MaximumCoverageDropCheck
       def initialize(result, maximum_coverage_drop)
         @result = result

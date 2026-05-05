@@ -8,7 +8,7 @@ Given /^SimpleCov for (.*) is configured with:$/ do |framework, config_body|
     case framework
     when /RSpec/i
       "spec"
-    when /Test\/Unit/i
+    when %r{Test/Unit}i
       "test"
     when /Cucumber/i
       "features/support"

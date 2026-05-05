@@ -2,7 +2,11 @@
 
 module SimpleCov
   module Formatter
+    # Wraps multiple formatters so SimpleCov.formatter can drive several
+    # output formats (HTML + JSON, etc.) in a single run.
     class MultiFormatter
+      # Shared `#format` implementation; included into individual
+      # MultiFormatter subclasses built by `MultiFormatter.new`.
       module InstanceMethods
         def format(result)
           formatters.map do |formatter|

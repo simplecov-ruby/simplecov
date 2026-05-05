@@ -2,6 +2,8 @@
 
 module SimpleCov
   module ExitCodes
+    # Fails when any configured group falls below its minimum coverage
+    # threshold for any criterion.
     class MinimumCoverageByGroupCheck
       def initialize(result, minimum_coverage_by_group)
         @result = result

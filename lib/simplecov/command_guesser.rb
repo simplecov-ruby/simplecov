@@ -29,13 +29,13 @@ module SimpleCov
       end
 
       COMMAND_LINE_FRAMEWORKS = {
-        %r{test/functional/}            => "Functional Tests",
-        %r{test/\{.*functional.*\}/}    => "Functional Tests",
-        %r{test/integration/}           => "Integration Tests",
-        %r{test/}                       => "Unit Tests",
-        /spec/                          => "RSpec",
-        /cucumber/                      => "Cucumber Features",
-        /features/                      => "Cucumber Features"
+        %r{test/functional/} => "Functional Tests",
+        %r{test/\{.*functional.*\}/} => "Functional Tests",
+        %r{test/integration/} => "Integration Tests",
+        %r{test/} => "Unit Tests",
+        /spec/ => "RSpec",
+        /cucumber/ => "Cucumber Features",
+        /features/ => "Cucumber Features"
       }.freeze
       private_constant :COMMAND_LINE_FRAMEWORKS
 

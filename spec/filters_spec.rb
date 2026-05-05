@@ -49,15 +49,15 @@ describe SimpleCov::Filter do
   end
 
   it "matches a new SimpleCov::RegexFilter //fixtures//" do
-    expect(SimpleCov::RegexFilter.new(/\/fixtures\//)).to be_matches source_file
+    expect(SimpleCov::RegexFilter.new(%r{/fixtures/})).to be_matches source_file
   end
 
   it "doesn't match a new SimpleCov::RegexFilter /^fixtures//" do
-    expect(SimpleCov::RegexFilter.new(/^fixtures\//)).not_to be_matches source_file
+    expect(SimpleCov::RegexFilter.new(%r{^fixtures/})).not_to be_matches source_file
   end
 
   it "matches a new SimpleCov::RegexFilter /^spec//" do
-    expect(SimpleCov::RegexFilter.new(/^spec\//)).to be_matches source_file
+    expect(SimpleCov::RegexFilter.new(%r{^spec/})).to be_matches source_file
   end
 
   it "doesn't match a new SimpleCov::BlockFilter that is not applicable" do

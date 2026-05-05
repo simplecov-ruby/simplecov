@@ -248,10 +248,10 @@ module SimpleCov
       exit_status = process_result(result)
 
       # Force exit with stored status (see github issue #5)
-      if exit_status.positive?
-        warn("SimpleCov failed with exit #{exit_status} due to a coverage related error") if print_error_status
-        Kernel.exit exit_status
-      end
+      return unless exit_status.positive?
+
+      warn("SimpleCov failed with exit #{exit_status} due to a coverage related error") if print_error_status
+      Kernel.exit exit_status
     end
 
     # @api private

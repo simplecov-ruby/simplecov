@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
+# Cucumber world helpers for scoping Capybara assertions to a selector.
 module WithinHelpers
-  def with_scope(locator)
-    locator ? within(locator) { yield } : yield
+  def with_scope(locator, &block)
+    locator ? within(locator, &block) : yield
   end
 end
 World(WithinHelpers)
@@ -40,7 +41,7 @@ Then /^(?:|I )should see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
   end
 end
 
-Then /^(?:|I )should see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
+Then %r{^(?:|I )should see /([^/]*)/(?: within "([^"]*)")?$} do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
     expect(page).to have_xpath("//*", text: regexp)
@@ -53,7 +54,7 @@ Then /^(?:|I )should not see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selecto
   end
 end
 
-Then /^(?:|I )should not see \/([^\/]*)\/(?: within "([^"]*)")?$/ do |regexp, selector|
+Then %r{^(?:|I )should not see /([^/]*)/(?: within "([^"]*)")?$} do |regexp, selector|
   regexp = Regexp.new(regexp)
   with_scope(selector) do
     expect(page).to have_no_xpath("//*", text: regexp)

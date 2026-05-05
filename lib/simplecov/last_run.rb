@@ -3,6 +3,8 @@
 require "json"
 
 module SimpleCov
+  # Reads and writes coverage/.last_run.json — the previous run's coverage
+  # percentages used by MaximumCoverageDropCheck.
   module LastRun
     class << self
       def last_run_path

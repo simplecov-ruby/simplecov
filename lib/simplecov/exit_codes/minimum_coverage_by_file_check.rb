@@ -2,6 +2,8 @@
 
 module SimpleCov
   module ExitCodes
+    # Fails when any individual file falls below the configured minimum
+    # coverage for any criterion.
     class MinimumCoverageByFileCheck
       def initialize(result, minimum_coverage_by_file)
         @result = result

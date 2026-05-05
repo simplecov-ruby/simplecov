@@ -518,19 +518,15 @@ module SimpleCov
 
     def raise_if_criterion_disabled(criterion)
       raise_if_criterion_unsupported(criterion)
-      # rubocop:disable Style/IfUnlessModifier
-      unless coverage_criterion_enabled?(criterion)
-        raise "Coverage criterion #{criterion}, is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
-      end
-      # rubocop:enable Style/IfUnlessModifier
+      return if coverage_criterion_enabled?(criterion)
+
+      raise "Coverage criterion #{criterion}, is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
     end
 
     def raise_if_criterion_unsupported(criterion)
-      # rubocop:disable Style/IfUnlessModifier
-      unless SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
-        raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
-      end
-      # rubocop:enable Style/IfUnlessModifier
+      return if SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
+
+      raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)
@@ -563,11 +559,9 @@ module SimpleCov
     def parse_filter(filter_argument = nil, &filter_proc)
       filter = filter_argument || filter_proc
 
-      if filter
-        SimpleCov::Filter.build_filter(filter)
-      else
-        raise ArgumentError, "Please specify either a filter or a block to filter with"
-      end
+      raise ArgumentError, "Please specify either a filter or a block to filter with" unless filter
+
+      SimpleCov::Filter.build_filter(filter)
     end
   end
 end

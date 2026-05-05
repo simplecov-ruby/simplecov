@@ -5,6 +5,8 @@ require "time"
 module SimpleCov
   module Formatter
     class JSONFormatter
+      # Builds the hash that JSONFormatter serializes to coverage.json:
+      # meta, per-file coverage data, group totals, and aggregate stats.
       class ResultHashFormatter
         def initialize(result)
           @result = result

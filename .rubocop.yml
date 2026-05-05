@@ -19,23 +19,10 @@ AllCops:
   TargetRubyVersion: 2.7
   NewCops: enable
 
-Bundler/OrderedGems:
-  Description: Gems should be alphabetically sorted within groups.
-  Enabled: false
-
 Layout/AccessModifierIndentation:
   Description: Modifiers should be indented as deep as method definitions,
     or as deep as the class/module keyword, depending on configuration.
   EnforcedStyle: outdent
-
-# Open for revision would like table style but the impact
-# would probably be huge
-Layout/HashAlignment:
-  Enabled: false
-
-Layout/HeredocIndentation:
-  Description: Checks the indentation of the here document bodies.
-  Enabled: false
 
 Layout/LineLength:
   Description: Checks the length of lines in the source code.
@@ -71,10 +58,6 @@ Metrics/BlockNesting:
 
 Metrics/ClassLength:
   Max: 300
-
-Style/Next:
-  Description: Prefer `if` guards over `next` inside loops for readability.
-  Enabled: false
 
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
@@ -138,22 +121,6 @@ Style/CollectionMethods:
     find: "detect"
     find_all: "select"
 
-Style/Documentation:
-  Description: Checks for missing top-level documentation of classes and modules.
-  Enabled: false
-
-Style/DoubleNegation:
-  Description: Checks for uses of double negation (!!).
-  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#no-bang-bang
-  Enabled: false
-
-Style/EnvHome:
-  Enabled: false
-
-Style/ExplicitBlockArgument:
-  # capturing as a proc has a performance hit, so is a case by case choice
-  Enabled: false
-
 Style/FrozenStringLiteralComment:
   Description:
     Add the frozen_string_literal comment to the top of files to help transition
@@ -162,18 +129,14 @@ Style/FrozenStringLiteralComment:
   Exclude:
     - "spec/fixtures/**/*"
 
-Style/GuardClause:
-  Description: Use a guard clause instead of wrapping the code inside a conditional expression.
+Style/EnvHome:
+  # `Dir.home` raises ArgumentError on JRuby when HOME is unset, defeating
+  # the `||` fall-through chain in lib/simplecov/load_global_config.rb.
   Enabled: false
 
 Style/HashSyntax:
   Description: Checks hash literal syntax.
   EnforcedStyle: ruby19
-
-Style/RegexpLiteral:
-  Description: Use / or %r around regular expressions.
-  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#percent-r
-  Enabled: false
 
 Style/SpecialGlobalVars:
   Description: Looks for uses of Perl-style global variables.

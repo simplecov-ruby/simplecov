@@ -6,7 +6,6 @@ require_relative "directive"
 module SimpleCov
   # Classifies whether lines are relevant for code coverage analysis.
   # Comments & whitespace lines, and :nocov: token blocks, are considered not relevant.
-
   class LinesClassifier
     RELEVANT = 0
     NOT_RELEVANT = nil

@@ -91,9 +91,9 @@ module SimpleCov
 
       new(
         line_number: line_number,
-        mode:        match[:mode].to_sym,
-        categories:  parse_categories(match[:categories]),
-        inline:      inline?(lines, line_number, column + match.begin(0))
+        mode: match[:mode].to_sym,
+        categories: parse_categories(match[:categories]),
+        inline: inline?(lines, line_number, column + match.begin(0))
       )
     rescue ArgumentError, EncodingError
       # E.g., comment text contains an invalid byte sequence in UTF-8.

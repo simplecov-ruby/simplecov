@@ -86,7 +86,7 @@ Then /^there should be (\d+) skipped lines in the source files$/ do |expected_co
   expect(count).to eq(expected_count.to_i)
 end
 
-Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)( for the file)?$/ do |coverage_type, hit, total, for_file|
+Then %r{^I should see a (.+) coverage summary of (\d+)/(\d+)( for the file)?$} do |coverage_type, hit, total, for_file|
   missed = total - hit
 
   if for_file
@@ -116,7 +116,7 @@ Then /^I should see a (.+) coverage summary of (\d+)\/(\d+)( for the file)?$/ do
     end
   end
 
-  expect(summary_text).to match(/#{hit}\/#{total}.*#{missed}|#{total} .+ #{hit} .+ #{missed}/)
+  expect(summary_text).to match(%r{#{hit}/#{total}.*#{missed}|#{total} .+ #{hit} .+ #{missed}})
 end
 
 When /^I open the detailed view for "(.+)"$/ do |file_path|

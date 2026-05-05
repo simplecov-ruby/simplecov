@@ -47,10 +47,10 @@ private
   def print_own_warnings(app_warnings)
     puts ""
     puts ""
-    puts <<-WARNINGS
-#{'-' * 30} app warnings: #{'-' * 30}
-    #{app_warnings.join("\n")}
-    #{'-' * 75}
+    puts <<~WARNINGS
+      #{'-' * 30} app warnings: #{'-' * 30}
+          #{app_warnings.join("\n")}
+          #{'-' * 75}
     WARNINGS
   end
 

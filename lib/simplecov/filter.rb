@@ -43,13 +43,15 @@ module SimpleCov
       @filter_classes_by_argument_type ||= {
         String => SimpleCov::StringFilter,
         Regexp => SimpleCov::RegexFilter,
-        Array  => SimpleCov::ArrayFilter,
-        Proc   => SimpleCov::BlockFilter
+        Array => SimpleCov::ArrayFilter,
+        Proc => SimpleCov::BlockFilter
       }.freeze
     end
     private_class_method :filter_classes_by_argument_type
   end
 
+  # Filter that matches when the source file's project path contains the
+  # configured string at a path-segment boundary.
   class StringFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring').
@@ -75,18 +77,20 @@ module SimpleCov
         # Filename pattern (e.g. "test.rb" matches "faked_test.rb"): allow
         # substring match within the last path segment, anchored to a
         # segment boundary.
-        /#{boundary}[^\/]*#{escaped}/
+        %r{#{boundary}[^/]*#{escaped}}
       elsif normalized.end_with?("/")
         # Trailing slash signals directory-only matching.
         /#{boundary}#{escaped}/
       else
         # Directory or path: require a segment-boundary match so "lib"
         # matches "lib/" but not "library/".
-        /#{boundary}#{escaped}(?=[\/.]|\z)/
+        %r{#{boundary}#{escaped}(?=[/.]|\z)}
       end
     end
   end
 
+  # Filter that matches when the source file's project path matches the
+  # configured Regexp.
   class RegexFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
     # regex configured when initializing this Filter with RegexFilter.new(/someregex/)
@@ -95,6 +99,8 @@ module SimpleCov
     end
   end
 
+  # Filter that matches when the configured block returns truthy for the
+  # source file.
   class BlockFilter < SimpleCov::Filter
     # Returns true if the block given when initializing this filter with BlockFilter.new {|src_file| ... }
     # returns true for the given source file.
@@ -103,6 +109,8 @@ module SimpleCov
     end
   end
 
+  # Filter that matches when any of its component filters (built from the
+  # array's elements) match the source file.
   class ArrayFilter < SimpleCov::Filter
     def initialize(filter_argument)
       filter_objects = filter_argument.map do |arg|

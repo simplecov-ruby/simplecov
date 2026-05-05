@@ -2,6 +2,8 @@
 
 module SimpleCov
   module ExitCodes
+    # Fails when the overall (project-wide) coverage for any criterion is
+    # below the configured minimum.
     class MinimumOverallCoverageCheck
       def initialize(result, minimum_coverage)
         @result = result

@@ -3,12 +3,12 @@
 source "https://rubygems.org"
 
 group :development do
-  gem "nokogiri"
-  gem "cuprite"
   gem "aruba", ">= 2.0"
   gem "capybara"
-  gem "rackup"
   gem "cucumber"
+  gem "cuprite"
+  gem "nokogiri"
+  gem "rackup"
   gem "rake"
   gem "rspec"
   if RUBY_VERSION > "3.2"

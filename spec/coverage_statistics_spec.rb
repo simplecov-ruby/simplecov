@@ -74,11 +74,11 @@ RSpec.describe SimpleCov::CoverageStatistics do
     # 100% / 0.0 strength might be counter-intuitive but think of it as "we
     # covered everything we could".
     expect(statistics).to have_attributes(
-      covered:  0,
-      missed:   0,
-      omitted:  0,
-      total:    0,
-      percent:  100.0,
+      covered: 0,
+      missed: 0,
+      omitted: 0,
+      total: 0,
+      percent: 100.0,
       strength: 0.0
     )
   end

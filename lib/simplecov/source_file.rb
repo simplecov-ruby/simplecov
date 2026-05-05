@@ -422,10 +422,10 @@ module SimpleCov
 
       SourceFile::Branch.new(
         start_line: start_line,
-        end_line:   end_line,
-        coverage:   hit_count,
-        inline:     start_line == condition_start_line,
-        type:       type
+        end_line: end_line,
+        coverage: hit_count,
+        inline: start_line == condition_start_line,
+        type: type
       )
     end
 
@@ -433,9 +433,9 @@ module SimpleCov
       {
         line: CoverageStatistics.new(
           total_strength: lines_strength,
-          covered:  covered_lines.size,
-          missed:   missed_lines.size,
-          omitted:  never_lines.size
+          covered: covered_lines.size,
+          missed: missed_lines.size,
+          omitted: never_lines.size
         )
       }
     end
@@ -448,7 +448,7 @@ module SimpleCov
       {
         branch: CoverageStatistics.new(
           covered: covered_branches.size,
-          missed:  missed_branches.size
+          missed: missed_branches.size
         )
       }
     end
@@ -479,7 +479,7 @@ module SimpleCov
       {
         method: CoverageStatistics.new(
           covered: covered_methods.size,
-          missed:  missed_methods.size
+          missed: missed_methods.size
         )
       }
     end
