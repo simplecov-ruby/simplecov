@@ -16,14 +16,14 @@ module SimpleCov
 
     def self.from(coverage_statistics)
       sum_covered, sum_missed, sum_omitted, sum_total_strength =
-        coverage_statistics.reduce([0, 0, 0, 0.0]) do |(covered, missed, omitted, total_strength), file_coverage_statistics|
+        coverage_statistics.reduce([0, 0, 0, 0.0]) do |(covered, missed, omitted, total_strength), stats|
           [
-            covered + file_coverage_statistics.covered,
-            missed + file_coverage_statistics.missed,
-            omitted + file_coverage_statistics.omitted,
+            covered + stats.covered,
+            missed + stats.missed,
+            omitted + stats.omitted,
             # gotta remultiply with loc because files have different strength and loc
             # giving them a different "weight" in total
-            total_strength + (file_coverage_statistics.strength * file_coverage_statistics.total)
+            total_strength + (stats.strength * stats.total)
           ]
         end
 

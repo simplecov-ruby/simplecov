@@ -443,7 +443,9 @@ module SimpleCov
     def branch_coverage_statistics
       # Files added via track_files but never loaded/required have no branch
       # data. Report 0% instead of misleading 100% (see #902).
-      return {branch: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)} if not_loaded? && covered_branches.empty? && missed_branches.empty?
+      if not_loaded? && covered_branches.empty? && missed_branches.empty?
+        return {branch: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)}
+      end
 
       {
         branch: CoverageStatistics.new(
@@ -474,7 +476,9 @@ module SimpleCov
     end
 
     def method_coverage_statistics
-      return {method: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)} if not_loaded? && covered_methods.empty? && missed_methods.empty?
+      if not_loaded? && covered_methods.empty? && missed_methods.empty?
+        return {method: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)}
+      end
 
       {
         method: CoverageStatistics.new(

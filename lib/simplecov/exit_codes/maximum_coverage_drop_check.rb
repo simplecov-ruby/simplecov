@@ -17,7 +17,8 @@ module SimpleCov
       def report
         violations.each do |violation|
           $stderr.printf(
-            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time (maximum allowed: %<max_drop>.2f%%).\n",
+            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time " \
+            "(maximum allowed: %<max_drop>.2f%%).\n",
             criterion: violation.fetch(:criterion).capitalize,
             drop_percent: violation.fetch(:actual),
             max_drop: violation.fetch(:maximum)

@@ -28,12 +28,19 @@ module CoverageFixtures
   NEVER_RB = {"lines" => [nil, nil], "branches" => {}}.freeze
 
   NOCOV_COMPLEX_RB = {
-    "lines" => [nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil, nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil],
+    "lines" => [
+      nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil,
+      nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil
+    ],
     "branches" => {
       [:if, 0, 6, 4, 11, 7] => {[:then, 1, 7, 6, 7, 7] => 0, [:else, 2, 10, 6, 10, 7] => 1},
       [:if, 3, 13, 4, 13, 24] => {[:then, 4, 13, 4, 13, 12] => 1, [:else, 5, 13, 4, 13, 24] => 0},
       [:while, 6, 16, 4, 16, 27] => {[:body, 7, 16, 4, 16, 12] => 2},
-      [:case, 8, 18, 4, 24, 7] => {[:when, 9, 20, 6, 20, 11] => 0, [:when, 10, 23, 6, 23, 10] => 1, [:else, 11, 18, 4, 24, 7] => 0}
+      [:case, 8, 18, 4, 24, 7] => {
+        [:when, 9, 20, 6, 20, 11] => 0,
+        [:when, 10, 23, 6, 23, 10] => 1,
+        [:else, 11, 18, 4, 24, 7] => 0
+      }
     }
   }.freeze
 
@@ -76,8 +83,13 @@ module CoverageFixtures
   }.freeze
 
   BRANCH_TESTER_RB = {
-    "lines" => [nil, nil, 1, 1, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, 1, 0, nil, 1, nil, nil, 1, 1, 1, nil, nil, 1, 0, nil, nil, 1, 1, nil, 0, nil, 1,
-                1, 0, 0, 1, 5, 0, 0, nil, 0, nil, 0, nil, nil, nil],
+    "lines" => [
+      nil, nil, 1, 1, nil, 1, nil, 1, 1, nil,
+      nil, 1, 0, nil, nil, 1, 0, nil, 1, nil,
+      nil, 1, 1, 1, nil, nil, 1, 0, nil, nil,
+      1, 1, nil, 0, nil, 1, 1, 0, 0, 1,
+      5, 0, 0, nil, 0, nil, 0, nil, nil, nil
+    ],
     "branches" => {
       [:if, 0, 4, 0, 4, 19] => {[:then, 1, 4, 12, 4, 15] => 0, [:else, 2, 4, 18, 4, 19] => 1},
       [:unless, 3, 6, 0, 6, 23] => {[:else, 4, 6, 0, 6, 23] => 0, [:then, 5, 6, 0, 6, 6] => 1},

@@ -56,7 +56,10 @@ module SimpleCov
         DEFINED_CONSTANT_FRAMEWORKS.each { |name, defined_check| return name if defined_check.call }
 
         # TODO: Provide link to docs/wiki article
-        warn "SimpleCov failed to recognize the test framework and/or suite used. Please specify manually using SimpleCov.command_name 'Unit Tests'."
+        warn(
+          "SimpleCov failed to recognize the test framework and/or suite used. " \
+          "Please specify manually using SimpleCov.command_name 'Unit Tests'."
+        )
         "Unknown Test Framework"
       end
     end

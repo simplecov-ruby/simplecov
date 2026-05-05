@@ -35,7 +35,11 @@ describe "return codes" do # rubocop:disable RSpec/DescribeClass
 
         it "prints a message to STDERR" do
           # https://github.com/oracle/truffleruby/issues/3535
-          skip "fails on truffleruby" if RUBY_ENGINE == "truffleruby" && Object::Object::RUBY_ENGINE_VERSION < "24.1" && command.include?("testunit_bad.rb")
+          if RUBY_ENGINE == "truffleruby" &&
+             Object::Object::RUBY_ENGINE_VERSION < "24.1" &&
+             command.include?("testunit_bad.rb")
+            skip "fails on truffleruby"
+          end
 
           expect(captured_stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
         end

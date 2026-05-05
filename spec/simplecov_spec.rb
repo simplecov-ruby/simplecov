@@ -171,7 +171,8 @@ describe SimpleCov do
 
       context "when actual coverage is almost 100%" do
         before do
-          allow(result).to receive(:coverage_statistics).and_return(line: instance_double(SimpleCov::CoverageStatistics, percent: 100 * 32_847.0 / 32_848))
+          line_stats = instance_double(SimpleCov::CoverageStatistics, percent: 100 * 32_847.0 / 32_848)
+          allow(result).to receive(:coverage_statistics).and_return(line: line_stats)
         end
 
         it "return SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
@@ -183,7 +184,12 @@ describe SimpleCov do
 
       context "when actual coverage is exactly 100%" do
         before do
-          allow(result).to receive_messages(covered_percent: 100.0, coverage_statistics: {line: instance_double(SimpleCov::CoverageStatistics, percent: 100.0)}, covered_percentages: [])
+          line_stats = instance_double(SimpleCov::CoverageStatistics, percent: 100.0)
+          allow(result).to receive_messages(
+            covered_percent: 100.0,
+            coverage_statistics: {line: line_stats},
+            covered_percentages: []
+          )
           allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
         end
 
@@ -200,7 +206,8 @@ describe SimpleCov do
         end
 
         it "errors out when the coverage is too low" do
-          allow(result).to receive(:coverage_statistics).and_return(branch: instance_double(SimpleCov::CoverageStatistics, percent: 89.99))
+          branch_stats = instance_double(SimpleCov::CoverageStatistics, percent: 89.99)
+          allow(result).to receive(:coverage_statistics).and_return(branch: branch_stats)
 
           expect(
             described_class.process_result(result)
@@ -335,7 +342,12 @@ describe SimpleCov do
       end
 
       def expect_merged
-        expected = {"result1, result2" => {"coverage" => {source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]}}}}
+        merged_lines = [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]
+        expected = {
+          "result1, result2" => {
+            "coverage" => {source_fixture("sample.rb") => {"lines" => merged_lines}}
+          }
+        }
         expect(collated).to eq(expected)
       end
     end

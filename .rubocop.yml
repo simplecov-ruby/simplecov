@@ -25,9 +25,7 @@ Layout/AccessModifierIndentation:
   EnforcedStyle: outdent
 
 Layout/LineLength:
-  Description: Checks the length of lines in the source code.
   AllowURI: true
-  Enabled: false
 
 Layout/SpaceInsideHashLiteralBraces:
   Description: Use spaces inside hash literal braces - or don't.

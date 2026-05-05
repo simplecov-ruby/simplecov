@@ -98,7 +98,10 @@ module SimpleCov
       return @formatter if defined?(@formatter) && formatter.nil?
 
       @formatter = formatter
-      raise "No formatter configured. Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter" unless @formatter
+      unless @formatter
+        raise "No formatter configured. " \
+              "Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter"
+      end
 
       @formatter
     end
@@ -243,7 +246,7 @@ module SimpleCov
     #       SimpleCov.start do
     #         # This needs a unique name so it won't be ovewritten
     #         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
-    #         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
+    #         # be quiet — the parent process is in charge of using the regular formatter and checking coverage totals
     #         SimpleCov.print_error_status = false
     #         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
     #         SimpleCov.minimum_coverage 0
@@ -520,7 +523,8 @@ module SimpleCov
       raise_if_criterion_unsupported(criterion)
       return if coverage_criterion_enabled?(criterion)
 
-      raise "Coverage criterion #{criterion}, is disabled! Please enable it first through enable_coverage #{criterion} (if supported)"
+      raise "Coverage criterion #{criterion}, is disabled! " \
+            "Please enable it first through enable_coverage #{criterion} (if supported)"
     end
 
     def raise_if_criterion_unsupported(criterion)

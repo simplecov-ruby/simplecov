@@ -133,8 +133,12 @@ module SimpleCov
 
     def compute_coverage_statistics
       coverage_statistics = {line: CoverageStatistics.from(coverage_statistics_by_file[:line])}
-      coverage_statistics[:branch] = CoverageStatistics.from(coverage_statistics_by_file[:branch]) if SimpleCov.branch_coverage?
-      coverage_statistics[:method] = CoverageStatistics.from(coverage_statistics_by_file[:method]) if SimpleCov.method_coverage?
+      if SimpleCov.branch_coverage?
+        coverage_statistics[:branch] = CoverageStatistics.from(coverage_statistics_by_file[:branch])
+      end
+      if SimpleCov.method_coverage?
+        coverage_statistics[:method] = CoverageStatistics.from(coverage_statistics_by_file[:method])
+      end
       coverage_statistics
     end
   end

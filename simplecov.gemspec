@@ -22,7 +22,8 @@ Gem::Specification.new do |gem|
   gem.email       = ["christoph at olszowka de", "pragtob@gmail.com"]
   gem.homepage    = "https://github.com/simplecov-ruby/simplecov"
   gem.summary     = "Code coverage for Ruby"
-  gem.description = %(Code coverage for Ruby with a powerful configuration library and automatic merging of coverage across test suites)
+  gem.description = "Code coverage for Ruby with a powerful configuration library " \
+                    "and automatic merging of coverage across test suites"
   gem.license     = "MIT"
   gem.metadata    = {
     "bug_tracker_uri" => "https://github.com/simplecov-ruby/simplecov/issues",

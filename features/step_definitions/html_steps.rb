@@ -56,7 +56,8 @@ Then /^I should see the source files:$/ do |table|
     coverage_data
   end
 
-  expect(files.sort_by { |coverage_data| coverage_data["name"] }).to eq(expected_files.sort_by { |coverage_data| coverage_data["name"] })
+  by_name = ->(coverage_data) { coverage_data["name"] }
+  expect(files.sort_by(&by_name)).to eq(expected_files.sort_by(&by_name))
 end
 
 Then /^there should be (\d+) skipped lines in the source files$/ do |expected_count|
@@ -91,7 +92,12 @@ Then %r{^I should see a (.+) coverage summary of (\d+)/(\d+)( for the file)?$} d
 
   if for_file
     # File detail view: check the summary in the dialog (new) or source_table (old)
-    selector = page.has_css?("#source-dialog[open]", wait: 0) ? "#source-dialog .t-#{coverage_type}-summary" : ".source_table .t-#{coverage_type}-summary"
+    selector =
+      if page.has_css?("#source-dialog[open]", wait: 0)
+        "#source-dialog .t-#{coverage_type}-summary"
+      else
+        ".source_table .t-#{coverage_type}-summary"
+      end
     summary_text = find(selector, visible: false).text
   else
     # Try new format: sum data attributes from file rows

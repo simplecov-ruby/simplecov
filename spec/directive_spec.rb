@@ -124,9 +124,9 @@ describe SimpleCov::Directive do
 
       it "accepts a `--`-prefixed reason for users who like the visual separator" do
         ranges = described_class.disabled_ranges([
-                                                   "# simplecov:disable line -- legacy adapter, scheduled for removal", # 1
-                                                   "code",                                                              # 2
-                                                   "# simplecov:enable line"                                            # 3
+                                                   "# simplecov:disable line -- legacy adapter, scheduled for removal",
+                                                   "code",
+                                                   "# simplecov:enable line"
                                                  ])
 
         expect(ranges[:line]).to eq [1..3]

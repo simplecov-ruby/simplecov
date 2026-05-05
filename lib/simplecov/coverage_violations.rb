@@ -67,7 +67,10 @@ module SimpleCov
 
       def lookup_group(result, group_name)
         group = result.groups[group_name]
-        warn "minimum_coverage_by_group: no group named '#{group_name}' exists. Available groups: #{result.groups.keys.join(', ')}" unless group
+        unless group
+          warn "minimum_coverage_by_group: no group named '#{group_name}' exists. " \
+               "Available groups: #{result.groups.keys.join(', ')}"
+        end
         group
       end
 

@@ -235,7 +235,9 @@ module SimpleCov
     #
     # Thinking: Move this behavior earlier so if there was an error we do nothing?
     def exit_and_report_previous_error(exit_status)
-      warn("Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected") if print_error_status
+      if print_error_status
+        warn("Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected")
+      end
       Kernel.exit(exit_status)
     end
 
@@ -266,7 +268,13 @@ module SimpleCov
     end
 
     # @api private
-    CoverageLimits = Struct.new(:minimum_coverage, :minimum_coverage_by_file, :minimum_coverage_by_group, :maximum_coverage_drop, keyword_init: true)
+    CoverageLimits = Struct.new(
+      :minimum_coverage,
+      :minimum_coverage_by_file,
+      :minimum_coverage_by_group,
+      :maximum_coverage_drop,
+      keyword_init: true
+    )
     def result_exit_status(result)
       coverage_limits = CoverageLimits.new(
         minimum_coverage: minimum_coverage, minimum_coverage_by_file: minimum_coverage_by_file,
@@ -468,7 +476,10 @@ module SimpleCov
 
       require "parallel_tests"
     rescue LoadError
-      warn("SimpleCov guessed you were running inside parallel tests but couldn't load it. Please file a bug report with us!")
+      warn(
+        "SimpleCov guessed you were running inside parallel tests but couldn't load it. " \
+        "Please file a bug report with us!"
+      )
     end
 
     def probably_running_parallel_tests?

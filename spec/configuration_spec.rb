@@ -189,7 +189,8 @@ describe SimpleCov::Configuration do
       it "warns you about your usage" do
         allow(config).to receive(:warn)
         config.minimum_coverage_by_group({"Test Group 1" => 100.01})
-        expect(config).to have_received(:warn).with("The coverage you set for minimum_coverage_by_group is greater than 100%")
+        expect(config).to have_received(:warn)
+          .with("The coverage you set for minimum_coverage_by_group is greater than 100%")
       end
 
       it "sets the right coverage value when called with a number" do

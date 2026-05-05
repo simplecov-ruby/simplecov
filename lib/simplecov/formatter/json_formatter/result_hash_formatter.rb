@@ -61,16 +61,19 @@ module SimpleCov
         end
 
         def format_minimum_coverage_by_file_errors
-          SimpleCov::CoverageViolations.minimum_by_file(@result, SimpleCov.minimum_coverage_by_file).each do |violation|
+          violations = SimpleCov::CoverageViolations.minimum_by_file(@result, SimpleCov.minimum_coverage_by_file)
+          violations.each do |violation|
             key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
             bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
             criterion_errors = bucket[key] ||= {}
-            criterion_errors[violation.fetch(:project_filename)] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
+            criterion_errors[violation.fetch(:project_filename)] =
+              {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
           end
         end
 
         def format_minimum_coverage_by_group_errors
-          SimpleCov::CoverageViolations.minimum_by_group(@result, SimpleCov.minimum_coverage_by_group).each do |violation|
+          violations = SimpleCov::CoverageViolations.minimum_by_group(@result, SimpleCov.minimum_coverage_by_group)
+          violations.each do |violation|
             key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
             bucket = formatted_result[:errors][:minimum_coverage_by_group] ||= {}
             group_errors = bucket[violation.fetch(:group_name)] ||= {}
@@ -178,8 +181,12 @@ module SimpleCov
 
         def format_coverage_statistics(statistics)
           result = {lines: format_line_statistic(statistics[:line])}
-          result[:branches] = format_single_statistic(statistics[:branch]) if SimpleCov.branch_coverage? && statistics[:branch]
-          result[:methods] = format_single_statistic(statistics[:method]) if SimpleCov.method_coverage? && statistics[:method]
+          if SimpleCov.branch_coverage? && statistics[:branch]
+            result[:branches] = format_single_statistic(statistics[:branch])
+          end
+          if SimpleCov.method_coverage? && statistics[:method]
+            result[:methods] = format_single_statistic(statistics[:method])
+          end
           result
         end
 

@@ -13,7 +13,8 @@ module SimpleCov
 
     # Returns the original Coverage.result used for this instance of SimpleCov::Result
     attr_reader :original_result
-    # Returns all files that are applicable to this result (sans filters!) as instances of SimpleCov::SourceFile. Aliased as :source_files
+    # Returns all files that are applicable to this result (sans filters!) as instances of
+    # SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
     alias source_files files
     # Explicitly set the Time this result has been created

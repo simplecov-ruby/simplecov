@@ -62,7 +62,11 @@ describe SimpleCov::Result do
         expect(result.least_covered_file).to match(/sample_controller.rb/)
       end
 
-      %i[covered_percent covered_percentages least_covered_file covered_strength covered_lines missed_lines total_lines].each do |msg|
+      delegated_messages = %i[
+        covered_percent covered_percentages least_covered_file covered_strength
+        covered_lines missed_lines total_lines
+      ]
+      delegated_messages.each do |msg|
         it "responds to #{msg}" do
           expect(result).to respond_to(msg)
         end
