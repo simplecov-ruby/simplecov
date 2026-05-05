@@ -3,20 +3,18 @@
 require "helper"
 require "fileutils"
 
+NOCOV_DEPRECATION_MARKER = "Replace with `# simplecov:disable` / `# simplecov:enable`"
+
+STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
+
+STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
+
+STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
+
 describe SimpleCov::Formatter::JSONFormatter do
-  subject { described_class.new(silent: true) }
+  subject(:formatter) { described_class.new(silent: true) }
 
   let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
-
-  # Prevent stale coverage.json from prior tests from triggering the
-  # concurrent-overwrite warning.
-  before { FileUtils.rm_f("tmp/coverage/coverage.json") }
-
-  # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
-  # concurrent-overwrite checks have a reference point.
-  before { SimpleCov.process_start_time = Time.now }
-  after  { SimpleCov.process_start_time = nil }
-
   let(:result) do
     res = SimpleCov::Result.new({
                                   source_fixture("json/sample.rb") => {"lines" => [
@@ -28,17 +26,28 @@ describe SimpleCov::Formatter::JSONFormatter do
     res
   end
 
+  # Prevent stale coverage.json from prior tests from triggering the
+  # concurrent-overwrite warning.
+  before do
+    FileUtils.rm_f("tmp/coverage/coverage.json")
+    SimpleCov.process_start_time = Time.now
+  end
+
+  # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
+  # concurrent-overwrite checks have a reference point.
+  after { SimpleCov.process_start_time = nil }
+
   describe "format" do
     context "with line coverage" do
       it "includes line coverage and covered_percent per file" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output).to eq(json_result("sample"))
       end
 
       it "preserves raw percentage and strength precision" do
         unrounded_result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
 
-        subject.format(unrounded_result)
+        formatter.format(unrounded_result)
 
         expect(json_output.fetch("total").fetch("lines")).to include(
           "percent" => 66.66666666666667,
@@ -82,7 +91,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "includes branch data and branches_covered_percent per file" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_branch"))
       end
     end
@@ -120,7 +129,7 @@ describe SimpleCov::Formatter::JSONFormatter do
 
       # total.methods.total is 3, not 4, because Foo#skipped is inside a :nocov: block
       it "includes methods array and methods_covered_percent per file" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_method"))
       end
     end
@@ -131,7 +140,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "reports the violation in errors" do
-        subject.format(result)
+        formatter.format(result)
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage" => {"lines" => {"expected" => 95, "actual" => 90.0}}
@@ -145,7 +154,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "returns empty errors" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output.fetch("errors")).to eq({})
       end
     end
@@ -156,7 +165,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "reports files below the threshold in errors" do
-        subject.format(result)
+        formatter.format(result)
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
@@ -188,7 +197,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "reports files below the threshold in errors" do
-        subject.format(result)
+        formatter.format(result)
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
@@ -204,7 +213,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "returns empty errors" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output.fetch("errors")).to eq({})
       end
     end
@@ -221,9 +230,9 @@ describe SimpleCov::Formatter::JSONFormatter do
                                       ]}
                                     })
 
-        mock_file_list = double("File List",
-                                coverage_statistics: {line: line_stats},
-                                map: [sample_filename])
+        mock_file_list = instance_double(SimpleCov::FileList,
+                                         coverage_statistics: {line: line_stats},
+                                         map: [sample_filename])
         allow(res).to receive_messages(groups: {"Models" => mock_file_list})
         res
       end
@@ -233,7 +242,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "reports the group violation in errors" do
-        subject.format(result)
+        formatter.format(result)
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_group" => {
@@ -250,7 +259,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "reports the drop in errors" do
-        subject.format(result)
+        formatter.format(result)
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "maximum_coverage_drop" => {
@@ -267,7 +276,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "returns empty errors" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output.fetch("errors")).to eq({})
       end
     end
@@ -279,7 +288,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "returns empty errors" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output.fetch("errors")).to eq({})
       end
     end
@@ -301,9 +310,9 @@ describe SimpleCov::Formatter::JSONFormatter do
         # right now SimpleCov works mostly on global state, hence setting the groups that way
         # would be global state --> Mocking is better here. `map` ignores the block
         # and returns the stubbed value — so stub it to the project-relative path directly.
-        mock_file_list = double("File List",
-                                coverage_statistics: {line: line_stats},
-                                map: [project_fixture_filename("json/sample.rb")])
+        mock_file_list = instance_double(SimpleCov::FileList,
+                                         coverage_statistics: {line: line_stats},
+                                         map: [project_fixture_filename("json/sample.rb")])
         allow(res).to receive_messages(
           groups: {"My Group" => mock_file_list}
         )
@@ -311,7 +320,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "displays groups correctly in the JSON" do
-        subject.format(result)
+        formatter.format(result)
         expect(json_output).to eq(json_result("sample_groups"))
       end
     end
@@ -326,7 +335,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "warns that a concurrent process may have written it" do
-        stderr = capture_stderr { subject.format(result) }
+        stderr = capture_stderr { formatter.format(result) }
 
         expect(stderr).to include("simplecov:")
         expect(stderr).to include(future_timestamp)
@@ -334,7 +343,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "still writes the new file" do
-        capture_stderr { subject.format(result) }
+        capture_stderr { formatter.format(result) }
 
         expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601(3))
       end
@@ -344,7 +353,6 @@ describe SimpleCov::Formatter::JSONFormatter do
     # deprecated `# :nocov:` toggle, which writes a one-time deprecation line
     # to stderr the first time the SourceFile is built. Strip it here so the
     # "did the formatter itself emit a warning?" assertions stay focused.
-    NOCOV_DEPRECATION_MARKER = "Replace with `# simplecov:disable` / `# simplecov:enable`"
 
     def reject_nocov_deprecation(stderr)
       stderr.lines.reject { |line| line.include?(NOCOV_DEPRECATION_MARKER) }.join
@@ -358,7 +366,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "does not warn" do
-        stderr = capture_stderr { subject.format(result) }
+        stderr = capture_stderr { formatter.format(result) }
 
         expect(reject_nocov_deprecation(stderr)).to be_empty
       end
@@ -371,7 +379,7 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "does not warn or raise" do
-        stderr = capture_stderr { subject.format(result) }
+        stderr = capture_stderr { formatter.format(result) }
 
         expect(reject_nocov_deprecation(stderr)).to be_empty
       end
@@ -400,12 +408,8 @@ describe SimpleCov::Formatter::JSONFormatter do
     SimpleCov::SourceFile.new(source_fixture(path), []).project_filename
   end
 
-  STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
-  STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
-  STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
-
   def replace_stubs(file)
-    current_working_directory = File.expand_path("..", File.dirname(__FILE__))
+    current_working_directory = File.expand_path("..", source_fixture_base_directory)
     file
       .gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
       .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")

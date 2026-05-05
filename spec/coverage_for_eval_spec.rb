@@ -2,7 +2,7 @@
 
 require "helper"
 
-RSpec.describe "coverage for eval" do
+RSpec.describe "coverage for eval" do # rubocop:disable RSpec/DescribeClass
   if SimpleCov.coverage_for_eval_supported?
     around do |test|
       Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "eval_test")) do
@@ -11,15 +11,14 @@ RSpec.describe "coverage for eval" do
       end
     end
 
-    before do
-      @stdout, @stderr, @status = Open3.capture3(command)
-    end
+    let(:capture) { Open3.capture3(command) }
+    let(:stdout)  { capture[0] }
 
-    context "foo" do
+    context "when foo" do
       let(:command) { "bundle e ruby eval_test.rb" }
 
       it "records coverage for erb" do
-        expect(@stdout).to include("Coverage report generated")
+        expect(stdout).to include("Coverage report generated")
       end
     end
   end

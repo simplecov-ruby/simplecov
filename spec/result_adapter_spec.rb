@@ -4,7 +4,7 @@ require "helper"
 require "coverage"
 
 describe SimpleCov::ResultAdapter do
-  subject { described_class.call(result_set) }
+  subject(:adapter) { described_class.call(result_set) }
 
   let(:existing_file) { source_fixture("app/models/user.rb") }
 
@@ -21,7 +21,7 @@ describe SimpleCov::ResultAdapter do
       end
 
       it "adapts the coverage data to lines format" do
-        lines = subject[existing_file][:lines]
+        lines = adapter[existing_file][:lines]
         expect(lines).to be_an(Array)
         expect(lines[1]).to eq(1)
         expect(lines[2]).to eq(1)
@@ -40,13 +40,13 @@ describe SimpleCov::ResultAdapter do
       end
 
       it "builds a fallback line stub for the missing file" do
-        lines = subject[deleted_file][:lines]
+        lines = adapter[deleted_file][:lines]
         expect(lines[0]).to eq(1)
         expect(lines[2]).to eq(1)
       end
 
       it "still adapts the existing file normally" do
-        lines = subject[existing_file][:lines]
+        lines = adapter[existing_file][:lines]
         expect(lines[1]).to eq(1)
         expect(lines[2]).to eq(1)
       end
@@ -54,6 +54,12 @@ describe SimpleCov::ResultAdapter do
 
     context "when a tracked file is not valid Ruby" do
       let(:non_ruby_file) { source_fixture("non_ruby_config.yml") }
+      let(:result_set) do
+        {
+          existing_file => {oneshot_lines: [2]},
+          non_ruby_file => {oneshot_lines: [1]}
+        }
+      end
 
       before do
         File.write(non_ruby_file, "development: &default\n  adapter: mysql2\n")
@@ -63,20 +69,13 @@ describe SimpleCov::ResultAdapter do
         FileUtils.rm_f(non_ruby_file)
       end
 
-      let(:result_set) do
-        {
-          existing_file => {oneshot_lines: [2]},
-          non_ruby_file => {oneshot_lines: [1]}
-        }
-      end
-
       it "builds a fallback line stub for the non-parseable file" do
-        lines = subject[non_ruby_file][:lines]
+        lines = adapter[non_ruby_file][:lines]
         expect(lines[0]).to eq(1)
       end
 
       it "still adapts the existing file normally" do
-        lines = subject[existing_file][:lines]
+        lines = adapter[existing_file][:lines]
         expect(lines[1]).to eq(1)
       end
     end

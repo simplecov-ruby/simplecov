@@ -5,7 +5,7 @@ require "helper"
 describe SimpleCov do
   skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
 
-  context "profiles" do
+  context "when profiles" do
     let(:config_class) do
       Class.new do
         include SimpleCov::Configuration
@@ -26,16 +26,16 @@ describe SimpleCov do
 
     it "provides a sensible test_frameworks profile" do
       config.load_profile(:test_frameworks)
-      expect(filtered?(config, "foo.rb")).not_to be
-      expect(filtered?(config, "test/foo.rb")).to be
-      expect(filtered?(config, "spec/bar.rb")).to be
+      expect(filtered?(config, "foo.rb")).to be_falsey
+      expect(filtered?(config, "test/foo.rb")).to be_truthy
+      expect(filtered?(config, "spec/bar.rb")).to be_truthy
     end
 
     it "provides a sensible rails profile" do
       config.load_profile(:rails)
-      expect(filtered?(config, "app/models/user.rb")).not_to be
-      expect(filtered?(config, "db/schema.rb")).to be
-      expect(filtered?(config, "config/environment.rb")).to be
+      expect(filtered?(config, "app/models/user.rb")).to be_falsey
+      expect(filtered?(config, "db/schema.rb")).to be_truthy
+      expect(filtered?(config, "config/environment.rb")).to be_truthy
     end
   end
 end

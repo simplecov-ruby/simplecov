@@ -2,6 +2,7 @@ plugins:
   - rubocop-capybara
   - rubocop-performance
   - rubocop-rake
+  - rubocop-rspec
 
 AllCops:
   Exclude:
@@ -105,6 +106,42 @@ Naming/FileName:
   Exclude:
     - "spec/fixtures/utf-8.rb"
     - "lib/simplecov-html.rb"
+
+inherit_mode:
+  merge:
+    - Exclude
+
+# Spec fixtures are byte-stable test inputs (line numbers and `puts`
+# statements matter for coverage assertions), and spec/support/ holds
+# helper modules — neither directory is a real spec suite, so the
+# RSpec department shouldn't touch them. (The fixture rspec runners
+# under spec/fixtures/frameworks/ are intentionally minimal:
+# `expect(1).to eq(2)` is the point.)
+RSpec:
+  Exclude:
+    - "spec/fixtures/**/*"
+    - "spec/support/**/*"
+RSpec/ExpectActual:
+  Exclude:
+    - "spec/fixtures/**/*"
+RSpec/DescribeClass:
+  Exclude:
+    - "spec/fixtures/**/*"
+
+RSpec/ExampleLength:
+  Max: 20 # TODO: Lower to 5
+RSpec/MultipleExpectations:
+  Max: 6 # TODO: Lower to 1
+RSpec/SpecFilePathFormat:
+  # The project layout puts simplecov specs at spec/foo_spec.rb (mirroring
+  # lib/simplecov/foo.rb) rather than spec/simple_cov/foo_spec.rb. Map the
+  # SimpleCov module to an empty path segment so the cop accepts that.
+  CustomTransform:
+    SimpleCov: ''
+RSpec/NestedGroups:
+  Max: 5 # TODO: Lower to 3
+RSpec/MultipleMemoizedHelpers:
+  Max: 11 # TODO: Lower to 5
 
 Style/CollectionMethods:
   Description: Enforces the use of consistent method names from the Enumerable module.

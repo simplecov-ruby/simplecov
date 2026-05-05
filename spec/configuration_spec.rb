@@ -42,9 +42,10 @@ describe SimpleCov::Configuration do
 
     it "still returns the configured token (after the deprecation warning)" do
       capture_stderr { config.nocov_token("skippit") }
-      stderr = capture_stderr { @value = config.nocov_token }
+      value = nil
+      stderr = capture_stderr { value = config.nocov_token }
 
-      expect(@value).to eq "skippit"
+      expect(value).to eq "skippit"
       expect(stderr).to include("[DEPRECATION]") # the read still warns
     end
 
@@ -58,9 +59,10 @@ describe SimpleCov::Configuration do
 
   describe "#current_nocov_token" do
     it "returns the configured token without emitting a deprecation warning" do
-      stderr = capture_stderr { @value = config.current_nocov_token }
+      value = nil
+      stderr = capture_stderr { value = config.current_nocov_token }
 
-      expect(@value).to eq "nocov"
+      expect(value).to eq "nocov"
       expect(stderr).to be_empty
     end
 
@@ -81,7 +83,7 @@ describe SimpleCov::Configuration do
         expect(config.tracked_files).to eq glob
       end
 
-      context "and configured again with nil" do
+      context "when configured again with nil" do
         before { config.track_files(nil) }
 
         it "returns nil" do
@@ -102,13 +104,15 @@ describe SimpleCov::Configuration do
       end
 
       it "does not warn you about your usage" do
-        expect(config).not_to receive(:warn)
+        allow(config).to receive(:warn)
         config.public_send(coverage_setting, 100.00)
+        expect(config).not_to have_received(:warn)
       end
 
       it "warns you about your usage" do
-        expect(config).to receive(:warn).with("The coverage you set for #{coverage_setting} is greater than 100%")
+        allow(config).to receive(:warn)
         config.public_send(coverage_setting, 100.01)
+        expect(config).to have_received(:warn).with("The coverage you set for #{coverage_setting} is greater than 100%")
       end
 
       it "sets the right coverage value when called with a number" do
@@ -177,13 +181,15 @@ describe SimpleCov::Configuration do
       end
 
       it "does not warn you about your usage" do
-        expect(config).not_to receive(:warn)
+        allow(config).to receive(:warn)
         config.minimum_coverage_by_group({"Test Group 1" => 100.00})
+        expect(config).not_to have_received(:warn)
       end
 
       it "warns you about your usage" do
-        expect(config).to receive(:warn).with("The coverage you set for minimum_coverage_by_group is greater than 100%")
+        allow(config).to receive(:warn)
         config.minimum_coverage_by_group({"Test Group 1" => 100.01})
+        expect(config).to have_received(:warn).with("The coverage you set for minimum_coverage_by_group is greater than 100%")
       end
 
       it "sets the right coverage value when called with a number" do
@@ -377,20 +383,20 @@ describe SimpleCov::Configuration do
 
     describe "#enable_for_subprocesses" do
       it "returns false by default" do
-        expect(config.enable_for_subprocesses).to eq false
+        expect(config.enable_for_subprocesses).to be false
       end
 
       it "can be set to true" do
         config.enable_for_subprocesses true
 
-        expect(config.enable_for_subprocesses).to eq true
+        expect(config.enable_for_subprocesses).to be true
       end
 
       it "can be enabled and then disabled again" do
         config.enable_for_subprocesses true
         config.enable_for_subprocesses false
 
-        expect(config.enable_for_subprocesses).to eq false
+        expect(config.enable_for_subprocesses).to be false
       end
     end
 

@@ -6,10 +6,10 @@ require "timeout"
 
 describe SimpleCov::ResultMerger do
   after do
-    FileUtils.rm_f(SimpleCov::ResultMerger.resultset_path)
+    FileUtils.rm_f(described_class.resultset_path)
   end
 
-  let(:resultset1) do
+  let(:first_resultset) do
     {
       source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
       source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
@@ -20,7 +20,7 @@ describe SimpleCov::ResultMerger do
     }
   end
 
-  let(:resultset2) do
+  let(:second_resultset) do
     {
       source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]},
       source_fixture("app/models/user.rb") => {"lines" => [nil, 1, 5, 1, nil, nil, 1, 0, nil, nil]},
@@ -31,7 +31,7 @@ describe SimpleCov::ResultMerger do
     }
   end
 
-  let(:merged_resultset1_and2) do
+  let(:merged_resultsets) do
     {
       source_fixture("sample.rb") => {"lines" => [1, 1, 2, 2, nil, nil, 2, 2, nil, nil]},
       source_fixture("app/models/user.rb") => {"lines" => [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil]},
@@ -44,57 +44,57 @@ describe SimpleCov::ResultMerger do
     }
   end
 
-  let(:result1) { SimpleCov::Result.new(resultset1, command_name: "result1") }
-  let(:result2) { SimpleCov::Result.new(resultset2, command_name: "result2") }
+  let(:first_result) { SimpleCov::Result.new(first_resultset, command_name: "result1") }
+  let(:second_result) { SimpleCov::Result.new(second_resultset, command_name: "result2") }
 
   describe "resultset handling" do
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is empty" do
-      File.open(SimpleCov::ResultMerger.resultset_path, "w+") { |f| f.puts "" }
-      expect(SimpleCov::ResultMerger.read_resultset).to be_empty
+      File.open(described_class.resultset_path, "w+") { |f| f.puts "" }
+      expect(described_class.read_resultset).to be_empty
     end
 
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is not present" do
-      system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
-      expect(SimpleCov::ResultMerger.read_resultset).to be_empty
+      system "rm #{described_class.resultset_path}" if File.exist?(described_class.resultset_path)
+      expect(described_class.read_resultset).to be_empty
     end
   end
 
   describe "basic workings with 2 resultsets" do
     before do
-      system "rm #{SimpleCov::ResultMerger.resultset_path}" if File.exist?(SimpleCov::ResultMerger.resultset_path)
-      SimpleCov::ResultMerger.store_result(result1)
-      SimpleCov::ResultMerger.store_result(result2)
+      system "rm #{described_class.resultset_path}" if File.exist?(described_class.resultset_path)
+      described_class.store_result(first_result)
+      described_class.store_result(second_result)
     end
 
     it "has stored data in resultset_path JSON file" do
-      expect(File.readlines(SimpleCov::ResultMerger.resultset_path).length).to be > 50
+      expect(File.readlines(described_class.resultset_path).length).to be > 50
     end
 
     it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
-      expect(SimpleCov::ResultMerger.read_resultset.keys.sort).to eq %w[result1 result2]
+      expect(described_class.read_resultset.keys.sort).to eq %w[result1 result2]
     end
 
     it "returns proper values for merged_result" do
-      result = SimpleCov::ResultMerger.merged_result
+      result = described_class.merged_result
 
       expect_resultset_1_and_2_merged(result.to_hash)
     end
 
     context "with second result way above the merge_timeout" do
-      let(:result2) { outdated(super()) }
+      let(:second_result) { outdated(super()) }
 
       before do
-        SimpleCov::ResultMerger.store_result(result2)
+        described_class.store_result(second_result)
       end
 
       it "has only one result in SimpleCov::ResultMerger.results" do
         # second result does not appear in the merged results
-        merged_coverage = SimpleCov::ResultMerger.merged_result
+        merged_coverage = described_class.merged_result
 
         expect(merged_coverage.command_name).to eq "result1"
-        expect(merged_coverage.original_result).to eq resultset1
+        expect(merged_coverage.original_result).to eq first_resultset
       end
     end
   end
@@ -106,61 +106,61 @@ describe SimpleCov::ResultMerger do
 
     describe "merging behavior" do
       before do
-        store_result(result1, path: resultset1_path)
-        store_result(result2, path: resultset2_path)
+        store_result(first_result, path: resultset1_path)
+        store_result(second_result, path: resultset2_path)
       end
 
       after do
         FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
       end
 
-      context "2 normal results" do
+      context "when 2 normal results" do
         it "correctly merges the 2 results" do
-          result = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+          result = described_class.merge_and_store(resultset1_path, resultset2_path)
           expect_resultset_1_and_2_merged(result.to_hash)
         end
 
         it "has the result stored" do
-          SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+          described_class.merge_and_store(resultset1_path, resultset2_path)
 
-          expect_resultset_1_and_2_merged(SimpleCov::ResultMerger.read_resultset)
+          expect_resultset_1_and_2_merged(described_class.read_resultset)
         end
       end
 
-      context "1 resultset is outdated" do
-        let(:result1) { outdated(super()) }
+      context "when 1 resultset is outdated" do
+        let(:first_result) { outdated(super()) }
 
         it "completely omits the result from the merge" do
-          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path).to_hash
+          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path).to_hash
 
           expect(result_hash.keys).to eq ["result2"]
 
           merged_coverage = result_hash.fetch("result2").fetch("coverage")
-          expect(merged_coverage).to eq(resultset2)
+          expect(merged_coverage).to eq(second_resultset)
         end
 
         it "includes it when we say ignore_timeout: true" do
-          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
+          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
 
           expect_resultset_1_and_2_merged(result_hash)
         end
       end
 
-      context "both resultsets outdated" do
-        let(:result1) { outdated(super()) }
-        let(:result2) { outdated(super()) }
+      context "when both resultsets outdated" do
+        let(:first_result) { outdated(super()) }
+        let(:second_result) { outdated(super()) }
 
         it "completely omits the result from the merge" do
-          allow(SimpleCov::ResultMerger).to receive(:store)
+          allow(described_class).to receive(:store)
 
-          result = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path)
+          result = described_class.merge_and_store(resultset1_path, resultset2_path)
 
-          expect(result).to eq nil
-          expect(SimpleCov::ResultMerger).not_to have_received(:store)
+          expect(result).to be_nil
+          expect(described_class).not_to have_received(:store)
         end
 
         it "includes both when we say ignore_timeout: true" do
-          result_hash = SimpleCov::ResultMerger.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
+          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
 
           expect_resultset_1_and_2_merged(result_hash)
         end
@@ -201,7 +201,7 @@ describe SimpleCov::ResultMerger do
         File.open(method_resultset1_path, "w+") { |f| f.puts JSON.pretty_generate(r1.to_hash) }
         File.open(method_resultset2_path, "w+") { |f| f.puts JSON.pretty_generate(r2.to_hash) }
 
-        result = SimpleCov::ResultMerger.merge_and_store(method_resultset1_path, method_resultset2_path)
+        result = described_class.merge_and_store(method_resultset1_path, method_resultset2_path)
         methods = result.original_result.fetch(source_fixture("methods.rb"))["methods"]
 
         # After JSON round-trip, array keys become string representations.
@@ -210,7 +210,7 @@ describe SimpleCov::ResultMerger do
       end
     end
 
-    context "pre 0.18 result format" do
+    context "when pre 0.18 result format" do
       let(:file_path) { "old_resultset.json" }
       let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }
 
@@ -231,7 +231,7 @@ describe SimpleCov::ResultMerger do
       end
 
       it "gets the same content back but under \"lines\"" do
-        result = SimpleCov::ResultMerger.merge_and_store(file_path)
+        result = described_class.merge_and_store(file_path)
 
         expect(result.original_result).to eq(
           source_fixture("three.rb") => {"lines" => [nil, 1, 2]}
@@ -242,29 +242,31 @@ describe SimpleCov::ResultMerger do
 
   describe ".store_result" do
     it "refreshes the resultset" do
-      set = SimpleCov::ResultMerger.read_resultset
-      SimpleCov::ResultMerger.store_result({})
-      new_set = SimpleCov::ResultMerger.read_resultset
+      set = described_class.read_resultset
+      described_class.store_result({})
+      new_set = described_class.read_resultset
       expect(new_set).not_to be(set)
     end
 
     it "persists to disk" do
-      SimpleCov::ResultMerger.store_result("a" => [1])
+      described_class.store_result("a" => [1])
 
-      new_set = SimpleCov::ResultMerger.read_resultset
+      new_set = described_class.read_resultset
       expect(new_set).to eq("a" => [1])
     end
 
     it "synchronizes writes" do
-      expect(SimpleCov::ResultMerger).to receive(:synchronize_resultset)
-      SimpleCov::ResultMerger.store_result({})
+      allow(described_class).to receive(:synchronize_resultset)
+      described_class.store_result({})
+      expect(described_class).to have_received(:synchronize_resultset)
     end
   end
 
   describe ".resultset" do
     it "synchronizes reads" do
-      expect(SimpleCov::ResultMerger).to receive(:synchronize_resultset)
-      SimpleCov::ResultMerger.read_resultset
+      allow(described_class).to receive(:synchronize_resultset)
+      described_class.read_resultset
+      expect(described_class).to have_received(:synchronize_resultset)
     end
   end
 
@@ -274,8 +276,8 @@ describe SimpleCov::ResultMerger do
       # `.store_result` wouldn't work
       expect do
         Timeout.timeout(1) do
-          SimpleCov::ResultMerger.synchronize_resultset do
-            SimpleCov::ResultMerger.synchronize_resultset do
+          described_class.synchronize_resultset do
+            described_class.synchronize_resultset do
               # nothing
             end
           end
@@ -303,7 +305,7 @@ describe SimpleCov::ResultMerger do
       CODE
 
       IO.popen("ruby -e #{Shellwords.escape(test_script)} 2>/dev/null") do |other_process|
-        SimpleCov::ResultMerger.synchronize_resultset do
+        described_class.synchronize_resultset do
           # wait until the child process is going, and then wait some more
           # so we can be sure it blocks on the lock we already have.
           sleep 0.1 until other_process.gets == "running\n"
@@ -335,6 +337,6 @@ private
 
   def expect_resultset_1_and_2_merged(result_hash)
     merged_coverage = result_hash.fetch("result1, result2").fetch("coverage")
-    expect(merged_coverage).to eq(merged_resultset1_and2)
+    expect(merged_coverage).to eq(merged_resultsets)
   end
 end

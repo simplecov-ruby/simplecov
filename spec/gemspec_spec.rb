@@ -2,7 +2,7 @@
 
 require "open3"
 
-RSpec.describe "gemspec sanity" do
+RSpec.describe "gemspec sanity" do # rubocop:disable RSpec/DescribeClass
   after do
     File.delete(Dir.glob("simplecov-*.gem").first)
   end

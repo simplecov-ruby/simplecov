@@ -16,6 +16,7 @@ group :development do
     gem "rubocop-capybara"
     gem "rubocop-performance"
     gem "rubocop-rake"
+    gem "rubocop-rspec"
   end
   gem "test-unit"
   # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0

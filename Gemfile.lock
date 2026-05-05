@@ -165,6 +165,9 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
+    rubocop-rspec (3.9.0)
+      lint_roller (~> 1.1)
+      rubocop (~> 1.81)
     ruby-progressbar (1.13.0)
     stringio (3.2.0)
     sys-uname (1.5.1)
@@ -208,6 +211,7 @@ DEPENDENCIES
   rubocop-capybara
   rubocop-performance
   rubocop-rake
+  rubocop-rspec
   simplecov!
   test-unit
   webrick

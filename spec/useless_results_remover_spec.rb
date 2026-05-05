@@ -3,8 +3,8 @@
 require "helper"
 
 describe SimpleCov::UselessResultsRemover do
-  subject do
-    SimpleCov::UselessResultsRemover.call(result_set)
+  subject(:remover) do
+    described_class.call(result_set)
   end
 
   let(:gem_file_path) { "usr/bin/lib/2.5.0/gems/sample-gem/sample.rb" }
@@ -25,11 +25,11 @@ describe SimpleCov::UselessResultsRemover do
 
   it "Result ignore gem file path from result set" do
     expect(result_set[gem_file_path]).to be_a(Hash)
-    expect(subject).not_to have_key(gem_file_path)
+    expect(remover).not_to have_key(gem_file_path)
   end
 
   it "still retains the app path" do
-    expect(subject).to have_key(source_path)
-    expect(subject[source_path]["lines"]).to be_a(Array)
+    expect(remover).to have_key(source_path)
+    expect(remover[source_path]["lines"]).to be_a(Array)
   end
 end

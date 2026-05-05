@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
-  subject { described_class.new(result, minimum_coverage) }
+  subject(:check) { described_class.new(result, minimum_coverage) }
 
   let(:result) do
     instance_double(SimpleCov::Result, coverage_statistics: stats)
@@ -15,25 +15,25 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
     }
   end
 
-  context "everything exactly ok" do
+  context "when everything exactly ok" do
     let(:minimum_coverage) { {line: 80.0} }
 
     it { is_expected.not_to be_failing }
   end
 
-  context "coverage violated" do
+  context "when coverage violated" do
     let(:minimum_coverage) { {line: 90.0} }
 
     it { is_expected.to be_failing }
   end
 
-  context "coverage slightly violated" do
+  context "when coverage slightly violated" do
     let(:minimum_coverage) { {line: 80.01} }
 
     it { is_expected.to be_failing }
   end
 
-  context "one criterion violated" do
+  context "when one criterion violated" do
     let(:minimum_coverage) { {line: 80.0, branch: 90.0} }
 
     it { is_expected.to be_failing }

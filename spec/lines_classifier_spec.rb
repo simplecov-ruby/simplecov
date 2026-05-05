@@ -4,10 +4,12 @@ require "helper"
 require "simplecov/lines_classifier"
 
 describe SimpleCov::LinesClassifier do
+  subject(:classifier) { described_class.new }
+
   describe "#classify" do
     describe "relevant lines" do
       it "determines code as relevant" do
-        classified_lines = subject.classify [
+        classified_lines = classifier.classify [
           "module Foo",
           "  class Baz",
           "    def Bar",
@@ -22,7 +24,7 @@ describe SimpleCov::LinesClassifier do
       end
 
       it "determines invalid UTF-8 byte sequences as relevant" do
-        classified_lines = subject.classify [
+        classified_lines = classifier.classify [
           "bytes = \"\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\""
         ]
 
@@ -33,7 +35,7 @@ describe SimpleCov::LinesClassifier do
 
     describe "not-relevant lines" do
       it "determines whitespace is not-relevant" do
-        classified_lines = subject.classify [
+        classified_lines = classifier.classify [
           "",
           "  ",
           "\t\t"
@@ -45,7 +47,7 @@ describe SimpleCov::LinesClassifier do
 
       describe "comments" do
         it "determines comments are not-relevant" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "#Comment",
             " # Leading space comment",
             "\t# Leading tab comment"
@@ -56,7 +58,7 @@ describe SimpleCov::LinesClassifier do
         end
 
         it "doesn't mistake interpolation as a comment" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             'puts "#{var}"' # rubocop:disable Lint/InterpolationCheck
           ]
 
@@ -67,7 +69,7 @@ describe SimpleCov::LinesClassifier do
 
       describe ":nocov: blocks" do
         it "determines :nocov: blocks are not-relevant" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "# :nocov:",
             "def hi",
             "end",
@@ -79,7 +81,7 @@ describe SimpleCov::LinesClassifier do
         end
 
         it "determines all lines after a non-closing :nocov: as not-relevant" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "# :nocov:",
             "puts 'Not relevant'",
             "# :nocov:",
@@ -100,7 +102,7 @@ describe SimpleCov::LinesClassifier do
 
       describe "# simplecov:disable line / enable line directives" do
         it "marks lines inside a paired disable/enable block as not-relevant" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "puts 'before'",
             "# simplecov:disable line",
             "puts 'inside 1'",
@@ -115,7 +117,7 @@ describe SimpleCov::LinesClassifier do
         end
 
         it "treats an unclosed disable as running through end of file" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "puts 'before'",
             "# simplecov:disable",
             "puts 'after 1'",
@@ -127,7 +129,7 @@ describe SimpleCov::LinesClassifier do
         end
 
         it "applies inline disable to only the trailing line" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "puts 'kept'",
             "raise 'absurd' # simplecov:disable",
             "puts 'kept too'"
@@ -139,7 +141,7 @@ describe SimpleCov::LinesClassifier do
         end
 
         it "does not affect line classification when only branch is disabled" do
-          classified_lines = subject.classify [
+          classified_lines = classifier.classify [
             "# simplecov:disable branch",
             "puts 'still relevant'",
             "# simplecov:enable branch"

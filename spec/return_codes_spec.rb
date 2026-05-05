@@ -4,8 +4,8 @@ require "helper"
 
 # Make sure that exit codes of tests are propagated properly
 # See https://github.com/simplecov-ruby/simplecov/issues/5
-describe "return codes" do
-  context "inside fixtures/frameworks" do
+describe "return codes" do # rubocop:disable RSpec/DescribeClass
+  context "when inside fixtures/frameworks" do
     around do |test|
       Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "frameworks")) do
         FileUtils.rm_rf("./coverage")
@@ -13,31 +13,31 @@ describe "return codes" do
       end
     end
 
-    before do
-      @stdout, @stderr, @status = Open3.capture3(command)
-    end
+    let(:capture)         { Open3.capture3(command) }
+    let(:captured_stderr) { capture[1] }
+    let(:status)          { capture[2] }
 
     shared_examples "good tests" do
       it "has a zero exit status" do
-        expect(@status.exitstatus).to be_zero
+        expect(status.exitstatus).to be_zero
       end
 
       it "prints nothing to STDERR" do
-        expect(@stderr).to be_empty
+        expect(captured_stderr).to be_empty
       end
     end
 
     shared_examples "bad tests" do
       context "with default configuration" do
         it "has a non-zero exit status" do
-          expect(@status.exitstatus).not_to be_zero
+          expect(status.exitstatus).not_to be_zero
         end
 
         it "prints a message to STDERR" do
           # https://github.com/oracle/truffleruby/issues/3535
           skip "fails on truffleruby" if RUBY_ENGINE == "truffleruby" && Object::Object::RUBY_ENGINE_VERSION < "24.1" && command.include?("testunit_bad.rb")
 
-          expect(@stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
+          expect(captured_stderr).to match(/stopped.+SimpleCov.+previous.+error/i)
         end
       end
 
@@ -45,11 +45,11 @@ describe "return codes" do
         let(:command) { "PRINT_ERROR_STATUS=false #{super()}" }
 
         it "has a non-zero exit status" do
-          expect(@status.exitstatus).not_to be_zero
+          expect(status.exitstatus).not_to be_zero
         end
 
         it "does not print anything to STDERR" do
-          expect(@stderr).to be_empty
+          expect(captured_stderr).to be_empty
         end
       end
     end

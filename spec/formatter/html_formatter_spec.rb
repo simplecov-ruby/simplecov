@@ -102,8 +102,8 @@ describe SimpleCov::Formatter::HTMLFormatter do
       meta = coverage_data["meta"]
 
       expect(meta).to include("simplecov_version", "command_name", "project_name", "timestamp", "root")
-      expect([true, false]).to include(meta["branch_coverage"])
-      expect([true, false]).to include(meta["method_coverage"])
+      expect(meta["branch_coverage"]).to be(true).or be(false)
+      expect(meta["method_coverage"]).to be(true).or be(false)
     end
   end
 
