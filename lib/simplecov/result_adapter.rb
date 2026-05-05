@@ -52,15 +52,15 @@ module SimpleCov
       return unless cover_statistic.key?(:oneshot_lines)
 
       oneshot_lines = cover_statistic.delete(:oneshot_lines)
-      line_stub = begin
-        Coverage.line_stub(file_name)
-      rescue Errno::ENOENT, SyntaxError
-        Array.new(oneshot_lines.max || 0, nil)
-      end
-      oneshot_lines.each do |covered_line|
-        line_stub[covered_line - 1] = 1
-      end
+      line_stub     = build_line_stub(file_name, oneshot_lines)
+      oneshot_lines.each { |covered_line| line_stub[covered_line - 1] = 1 }
       cover_statistic[:lines] = line_stub
+    end
+
+    def build_line_stub(file_name, oneshot_lines)
+      Coverage.line_stub(file_name)
+    rescue Errno::ENOENT, SyntaxError
+      Array.new(oneshot_lines.max || 0, nil)
     end
   end
 end

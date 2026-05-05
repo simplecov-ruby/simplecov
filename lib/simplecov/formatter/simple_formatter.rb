@@ -8,17 +8,15 @@ module SimpleCov
     class SimpleFormatter
       # Takes a SimpleCov::Result and generates a string out of it
       def format(result)
-        output = +""
-        result.groups.each do |name, files|
-          output << "Group: #{name}\n"
-          output << ("=" * 40)
-          output << "\n"
-          files.each do |file|
-            output << "#{file.filename} (coverage: #{file.covered_percent.floor(2)}%)\n"
-          end
-          output << "\n"
-        end
-        output
+        result.groups.map { |name, files| format_group(name, files) }.join
+      end
+
+    private
+
+      def format_group(name, files)
+        header = "Group: #{name}\n#{'=' * 40}\n"
+        body   = files.map { |file| "#{file.filename} (coverage: #{file.covered_percent.floor(2)}%)\n" }.join
+        "#{header}#{body}\n"
       end
     end
   end

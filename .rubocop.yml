@@ -76,11 +76,6 @@ Metrics/BlockNesting:
 Metrics/ClassLength:
   Max: 300
 
-Metrics/MethodLength:
-  Description: Checks if the length of a method exceeds some maximum value.
-  CountComments: false
-  Max: 12 # TODO: Lower to 10
-
 Style/Next:
   Description: Prefer `if` guards over `next` inside loops for readability.
   Enabled: false

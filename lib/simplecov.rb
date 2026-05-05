@@ -405,17 +405,15 @@ module SimpleCov
     # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
     #
     def add_not_loaded_files(result)
-      not_loaded_files = Set.new
+      return [result, Set.new] unless tracked_files
 
-      if tracked_files
-        result = result.dup
-        Dir[tracked_files].each do |file|
-          absolute_path = File.expand_path(file)
-          unless result.key?(absolute_path)
-            result[absolute_path] = SimulateCoverage.call(absolute_path)
-            not_loaded_files << absolute_path
-          end
-        end
+      result = result.dup
+      not_loaded_files = Dir[tracked_files].each_with_object(Set.new) do |file, set|
+        absolute_path = File.expand_path(file)
+        next if result.key?(absolute_path)
+
+        result[absolute_path] = SimulateCoverage.call(absolute_path)
+        set << absolute_path
       end
 
       [result, not_loaded_files]

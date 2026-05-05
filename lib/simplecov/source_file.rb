@@ -388,15 +388,18 @@ module SimpleCov
     def scan_quoted_string(scanner)
       string = +""
       until scanner.scan(/"/)
-        if scanner.scan(/\\(.)/)
-          string << scanner[1]
-        elsif scanner.scan(/[^"\\]+/)
-          string << scanner.matched
-        else
-          break
-        end
+        chunk = scan_quoted_string_chunk(scanner)
+        break if chunk.nil?
+
+        string << chunk
       end
       string
+    end
+
+    def scan_quoted_string_chunk(scanner)
+      return scanner[1] if scanner.scan(/\\(.)/)
+
+      scanner.matched  if scanner.scan(/[^"\\]+/)
     end
     # rubocop:enable Style/RedundantRegexpArgument
 

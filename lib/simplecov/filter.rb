@@ -35,19 +35,19 @@ module SimpleCov
     end
 
     def self.class_for_argument(filter_argument)
-      case filter_argument
-      when String
-        SimpleCov::StringFilter
-      when Regexp
-        SimpleCov::RegexFilter
-      when Array
-        SimpleCov::ArrayFilter
-      when Proc
-        SimpleCov::BlockFilter
-      else
-        raise ArgumentError, "You have provided an unrecognized filter type"
-      end
+      filter_classes_by_argument_type.find { |type, _| filter_argument.is_a?(type) }&.last ||
+        raise(ArgumentError, "You have provided an unrecognized filter type")
     end
+
+    def self.filter_classes_by_argument_type
+      @filter_classes_by_argument_type ||= {
+        String => SimpleCov::StringFilter,
+        Regexp => SimpleCov::RegexFilter,
+        Array  => SimpleCov::ArrayFilter,
+        Proc   => SimpleCov::BlockFilter
+      }.freeze
+    end
+    private_class_method :filter_classes_by_argument_type
   end
 
   class StringFilter < SimpleCov::Filter
@@ -63,23 +63,26 @@ module SimpleCov
   private
 
     def segment_pattern
-      @segment_pattern ||= begin
-        normalized = filter_argument.delete_prefix("/")
-        escaped = Regexp.escape(normalized)
-        boundary = '(?:\A|/)'
-        if normalized.include?(".")
-          # Contains a dot — looks like a filename pattern. Allow substring
-          # match within the last path segment (e.g. "test.rb" matches
-          # "faked_test.rb") while still anchoring to a segment boundary.
-          /#{boundary}[^\/]*#{escaped}/
-        elsif normalized.end_with?("/")
-          # Trailing slash signals directory-only matching
-          /#{boundary}#{escaped}/
-        else
-          # No dot — looks like a directory or path. Require segment-boundary
-          # match so "lib" matches "lib/" but not "library/".
-          /#{boundary}#{escaped}(?=[\/.]|\z)/
-        end
+      @segment_pattern ||= compute_segment_pattern
+    end
+
+    def compute_segment_pattern
+      normalized = filter_argument.delete_prefix("/")
+      escaped    = Regexp.escape(normalized)
+      boundary   = '(?:\A|/)'
+
+      if normalized.include?(".")
+        # Filename pattern (e.g. "test.rb" matches "faked_test.rb"): allow
+        # substring match within the last path segment, anchored to a
+        # segment boundary.
+        /#{boundary}[^\/]*#{escaped}/
+      elsif normalized.end_with?("/")
+        # Trailing slash signals directory-only matching.
+        /#{boundary}#{escaped}/
+      else
+        # Directory or path: require a segment-boundary match so "lib"
+        # matches "lib/" but not "library/".
+        /#{boundary}#{escaped}(?=[\/.]|\z)/
       end
     end
   end

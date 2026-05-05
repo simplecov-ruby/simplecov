@@ -142,15 +142,17 @@ module SimpleCov
           command_name, data = result.to_hash.first
           new_resultset[command_name] = data
 
-          # Write to a temp file first, then atomically rename to avoid
-          # other processes reading a truncated/incomplete .resultset.json
-          temp_path = "#{resultset_path}.#{Process.pid}.tmp"
-          File.open(temp_path, "w") do |f_|
-            f_.puts JSON.pretty_generate(new_resultset)
-          end
-          File.rename(temp_path, resultset_path)
+          atomic_write_resultset(new_resultset)
         end
         true
+      end
+
+      # Write to a temp file first, then atomically rename to avoid other
+      # processes reading a truncated/incomplete .resultset.json.
+      def atomic_write_resultset(resultset)
+        temp_path = "#{resultset_path}.#{Process.pid}.tmp"
+        File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(resultset) }
+        File.rename(temp_path, resultset_path)
       end
 
       # Ensure only one process is reading or writing the resultset at any
