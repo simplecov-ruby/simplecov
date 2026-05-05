@@ -15,8 +15,8 @@ Then /^I should see the groups:$/ do |table|
         expect(find(".covered_percent", visible: :all).text).to include(group["coverage"])
       else
         with_scope "h2" do
-          expect(page).to have_content(group["name"])
-          expect(page).to have_content(group["coverage"])
+          expect(page).to have_text(group["name"])
+          expect(page).to have_text(group["coverage"])
         end
       end
     end
@@ -122,8 +122,8 @@ end
 When /^I open the detailed view for "(.+)"$/ do |file_path|
   click_link(file_path, class: "src_link", title: file_path)
 
-  expect(page).to have_css("#source-dialog[open]", visible: true)
-  expect(page).to have_css("#source-dialog-title", visible: true, text: file_path)
+  expect(page).to have_css("#source-dialog[open]", visible: :visible)
+  expect(page).to have_css("#source-dialog-title", visible: :visible, text: file_path)
 end
 
 When "I close the detailed view" do

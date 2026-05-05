@@ -1,4 +1,5 @@
 plugins:
+  - rubocop-capybara
   - rubocop-minitest
   - rubocop-rake
 
