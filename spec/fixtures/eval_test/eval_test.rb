@@ -1,4 +1,6 @@
 require "simplecov"
+require "erb" # ERB was extracted from stdlib in Ruby 3.x
+
 SimpleCov.enable_coverage_for_eval
 SimpleCov.start "rails"
 

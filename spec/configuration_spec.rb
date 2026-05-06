@@ -401,6 +401,35 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#coverage_for_eval_enabled?" do
+      it "is false by default" do
+        expect(config.coverage_for_eval_enabled?).to be false
+      end
+    end
+
+    describe "#enable_coverage_for_eval" do
+      context "when the runtime supports eval coverage" do
+        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
+
+        it "flips coverage_for_eval_enabled? to true" do
+          config.enable_coverage_for_eval
+
+          expect(config.coverage_for_eval_enabled?).to be true
+        end
+      end
+
+      context "when the runtime does not support eval coverage" do
+        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(false) }
+
+        it "leaves the flag false and warns" do
+          stderr = capture_stderr { config.enable_coverage_for_eval }
+
+          expect(config.coverage_for_eval_enabled?).to be false
+          expect(stderr).to include("Coverage for eval is not available")
+        end
+      end
+    end
+
     describe "#primary_coverage" do
       context "when branch coverage is enabled" do
         before { config.enable_coverage :branch }
