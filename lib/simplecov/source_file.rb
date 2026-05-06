@@ -10,8 +10,8 @@ module SimpleCov
   # source lines and featuring helpers to interpret that data.
   #
   class SourceFile
-    SHEBANG_REGEX = /\A#!/.freeze
-    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/.freeze
+    SHEBANG_REGEX = /\A#!/
+    RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/
 
     # The full path to this source file (e.g. /User/colszowka/projects/simplecov/lib/simplecov/source_file.rb)
     attr_reader :filename

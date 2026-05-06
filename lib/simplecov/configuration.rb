@@ -408,8 +408,8 @@ module SimpleCov
     # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
     #   on how to define your own filter classes
     #
-    def add_filter(filter_argument = nil, &filter_proc)
-      filters << parse_filter(filter_argument, &filter_proc)
+    def add_filter(filter_argument = nil, &)
+      filters << parse_filter(filter_argument, &)
     end
 
     #
@@ -417,8 +417,8 @@ module SimpleCov
     # argument is the desired group name and files PASSING the filter end up in the group
     # (while filters exclude when the filter is applicable).
     #
-    def add_group(group_name, filter_argument = nil, &filter_proc)
-      groups[group_name] = parse_filter(filter_argument, &filter_proc)
+    def add_group(group_name, filter_argument = nil, &)
+      groups[group_name] = parse_filter(filter_argument, &)
     end
 
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch method oneshot_line].freeze

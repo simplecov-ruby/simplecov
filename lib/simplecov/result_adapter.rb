@@ -37,7 +37,7 @@ module SimpleCov
     # Address widths vary by runtime (32-bit hosts: 8 hex chars; 64-bit
     # CRuby: 16; some JVM/TruffleRuby formats may differ), so match any
     # length of hex digits and collapse to a single placeholder.
-    ADDRESS_PATTERN = /0x\h+/.freeze
+    ADDRESS_PATTERN = /0x\h+/
     private_constant :ADDRESS_PATTERN
 
     ADDRESS_PLACEHOLDER = "0x0"

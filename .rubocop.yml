@@ -16,7 +16,7 @@ AllCops:
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.1
   NewCops: enable
 
 Layout/AccessModifierIndentation:

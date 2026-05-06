@@ -2,8 +2,8 @@
 
 # Cucumber world helpers for scoping Capybara assertions to a selector.
 module WithinHelpers
-  def with_scope(locator, &block)
-    locator ? within(locator, &block) : yield
+  def with_scope(locator, &)
+    locator ? within(locator, &) : yield
   end
 end
 World(WithinHelpers)

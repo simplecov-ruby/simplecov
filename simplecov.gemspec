@@ -34,7 +34,7 @@ Gem::Specification.new do |gem|
     "rubygems_mfa_required" => "true"
   }
 
-  gem.required_ruby_version = ">= 2.7"
+  gem.required_ruby_version = ">= 3.1"
 
   gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
   gem.require_paths = ["lib"]

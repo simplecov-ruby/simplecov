@@ -43,12 +43,12 @@ module SimpleCov
     #
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
-    def start(profile = nil, &block)
+    def start(profile = nil, &)
       require "coverage"
       warn_if_jruby_full_trace_disabled
-      initial_setup(profile, &block)
+      initial_setup(profile, &)
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
-                                              ::Process.respond_to?(:fork)
+                                              ::Process.respond_to?(:_fork)
 
       make_parallel_tests_available
 
@@ -336,7 +336,7 @@ module SimpleCov
 
     #
     # Trigger Coverage.start with the configured criteria. Every supported
-    # runtime (CRuby >= 2.7, JRuby >= 9.4, TruffleRuby >= 22) accepts the
+    # runtime (CRuby >= 3.1, JRuby >= 9.4, TruffleRuby >= 22) accepts the
     # criteria-hash form, so no compatibility fallback is needed.
     #
     def start_coverage_measurement

@@ -937,7 +937,7 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 ## Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 2.5+ and JRuby 9.4+.
+SimpleCov is built in [Continuous Integration] on Ruby 3.1+ and JRuby 9.4+.
 
 Note for JRuby => You need to pass JRUBY_OPTS="--debug" or create .jrubyrc and add debug.fullTrace=true
 

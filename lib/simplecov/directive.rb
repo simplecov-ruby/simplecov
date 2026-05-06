@@ -38,15 +38,15 @@ module SimpleCov
   class Directive
     CATEGORIES = %i[line branch method].freeze
 
-    CATEGORY_PATTERN = "(?:#{CATEGORIES.join('|')})"
-    CATEGORIES_PATTERN = "(?:#{CATEGORY_PATTERN}(?:\\s*,\\s*#{CATEGORY_PATTERN})*)"
+    CATEGORY_PATTERN = "(?:#{CATEGORIES.join('|')})".freeze
+    CATEGORIES_PATTERN = "(?:#{CATEGORY_PATTERN}(?:\\s*,\\s*#{CATEGORY_PATTERN})*)".freeze
     PATTERN = /
       \#\s*simplecov\s*:\s*
       (?<mode>disable|enable)\b
       (?:\s+(?<categories>#{CATEGORIES_PATTERN}))?
       .*?
       \s*\z
-    /x.freeze
+    /x
 
     attr_reader :line_number, :mode, :categories
 
