@@ -348,20 +348,12 @@ module SimpleCov
     end
 
     #
-    # Trigger Coverage.start depends on given config coverage_criterion
-    #
-    # With Positive branch it supports all coverage measurement types
-    # With Negative branch it supports only line coverage measurement type
+    # Trigger Coverage.start with the configured criteria. Every supported
+    # runtime (CRuby >= 2.7, JRuby >= 9.4, TruffleRuby >= 22) accepts the
+    # criteria-hash form, so no compatibility fallback is needed.
     #
     def start_coverage_measurement
-      # CRuby's `Coverage.start` accepts a criteria hash since 2.5; alternate
-      # engines (older JRuby/TruffleRuby) may still ship the no-arg form, so
-      # fall back when the runtime doesn't accept arguments.
-      if coverage_start_arguments_supported?
-        start_coverage_with_criteria
-      else
-        Coverage.start unless coverage_running?
-      end
+      start_coverage_with_criteria
     end
 
     def start_coverage_with_criteria

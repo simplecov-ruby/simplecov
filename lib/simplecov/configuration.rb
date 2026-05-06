@@ -477,19 +477,8 @@ module SimpleCov
       branch_coverage_supported? && coverage_criterion_enabled?(:branch)
     end
 
-    def coverage_start_arguments_supported?
-      # safe to cache as within one process this value should never
-      # change
-      return @coverage_start_arguments_supported if defined?(@coverage_start_arguments_supported)
-
-      @coverage_start_arguments_supported = begin
-        require "coverage"
-        !Coverage.method(:start).arity.zero?
-      end
-    end
-
     def branch_coverage_supported?
-      coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
+      RUBY_ENGINE != "jruby"
     end
 
     def method_coverage?
@@ -497,7 +486,7 @@ module SimpleCov
     end
 
     def method_coverage_supported?
-      coverage_start_arguments_supported? && RUBY_ENGINE != "jruby"
+      RUBY_ENGINE != "jruby"
     end
 
     def coverage_for_eval_supported?

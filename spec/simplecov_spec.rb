@@ -355,7 +355,7 @@ describe SimpleCov do
 
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
-  describe ".start_coverage_measurement", if: described_class.coverage_start_arguments_supported? do
+  describe ".start_coverage_measurement" do
     after do
       # SimpleCov is a Singleton/global object so once any test enables
       # any kind of coverage data it stays there.
