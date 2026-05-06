@@ -1,13 +1,10 @@
 # frozen_string_literal: true
 
-require "etc"
-# Don't use `Dir.home`: it raises `ArgumentError` on JRuby when `HOME` is
-# unset, defeating the fall-through to `Etc.getpwuid.dir` and `ENV["USER"]`.
-home_dir =
-  (ENV.fetch("HOME", nil) && File.expand_path("~")) ||
-  Etc.getpwuid.dir ||
-  (ENV.fetch("USER", nil) && File.expand_path("~#{ENV.fetch('USER', nil)}"))
-if home_dir
-  global_config_path = File.join(home_dir, ".simplecov")
+# `~/.simplecov` was historically resolved via a three-step fallback chain
+# (HOME, then `Etc.getpwuid.dir`, then `~$USER`) for hostile container
+# environments circa 2017. Modern CRuby/JRuby/TruffleRuby all set HOME
+# reliably, so trust it and skip silently when it isn't there.
+if ENV.fetch("HOME", nil)
+  global_config_path = File.join(File.expand_path("~"), ".simplecov")
   load global_config_path if File.exist?(global_config_path)
 end
