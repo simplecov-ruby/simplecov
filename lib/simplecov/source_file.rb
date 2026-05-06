@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
+require "ripper"
 require "set"
-require "strscan"
 require_relative "directive"
 
 module SimpleCov
@@ -358,50 +358,60 @@ module SimpleCov
     end
 
     # Parse a string like '[:if, 0, 3, 4, 3, 21]' or '["ClassName", :method1, 2, 2, 5, 5]'
-    # back into a Ruby array, handling integers, symbols, and quoted strings.
-    # rubocop:disable Style/RedundantRegexpArgument -- StringScanner#scan requires Regexp on Ruby < 3.0
-    def parse_ruby_array_string(str) # rubocop:disable Metrics
-      scanner = StringScanner.new(str.strip)
-      scanner.skip(/\[/)
-      elements = []
+    # back into a Ruby array, without using `eval` (see #801). Uses
+    # Ripper to walk the literal so we don't need to hand-roll a scanner
+    # for symbols, strings, integers, and constant paths.
+    def parse_ruby_array_string(str)
+      sexp = Ripper.sexp(quote_inspected_class_segments(str))
+      array_node = sexp&.dig(1, 0)
+      raise ArgumentError, "expected array literal: #{str.inspect}" unless array_node && array_node[0] == :array
 
-      until scanner.eos?
-        scanner.skip(/\s*,?\s*/)
-        break if scanner.scan(/\]/) || scanner.eos?
+      Array(array_node[1]).map { |element| parse_array_element(element) }
+    end
 
-        if scanner.scan(/"/)
-          elements << scan_quoted_string(scanner)
-        elsif scanner.scan(/:(\w+[?!=]?)/)
-          elements << scanner[1].to_sym
-        elsif scanner.scan(/-?\d+/)
-          elements << scanner.matched.to_i
-        elsif scanner.scan(/[^,\]\s]+/)
-          elements << scanner.matched
-        else
-          scanner.scan(/./)
-        end
+    def parse_array_element(node)
+      case node[0]
+      when :@int, :unary                 then parse_integer_node(node)
+      when :symbol_literal, :dyna_symbol then parse_symbol_node(node)
+      when :string_literal               then unescape_ruby(string_literal_text(node[1]))
+      when :var_ref                      then node.dig(1, 1) # `Foo`
+      when :const_path_ref               then "#{parse_array_element(node[1])}::#{node[2][1]}" # `Foo::Bar`
+      else raise ArgumentError, "unexpected element: #{node.inspect}"
       end
-
-      elements
     end
 
-    def scan_quoted_string(scanner)
-      string = +""
-      until scanner.scan(/"/)
-        chunk = scan_quoted_string_chunk(scanner)
-        break if chunk.nil?
+    def parse_integer_node(node)
+      node[0] == :@int ? node[1].to_i : -node[2][1].to_i
+    end
 
-        string << chunk
+    def parse_symbol_node(node)
+      if node[0] == :symbol_literal
+        node.dig(1, 1, 1).to_sym
+      else
+        unescape_ruby(string_literal_text(node[1])).to_sym
       end
-      string
     end
 
-    def scan_quoted_string_chunk(scanner)
-      return scanner[1] if scanner.scan(/\\(.)/)
-
-      scanner.matched  if scanner.scan(/[^"\\]+/)
+    # Concatenate the text fragments of a `:string_content` node. Ripper
+    # may emit zero, one, or many `:@tstring_content` children depending
+    # on the literal.
+    def string_literal_text(string_content)
+      Array(string_content[1..]).map { |child| child[1] }.join
     end
-    # rubocop:enable Style/RedundantRegexpArgument
+
+    # Undo the same backslash-prefix escapes the previous hand-rolled
+    # parser undid: `\X` → `X` for any X.
+    def unescape_ruby(raw)
+      raw.gsub(/\\(.)/) { ::Regexp.last_match(1) }
+    end
+
+    # Method coverage keys can contain inspect-format class references
+    # like `#<Class:Foo>` or `#<Class:0x...>`, which aren't valid Ruby
+    # syntax. Wrap them in quotes so Ripper can parse the surrounding
+    # array literal; downstream we treat them as opaque strings.
+    def quote_inspected_class_segments(str)
+      str.gsub(/#<[^>]*>/) { |segment| %("#{segment.gsub('"', '\\"')}") }
+    end
 
     def build_branches_from(condition, branches)
       # the format handed in from the coverage data is like this:
