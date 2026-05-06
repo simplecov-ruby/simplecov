@@ -20,10 +20,13 @@ module SimpleCov
         JSON.parse(json, symbolize_names: true)
       end
 
+      # Write to a process-private temp file, then atomically rename, so a
+      # concurrent reader (e.g. another parallel-tests worker checking
+      # MaximumCoverageDrop) never sees a half-written file.
       def write(json)
-        File.open(last_run_path, "w+") do |f|
-          f.puts JSON.pretty_generate(json)
-        end
+        temp_path = "#{last_run_path}.#{Process.pid}.tmp"
+        File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(json) }
+        File.rename(temp_path, last_run_path)
       end
     end
   end
