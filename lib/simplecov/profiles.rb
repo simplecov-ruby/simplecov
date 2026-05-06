@@ -26,10 +26,37 @@ module SimpleCov
     # Applies the profile of given name on SimpleCov.configure
     #
     def load(name)
+      SimpleCov.configure(&fetch_proc(name))
+    end
+
+    #
+    # Returns the proc registered for the given profile name, autoloading
+    # bundled or plugin-gem profiles on first lookup. Raises if the profile
+    # cannot be located.
+    #
+    # Lookup order:
+    #   1. already registered via #define
+    #   2. require "simplecov/profiles/<name>"   (bundled profiles)
+    #   3. require "simplecov-profile-<name>"    (third-party plugin gems)
+    #
+    def fetch_proc(name)
       name = name.to_sym
+      autoload_profile(name) unless key?(name)
       raise "Could not find SimpleCov Profile called '#{name}'" unless key?(name)
 
-      SimpleCov.configure(&self[name])
+      self[name]
+    end
+
+  private
+
+    def autoload_profile(name)
+      require "simplecov/profiles/#{name}"
+    rescue LoadError
+      begin
+        require "simplecov-profile-#{name}"
+      rescue LoadError
+        # fall through; #fetch_proc raises the user-facing error
+      end
     end
   end
 end

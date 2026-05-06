@@ -2,13 +2,10 @@
 
 require "pathname"
 require_relative "formatter/html_formatter"
-require_relative "profiles/root_filter"
-require_relative "profiles/test_frameworks"
-require_relative "profiles/bundler_filter"
-require_relative "profiles/hidden_filter"
-require_relative "profiles/rails"
 
-# Default configuration
+# Default configuration. Profiles autoload on first reference via
+# `SimpleCov.profiles.fetch_proc`; the unused ones (e.g. "rails",
+# "test_frameworks") never get required unless a user opts in.
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
 

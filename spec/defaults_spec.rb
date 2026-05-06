@@ -11,7 +11,7 @@ describe SimpleCov do
         include SimpleCov::Configuration
 
         def load_profile(name)
-          configure(&SimpleCov.profiles[name.to_sym])
+          configure(&SimpleCov.profiles.fetch_proc(name))
         end
       end
     end
