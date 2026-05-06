@@ -2,20 +2,6 @@
 
 require "English"
 
-# Coverage may be inaccurate under JRUBY.
-if defined?(JRUBY_VERSION) && defined?(JRuby) && !org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
-
-  # @see https://github.com/jruby/jruby/issues/1196
-  # @see https://github.com/metricfu/metric_fu/pull/226
-  # @see https://github.com/simplecov-ruby/simplecov/issues/420
-  # @see https://github.com/simplecov-ruby/simplecov/issues/86
-  # @see https://jira.codehaus.org/browse/JRUBY-6106
-
-  warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
-       'or do JRUBY_OPTS="--debug" ' \
-       'or set the "debug.fullTrace=true" option in your .jrubyrc'
-end
-
 #
 # Code coverage for ruby. Please check out README for a full introduction.
 #
@@ -59,6 +45,7 @@ module SimpleCov
     #
     def start(profile = nil, &block)
       require "coverage"
+      warn_if_jruby_full_trace_disabled
       initial_setup(profile, &block)
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:fork)
@@ -452,6 +439,19 @@ module SimpleCov
 
     def probably_running_parallel_tests?
       ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
+    end
+
+    # JRuby coverage data is unreliable unless full-trace mode is enabled.
+    # @see https://github.com/jruby/jruby/issues/1196
+    # @see https://github.com/simplecov-ruby/simplecov/issues/420
+    # @see https://github.com/simplecov-ruby/simplecov/issues/86
+    def warn_if_jruby_full_trace_disabled
+      return unless defined?(JRUBY_VERSION) && defined?(JRuby)
+      return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
+
+      warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
+           'or do JRUBY_OPTS="--debug" ' \
+           'or set the "debug.fullTrace=true" option in your .jrubyrc'
     end
   end
 end
