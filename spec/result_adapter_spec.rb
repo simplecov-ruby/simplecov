@@ -80,4 +80,53 @@ describe SimpleCov::ResultAdapter do
       end
     end
   end
+
+  describe "method coverage key normalization" do
+    let(:result_set) do
+      {
+        existing_file => {
+          methods: {
+            ["#<Class:0x00007ff19ab24790>", :foo, 1, 0, 3, 3] => 2,
+            ["#<Class:0x00007ff19ab24790>", :foo, 1, 0, 3, 3] => 3 # rubocop:disable Lint/DuplicateHashKey
+          }
+        }
+      }
+    end
+
+    it "collapses 64-bit hex addresses to a stable placeholder" do
+      methods = adapter[existing_file][:methods]
+      key = methods.keys.first
+      expect(key[0]).to eq("#<Class:0x0>")
+    end
+
+    context "with a 32-bit-style 8-char address" do
+      let(:result_set) do
+        {existing_file => {methods: {["#<Class:0xabcdef01>", :bar, 1, 0, 2, 2] => 1}}}
+      end
+
+      it "still normalizes the address" do
+        key = adapter[existing_file][:methods].keys.first
+        expect(key[0]).to eq("#<Class:0x0>")
+      end
+    end
+
+    context "with two distinct anonymous classes that share a method" do
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["#<Class:0x00007ff100000001>", :foo, 1, 0, 3, 3] => 2,
+              ["#<Class:0x00007ff100000002>", :foo, 1, 0, 3, 3] => 5
+            }
+          }
+        }
+      end
+
+      it "merges their hit counts after normalization" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.keys.size).to eq(1)
+        expect(methods.values.first).to eq(7)
+      end
+    end
+  end
 end
