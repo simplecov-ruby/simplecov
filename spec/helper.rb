@@ -42,7 +42,20 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
   SimpleCov.start_tracking
 
   DOGFOOD_OUTPUT_DIR = "tmp/dogfood"
-  DOGFOOD_MINIMUM_COVERAGE = 100.0
+
+  # Per-engine thresholds. CRuby is the primary target and is held to
+  # 100% on every criterion. JRuby and TruffleRuby `skip` specs that
+  # exercise branch / method coverage paths their Coverage module
+  # doesn't support, so the lib/ lines those specs would have hit stay
+  # uncovered there — set the line threshold a hair below today's
+  # actual to act as a regression guard rather than a strict ceiling.
+  # Engines absent from this hash get an informational report only,
+  # no threshold enforcement.
+  DOGFOOD_THRESHOLDS = {
+    "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
+    "jruby" => {line: 97.5},
+    "truffleruby" => {line: 97.5}
+  }.freeze
 
   RSpec.configure do |config|
     config.after(:suite) do
@@ -61,20 +74,20 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
 
       SimpleCov::Formatter::HTMLFormatter.new(silent: true, output_dir: DOGFOOD_OUTPUT_DIR).format(result)
 
-      shortfalls = []
+      thresholds = DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {}
       stats = result.coverage_statistics
-      %i[line branch method].each do |criterion|
+      shortfalls = thresholds.filter_map do |criterion, expected|
         actual = stats[criterion]&.percent
-        next if actual.nil? || actual >= DOGFOOD_MINIMUM_COVERAGE
+        next if actual.nil? || actual >= expected
 
-        shortfalls << format("%<criterion>s coverage %<actual>.2f%%", criterion: criterion, actual: actual)
+        format("%<criterion>s coverage %<actual>.2f%% (min %<expected>.2f%%)",
+               criterion: criterion, actual: actual, expected: expected)
       end
       next if shortfalls.empty?
 
       $stdout.puts format(
-        "Dogfood %<shortfalls>s — below threshold %<expected>.2f%%. See %<dir>s/index.html",
+        "Dogfood: %<shortfalls>s. See %<dir>s/index.html",
         shortfalls: shortfalls.join(", "),
-        expected: DOGFOOD_MINIMUM_COVERAGE,
         dir: DOGFOOD_OUTPUT_DIR
       )
       Kernel.exit(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
