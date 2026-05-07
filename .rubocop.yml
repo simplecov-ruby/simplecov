@@ -67,7 +67,10 @@ Metrics/ParameterLists:
   Description: Avoid parameter lists longer than three or four parameters.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#too-many-params
   Max: 5
-  CountKeywordArgs: true
+  # Keyword args are self-documenting at call sites and don't carry the
+  # readability cost of a long positional list, so don't count them
+  # toward the cap.
+  CountKeywordArgs: false
 
 Naming/FileName:
   Description: makes sure that Ruby source files have snake_case names.

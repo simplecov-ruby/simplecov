@@ -125,6 +125,21 @@ describe SimpleCov::Result do
       it "has [80.0, 80.0] covered percentages" do
         expect(described_class.new(original_result).covered_percentages).to eq([80.0, 80.0])
       end
+
+      it "ignores the global filter chain when filters: [] is passed" do
+        result = described_class.new(original_result, filters: [])
+        expect(result.source_files.length).to eq(3)
+      end
+
+      it "uses the explicitly-passed filters instead of the singleton's" do
+        explicit_filter = SimpleCov::StringFilter.new("user.rb")
+        result = described_class.new(original_result, filters: [explicit_filter])
+        # Drops user.rb, keeps sample.rb (which the global chain would have filtered)
+        expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly(
+          "sample.rb",
+          "sample_controller.rb"
+        )
+      end
     end
 
     context "with groups set up for all files" do
