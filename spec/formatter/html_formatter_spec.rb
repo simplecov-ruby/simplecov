@@ -125,6 +125,17 @@ describe SimpleCov::Formatter::HTMLFormatter do
       expect(meta["branch_coverage"]).to be(true).or be(false)
       expect(meta["method_coverage"]).to be(true).or be(false)
     end
+
+    # Regression test for #741: in Nix and similar pure-build environments,
+    # the gem's static assets ship at mode 0444. Earlier code copied them
+    # via `FileUtils.cp_r`, which preserved the read-only mode and then
+    # raised EACCES the next run when it tried to open them for writing.
+    # The temp-file + rename approach bypasses the open-for-write step.
+    it "overwrites read-only assets from prior runs without raising EACCES" do
+      formatter.format(make_result)
+      Dir[File.join(coverage_dir, "*")].each { |f| File.chmod(0o444, f) }
+      expect { formatter.format(make_result) }.not_to raise_error
+    end
   end
 
   describe "#format output behaviour" do

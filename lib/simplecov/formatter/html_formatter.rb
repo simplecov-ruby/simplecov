@@ -26,8 +26,8 @@ module SimpleCov
         json = JSON.pretty_generate(JSONFormatter.build_hash(result))
 
         FileUtils.mkdir_p(output_path)
-        File.write(File.join(output_path, JSONFormatter::FILENAME), json)
-        File.write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n", mode: "wb")
+        atomic_write(File.join(output_path, JSONFormatter::FILENAME), json)
+        atomic_write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n")
 
         copy_static_assets
         puts output_message(result) unless @silent
@@ -38,25 +38,31 @@ module SimpleCov
       def format_from_json(json_path, output_dir)
         FileUtils.mkdir_p(output_dir)
         json = File.read(json_path)
-        File.write(File.join(output_dir, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n", mode: "wb")
+        atomic_write(File.join(output_dir, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n")
         copy_static_assets(output_dir)
       end
 
     private
 
       def copy_static_assets(dest_dir = output_path)
-        # Copy via temp file + atomic rename so parallel test workers writing
-        # to the same coverage directory don't race on the unlink step.
         Dir[File.join(public_dir, "*")].each do |src|
-          dest = File.join(dest_dir, File.basename(src))
-          temp = "#{dest}.#{Process.pid}.#{rand(2**32).to_s(36)}"
-          begin
-            FileUtils.cp(src, temp)
-            File.rename(temp, dest)
-          ensure
-            FileUtils.rm_f(temp)
-          end
+          atomic_write(File.join(dest_dir, File.basename(src)), File.binread(src))
         end
+      end
+
+      # Write `content` at `dest` via a uniquely-named temp file in the
+      # same directory, then `File.rename` onto the final path. rename is
+      # atomic and overwrite-safe, so:
+      # - parallel writers can't race on an unlink-then-write window, and
+      # - read-only existing files (e.g. assets shipped at 0444 from
+      #   /nix/store) are replaced cleanly instead of triggering EACCES
+      #   from opening the existing path for writing.
+      def atomic_write(dest, content)
+        temp = "#{dest}.#{Process.pid}.#{rand(2**32).to_s(36)}"
+        File.binwrite(temp, content)
+        File.rename(temp, dest)
+      ensure
+        FileUtils.rm_f(temp)
       end
 
       def output_message(result)
