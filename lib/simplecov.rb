@@ -313,8 +313,13 @@ module SimpleCov
     # @api private
     #
     def final_result_process?
-      # checking for ENV["TEST_ENV_NUMBER"] to determine if the tests are being run in parallel
-      !defined?(ParallelTests) || !ENV["TEST_ENV_NUMBER"] || ParallelTests.last_process?
+      return true unless defined?(ParallelTests) && ENV["TEST_ENV_NUMBER"]
+
+      # parallel_tests sets the first process's TEST_ENV_NUMBER to "" and
+      # `ParallelTests.last_process?` does `"" == "1"`, which is false —
+      # so with PARALLEL_TEST_GROUPS=1 the only process in the run never
+      # runs the final-result work. Treat any single-group run as final.
+      ENV["PARALLEL_TEST_GROUPS"].to_i <= 1 || ParallelTests.last_process?
     end
 
     #
