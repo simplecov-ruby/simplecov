@@ -30,17 +30,25 @@ module SimpleCov
     def_delegator :files, :lines_of_code, :total_lines
 
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
-    # coverage data)
-    def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new)
+    # coverage data).
+    #
+    # `filters` defaults to the singleton's configured filter chain
+    # (`SimpleCov.filters`) so existing call sites are unchanged. Pass an
+    # empty array to opt out — useful for tests that build synthetic
+    # Results and don't want the project's filters applied. `groups`
+    # behaves the same way against `SimpleCov.groups`.
+    def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
+                   filters: SimpleCov.filters, groups: SimpleCov.groups)
       result = original_result
       @original_result = result.freeze
       @command_name = command_name
       @created_at = created_at
+      @groups_config = groups
       @files = SimpleCov::FileList.new(
         result.filter_map { |filename, coverage| build_source_file(filename, coverage, not_loaded_files) }
               .sort_by(&:filename)
       )
-      filter!
+      apply_filters!(filters)
     end
 
     # Returns all filenames for source files contained in this result
@@ -50,7 +58,7 @@ module SimpleCov
 
     # Returns a Hash of groups for this result. Define groups using SimpleCov.add_group 'Models', 'app/models'
     def groups
-      @groups ||= SimpleCov.grouped(files)
+      @groups ||= apply_groups
     end
 
     # Applies the configured SimpleCov.formatter on this result
@@ -103,9 +111,29 @@ module SimpleCov
       keys.zip(original_result.values_at(*keys)).to_h
     end
 
-    # Applies all configured SimpleCov filters on this result's source files
-    def filter!
-      @files = SimpleCov.filtered(files)
+    # Applies the given filter chain to `@files`, dropping each source
+    # file that any filter matches.
+    def apply_filters!(filters)
+      filters.each do |filter|
+        @files = SimpleCov::FileList.new(@files.reject { |source_file| filter.matches?(source_file) })
+      end
+    end
+
+    # Build the per-group FileLists from `@groups_config`, plus the
+    # implicit "Ungrouped" bucket for files that no group filter
+    # matched.
+    def apply_groups
+      return {} if @groups_config.empty?
+
+      grouped = @groups_config.transform_values do |filter|
+        SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
+      end
+
+      in_group  = grouped.values.flat_map(&:to_a)
+      ungrouped = files.reject { |source_file| in_group.include?(source_file) }
+      grouped["Ungrouped"] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
+
+      grouped
     end
   end
 end
