@@ -14,7 +14,7 @@ module SimpleCov
       oneshot_line: :oneshot_lines
     }.freeze
 
-    attr_accessor :running, :pid
+    attr_accessor :pid
 
     # When this process started tracking coverage. Captured by SimpleCov.start
     # so JSONFormatter can detect when an existing coverage.json was written
@@ -102,7 +102,7 @@ module SimpleCov
       return @result if result?
 
       # Collect our coverage result
-      process_coverage_result if running
+      process_coverage_result if Coverage.running?
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
@@ -113,8 +113,6 @@ module SimpleCov
       end
 
       @result
-    ensure
-      self.running = false
     end
 
     #
@@ -176,8 +174,9 @@ module SimpleCov
       # If we are in a different process than called start, don't interfere.
       return if SimpleCov.pid != Process.pid
 
-      # If SimpleCov is no longer running then don't run exit tasks
-      SimpleCov.run_exit_tasks! if SimpleCov.running
+      # If Coverage is no longer running (e.g. someone manually stopped it
+      # or a test consumed the result) then don't run exit tasks.
+      SimpleCov.run_exit_tasks! if Coverage.running?
     end
 
     # @api private
@@ -331,7 +330,6 @@ module SimpleCov
     def initial_setup(profile, &block)
       load_profile(profile) if profile
       configure(&block) if block
-      self.running = true
     end
 
     #
@@ -350,13 +348,7 @@ module SimpleCov
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
-      Coverage.start(start_arguments) unless coverage_running?
-    end
-
-    def coverage_running?
-      # for ruby versions which do not implement Coverage.running?,
-      # Coverage.start may be called multiple times without raising.
-      Coverage.respond_to?(:running?) && Coverage.running?
+      Coverage.start(start_arguments) unless Coverage.running?
     end
 
     def lookup_corresponding_ruby_coverage_name(criterion)

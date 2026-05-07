@@ -216,10 +216,19 @@ module SimpleCov
     #     end
     #
     def at_exit(&block)
-      return Proc.new unless running || block
+      return proc {} unless active_session? || block
 
       @at_exit = block if block
       @at_exit ||= proc { SimpleCov.result.format! }
+    end
+
+    # Whether SimpleCov has anything to do at exit: the Coverage module
+    # is actively tracking, or a `@result` has already been assembled
+    # (e.g. by `SimpleCov.collate`, which never starts Coverage). The
+    # `defined?` guard avoids a NameError on the constant lookup when
+    # Coverage was never required.
+    def active_session?
+      SimpleCov.result? || (defined?(Coverage) && Coverage.running?)
     end
 
     # gets or sets the enabled_for_subprocess configuration

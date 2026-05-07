@@ -18,7 +18,7 @@ describe SimpleCov do
 
       context "when not running" do
         before do
-          allow(described_class).to receive(:running).and_return(false)
+          allow(Coverage).to receive(:running?).and_return(false)
         end
 
         it "returns nil" do
@@ -33,7 +33,7 @@ describe SimpleCov do
 
       context "when running" do
         before do
-          allow(described_class).to receive(:running).and_return(true, false)
+          allow(Coverage).to receive(:running?).and_return(true)
         end
 
         it "uses the result from Coverage" do
@@ -84,7 +84,7 @@ describe SimpleCov do
 
       context "when not running" do
         before do
-          allow(described_class).to receive(:running).and_return(false)
+          allow(Coverage).to receive(:running?).and_return(false)
         end
 
         it "merges the result" do
@@ -99,7 +99,7 @@ describe SimpleCov do
 
       context "when running" do
         before do
-          allow(described_class).to receive(:running).and_return(true, false)
+          allow(Coverage).to receive(:running?).and_return(true)
         end
 
         it "uses the result from Coverage" do

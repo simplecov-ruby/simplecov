@@ -16,7 +16,7 @@ module SimpleCov
   module ProcessForkHook
     def _fork
       pid = super
-      SimpleCov.at_fork.call(::Process.pid) if pid.zero? && defined?(SimpleCov) && SimpleCov.running
+      SimpleCov.at_fork.call(::Process.pid) if pid.zero? && defined?(SimpleCov) && Coverage.running?
       pid
     end
   end
