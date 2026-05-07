@@ -123,6 +123,26 @@ describe SimpleCov::ResultAdapter do
       end
     end
 
+    context "with module_function double-counting (singleton + instance forms)" do
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["#<Class:SimpleCov::Combine>", :combine, 16, 4, 20, 7] => 5,
+              [SimpleCov::Combine, :combine, 16, 4, 20, 7] => 0
+            }
+          }
+        }
+      end
+
+      it "merges singleton and instance entries into a single key with combined hits" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.keys.size).to eq(1)
+        expect(methods.keys.first[0]).to eq("SimpleCov::Combine")
+        expect(methods.values.first).to eq(5)
+      end
+    end
+
     context "with two distinct anonymous classes that share a method" do
       let(:result_set) do
         {
