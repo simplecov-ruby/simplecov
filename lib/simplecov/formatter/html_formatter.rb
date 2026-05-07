@@ -25,6 +25,7 @@ module SimpleCov
       def format(result)
         json = JSON.pretty_generate(JSONFormatter.build_hash(result))
 
+        FileUtils.mkdir_p(output_path)
         File.write(File.join(output_path, JSONFormatter::FILENAME), json)
         File.write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n", mode: "wb")
 

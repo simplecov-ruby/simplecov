@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "json_formatter/result_hash_formatter"
+require "fileutils"
 require "json"
 require "time"
 
@@ -26,6 +27,7 @@ module SimpleCov
       end
 
       def format(result)
+        FileUtils.mkdir_p(output_path)
         path = File.join(output_path, FILENAME)
         warn_if_concurrent_overwrite(path)
         File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
