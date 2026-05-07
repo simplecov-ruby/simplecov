@@ -32,4 +32,27 @@ describe SimpleCov::UselessResultsRemover do
     expect(remover).to have_key(source_path)
     expect(remover[source_path]["lines"]).to be_a(Array)
   end
+
+  context "when SimpleCov.root is the filesystem root" do
+    around do |example|
+      previous_root = SimpleCov.root
+      described_class.instance_variable_set(:@root_regx, nil)
+      SimpleCov.root("/")
+      example.run
+    ensure
+      SimpleCov.root(previous_root)
+      described_class.instance_variable_set(:@root_regx, nil)
+    end
+
+    let(:result_set) do
+      {
+        "/test/server/foo_test.rb" => {"lines" => [1]},
+        "/app/src/foo.rb" => {"lines" => [1]}
+      }
+    end
+
+    it "retains every absolute path instead of dropping them all" do
+      expect(remover.keys).to contain_exactly("/test/server/foo_test.rb", "/app/src/foo.rb")
+    end
+  end
 end

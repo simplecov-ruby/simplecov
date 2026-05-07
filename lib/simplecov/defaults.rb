@@ -11,7 +11,9 @@ SimpleCov.configure do
 
   load_profile "bundler_filter"
   load_profile "hidden_filter"
-  # Exclude files outside of SimpleCov.root
+  # Exclude files outside of SimpleCov.root. Mirrors the early prune done
+  # by SimpleCov::UselessResultsRemover so the user-facing filter chain
+  # honors the same boundary; both share the regex.
   load_profile "root_filter"
 end
 

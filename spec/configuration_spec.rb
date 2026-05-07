@@ -25,6 +25,18 @@ describe SimpleCov::Configuration do
     end
   end
 
+  describe "#project_name" do
+    it "uses the basename of the configured root, capitalized" do
+      config.root("/Users/erik/Code/my_app")
+      expect(config.project_name).to eq("My app")
+    end
+
+    it "does not raise when root is the filesystem root" do
+      config.root("/")
+      expect { config.project_name }.not_to raise_error
+    end
+  end
+
   describe "#nocov_token" do
     it "warns of deprecation when called as a getter" do
       stderr = capture_stderr { config.nocov_token }

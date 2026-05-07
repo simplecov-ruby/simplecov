@@ -12,7 +12,11 @@ module SimpleCov
     end
 
     def self.root_regx
-      @root_regx ||= /\A#{Regexp.escape(SimpleCov.root + File::SEPARATOR)}/i
+      @root_regx ||= begin
+        prefix = SimpleCov.root
+        prefix += File::SEPARATOR unless prefix.end_with?(File::SEPARATOR)
+        /\A#{Regexp.escape(prefix)}/i
+      end
     end
   end
 end

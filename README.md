@@ -502,18 +502,16 @@ Directive markers inside string literals or heredocs are ignored.
 
 ## Default root filter and coverage for things outside of it
 
-By default, SimpleCov filters everything outside of the `SimpleCov.root` directory. However, sometimes you may want
-to include coverage reports for things you include as a gem, for example a Rails Engine.
-
-Here's an example by [@lsaffie](https://github.com/lsaffie) from [#221](https://github.com/simplecov-ruby/simplecov/issues/221)
-that shows how you can achieve just that:
+By default, SimpleCov drops every file outside of `SimpleCov.root` from the raw coverage data before any filters or
+groups run, so paths you might want to track (a Rails Engine installed as a gem, sibling directories in a Docker
+layout, etc.) never reach your filter chain. To include them, widen `SimpleCov.root` to a directory that contains
+both the project and the extra paths — `'/'` works when there is no useful common ancestor — and then express the
+inclusion/exclusion as filters or groups:
 
 ```ruby
+SimpleCov.root '/'
 SimpleCov.start :rails do
-  filters.clear # This will remove the :root_filter and :bundler_filter that come via simplecov's defaults
-  add_filter do |src|
-    !(src.filename =~ /^#{SimpleCov.root}/) unless src.filename =~ /my_engine/
-  end
+  add_filter { |src| !src.filename.start_with?(Rails.root.to_s, '/path/to/my_engine') }
 end
 ```
 
