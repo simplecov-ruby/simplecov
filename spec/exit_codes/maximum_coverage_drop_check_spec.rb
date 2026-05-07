@@ -89,4 +89,22 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck do
 
     it { is_expected.not_to be_failing }
   end
+
+  describe "#report" do
+    let(:last_coverage) { {line: 90.0} }
+    let(:maximum_coverage_drop) { {line: 5} }
+
+    it "prints the criterion drop and the maximum allowed" do
+      output = capture_stderr { check.report }
+      expect(output).to include("Line coverage")
+      expect(output).to include("dropped")
+      expect(output).to include("maximum allowed")
+    end
+  end
+
+  describe "#exit_code" do
+    it "returns SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP" do
+      expect(check.exit_code).to eq(SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP)
+    end
+  end
 end

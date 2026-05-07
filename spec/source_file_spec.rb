@@ -1098,4 +1098,38 @@ describe SimpleCov::SourceFile do
       end
     end
   end
+
+  describe "#no_lines?" do
+    it "is true for a file whose lines are all `nil` (never)" do
+      source_file = described_class.new(source_fixture("never.rb"), CoverageFixtures::NEVER_RB)
+      expect(source_file.no_lines?).to be true
+    end
+
+    it "is false for a file with at least one relevant line" do
+      source_file = described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB)
+      expect(source_file.no_lines?).to be false
+    end
+  end
+
+  describe "#lines_of_code" do
+    it "returns the total relevant line count" do
+      source_file = described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB)
+      expect(source_file.lines_of_code).to be > 0
+    end
+  end
+
+  describe "method-coverage round-trip with a dynamic-symbol method name" do
+    let(:coverage_data) do
+      {
+        "methods" => {
+          %(["Foo", :"weird name", 1, 0, 3, 5]) => 1
+        }
+      }
+    end
+
+    it "parses the dynamic symbol via the dyna_symbol path" do
+      source_file = described_class.new(source_fixture("sample.rb"), coverage_data)
+      expect(source_file.methods.map(&:to_s)).to include(/weird name/)
+    end
+  end
 end

@@ -311,6 +311,12 @@ module SimpleCov
     #
     # @api private
     #
+    # simplecov:disable
+    # Methods below only fire under parallel_tests; not reachable from a
+    # single-process rspec run. Cucumber's test_projects exercise the
+    # parallel_tests integration end-to-end in subprocesses, but those
+    # subprocesses don't merge their Coverage data back into the parent
+    # this dogfood report measures.
     def wait_for_other_processes
       return unless defined?(ParallelTests) && final_result_process?
 
@@ -321,12 +327,14 @@ module SimpleCov
       # all parallel groups have reported or a timeout is reached.
       wait_for_parallel_results
     end
+    # simplecov:enable
 
     # @api private
     def wait_for_parallel_results
       expected = ENV["PARALLEL_TEST_GROUPS"]&.to_i
       return unless expected && expected > 1
 
+      # simplecov:disable — only fires when ENV is set with >1 group
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 10
       loop do
         resultset = SimpleCov::ResultMerger.read_resultset
@@ -335,6 +343,7 @@ module SimpleCov
 
         sleep 0.1
       end
+      # simplecov:enable
     end
 
     #
@@ -451,12 +460,14 @@ module SimpleCov
       return if defined?(ParallelTests)
       return unless probably_running_parallel_tests?
 
+      # simplecov:disable — only fires under a real parallel_tests setup
       require "parallel_tests"
     rescue LoadError
       warn(
         "SimpleCov guessed you were running inside parallel tests but couldn't load it. " \
         "Please file a bug report with us!"
       )
+      # simplecov:enable
     end
 
     def probably_running_parallel_tests?
@@ -469,11 +480,14 @@ module SimpleCov
     # @see https://github.com/simplecov-ruby/simplecov/issues/86
     def warn_if_jruby_full_trace_disabled
       return unless defined?(JRUBY_VERSION) && defined?(JRuby)
+
+      # simplecov:disable — JRuby-only branches; unreachable from CRuby
       return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
 
       warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
            'or do JRUBY_OPTS="--debug" ' \
            'or set the "debug.fullTrace=true" option in your .jrubyrc'
+      # simplecov:enable
     end
   end
 end

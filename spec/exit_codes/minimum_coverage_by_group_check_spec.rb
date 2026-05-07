@@ -43,4 +43,22 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck do
       expect(check).not_to be_failing
     end
   end
+
+  describe "#report" do
+    let(:minimum_coverage_by_group) { {"Test Group 1" => {line: 90.0}} }
+
+    it "prints the violating group with criterion and percentage" do
+      output = capture_stderr { check.report }
+      expect(output).to include("Line coverage by group")
+      expect(output).to include("Test Group 1")
+    end
+  end
+
+  describe "#exit_code" do
+    let(:minimum_coverage_by_group) { {"Test Group 1" => {line: 80.0}} }
+
+    it "returns SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
+      expect(check.exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+    end
+  end
 end

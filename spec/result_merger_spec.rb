@@ -59,6 +59,12 @@ describe SimpleCov::ResultMerger do
       system "rm #{described_class.resultset_path}" if File.exist?(described_class.resultset_path)
       expect(described_class.read_resultset).to be_empty
     end
+
+    it "warns and returns an empty hash when the resultset is malformed JSON" do
+      File.write(described_class.resultset_path, "this is not json {")
+      stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
+      expect(stderr).to include("Parsing JSON content of resultset file failed")
+    end
   end
 
   describe "basic workings with 2 resultsets" do
