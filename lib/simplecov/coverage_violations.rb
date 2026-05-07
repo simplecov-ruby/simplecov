@@ -12,7 +12,7 @@ module SimpleCov
       # @return [Array<Hash>] {:criterion, :expected, :actual}
       def minimum_overall(result, thresholds)
         thresholds.filter_map do |criterion, expected|
-          actual = round(result.coverage_statistics.fetch(criterion).percent)
+          actual = round(result.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
           {criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
@@ -46,7 +46,7 @@ module SimpleCov
     private
 
       def file_minimum_violation(file, criterion, expected)
-        actual = round(file.coverage_statistics.fetch(criterion).percent)
+        actual = round(file.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
         return unless actual < expected
 
         {
@@ -60,7 +60,7 @@ module SimpleCov
 
       def group_minimum_violations(group_name, group, minimums)
         minimums.filter_map do |criterion, expected|
-          actual = round(group.coverage_statistics.fetch(criterion).percent)
+          actual = round(group.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
           {group_name: group_name, criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
@@ -75,11 +75,12 @@ module SimpleCov
       end
 
       def compute_drop(criterion, result, last_run)
-        last_coverage_percent = last_run.dig(:result, criterion)
-        last_coverage_percent ||= last_run.dig(:result, :covered_percent) if criterion == :line
+        stats_key = SimpleCov.coverage_statistics_key(criterion)
+        last_coverage_percent = last_run.dig(:result, stats_key)
+        last_coverage_percent ||= last_run.dig(:result, :covered_percent) if stats_key == :line
         return unless last_coverage_percent
 
-        current = round(result.coverage_statistics.fetch(criterion).percent)
+        current = round(result.coverage_statistics.fetch(stats_key).percent)
         (last_coverage_percent - current).floor(10)
       end
 

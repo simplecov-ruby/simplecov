@@ -176,6 +176,21 @@ describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with minimum_coverage keyed on :oneshot_line" do
+      # `:oneshot_line` is a synonym for `:line` in stats — see #1170.
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(oneshot_line: 95)
+      end
+
+      it "reports the violation under :lines without raising" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage" => {"lines" => {"expected" => 95, "actual" => 90.0}}
+        )
+      end
+    end
+
     context "with minimum_coverage_by_file for lines" do
       before do
         allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(line: 95)

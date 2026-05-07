@@ -14,6 +14,13 @@ module SimpleCov
       oneshot_line: :oneshot_lines
     }.freeze
 
+    # `:oneshot_line` data is folded into the `:line` bucket of
+    # `coverage_statistics` by `ResultAdapter`, so use `:line` to look
+    # up stats for either criterion.
+    def coverage_statistics_key(criterion)
+      criterion == :oneshot_line ? :line : criterion
+    end
+
     attr_accessor :pid
 
     # When this process started tracking coverage. Captured by SimpleCov.start

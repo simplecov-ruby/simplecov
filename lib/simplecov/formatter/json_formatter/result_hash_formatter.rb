@@ -54,7 +54,7 @@ module SimpleCov
 
         def format_minimum_coverage_errors
           SimpleCov::CoverageViolations.minimum_overall(@result, SimpleCov.minimum_coverage).each do |violation|
-            key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
+            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
             bucket = formatted_result[:errors][:minimum_coverage] ||= {}
             bucket[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
           end
@@ -63,7 +63,7 @@ module SimpleCov
         def format_minimum_coverage_by_file_errors
           violations = SimpleCov::CoverageViolations.minimum_by_file(@result, SimpleCov.minimum_coverage_by_file)
           violations.each do |violation|
-            key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
+            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
             bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
             criterion_errors = bucket[key] ||= {}
             criterion_errors[violation.fetch(:project_filename)] =
@@ -74,7 +74,7 @@ module SimpleCov
         def format_minimum_coverage_by_group_errors
           violations = SimpleCov::CoverageViolations.minimum_by_group(@result, SimpleCov.minimum_coverage_by_group)
           violations.each do |violation|
-            key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
+            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
             bucket = formatted_result[:errors][:minimum_coverage_by_group] ||= {}
             group_errors = bucket[violation.fetch(:group_name)] ||= {}
             group_errors[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
@@ -83,7 +83,7 @@ module SimpleCov
 
         def format_maximum_coverage_drop_errors
           SimpleCov::CoverageViolations.maximum_drop(@result, SimpleCov.maximum_coverage_drop).each do |violation|
-            key = CRITERION_KEYS.fetch(violation.fetch(:criterion))
+            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
             bucket = formatted_result[:errors][:maximum_coverage_drop] ||= {}
             bucket[key] = {maximum: violation.fetch(:maximum), actual: violation.fetch(:actual)}
           end

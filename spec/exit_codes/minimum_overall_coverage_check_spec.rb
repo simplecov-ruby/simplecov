@@ -40,6 +40,19 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
     it { is_expected.to be_failing }
   end
 
+  context "when threshold uses :oneshot_line" do
+    # `:oneshot_line` data is folded into the `:line` bucket of
+    # `coverage_statistics`, so a threshold keyed on `:oneshot_line`
+    # has to be looked up under `:line`. See issue #1170.
+    let(:minimum_coverage) { {oneshot_line: 90.0} }
+
+    it { is_expected.to be_failing }
+
+    it "doesn't raise when computing violations" do
+      expect { check.failing? }.not_to raise_error
+    end
+  end
+
   describe "#report" do
     let(:minimum_coverage) { {line: 90.0} }
     let(:files) do

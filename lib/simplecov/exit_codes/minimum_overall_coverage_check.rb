@@ -54,8 +54,9 @@ module SimpleCov
       end
 
       def worst_files_for(criterion)
+        stats_key = SimpleCov.coverage_statistics_key(criterion)
         with_stats = @result.files.filter_map do |source_file|
-          stats = source_file.coverage_statistics[criterion]
+          stats = source_file.coverage_statistics[stats_key]
           [source_file.project_filename, stats.percent] if stats
         end
         with_stats.sort_by { |_path, percent| percent }.first(WORST_FILES_LIMIT)
