@@ -180,11 +180,6 @@ module SimpleCov
       @profiles ||= SimpleCov::Profiles.new
     end
 
-    def adapters
-      warn "#{Kernel.caller.first}: [DEPRECATION] #adapters is deprecated. Use #profiles instead."
-      profiles
-    end
-
     #
     # Allows you to configure simplecov in a block instead of prepending SimpleCov to all config methods
     # you're calling.

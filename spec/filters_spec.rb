@@ -233,18 +233,4 @@ describe SimpleCov::Filter do
       expect { described_class.class_for_argument(Object.new) }.to raise_error(/unrecognized filter type/)
     end
   end
-
-  describe "#passes? (deprecated)" do
-    let(:filter_with_match) do
-      Class.new(SimpleCov::Filter) { def matches?(_) = true }.new("anything")
-    end
-
-    it "warns of deprecation and delegates to #matches?" do
-      result = nil
-      stderr = capture_stderr { result = filter_with_match.passes?(nil) }
-      expect(result).to be true
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("#passes?")
-    end
-  end
 end

@@ -197,11 +197,6 @@ module SimpleCov
       profiles.load(name)
     end
 
-    def load_adapter(name)
-      warn "#{Kernel.caller.first}: [DEPRECATION] #load_adapter is deprecated. Use #load_profile instead."
-      load_profile(name)
-    end
-
     #
     # Clear out the previously cached .result. Primarily useful in testing
     #

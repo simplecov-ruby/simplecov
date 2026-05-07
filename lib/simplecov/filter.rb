@@ -3,11 +3,11 @@
 module SimpleCov
   #
   # Base filter class. Inherit from this to create custom filters,
-  # and overwrite the passes?(source_file) instance method
+  # and overwrite the matches?(source_file) instance method
   #
   # # A sample class that rejects all source files.
   # class StupidFilter < SimpleCov::Filter
-  #   def passes?(source_file)
+  #   def matches?(source_file)
   #     false
   #   end
   # end
@@ -21,11 +21,6 @@ module SimpleCov
 
     def matches?(_source_file)
       raise "The base filter class is not intended for direct use"
-    end
-
-    def passes?(source_file)
-      warn "#{Kernel.caller.first}: [DEPRECATION] #passes? is deprecated. Use #matches? instead."
-      matches?(source_file)
     end
 
     def self.build_filter(filter_argument)

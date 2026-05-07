@@ -408,16 +408,6 @@ describe SimpleCov::Configuration do
       end
     end
 
-    describe "#adapters (deprecated)" do
-      it "warns and returns the profiles registry" do
-        result = nil
-        stderr = capture_stderr { result = config.adapters }
-        expect(result).to equal(config.profiles)
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("#adapters")
-      end
-    end
-
     describe "#formatter" do
       it "raises when assigned a falsey value" do
         # `formatter(nil)` is a getter on a defined @formatter; pass a

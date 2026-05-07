@@ -1008,6 +1008,21 @@ MyCode is being loaded!
 
 then it's good; otherwise, you likely have a problem :)
 
+## Upgrading from 0.x
+
+Four methods that had been deprecated for a decade or more were removed
+in 1.0. Each had a one-to-one rename:
+
+| Removed                                  | Use instead                                |
+| ---------------------------------------- | ------------------------------------------ |
+| `SimpleCov::Filter#passes?`              | `SimpleCov::Filter#matches?`               |
+| `SimpleCov.adapters`                     | `SimpleCov.profiles`                       |
+| `SimpleCov.load_adapter('rails')`        | `SimpleCov.load_profile('rails')`          |
+| `SimpleCov::Formatter::MultiFormatter[]` | `SimpleCov::Formatter::MultiFormatter.new` |
+
+If a custom filter still defines `passes?`, rename the method to
+`matches?` — the signature and semantics are identical.
+
 ## Code of Conduct
 
 Everyone participating in this project's development, issue trackers and other channels is expected to follow our

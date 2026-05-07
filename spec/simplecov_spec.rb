@@ -4,16 +4,6 @@ require "helper"
 require "coverage"
 
 describe SimpleCov do
-  describe ".load_adapter (deprecated)" do
-    it "warns and delegates to load_profile" do
-      allow(described_class).to receive(:load_profile)
-      stderr = capture_stderr { described_class.load_adapter("rails") }
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("#load_adapter")
-      expect(described_class).to have_received(:load_profile).with("rails")
-    end
-  end
-
   describe ".install_at_exit_hook" do
     around do |example|
       previous = described_class.instance_variable_get(:@at_exit_hook_installed)

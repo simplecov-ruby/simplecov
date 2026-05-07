@@ -26,11 +26,6 @@ module SimpleCov
           include InstanceMethods
         end
       end
-
-      def self.[](*args)
-        warn "#{Kernel.caller.first}: [DEPRECATION] ::[] is deprecated. Use ::new instead."
-        new(Array(args))
-      end
     end
   end
 end
