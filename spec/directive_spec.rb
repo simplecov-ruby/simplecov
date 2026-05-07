@@ -56,6 +56,17 @@ describe SimpleCov::Directive do
       expect(ranges).to eq(line: [2..2], branch: [2..2], method: [2..2])
     end
 
+    it "treats an inline simplecov:enable as a no-op (not a single-line disable)" do
+      # The inline form is intended for disable; an inline enable
+      # directive should not produce a disabled range.
+      ranges = described_class.disabled_ranges([
+                                                 'raise "absurd" # simplecov:enable line', # 1
+                                                 "y = 2"                                   # 2
+                                               ])
+
+      expect(ranges[:line]).to eq []
+    end
+
     it "tracks each category independently" do
       ranges = described_class.disabled_ranges([
                                                  "# simplecov:disable line", # 1

@@ -6,7 +6,7 @@
 # dependency's behaviour around Coverage is being investigated.
 unless ENV["SIMPLECOV_NO_DOGFOOD"]
   require "coverage"
-  Coverage.start(lines: true)
+  Coverage.start(lines: true, branches: true)
 end
 
 require "rspec"
@@ -37,16 +37,32 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
       extra_filters = %w[/spec/ /features/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
+
+      # Enabling :branch is what teaches FileList / Result to surface
+      # the branch data in coverage_statistics. We enable it here
+      # (rather than in SimpleCov.start) to avoid leaking branch-mode
+      # output shape into formatter specs that assert against
+      # line-only fixtures.
+      SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
       result = SimpleCov::Result.new(adapted, filters: SimpleCov.filters + extra_filters, groups: {})
 
       SimpleCov::Formatter::HTMLFormatter.new(silent: true, output_dir: DOGFOOD_OUTPUT_DIR).format(result)
-      percent = result.covered_percent
-      next if percent >= DOGFOOD_MINIMUM_COVERAGE
+
+      shortfalls = []
+      stats = result.coverage_statistics
+      %i[line branch].each do |criterion|
+        actual = stats[criterion]&.percent
+        next if actual.nil? || actual >= DOGFOOD_MINIMUM_COVERAGE
+
+        shortfalls << format("%<criterion>s coverage %<actual>.2f%%", criterion: criterion, actual: actual)
+      end
+      next if shortfalls.empty?
 
       $stdout.puts format(
-        "Dogfood line coverage (%<actual>.2f%%) is below threshold (%<expected>.2f%%). " \
-        "See %<dir>s/index.html",
-        actual: percent, expected: DOGFOOD_MINIMUM_COVERAGE, dir: DOGFOOD_OUTPUT_DIR
+        "Dogfood %<shortfalls>s — below threshold %<expected>.2f%%. See %<dir>s/index.html",
+        shortfalls: shortfalls.join(", "),
+        expected: DOGFOOD_MINIMUM_COVERAGE,
+        dir: DOGFOOD_OUTPUT_DIR
       )
       Kernel.exit(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
     end
