@@ -363,6 +363,16 @@ describe SimpleCov do
       described_class.clear_coverage_criteria
     end
 
+    before do
+      # `start_coverage_with_criteria` short-circuits with `unless
+      # Coverage.running?`. These tests verify the kwargs handed to
+      # Coverage.start, which only fire when Coverage isn't already
+      # running — so stub the running check to false. (Without this,
+      # the test would fail when run with the dogfood bootstrap, which
+      # starts Coverage before requiring simplecov.)
+      allow(Coverage).to receive(:running?).and_return(false)
+    end
+
     it "starts coverage in lines mode by default" do
       allow(Coverage).to receive(:start)
 
