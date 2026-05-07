@@ -46,6 +46,25 @@ module SimpleCov
     def start(profile = nil, &)
       initial_setup(profile, &)
       start_tracking
+      install_at_exit_hook
+    end
+
+    #
+    # Install the at_exit hook that formats results and runs exit-code
+    # checks. `SimpleCov.start` calls this automatically. Idempotent —
+    # safe to call multiple times. Callers that drive the formatting
+    # pipeline themselves (e.g., dogfood test setups) can skip it by
+    # using `start_tracking` directly instead of `start`.
+    #
+    def install_at_exit_hook
+      return if @at_exit_hook_installed
+
+      @at_exit_hook_installed = true
+      Kernel.at_exit do
+        next if SimpleCov.external_at_exit?
+
+        SimpleCov.at_exit_behavior
+      end
     end
 
     #

@@ -216,10 +216,11 @@ module SimpleCov
     #     end
     #
     def at_exit(&block)
-      return proc {} unless active_session? || block
-
       @at_exit = block if block
-      @at_exit ||= proc { SimpleCov.result.format! }
+      return @at_exit if @at_exit
+      return proc {} unless active_session?
+
+      @at_exit = proc { SimpleCov.result.format! }
     end
 
     # Whether SimpleCov has anything to do at exit: the Coverage module
