@@ -6,7 +6,19 @@
 # dependency's behaviour around Coverage is being investigated.
 unless ENV["SIMPLECOV_NO_DOGFOOD"]
   require "coverage"
-  Coverage.start(lines: true, branches: true)
+  # Build the criteria hash by what the runtime actually supports — JRuby
+  # silently ignores `branches:`/`methods:` (with warnings); some engines
+  # may reject them outright. CRuby is the primary target so its full
+  # set is always on.
+  start_args = {lines: true}
+  if Coverage.respond_to?(:supported?)
+    start_args[:branches] = true if Coverage.supported?(:branches)
+    start_args[:methods]  = true if Coverage.supported?(:methods)
+  else
+    start_args[:branches] = true
+    start_args[:methods]  = true
+  end
+  Coverage.start(start_args)
 end
 
 require "rspec"
@@ -38,19 +50,20 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
 
-      # Enabling :branch is what teaches FileList / Result to surface
-      # the branch data in coverage_statistics. We enable it here
-      # (rather than in SimpleCov.start) to avoid leaking branch-mode
-      # output shape into formatter specs that assert against
-      # line-only fixtures.
+      # Enabling :branch / :method is what teaches FileList / Result
+      # to surface those data in coverage_statistics. We enable here
+      # (rather than in SimpleCov.start) to avoid leaking the
+      # multi-criterion output shape into formatter specs that assert
+      # against line-only fixtures.
       SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
+      SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
       result = SimpleCov::Result.new(adapted, filters: SimpleCov.filters + extra_filters, groups: {})
 
       SimpleCov::Formatter::HTMLFormatter.new(silent: true, output_dir: DOGFOOD_OUTPUT_DIR).format(result)
 
       shortfalls = []
       stats = result.coverage_statistics
-      %i[line branch].each do |criterion|
+      %i[line branch method].each do |criterion|
         actual = stats[criterion]&.percent
         next if actual.nil? || actual >= DOGFOOD_MINIMUM_COVERAGE
 

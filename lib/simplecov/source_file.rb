@@ -364,8 +364,12 @@ module SimpleCov
     # Ripper to walk the literal so we don't need to hand-roll a scanner
     # for symbols, strings, integers, and constant paths.
     def parse_ruby_array_string(str)
-      sexp = Ripper.sexp(quote_inspected_class_segments(str))
-      # simplecov:disable — defensive: Ripper.sexp returning nil requires malformed input
+      # Try plain Ripper first; only pre-quote `#<...>` inspect segments
+      # if the input isn't already valid Ruby (otherwise we corrupt
+      # `"#<Class:Foo>"` strings that *are* valid Ruby literals — exactly
+      # the shape simplecov-on-simplecov method-coverage keys take).
+      sexp = Ripper.sexp(str) || Ripper.sexp(quote_inspected_class_segments(str))
+      # simplecov:disable — defensive: Ripper.sexp returning nil from both passes requires malformed input
       array_node = sexp&.dig(1, 0)
       # simplecov:enable
       raise ArgumentError, "expected array literal: #{str.inspect}" unless array_node && array_node[0] == :array
