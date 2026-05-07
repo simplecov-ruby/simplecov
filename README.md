@@ -64,14 +64,6 @@ Getting started
     # Previous content of test helper now starts here
     ```
 
-    > [!IMPORTANT]
-    > If SimpleCov starts after your application code is already loaded
-    > (via `require`), it won't be able to track your files and their coverage!
-    > The `SimpleCov.start` **must** be issued **before any of your application
-    > code is required!**
-
-    This is especially true if you use anything that keeps your test application loaded like Spring; check out the **[Spring section](#want-to-use-spring-with-simplecov)**.
-
     SimpleCov must be running in the process that you want the code coverage
     analysis to happen on. When testing a server process (e.g. a JSON API
     endpoint) via a separate test process (e.g. when using Selenium) where you
@@ -89,6 +81,14 @@ Getting started
     end
     ```
 
+> [!IMPORTANT]
+> If SimpleCov starts after your application code is already loaded
+> (via `require`), it won't be able to track your files and their coverage!
+> The `SimpleCov.start` **must** be issued **before any of your application
+> code is required!** This is especially true if you use anything that keeps
+> your test application loaded like Spring; check out the
+> **[Spring section](#want-to-use-spring-with-simplecov)**.
+
 3. Run your full test suite to see the percent coverage that your application has.
 4. After running your tests, open `coverage/index.html` in the browser of your choice. For example, in a Mac Terminal,
    run the following command from your application's root directory:
@@ -102,9 +102,9 @@ Getting started
    xdg-open coverage/index.html
    ```
 
-   > [!NOTE]
-   > [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
-   > operating system requires.
+> [!NOTE]
+> [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
+> operating system requires.
 
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
