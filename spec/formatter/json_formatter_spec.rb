@@ -37,6 +37,23 @@ describe SimpleCov::Formatter::JSONFormatter do
   # concurrent-overwrite checks have a reference point.
   after { SimpleCov.process_start_time = nil }
 
+  describe "with output_dir" do
+    it "writes coverage.json into the explicit directory, not SimpleCov.coverage_path" do
+      Dir.mktmpdir do |dir|
+        described_class.new(silent: true, output_dir: dir).format(result)
+        expect(File.exist?(File.join(dir, described_class::FILENAME))).to be true
+        expect(File.exist?("tmp/coverage/coverage.json")).to be false
+      end
+    end
+
+    it "names the explicit directory in the output message" do
+      Dir.mktmpdir do |dir|
+        out = capture_stdout { described_class.new(output_dir: dir).format(result) }
+        expect(out).to include(dir)
+      end
+    end
+  end
+
   describe "format" do
     context "with line coverage" do
       it "includes line coverage and covered_percent per file" do

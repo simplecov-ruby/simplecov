@@ -3,6 +3,7 @@
 require "rspec"
 require "stringio"
 require "open3"
+require "tmpdir"
 # loaded before simplecov to also capture parse time warnings
 require "support/fail_rspec_on_ruby_warning"
 require "simplecov"
@@ -24,4 +25,13 @@ def capture_stderr
   $stderr.string
 ensure
   $stderr = previous_stderr
+end
+
+def capture_stdout
+  previous_stdout = $stdout
+  $stdout = StringIO.new
+  yield
+  $stdout.string
+ensure
+  $stdout = previous_stdout
 end

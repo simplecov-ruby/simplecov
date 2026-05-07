@@ -13,8 +13,13 @@ module SimpleCov
     class HTMLFormatter
       DATA_FILENAME = "coverage_data.js"
 
-      def initialize(silent: false)
+      # `output_dir` defaults to `SimpleCov.coverage_path` so the at_exit
+      # pipeline keeps working unchanged. Pass it explicitly to write
+      # somewhere else (handy for tests that don't want to clobber
+      # the project's `coverage/` directory).
+      def initialize(silent: false, output_dir: nil)
         @silent = silent
+        @output_dir = output_dir
       end
 
       def format(result)
@@ -59,7 +64,7 @@ module SimpleCov
       end
 
       def output_path
-        SimpleCov.coverage_path
+        @output_dir || SimpleCov.coverage_path
       end
 
       def public_dir
