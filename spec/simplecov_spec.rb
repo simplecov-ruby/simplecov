@@ -98,20 +98,32 @@ describe SimpleCov do
     end
 
     it "augments the result with files matched by the glob that weren't loaded" do
-      described_class.track_files(File.join(described_class.root, "spec/fixtures/sample.rb"))
-      sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      described_class.track_files("spec/fixtures/sample.rb")
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       result, not_loaded = described_class.send(:add_not_loaded_files, {})
       expect(not_loaded).to include(sample)
       expect(result).to have_key(sample)
     end
 
     it "skips files that are already present in the input result" do
-      described_class.track_files(File.join(described_class.root, "spec/fixtures/sample.rb"))
-      sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      described_class.track_files("spec/fixtures/sample.rb")
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       preloaded = {sample => {"lines" => [1]}}
       result, not_loaded = described_class.send(:add_not_loaded_files, preloaded)
       expect(not_loaded).not_to include(sample)
       expect(result[sample]).to eq("lines" => [1])
+    end
+
+    # The track_files glob has to be project-root-relative, not cwd-
+    # relative — test runners that chdir would otherwise silently miss
+    # unloaded files and emit different file sets per environment. See #1106.
+    it "resolves the glob relative to SimpleCov.root regardless of cwd" do
+      described_class.track_files("spec/fixtures/sample.rb")
+      sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      Dir.chdir(Dir.tmpdir) do
+        _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+        expect(not_loaded).to include(sample)
+      end
     end
   end
 

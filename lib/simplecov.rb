@@ -411,8 +411,12 @@ module SimpleCov
       return [result, Set.new] unless tracked_files
 
       result = result.dup
-      not_loaded_files = Dir[tracked_files].each_with_object(Set.new) do |file, set|
-        absolute_path = File.expand_path(file)
+      # Glob and expand relative to SimpleCov.root, not Dir.pwd — test runners
+      # that chdir (or CI scripts that invoke the suite from a subdir) would
+      # otherwise silently miss the unloaded-file injection and produce a
+      # different file set per environment. See issue #1106.
+      not_loaded_files = Dir.glob(tracked_files, base: root).each_with_object(Set.new) do |file, set|
+        absolute_path = File.expand_path(file, root)
         next if result.key?(absolute_path)
 
         result[absolute_path] = SimulateCoverage.call(absolute_path)

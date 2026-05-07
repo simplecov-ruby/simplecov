@@ -973,6 +973,22 @@ DISABLE_SPRING=1 rake test
 
 Or you could remove `gem 'spring'` from your `Gemfile`.
 
+### Different coverage between local and CI
+
+Rails generates `config/environments/test.rb` with
+`config.eager_load = ENV["CI"].present?` (Rails 7+), so **CI eagerly loads
+every file in `app/` while your local run does not**. The two environments
+then report different file sets and different totals from the same suite.
+
+Two ways to make the report deterministic:
+
+- Set `config.eager_load = true` everywhere in `test.rb` (slower locally
+  but matches CI, and matches what users actually see in production).
+- Stick with the `rails` profile's bundled
+  `track_files "{app,lib}/**/*.rb"` so unloaded files are folded into the
+  report at 0% on every run, regardless of eager_load. (`track_files` is
+  resolved relative to `SimpleCov.root`, not the test runner's cwd.)
+
 ## Troubleshooting
 
 The **most common problem is that simplecov isn't required and started before everything else**. In order to track
