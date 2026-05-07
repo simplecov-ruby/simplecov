@@ -44,9 +44,20 @@ module SimpleCov
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
     def start(profile = nil, &)
+      initial_setup(profile, &)
+      start_tracking
+    end
+
+    #
+    # Begin coverage tracking without applying configuration. Pairs with
+    # `SimpleCov.configure { ... }` for callers that want to separate
+    # the two — for example a dogfood test that has already started
+    # `Coverage` itself before requiring simplecov, but still wants the
+    # process_start_time / pid / fork-hook bookkeeping.
+    #
+    def start_tracking
       require "coverage"
       warn_if_jruby_full_trace_disabled
-      initial_setup(profile, &)
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:_fork)
 
