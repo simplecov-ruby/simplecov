@@ -68,7 +68,9 @@ module SimpleCov
         return "never" if never?
         return "missed" if missed?
 
+        # simplecov:disable — defensive: covered? is the only state left after the three above
         "covered" if covered?
+        # simplecov:enable
       end
     end
   end

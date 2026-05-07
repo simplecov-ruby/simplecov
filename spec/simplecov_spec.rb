@@ -70,6 +70,30 @@ describe SimpleCov do
     end
   end
 
+  describe ".initial_setup" do
+    it "loads the profile when given" do
+      allow(described_class).to receive_messages(load_profile: nil, configure: nil)
+      described_class.send(:initial_setup, "rails")
+      expect(described_class).to have_received(:load_profile).with("rails")
+    end
+
+    it "calls configure when a block is given" do
+      allow(described_class).to receive(:configure)
+      described_class.send(:initial_setup, nil, &proc {})
+      expect(described_class).to have_received(:configure)
+    end
+  end
+
+  describe ".start_coverage_with_criteria" do
+    it "passes eval: true to Coverage.start when coverage_for_eval is enabled" do
+      allow(Coverage).to receive_messages(running?: false)
+      allow(Coverage).to receive(:start)
+      allow(described_class).to receive(:coverage_for_eval_enabled?).and_return(true)
+      described_class.send(:start_coverage_with_criteria)
+      expect(Coverage).to have_received(:start).with(hash_including(eval: true))
+    end
+  end
+
   describe ".add_not_loaded_files" do
     around do |example|
       previous = described_class.tracked_files
@@ -89,6 +113,15 @@ describe SimpleCov do
       result, not_loaded = described_class.send(:add_not_loaded_files, {})
       expect(not_loaded).to include(sample)
       expect(result).to have_key(sample)
+    end
+
+    it "skips files that are already present in the input result" do
+      described_class.track_files(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      preloaded = {sample => {"lines" => [1]}}
+      result, not_loaded = described_class.send(:add_not_loaded_files, preloaded)
+      expect(not_loaded).not_to include(sample)
+      expect(result[sample]).to eq("lines" => [1])
     end
   end
 
@@ -232,6 +265,14 @@ describe SimpleCov do
       allow(Kernel).to receive(:exit)
       described_class.process_results_and_report_error
       expect(Kernel).not_to have_received(:exit)
+    end
+
+    it "stays silent when print_error_status is false but still exits" do
+      allow(described_class).to receive_messages(result: double, process_result: 2, print_error_status: false)
+      allow(Kernel).to receive(:exit)
+      stderr = capture_stderr { described_class.process_results_and_report_error }
+      expect(stderr).to be_empty
+      expect(Kernel).to have_received(:exit).with(2)
     end
   end
 

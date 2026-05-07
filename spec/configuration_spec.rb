@@ -498,6 +498,49 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#command_name" do
+      after { config.instance_variable_set(:@name, nil) }
+
+      it "stores an explicit name" do
+        config.command_name("My Suite")
+        expect(config.command_name).to eq("My Suite")
+      end
+    end
+
+    describe "#project_name" do
+      after { config.instance_variable_set(:@project_name, nil) }
+
+      it "stores an explicit name" do
+        config.project_name("Custom")
+        expect(config.project_name).to eq("Custom")
+      end
+    end
+
+    describe "#merge_timeout" do
+      after { config.instance_variable_set(:@merge_timeout, nil) }
+
+      it "stores an explicit integer value" do
+        config.merge_timeout(120)
+        expect(config.merge_timeout).to eq(120)
+      end
+    end
+
+    describe "#parse_filter" do
+      it "raises when given neither a filter argument nor a block" do
+        expect { config.send(:parse_filter) }.to raise_error(ArgumentError, /filter or a block/)
+      end
+    end
+
+    describe "#configure" do
+      it "uses instance_exec directly when the block is in our own context" do
+        # Stub equal? so the "block defined in our own context" branch fires
+        # without contorting the test to share a binding with the config.
+        allow(config).to receive(:equal?).and_return(true)
+        config.configure { @configured = true }
+        expect(config.instance_variable_get(:@configured)).to be true
+      end
+    end
+
     describe "#use_merging" do
       around do |example|
         previous = config.instance_variable_get(:@use_merging)

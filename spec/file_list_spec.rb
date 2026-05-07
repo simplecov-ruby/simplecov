@@ -58,6 +58,36 @@ describe SimpleCov::FileList do
     expect(file_list.covered_strength).to eq(0.9285714285714286)
   end
 
+  context "without branch or method coverage enabled" do
+    let(:line_only_file_list) do
+      original_result = {source_fixture("sample.rb") => CoverageFixtures::SAMPLE_RB}
+      SimpleCov::Result.new(original_result).files
+    end
+
+    it "returns nil from total_branches/covered_branches/missed_branches/branch_covered_percent" do
+      expect(line_only_file_list.total_branches).to be_nil
+      expect(line_only_file_list.covered_branches).to be_nil
+      expect(line_only_file_list.missed_branches).to be_nil
+      expect(line_only_file_list.branch_covered_percent).to be_nil
+    end
+
+    it "returns nil from total_methods/covered_methods/missed_methods/method_covered_percent" do
+      expect(line_only_file_list.total_methods).to be_nil
+      expect(line_only_file_list.covered_methods).to be_nil
+      expect(line_only_file_list.missed_methods).to be_nil
+      expect(line_only_file_list.method_covered_percent).to be_nil
+    end
+  end
+
+  context "when the FileList is empty" do
+    let(:empty_file_list) { described_class.new([]) }
+
+    it "returns 0.0 for never_lines and skipped_lines" do
+      expect(empty_file_list.never_lines).to eq(0.0)
+      expect(empty_file_list.skipped_lines).to eq(0.0)
+    end
+  end
+
   context "with branch and method coverage criteria enabled", if: SimpleCov.branch_coverage_supported? do
     around do |example|
       SimpleCov.enable_coverage :branch

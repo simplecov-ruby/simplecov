@@ -57,4 +57,15 @@ describe SimpleCov::CommandGuesser do
     allow(ENV).to receive(:fetch).with("PARALLEL_TEST_GROUPS", nil).and_return("2")
     expect(guesser.guess).to eq("RSpec (1/2)")
   end
+
+  it 'treats an empty TEST_ENV_NUMBER as worker "1"' do
+    guesser.original_run_command = "/some/path/spec/foo.rb"
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:fetch).and_call_original
+    allow(ENV).to receive(:[]).with("TEST_ENV_NUMBER").and_return("")
+    allow(ENV).to receive(:[]).with("PARALLEL_TEST_GROUPS").and_return("2")
+    allow(ENV).to receive(:fetch).with("TEST_ENV_NUMBER", nil).and_return("")
+    allow(ENV).to receive(:fetch).with("PARALLEL_TEST_GROUPS", nil).and_return("2")
+    expect(guesser.guess).to eq("RSpec (1/2)")
+  end
 end

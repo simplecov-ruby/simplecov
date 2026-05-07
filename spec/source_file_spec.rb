@@ -1118,6 +1118,18 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  describe "parse_ruby_array_string edge cases" do
+    let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
+
+    it "handles negative integers via the unary path" do
+      expect(source_file.send(:parse_ruby_array_string, "[1, -2, 3]")).to eq([1, -2, 3])
+    end
+
+    it "raises when the input isn't an array literal" do
+      expect { source_file.send(:parse_ruby_array_string, "42") }.to raise_error(ArgumentError, /array literal/)
+    end
+  end
+
   describe "method-coverage round-trip with a dynamic-symbol method name" do
     let(:coverage_data) do
       {

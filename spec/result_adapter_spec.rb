@@ -81,6 +81,19 @@ describe SimpleCov::ResultAdapter do
     end
   end
 
+  describe ".call with no result" do
+    it "returns nil when handed a nil result" do
+      expect(described_class.call(nil)).to be_nil
+    end
+  end
+
+  describe ".call with an Array-shaped pre-0.18 cover_statistic" do
+    it "wraps the array as the lines key" do
+      legacy = {"/abs/foo.rb" => [nil, 1, 1, 0]}
+      expect(described_class.call(legacy)).to eq("/abs/foo.rb" => {"lines" => [nil, 1, 1, 0]})
+    end
+  end
+
   describe "method coverage key normalization" do
     let(:result_set) do
       {

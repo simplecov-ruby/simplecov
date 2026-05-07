@@ -53,9 +53,9 @@ module SimpleCov
       require "simplecov/profiles/#{name}"
     rescue LoadError
       begin
-        # simplecov:disable line — third-party gem fallback (no such gem in test env)
+        # simplecov:disable — third-party gem fallback (no such gem in test env)
         require "simplecov-profile-#{name}"
-        # simplecov:enable line
+        # simplecov:enable
       rescue LoadError
         # fall through; #fetch_proc raises the user-facing error
       end
