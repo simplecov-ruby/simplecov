@@ -18,12 +18,6 @@ end
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 
-at_exit do
-  next if SimpleCov.external_at_exit?
-
-  SimpleCov.at_exit_behavior
-end
-
 # Autoload config from ~/.simplecov if present
 require_relative "load_global_config"
 
