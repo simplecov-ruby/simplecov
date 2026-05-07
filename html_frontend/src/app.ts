@@ -719,7 +719,7 @@ function updateCoverageCells(
   const p = (covered * 100.0) / total;
   const cls = pctClass(p);
   if (covCell) {
-    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p)}<span class="coverage-pct">${p.toFixed(2)}%</span></div>`;
+    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
     covCell.className = `${covCell.className.replace(/green|yellow|red/g, '').trim()} ${cls}`;
   }
   if (numEl) numEl.textContent = fmtNum(covered) + '/';
