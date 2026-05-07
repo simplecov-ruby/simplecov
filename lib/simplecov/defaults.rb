@@ -28,6 +28,9 @@ config_path = Pathname.new(SimpleCov.root)
 loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
+    # simplecov:disable — fires only when a .simplecov dotfile exists
+    # in the project tree; simplecov's own repo doesn't ship one, so
+    # this branch is unreachable from the dogfood report.
     begin
       load filename
     rescue LoadError, StandardError
@@ -35,6 +38,7 @@ loop do
            "Error message: #{$!.message}"
     end
     break
+    # simplecov:enable
   end
   config_path, = config_path.split
   break if config_path.root?

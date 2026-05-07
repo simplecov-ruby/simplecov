@@ -4,6 +4,271 @@ require "helper"
 require "coverage"
 
 describe SimpleCov do
+  describe ".load_adapter (deprecated)" do
+    it "warns and delegates to load_profile" do
+      allow(described_class).to receive(:load_profile)
+      stderr = capture_stderr { described_class.load_adapter("rails") }
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("#load_adapter")
+      expect(described_class).to have_received(:load_profile).with("rails")
+    end
+  end
+
+  describe ".install_at_exit_hook" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@at_exit_hook_installed)
+      described_class.instance_variable_set(:@at_exit_hook_installed, nil)
+      example.run
+      described_class.instance_variable_set(:@at_exit_hook_installed, previous)
+    end
+
+    it "is idempotent — repeated calls register exactly one Kernel.at_exit" do
+      allow(Kernel).to receive(:at_exit)
+      described_class.install_at_exit_hook
+      described_class.install_at_exit_hook
+      expect(Kernel).to have_received(:at_exit).once
+    end
+
+    it "registers a block that runs at_exit_behavior unless external_at_exit? is set" do
+      captured = nil
+      allow(Kernel).to receive(:at_exit) { |&blk| captured = blk }
+      described_class.install_at_exit_hook
+
+      allow(described_class).to receive(:external_at_exit?).and_return(false)
+      allow(described_class).to receive(:at_exit_behavior)
+      captured.call
+      expect(described_class).to have_received(:at_exit_behavior)
+    end
+
+    it "registers a block that bails out when external_at_exit? is set" do
+      captured = nil
+      allow(Kernel).to receive(:at_exit) { |&blk| captured = blk }
+      described_class.install_at_exit_hook
+
+      allow(described_class).to receive(:external_at_exit?).and_return(true)
+      allow(described_class).to receive(:at_exit_behavior)
+      captured.call
+      expect(described_class).not_to have_received(:at_exit_behavior)
+    end
+  end
+
+  describe ".start" do
+    it "delegates to initial_setup, start_tracking, and install_at_exit_hook" do
+      # Stub the three pieces so this spec doesn't actually load a
+      # profile, mutate global filter state, or restart Coverage.
+      allow(described_class).to receive(:send).and_call_original
+      allow(described_class).to receive(:initial_setup)
+      allow(described_class).to receive(:start_tracking)
+      allow(described_class).to receive(:install_at_exit_hook)
+      block = proc {}
+
+      described_class.start("rails", &block)
+
+      expect(described_class).to have_received(:initial_setup)
+      expect(described_class).to have_received(:start_tracking)
+      expect(described_class).to have_received(:install_at_exit_hook)
+    end
+  end
+
+  describe ".add_not_loaded_files" do
+    around do |example|
+      previous = described_class.tracked_files
+      example.run
+      described_class.track_files(previous)
+    end
+
+    it "returns the input unchanged when no track_files glob is configured" do
+      described_class.track_files(nil)
+      result = {"/abs/foo.rb" => {"lines" => [1]}}
+      expect(described_class.send(:add_not_loaded_files, result)).to eq([result, Set.new])
+    end
+
+    it "augments the result with files matched by the glob that weren't loaded" do
+      described_class.track_files(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
+      result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      expect(not_loaded).to include(sample)
+      expect(result).to have_key(sample)
+    end
+  end
+
+  describe ".ready_to_process_results?" do
+    it "is true when both final_result_process? and result? are truthy" do
+      allow(described_class).to receive_messages(final_result_process?: true, result?: true)
+      expect(described_class.ready_to_process_results?).to be true
+    end
+
+    it "is false when final_result_process? is false" do
+      allow(described_class).to receive(:final_result_process?).and_return(false)
+      expect(described_class.ready_to_process_results?).to be false
+    end
+  end
+
+  describe ".final_result_process?" do
+    it "is true when ParallelTests isn't loaded" do
+      expect(described_class.send(:final_result_process?)).to be_truthy
+    end
+  end
+
+  describe ".wait_for_other_processes" do
+    it "returns early when ParallelTests is not loaded" do
+      expect(described_class.send(:wait_for_other_processes)).to be_nil
+    end
+  end
+
+  describe ".wait_for_parallel_results" do
+    it "returns early when PARALLEL_TEST_GROUPS is unset" do
+      ENV.delete("PARALLEL_TEST_GROUPS")
+      expect(described_class.send(:wait_for_parallel_results)).to be_nil
+    end
+
+    it "returns early for a single-group parallel run" do
+      ENV["PARALLEL_TEST_GROUPS"] = "1"
+      expect(described_class.send(:wait_for_parallel_results)).to be_nil
+    ensure
+      ENV.delete("PARALLEL_TEST_GROUPS")
+    end
+  end
+
+  describe ".at_exit_behavior" do
+    around do |example|
+      previous_pid = described_class.pid
+      example.run
+      described_class.pid = previous_pid
+    end
+
+    it "is a no-op when called from a different process than start" do
+      described_class.pid = -1 # never matches Process.pid
+      allow(described_class).to receive(:run_exit_tasks!)
+      described_class.at_exit_behavior
+      expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+
+    it "runs exit tasks when in the same process and Coverage is running" do
+      described_class.pid = Process.pid
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive(:run_exit_tasks!)
+      described_class.at_exit_behavior
+      expect(described_class).to have_received(:run_exit_tasks!)
+    end
+
+    it "skips exit tasks when Coverage has stopped" do
+      described_class.pid = Process.pid
+      allow(Coverage).to receive(:running?).and_return(false)
+      allow(described_class).to receive(:run_exit_tasks!)
+      described_class.at_exit_behavior
+      expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+  end
+
+  describe ".run_exit_tasks!" do
+    it "calls at_exit, then handles previous-error and result-processing branches" do
+      proc_double = proc {}
+      allow(described_class).to receive(:exit_and_report_previous_error)
+      allow(described_class).to receive_messages(exit_status_from_exception: 1, at_exit: proc_double,
+                                                 previous_error?: true, ready_to_process_results?: false)
+
+      described_class.run_exit_tasks!
+
+      expect(described_class).to have_received(:exit_and_report_previous_error).with(1)
+    end
+
+    it "calls process_results_and_report_error when ready and no previous error" do
+      proc_double = proc {}
+      allow(described_class).to receive_messages(exit_status_from_exception: nil, at_exit: proc_double,
+                                                 previous_error?: false, ready_to_process_results?: true)
+      allow(described_class).to receive(:process_results_and_report_error)
+
+      described_class.run_exit_tasks!
+
+      expect(described_class).to have_received(:process_results_and_report_error)
+    end
+  end
+
+  describe ".previous_error?" do
+    it "is truthy for a non-success exit status" do
+      expect(described_class).to be_previous_error(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+    end
+
+    it "is falsey for SUCCESS" do
+      expect(described_class).not_to be_previous_error(SimpleCov::ExitCodes::SUCCESS)
+    end
+
+    it "is falsey for nil" do
+      expect(described_class).not_to be_previous_error(nil)
+    end
+  end
+
+  describe ".exit_and_report_previous_error" do
+    it "warns when print_error_status is true and exits with the given status" do
+      allow(described_class).to receive(:print_error_status).and_return(true)
+      allow(Kernel).to receive(:exit)
+      stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
+      expect(stderr).to include("Stopped processing SimpleCov")
+      expect(Kernel).to have_received(:exit).with(2)
+    end
+
+    it "is silent when print_error_status is false" do
+      allow(described_class).to receive(:print_error_status).and_return(false)
+      allow(Kernel).to receive(:exit)
+      stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
+      expect(stderr).to be_empty
+    end
+  end
+
+  describe ".process_results_and_report_error" do
+    it "exits with the coverage-related error status when process_result returns positive" do
+      allow(described_class).to receive_messages(result: double, process_result: 2, print_error_status: true)
+      allow(Kernel).to receive(:exit)
+
+      stderr = capture_stderr { described_class.process_results_and_report_error }
+
+      expect(stderr).to include("SimpleCov failed with exit 2")
+      expect(Kernel).to have_received(:exit).with(2)
+    end
+
+    it "is a no-op when process_result returns zero" do
+      allow(described_class).to receive_messages(result: double, process_result: 0)
+      allow(Kernel).to receive(:exit)
+      described_class.process_results_and_report_error
+      expect(Kernel).not_to have_received(:exit)
+    end
+  end
+
+  describe ".grouped" do
+    let(:files) do
+      [
+        instance_double(SimpleCov::SourceFile, filename: "/abs/lib/foo.rb", project_filename: "lib/foo.rb"),
+        instance_double(SimpleCov::SourceFile, filename: "/abs/test/foo.rb", project_filename: "test/foo.rb")
+      ]
+    end
+
+    around do |example|
+      previous = described_class.groups
+      described_class.groups = {}
+      example.run
+      described_class.groups = previous
+    end
+
+    it "returns {} when no groups are configured" do
+      expect(described_class.grouped(files)).to eq({})
+    end
+
+    it "buckets files into matching groups and collects unmatched into Ungrouped" do
+      described_class.add_group("Lib", "lib")
+      result = described_class.grouped(files)
+      expect(result.keys).to contain_exactly("Lib", "Ungrouped")
+      expect(result["Lib"].map(&:project_filename)).to eq(["lib/foo.rb"])
+      expect(result["Ungrouped"].map(&:project_filename)).to eq(["test/foo.rb"])
+    end
+
+    it "skips Ungrouped when every file matches a group" do
+      described_class.add_group("All", //)
+      result = described_class.grouped(files)
+      expect(result.keys).to contain_exactly("All")
+    end
+  end
+
   describe ".result" do
     before do
       described_class.clear_result

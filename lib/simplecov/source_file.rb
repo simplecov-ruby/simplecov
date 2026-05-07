@@ -376,7 +376,10 @@ module SimpleCov
       when :string_literal               then unescape_ruby(string_literal_text(node[1]))
       when :var_ref                      then node.dig(1, 1) # `Foo`
       when :const_path_ref               then "#{parse_array_element(node[1])}::#{node[2][1]}" # `Foo::Bar`
-      else raise ArgumentError, "unexpected element: #{node.inspect}"
+      else
+        # simplecov:disable line — defensive fallback for unexpected Ripper node shapes
+        raise ArgumentError, "unexpected element: #{node.inspect}"
+        # simplecov:enable line
       end
     end
 

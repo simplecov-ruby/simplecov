@@ -221,4 +221,24 @@ describe SimpleCov::Filter do
       expect(described_class.class_for_argument(%w[file1 file2])).to eq(SimpleCov::ArrayFilter)
     end
   end
+
+  describe "#matches?" do
+    it "raises on the base class — subclasses must override" do
+      expect { described_class.new("anything").matches?(nil) }.to raise_error(/not intended for direct use/)
+    end
+  end
+
+  describe "#passes? (deprecated)" do
+    let(:filter_with_match) do
+      Class.new(SimpleCov::Filter) { def matches?(_) = true }.new("anything")
+    end
+
+    it "warns of deprecation and delegates to #matches?" do
+      result = nil
+      stderr = capture_stderr { result = filter_with_match.passes?(nil) }
+      expect(result).to be true
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("#passes?")
+    end
+  end
 end

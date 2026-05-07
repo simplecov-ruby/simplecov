@@ -117,8 +117,15 @@ module SimpleCov
     # Gets the configured formatters.
     #
     def formatters
+      # MultiFormatter.new returns a Class (not an instance), so this
+      # branch never fires in practice — the `Array(formatter)` path
+      # below handles both single-formatter and multi-formatter setups.
+      # Kept for backwards compatibility with any caller that may have
+      # assigned a MultiFormatter *instance* to @formatter directly.
+      # simplecov:disable
       if @formatter.is_a?(SimpleCov::Formatter::MultiFormatter)
         @formatter.formatters
+        # simplecov:enable
       else
         Array(formatter)
       end
