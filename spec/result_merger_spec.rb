@@ -137,18 +137,28 @@ describe SimpleCov::ResultMerger do
         let(:first_result) { outdated(super()) }
 
         it "completely omits the result from the merge" do
-          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path).to_hash
+          stderr = capture_stderr do
+            result_hash = described_class.merge_and_store(resultset1_path, resultset2_path).to_hash
 
-          expect(result_hash.keys).to eq ["result2"]
+            expect(result_hash.keys).to eq ["result2"]
 
-          merged_coverage = result_hash.fetch("result2").fetch("coverage")
-          expect(merged_coverage).to eq(second_resultset)
+            merged_coverage = result_hash.fetch("result2").fetch("coverage")
+            expect(merged_coverage).to eq(second_resultset)
+          end
+          expect(stderr).to include("[SimpleCov]")
+          expect(stderr).to include("merge_timeout")
+          expect(stderr).to include("result1")
         end
 
         it "includes it when we say ignore_timeout: true" do
-          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
+          stderr = capture_stderr do
+            result_hash = described_class.merge_and_store(
+              resultset1_path, resultset2_path, ignore_timeout: true
+            ).to_hash
 
-          expect_resultset_1_and_2_merged(result_hash)
+            expect_resultset_1_and_2_merged(result_hash)
+          end
+          expect(stderr).to be_empty
         end
       end
 

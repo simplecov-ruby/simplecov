@@ -72,7 +72,7 @@ module SimpleCov
       end
 
       def merge_valid_results(results, ignore_timeout: false)
-        results = results.select { |_command_name, data| within_merge_timeout?(data) } unless ignore_timeout
+        results = drop_expired_results(results) unless ignore_timeout
 
         command_plus_coverage = results.map do |command_name, data|
           [[command_name], adapt_result(data.fetch("coverage"))]
@@ -82,8 +82,23 @@ module SimpleCov
         merge_coverage(*command_plus_coverage)
       end
 
+      def drop_expired_results(results)
+        fresh, expired = results.partition { |_command_name, data| within_merge_timeout?(data) }
+        return results if expired.empty?
+
+        warn_about_expired_results(expired.map(&:first))
+        fresh.to_h
+      end
+
       def within_merge_timeout?(data)
         time_since_result_creation(data) < SimpleCov.merge_timeout
+      end
+
+      def warn_about_expired_results(expired_command_names)
+        warn "[SimpleCov]: Excluded #{expired_command_names.size} result(s) older than " \
+             "merge_timeout (#{SimpleCov.merge_timeout}s) from the merged report: " \
+             "#{expired_command_names.sort.join(', ')}. " \
+             "Increase SimpleCov.merge_timeout to include them."
       end
 
       def time_since_result_creation(data)
