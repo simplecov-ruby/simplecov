@@ -703,6 +703,10 @@ end
 
 NOTE: SimpleCov must have already been started before `Process.fork` was called.
 
+NOTE: The bundled `rails` profile turns this on automatically so
+`ActiveSupport::TestCase.parallelize(workers: ...)` worker forks contribute
+to the merged report instead of being silently dropped.
+
 ### Running simplecov against spawned subprocesses
 
 Perhaps you're testing a Ruby script with `PTY.spawn` or `Open3.popen`, or `Process.spawn` or etc.

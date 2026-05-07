@@ -37,5 +37,10 @@ describe SimpleCov do
       expect(filtered?(config, "db/schema.rb")).to be_truthy
       expect(filtered?(config, "config/environment.rb")).to be_truthy
     end
+
+    it "enables subprocess support in the rails profile (covers parallelize forks)" do
+      config.load_profile(:rails)
+      expect(config.enabled_for_subprocesses?).to be true
+    end
   end
 end

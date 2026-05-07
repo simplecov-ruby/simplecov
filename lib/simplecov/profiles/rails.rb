@@ -15,4 +15,12 @@ SimpleCov.profiles.define "rails" do
   add_group "Libraries", "lib/"
 
   track_files "{app,lib}/**/*.rb"
+
+  # `parallelize(workers: ...)` forks worker processes that each run a
+  # slice of the suite. Without subprocess support, the workers' coverage
+  # is dropped on the floor and the parent records 0% for everything they
+  # touched. Hooking `Process._fork` makes each worker re-call
+  # `SimpleCov.start` with a unique command_name so the resultsets merge
+  # correctly.
+  enable_for_subprocesses true
 end
