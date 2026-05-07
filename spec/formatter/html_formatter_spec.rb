@@ -45,6 +45,26 @@ describe SimpleCov::Formatter::HTMLFormatter do
     it "honours an explicit silent: true" do
       expect(described_class.new(silent: true).instance_variable_get(:@silent)).to be true
     end
+
+    it "defaults output_dir to SimpleCov.coverage_path" do
+      expect(described_class.new.send(:output_path)).to eq(SimpleCov.coverage_path)
+    end
+
+    it "honours an explicit output_dir" do
+      Dir.mktmpdir do |dir|
+        expect(described_class.new(output_dir: dir).send(:output_path)).to eq(dir)
+      end
+    end
+  end
+
+  describe "#format with output_dir" do
+    it "writes coverage_data.js into the explicit directory, not SimpleCov.coverage_path" do
+      Dir.mktmpdir do |dir|
+        described_class.new(silent: true, output_dir: dir).format(make_result)
+        expect(File.exist?(File.join(dir, described_class::DATA_FILENAME))).to be true
+        expect(File.exist?(File.join(coverage_dir, described_class::DATA_FILENAME))).to be false
+      end
+    end
   end
 
   describe "#format" do

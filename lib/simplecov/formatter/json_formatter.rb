@@ -12,8 +12,13 @@ module SimpleCov
     class JSONFormatter
       FILENAME = "coverage.json"
 
-      def initialize(silent: false)
+      # `output_dir` defaults to `SimpleCov.coverage_path` so the at_exit
+      # pipeline keeps working unchanged. Pass it explicitly to write
+      # somewhere else (handy for tests that don't want to clobber
+      # the project's `coverage/` directory).
+      def initialize(silent: false, output_dir: nil)
         @silent = silent
+        @output_dir = output_dir
       end
 
       def self.build_hash(result)
@@ -21,7 +26,7 @@ module SimpleCov
       end
 
       def format(result)
-        path = File.join(SimpleCov.coverage_path, FILENAME)
+        path = File.join(output_path, FILENAME)
         warn_if_concurrent_overwrite(path)
         File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
         puts output_message(result) unless @silent
@@ -55,8 +60,12 @@ module SimpleCov
       end
 
       def output_message(result)
-        "JSON Coverage report generated for #{result.command_name} to #{SimpleCov.coverage_path}. " \
+        "JSON Coverage report generated for #{result.command_name} to #{output_path}. " \
           "#{result.covered_lines} / #{result.total_lines} LOC (#{result.covered_percent.round(2)}%) covered."
+      end
+
+      def output_path
+        @output_dir || SimpleCov.coverage_path
       end
     end
   end
