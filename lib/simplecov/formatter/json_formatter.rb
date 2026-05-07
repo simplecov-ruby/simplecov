@@ -63,7 +63,8 @@ module SimpleCov
 
       def output_message(result)
         "JSON Coverage report generated for #{result.command_name} to #{output_path}. " \
-          "#{result.covered_lines} / #{result.total_lines} LOC (#{result.covered_percent.round(2)}%) covered."
+          "#{result.covered_lines} / #{result.total_lines} LOC " \
+          "(#{SimpleCov.round_coverage(result.covered_percent)}%) covered."
       end
 
       def output_path

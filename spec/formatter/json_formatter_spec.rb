@@ -54,6 +54,18 @@ describe SimpleCov::Formatter::JSONFormatter do
     end
   end
 
+  describe "#output_message" do
+    it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do
+      loud_formatter = described_class.new
+      stub = instance_double(
+        SimpleCov::Result,
+        command_name: "RSpec", covered_lines: 22_103, total_lines: 22_104,
+        covered_percent: 22_103.0 / 22_104 * 100
+      )
+      expect(loud_formatter.send(:output_message, stub)).to include("(99.99%)")
+    end
+  end
+
   describe "format" do
     context "with line coverage" do
       it "includes line coverage and covered_percent per file" do

@@ -139,6 +139,15 @@ describe SimpleCov::Formatter::HTMLFormatter do
     it "stays quiet when silent: true" do
       expect { formatter.format(make_result) }.not_to output.to_stdout
     end
+
+    it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do
+      result = instance_double(
+        SimpleCov::Result,
+        command_name: "RSpec", covered_lines: 22_103, total_lines: 22_104,
+        covered_percent: 22_103.0 / 22_104 * 100
+      )
+      expect(loud_formatter.send(:output_message, result)).to include("(99.99%)")
+    end
   end
 
   describe "#format_from_json" do
