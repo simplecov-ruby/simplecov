@@ -81,7 +81,7 @@ module SimpleCov
       lines.any? do |line|
         line.include?("simplecov")
       rescue ArgumentError, EncodingError
-        false
+        false # simplecov:disable line — defensive guard for invalid byte sequences in source
       end
     end
 
@@ -114,7 +114,7 @@ module SimpleCov
       line = lines[line_number - 1].to_s
       !line.byteslice(0, column).to_s.strip.empty?
     rescue ArgumentError, EncodingError
-      false
+      false # simplecov:disable line — defensive guard for invalid byte sequences
     end
 
     def self.comments_in(lines)
@@ -123,7 +123,7 @@ module SimpleCov
         [line_number, column, text] if type == :on_comment
       end
     rescue ArgumentError, EncodingError
-      []
+      [] # simplecov:disable line — Ripper.lex can raise on invalid byte sequences
     end
 
     private_class_method :directives_in, :source_might_contain_directive?,
@@ -138,10 +138,6 @@ module SimpleCov
 
     def disabled?
       mode == :disable
-    end
-
-    def enabled?
-      mode == :enable
     end
 
     def inline?

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "helper"
+require "support/coverage_fixtures"
 
 describe SimpleCov::FileList do
   subject(:file_list) do
@@ -55,5 +56,35 @@ describe SimpleCov::FileList do
 
   it "has the correct covered strength" do
     expect(file_list.covered_strength).to eq(0.9285714285714286)
+  end
+
+  context "with branch and method coverage criteria enabled", if: SimpleCov.branch_coverage_supported? do
+    around do |example|
+      SimpleCov.enable_coverage :branch
+      SimpleCov.enable_coverage :method
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    let(:branch_method_file_list) do
+      original_result = {
+        source_fixture("branches.rb") => CoverageFixtures::BRANCHES_RB
+      }
+      SimpleCov::Result.new(original_result).files
+    end
+
+    it "delegates total_branches/covered_branches/missed_branches/branch_covered_percent" do
+      expect(branch_method_file_list.total_branches).to eq(6)
+      expect(branch_method_file_list.covered_branches).to eq(3)
+      expect(branch_method_file_list.missed_branches).to eq(3)
+      expect(branch_method_file_list.branch_covered_percent).to eq(50.0)
+    end
+
+    it "delegates total_methods/covered_methods/missed_methods/method_covered_percent" do
+      expect(branch_method_file_list.total_methods).to be_a(Integer)
+      expect(branch_method_file_list.covered_methods).to be_a(Integer)
+      expect(branch_method_file_list.missed_methods).to be_a(Integer)
+      expect(branch_method_file_list.method_covered_percent).to be_a(Float)
+    end
   end
 end

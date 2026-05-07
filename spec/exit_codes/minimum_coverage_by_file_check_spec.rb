@@ -31,4 +31,22 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
 
     it { is_expected.to be_failing }
   end
+
+  describe "#report" do
+    let(:minimum_coverage_by_file) { {line: 90} }
+
+    it "prints the violating file with criterion and percentage" do
+      output = capture_stderr { check.report }
+      expect(output).to include("Line coverage by file")
+      expect(output).to include("lib/foo.rb")
+    end
+  end
+
+  describe "#exit_code" do
+    let(:minimum_coverage_by_file) { {line: 80} }
+
+    it "returns SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
+      expect(check.exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+    end
+  end
 end

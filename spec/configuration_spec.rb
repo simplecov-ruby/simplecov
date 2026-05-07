@@ -407,6 +407,112 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#adapters (deprecated)" do
+      it "warns and returns the profiles registry" do
+        result = nil
+        stderr = capture_stderr { result = config.adapters }
+        expect(result).to equal(config.profiles)
+        expect(stderr).to include("[DEPRECATION]")
+        expect(stderr).to include("#adapters")
+      end
+    end
+
+    describe "#formatter" do
+      it "raises when assigned a falsey value" do
+        # `formatter(nil)` is a getter on a defined @formatter; pass a
+        # falsey arg directly to take the assignment branch.
+        expect { config.formatter(false) }.to raise_error(/No formatter configured/)
+      end
+    end
+
+    describe "#formatters" do
+      after do
+        config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
+      end
+
+      it "wraps a single formatter as an Array" do
+        config.formatter = SimpleCov::Formatter::SimpleFormatter
+        expect(config.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
+      end
+    end
+
+    describe "#at_exit" do
+      around do |example|
+        previous = config.instance_variable_get(:@at_exit)
+        config.instance_variable_set(:@at_exit, nil)
+        example.run
+        config.instance_variable_set(:@at_exit, previous)
+      end
+
+      it "returns a default proc (formats the result) when called with no block while Coverage is running" do
+        allow(Coverage).to receive(:running?).and_return(true)
+        proc_returned = config.at_exit
+        expect(proc_returned).to be_a(Proc)
+      end
+
+      it "remembers an explicit block across calls" do
+        explicit = proc {}
+        config.at_exit(&explicit)
+        expect(config.at_exit).to equal(explicit)
+      end
+    end
+
+    describe "#at_fork" do
+      around do |example|
+        previous = SimpleCov.instance_variable_get(:@at_fork)
+        SimpleCov.instance_variable_set(:@at_fork, nil)
+        example.run
+        SimpleCov.instance_variable_set(:@at_fork, previous)
+      end
+
+      it "remembers an explicit block across calls" do
+        explicit = proc { |_pid| }
+        SimpleCov.at_fork(&explicit)
+        expect(SimpleCov.at_fork).to equal(explicit)
+      end
+
+      it "default lambda re-applies subprocess-friendly config" do
+        # Stub the global mutations so this spec doesn't trash the rest
+        # of the suite's SimpleCov configuration / restart Coverage.
+        allow(SimpleCov).to receive(:command_name)
+        allow(SimpleCov).to receive(:print_error_status=)
+        allow(SimpleCov).to receive(:formatter)
+        allow(SimpleCov).to receive(:minimum_coverage)
+        allow(SimpleCov).to receive(:start)
+
+        SimpleCov.at_fork.call(12_345)
+
+        expect(SimpleCov).to have_received(:command_name).with(/subprocess: 12345/)
+        expect(SimpleCov).to have_received(:print_error_status=).with(false)
+        expect(SimpleCov).to have_received(:formatter).with(SimpleCov::Formatter::SimpleFormatter)
+        expect(SimpleCov).to have_received(:minimum_coverage).with(0)
+        expect(SimpleCov).to have_received(:start)
+      end
+    end
+
+    describe "#use_merging" do
+      around do |example|
+        previous = config.instance_variable_get(:@use_merging)
+        config.instance_variable_set(:@use_merging, nil)
+        example.run
+        config.instance_variable_set(:@use_merging, previous)
+      end
+
+      it "stores the explicit value when given true" do
+        config.use_merging(true)
+        expect(config.instance_variable_get(:@use_merging)).to be true
+      end
+
+      it "stores the explicit value when given false" do
+        config.use_merging(false)
+        expect(config.instance_variable_get(:@use_merging)).to be false
+      end
+
+      it "defaults to true when never set" do
+        expect(config.use_merging).to be true
+      end
+    end
+
     describe "#enable_coverage_for_eval" do
       context "when the runtime supports eval coverage" do
         before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
