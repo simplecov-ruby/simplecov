@@ -77,8 +77,10 @@ module SimpleCov
     def start_tracking
       require "coverage"
       warn_if_jruby_full_trace_disabled
+      # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:_fork)
+      # simplecov:enable
 
       make_parallel_tests_available
 
@@ -332,7 +334,7 @@ module SimpleCov
     # @api private
     def wait_for_parallel_results
       expected = ENV["PARALLEL_TEST_GROUPS"]&.to_i
-      return unless expected && expected > 1
+      return unless expected && expected > 1 # simplecov:disable branch — only false in real parallel_tests run
 
       # simplecov:disable — only fires when ENV is set with >1 group
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 10
@@ -457,8 +459,8 @@ module SimpleCov
 
     # parallel_tests isn't always available, see: https://github.com/grosser/parallel_tests/issues/772
     def make_parallel_tests_available
-      return if defined?(ParallelTests)
-      return unless probably_running_parallel_tests?
+      return if defined?(ParallelTests) # simplecov:disable — only true after a previous load
+      return unless probably_running_parallel_tests? # simplecov:disable — false outside parallel_tests
 
       # simplecov:disable — only fires under a real parallel_tests setup
       require "parallel_tests"
@@ -479,7 +481,7 @@ module SimpleCov
     # @see https://github.com/simplecov-ruby/simplecov/issues/420
     # @see https://github.com/simplecov-ruby/simplecov/issues/86
     def warn_if_jruby_full_trace_disabled
-      return unless defined?(JRUBY_VERSION) && defined?(JRuby)
+      return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
 
       # simplecov:disable — JRuby-only branches; unreachable from CRuby
       return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
@@ -525,4 +527,5 @@ require_relative "simplecov/useless_results_remover"
 require_relative "simplecov/simulate_coverage"
 
 # Load default config
+# simplecov:disable — env-var only set by aruba feature tests
 require_relative "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]

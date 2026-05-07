@@ -77,7 +77,7 @@ module SimpleCov
 
     # Returns the number of relevant lines (covered + missed)
     def lines_of_code
-      coverage_statistics[:line]&.total
+      coverage_statistics[:line].total
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -87,11 +87,11 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no coverage lines
     def covered_percent
-      coverage_statistics[:line]&.percent
+      coverage_statistics[:line].percent
     end
 
     def covered_strength
-      coverage_statistics[:line]&.strength
+      coverage_statistics[:line].strength
     end
 
     def no_lines?
@@ -113,7 +113,7 @@ module SimpleCov
     end
 
     def branches_coverage_percent
-      coverage_statistics[:branch]&.percent
+      coverage_statistics[:branch].percent
     end
 
     #
@@ -179,7 +179,7 @@ module SimpleCov
     end
 
     def methods_coverage_percent
-      coverage_statistics[:method]&.percent
+      coverage_statistics[:method].percent
     end
 
     # Whether this file was added via track_files but never loaded/required.
@@ -272,7 +272,9 @@ module SimpleCov
       # also setting these option on `file.set_encoding` doesn't seem to work
       # properly so it has to be done here.
       file_lines.each do |line|
+        # simplecov:disable — defensive: only fires for non-UTF-8 source files
         line.encode!("UTF-8", invalid: :replace, undef: :replace) unless line.encoding == Encoding::UTF_8
+        # simplecov:enable
       end
     end
 
@@ -363,7 +365,9 @@ module SimpleCov
     # for symbols, strings, integers, and constant paths.
     def parse_ruby_array_string(str)
       sexp = Ripper.sexp(quote_inspected_class_segments(str))
+      # simplecov:disable — defensive: Ripper.sexp returning nil requires malformed input
       array_node = sexp&.dig(1, 0)
+      # simplecov:enable
       raise ArgumentError, "expected array literal: #{str.inspect}" unless array_node && array_node[0] == :array
 
       Array(array_node[1]).map { |element| parse_array_element(element) }
@@ -377,9 +381,9 @@ module SimpleCov
       when :var_ref                      then node.dig(1, 1) # `Foo`
       when :const_path_ref               then "#{parse_array_element(node[1])}::#{node[2][1]}" # `Foo::Bar`
       else
-        # simplecov:disable line — defensive fallback for unexpected Ripper node shapes
+        # simplecov:disable — defensive fallback for unexpected Ripper node shapes
         raise ArgumentError, "unexpected element: #{node.inspect}"
-        # simplecov:enable line
+        # simplecov:enable
       end
     end
 

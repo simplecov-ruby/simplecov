@@ -223,7 +223,10 @@ module SimpleCov
     #     end
     #
     def at_exit(&block)
+      # simplecov:disable — exercised only by the cucumber collate feature
       return proc {} unless active_session? || block
+
+      # simplecov:enable
 
       @at_exit = block if block
       @at_exit ||= proc { SimpleCov.result.format! }

@@ -33,12 +33,12 @@ module SimpleCov
 
     # Returns the count of lines that have coverage
     def covered_lines
-      coverage_statistics[:line]&.covered
+      coverage_statistics[:line].covered
     end
 
     # Returns the count of lines that have been missed
     def missed_lines
-      coverage_statistics[:line]&.missed
+      coverage_statistics[:line].missed
     end
 
     # Returns the count of lines that are not relevant for coverage
@@ -68,19 +68,19 @@ module SimpleCov
 
     # Returns the overall amount of relevant lines of code across all files in this list
     def lines_of_code
-      coverage_statistics[:line]&.total
+      coverage_statistics[:line].total
     end
 
     # Computes the coverage based upon lines covered and lines missed
     # @return [Float]
     def covered_percent
-      coverage_statistics[:line]&.percent
+      coverage_statistics[:line].percent
     end
 
     # Computes the strength (hits / line) based upon lines covered and lines missed
     # @return [Float]
     def covered_strength
-      coverage_statistics[:line]&.strength
+      coverage_statistics[:line].strength
     end
 
     # Return total count of branches in all files
