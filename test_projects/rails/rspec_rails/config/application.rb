@@ -23,7 +23,7 @@ Bundler.require(*Rails.groups)
 module RspecRails
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 6.1
+    config.load_defaults 7.2
 
     # Configuration for the application, engines, and railties goes here.
     #
