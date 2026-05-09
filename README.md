@@ -931,6 +931,41 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 > The JSON formatter was originally a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and loaded by default. Existing code that does `require "simplecov_json_formatter"` will continue to work.
 
+## Per-file coverage lookup
+
+Both for editor / TDD inner-loop integrations and for tools that want to
+ask "what's the coverage of this one file?" without re-parsing the full
+report, simplecov ships two readers:
+
+```ruby
+result = SimpleCov.result   # or SimpleCov::Result.from_hash(...).first
+result.coverage_for("app/models/user.rb")
+# => {line: <CoverageStatistics>, branch: <CoverageStatistics>, method: <CoverageStatistics>}
+
+result.source_file_for("app/models/user.rb")
+# => <SimpleCov::SourceFile>
+```
+
+Paths are resolved relative to `SimpleCov.root`, so callers can pass
+either absolute or project-relative paths.
+
+The same lookup is exposed as a CLI for editors and CI scripts:
+
+```sh
+$ simplecov coverage app/models/user.rb
+/abs/path/app/models/user.rb
+  Line:   100.00% (12 / 12)
+  Branch: 100.00% (4 / 4)
+  Method: 100.00% (3 / 3)
+
+$ simplecov coverage --json app/models/user.rb        # raw JSON entry
+$ simplecov coverage --input path/to/coverage.json …  # non-default location
+```
+
+The CLI reads from `coverage/coverage.json` (the JSONFormatter output),
+so you don't need to re-run the test suite — any prior simplecov run
+that emitted JSON suffices.
+
 ## Available formatters, editor integrations and hosted services
 
   * [Open Source formatter and integration plugins for SimpleCov](doc/alternate-formatters.md)

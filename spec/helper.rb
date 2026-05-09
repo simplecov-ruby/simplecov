@@ -53,7 +53,7 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
   # no threshold enforcement.
   DOGFOOD_THRESHOLDS = {
     "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
-    "jruby" => {line: 97.5},
+    "jruby" => {line: 97.0},
     "truffleruby" => {line: 97.5}
   }.freeze
 

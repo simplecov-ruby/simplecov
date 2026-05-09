@@ -36,6 +36,8 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = ">= 3.1"
 
-  gem.files         = Dir["{lib}/**/*.*", "bin/*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
+  gem.files         = Dir["{lib,exe}/**/*.*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
+  gem.bindir        = "exe"
+  gem.executables   = ["simplecov"]
   gem.require_paths = ["lib"]
 end

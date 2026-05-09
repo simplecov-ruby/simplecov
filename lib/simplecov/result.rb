@@ -56,6 +56,22 @@ module SimpleCov
       files.map(&:filename)
     end
 
+    # Returns the SimpleCov::SourceFile for the given path, or nil if no
+    # matching file is in this result. The path is resolved against
+    # SimpleCov.root, so callers can pass either an absolute path or a
+    # project-relative one.
+    def source_file_for(path)
+      target = File.expand_path(path, SimpleCov.root)
+      files.find { |file| file.filename == target }
+    end
+
+    # Returns the {line:/branch:/method:} coverage_statistics hash for the
+    # given file path, or nil if no matching source file is in this
+    # result. See SimpleCov::Result#source_file_for for path resolution.
+    def coverage_for(path)
+      source_file_for(path)&.coverage_statistics
+    end
+
     # Returns a Hash of groups for this result. Define groups using SimpleCov.add_group 'Models', 'app/models'
     def groups
       @groups ||= apply_groups

@@ -253,5 +253,31 @@ describe SimpleCov::Result do
         expect(sorted.map(&:original_result)).to eq [other_result, original_result]
       end
     end
+
+    describe "#source_file_for and #coverage_for" do
+      subject(:result) { described_class.new(original_result) }
+
+      let(:user_path) { source_fixture("app/models/user.rb") }
+
+      it "looks up by absolute path" do
+        expect(result.source_file_for(user_path).filename).to eq(user_path)
+      end
+
+      it "looks up by path relative to SimpleCov.root" do
+        relative = Pathname.new(user_path).relative_path_from(Pathname.new(SimpleCov.root)).to_s
+        expect(result.source_file_for(relative).filename).to eq(user_path)
+      end
+
+      it "returns nil for an unknown path" do
+        expect(result.source_file_for("does/not/exist.rb")).to be_nil
+        expect(result.coverage_for("does/not/exist.rb")).to be_nil
+      end
+
+      it "returns the per-criterion coverage_statistics for a known file" do
+        stats = result.coverage_for(user_path)
+        expect(stats[:line]).to be_a(SimpleCov::CoverageStatistics)
+        expect(stats[:line].covered).to be_positive
+      end
+    end
   end
 end
