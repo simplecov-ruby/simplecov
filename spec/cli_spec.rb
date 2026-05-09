@@ -85,4 +85,84 @@ RSpec.describe SimpleCov::CLI do
       expect(parsed[abs_filename]["lines_covered_percent"]).to eq(66.67)
     end
   end
+
+  describe "run subcommand" do
+    it "errors and exits 1 when no command is given" do
+      expect(run("run")).to eq(1)
+      expect(stderr.string).to include("missing command")
+    end
+
+    it "execs the command with RUBYOPT set to load the autostart shim" do
+      # Real Kernel.exec never returns; the stub does, but the side
+      # effect (env + argv) is what we're verifying.
+      captured_env = nil
+      captured_argv = nil
+      allow(Kernel).to receive(:exec) do |env, *cmd|
+        captured_env = env
+        captured_argv = cmd
+      end
+
+      run("run", "echo", "hello")
+      expect(captured_argv).to eq(%w[echo hello])
+      expect(captured_env["RUBYOPT"]).to include("-r#{described_class::Run::AUTOSTART}")
+    end
+
+    it "preserves an existing RUBYOPT alongside the injection" do
+      previous = ENV.fetch("RUBYOPT", nil)
+      ENV["RUBYOPT"] = "-W0"
+
+      captured_env = nil
+      allow(Kernel).to receive(:exec) { |env, *_cmd| captured_env = env }
+      run("run", "true")
+      expect(captured_env["RUBYOPT"]).to start_with("-W0 -r")
+    ensure
+      ENV["RUBYOPT"] = previous
+    end
+
+    it "sets RUBYOPT to just the injection when none was already set" do
+      previous = ENV.fetch("RUBYOPT", nil)
+      ENV.delete("RUBYOPT")
+
+      captured_env = nil
+      allow(Kernel).to receive(:exec) { |env, *_cmd| captured_env = env }
+      run("run", "true")
+      expect(captured_env["RUBYOPT"]).to eq("-r#{described_class::Run::AUTOSTART}")
+    ensure
+      ENV["RUBYOPT"] = previous
+    end
+
+    it "drops a leading -- separator before the command" do
+      captured_argv = nil
+      allow(Kernel).to receive(:exec) { |_env, *cmd| captured_argv = cmd }
+      run("run", "--", "echo", "hello")
+      expect(captured_argv).to eq(%w[echo hello])
+    end
+
+    it "returns 127 with a friendly message when the command can't be found" do
+      allow(Kernel).to receive(:exec).and_raise(Errno::ENOENT, "no such command nope")
+      expect(run("run", "nope")).to eq(127)
+      expect(stderr.string).to include("no such command nope")
+    end
+
+    # End-to-end: actually invoke a child Ruby process and check that
+    # the autostart shim fires (Coverage.running? becomes true).
+    it "actually starts SimpleCov in a child process" do
+      script = <<~RUBY
+        require "coverage"
+        puts Coverage.running?
+      RUBY
+      cmd = ["ruby", "-I", File.expand_path("../lib", __dir__), "-e", script]
+      output = nil
+      Dir.mktmpdir do |dir|
+        Dir.chdir(dir) do
+          autostart = described_class::Run::AUTOSTART
+          # capture3 (not capture2) so the autostart shim's
+          # "framework not recognized" warning from the child's stderr
+          # doesn't leak into the test runner's output.
+          output, _err, _status = Open3.capture3({"RUBYOPT" => "-r#{autostart}"}, *cmd)
+        end
+      end
+      expect(output.lines.first.strip).to eq("true")
+    end
+  end
 end

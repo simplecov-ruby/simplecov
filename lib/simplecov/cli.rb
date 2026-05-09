@@ -23,6 +23,7 @@ module SimpleCov
     def run(argv, stdout: $stdout, stderr: $stderr)
       command, *rest = argv
       return Coverage.run(rest, stdout: stdout, stderr: stderr) if command == "coverage"
+      return Run.run(rest, stderr: stderr) if command == "run"
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
@@ -34,6 +35,9 @@ module SimpleCov
         Usage: simplecov <command> [options]
 
         Commands:
+          run <command...>          Execute <command> with simplecov pre-loaded
+                                    (so a coverage report is generated even
+                                    when the project has no test_helper hook)
           coverage <path>           Print coverage stats for the given file
           help                      Show this message
 
@@ -124,6 +128,37 @@ module SimpleCov
                            pct: payload[criterion[:pct]],
                            covered: payload[criterion[:cov]] || 0,
                            total: payload[criterion[:tot]] || 0))
+      end
+    end
+
+    # `simplecov run <command...>` — exec the given command with
+    # simplecov auto-loaded so a coverage report drops into the
+    # project's coverage/ directory at the end. Useful for projects
+    # without a test_helper that already calls SimpleCov.start (e.g.
+    # plain `bundle exec rake test` on an unconfigured library).
+    module Run
+      AUTOSTART = File.expand_path("autostart", __dir__)
+
+    module_function
+
+      def run(args, stderr:)
+        cmd = args.first == "--" ? args.drop(1) : args
+        if cmd.empty?
+          stderr.puts("simplecov run: missing command")
+          return 1
+        end
+
+        Kernel.exec(rubyopt_env, *cmd)
+      rescue Errno::ENOENT => e
+        stderr.puts("simplecov run: #{e.message}")
+        127
+      end
+
+      def rubyopt_env
+        existing = ENV["RUBYOPT"].to_s.strip
+        injection = "-r#{AUTOSTART}"
+        merged = existing.empty? ? injection : "#{existing} #{injection}"
+        ENV.to_hash.merge("RUBYOPT" => merged)
       end
     end
   end

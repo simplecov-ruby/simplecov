@@ -1,5 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# Make `./exe/simplecov` work from a fresh checkout, not only via
+# `bundle exec`. RubyGems and Bundler already inject lib/ for an
+# installed gem; this is a no-op in that case.
+lib = File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
 require "simplecov/cli"
 exit SimpleCov::CLI.run(ARGV)

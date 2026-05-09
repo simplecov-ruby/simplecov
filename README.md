@@ -931,6 +931,25 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 > The JSON formatter was originally a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and loaded by default. Existing code that does `require "simplecov_json_formatter"` will continue to work.
 
+## Running a suite from the command line
+
+If your project has no `test_helper.rb` hook that calls `SimpleCov.start`
+(or you don't want to add one), the `simplecov run` subcommand will
+exec your test command with simplecov pre-loaded so a coverage report
+drops into `coverage/` at the end:
+
+```sh
+$ simplecov run bundle exec rspec
+$ simplecov run -- bundle exec rake test
+$ simplecov run ruby my_test.rb
+```
+
+Internally this just sets `RUBYOPT=-rsimplecov/autostart` for the child
+process, so any spawned subprocess (parallel test workers, integration
+test forks, etc.) also picks up the autostart shim. If your project
+already has a `.simplecov` config that calls `SimpleCov.start`, the
+autostart shim defers to it and won't double-start Coverage.
+
 ## Per-file coverage lookup
 
 Both for editor / TDD inner-loop integrations and for tools that want to
