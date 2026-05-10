@@ -314,6 +314,121 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "merge subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-merge-spec-") }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def write_resultset(path, command_name, file_path, lines)
+      File.write(path, JSON.dump(
+                         command_name => {
+                           "coverage" => {file_path => {"lines" => lines}},
+                           "timestamp" => Time.now.to_i
+                         }
+                       ))
+    end
+
+    it "errors when no input files are given" do
+      expect(run("merge")).to eq(1)
+      expect(stderr.string).to include("missing input files")
+    end
+
+    it "merges two resultsets and writes the merged JSON to --output" do
+      a = File.join(tmp, "a.json")
+      b = File.join(tmp, "b.json")
+      out = File.join(tmp, "merged.json")
+      # Use a real on-disk file inside SimpleCov.root so the default
+      # root_filter doesn't strip it during result construction.
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+      write_resultset(b, "worker_2", file, [1, 1, nil])
+
+      expect(run("merge", "--output", out, a, b)).to eq(0)
+      merged = JSON.parse(File.read(out))
+      expect(merged.keys.first).to include("worker_1")
+      expect(merged.keys.first).to include("worker_2")
+      expect(merged.values.first.dig("coverage", file, "lines")).to eq([2, 1, nil])
+    end
+
+    it "surfaces a specific JSON parse error for an unparseable input" do
+      bad = File.join(tmp, "bad.json")
+      File.write(bad, "")
+      expect(run("merge", "--output", File.join(tmp, "out.json"), bad)).to eq(1)
+      expect(stderr.string).to include("isn't valid JSON")
+      expect(stderr.string).to include("bad.json")
+    end
+
+    it "surfaces a specific error when an input is structurally empty" do
+      empty = File.join(tmp, "empty.json")
+      File.write(empty, "{}")
+      expect(run("merge", "--output", File.join(tmp, "out.json"), empty)).to eq(1)
+      expect(stderr.string).to include("no resultset entries")
+      expect(stderr.string).to include("empty.json")
+    end
+
+    it "surfaces a specific error when an input file doesn't exist" do
+      expect(run("merge", "--output", File.join(tmp, "out.json"), File.join(tmp, "nope.json"))).to eq(1)
+      expect(stderr.string).to include("not found")
+      expect(stderr.string).to include("nope.json")
+    end
+
+    it "errors when --honor-timeout expires every input's entries" do
+      a = File.join(tmp, "a.json")
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      # Far enough in the past that any reasonable merge_timeout drops it.
+      File.write(a, JSON.dump("worker_1" => {"coverage" => {file => {"lines" => [1]}},
+                                             "timestamp" => Time.now.to_i - 86_400}))
+      expect(run("merge", "--output", File.join(tmp, "merged.json"), "--honor-timeout", a)).to eq(1)
+      expect(stderr.string).to include("no mergeable results")
+    end
+
+    it "warns when two input files share a command_name" do
+      a = File.join(tmp, "a.json")
+      b = File.join(tmp, "b.json")
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      write_resultset(a, "RSpec", file, [1, 0, nil])
+      write_resultset(b, "RSpec", file, [0, 1, nil])
+
+      expect(run("merge", "--output", File.join(tmp, "merged.json"), a, b)).to eq(0)
+      expect(stderr.string).to include("warning")
+      expect(stderr.string).to include('"RSpec"')
+      expect(stderr.string).to include("appears in 2 input files")
+    end
+
+    it "doesn't write the output file under --dry-run" do
+      a = File.join(tmp, "a.json")
+      out = File.join(tmp, "merged.json")
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+
+      expect(run("merge", "--output", out, "--dry-run", a)).to eq(0)
+      expect(File.exist?(out)).to be false
+      expect(stdout.string).to include("would write")
+      expect(stdout.string).to include(out)
+    end
+
+    it "silences the success status line under --quiet" do
+      a = File.join(tmp, "a.json")
+      out = File.join(tmp, "merged.json")
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+
+      expect(run("merge", "--output", out, "--quiet", a)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(File.exist?(out)).to be true
+    end
+
+    it "accepts -q as the short alias for --quiet" do
+      a = File.join(tmp, "a.json")
+      out = File.join(tmp, "merged.json")
+      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+
+      expect(run("merge", "--output", out, "-q", a)).to eq(0)
+      expect(stdout.string).to be_empty
+    end
+  end
+
   describe "open subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 
