@@ -429,6 +429,140 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "diff subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-diff-spec-") }
+    let(:current) { File.join(tmp, "current.json") }
+    let(:baseline) { File.join(tmp, "baseline.json") }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def write_coverage(path, files)
+      File.write(path, JSON.dump("coverage" => files.transform_values do |entry|
+        case entry
+        when Hash
+          {"total_lines" => 100, "covered_lines" => 0, "lines_covered_percent" => 0.0}.merge(entry)
+        else
+          {"total_lines" => 100, "covered_lines" => entry, "lines_covered_percent" => entry.to_f}
+        end
+      end))
+    end
+
+    it "lists per-file deltas, regressions first" do
+      write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 50, "lib/c.rb" => 100)
+      write_coverage(current,  "lib/a.rb" => 85, "lib/b.rb" => 30, "lib/c.rb" => 100)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      lines = stdout.string.lines.map(&:strip)
+      expect(lines.size).to eq(2)
+      expect(lines.first).to include("lib/b.rb")
+      expect(lines.first).to match(/-\s*20\.00%/)
+      expect(lines.last).to include("lib/a.rb")
+      expect(lines.last).to match(/\+\s*5\.00%/)
+    end
+
+    it "treats new files as a 0%-baseline delta" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 80, "lib/new.rb" => 60)
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string).to include("lib/new.rb")
+      expect(stdout.string).to match(/\+\s*60\.00%/)
+    end
+
+    it "exits 0 with a friendly message when nothing moved" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 80)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("no per-file coverage changes")
+    end
+
+    it "exits non-zero on regression when --fail-on-drop is set" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 70)
+
+      expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
+    end
+
+    it "errors when the baseline argument is missing" do
+      expect(run("diff")).to eq(1)
+      expect(stderr.string).to include("missing baseline argument")
+    end
+
+    it "errors when an input file isn't readable" do
+      expect(run("diff", "--input", File.join(tmp, "nope.json"), baseline)).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+
+    it "reports branch coverage deltas when both sides include branch data" do
+      write_coverage(baseline,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 20, "covered_branches" => 16,
+                                    "branches_covered_percent" => 80.0})
+      write_coverage(current,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 20, "covered_branches" => 10,
+                                    "branches_covered_percent" => 50.0})
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("lib/a.rb")
+      expect(stdout.string).to match(/-\s*30\.00%\s+branches/)
+    end
+
+    it "reports method coverage deltas when both sides include method data" do
+      write_coverage(baseline,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_methods" => 20, "covered_methods" => 18,
+                                    "methods_covered_percent" => 90.0})
+      write_coverage(current,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_methods" => 20, "covered_methods" => 15,
+                                    "methods_covered_percent" => 75.0})
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("lib/a.rb")
+      expect(stdout.string).to match(/-\s*15\.00%\s+methods/)
+    end
+
+    it "tags new files with (new file) and removed files with (removed)" do
+      write_coverage(baseline, "lib/gone.rb" => 95)
+      write_coverage(current,  "lib/new.rb"  => 60)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("lib/new.rb")
+      expect(stdout.string).to include("(new file)")
+      expect(stdout.string).to include("lib/gone.rb")
+      expect(stdout.string).to include("(removed)")
+    end
+
+    it "normalizes leading slashes so pre-`project_filename` baselines diff cleanly" do
+      write_coverage(baseline, "/lib/foo.rb" => 80)
+      write_coverage(current,  "lib/foo.rb" => 80)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("no per-file coverage changes")
+    end
+
+    it "emits a JSON array under --json" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 70)
+
+      expect(run("diff", "--input", current, "--json", baseline)).to eq(0)
+      payload = JSON.parse(stdout.string)
+      expect(payload).to be_an(Array)
+      expect(payload.first).to include("file" => "lib/a.rb", "status" => "changed", "line_delta" => -10.0)
+    end
+
+    it "honors --threshold to filter out small-delta noise" do
+      write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 75, "lib/b.rb" => 60)
+
+      run("diff", "--input", current, "--threshold", "10", baseline)
+      expect(stdout.string).to include("lib/b.rb")
+      expect(stdout.string).not_to include("lib/a.rb")
+    end
+  end
+
   describe "open subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 

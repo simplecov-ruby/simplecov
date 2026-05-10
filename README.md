@@ -1034,6 +1034,43 @@ Pass `--dry-run` to preview the output path without writing, or
 logs. After merging, run `simplecov report` against the combined
 data.
 
+## Diff coverage vs a baseline
+
+`simplecov diff <baseline>` reads two coverage.json files (current
+plus a baseline checked into the repo, or produced by a previous CI
+run) and prints the files whose coverage moved on any enabled
+criterion. When branch or method coverage is enabled in the report,
+those deltas appear alongside the line delta on the same row:
+
+```sh
+$ simplecov diff coverage/baseline.json
+  -20.00% lines  -10.00% branches  lib/foo.rb
+  + 5.00% lines  lib/bar.rb
+  +60.00% lines  lib/new.rb  (new file)
+  -95.00% lines  lib/gone.rb  (removed)
+```
+
+Regressions are listed first. Pass `--fail-on-drop` to exit non-zero
+when any file's line coverage slipped, so this composes with CI as a
+"coverage of this PR didn't drop" gate even when overall thresholds
+are still satisfied. `--threshold N` filters out deltas below N% in
+absolute value, useful when a baseline is noisy. For programmatic
+consumption (CI scripts that need to act on the deltas), `--json`
+emits the rows as a JSON array:
+
+```sh
+$ simplecov diff --json coverage/baseline.json
+[
+  {"file":"lib/foo.rb","status":"changed","line_delta":-20.0,"branch_delta":-10.0,"method_delta":0.0},
+  {"file":"lib/bar.rb","status":"changed","line_delta":5.0,"branch_delta":0.0,"method_delta":0.0}
+]
+```
+
+Coverage keys with a leading `/` (from `coverage.json` files emitted
+before the `SourceFile#project_filename` change) are normalized so a
+baseline from an older SimpleCov still diffs cleanly against newer
+reports.
+
 ## Available formatters, editor integrations and hosted services
 
   * [Open Source formatter and integration plugins for SimpleCov](doc/alternate-formatters.md)
