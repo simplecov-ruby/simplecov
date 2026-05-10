@@ -166,6 +166,62 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "report subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-report-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+
+    before do
+      File.write(json_path, JSON.dump(
+                              "total" => {
+                                "lines" => {"covered" => 80, "total" => 100, "percent" => 80.0},
+                                "branches" => {"covered" => 9, "total" => 10, "percent" => 90.0},
+                                "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+                              },
+                              "groups" => {
+                                "Models" => {
+                                  "lines" => {"covered" => 40, "total" => 50, "percent" => 80.0},
+                                  "branches" => {"covered" => 5, "total" => 5, "percent" => 100.0},
+                                  "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+                                }
+                              }
+                            ))
+    end
+
+    after { FileUtils.remove_entry(tmp) }
+
+    it "prints the All Files totals" do
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).to include("All Files")
+      expect(stdout.string).to match(%r{Line:\s+80\.00%\s+\(80 / 100\)})
+      expect(stdout.string).to match(%r{Branch:\s+90\.00%\s+\(9 / 10\)})
+    end
+
+    it "skips a criterion with zero relevant entries" do
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).not_to include("Method:")
+    end
+
+    it "prints group totals after the All Files row" do
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).to include("Models")
+      expect(stdout.string.index("All Files")).to be < stdout.string.index("Models")
+    end
+
+    it "errors when the input file is missing" do
+      expect(run("report", "--input", "/no/such.json")).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+
+    it "emits totals and groups as JSON under --json" do
+      expect(run("report", "--input", json_path, "--json")).to eq(0)
+      payload = JSON.parse(stdout.string)
+      expect(payload["All Files"]).to include("lines" => {"percent" => 80.0, "covered" => 80, "total" => 100})
+      expect(payload["All Files"]).to include("branches" => {"percent" => 90.0, "covered" => 9, "total" => 10})
+      expect(payload["All Files"]).not_to include("methods")
+      expect(payload["Models"]).to include("lines" => {"percent" => 80.0, "covered" => 40, "total" => 50})
+    end
+  end
+
   describe "open subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 

@@ -979,6 +979,25 @@ The CLI reads from `coverage/coverage.json` (the JSONFormatter output),
 so you don't need to re-run the test suite — any prior simplecov run
 that emitted JSON suffices.
 
+## Quick terminal report
+
+For CI logs, ssh sessions, or any terminal-only workflow,
+`simplecov report` prints the same totals row the HTML report renders
+at the top, plus per-group totals:
+
+```sh
+$ simplecov report
+All Files
+  Line:    99.75% (1638 / 1642)
+  Branch:  98.50% (396 / 402)
+  Method:  99.73% (372 / 373)
+```
+
+Pass `--input PATH` to read a non-default coverage.json. `--json`
+emits the same totals as a JSON object keyed by section name (with
+`"All Files"` plus each group), useful when a CI step needs to act
+on the numbers rather than display them.
+
 ## Available formatters, editor integrations and hosted services
 
   * [Open Source formatter and integration plugins for SimpleCov](doc/alternate-formatters.md)
