@@ -22,10 +22,8 @@ module SimpleCov
     # Returns a process exit status (0 on success, non-zero on error).
     def run(argv, stdout: $stdout, stderr: $stderr)
       command, *rest = argv
-      return Coverage.run(rest, stdout: stdout, stderr: stderr) if command == "coverage"
-      return Run.run(rest, stderr: stderr) if command == "run"
-      return Open.run(rest, stderr: stderr) if command == "open"
-      return Report.run(rest, stdout: stdout, stderr: stderr) if command == "report"
+      handler = COMMANDS[command]
+      return handler.run(rest, stdout: stdout, stderr: stderr) if handler
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
@@ -153,7 +151,7 @@ module SimpleCov
 
     module_function
 
-      def run(args, stderr:)
+      def run(args, stderr:, **)
         cmd = args.first == "--" ? args.drop(1) : args
         if cmd.empty?
           stderr.puts("simplecov run: missing command")
@@ -182,7 +180,7 @@ module SimpleCov
 
     module_function
 
-      def run(args, stderr:)
+      def run(args, stderr:, **)
         path = parse(args)
         return error(stderr, "#{path} not found") unless File.exist?(path)
 
@@ -290,5 +288,12 @@ module SimpleCov
         end
       end
     end
+
+    COMMANDS = {
+      "coverage" => Coverage,
+      "run" => Run,
+      "open" => Open,
+      "report" => Report
+    }.freeze
   end
 end
