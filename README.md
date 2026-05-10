@@ -90,21 +90,15 @@ Getting started
 > **[Spring section](#want-to-use-spring-with-simplecov)**.
 
 3. Run your full test suite to see the percent coverage that your application has.
-4. After running your tests, open `coverage/index.html` in the browser of your choice. For example, in a Mac Terminal,
-   run the following command from your application's root directory:
+4. Open the HTML report in your default browser:
 
    ```
-   open coverage/index.html
-   ```
-   in a Debian/Ubuntu Terminal,
-
-   ```
-   xdg-open coverage/index.html
+   simplecov open
    ```
 
-> [!NOTE]
-> [This guide](https://dwheeler.com/essays/open-files-urls.html) can help if you're unsure which command your particular
-> operating system requires.
+   (The bundled `simplecov` CLI picks the right opener for your
+   platform — `open` on macOS, `xdg-open` on Linux/BSD, `start` on
+   Windows. Pass `--report PATH` to open a non-default location.)
 
 5. Add the following to your `.gitignore` file to ensure that coverage results
    are not tracked by Git (optional):
