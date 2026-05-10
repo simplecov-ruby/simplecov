@@ -1017,6 +1017,23 @@ $ simplecov uncovered --threshold 90 --top 5
 `--json` emits the same rows as a JSON array (an empty array when
 nothing is below the threshold), useful for piping into a CI gate.
 
+## Merging resultsets from parallel CI workers
+
+CI matrices that produce one `.resultset.json` per worker can stitch
+them together with `simplecov merge`, instead of hand-rolling a Rake
+task in every project:
+
+```sh
+$ simplecov merge worker-*/coverage/.resultset.json --output coverage/.resultset.json
+```
+
+By default `simplecov merge` ignores `merge_timeout`; pass
+`--honor-timeout` to drop entries older than the configured timeout.
+Pass `--dry-run` to preview the output path without writing, or
+`-q` / `--quiet` to suppress the success status line for cleaner CI
+logs. After merging, run `simplecov report` against the combined
+data.
+
 ## Available formatters, editor integrations and hosted services
 
   * [Open Source formatter and integration plugins for SimpleCov](doc/alternate-formatters.md)
