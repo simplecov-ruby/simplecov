@@ -998,6 +998,25 @@ emits the same totals as a JSON object keyed by section name (with
 `"All Files"` plus each group), useful when a CI step needs to act
 on the numbers rather than display them.
 
+## Listing uncovered files
+
+`simplecov uncovered` prints the lowest-coverage files (by line
+coverage, worst-first) so you don't have to open the HTML report to
+find where to add tests next:
+
+```sh
+$ simplecov uncovered
+ 50.00%  5/10    lib/foo.rb
+ 80.00%  8/10    lib/bar.rb
+
+$ simplecov uncovered --threshold 90 --top 5
+```
+
+`--threshold N` filters to files below N% line coverage (default
+`100`); `--top N` caps the list at N entries (default `10`).
+`--json` emits the same rows as a JSON array (an empty array when
+nothing is below the threshold), useful for piping into a CI gate.
+
 ## Available formatters, editor integrations and hosted services
 
   * [Open Source formatter and integration plugins for SimpleCov](doc/alternate-formatters.md)
