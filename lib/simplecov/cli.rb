@@ -24,6 +24,7 @@ module SimpleCov
       command, *rest = argv
       return Coverage.run(rest, stdout: stdout, stderr: stderr) if command == "coverage"
       return Run.run(rest, stderr: stderr) if command == "run"
+      return Open.run(rest, stderr: stderr) if command == "open"
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
@@ -39,11 +40,15 @@ module SimpleCov
                                     (so a coverage report is generated even
                                     when the project has no test_helper hook)
           coverage <path>           Print coverage stats for the given file
+          open                      Open the HTML report in the default browser
           help                      Show this message
 
         coverage options:
           --input PATH              Read from PATH instead of #{DEFAULT_INPUT}
           --json                    Print the file's JSON entry verbatim
+
+        open options:
+          --report PATH             Open PATH instead of coverage/index.html
       USAGE
     end
 
@@ -159,6 +164,51 @@ module SimpleCov
         injection = "-r#{AUTOSTART}"
         merged = existing.empty? ? injection : "#{existing} #{injection}"
         ENV.to_hash.merge("RUBYOPT" => merged)
+      end
+    end
+
+    # `simplecov open [--report PATH]` — open the HTML report in the
+    # platform's default browser. Tiny QoL wrapper around `xdg-open` /
+    # `open` / `start` so users don't have to type a file:// URL.
+    module Open
+      DEFAULT_REPORT = "coverage/index.html"
+
+    module_function
+
+      def run(args, stderr:)
+        path = parse(args)
+        return error(stderr, "#{path} not found") unless File.exist?(path)
+
+        opener = browser_opener
+        return error(stderr, "no known opener for #{RbConfig::CONFIG['host_os']}") unless opener
+
+        system(*opener, path) ? 0 : 1
+      end
+
+      def error(stderr, message)
+        stderr.puts("simplecov open: #{message}")
+        1
+      end
+
+      def parse(args)
+        path = DEFAULT_REPORT
+        OptionParser.new do |o|
+          o.on("--report PATH") { |v| path = v }
+        end.parse(args)
+        path
+      end
+
+      # Returns the argv for the platform's "open this file" command, or
+      # nil if the host OS isn't recognized. On Windows, `start` is a
+      # cmd.exe builtin (not an executable), so route through `cmd /c`;
+      # the empty string is the window-title positional `start` takes
+      # before the path so a quoted path isn't mis-parsed as the title.
+      def browser_opener
+        case RbConfig::CONFIG["host_os"]
+        when /darwin/                       then ["open"]
+        when /mswin|mingw|cygwin/           then ["cmd", "/c", "start", ""]
+        when /linux|bsd|solaris/            then ["xdg-open"]
+        end
       end
     end
   end
