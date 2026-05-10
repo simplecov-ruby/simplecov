@@ -40,10 +40,11 @@ module SimpleCov
                                     when the project has no test_helper hook)
           coverage <path>           Print coverage stats for the given file
           report                    Print the overall summary and group totals
+          uncovered                 List the lowest-coverage files
           open                      Open the HTML report in the default browser
           help                      Show this message
 
-        coverage / report options:
+        coverage / report / uncovered options:
           --input PATH              Read from PATH instead of #{DEFAULT_INPUT}
 
         coverage options:
@@ -51,6 +52,11 @@ module SimpleCov
 
         report options:
           --json                    Emit totals and group sections as JSON
+
+        uncovered options:
+          --threshold N             Only show files below N% line coverage
+          --top N                   Show at most N files (default: 10)
+          --json                    Emit results as a JSON array (for CI)
 
         open options:
           --report PATH             Open PATH instead of coverage/index.html
@@ -289,11 +295,78 @@ module SimpleCov
       end
     end
 
+    # `simplecov uncovered [--threshold N] [--top N]` — list the
+    # lowest-coverage files (by line coverage, ascending), so a
+    # developer can answer "where should I add tests next?" without
+    # opening a browser. Reads coverage.json directly.
+    module Uncovered
+      DEFAULT_TOP = 10
+
+    module_function
+
+      def run(args, stdout:, stderr:, **)
+        opts = parse(args)
+        return 1 unless (data = Report.load_data(opts[:input], stderr))
+
+        files = rank(data.fetch("coverage", {}), opts[:threshold]).first(opts[:top])
+        return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
+
+        opts[:json] ? emit_json(stdout, files) : emit_text(stdout, files)
+        0
+      end
+
+      def parse(args)
+        opts = {input: DEFAULT_INPUT, threshold: 100.0, top: DEFAULT_TOP}
+        OptionParser.new do |o|
+          o.on("--input PATH")         { |v| opts[:input] = v }
+          o.on("--threshold N", Float) { |v| opts[:threshold] = v }
+          o.on("--top N", Integer)     { |v| opts[:top] = v }
+          o.on("--json")               { opts[:json] = true }
+        end.parse(args)
+        opts
+      end
+
+      def emit_text(stdout, files)
+        files.each { |fname, pct, covered, total| stdout.puts(format_row(fname, pct, covered, total)) }
+      end
+
+      def emit_json(stdout, files)
+        rows = files.map do |fname, pct, covered, total|
+          {"file" => fname, "percent" => pct, "covered" => covered, "total" => total}
+        end
+        stdout.puts(JSON.pretty_generate(rows))
+      end
+
+      def empty_message(json)
+        json ? "[]" : "simplecov uncovered: nothing to report"
+      end
+
+      def rank(coverage_hash, threshold)
+        rows = coverage_hash.filter_map { |fname, payload| row_for(fname, payload, threshold) }
+        rows.sort_by { |_fname, pct, _c, _t| pct }
+      end
+
+      def row_for(fname, payload, threshold)
+        return unless payload.is_a?(Hash) && payload["total_lines"].to_i.positive?
+
+        pct = payload["lines_covered_percent"].to_f
+        return if pct >= threshold
+
+        [fname, pct, payload["covered_lines"].to_i, payload["total_lines"].to_i]
+      end
+
+      def format_row(fname, pct, covered, total)
+        format("%<pct>6.2f%%  %<covered>d/%<total>d  %<fname>s",
+               pct: pct, covered: covered, total: total, fname: fname)
+      end
+    end
+
     COMMANDS = {
       "coverage" => Coverage,
       "run" => Run,
       "open" => Open,
-      "report" => Report
+      "report" => Report,
+      "uncovered" => Uncovered
     }.freeze
   end
 end

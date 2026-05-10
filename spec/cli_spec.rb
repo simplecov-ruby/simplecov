@@ -222,6 +222,98 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "uncovered subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-uncovered-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+
+    before do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/a.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 10, "lines_covered_percent" => 100.0
+                                },
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 5, "lines_covered_percent" => 50.0
+                                },
+                                "/abs/lib/c.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 1, "lines_covered_percent" => 10.0
+                                }
+                              }
+                            ))
+    end
+
+    after { FileUtils.remove_entry(tmp) }
+
+    it "lists files below 100% by default, worst-first" do
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      lines = stdout.string.lines.map(&:strip)
+      expect(lines.size).to eq(2)
+      expect(lines.first).to include("/abs/lib/c.rb")
+      expect(lines.last).to include("/abs/lib/b.rb")
+    end
+
+    it "honours --threshold" do
+      run("uncovered", "--input", json_path, "--threshold", "20")
+      expect(stdout.string.lines.map(&:strip)).to all(include("/abs/lib/c.rb"))
+    end
+
+    it "honours --top to cap the list" do
+      run("uncovered", "--input", json_path, "--top", "1")
+      expect(stdout.string.lines.size).to eq(1)
+    end
+
+    it "reports nothing when every file is at 100%" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/a.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 10, "lines_covered_percent" => 100.0
+                                }
+                              }
+                            ))
+      run("uncovered", "--input", json_path)
+      expect(stdout.string).to include("nothing to report")
+    end
+
+    it "emits rows as a JSON array under --json" do
+      expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
+      payload = JSON.parse(stdout.string)
+      expect(payload).to be_an(Array)
+      expect(payload.first).to include("file" => "/abs/lib/c.rb", "percent" => 10.0, "covered" => 1, "total" => 10)
+      expect(payload.last).to include("file" => "/abs/lib/b.rb", "percent" => 50.0, "covered" => 5, "total" => 10)
+    end
+
+    it "emits an empty JSON array when nothing is uncovered" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/a.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 10, "lines_covered_percent" => 100.0
+                                }
+                              }
+                            ))
+      expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq([])
+    end
+
+    it "skips coverage entries without a positive total_lines count" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/empty.rb" => {"total_lines" => 0},
+                                "/abs/lib/a.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 5, "lines_covered_percent" => 50.0
+                                }
+                              }
+                            ))
+      run("uncovered", "--input", json_path)
+      expect(stdout.string).not_to include("empty.rb")
+      expect(stdout.string).to include("a.rb")
+    end
+
+    it "errors when the input file is missing" do
+      expect(run("uncovered", "--input", "/no/such.json")).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+  end
+
   describe "open subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 
