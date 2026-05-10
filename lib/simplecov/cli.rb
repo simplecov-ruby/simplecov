@@ -25,6 +25,7 @@ module SimpleCov
       return Coverage.run(rest, stdout: stdout, stderr: stderr) if command == "coverage"
       return Run.run(rest, stderr: stderr) if command == "run"
       return Open.run(rest, stderr: stderr) if command == "open"
+      return Report.run(rest, stdout: stdout, stderr: stderr) if command == "report"
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
@@ -40,12 +41,18 @@ module SimpleCov
                                     (so a coverage report is generated even
                                     when the project has no test_helper hook)
           coverage <path>           Print coverage stats for the given file
+          report                    Print the overall summary and group totals
           open                      Open the HTML report in the default browser
           help                      Show this message
 
-        coverage options:
+        coverage / report options:
           --input PATH              Read from PATH instead of #{DEFAULT_INPUT}
+
+        coverage options:
           --json                    Print the file's JSON entry verbatim
+
+        report options:
+          --json                    Emit totals and group sections as JSON
 
         open options:
           --report PATH             Open PATH instead of coverage/index.html
@@ -208,6 +215,78 @@ module SimpleCov
         when /darwin/                       then ["open"]
         when /mswin|mingw|cygwin/           then ["cmd", "/c", "start", ""]
         when /linux|bsd|solaris/            then ["xdg-open"]
+        end
+      end
+    end
+
+    # `simplecov report [--input PATH]` — pretty-print the overall
+    # totals row plus per-group totals from a JSONFormatter
+    # coverage.json. Same numbers as the HTML report's totals row, for
+    # contexts where opening a browser isn't an option (CI logs, ssh
+    # sessions, terminal-only workflows).
+    module Report
+      SECTIONS = [%w[Line lines], %w[Branch branches], %w[Method methods]].freeze
+
+    module_function
+
+      def run(args, stdout:, stderr:)
+        opts = parse(args)
+        return 1 unless (data = load_data(opts[:input], stderr))
+
+        opts[:json] ? emit_json(stdout, data) : emit_text(stdout, data)
+        0
+      end
+
+      def parse(args)
+        input = DEFAULT_INPUT
+        json = false
+        OptionParser.new do |o|
+          o.on("--input PATH") { |v| input = v }
+          o.on("--json")       { json = true }
+        end.parse(args)
+        {input: input, json: json}
+      end
+
+      def load_data(input, stderr)
+        return JSON.parse(File.read(input)) if File.exist?(input)
+
+        stderr.puts("simplecov report: #{input} not found")
+        nil
+      end
+
+      def emit_text(stdout, data)
+        emit_totals(stdout, "All Files", data.fetch("total", {}))
+        data.fetch("groups", {}).each { |name, group| emit_totals(stdout, name, group) }
+      end
+
+      def emit_totals(stdout, label, totals)
+        stdout.puts(label)
+        SECTIONS.each { |display, key| emit_section(stdout, display, totals[key]) }
+        stdout.puts
+      end
+
+      def emit_section(stdout, display, section)
+        return unless section.is_a?(Hash) && section["total"].to_i.positive?
+
+        stdout.puts(format("  %<label>-7s %<pct>.2f%% (%<covered>d / %<total>d)",
+                           label: "#{display}:",
+                           pct: section["percent"],
+                           covered: section["covered"] || 0,
+                           total: section["total"] || 0))
+      end
+
+      def emit_json(stdout, data)
+        payload = {"All Files" => collect_section(data.fetch("total", {}))}
+        data.fetch("groups", {}).each { |name, group| payload[name] = collect_section(group) }
+        stdout.puts(JSON.pretty_generate(payload))
+      end
+
+      def collect_section(totals)
+        SECTIONS.each_with_object({}) do |(_, key), out|
+          section = totals[key]
+          next unless section.is_a?(Hash) && section["total"].to_i.positive?
+
+          out[key] = {"percent" => section["percent"], "covered" => section["covered"], "total" => section["total"]}
         end
       end
     end
