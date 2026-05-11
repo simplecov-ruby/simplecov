@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require "helper"
+require "net/http"
 require "simplecov/cli"
+require "socket"
 require "stringio"
 require "tmpdir"
 
@@ -616,6 +618,165 @@ RSpec.describe SimpleCov::CLI do
       run("diff", "--input", current, "--threshold", "10", baseline)
       expect(stdout.string).to include("lib/b.rb")
       expect(stdout.string).not_to include("lib/a.rb")
+    end
+  end
+
+  describe "serve subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-serve-spec-") }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    it "errors when the coverage dir doesn't exist" do
+      allow(described_class).to receive(:coverage_dir).and_return(File.join(tmp, "nope"))
+      expect(run("serve")).to eq(1)
+      expect(stderr.string).to include("doesn't exist")
+    end
+
+    describe ".resolve" do
+      before do
+        FileUtils.mkdir_p(File.join(tmp, "assets"))
+        File.write(File.join(tmp, "index.html"), "<html></html>")
+        File.write(File.join(tmp, "assets", "app.js"), "var x;")
+      end
+
+      it "maps `/` to index.html" do
+        expect(described_class::Serve.resolve("/", tmp)).to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "serves an explicit asset" do
+        expect(described_class::Serve.resolve("/assets/app.js", tmp))
+          .to eq(File.realpath(File.join(tmp, "assets/app.js")))
+      end
+
+      it "strips query strings" do
+        expect(described_class::Serve.resolve("/index.html?_=1", tmp))
+          .to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "returns nil for a missing file" do
+        expect(described_class::Serve.resolve("/missing.html", tmp)).to be_nil
+      end
+
+      it "blocks parent-directory traversal" do
+        expect(described_class::Serve.resolve("/../secret.txt", tmp)).to eq(:forbidden)
+      end
+
+      it "maps a directory request to its index.html" do
+        FileUtils.mkdir_p(File.join(tmp, "assets", "nested"))
+        File.write(File.join(tmp, "assets", "nested", "index.html"), "ok")
+        expect(described_class::Serve.resolve("/assets/nested", tmp))
+          .to eq(File.realpath(File.join(tmp, "assets/nested/index.html")))
+      end
+
+      it "blocks a symlink that escapes root" do
+        Dir.mktmpdir("simplecov-cli-serve-escape-") do |outside|
+          File.write(File.join(outside, "secret.txt"), "shhh")
+          File.symlink(File.join(outside, "secret.txt"), File.join(tmp, "leak"))
+          expect(described_class::Serve.resolve("/leak", tmp)).to eq(:forbidden)
+        end
+      end
+    end
+
+    it "returns 403 for a path-traversal attempt" do
+      FileUtils.mkdir_p(tmp)
+      server = TCPServer.new("127.0.0.1", 0)
+      thread = Thread.new { described_class::Serve.handle_connection(server.accept, tmp) }
+      sock = TCPSocket.new("127.0.0.1", server.addr[1])
+      # Raw request so the path isn't normalized by Net::HTTP / URI.
+      sock.write("GET /../secret.txt HTTP/1.1\r\nHost: x\r\n\r\n")
+      expect(sock.read).to start_with("HTTP/1.1 403")
+    ensure
+      sock&.close
+      thread&.join(2)
+      server&.close
+    end
+
+    it "exits 405 for non-GET requests" do
+      FileUtils.mkdir_p(tmp)
+      server = TCPServer.new("127.0.0.1", 0)
+      thread = Thread.new do
+        described_class::Serve.handle_connection(server.accept, tmp)
+      end
+      sock = TCPSocket.new("127.0.0.1", server.addr[1])
+      sock.write("POST / HTTP/1.1\r\nHost: x\r\n\r\n")
+      response = sock.read
+      expect(response).to start_with("HTTP/1.1 405")
+    ensure
+      sock&.close
+      thread&.join(2)
+      server&.close
+    end
+
+    it "rescues a misbehaving client without crashing" do
+      FileUtils.mkdir_p(tmp)
+      server = TCPServer.new("127.0.0.1", 0)
+      Thread.new do
+        s = TCPSocket.new("127.0.0.1", server.addr[1])
+        s.close
+      end
+      accepted = server.accept
+      expect { described_class::Serve.handle_connection(accepted, tmp) }.not_to raise_error
+    ensure
+      server&.close
+    end
+
+    it "closes its TCPServer cleanly when an error bubbles out of run" do
+      FileUtils.mkdir_p(tmp)
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE, "addr in use")
+      expect { run("serve") }.to raise_error(Errno::EADDRINUSE)
+    end
+
+    # End-to-end through `run`: spin the full entry point in a thread,
+    # hit it, then signal Ctrl-C to stop. Exercises `run`, `announce`,
+    # the serve_loop exit path, and the ensure-time `server.close`.
+    it "serves the report end-to-end through the run entry point" do
+      FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "<html>via-run</html>")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+
+      announced = Queue.new
+      original_announce = described_class::Serve.method(:announce)
+      allow(described_class::Serve).to receive(:announce) do |stdout, server, dir|
+        announced << "http://#{server.addr[3]}:#{server.addr[1]}/"
+        original_announce.call(stdout, server, dir)
+      end
+
+      thread = Thread.new { described_class.run(["serve"], stdout: stdout, stderr: stderr) }
+      begin
+        url = announced.pop
+        response = Net::HTTP.get_response(URI(url))
+        expect(response.code).to eq("200")
+        expect(response.body).to include("via-run")
+      ensure
+        thread.raise(Interrupt) if thread.alive?
+        thread.join(2)
+      end
+    end
+
+    # End-to-end: spin the real server on a random port, make a request,
+    # assert the body comes back.
+    it "actually serves the report over HTTP" do
+      FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "<html>hello</html>")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+
+      server = TCPServer.new("127.0.0.1", 0)
+      port = server.addr[1]
+      thread = Thread.new { described_class::Serve.serve_loop(server, tmp, StringIO.new) }
+      begin
+        require "net/http"
+        response = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/"))
+        expect(response.code).to eq("200")
+        expect(response.body).to include("<html>hello</html>")
+
+        not_found = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/missing.html"))
+        expect(not_found.code).to eq("404")
+      ensure
+        thread.raise(Interrupt) if thread.alive?
+        thread.join(2)
+        server.close unless server.closed?
+      end
     end
   end
 
