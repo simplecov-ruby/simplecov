@@ -30,6 +30,62 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe ".coverage_dir" do
+    # Reset memoization between examples so each one sees a fresh
+    # discovery from its own cwd.
+    around do |example|
+      previous = described_class.instance_variable_get(:@coverage_dir)
+      described_class.instance_variable_set(:@coverage_dir, nil)
+      example.run
+    ensure
+      described_class.instance_variable_set(:@coverage_dir, previous)
+    end
+
+    it "honors SimpleCov.coverage_dir from a project .simplecov" do
+      Dir.mktmpdir do |tmp|
+        File.write(File.join(tmp, ".simplecov"), %(SimpleCov.coverage_dir "my/reports"\n))
+        Dir.chdir(tmp) do
+          expect(described_class.coverage_dir).to eq("my/reports")
+        end
+      end
+    end
+
+    it "falls back to 'coverage' when no .simplecov is found" do
+      Dir.mktmpdir do |tmp|
+        Dir.chdir(tmp) do
+          expect(described_class.coverage_dir).to eq("coverage")
+        end
+      end
+    end
+
+    it "does not start coverage tracking when the dotfile calls SimpleCov.start" do
+      Dir.mktmpdir do |tmp|
+        File.write(File.join(tmp, ".simplecov"), <<~RUBY)
+          SimpleCov.start do
+            coverage_dir "from/start_block"
+          end
+        RUBY
+        Dir.chdir(tmp) do
+          coverage_was_running = Coverage.running?
+          expect(described_class.coverage_dir).to eq("from/start_block")
+          # The CLI must not start (or restart) Coverage tracking just
+          # by reading the dotfile.
+          expect(Coverage.running?).to eq(coverage_was_running)
+        end
+      end
+    end
+
+    it "falls back to 'coverage' and warns when the dotfile raises" do
+      Dir.mktmpdir do |tmp|
+        File.write(File.join(tmp, ".simplecov"), "raise 'boom'\n")
+        Dir.chdir(tmp) do
+          expect { expect(described_class.coverage_dir).to eq("coverage") }
+            .to output(/simplecov: failed to read coverage_dir.*RuntimeError.*boom/).to_stderr
+        end
+      end
+    end
+  end
+
   describe "coverage subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
