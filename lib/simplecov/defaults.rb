@@ -30,18 +30,21 @@ config_path = Pathname.new(SimpleCov.root)
 loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
-    # simplecov:disable — fires only when a .simplecov dotfile exists
-    # in the project tree; simplecov's own repo doesn't ship one, so
-    # this branch is unreachable from the dogfood report.
     begin
       load filename
     rescue LoadError, StandardError
+      # simplecov:disable — only fires when .simplecov is unreadable
+      # or raises during load
       warn "Warning: Error occurred while trying to load #{filename}. " \
            "Error message: #{$!.message}"
+      # simplecov:enable
     end
     break
-    # simplecov:enable
   end
+  # simplecov:disable — only fires when no .simplecov is found up to
+  # the filesystem root; simplecov's own dogfood run finds the repo's
+  # .simplecov on the first iteration and breaks before getting here.
   config_path, = config_path.split
   break if config_path.root?
+  # simplecov:enable
 end

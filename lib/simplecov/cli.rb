@@ -2,22 +2,42 @@
 
 require "json"
 require "optparse"
+require "pathname"
 
 module SimpleCov
-  # Lightweight command-line front-end.
+  # Lightweight command-line front-end. `run` dispatches a subcommand
+  # (`coverage`, `report`, `uncovered`, `merge`, `diff`, `open`, etc.) —
+  # see the `usage` text below for the full list, or run `simplecov help`.
   #
-  # Currently supports a single subcommand:
-  #
-  #   simplecov coverage <path>   Print stats for the given file from
-  #                               coverage/coverage.json (or --input PATH).
-  #
-  # Reads from JSONFormatter output, which is already produced as a
-  # side-effect of the bundled HTMLFormatter, so no runtime hooking is
-  # needed — the CLI is purely a reader.
+  # Read-only subcommands consume JSONFormatter output (`coverage.json`),
+  # which the bundled HTMLFormatter already drops alongside the HTML, so
+  # no runtime hooking is needed for those. Default paths follow the
+  # project's `.simplecov` `SimpleCov.coverage_dir` setting when one is
+  # present, so a project that writes its report somewhere other than
+  # `coverage/` doesn't have to pass `--input` / `--report` every
+  # invocation.
   module CLI
-    DEFAULT_INPUT = "coverage/coverage.json"
-
   module_function
+
+    # Resolved once per process. Walks up from cwd looking for a
+    # `.simplecov`; if present, the file is loaded with
+    # `SimpleCov.start` neutered so it can't trigger coverage tracking
+    # or an at_exit hook just because we asked it for a config value.
+    def coverage_dir
+      @coverage_dir ||= read_coverage_dir
+    end
+
+    def default_input
+      File.join(coverage_dir, "coverage.json")
+    end
+
+    def default_report
+      File.join(coverage_dir, "index.html")
+    end
+
+    def default_resultset
+      File.join(coverage_dir, ".resultset.json")
+    end
 
     # Returns a process exit status (0 on success, non-zero on error).
     def run(argv, stdout: $stdout, stderr: $stderr)
@@ -46,8 +66,11 @@ module SimpleCov
           open                      Open the HTML report in the default browser
           help                      Show this message
 
+        Default paths follow SimpleCov.coverage_dir from a project's
+        `.simplecov` when one is present (#{coverage_dir} for this run).
+
         coverage / report / uncovered / diff options:
-          --input PATH              Read from PATH instead of #{DEFAULT_INPUT}
+          --input PATH              Read from PATH instead of #{default_input}
 
         coverage options:
           --json                    Print the file's JSON entry verbatim
@@ -62,7 +85,7 @@ module SimpleCov
 
         merge options:
           --output PATH             Write merged resultset to PATH
-                                    (default: coverage/.resultset.json)
+                                    (default: #{default_resultset})
           --honor-timeout           Drop entries older than merge_timeout
           --dry-run                 Print what would be written without
                                     actually writing
@@ -76,8 +99,99 @@ module SimpleCov
                                     in any criterion is at least N%
 
         open options:
-          --report PATH             Open PATH instead of coverage/index.html
+          --report PATH             Open PATH instead of #{default_report}
       USAGE
+    end
+
+    # @api private
+    def read_coverage_dir
+      dotfile = find_dotfile
+      return "coverage" unless dotfile
+
+      with_simplecov_loaded { read_coverage_dir_from(dotfile) }
+    rescue LoadError, StandardError => e
+      # simplecov:disable — defensive fallback for a bad dotfile (parse
+      # error, EACCES, etc.); never fires in the project's own dogfood run
+      warn "simplecov: failed to read coverage_dir from #{dotfile}: #{e.class}: #{e.message}"
+      "coverage"
+      # simplecov:enable
+    end
+
+    # Load the dotfile, snapshot+restore `SimpleCov.coverage_dir` so we
+    # don't quietly clobber it in a host process that's already
+    # configured (e.g. when the CLI is exercised inline by simplecov's
+    # own spec suite). The snapshot is intentionally narrow: a dotfile
+    # can still mutate other SimpleCov configuration (filters, groups,
+    # formatters, command_name, ...) via `SimpleCov.configure` or
+    # `SimpleCov.start { ... }` blocks. The CLI normally runs as a
+    # top-level process where that's harmless; callers driving it from
+    # inside a Ruby host that cares about isolation should arrange that
+    # themselves.
+    #
+    # @api private
+    def read_coverage_dir_from(dotfile)
+      snapshot = SimpleCov.instance_variable_get(:@coverage_dir)
+      load_dotfile_with_start_neutered(dotfile)
+      dir = SimpleCov.coverage_dir
+      SimpleCov.instance_variable_set(:@coverage_dir, snapshot)
+      dir
+    end
+
+    # @api private
+    def find_dotfile
+      dir = Pathname.new(Dir.pwd)
+      loop do
+        candidate = dir.join(".simplecov")
+        return candidate.to_s if candidate.exist?
+        break if dir.root?
+
+        dir = dir.parent
+      end
+      nil
+    end
+
+    # @api private
+    def with_simplecov_loaded
+      previous_no_defaults = ENV.fetch("SIMPLECOV_NO_DEFAULTS", nil)
+      previous_cli         = ENV.fetch("SIMPLECOV_CLI", nil)
+      ENV["SIMPLECOV_NO_DEFAULTS"] = "1"
+      # SIMPLECOV_CLI lets a project's `.simplecov` opt some config into
+      # CLI-only behavior — e.g. simplecov itself sets `coverage_dir`
+      # to the dogfood path here but skips that for descendants.
+      ENV["SIMPLECOV_CLI"] = "1"
+      require "simplecov"
+      yield
+    ensure
+      ENV["SIMPLECOV_NO_DEFAULTS"] = previous_no_defaults
+      ENV["SIMPLECOV_CLI"]         = previous_cli
+    end
+
+    # Loads `path` (a `.simplecov` config) with `SimpleCov.start` and
+    # the at_exit hook installer turned into no-ops, so a project
+    # whose dotfile starts coverage doesn't accidentally trigger that
+    # just because we asked it for `coverage_dir`. Config inside any
+    # `SimpleCov.start { ... }` block still runs.
+    #
+    # @api private
+    def load_dotfile_with_start_neutered(path)
+      klass = SimpleCov.singleton_class
+      names = %i[start_tracking install_at_exit_hook]
+      stash = names.to_h { |name| [name, klass.instance_method(name)] }
+      # define_method over an existing method emits a "method redefined"
+      # warning under $VERBOSE; the override and restore are intentional.
+      silence_verbose { names.each { |name| klass.define_method(name) { nil } } }
+      load path
+    ensure
+      silence_verbose { stash.each { |name, method| klass.define_method(name, method) } }
+    end
+
+    # @api private
+    def silence_verbose
+      previous = $VERBOSE
+      $VERBOSE = nil
+      yield
+    ensure
+      $VERBOSE = previous
     end
 
     # `simplecov coverage <path>` — print per-criterion stats for one
@@ -103,7 +217,7 @@ module SimpleCov
       end
 
       def parse(args, stderr:)
-        opts = {input: DEFAULT_INPUT, json: false}
+        opts = {input: SimpleCov::CLI.default_input, json: false}
         rest =
           OptionParser.new do |o|
             o.on("--input PATH") { |v| opts[:input] = v }
@@ -199,8 +313,6 @@ module SimpleCov
     # platform's default browser. Tiny QoL wrapper around `xdg-open` /
     # `open` / `start` so users don't have to type a file:// URL.
     module Open
-      DEFAULT_REPORT = "coverage/index.html"
-
     module_function
 
       def run(args, stderr:, **)
@@ -219,7 +331,7 @@ module SimpleCov
       end
 
       def parse(args)
-        path = DEFAULT_REPORT
+        path = SimpleCov::CLI.default_report
         OptionParser.new do |o|
           o.on("--report PATH") { |v| path = v }
         end.parse(args)
@@ -259,7 +371,7 @@ module SimpleCov
       end
 
       def parse(args)
-        input = DEFAULT_INPUT
+        input = SimpleCov::CLI.default_input
         json = false
         OptionParser.new do |o|
           o.on("--input PATH") { |v| input = v }
@@ -333,7 +445,7 @@ module SimpleCov
       end
 
       def parse(args)
-        opts = {input: DEFAULT_INPUT, threshold: 100.0, top: DEFAULT_TOP}
+        opts = {input: SimpleCov::CLI.default_input, threshold: 100.0, top: DEFAULT_TOP}
         OptionParser.new do |o|
           o.on("--input PATH")         { |v| opts[:input] = v }
           o.on("--threshold N", Float) { |v| opts[:threshold] = v }
@@ -414,7 +526,7 @@ module SimpleCov
       end
 
       def parse(args)
-        opts = {output: "coverage/.resultset.json", honor_timeout: false, dry_run: false, quiet: false}
+        opts = {output: SimpleCov::CLI.default_resultset, honor_timeout: false, dry_run: false, quiet: false}
         files =
           OptionParser.new do |o|
             o.on("--output PATH") { |v| opts[:output] = v }
@@ -521,7 +633,16 @@ module SimpleCov
       end
 
       def parse(args, stderr)
-        opts = {input: DEFAULT_INPUT, fail_on_drop: false, json: false, threshold: 0.0}
+        opts = parse_flags(args)
+        return stderr.puts("simplecov diff: missing baseline argument") && nil if opts[:rest].empty?
+
+        opts[:baseline] = load_coverage(opts[:rest].first, stderr) or return nil
+        opts[:current]  = load_coverage(opts[:input], stderr) or return nil
+        opts
+      end
+
+      def parse_flags(args)
+        opts = {input: SimpleCov::CLI.default_input, fail_on_drop: false, json: false, threshold: 0.0}
         rest =
           OptionParser.new do |o|
             o.on("--input PATH")         { |v| opts[:input] = v }
@@ -529,11 +650,7 @@ module SimpleCov
             o.on("--json")               { opts[:json] = true }
             o.on("--threshold N", Float) { |v| opts[:threshold] = v }
           end.parse(args)
-        return stderr.puts("simplecov diff: missing baseline argument") && nil if rest.empty?
-
-        opts[:baseline] = load_coverage(rest.first, stderr) or return nil
-        opts[:current]  = load_coverage(opts[:input], stderr) or return nil
-        opts
+        opts.merge(rest: rest)
       end
 
       def load_coverage(path, stderr)
