@@ -619,6 +619,55 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "clean subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-clean-spec-") }
+
+    before do
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      FileUtils.mkdir_p(File.join(tmp, "assets"))
+      File.write(File.join(tmp, "index.html"), "<html></html>")
+      File.write(File.join(tmp, "coverage.json"), "{}")
+    end
+
+    after { FileUtils.rm_rf(tmp) }
+
+    it "removes the coverage directory and reports what was deleted" do
+      expect(run("clean")).to eq(0)
+      expect(File).not_to exist(tmp)
+      expect(stdout.string).to include("removed #{tmp}")
+    end
+
+    it "leaves disk untouched under --dry-run" do
+      expect(run("clean", "--dry-run")).to eq(0)
+      expect(File).to exist(tmp)
+      expect(stdout.string).to include("would remove #{tmp}")
+    end
+
+    it "is a no-op when the directory doesn't exist" do
+      FileUtils.remove_entry(tmp)
+      expect(run("clean")).to eq(0)
+      expect(stdout.string).to include("doesn't exist")
+    end
+
+    it "silences all status lines under --quiet" do
+      expect(run("clean", "--quiet")).to eq(0)
+      expect(File).not_to exist(tmp)
+      expect(stdout.string).to be_empty
+    end
+
+    it "silences the --dry-run status line under --quiet" do
+      expect(run("clean", "--dry-run", "--quiet")).to eq(0)
+      expect(File).to exist(tmp)
+      expect(stdout.string).to be_empty
+    end
+
+    it "silences the noop status line under --quiet" do
+      FileUtils.remove_entry(tmp)
+      expect(run("clean", "-q")).to eq(0)
+      expect(stdout.string).to be_empty
+    end
+  end
+
   describe "open subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 
