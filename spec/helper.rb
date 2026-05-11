@@ -85,7 +85,10 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
       end
       next if shortfalls.empty?
 
-      $stdout.puts format(
+      # Leading newline so the message doesn't fuse onto RSpec's
+      # progress-formatter dots when run as part of a normal `rake` /
+      # `rspec` invocation.
+      $stdout.puts "", format(
         "Dogfood: %<shortfalls>s. See %<dir>s/index.html",
         shortfalls: shortfalls.join(", "),
         dir: DOGFOOD_OUTPUT_DIR
