@@ -64,6 +64,7 @@ module SimpleCov
           merge <files...>          Merge multiple .resultset.json files
           diff <baseline>           Show per-file coverage delta vs baseline
           open                      Open the HTML report in the default browser
+          clean                     Remove the coverage report directory
           help                      Show this message
 
         Default paths follow SimpleCov.coverage_dir from a project's
@@ -100,6 +101,11 @@ module SimpleCov
 
         open options:
           --report PATH             Open PATH instead of #{default_report}
+
+        clean options:
+          --dry-run                 Print what would be removed without
+                                    deleting anything
+          -q, --quiet               Suppress status lines
       USAGE
     end
 
@@ -730,6 +736,46 @@ module SimpleCov
       end
     end
 
+    # `simplecov clean [--dry-run]` — remove the coverage report
+    # directory (or whatever `SimpleCov.coverage_dir` resolves to). The
+    # `--dry-run` flag prints what would be deleted without touching
+    # disk, for when you're not sure what's in there.
+    module Clean
+    module_function
+
+      def run(args, stdout:, **)
+        opts = parse(args)
+        dir = SimpleCov::CLI.coverage_dir
+        return announce(stdout, opts, "#{dir} doesn't exist; nothing to do") || 0 unless File.directory?(dir)
+
+        sweep(dir, opts, stdout)
+        0
+      end
+
+      def sweep(dir, opts, stdout)
+        if opts[:dry_run]
+          announce(stdout, opts, "would remove #{dir} (#{Dir["#{dir}/**/*"].size} entries)")
+        else
+          require "fileutils"
+          FileUtils.rm_rf(dir)
+          announce(stdout, opts, "removed #{dir}")
+        end
+      end
+
+      def announce(stdout, opts, message)
+        stdout.puts("simplecov clean: #{message}") unless opts[:quiet]
+      end
+
+      def parse(args)
+        opts = {dry_run: false, quiet: false}
+        OptionParser.new do |o|
+          o.on("--dry-run") { opts[:dry_run] = true }
+          o.on("-q", "--quiet") { opts[:quiet] = true }
+        end.parse(args)
+        opts
+      end
+    end
+
     COMMANDS = {
       "coverage" => Coverage,
       "run" => Run,
@@ -737,7 +783,8 @@ module SimpleCov
       "report" => Report,
       "uncovered" => Uncovered,
       "merge" => Merge,
-      "diff" => Diff
+      "diff" => Diff,
+      "clean" => Clean
     }.freeze
   end
 end
