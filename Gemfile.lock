@@ -73,6 +73,7 @@ GEM
       websocket-driver (~> 0.7)
     ffi (1.17.4)
     ffi (1.17.4-java)
+    hana (1.3.7)
     io-console (0.8.2)
     io-console (0.8.2-java)
     irb (1.18.0)
@@ -83,6 +84,11 @@ GEM
     jar-dependencies (0.5.7)
     json (2.19.5)
     json (2.19.5-java)
+    json_schemer (2.5.0)
+      bigdecimal
+      hana (~> 1.3)
+      regexp_parser (~> 2.0)
+      simpleidn (~> 0.2)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -169,6 +175,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop (~> 1.81)
     ruby-progressbar (1.13.0)
+    simpleidn (0.2.3)
     stringio (3.2.0)
     sys-uname (1.5.1)
       ffi (~> 1.1)
@@ -203,6 +210,7 @@ DEPENDENCIES
   capybara
   cucumber
   cuprite
+  json_schemer
   nokogiri
   rackup
   rake

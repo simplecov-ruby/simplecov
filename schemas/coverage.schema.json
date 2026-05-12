@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage.schema.json",
+  "title": "SimpleCov coverage.json",
+  "description": "Schema for the coverage.json file emitted by SimpleCov's JSONFormatter. Versioned independently of the gem; non-breaking additions bump the minor segment of schema_version, breaking changes bump the major segment.",
+  "type": "object",
+  "required": ["meta", "total", "coverage", "groups", "errors"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "simplecov_version",
+        "command_name",
+        "project_name",
+        "timestamp",
+        "root",
+        "branch_coverage",
+        "method_coverage"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0",
+          "description": "Schema major.minor. Additive changes bump minor; breaking changes bump major. Update this `const` whenever the schema version is bumped so documents claiming a different version don't quietly validate against this contract."
+        },
+        "simplecov_version": {
+          "type": "string",
+          "description": "The version of the SimpleCov gem that produced this file."
+        },
+        "command_name": {"type": "string"},
+        "project_name": {"type": "string"},
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp with millisecond precision."
+        },
+        "root": {
+          "type": "string",
+          "description": "Absolute path to SimpleCov.root at the time of write."
+        },
+        "branch_coverage": {"type": "boolean"},
+        "method_coverage": {"type": "boolean"}
+      }
+    },
+    "total": {"$ref": "#/definitions/totals"},
+    "coverage": {
+      "type": "object",
+      "description": "Map of project-relative file paths to per-file coverage data.",
+      "additionalProperties": {"$ref": "#/definitions/source_file"}
+    },
+    "groups": {
+      "type": "object",
+      "description": "Map of group names to per-group totals plus the list of files in the group.",
+      "additionalProperties": {"$ref": "#/definitions/group"}
+    },
+    "errors": {
+      "type": "object",
+      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, and maximum_coverage_drop. Empty object when no thresholds were violated.",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_coverage": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods.",
+          "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+        },
+        "minimum_coverage_by_file": {
+          "type": "object",
+          "description": "Keyed by criterion, then by project-relative filename.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+          }
+        },
+        "minimum_coverage_by_group": {
+          "type": "object",
+          "description": "Keyed by group name, then by criterion.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+          }
+        },
+        "maximum_coverage_drop": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods.",
+          "additionalProperties": {"$ref": "#/definitions/maximum_actual"}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "totals": {
+      "type": "object",
+      "required": ["lines"],
+      "additionalProperties": false,
+      "properties": {
+        "lines": {"$ref": "#/definitions/line_statistic"},
+        "branches": {"$ref": "#/definitions/coverage_statistic"},
+        "methods": {"$ref": "#/definitions/coverage_statistic"}
+      }
+    },
+    "source_file": {
+      "type": "object",
+      "required": ["lines", "source", "lines_covered_percent", "covered_lines", "missed_lines", "total_lines"],
+      "additionalProperties": false,
+      "properties": {
+        "lines": {
+          "type": "array",
+          "description": "Per-source-line coverage. Element index N corresponds to source line N+1. Integer hit-count, null for non-relevant (blank/comment) lines, or the string \"ignored\" for lines inside a simplecov:disable / :nocov: region.",
+          "items": {"$ref": "#/definitions/line_coverage"}
+        },
+        "source": {
+          "type": "array",
+          "description": "Source lines, in order. Same length as the lines array.",
+          "items": {"type": "string"}
+        },
+        "lines_covered_percent": {"type": "number"},
+        "covered_lines": {"type": "integer", "minimum": 0},
+        "missed_lines": {"type": "integer", "minimum": 0},
+        "total_lines": {"type": "integer", "minimum": 0},
+        "branches": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/branch"}
+        },
+        "branches_covered_percent": {"type": "number"},
+        "covered_branches": {"type": "integer", "minimum": 0},
+        "missed_branches": {"type": "integer", "minimum": 0},
+        "total_branches": {"type": "integer", "minimum": 0},
+        "methods": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/method"}
+        },
+        "methods_covered_percent": {"type": "number"},
+        "covered_methods": {"type": "integer", "minimum": 0},
+        "missed_methods": {"type": "integer", "minimum": 0},
+        "total_methods": {"type": "integer", "minimum": 0}
+      }
+    },
+    "branch": {
+      "type": "object",
+      "required": ["type", "start_line", "end_line", "coverage", "inline", "report_line"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Branch kind from Ruby's Coverage library (e.g. \"then\", \"else\", \"when\")."
+        },
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "coverage": {"$ref": "#/definitions/line_coverage"},
+        "inline": {"type": "boolean"},
+        "report_line": {"type": "integer", "minimum": 1}
+      }
+    },
+    "method": {
+      "type": "object",
+      "required": ["name", "start_line", "end_line", "coverage"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Qualified method name, e.g. \"Foo#bar\", \"Foo.bar\", or \"Foo::Bar#baz\"."
+        },
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "coverage": {"$ref": "#/definitions/line_coverage"}
+      }
+    },
+    "group": {
+      "type": "object",
+      "required": ["lines", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "lines": {"$ref": "#/definitions/line_statistic"},
+        "branches": {"$ref": "#/definitions/coverage_statistic"},
+        "methods": {"$ref": "#/definitions/coverage_statistic"},
+        "files": {
+          "type": "array",
+          "description": "Project-relative paths of the files that fell into this group.",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "line_statistic": {
+      "type": "object",
+      "required": ["covered", "missed", "omitted", "total", "percent", "strength"],
+      "additionalProperties": false,
+      "properties": {
+        "covered": {"type": "integer", "minimum": 0},
+        "missed": {"type": "integer", "minimum": 0},
+        "omitted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines that cannot be covered (blank, comment, etc.). Only present on line stats."
+        },
+        "total": {"type": "integer", "minimum": 0},
+        "percent": {"type": "number"},
+        "strength": {"type": "number"}
+      }
+    },
+    "coverage_statistic": {
+      "type": "object",
+      "required": ["covered", "missed", "total", "percent", "strength"],
+      "additionalProperties": false,
+      "properties": {
+        "covered": {"type": "integer", "minimum": 0},
+        "missed": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 0},
+        "percent": {"type": "number"},
+        "strength": {"type": "number"}
+      }
+    },
+    "line_coverage": {
+      "description": "Integer hit-count for executable lines/branches/methods, null for non-relevant lines, or the literal string \"ignored\" for code inside a simplecov:disable region.",
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "null"},
+        {"type": "string", "const": "ignored"}
+      ]
+    },
+    "expected_actual": {
+      "type": "object",
+      "required": ["expected", "actual"],
+      "additionalProperties": false,
+      "properties": {
+        "expected": {"type": "number"},
+        "actual": {"type": "number"}
+      }
+    },
+    "maximum_actual": {
+      "type": "object",
+      "required": ["maximum", "actual"],
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {"type": "number"},
+        "actual": {"type": "number"}
+      }
+    }
+  }
+}
