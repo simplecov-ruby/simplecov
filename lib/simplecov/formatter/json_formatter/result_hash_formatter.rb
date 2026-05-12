@@ -93,8 +93,16 @@ module SimpleCov
           @formatted_result ||= {meta: format_meta, total: {}, coverage: {}, groups: {}, errors: {}}
         end
 
+        # Bump SCHEMA_VERSION when the JSON shape changes. Additive
+        # changes bump the minor segment; removals or shape changes bump
+        # major. See schemas/coverage.schema.json for the contract this
+        # version describes.
+        SCHEMA_VERSION = "1.0"
+        private_constant :SCHEMA_VERSION
+
         def format_meta
           {
+            schema_version: SCHEMA_VERSION,
             simplecov_version: SimpleCov::VERSION,
             command_name: @result.command_name,
             project_name: SimpleCov.project_name,
