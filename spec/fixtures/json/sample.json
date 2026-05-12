@@ -1,5 +1,6 @@
 {
   "meta": {
+    "schema_version": "1.0",
     "simplecov_version": "0.22.0",
     "command_name": "STUB_COMMAND_NAME",
     "project_name": "STUB_PROJECT_NAME",

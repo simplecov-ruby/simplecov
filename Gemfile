@@ -7,6 +7,7 @@ group :development do
   gem "capybara"
   gem "cucumber"
   gem "cuprite"
+  gem "json_schemer"
   gem "nokogiri"
   gem "rackup"
   gem "rake"
