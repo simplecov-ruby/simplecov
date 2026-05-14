@@ -62,9 +62,30 @@ module SimpleCov
       end
 
       def output_message(result)
-        "JSON Coverage report generated for #{result.command_name} to #{output_path}. " \
-          "#{result.covered_lines} / #{result.total_lines} LOC " \
-          "(#{SimpleCov.round_coverage(result.covered_percent)}%) covered."
+        lines = ["JSON Coverage report generated for #{result.command_name} to #{output_path}",
+                 stats_line(:line, result),
+                 branch_stats_line(result),
+                 method_stats_line(result)]
+        lines.compact.join("\n")
+      end
+
+      def branch_stats_line(result)
+        stats_line(:branch, result) if SimpleCov.branch_coverage? && result.total_branches&.positive?
+      end
+
+      def method_stats_line(result)
+        stats_line(:method, result) if SimpleCov.method_coverage? && result.total_methods&.positive?
+      end
+
+      def stats_line(criterion, result)
+        stat = result.coverage_statistics[criterion]
+        Kernel.format(
+          "%<label>s coverage: %<covered>d / %<total>d (%<percent>.2f%%)",
+          label: criterion.to_s.capitalize,
+          covered: stat.covered,
+          total: stat.total,
+          percent: SimpleCov.round_coverage(stat.percent)
+        )
       end
 
       def output_path

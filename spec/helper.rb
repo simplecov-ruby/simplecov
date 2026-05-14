@@ -72,28 +72,33 @@ unless ENV["SIMPLECOV_NO_DOGFOOD"]
       SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
       result = SimpleCov::Result.new(adapted, filters: SimpleCov.filters + extra_filters, groups: {})
 
-      SimpleCov::Formatter::HTMLFormatter.new(silent: true, output_dir: DOGFOOD_OUTPUT_DIR).format(result)
+      # Leading newline so the formatter's message doesn't fuse onto
+      # RSpec's progress-formatter dots when run via `rake spec` / `rspec`.
+      $stdout.puts
+      SimpleCov::Formatter::HTMLFormatter.new(output_dir: DOGFOOD_OUTPUT_DIR).format(result)
 
-      thresholds = DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {}
-      stats = result.coverage_statistics
-      shortfalls = thresholds.filter_map do |criterion, expected|
-        actual = stats[criterion]&.percent
-        next if actual.nil? || actual >= expected
-
-        format("%<criterion>s coverage %<actual>.2f%% (min %<expected>.2f%%)",
-               criterion: criterion, actual: actual, expected: expected)
-      end
-      next if shortfalls.empty?
-
-      # Leading newline so the message doesn't fuse onto RSpec's
-      # progress-formatter dots when run as part of a normal `rake` /
-      # `rspec` invocation.
-      $stdout.puts "", format(
-        "Dogfood: %<shortfalls>s. See %<dir>s/index.html",
-        shortfalls: shortfalls.join(", "),
-        dir: DOGFOOD_OUTPUT_DIR
+      # Route shortfalls through the same ExitCodeHandling path production
+      # uses, so contributors see the dogfood report in exactly the format
+      # end users see when minimum_coverage trips: per-criterion violation
+      # lines, lowest-coverage files, and the "SimpleCov failed with exit"
+      # summary. ExitCodeHandling.call just needs an object that responds
+      # to the four limit readers — building a local Struct keeps this
+      # helper's coupling to internal API minimal.
+      limits = Struct.new(
+        :minimum_coverage, :minimum_coverage_by_file,
+        :minimum_coverage_by_group, :maximum_coverage_drop,
+        keyword_init: true
+      ).new(
+        minimum_coverage: DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {},
+        minimum_coverage_by_file: {},
+        minimum_coverage_by_group: {},
+        maximum_coverage_drop: {}
       )
-      Kernel.exit(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+      exit_status = SimpleCov::ExitCodes::ExitCodeHandling.call(result, coverage_limits: limits)
+      next unless exit_status.positive?
+
+      warn "SimpleCov failed with exit #{exit_status} due to a coverage related error"
+      Kernel.exit(exit_status)
     end
   end
 end
