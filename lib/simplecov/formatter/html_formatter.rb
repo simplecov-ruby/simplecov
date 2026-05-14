@@ -2,6 +2,7 @@
 
 require "fileutils"
 require "json"
+require_relative "base"
 require_relative "json_formatter"
 
 module SimpleCov
@@ -10,17 +11,8 @@ module SimpleCov
     # alongside pre-compiled static assets (index.html, application.js/css).
     # Uses JSONFormatter.build_hash to serialize the result, then writes both
     # coverage.json and coverage_data.js from the same in-memory hash.
-    class HTMLFormatter
+    class HTMLFormatter < Base
       DATA_FILENAME = "coverage_data.js"
-
-      # `output_dir` defaults to `SimpleCov.coverage_path` so the at_exit
-      # pipeline keeps working unchanged. Pass it explicitly to write
-      # somewhere else (handy for tests that don't want to clobber
-      # the project's `coverage/` directory).
-      def initialize(silent: false, output_dir: nil)
-        @silent = silent
-        @output_dir = output_dir
-      end
 
       def format(result)
         json = JSON.pretty_generate(JSONFormatter.build_hash(result))
@@ -63,37 +55,6 @@ module SimpleCov
         File.rename(temp, dest)
       ensure
         FileUtils.rm_f(temp)
-      end
-
-      def output_message(result)
-        lines = ["Coverage report generated for #{result.command_name} to #{output_path}",
-                 stats_line(:line, result),
-                 branch_stats_line(result),
-                 method_stats_line(result)]
-        lines.compact.join("\n")
-      end
-
-      def branch_stats_line(result)
-        stats_line(:branch, result) if SimpleCov.branch_coverage? && result.total_branches&.positive?
-      end
-
-      def method_stats_line(result)
-        stats_line(:method, result) if SimpleCov.method_coverage? && result.total_methods&.positive?
-      end
-
-      def stats_line(criterion, result)
-        stat = result.coverage_statistics[criterion]
-        Kernel.format(
-          "%<label>s coverage: %<covered>d / %<total>d (%<percent>.2f%%)",
-          label: criterion.to_s.capitalize,
-          covered: stat.covered,
-          total: stat.total,
-          percent: SimpleCov.round_coverage(stat.percent)
-        )
-      end
-
-      def output_path
-        @output_dir || SimpleCov.coverage_path
       end
 
       def public_dir
