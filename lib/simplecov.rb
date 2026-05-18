@@ -67,6 +67,7 @@ module SimpleCov
       return if @at_exit_hook_installed
 
       @at_exit_hook_installed = true
+      defer_to_minitest_after_run if minitest_autorun_pending?
       Kernel.at_exit do
         next if SimpleCov.external_at_exit?
 
@@ -466,6 +467,31 @@ module SimpleCov
     def result_with_not_loaded_files
       result, not_loaded_files = add_not_loaded_files(@result)
       @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files)
+    end
+
+    # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`,
+    # which means Minitest's at_exit registers before SimpleCov's. Since
+    # at_exit fires LIFO, SimpleCov's hook would otherwise run *before*
+    # Minitest gets a chance to invoke the tests — and format an empty
+    # resultset. When we can see that Minitest is loaded and its autorun
+    # is armed, route the report through `Minitest.after_run` instead,
+    # which fires after the suite completes. See issues #1099 and #1112.
+    #
+    # The opposite ordering (SimpleCov first, then `minitest/autorun`)
+    # is handled by `lib/minitest/simplecov_plugin.rb` — Minitest's
+    # plugin discovery doesn't run until `Minitest.run` starts, which
+    # is too late for the SimpleCov-second case but fine for the
+    # SimpleCov-first case.
+    def minitest_autorun_pending?
+      return false unless defined?(Minitest) && Minitest.respond_to?(:after_run)
+      return false unless Minitest.class_variable_defined?(:@@installed_at_exit)
+
+      Minitest.class_variable_get(:@@installed_at_exit)
+    end
+
+    def defer_to_minitest_after_run
+      self.external_at_exit = true
+      Minitest.after_run { SimpleCov.at_exit_behavior }
     end
 
     # parallel_tests isn't always available, see: https://github.com/grosser/parallel_tests/issues/772

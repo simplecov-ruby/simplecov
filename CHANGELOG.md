@@ -27,6 +27,7 @@ Unreleased
 * Don't report misleading 100% branch/method coverage for files added via `track_files` that were never loaded. See #902
 * Fix HTML formatter tab bar layout: dark mode toggle no longer wraps onto two lines, and tabs connect seamlessly with the content panel
 * Allow `SimpleCov.root('/')` so files outside the conventional project root can be tracked (e.g. Docker layouts where code and tests are siblings at `/`). The root-prefix regex no longer doubles the separator (`//`), and `project_name` no longer crashes when `root` has no parent segment. The user-facing `:root_filter` profile and the unconditional `UselessResultsRemover` now share a single regex source instead of computing it independently. See #860.
+* When `SimpleCov.start` runs after `require "minitest/autorun"` (e.g. under `Rake::TestTask` or `Minitest::TestTask`, which shell out as `ruby -e 'require "minitest/autorun"; ...'`), automatically set `external_at_exit` and route the report through `Minitest.after_run`. Previously, the `at_exit` LIFO order meant SimpleCov formatted a 0% report before Minitest ran. The opposite ordering (SimpleCov first) is still handled by `lib/minitest/simplecov_plugin.rb`. See #1032, #1099, and #1112.
 
 0.22.1 (2024-09-02)
 ==========

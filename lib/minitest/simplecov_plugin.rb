@@ -2,9 +2,17 @@
 
 # How minitest plugins. See https://github.com/simplecov-ruby/simplecov/pull/756 for why we need this.
 # https://github.com/seattlerb/minitest#writing-extensions
+#
+# Handles the SimpleCov-first / Minitest-second ordering: SimpleCov.start
+# runs before `require "minitest/autorun"`, so the SimpleCov.start-time
+# detection in `install_at_exit_hook` can't see Minitest yet. By the time
+# this plugin fires (inside `Minitest.run`), Minitest is loaded and we
+# can flip the same switch. The opposite ordering (Minitest first) is
+# handled in `SimpleCov.install_at_exit_hook` — see `#minitest_autorun_pending?`.
 module Minitest
   def self.plugin_simplecov_init(_options)
     return unless defined?(SimpleCov)
+    return if SimpleCov.external_at_exit?
 
     SimpleCov.external_at_exit = true
 

@@ -6,10 +6,12 @@ require "coverage"
 describe SimpleCov do
   describe ".install_at_exit_hook" do
     around do |example|
-      previous = described_class.instance_variable_get(:@at_exit_hook_installed)
+      previous_installed = described_class.instance_variable_get(:@at_exit_hook_installed)
+      previous_external  = described_class.external_at_exit
       described_class.instance_variable_set(:@at_exit_hook_installed, nil)
       example.run
-      described_class.instance_variable_set(:@at_exit_hook_installed, previous)
+      described_class.instance_variable_set(:@at_exit_hook_installed, previous_installed)
+      described_class.external_at_exit = previous_external
     end
 
     it "is idempotent — repeated calls register exactly one Kernel.at_exit" do
@@ -39,6 +41,69 @@ describe SimpleCov do
       allow(described_class).to receive(:at_exit_behavior)
       captured.call
       expect(described_class).not_to have_received(:at_exit_behavior)
+    end
+
+    context "when Minitest's autorun is armed before SimpleCov.start" do
+      # Stand-in for Minitest with the same surface we depend on:
+      # responds to `after_run` and exposes the `@@installed_at_exit`
+      # class variable that Minitest sets when autorun is required.
+      let(:fake_minitest) do
+        klass = Class.new do
+          class << self
+            attr_reader :after_run_blocks
+          end
+          @after_run_blocks = []
+          def self.after_run(&block)
+            @after_run_blocks << block
+          end
+        end
+        klass.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+        klass
+      end
+
+      before { stub_const("Minitest", fake_minitest) }
+
+      it "sets external_at_exit and registers Minitest.after_run" do
+        allow(Kernel).to receive(:at_exit)
+        described_class.install_at_exit_hook
+
+        expect(described_class.external_at_exit?).to be(true)
+        expect(fake_minitest.after_run_blocks.size).to eq(1)
+      end
+
+      it "the after_run block invokes at_exit_behavior" do
+        allow(Kernel).to receive(:at_exit)
+        allow(described_class).to receive(:at_exit_behavior)
+        described_class.install_at_exit_hook
+
+        fake_minitest.after_run_blocks.each(&:call)
+        expect(described_class).to have_received(:at_exit_behavior)
+      end
+    end
+
+    it "does not defer to Minitest when it is loaded but autorun has not been called" do
+      fake_minitest = Class.new { def self.after_run; end }
+      fake_minitest.class_variable_set(:@@installed_at_exit, false) # rubocop:disable Style/ClassVars
+      stub_const("Minitest", fake_minitest)
+      allow(Kernel).to receive(:at_exit)
+      allow(fake_minitest).to receive(:after_run)
+
+      described_class.install_at_exit_hook
+
+      expect(described_class).not_to be_external_at_exit
+      expect(fake_minitest).not_to have_received(:after_run)
+    end
+
+    it "does not defer when a Minitest-like constant lacks @@installed_at_exit" do
+      fake_minitest = Class.new { def self.after_run; end }
+      stub_const("Minitest", fake_minitest)
+      allow(Kernel).to receive(:at_exit)
+      allow(fake_minitest).to receive(:after_run)
+
+      described_class.install_at_exit_hook
+
+      expect(described_class).not_to be_external_at_exit
+      expect(fake_minitest).not_to have_received(:after_run)
     end
   end
 
