@@ -925,6 +925,29 @@ SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
 
 > The JSON formatter was originally a separate gem called [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and loaded by default. Existing code that does `require "simplecov_json_formatter"` will continue to work.
 
+### `coverage.json` schema
+
+The `coverage.json` payload is treated as a public contract. Every emitted file carries a `meta.schema_version` (`"major.minor"`) describing which version of the schema it conforms to. A JSON Schema (draft-07) lives in the repo at [`schemas/coverage.schema.json`](schemas/coverage.schema.json); downstream tools can use it to validate inputs, generate types, or pin themselves to a known shape.
+
+The schema version is independent of the gem version:
+
+- Additive changes (new fields) bump the **minor** segment. Existing consumers keep working.
+- Removals or shape changes bump the **major** segment.
+
+The current version is **1.0**. Top-level structure:
+
+```jsonc
+{
+  "meta":     { /* schema_version, simplecov_version, command_name, project_name, timestamp, root, branch_coverage, method_coverage */ },
+  "total":    { /* aggregate stats for lines (and branches / methods when enabled) */ },
+  "coverage": { "<project-relative path>": { /* per-file lines, source, branches, methods, etc. */ } },
+  "groups":   { "<group name>": { /* per-group stats + files */ } },
+  "errors":   { /* minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage_drop violations */ }
+}
+```
+
+The `.resultset.json` file is **not** schema'd — it's SimpleCov-internal and may change shape across releases. Build integrations on top of `coverage.json`.
+
 ## Running a suite from the command line
 
 If your project has no `test_helper.rb` hook that calls `SimpleCov.start`
