@@ -155,6 +155,35 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect { formatter.format(make_result) }.not_to output.to_stderr
     end
 
+    describe "the output path in the header line" do
+      it "is rendered relative to the cwd when the coverage dir lives inside cwd (#197)" do
+        # SimpleCov.coverage_path resolves under SimpleCov.root, which the
+        # spec helper sets to `tmp/coverage` inside the project — i.e.,
+        # inside the cwd. So the header should show a relative path.
+        capture = capture_stderr { loud_formatter.format(make_result) }
+        expect(capture).to include("Coverage report generated for RSpec to tmp/coverage/index.html")
+        expect(capture).not_to include(SimpleCov.coverage_path)
+      end
+
+      it "falls back to the absolute path when the output dir is outside cwd" do
+        Dir.mktmpdir do |outside|
+          formatter = described_class.new(silent: false, output_dir: outside)
+          capture = capture_stderr { formatter.format(make_result) }
+          expect(capture).to include("Coverage report generated for RSpec to #{File.join(outside, 'index.html')}")
+        end
+      end
+
+      it "falls back to the absolute path when Pathname#relative_path_from raises" do
+        # Cross-drive paths on Windows raise ArgumentError. Simulate the
+        # failure by stubbing the Pathname call so the rescue branch is
+        # exercised on every platform.
+        allow_any_instance_of(Pathname).to receive(:relative_path_from).and_raise(ArgumentError) # rubocop:disable RSpec/AnyInstance
+        capture = capture_stderr { loud_formatter.format(make_result) }
+        expected_path = File.join(SimpleCov.coverage_path, "index.html")
+        expect(capture).to include("Coverage report generated for RSpec to #{expected_path}")
+      end
+    end
+
     it "colorizes the percent when SimpleCov::Color is enabled" do
       allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
       # The SAMPLE_RB fixture has 4 covered / 1 missed = 80%, so yellow (\e[33m).

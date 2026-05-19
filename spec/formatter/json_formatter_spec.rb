@@ -49,7 +49,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     it "names the explicit directory in the output message" do
       Dir.mktmpdir do |dir|
         out = capture_stderr { described_class.new(output_dir: dir).format(result) }
-        expect(out).to include(dir)
+        expect(out).to include(File.join(dir, described_class::FILENAME))
       end
     end
   end

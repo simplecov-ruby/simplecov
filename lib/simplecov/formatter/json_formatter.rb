@@ -33,6 +33,10 @@ module SimpleCov
         "JSON "
       end
 
+      def entry_point_filename
+        FILENAME
+      end
+
       # Warns when the existing coverage.json has a timestamp newer than this
       # process's start time — a strong signal that a sibling test process
       # (e.g., parallel_tests) wrote it while we were running, and that our

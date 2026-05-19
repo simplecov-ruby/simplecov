@@ -38,6 +38,10 @@ module SimpleCov
 
     private
 
+      def entry_point_filename
+        "index.html"
+      end
+
       def copy_static_assets(dest_dir = output_path)
         Dir[File.join(public_dir, "*")].each do |src|
           atomic_write(File.join(dest_dir, File.basename(src)), File.binread(src))
