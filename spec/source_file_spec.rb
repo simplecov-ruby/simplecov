@@ -1118,6 +1118,21 @@ describe SimpleCov::SourceFile do
     end
   end
 
+  describe "legacy line accessors when :line coverage is disabled" do
+    # When line coverage is off, `coverage_statistics` doesn't include
+    # a `:line` key, so the legacy accessors should return nil/0 rather
+    # than crashing on `nil.percent` / `nil.total`.
+    let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
+
+    before { allow(source_file).to receive(:coverage_statistics).and_return({}) }
+
+    it "returns 0 from lines_of_code and nil from covered_percent / covered_strength" do
+      expect(source_file.lines_of_code).to eq(0)
+      expect(source_file.covered_percent).to be_nil
+      expect(source_file.covered_strength).to be_nil
+    end
+  end
+
   describe "parse_ruby_array_string edge cases" do
     let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
 

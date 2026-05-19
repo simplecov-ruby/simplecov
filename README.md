@@ -333,6 +333,22 @@ Hence, we recommend looking at both metrics together. Branch coverage might also
 overall metric to look at - while you might be missing only 10% of your lines that might
 account for 50% of your branches, for instance.
 
+## Disabling line coverage
+
+Line coverage is on by default. If you want a branch-only or method-only run (e.g. you find
+the line numbers noisy in CI and only care about whether each conditional was exercised),
+explicitly enable the criterion you want and then disable line coverage:
+
+```ruby
+SimpleCov.start do
+  enable_coverage :branch
+  disable_coverage :line
+end
+```
+
+If you disable every criterion, `SimpleCov.start` raises `SimpleCov::ConfigurationError` —
+at least one of `:line`, `:branch`, or `:method` must remain enabled.
+
 ## Oneshot lines coverage (ruby ">= 2.6")
 
 Oneshot lines coverage is a faster alternative to line coverage. Supported in CRuby versions 2.6+.

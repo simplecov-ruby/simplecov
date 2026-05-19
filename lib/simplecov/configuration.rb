@@ -491,9 +491,25 @@ module SimpleCov
       coverage_criteria << criterion
     end
 
+    # Remove `criterion` from the set of enabled coverage criteria. The
+    # default set is `Set[:line]`; calling `disable_coverage :line`
+    # (after `enable_coverage :branch`, say) makes a branch-only run
+    # possible. If the disabled criterion was the primary, the next
+    # call to `primary_coverage` falls back to the first remaining
+    # member of `coverage_criteria`.
+    #
+    # Disabling every criterion raises at `start_tracking`, not here,
+    # so configuration files that toggle criteria in arbitrary order
+    # don't have to worry about transient empty states.
+    def disable_coverage(criterion)
+      raise_if_criterion_unsupported(criterion)
+      coverage_criteria.delete(criterion)
+      @primary_coverage = nil if @primary_coverage == criterion
+    end
+
     def primary_coverage(criterion = nil)
       if criterion.nil?
-        @primary_coverage ||= DEFAULT_COVERAGE_CRITERION
+        @primary_coverage ||= default_primary_coverage
       else
         raise_if_criterion_disabled(criterion)
         @primary_coverage = criterion
@@ -501,15 +517,35 @@ module SimpleCov
     end
 
     def coverage_criteria
-      @coverage_criteria ||= Set[primary_coverage]
+      @coverage_criteria ||= Set[DEFAULT_COVERAGE_CRITERION]
     end
 
     def coverage_criterion_enabled?(criterion)
       coverage_criteria.member?(criterion)
     end
 
+    # Reset the criteria back to the lazy default (`Set[:line]`). The
+    # next read of `coverage_criteria` rebuilds the default through the
+    # `||=` in the getter. To genuinely empty the set, call
+    # `disable_coverage` on each enabled criterion instead — that's the
+    # path `validate_coverage_criteria!` is meant to flag.
     def clear_coverage_criteria
       @coverage_criteria = nil
+      @primary_coverage = nil
+    end
+
+    # @api private
+    #
+    # Called from `SimpleCov.start_tracking` to fail fast when the user
+    # has disabled every coverage criterion. Without at least one,
+    # `Coverage.start` would receive no arguments and the runtime would
+    # silently produce no data.
+    def validate_coverage_criteria!
+      return unless coverage_criteria.empty?
+
+      raise SimpleCov::ConfigurationError,
+            "At least one coverage criterion must be enabled. " \
+            "Re-enable one with `enable_coverage :line`, `:branch`, or `:method`."
     end
 
     def branch_coverage?
@@ -546,6 +582,18 @@ module SimpleCov
     end
 
   private
+
+    # If `:line` is enabled, it's the default primary — keeps the
+    # historical behavior for every existing project. If the user has
+    # disabled `:line`, fall back to whichever criterion they actually
+    # enabled (in insertion order). Returning `:line` even when it's
+    # disabled would propagate broken state into the numeric form of
+    # `minimum_coverage 90`.
+    def default_primary_coverage
+      return DEFAULT_COVERAGE_CRITERION if coverage_criterion_enabled?(DEFAULT_COVERAGE_CRITERION)
+
+      coverage_criteria.first
+    end
 
     def raise_if_criterion_disabled(criterion)
       raise_if_criterion_unsupported(criterion)

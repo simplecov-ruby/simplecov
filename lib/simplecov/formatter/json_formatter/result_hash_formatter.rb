@@ -106,11 +106,18 @@ module SimpleCov
         end
 
         def format_source_file(source_file)
-          result = format_line_coverage(source_file)
-          result.merge!(format_source_code(source_file))
+          result = format_source_code(source_file)
+          result.merge!(format_line_coverage(source_file)) if line_coverage_enabled?
           result.merge!(format_branch_coverage(source_file)) if SimpleCov.branch_coverage?
           result.merge!(format_method_coverage(source_file)) if SimpleCov.method_coverage?
           result
+        end
+
+        # `:oneshot_line` is a synonym for `:line` for stats purposes
+        # (see `SimpleCov.coverage_statistics_key`), so treat either as
+        # "line coverage is on" for the line-block emit decisions.
+        def line_coverage_enabled?
+          SimpleCov.coverage_criterion_enabled?(:line) || SimpleCov.coverage_criterion_enabled?(:oneshot_line)
         end
 
         def format_source_code(source_file)
@@ -180,13 +187,10 @@ module SimpleCov
         end
 
         def format_coverage_statistics(statistics)
-          result = {lines: format_line_statistic(statistics[:line])}
-          if SimpleCov.branch_coverage? && statistics[:branch]
-            result[:branches] = format_single_statistic(statistics[:branch])
-          end
-          if SimpleCov.method_coverage? && statistics[:method]
-            result[:methods] = format_single_statistic(statistics[:method])
-          end
+          result = {}
+          result[:lines]    = format_line_statistic(statistics[:line])      if statistics[:line]
+          result[:branches] = format_single_statistic(statistics[:branch])  if statistics[:branch]
+          result[:methods]  = format_single_statistic(statistics[:method])  if statistics[:method]
           result
         end
 

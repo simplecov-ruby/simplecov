@@ -351,6 +351,56 @@ describe SimpleCov::Configuration do
       end
     end
 
+    describe "#disable_coverage" do
+      it "removes the criterion from the enabled set" do
+        config.enable_coverage :branch
+        config.disable_coverage :line
+
+        expect(config.coverage_criteria).to contain_exactly :branch
+      end
+
+      it "leaves the set empty when the only enabled criterion is disabled" do
+        config.disable_coverage :line
+
+        expect(config.coverage_criteria).to be_empty
+      end
+
+      it "rejects unsupported criteria" do
+        expect { config.disable_coverage :unknown }.to raise_error(/unsupported.*unknown/i)
+      end
+
+      it "clears @primary_coverage so the next read picks a still-enabled criterion" do
+        config.enable_coverage :branch
+        config.primary_coverage :line
+        config.disable_coverage :line
+
+        expect(config.primary_coverage).to eq :branch
+      end
+    end
+
+    describe "#validate_coverage_criteria!" do
+      it "raises when every criterion has been disabled" do
+        config.disable_coverage :line
+        expect { config.validate_coverage_criteria! }
+          .to raise_error(SimpleCov::ConfigurationError, /At least one coverage criterion/)
+      end
+
+      it "passes when at least one criterion is enabled" do
+        config.enable_coverage :branch
+        config.disable_coverage :line
+        expect { config.validate_coverage_criteria! }.not_to raise_error
+      end
+    end
+
+    describe "#primary_coverage default" do
+      it "falls back to the first enabled criterion when :line is disabled" do
+        config.enable_coverage :branch
+        config.disable_coverage :line
+
+        expect(config.primary_coverage).to eq :branch
+      end
+    end
+
     describe "#branch_coverage?", if: SimpleCov.branch_coverage_supported? do
       it "returns true of branch coverage is being measured" do
         config.enable_coverage :branch

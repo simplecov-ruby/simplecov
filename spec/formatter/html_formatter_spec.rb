@@ -174,6 +174,17 @@ describe SimpleCov::Formatter::HTMLFormatter do
       expect(loud_formatter.send(:output_message, result)).to include("(99.99%)")
     end
 
+    it "suppresses a non-line criterion line when its total is zero" do
+      # When branch coverage is enabled but a file has no branches (or
+      # the whole result reports 0/0), printing "Branch coverage: 0 / 0
+      # (100.00%)" is noise — `stats_line` returns nil for that row.
+      branch_stat = SimpleCov::CoverageStatistics.new(covered: 0, missed: 0)
+      result = instance_double(SimpleCov::Result,
+                               command_name: "RSpec",
+                               coverage_statistics: {branch: branch_stat})
+      expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage:")
+    end
+
     context "when branch coverage is enabled" do
       let(:line_stat)   { SimpleCov::CoverageStatistics.new(covered: 10, missed: 0) }
       let(:branch_stat) { SimpleCov::CoverageStatistics.new(covered: 8,  missed: 2) }

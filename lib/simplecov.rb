@@ -6,6 +6,10 @@ require "English"
 # Code coverage for ruby. Please check out README for a full introduction.
 #
 module SimpleCov
+  # Raised when a user's configuration is internally inconsistent — e.g.
+  # every coverage criterion has been disabled.
+  class ConfigurationError < StandardError; end
+
   class << self
     CRITERION_TO_RUBY_COVERAGE = {
       branch: :branches,
@@ -85,6 +89,7 @@ module SimpleCov
     def start_tracking
       require "coverage"
       warn_if_jruby_full_trace_disabled
+      validate_coverage_criteria!
       # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:_fork)

@@ -117,4 +117,34 @@ describe SimpleCov::FileList do
       expect(branch_method_file_list.method_covered_percent).to be_a(Float)
     end
   end
+
+  describe "when :line coverage is disabled" do
+    # When the user runs branch-only (or method-only), the FileList's
+    # legacy line-coverage accessors should return nil rather than
+    # crashing on the absent `:line` key in coverage_statistics.
+    let(:branch_only_file_list) do
+      branch_stat = SimpleCov::CoverageStatistics.new(covered: 1, missed: 1)
+      source_file = instance_double(SimpleCov::SourceFile,
+                                    coverage_statistics: {branch: branch_stat})
+      described_class.new([source_file])
+    end
+
+    before do
+      allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: false)
+      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
+      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
+    end
+
+    it "returns nil from line-coverage accessors" do
+      expect(branch_only_file_list.covered_lines).to be_nil
+      expect(branch_only_file_list.missed_lines).to be_nil
+      expect(branch_only_file_list.lines_of_code).to be_nil
+      expect(branch_only_file_list.covered_percent).to be_nil
+      expect(branch_only_file_list.covered_strength).to be_nil
+    end
+
+    it "omits :line from enabled_criteria_for_reporting" do
+      expect(branch_only_file_list.send(:enabled_criteria_for_reporting)).to contain_exactly(:branch)
+    end
+  end
 end

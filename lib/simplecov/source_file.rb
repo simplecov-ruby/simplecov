@@ -37,6 +37,13 @@ module SimpleCov
     end
     alias source src
 
+    # Returns a hash keyed by every supported coverage criterion. Each
+    # value is a CoverageStatistics, even for criteria that weren't
+    # enabled during the run — those collapse to 0/0/0. Consumers
+    # (FileList, formatters) decide which keys to surface based on
+    # `SimpleCov.coverage_criterion_enabled?`. Storing them all keeps
+    # the SourceFile contract uniform and lets per-criterion computation
+    # remain ignorant of the global enable/disable state.
     def coverage_statistics
       @coverage_statistics ||=
         {
@@ -77,7 +84,7 @@ module SimpleCov
 
     # Returns the number of relevant lines (covered + missed)
     def lines_of_code
-      coverage_statistics[:line].total
+      coverage_statistics[:line]&.total || 0
     end
 
     # Access SimpleCov::SourceFile::Line source lines by line number
@@ -87,11 +94,11 @@ module SimpleCov
 
     # The coverage for this file in percent. 0 if the file has no coverage lines
     def covered_percent
-      coverage_statistics[:line].percent
+      coverage_statistics[:line]&.percent
     end
 
     def covered_strength
-      coverage_statistics[:line].strength
+      coverage_statistics[:line]&.strength
     end
 
     def no_lines?
@@ -279,8 +286,13 @@ module SimpleCov
     end
 
     def build_lines
+      # When `:line` coverage is disabled, the Ruby Coverage module
+      # doesn't emit "lines" data, so look up `nil` (never-counted) for
+      # every position. The source rows are still useful — e.g. for
+      # the HTML report's source view — even without per-line hits.
+      line_coverage = coverage_data["lines"] || []
       lines = src.map.with_index(1) do |src, i|
-        SimpleCov::SourceFile::Line.new(src, i, coverage_data["lines"][i - 1])
+        SimpleCov::SourceFile::Line.new(src, i, line_coverage[i - 1])
       end
       process_skipped_lines(lines)
     end

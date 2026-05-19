@@ -32,24 +32,25 @@ module SimpleCov
         @output_dir || SimpleCov.coverage_path
       end
 
+      # Emit one summary line per criterion that the run actually
+      # measured. The header line ("Coverage report generated for X
+      # to Y") is always first; per-criterion lines follow in the
+      # order of `result.coverage_statistics` (which is the same
+      # insertion order as `SourceFile#coverage_statistics`, which in
+      # turn reflects what the user enabled).
       def output_message(result)
-        lines = ["#{message_prefix}Coverage report generated for #{result.command_name} to #{output_path}",
-                 stats_line(:line, result),
-                 branch_stats_line(result),
-                 method_stats_line(result)]
-        lines.compact.join("\n")
+        header = "#{message_prefix}Coverage report generated for #{result.command_name} to #{output_path}"
+        body   = result.coverage_statistics.filter_map { |criterion, stat| stats_line(criterion, stat) }
+        [header, *body].join("\n")
       end
 
-      def branch_stats_line(result)
-        stats_line(:branch, result) if SimpleCov.branch_coverage? && result.total_branches&.positive?
-      end
+      # Returns nil for branch/method criteria that have nothing to
+      # measure (e.g. a file with no branches under branch coverage).
+      # Showing "Branch coverage: 0 / 0 (100.00%)" is noise; the older
+      # output specifically suppressed it.
+      def stats_line(criterion, stat)
+        return if criterion != :line && !stat.total.positive?
 
-      def method_stats_line(result)
-        stats_line(:method, result) if SimpleCov.method_coverage? && result.total_methods&.positive?
-      end
-
-      def stats_line(criterion, result)
-        stat = result.coverage_statistics[criterion]
         percent = SimpleCov.round_coverage(stat.percent)
         Kernel.format(
           "%<label>s coverage: %<covered>d / %<total>d (%<percent>s)",

@@ -492,6 +492,38 @@ describe SimpleCov::Formatter::JSONFormatter do
         expect(reject_nocov_deprecation(stderr)).to be_empty
       end
     end
+
+    context "with :line coverage disabled" do
+      # Confirms the formatter doesn't emit `lines` / per-file
+      # `lines_covered_percent` / `total_lines` keys when the line
+      # criterion was switched off via `disable_coverage :line`.
+      before do
+        allow(SimpleCov).to receive(:coverage_criterion_enabled?).and_call_original
+        allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
+        allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
+        enable_branch_coverage
+      end
+
+      it "omits line keys from per-file output and totals" do
+        result = SimpleCov::Result.new({
+                                         source_fixture("json/sample.rb") => {
+                                           "lines" => [nil, 1, 1, 0],
+                                           "branches" => {[:if, 0, 1, 0, 4, 0] => {
+                                             [:then, 1, 2, 2, 2, 6] => 1,
+                                             [:else, 2, 3, 2, 3, 6] => 0
+                                           }}
+                                         }
+                                       })
+        result.created_at = fixed_time
+        formatter.format(result)
+
+        payload = json_output
+        expect(payload["total"]).not_to include("lines")
+        expect(payload["total"]).to include("branches")
+        first_file_keys = payload["coverage"].values.first.keys
+        expect(first_file_keys).not_to include("lines", "lines_covered_percent", "covered_lines", "total_lines")
+      end
+    end
   end
 
   def enable_branch_coverage

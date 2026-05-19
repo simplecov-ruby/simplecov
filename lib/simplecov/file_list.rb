@@ -33,12 +33,12 @@ module SimpleCov
 
     # Returns the count of lines that have coverage
     def covered_lines
-      coverage_statistics[:line].covered
+      coverage_statistics[:line]&.covered
     end
 
     # Returns the count of lines that have been missed
     def missed_lines
-      coverage_statistics[:line].missed
+      coverage_statistics[:line]&.missed
     end
 
     # Returns the count of lines that are not relevant for coverage
@@ -68,19 +68,19 @@ module SimpleCov
 
     # Returns the overall amount of relevant lines of code across all files in this list
     def lines_of_code
-      coverage_statistics[:line].total
+      coverage_statistics[:line]&.total
     end
 
     # Computes the coverage based upon lines covered and lines missed
     # @return [Float]
     def covered_percent
-      coverage_statistics[:line].percent
+      coverage_statistics[:line]&.percent
     end
 
     # Computes the strength (hits / line) based upon lines covered and lines missed
     # @return [Float]
     def covered_strength
-      coverage_statistics[:line].strength
+      coverage_statistics[:line]&.strength
     end
 
     # Return total count of branches in all files
@@ -123,23 +123,36 @@ module SimpleCov
 
   private
 
+    # Seed the result hash with one entry per criterion the user
+    # enabled — so an empty FileList (e.g. a group with no files) still
+    # yields the right shape — then fold each file's stats into the
+    # matching bucket. `SourceFile#coverage_statistics` always reports
+    # all three criteria; FileList is the layer that filters to the
+    # enabled set so disabled criteria don't surface in totals, JSON,
+    # or the HTML report.
     def compute_coverage_statistics_by_file
-      @files.each_with_object(line: [], branch: [], method: []) do |file, together|
-        together[:line] << file.coverage_statistics.fetch(:line)
-        together[:branch] << file.coverage_statistics.fetch(:branch) if SimpleCov.branch_coverage?
-        together[:method] << file.coverage_statistics.fetch(:method) if SimpleCov.method_coverage?
+      seed = enabled_criteria_for_reporting.to_h { |criterion| [criterion, []] }
+      @files.each_with_object(seed) do |file, together|
+        file.coverage_statistics.each do |criterion, stats|
+          together[criterion] << stats if together.key?(criterion)
+        end
       end
     end
 
     def compute_coverage_statistics
-      coverage_statistics = {line: CoverageStatistics.from(coverage_statistics_by_file[:line])}
-      if SimpleCov.branch_coverage?
-        coverage_statistics[:branch] = CoverageStatistics.from(coverage_statistics_by_file[:branch])
-      end
-      if SimpleCov.method_coverage?
-        coverage_statistics[:method] = CoverageStatistics.from(coverage_statistics_by_file[:method])
-      end
-      coverage_statistics
+      coverage_statistics_by_file.transform_values { |stats| CoverageStatistics.from(stats) }
+    end
+
+    # `:line` (or its `:oneshot_line` synonym) is reported when either
+    # criterion is enabled; the JRuby-gated branch/method criteria are
+    # reported when they pass their own engine-support check.
+    def enabled_criteria_for_reporting
+      criteria = []
+      criteria << :line   if SimpleCov.coverage_criterion_enabled?(:line) ||
+                             SimpleCov.coverage_criterion_enabled?(:oneshot_line)
+      criteria << :branch if SimpleCov.branch_coverage?
+      criteria << :method if SimpleCov.method_coverage?
+      criteria
     end
   end
 end
