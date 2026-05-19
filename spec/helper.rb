@@ -29,6 +29,14 @@ require "tmpdir"
 require "support/fail_rspec_on_ruby_warning"
 require "simplecov"
 
+# The default profile chain now includes `test_frameworks`, which
+# filters paths under `spec/` — but our unit tests build synthetic
+# Results from fixtures under `spec/fixtures/` and assume the filter
+# chain doesn't drop them. The dogfood report below still excludes
+# the project's own `spec/` via the `extra_filters` list passed to
+# `Result.new`, so removing the default here is safe.
+SimpleCov.remove_filter %r{\A(test|features|spec|autotest)/}
+
 SimpleCov.coverage_dir("tmp/coverage")
 
 unless ENV["SIMPLECOV_NO_DOGFOOD"]

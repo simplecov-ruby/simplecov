@@ -19,7 +19,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rake test`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 77.94%   | 7     |
+      | All Files | 71.15%   | 5     |
 
     And I should see the source files:
       | name                                    | coverage |
@@ -28,5 +28,3 @@ Feature:
       | lib/faked_project/some_class.rb         | 80.00%   |
       | lib/faked_project/framework_specific.rb | 75.00%   |
       | lib/faked_project/meta_magic.rb         | 100.00%  |
-      | test/meta_magic_test.rb                 | 100.00%  |
-      | test/some_class_test.rb                 | 100.00%  |

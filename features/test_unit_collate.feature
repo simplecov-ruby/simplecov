@@ -26,7 +26,7 @@ Feature:
     When I open the coverage report generated with `bundle exec rake collate`
     Then I should see the groups:
       | name      | coverage | files |
-      | All Files | 91.37%   | 6     |
+      | All Files | 88.09%   | 4     |
 
     And I should see the source files:
       | name                                    | coverage |
@@ -34,13 +34,8 @@ Feature:
       | lib/faked_project/some_class.rb         | 80.00%   |
       | lib/faked_project/framework_specific.rb | 75.00%   |
       | lib/faked_project/meta_magic.rb         | 100.00%  |
-      | test/meta_magic_test.rb                 | 100.00%  |
-      | test/some_class_test.rb                 | 100.00%  |
 
-      # Note: faked_test.rb is not appearing here since that's the first unit test file
-      # loaded by Rake, and only there test_helper is required, which then loads simplecov
-      # and triggers tracking of all other loaded files! Solution for this would be to
-      # configure simplecov in this first test instead of test_helper.
+      # test/* files are filtered out by the default test_frameworks profile.
 
     And the report should be based upon:
       | Unit Tests |

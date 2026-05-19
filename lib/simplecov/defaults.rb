@@ -4,8 +4,8 @@ require "pathname"
 require_relative "formatter/html_formatter"
 
 # Default configuration. Profiles autoload on first reference via
-# `SimpleCov.profiles.fetch_proc`; the unused ones (e.g. "rails",
-# "test_frameworks") never get required unless a user opts in.
+# `SimpleCov.profiles.fetch_proc`; the unused ones (e.g. "rails")
+# never get required unless a user opts in.
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
 
@@ -15,6 +15,12 @@ SimpleCov.configure do
   # by SimpleCov::UselessResultsRemover so the user-facing filter chain
   # honors the same boundary; both share the regex.
   load_profile "root_filter"
+  # Exclude test framework directories (`test/`, `spec/`, `features/`,
+  # `autotest/`). The test suite runs 100% of the test files themselves,
+  # which inflates totals and obscures the application coverage that
+  # actually matters. Drop with `remove_filter %r{\A(test|features|spec|autotest)/}`
+  # if you want test files counted (e.g. to surface dead helpers).
+  load_profile "test_frameworks"
 end
 
 # Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info

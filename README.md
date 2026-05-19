@@ -385,7 +385,7 @@ Filters can be used to remove selected files from your coverage data.
 
 ### Default filters
 
-`SimpleCov.start` loads three filters out of the box:
+`SimpleCov.start` loads four filters out of the box:
 
 * **`root_filter`** — drops every file outside of `SimpleCov.root`, so you don't end up with coverage reports for the
   source files of every gem in your bundle.
@@ -393,6 +393,10 @@ Filters can be used to remove selected files from your coverage data.
 * **`hidden_filter`** — drops any path that starts with a dot, matching the regex `/\A\..*/`. This is what hides
   `.bundle/`, `.semaphore-cache/`, and similar dotfile directories — but it also hides legitimate top-level directories
   like `.scripts/`. If you keep code in such a directory, remove this filter (see below).
+* **`test_frameworks`** — drops common test directories (`test/`, `spec/`, `features/`, `autotest/`), matching the
+  regex `%r{\A(test|features|spec|autotest)/}`. Running the test suite always executes 100% of the test files
+  themselves, which inflates the overall percentage and obscures application coverage. Remove this filter if you
+  prefer to see test files in the report (e.g. to surface dead helpers).
 
 If you want a clean slate (no defaults at all), `require 'simplecov/no_defaults'` *before* `require 'simplecov'`, or
 call `SimpleCov.clear_filters` from your config block. To drop a specific default while keeping the others, use
