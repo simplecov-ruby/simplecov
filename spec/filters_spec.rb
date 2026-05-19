@@ -166,6 +166,59 @@ describe SimpleCov::Filter do
     end
   end
 
+  describe "#remove_filter" do
+    around do |example|
+      prev_filters = SimpleCov.filters
+      SimpleCov.filters = []
+      example.run
+      SimpleCov.filters = prev_filters
+    end
+
+    it "removes a string filter that matches by value" do
+      SimpleCov.add_filter "spec"
+      SimpleCov.add_filter "lib"
+      expect(SimpleCov.remove_filter("spec")).to be true
+      expect(SimpleCov.filters.map(&:filter_argument)).to eq(["lib"])
+    end
+
+    it "removes a regex filter that matches by value" do
+      SimpleCov.add_filter(/\A\..*/)
+      SimpleCov.add_filter(/\Aapp/)
+      expect(SimpleCov.remove_filter(/\A\..*/)).to be true
+      expect(SimpleCov.filters.map(&:filter_argument)).to eq([/\Aapp/])
+    end
+
+    it "removes every matching filter, not just the first" do
+      SimpleCov.add_filter "spec"
+      SimpleCov.add_filter "spec"
+      SimpleCov.add_filter "lib"
+      SimpleCov.remove_filter("spec")
+      expect(SimpleCov.filters.map(&:filter_argument)).to eq(["lib"])
+    end
+
+    it "returns false when nothing matches" do
+      SimpleCov.add_filter "spec"
+      expect(SimpleCov.remove_filter("nope")).to be false
+      expect(SimpleCov.filters.size).to eq(1)
+    end
+  end
+
+  describe "#clear_filters" do
+    around do |example|
+      prev_filters = SimpleCov.filters
+      SimpleCov.filters = []
+      example.run
+      SimpleCov.filters = prev_filters
+    end
+
+    it "empties the filter chain" do
+      SimpleCov.add_filter "spec"
+      SimpleCov.add_filter(/\A\..*/)
+      SimpleCov.clear_filters
+      expect(SimpleCov.filters).to be_empty
+    end
+  end
+
   context "with the default configuration" do
     skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
 

@@ -425,6 +425,33 @@ module SimpleCov
     end
 
     #
+    # Remove any filters in the chain whose `filter_argument` equals the given
+    # value. Useful for selectively dropping one of the defaults loaded by
+    # `SimpleCov.start` (e.g. the hidden-files filter that drops paths starting
+    # with `.`). Strings and Regexps compare by value; for filters added with a
+    # block, the same Proc object must be passed back.
+    #
+    #     SimpleCov.remove_filter(/\A\..*/)     # drop the hidden-files default
+    #     SimpleCov.remove_filter "/vendor/bundle/"
+    #
+    # Returns true when at least one filter was removed, false otherwise.
+    #
+    def remove_filter(filter_argument) # rubocop:disable Naming/PredicateMethod
+      before = filters.size
+      filters.reject! { |filter| filter.respond_to?(:filter_argument) && filter.filter_argument == filter_argument }
+      filters.size != before
+    end
+
+    #
+    # Remove every filter from the chain, including the defaults installed by
+    # `SimpleCov.start`. Use this when you want a clean slate before adding
+    # your own filters; for selective removal, prefer `remove_filter`.
+    #
+    def clear_filters
+      @filters = []
+    end
+
+    #
     # Define a group for files. Works similar to add_filter, only that the first
     # argument is the desired group name and files PASSING the filter end up in the group
     # (while filters exclude when the filter is applicable).

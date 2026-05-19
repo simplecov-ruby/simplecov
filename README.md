@@ -381,12 +381,34 @@ This is typically useful for ERB. Set `ERB#filename=` to make it possible for Si
 
 ## Filters
 
-Filters can be used to remove selected files from your coverage data. By default, a filter is applied that removes all
-files OUTSIDE of your project's root directory - otherwise you'd end up with billions of coverage reports for source
-files in the gems you are using.
+Filters can be used to remove selected files from your coverage data.
 
-You can define your own to remove things like configuration files, tests or whatever you don't need in your coverage
-report.
+### Default filters
+
+`SimpleCov.start` loads three filters out of the box:
+
+* **`root_filter`** — drops every file outside of `SimpleCov.root`, so you don't end up with coverage reports for the
+  source files of every gem in your bundle.
+* **`bundler_filter`** — drops `/vendor/bundle/` (in case a project keeps its gems checked into the repo).
+* **`hidden_filter`** — drops any path that starts with a dot, matching the regex `/\A\..*/`. This is what hides
+  `.bundle/`, `.semaphore-cache/`, and similar dotfile directories — but it also hides legitimate top-level directories
+  like `.scripts/`. If you keep code in such a directory, remove this filter (see below).
+
+If you want a clean slate (no defaults at all), `require 'simplecov/no_defaults'` *before* `require 'simplecov'`, or
+call `SimpleCov.clear_filters` from your config block. To drop a specific default while keeping the others, use
+`remove_filter`:
+
+```ruby
+SimpleCov.start do
+  remove_filter(/\A\..*/) # restore coverage for .scripts/, .tooling/, etc.
+end
+```
+
+`remove_filter` matches by value, so you pass back the same `String` or `Regexp` the default profile used. For filters
+added with a block, pass the same `Proc` object you originally handed to `add_filter`.
+
+You can also define your own filters to remove things like configuration files, tests, or anything else you don't need
+in your coverage report.
 
 ### Defining custom filters
 
@@ -496,11 +518,11 @@ Directive markers inside string literals or heredocs are ignored.
 
 ## Default root filter and coverage for things outside of it
 
-By default, SimpleCov drops every file outside of `SimpleCov.root` from the raw coverage data before any filters or
-groups run, so paths you might want to track (a Rails Engine installed as a gem, sibling directories in a Docker
-layout, etc.) never reach your filter chain. To include them, widen `SimpleCov.root` to a directory that contains
-both the project and the extra paths — `'/'` works when there is no useful common ancestor — and then express the
-inclusion/exclusion as filters or groups:
+See [Default filters](#default-filters) above for the full list. The `root_filter` in particular drops every file
+outside of `SimpleCov.root` from the raw coverage data before any filters or groups run, so paths you might want to
+track (a Rails Engine installed as a gem, sibling directories in a Docker layout, etc.) never reach your filter chain.
+To include them, widen `SimpleCov.root` to a directory that contains both the project and the extra paths — `'/'`
+works when there is no useful common ancestor — and then express the inclusion/exclusion as filters or groups:
 
 ```ruby
 SimpleCov.root '/'
