@@ -129,7 +129,7 @@ module SimpleCov
     # `ignore_timeout: false`.
     #
     def collate(result_filenames, profile = nil, ignore_timeout: true, &block)
-      raise "There are no reports to be merged" if result_filenames.empty?
+      raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &block)
 

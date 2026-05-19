@@ -99,7 +99,8 @@ module SimpleCov
 
       @formatter = formatter
       unless @formatter
-        raise "No formatter configured. " \
+        raise SimpleCov::ConfigurationError,
+              "No formatter configured. " \
               "Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter"
       end
 
@@ -599,14 +600,16 @@ module SimpleCov
       raise_if_criterion_unsupported(criterion)
       return if coverage_criterion_enabled?(criterion)
 
-      raise "Coverage criterion #{criterion}, is disabled! " \
+      raise SimpleCov::ConfigurationError,
+            "Coverage criterion #{criterion}, is disabled! " \
             "Please enable it first through enable_coverage #{criterion} (if supported)"
     end
 
     def raise_if_criterion_unsupported(criterion)
       return if SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
 
-      raise "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+      raise SimpleCov::ConfigurationError,
+            "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)

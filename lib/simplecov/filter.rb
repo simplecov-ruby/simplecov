@@ -20,7 +20,7 @@ module SimpleCov
     end
 
     def matches?(_source_file)
-      raise "The base filter class is not intended for direct use"
+      raise NotImplementedError, "The base filter class is not intended for direct use"
     end
 
     def self.build_filter(filter_argument)
@@ -31,7 +31,7 @@ module SimpleCov
 
     def self.class_for_argument(filter_argument)
       filter_classes_by_argument_type.find { |type, _| filter_argument.is_a?(type) }&.last ||
-        raise(ArgumentError, "You have provided an unrecognized filter type")
+        raise(SimpleCov::ConfigurationError, "You have provided an unrecognized filter type")
     end
 
     def self.filter_classes_by_argument_type

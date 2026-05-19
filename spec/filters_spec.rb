@@ -276,14 +276,16 @@ describe SimpleCov::Filter do
   end
 
   describe "#matches?" do
-    it "raises on the base class — subclasses must override" do
-      expect { described_class.new("anything").matches?(nil) }.to raise_error(/not intended for direct use/)
+    it "raises NotImplementedError on the base class — subclasses must override" do
+      expect { described_class.new("anything").matches?(nil) }
+        .to raise_error(NotImplementedError, /not intended for direct use/)
     end
   end
 
   describe ".class_for_argument with an unknown filter argument type" do
-    it "raises a clear error when the argument doesn't match any registered filter type" do
-      expect { described_class.class_for_argument(Object.new) }.to raise_error(/unrecognized filter type/)
+    it "raises a ConfigurationError when the argument doesn't match any registered filter type" do
+      expect { described_class.class_for_argument(Object.new) }
+        .to raise_error(SimpleCov::ConfigurationError, /unrecognized filter type/)
     end
   end
 end
