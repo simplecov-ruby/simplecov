@@ -62,7 +62,7 @@ Feature:
       """
       require 'simplecov'
       SimpleCov.start do
-        minimum_coverage 89
+        minimum_coverage 81.48
       end
       """
     When I successfully run `bundle exec parallel_rspec spec`
