@@ -4,7 +4,7 @@ require "helper"
 
 # Test to verify correct handling of deleted files
 # See https://github.com/simplecov-ruby/simplecov/issues/9
-describe "A source file which is subsequently deleted" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "A source file which is subsequently deleted" do # rubocop:disable RSpec/DescribeClass
   it "does not cause an error" do
     Dir.chdir(File.join(File.dirname(__FILE__), "fixtures")) do
       # `Open3.capture3` (not backticks) so the subprocess's stderr —

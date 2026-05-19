@@ -37,7 +37,7 @@ COVERAGE_FOR_TRIPLE_LINES = {"lines" => [nil, nil, 1]}.freeze
 
 DEGREE_135_LINE = "puts \"135°C\"\n"
 
-describe SimpleCov::SourceFile do
+RSpec.describe SimpleCov::SourceFile do
   context "when a source file initialized with some coverage data" do
     subject(:source_file) do
       described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)

@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Filter do
+RSpec.describe SimpleCov::Filter do
   let(:source_file) do
     SimpleCov::SourceFile.new(source_fixture("sample.rb"), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
   end

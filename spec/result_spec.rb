@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Result do
+RSpec.describe SimpleCov::Result do
   context "with a (mocked) Coverage.result" do
     around do |example|
       prev_filters   = SimpleCov.filters

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe FakedProject do
+RSpec.describe FakedProject do
   it "should have added a class method to FakedProject" do
     expect(FakedProject.a_class_method).to eq("this is a mixed-in class method")
   end

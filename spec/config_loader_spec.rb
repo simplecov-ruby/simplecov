@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe "loading config" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "loading config" do # rubocop:disable RSpec/DescribeClass
   context "without ENV[HOME]" do
     it "does not raise any errors" do
       home = ENV.delete("HOME")

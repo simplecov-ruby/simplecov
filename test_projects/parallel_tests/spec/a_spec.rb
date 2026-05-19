@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe A do
+RSpec.describe A do
   it "foo" do
     expect(subject.foo).to eq :foo
   end

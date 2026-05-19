@@ -3,7 +3,7 @@
 require "helper"
 require "coverage"
 
-describe SimpleCov::Configuration do
+RSpec.describe SimpleCov::Configuration do
   let(:config_class) do
     Class.new do
       include SimpleCov::Configuration

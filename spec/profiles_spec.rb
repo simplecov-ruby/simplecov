@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Profiles do
+RSpec.describe SimpleCov::Profiles do
   subject(:profiles) { described_class.new }
 
   describe "#define" do

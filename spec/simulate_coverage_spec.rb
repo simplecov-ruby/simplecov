@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::SimulateCoverage do
+RSpec.describe SimpleCov::SimulateCoverage do
   describe ".call" do
     let(:fixture) { source_fixture("sample.rb") }
 

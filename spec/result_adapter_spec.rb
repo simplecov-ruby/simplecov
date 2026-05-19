@@ -3,7 +3,7 @@
 require "helper"
 require "coverage"
 
-describe SimpleCov::ResultAdapter do
+RSpec.describe SimpleCov::ResultAdapter do
   subject(:adapter) { described_class.call(result_set) }
 
   let(:existing_file) { source_fixture("app/models/user.rb") }

@@ -5,7 +5,7 @@ require "fileutils"
 require "json"
 require "support/coverage_fixtures"
 
-describe SimpleCov::Formatter::HTMLFormatter do
+RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   subject(:formatter) { described_class.new(silent: true) }
 
   let(:loud_formatter) { described_class.new(silent: false) }

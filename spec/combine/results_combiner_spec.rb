@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Combine::ResultsCombiner do
+RSpec.describe SimpleCov::Combine::ResultsCombiner do
   describe "with two faked coverage resultsets" do
     let(:first_resultset) do
       {

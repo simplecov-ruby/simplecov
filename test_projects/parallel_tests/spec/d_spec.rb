@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe D do
+RSpec.describe D do
   it "case 4" do
     expect(subject.case(4)).to eq :foo
   end

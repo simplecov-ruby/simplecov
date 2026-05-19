@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::UselessResultsRemover do
+RSpec.describe SimpleCov::UselessResultsRemover do
   subject(:remover) do
     described_class.call(result_set)
   end

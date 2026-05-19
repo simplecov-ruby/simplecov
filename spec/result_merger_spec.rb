@@ -4,7 +4,7 @@ require "helper"
 require "tempfile"
 require "timeout"
 
-describe SimpleCov::ResultMerger do
+RSpec.describe SimpleCov::ResultMerger do
   after do
     FileUtils.rm_f(described_class.resultset_path)
   end
@@ -167,12 +167,12 @@ describe SimpleCov::ResultMerger do
         let(:second_result) { outdated(super()) }
 
         it "completely omits the result from the merge" do
-          allow(described_class).to receive(:store)
+          allow(described_class).to receive(:store_result)
 
           result = described_class.merge_and_store(resultset1_path, resultset2_path)
 
           expect(result).to be_nil
-          expect(described_class).not_to have_received(:store)
+          expect(described_class).not_to have_received(:store_result)
         end
 
         it "includes both when we say ignore_timeout: true" do

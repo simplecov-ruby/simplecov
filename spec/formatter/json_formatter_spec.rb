@@ -11,7 +11,7 @@ STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
 
 STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
 
-describe SimpleCov::Formatter::JSONFormatter do
+RSpec.describe SimpleCov::Formatter::JSONFormatter do
   subject(:formatter) { described_class.new(silent: true) }
 
   let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }

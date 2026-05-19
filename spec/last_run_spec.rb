@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::LastRun do
+RSpec.describe SimpleCov::LastRun do
   subject(:last_run) { described_class }
 
   it "defines a last_run_path" do

@@ -3,7 +3,7 @@
 require "helper"
 require "support/coverage_fixtures"
 
-describe SimpleCov::FileList do
+RSpec.describe SimpleCov::FileList do
   subject(:file_list) do
     original_result = {
       source_fixture("sample.rb") => {

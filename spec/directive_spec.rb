@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Directive do
+RSpec.describe SimpleCov::Directive do
   describe ".disabled_ranges" do
     let(:empty_ranges) { {line: [], branch: [], method: []} }
 

@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Combine::LinesCombiner do
+RSpec.describe SimpleCov::Combine::LinesCombiner do
   describe ".combine" do
     it "uses coverage_a as the accumulator when it is longer" do
       a = [1, 1, nil, 1, nil]

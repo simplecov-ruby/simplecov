@@ -3,7 +3,7 @@
 require "helper"
 require "simplecov/lines_classifier"
 
-describe SimpleCov::LinesClassifier do
+RSpec.describe SimpleCov::LinesClassifier do
   subject(:classifier) { described_class.new }
 
   describe "#classify" do

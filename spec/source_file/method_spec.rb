@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::SourceFile::Method do
+RSpec.describe SimpleCov::SourceFile::Method do
   subject(:the_method) { described_class.new(source_file, info, coverage) }
 
   let(:source_file) do

@@ -88,9 +88,12 @@ module SimpleCov
   # configured Regexp.
   class RegexFilter < SimpleCov::Filter
     # Returns true when the given source file's filename matches the
-    # regex configured when initializing this Filter with RegexFilter.new(/someregex/)
+    # regex configured when initializing this Filter with RegexFilter.new(/someregex/).
+    # Uses `Regexp#match?` so the predicate returns a real boolean — `=~`
+    # would return the match position (an Integer or nil), which trips
+    # rspec-mocks 4's stricter predicate-matcher type check.
     def matches?(source_file)
-      (source_file.project_filename =~ filter_argument)
+      filter_argument.match?(source_file.project_filename)
     end
   end
 

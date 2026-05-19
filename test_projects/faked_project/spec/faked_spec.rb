@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe FakedProject do
+RSpec.describe FakedProject do
   it "should return proper foo" do
     expect(FakedProject.foo).to eq("bar")
   end

@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::SourceFile::Line do
+RSpec.describe SimpleCov::SourceFile::Line do
   context "when a source line" do
     subject(:line) do
       described_class.new("# the ruby source", 5, 3)

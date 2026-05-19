@@ -35,7 +35,14 @@ module SimpleCov
     # Basically, should we take care of at_exit behavior or something else?
     # Used by the minitest plugin. See lib/minitest/simplecov_plugin.rb
     attr_accessor :external_at_exit
-    alias external_at_exit? external_at_exit
+
+    # Coerce to a proper boolean so rspec-mocks 4's predicate matcher
+    # (`expect(...).not_to be_external_at_exit`) accepts the result — a
+    # bare attr reader returns the raw value (nil, false, or truthy),
+    # but the matcher now requires strict `true` / `false`.
+    def external_at_exit?
+      !!@external_at_exit
+    end
 
     #
     # Sets up SimpleCov to run against your project.
@@ -250,10 +257,13 @@ module SimpleCov
     end
 
     # @api private
+    #
+    # Returns a real boolean (rather than a truthy nil / Integer), so
+    # rspec-mocks 4's predicate matcher accepts it. Normally a non-nil
+    # exit status would be enough, but test_unit sets status 0 on
+    # success, so SUCCESS must also be treated as "not a previous error".
     def previous_error?(error_exit_status)
-      # Normally it'd be enough to check for previous error but when running test_unit
-      # status is 0
-      error_exit_status && error_exit_status != SimpleCov::ExitCodes::SUCCESS
+      !!(error_exit_status && error_exit_status != SimpleCov::ExitCodes::SUCCESS)
     end
 
     #

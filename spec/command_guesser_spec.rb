@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::CommandGuesser do
+RSpec.describe SimpleCov::CommandGuesser do
   subject(:guesser) { described_class }
 
   it 'correctly guesses "Unit Tests" for unit tests' do

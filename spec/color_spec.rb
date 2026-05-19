@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Color do
+RSpec.describe SimpleCov::Color do
   describe ".for_percent" do
     it "returns :green for percentages at or above the green threshold" do
       expect(described_class.for_percent(90.0)).to eq(:green)

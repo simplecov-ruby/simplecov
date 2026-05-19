@@ -3,7 +3,7 @@
 require "helper"
 require "coverage"
 
-describe SimpleCov do
+RSpec.describe SimpleCov do
   describe ".install_at_exit_hook" do
     around do |example|
       previous_installed = described_class.instance_variable_get(:@at_exit_hook_installed)
@@ -236,7 +236,11 @@ describe SimpleCov do
     end
 
     context "when running under a faked parallel_tests setup" do
-      before { stub_const("ParallelTests", Class.new) }
+      # `Class.new { def self.last_process?; end }` rather than a plain
+      # Class.new so rspec-mocks 4's verify_partial_doubles check (now
+      # on by default) accepts the subsequent `allow(...).to receive(
+      # :last_process?)` stubs.
+      before { stub_const("ParallelTests", Class.new { def self.last_process?; end }) }
 
       around do |example|
         prev_n, prev_g = ENV.values_at("TEST_ENV_NUMBER", "PARALLEL_TEST_GROUPS")

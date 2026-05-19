@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::Combine::MethodsCombiner do
+RSpec.describe SimpleCov::Combine::MethodsCombiner do
   describe ".combine" do
     it "sums coverage for matching method keys" do
       coverage_a = {

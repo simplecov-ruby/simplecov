@@ -4,7 +4,7 @@ require "helper"
 
 require "simplecov/formatter/multi_formatter"
 
-describe SimpleCov::Formatter::MultiFormatter do
+RSpec.describe SimpleCov::Formatter::MultiFormatter do
   describe "#format" do
     let(:result) { instance_double(SimpleCov::Result) }
     let(:good_formatter) { Class.new { def format(_) = "ok" } }

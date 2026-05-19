@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov::SourceFile::Branch do
+RSpec.describe SimpleCov::SourceFile::Branch do
   let(:if_branch) do
     described_class.new(start_line: 1, end_line: 3, coverage: 0, inline: false, type: :then)
   end

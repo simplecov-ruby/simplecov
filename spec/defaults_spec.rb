@@ -2,7 +2,7 @@
 
 require "helper"
 
-describe SimpleCov do
+RSpec.describe SimpleCov do
   skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
 
   context "when profiles" do
