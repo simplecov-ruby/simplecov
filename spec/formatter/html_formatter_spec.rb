@@ -139,16 +139,20 @@ describe SimpleCov::Formatter::HTMLFormatter do
   end
 
   describe "#format output behaviour" do
-    it "prints a `Coverage report generated` line when not silent" do
-      expect { loud_formatter.format(make_result) }.to output(/Coverage report generated/).to_stdout
+    it "prints a `Coverage report generated` line to stderr when not silent" do
+      expect { loud_formatter.format(make_result) }.to output(/Coverage report generated/).to_stderr
     end
 
-    it "prints a Line coverage line when not silent" do
-      expect { loud_formatter.format(make_result) }.to output(%r{Line coverage: \d+ / \d+}).to_stdout
+    it "prints a Line coverage line to stderr when not silent" do
+      expect { loud_formatter.format(make_result) }.to output(%r{Line coverage: \d+ / \d+}).to_stderr
     end
 
-    it "stays quiet when silent: true" do
-      expect { formatter.format(make_result) }.not_to output.to_stdout
+    it "leaves stdout untouched even when not silent" do
+      expect { loud_formatter.format(make_result) }.not_to output.to_stdout
+    end
+
+    it "stays quiet on stderr when silent: true" do
+      expect { formatter.format(make_result) }.not_to output.to_stderr
     end
 
     it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do

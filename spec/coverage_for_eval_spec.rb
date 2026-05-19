@@ -12,14 +12,14 @@ RSpec.describe "coverage for eval" do # rubocop:disable RSpec/DescribeClass
     end
 
     let(:capture) { Open3.capture3("bundle e ruby eval_test.rb") }
-    let(:stdout)  { capture[0] }
+    let(:stderr)  { capture[1] }
     let(:resultset) do
       capture # ensure the script ran first
       JSON.parse(File.read("./coverage/.resultset.json"))
     end
 
     it "produces a coverage report" do
-      expect(stdout).to include("Coverage report generated")
+      expect(stderr).to include("Coverage report generated")
     end
 
     it "records line hits for the eval'd .erb source" do

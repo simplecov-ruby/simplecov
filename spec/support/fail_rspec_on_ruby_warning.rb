@@ -37,11 +37,19 @@ private
   end
 
   # The :nocov: deprecation warning is fired by fixtures that legitimately
-  # exercise the deprecated toggle. Filter only that exact warning so any
-  # future app-side deprecation still fails the build.
+  # exercise the deprecated toggle. The "Coverage report generated for X
+  # to /path/in/repo" status line is emitted by HTML/JSON formatters that
+  # write into a temp dir under the app root and is on stderr by design.
+  # Filter both so any future app-side deprecation or genuine warning
+  # still fails the build.
   def split_lines(lines)
     nocov_deprecation_marker = "Replace with `# simplecov:disable` / `# simplecov:enable`"
-    lines.partition { |line| line.include?(@app_root) && !line.include?(nocov_deprecation_marker) }
+    coverage_report_summary_marker = "Coverage report generated"
+    lines.partition do |line|
+      line.include?(@app_root) &&
+        !line.include?(nocov_deprecation_marker) &&
+        !line.start_with?(coverage_report_summary_marker)
+    end
   end
 
   def print_own_warnings(app_warnings)

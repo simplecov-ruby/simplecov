@@ -17,13 +17,23 @@ describe "return codes" do # rubocop:disable RSpec/DescribeClass
     let(:captured_stderr) { capture[1] }
     let(:status)          { capture[2] }
 
+    # SimpleCov writes its "Coverage report generated…" status line and
+    # per-criterion totals to stderr by design. Strip those expected
+    # lines so the "anything unusual on stderr?" assertions focus on
+    # real diagnostic noise (errors, warnings, deprecations).
+    def stderr_without_report_summary(stderr)
+      stderr.lines.reject do |line|
+        line.start_with?("Coverage report generated", "Line coverage:", "Branch coverage:", "Method coverage:")
+      end.join
+    end
+
     shared_examples "good tests" do
       it "has a zero exit status" do
         expect(status.exitstatus).to be_zero
       end
 
-      it "prints nothing to STDERR" do
-        expect(captured_stderr).to be_empty
+      it "prints nothing to STDERR aside from the coverage report summary" do
+        expect(stderr_without_report_summary(captured_stderr)).to be_empty
       end
     end
 
@@ -52,8 +62,8 @@ describe "return codes" do # rubocop:disable RSpec/DescribeClass
           expect(status.exitstatus).not_to be_zero
         end
 
-        it "does not print anything to STDERR" do
-          expect(captured_stderr).to be_empty
+        it "does not print error noise to STDERR (only the coverage report summary)" do
+          expect(stderr_without_report_summary(captured_stderr)).to be_empty
         end
       end
     end

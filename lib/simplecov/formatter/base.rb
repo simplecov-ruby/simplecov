@@ -6,9 +6,9 @@ module SimpleCov
     #
     # Shared scaffolding for formatters that write a coverage report to
     # an output directory and emit a "Coverage report generated for X
-    # to Y" summary on stdout. Subclasses override `format` to do their
-    # actual writing, and may override `message_prefix` (e.g. JSON
-    # prepends "JSON ").
+    # to Y" summary on stderr (it's a status message, not data).
+    # Subclasses override `format` to do their actual writing, and may
+    # override `message_prefix` (e.g. JSON prepends "JSON ").
     class Base
       # `output_dir` defaults to `SimpleCov.coverage_path` so the at_exit
       # pipeline keeps working unchanged. Pass it explicitly to write

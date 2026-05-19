@@ -22,7 +22,9 @@ module SimpleCov
         path = File.join(output_path, FILENAME)
         warn_if_concurrent_overwrite(path)
         File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
-        puts output_message(result) unless @silent
+        # stderr, not stdout: this is a status message, not the program's
+        # output. Keeps the line out of pipelines like `rspec -f json`.
+        warn output_message(result) unless @silent
       end
 
     private
