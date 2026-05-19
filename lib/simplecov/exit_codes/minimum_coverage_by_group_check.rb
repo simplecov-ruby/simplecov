@@ -16,13 +16,13 @@ module SimpleCov
 
       def report
         violations.each do |violation|
-          $stderr.printf(
-            "%<criterion>s coverage by group (%<covered>.2f%%) is below the expected minimum coverage " \
-            "(%<minimum_coverage>.2f%%) in %<group_name>s.\n",
-            group_name: violation.fetch(:group_name),
-            covered: violation.fetch(:actual),
-            minimum_coverage: violation.fetch(:expected),
-            criterion: violation.fetch(:criterion).capitalize
+          warn format(
+            "%<criterion>s coverage by group (%<actual>s) is below the expected minimum coverage " \
+            "(%<expected>.2f%%) in %<group_name>s.",
+            criterion: violation.fetch(:criterion).capitalize,
+            actual: SimpleCov::Color.colorize_percent(violation.fetch(:actual)),
+            expected: violation.fetch(:expected),
+            group_name: violation.fetch(:group_name)
           )
         end
       end

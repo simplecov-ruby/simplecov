@@ -15,15 +15,7 @@ module SimpleCov
       end
 
       def report
-        violations.each do |violation|
-          $stderr.printf(
-            "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time " \
-            "(maximum allowed: %<max_drop>.2f%%).\n",
-            criterion: violation.fetch(:criterion).capitalize,
-            drop_percent: violation.fetch(:actual),
-            max_drop: violation.fetch(:maximum)
-          )
-        end
+        violations.each { |violation| warn SimpleCov::Color.colorize(message_for(violation), :red) }
       end
 
       def exit_code
@@ -31,6 +23,19 @@ module SimpleCov
       end
 
     private
+
+      # The "drop percent" is a delta, not a coverage level — it has no
+      # natural green/yellow/red mapping. Callers color the whole line red
+      # so the failure is still visible at a glance.
+      def message_for(violation)
+        format(
+          "%<criterion>s coverage has dropped by %<drop_percent>.2f%% since the last time " \
+          "(maximum allowed: %<max_drop>.2f%%).",
+          criterion: violation.fetch(:criterion).capitalize,
+          drop_percent: violation.fetch(:actual),
+          max_drop: violation.fetch(:maximum)
+        )
+      end
 
       def violations
         @violations ||= SimpleCov::CoverageViolations.maximum_drop(@result, @maximum_coverage_drop)

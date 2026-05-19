@@ -33,12 +33,12 @@ module SimpleCov
 
       def report_violation(violation)
         criterion = violation.fetch(:criterion)
-        $stderr.printf(
-          "%<criterion>s coverage (%<covered>.2f%%) is below the expected minimum coverage " \
-          "(%<minimum_coverage>.2f%%).\n",
-          covered: violation.fetch(:actual),
-          minimum_coverage: violation.fetch(:expected),
-          criterion: criterion.capitalize
+        actual = violation.fetch(:actual)
+        warn format(
+          "%<criterion>s coverage (%<actual>s) is below the expected minimum coverage (%<expected>.2f%%).",
+          criterion: criterion.capitalize,
+          actual: SimpleCov::Color.colorize_percent(actual),
+          expected: violation.fetch(:expected)
         )
         report_worst_files(criterion)
       end
@@ -49,7 +49,11 @@ module SimpleCov
 
         warn "  Lowest-coverage files (#{criterion}):"
         worst.each do |path, percent|
-          warn(format("    %<percent>6.2f%%  %<path>s", percent: percent, path: path))
+          warn format(
+            "    %<percent>s  %<path>s",
+            percent: SimpleCov::Color.colorize_percent(percent, format("%6.2f%%", percent)),
+            path: path
+          )
         end
       end
 

@@ -257,7 +257,10 @@ module SimpleCov
     # Thinking: Move this behavior earlier so if there was an error we do nothing?
     def exit_and_report_previous_error(exit_status)
       if print_error_status
-        warn("Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected")
+        warn SimpleCov::Color.colorize(
+          "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
+          :yellow
+        )
       end
       Kernel.exit(exit_status)
     end
@@ -273,7 +276,11 @@ module SimpleCov
       # Force exit with stored status (see github issue #5)
       return unless exit_status.positive?
 
-      warn("SimpleCov failed with exit #{exit_status} due to a coverage related error") if print_error_status
+      if print_error_status
+        warn SimpleCov::Color.colorize(
+          "SimpleCov failed with exit #{exit_status} due to a coverage related error", :red
+        )
+      end
       Kernel.exit exit_status
     end
 
@@ -534,6 +541,7 @@ end
 # requires are down here here for a load order reason I'm not sure what it is about
 require "set"
 require "forwardable"
+require_relative "simplecov/color"
 require_relative "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
 require_relative "simplecov/coverage_statistics"

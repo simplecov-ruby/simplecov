@@ -50,12 +50,13 @@ module SimpleCov
 
       def stats_line(criterion, result)
         stat = result.coverage_statistics[criterion]
+        percent = SimpleCov.round_coverage(stat.percent)
         Kernel.format(
-          "%<label>s coverage: %<covered>d / %<total>d (%<percent>.2f%%)",
+          "%<label>s coverage: %<covered>d / %<total>d (%<percent>s)",
           label: criterion.to_s.capitalize,
           covered: stat.covered,
           total: stat.total,
-          percent: SimpleCov.round_coverage(stat.percent)
+          percent: SimpleCov::Color.colorize_percent(percent)
         )
       end
     end

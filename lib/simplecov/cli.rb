@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require "pathname"
+require_relative "color"
 
 module SimpleCov
   # Lightweight command-line front-end. `run` dispatches a subcommand
@@ -29,6 +30,16 @@ module SimpleCov
 
     def default_input
       File.join(coverage_dir, "coverage.json")
+    end
+
+    # Resolve "should this subcommand colorize?" once per invocation.
+    # `--no-color` (opts[:no_color]) is the per-invocation kill-switch;
+    # otherwise we defer to `SimpleCov::Color.enabled?`, which honors
+    # `NO_COLOR` / `FORCE_COLOR` and falls back to `stream.tty?`.
+    def color_enabled?(opts, stream)
+      return false if opts[:no_color]
+
+      SimpleCov::Color.enabled?(stream)
     end
 
     def default_report
@@ -73,6 +84,8 @@ module SimpleCov
 
         coverage / report / uncovered / diff options:
           --input PATH              Read from PATH instead of #{default_input}
+          --no-color                Disable colorized percentages
+                                    (also honors NO_COLOR / FORCE_COLOR env)
 
         coverage options:
           --json                    Print the file's JSON entry verbatim
@@ -228,11 +241,12 @@ module SimpleCov
       end
 
       def parse(args, stderr:)
-        opts = {input: SimpleCov::CLI.default_input, json: false}
+        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false}
         rest =
           OptionParser.new do |o|
             o.on("--input PATH") { |v| opts[:input] = v }
             o.on("--json") { opts[:json] = true }
+            o.on("--no-color") { opts[:no_color] = true }
           end.parse(args)
         return stderr.puts("simplecov coverage: missing file argument") && nil if rest.empty?
 
@@ -269,21 +283,22 @@ module SimpleCov
         if opts[:json]
           stdout.puts(JSON.pretty_generate(filename => payload))
         else
-          print_human(filename, payload, stdout)
+          print_human(filename, payload, stdout, SimpleCov::CLI.color_enabled?(opts, stdout))
         end
       end
 
-      def print_human(filename, payload, stdout)
+      def print_human(filename, payload, stdout, color)
         stdout.puts(filename)
-        CRITERIA.each { |c| emit_criterion(stdout, payload, c) }
+        CRITERIA.each { |c| emit_criterion(stdout, payload, c, color) }
       end
 
-      def emit_criterion(stdout, payload, criterion)
+      def emit_criterion(stdout, payload, criterion, color)
         return unless payload.key?(criterion[:pct])
 
-        stdout.puts(format("  %<label>-7s %<pct>.2f%% (%<covered>d / %<total>d)",
+        pct = payload[criterion[:pct]].to_f
+        stdout.puts(format("  %<label>-7s %<pct>s (%<covered>d / %<total>d)",
                            label: "#{criterion[:label]}:",
-                           pct: payload[criterion[:pct]],
+                           pct: SimpleCov::Color.colorize_percent(pct, enabled: color),
                            covered: payload[criterion[:cov]] || 0,
                            total: payload[criterion[:tot]] || 0))
       end
@@ -377,18 +392,22 @@ module SimpleCov
         opts = parse(args)
         return 1 unless (data = load_data(opts[:input], stderr))
 
-        opts[:json] ? emit_json(stdout, data) : emit_text(stdout, data)
+        if opts[:json]
+          emit_json(stdout, data)
+        else
+          emit_text(stdout, data, SimpleCov::CLI.color_enabled?(opts, stdout))
+        end
         0
       end
 
       def parse(args)
-        input = SimpleCov::CLI.default_input
-        json = false
+        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false}
         OptionParser.new do |o|
-          o.on("--input PATH") { |v| input = v }
-          o.on("--json")       { json = true }
+          o.on("--input PATH") { |v| opts[:input] = v }
+          o.on("--json")       { opts[:json] = true }
+          o.on("--no-color")   { opts[:no_color] = true }
         end.parse(args)
-        {input: input, json: json}
+        opts
       end
 
       def load_data(input, stderr)
@@ -398,23 +417,23 @@ module SimpleCov
         nil
       end
 
-      def emit_text(stdout, data)
-        emit_totals(stdout, "All Files", data.fetch("total", {}))
-        data.fetch("groups", {}).each { |name, group| emit_totals(stdout, name, group) }
+      def emit_text(stdout, data, color)
+        emit_totals(stdout, "All Files", data.fetch("total", {}), color)
+        data.fetch("groups", {}).each { |name, group| emit_totals(stdout, name, group, color) }
       end
 
-      def emit_totals(stdout, label, totals)
+      def emit_totals(stdout, label, totals, color)
         stdout.puts(label)
-        SECTIONS.each { |display, key| emit_section(stdout, display, totals[key]) }
+        SECTIONS.each { |display, key| emit_section(stdout, display, totals[key], color) }
         stdout.puts
       end
 
-      def emit_section(stdout, display, section)
+      def emit_section(stdout, display, section, color)
         return unless section.is_a?(Hash) && section["total"].to_i.positive?
 
-        stdout.puts(format("  %<label>-7s %<pct>.2f%% (%<covered>d / %<total>d)",
+        stdout.puts(format("  %<label>-7s %<pct>s (%<covered>d / %<total>d)",
                            label: "#{display}:",
-                           pct: section["percent"],
+                           pct: SimpleCov::Color.colorize_percent(section["percent"].to_f, enabled: color),
                            covered: section["covered"] || 0,
                            total: section["total"] || 0))
       end
@@ -451,23 +470,28 @@ module SimpleCov
         files = rank(data.fetch("coverage", {}), opts[:threshold]).first(opts[:top])
         return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
 
-        opts[:json] ? emit_json(stdout, files) : emit_text(stdout, files)
+        emit(stdout, files, opts)
         0
       end
 
+      def emit(stdout, files, opts)
+        opts[:json] ? emit_json(stdout, files) : emit_text(stdout, files, SimpleCov::CLI.color_enabled?(opts, stdout))
+      end
+
       def parse(args)
-        opts = {input: SimpleCov::CLI.default_input, threshold: 100.0, top: DEFAULT_TOP}
+        opts = {input: SimpleCov::CLI.default_input, threshold: 100.0, top: DEFAULT_TOP, no_color: false}
         OptionParser.new do |o|
           o.on("--input PATH")         { |v| opts[:input] = v }
           o.on("--threshold N", Float) { |v| opts[:threshold] = v }
           o.on("--top N", Integer)     { |v| opts[:top] = v }
           o.on("--json")               { opts[:json] = true }
+          o.on("--no-color")           { opts[:no_color] = true }
         end.parse(args)
         opts
       end
 
-      def emit_text(stdout, files)
-        files.each { |fname, pct, covered, total| stdout.puts(format_row(fname, pct, covered, total)) }
+      def emit_text(stdout, files, color)
+        files.each { |fname, pct, covered, total| stdout.puts(format_row(fname, pct, covered, total, color)) }
       end
 
       def emit_json(stdout, files)
@@ -495,9 +519,10 @@ module SimpleCov
         [fname, pct, payload["covered_lines"].to_i, payload["total_lines"].to_i]
       end
 
-      def format_row(fname, pct, covered, total)
-        format("%<pct>6.2f%%  %<covered>d/%<total>d  %<fname>s",
-               pct: pct, covered: covered, total: total, fname: fname)
+      def format_row(fname, pct, covered, total, color)
+        format("%<pct>s  %<covered>d/%<total>d  %<fname>s",
+               pct: SimpleCov::Color.colorize_percent(pct, format("%6.2f%%", pct), enabled: color),
+               covered: covered, total: total, fname: fname)
       end
     end
 
@@ -639,7 +664,11 @@ module SimpleCov
 
         rows = compute_rows(opts[:current], opts[:baseline], opts[:threshold])
         rows.sort_by! { |row| row[:line_delta] }
-        opts[:json] ? emit_json(stdout, rows) : emit_text(stdout, rows)
+        if opts[:json]
+          emit_json(stdout, rows)
+        else
+          emit_text(stdout, rows, SimpleCov::CLI.color_enabled?(opts, stdout))
+        end
         opts[:fail_on_drop] && rows.any? { |row| row[:line_delta].negative? } ? 1 : 0
       end
 
@@ -653,15 +682,18 @@ module SimpleCov
       end
 
       def parse_flags(args)
-        opts = {input: SimpleCov::CLI.default_input, fail_on_drop: false, json: false, threshold: 0.0}
-        rest =
-          OptionParser.new do |o|
-            o.on("--input PATH")         { |v| opts[:input] = v }
-            o.on("--fail-on-drop")       { opts[:fail_on_drop] = true }
-            o.on("--json")               { opts[:json] = true }
-            o.on("--threshold N", Float) { |v| opts[:threshold] = v }
-          end.parse(args)
-        opts.merge(rest: rest)
+        opts = {input: SimpleCov::CLI.default_input, fail_on_drop: false, json: false, threshold: 0.0, no_color: false}
+        opts.merge(rest: option_parser(opts).parse(args))
+      end
+
+      def option_parser(opts)
+        OptionParser.new do |o|
+          o.on("--input PATH")         { |v| opts[:input] = v }
+          o.on("--fail-on-drop")       { opts[:fail_on_drop] = true }
+          o.on("--json")               { opts[:json] = true }
+          o.on("--threshold N", Float) { |v| opts[:threshold] = v }
+          o.on("--no-color")           { opts[:no_color] = true }
+        end
       end
 
       def load_coverage(path, stderr)
@@ -711,29 +743,33 @@ module SimpleCov
         payload[fields[:pct]].to_f
       end
 
-      def emit_text(stdout, rows)
+      def emit_text(stdout, rows, color)
         return stdout.puts("simplecov diff: no per-file coverage changes") if rows.empty?
 
-        rows.each { |row| stdout.puts(format_row(row)) }
+        rows.each { |row| stdout.puts(format_row(row, color)) }
       end
 
-      def format_row(row)
-        line = "  #{delta_parts(row).join('  ')}  #{row[:file]}"
+      def format_row(row, color)
+        line = "  #{delta_parts(row, color).join('  ')}  #{row[:file]}"
         suffix = STATUS_SUFFIX[row[:status]]
         suffix ? "#{line}  #{suffix}" : line
       end
 
-      def delta_parts(row)
+      def delta_parts(row, color)
         [
-          format_delta(row[:line_delta], "lines"),
-          (format_delta(row[:branch_delta], "branches") if row[:branch_delta].abs > EPSILON),
-          (format_delta(row[:method_delta], "methods")  if row[:method_delta].abs > EPSILON)
+          format_delta(row[:line_delta], "lines", color),
+          (format_delta(row[:branch_delta], "branches", color) if row[:branch_delta].abs > EPSILON),
+          (format_delta(row[:method_delta], "methods", color)  if row[:method_delta].abs > EPSILON)
         ].compact
       end
 
-      def format_delta(delta, label)
+      # Deltas are sign-based, not threshold-based: a +5% bump is good
+      # (green) and a -5% drop is bad (red), regardless of where the
+      # absolute coverage level lands.
+      def format_delta(delta, label, color)
         sign = delta.positive? ? "+" : ""
-        format("%<sign>s%<delta>6.2f%% %<label>s", sign: sign, delta: delta, label: label)
+        text = format("%<sign>s%<delta>6.2f%% %<label>s", sign: sign, delta: delta, label: label)
+        SimpleCov::Color.colorize(text, delta.negative? ? :red : :green, enabled: color)
       end
 
       def emit_json(stdout, rows)

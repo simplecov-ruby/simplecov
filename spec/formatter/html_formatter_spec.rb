@@ -155,6 +155,17 @@ describe SimpleCov::Formatter::HTMLFormatter do
       expect { formatter.format(make_result) }.not_to output.to_stderr
     end
 
+    it "colorizes the percent when SimpleCov::Color is enabled" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+      # The SAMPLE_RB fixture has 4 covered / 1 missed = 80%, so yellow (\e[33m).
+      expect { loud_formatter.format(make_result) }.to output(/\e\[33m80\.00%\e\[0m/).to_stderr
+    end
+
+    it "leaves the percent bare when SimpleCov::Color is disabled" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+      expect { loud_formatter.format(make_result) }.to output(/\(80\.00%\)/).to_stderr
+    end
+
     it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do
       line_stat = SimpleCov::CoverageStatistics.new(covered: 22_103, missed: 1)
       result = instance_double(SimpleCov::Result,

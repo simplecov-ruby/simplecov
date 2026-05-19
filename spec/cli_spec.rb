@@ -142,6 +142,22 @@ RSpec.describe SimpleCov::CLI do
       expect(parsed.keys).to eq([abs_filename])
       expect(parsed[abs_filename]["lines_covered_percent"]).to eq(66.67)
     end
+
+    context "with colorization" do
+      it "colorizes percentages when Color.enabled? is true" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("coverage", "--input", json_path, abs_filename)).to eq(0)
+        # 66.67% is below the yellow threshold, so red (\e[31m)
+        expect(stdout.string).to match(/\e\[31m66\.67%\e\[0m/)
+      end
+
+      it "skips colorization when --no-color is passed, even with Color.enabled? on" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("coverage", "--input", json_path, "--no-color", abs_filename)).to eq(0)
+        expect(stdout.string).not_to include("\e[")
+        expect(stdout.string).to match(/66\.67%/)
+      end
+    end
   end
 
   describe "run subcommand" do
@@ -278,6 +294,22 @@ RSpec.describe SimpleCov::CLI do
       expect(payload["All Files"]).not_to include("methods")
       expect(payload["Models"]).to include("lines" => {"percent" => 80.0, "covered" => 40, "total" => 50})
     end
+
+    context "with colorization" do
+      it "colorizes percentages by threshold when Color.enabled? is true" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("report", "--input", json_path)).to eq(0)
+        # 80% is yellow, 90% is green
+        expect(stdout.string).to match(/\e\[33m80\.00%\e\[0m/)
+        expect(stdout.string).to match(/\e\[32m90\.00%\e\[0m/)
+      end
+
+      it "skips colorization when --no-color is passed" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("report", "--input", json_path, "--no-color")).to eq(0)
+        expect(stdout.string).not_to include("\e[")
+      end
+    end
   end
 
   describe "uncovered subcommand" do
@@ -350,6 +382,22 @@ RSpec.describe SimpleCov::CLI do
                             ))
       expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
       expect(JSON.parse(stdout.string)).to eq([])
+    end
+
+    context "with colorization" do
+      it "colorizes the listed percentages when Color.enabled? is true" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("uncovered", "--input", json_path)).to eq(0)
+        # Both listed files are below the yellow threshold so both render red
+        expect(stdout.string).to match(/\e\[31m\s+10\.00%\e\[0m/)
+        expect(stdout.string).to match(/\e\[31m\s+50\.00%\e\[0m/)
+      end
+
+      it "skips colorization when --no-color is passed" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        expect(run("uncovered", "--input", json_path, "--no-color")).to eq(0)
+        expect(stdout.string).not_to include("\e[")
+      end
     end
 
     it "skips coverage entries without a positive total_lines count" do
@@ -618,6 +666,27 @@ RSpec.describe SimpleCov::CLI do
       run("diff", "--input", current, "--threshold", "10", baseline)
       expect(stdout.string).to include("lib/b.rb")
       expect(stdout.string).not_to include("lib/a.rb")
+    end
+
+    context "with colorization" do
+      it "colorizes regressions red and improvements green when Color.enabled? is true" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 50)
+        write_coverage(current,  "lib/a.rb" => 85, "lib/b.rb" => 30)
+
+        expect(run("diff", "--input", current, baseline)).to eq(0)
+        expect(stdout.string).to match(/\e\[31m-\s*20\.00% lines\e\[0m/)
+        expect(stdout.string).to match(/\e\[32m\+\s*5\.00% lines\e\[0m/)
+      end
+
+      it "skips colorization when --no-color is passed" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        write_coverage(baseline, "lib/a.rb" => 80)
+        write_coverage(current,  "lib/a.rb" => 70)
+
+        expect(run("diff", "--input", current, "--no-color", baseline)).to eq(0)
+        expect(stdout.string).not_to include("\e[")
+      end
     end
   end
 
