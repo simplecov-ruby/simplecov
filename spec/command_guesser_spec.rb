@@ -5,6 +5,19 @@ require "helper"
 RSpec.describe SimpleCov::CommandGuesser do
   subject(:guesser) { described_class }
 
+  # `original_run_command` is class-level state on CommandGuesser, and
+  # `SimpleCov.command_name` lazy-caches `CommandGuesser.guess` into an
+  # instance variable that persists for the whole process. Without
+  # restoring the command here, a later spec that triggers the first
+  # call to `SimpleCov.command_name` would lock in whatever value this
+  # spec happened to leave behind (e.g. "Cucumber Features").
+  around do |example|
+    saved_command = described_class.original_run_command
+    example.run
+  ensure
+    described_class.original_run_command = saved_command
+  end
+
   it 'correctly guesses "Unit Tests" for unit tests' do
     guesser.original_run_command = "/some/path/test/units/foo_bar_test.rb"
     expect(guesser.guess).to eq("Unit Tests")

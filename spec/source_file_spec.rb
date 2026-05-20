@@ -372,12 +372,8 @@ RSpec.describe SimpleCov::SourceFile do
       expect(source_file.lines.count).to eq(16)
     end
 
-    it "does not output to stderr (apart from the :nocov: deprecation)" do
-      described_class.nocov_warned.clear
-      output = capture_stderr { source_file.lines }
-      noise = output.lines.reject { |line| line.include?("[DEPRECATION]") }
-
-      expect(noise).to be_empty
+    it "does not output to stderr" do
+      expect { source_file.lines }.not_to output.to_stderr
     end
   end
 

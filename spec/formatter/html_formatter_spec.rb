@@ -15,6 +15,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   before do
     FileUtils.rm_rf(coverage_dir)
     FileUtils.mkdir_p(coverage_dir)
+    SimpleCov::SourceFile.nocov_warned.clear
   end
 
   def fixture_path(name)

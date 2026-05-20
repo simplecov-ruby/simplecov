@@ -3,8 +3,6 @@
 require "helper"
 require "fileutils"
 
-NOCOV_DEPRECATION_MARKER = "Replace with `# simplecov:disable` / `# simplecov:enable`"
-
 STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
 
 STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
@@ -220,7 +218,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         enable_method_coverage
       end
 
-      # total.methods.total is 3, not 4, because Foo#skipped is inside a :nocov: block
+      # total.methods.total is 3, not 4, because Foo#skipped is inside a simplecov:disable block
       it "includes methods array and methods_covered_percent per file" do
         formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_method"))
@@ -457,15 +455,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
-    # The `json/sample.rb` fixture used in `let(:result)` exercises the
-    # deprecated `# :nocov:` toggle, which writes a one-time deprecation line
-    # to stderr the first time the SourceFile is built. Strip it here so the
-    # "did the formatter itself emit a warning?" assertions stay focused.
-
-    def reject_nocov_deprecation(stderr)
-      stderr.lines.reject { |line| line.include?(NOCOV_DEPRECATION_MARKER) }.join
-    end
-
     context "when an existing coverage.json predates this process" do
       before do
         FileUtils.mkdir_p("tmp/coverage")
@@ -474,9 +463,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "does not warn" do
-        stderr = capture_stderr { formatter.format(result) }
-
-        expect(reject_nocov_deprecation(stderr)).to be_empty
+        expect { formatter.format(result) }.not_to output.to_stderr
       end
     end
 
@@ -487,9 +474,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "does not warn or raise" do
-        stderr = capture_stderr { formatter.format(result) }
-
-        expect(reject_nocov_deprecation(stderr)).to be_empty
+        expect { formatter.format(result) }.not_to output.to_stderr
       end
     end
 

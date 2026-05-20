@@ -8,9 +8,9 @@ class Foo
     @foo
   end
 
-  # :nocov:
+  # simplecov:disable
   def skipped
     @foo * 2
   end
-  # :nocov:
+  # simplecov:enable
 end
