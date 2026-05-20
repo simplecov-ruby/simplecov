@@ -62,9 +62,38 @@ module SimpleCov
     # Please check out the RDoc for SimpleCov::Configuration to find about available config options
     #
     def start(profile = nil, &)
+      warn_about_start_in_dot_simplecov if @autoloading_dot_simplecov
+
       initial_setup(profile, &)
       start_tracking
       install_at_exit_hook
+    end
+
+    # @api private
+    #
+    # Mark the duration of a `.simplecov` auto-load so any `SimpleCov.start`
+    # call inside the file can warn about the impending migration to a
+    # config-only file. Tracking still begins for backward compatibility;
+    # the warning is the cue to move `SimpleCov.start` into a test helper.
+    # See #581.
+    def with_dot_simplecov_autoload
+      previous = @autoloading_dot_simplecov
+      @autoloading_dot_simplecov = true
+      yield
+    ensure
+      @autoloading_dot_simplecov = previous
+    end
+
+    def warn_about_start_in_dot_simplecov
+      return if @dot_simplecov_start_warned
+
+      @dot_simplecov_start_warned = true
+      warn "[DEPRECATION] Calling `SimpleCov.start` from `.simplecov` is deprecated and will " \
+           "be removed in a future release. `.simplecov` should contain configuration only; " \
+           "move the `SimpleCov.start` call into your `spec_helper.rb` / `test_helper.rb`. " \
+           "Coverage tracking still begins for backward compatibility, but a future release " \
+           "will require the explicit `SimpleCov.start` from a test helper. " \
+           "See https://github.com/simplecov-ruby/simplecov/issues/581."
     end
 
     #
@@ -223,7 +252,48 @@ module SimpleCov
 
       # If Coverage is no longer running (e.g. someone manually stopped it
       # or a test consumed the result) then don't run exit tasks.
-      SimpleCov.run_exit_tasks! if Coverage.running?
+      return unless Coverage.running?
+
+      # Stand down when we'd only clobber a fresher report. See
+      # `defer_to_existing_report?` and issue #581.
+      return if defer_to_existing_report?
+
+      SimpleCov.run_exit_tasks!
+    end
+
+    # Returns true when our process has no coverage data to contribute
+    # (after the resultset merge) and a newer report already exists on
+    # disk. Typically fires when `SimpleCov.start` ran in a parent
+    # process — e.g. a Rakefile or Rails' `Bundler.require` — that
+    # shelled out to the test runner. Without this guard the parent's
+    # empty result would overwrite the subprocess's report on the way
+    # out. See https://github.com/simplecov-ruby/simplecov/issues/581.
+    def defer_to_existing_report?
+      return false unless existing_report_newer_than_us?
+
+      res = result
+      empty = res.nil? || res.files.empty?
+      warn_about_deferred_report if empty
+      empty
+    end
+
+    def existing_report_newer_than_us?
+      return false unless process_start_time
+
+      last_run_path = File.join(coverage_path, ".last_run.json")
+      File.exist?(last_run_path) && File.mtime(last_run_path) > process_start_time
+    end
+
+    def warn_about_deferred_report
+      return unless print_error_status
+
+      warn SimpleCov::Color.colorize(
+        "Skipping SimpleCov report — this process tracked no application code and a newer " \
+        "report already exists at #{coverage_path}. This usually means SimpleCov.start ran in a " \
+        "parent process (e.g. a Rakefile or Rails' Bundler.require) that shelled out to the test " \
+        "runner. See https://github.com/simplecov-ruby/simplecov/issues/581.",
+        :yellow
+      )
     end
 
     # @api private

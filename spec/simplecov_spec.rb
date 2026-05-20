@@ -123,6 +123,75 @@ RSpec.describe SimpleCov do
       expect(described_class).to have_received(:start_tracking)
       expect(described_class).to have_received(:install_at_exit_hook)
     end
+
+    # See issue #581 for the rationale: `.simplecov` should be config only.
+    # The autoload wrapper sets this flag so any legacy `SimpleCov.start`
+    # call inside the file warns and applies configuration without starting
+    # Coverage.
+    context "when loaded by the .simplecov autoloader" do
+      around do |example|
+        previous = described_class.instance_variable_get(:@autoloading_dot_simplecov)
+        warned = described_class.instance_variable_get(:@dot_simplecov_start_warned)
+        described_class.instance_variable_set(:@dot_simplecov_start_warned, nil)
+        described_class.with_dot_simplecov_autoload { example.run }
+        described_class.instance_variable_set(:@autoloading_dot_simplecov, previous)
+        described_class.instance_variable_set(:@dot_simplecov_start_warned, warned)
+      end
+
+      it "still applies configuration AND starts tracking (soft deprecation for backward compatibility)" do
+        # The deprecation is advisory: existing setups keep working while
+        # the warning nudges users toward moving `SimpleCov.start` into a
+        # test helper. A future release will tighten this into a hard
+        # intercept. See issue #581.
+        allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
+                                                   install_at_exit_hook: nil)
+        allow(described_class).to receive(:warn) # suppress deprecation noise in test output
+        block = proc {}
+
+        described_class.start("rails", &block)
+
+        expect(described_class).to have_received(:initial_setup)
+        expect(described_class).to have_received(:start_tracking)
+        expect(described_class).to have_received(:install_at_exit_hook)
+      end
+
+      it "emits a one-time deprecation warning pointing at the migration path" do
+        allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
+                                                   install_at_exit_hook: nil)
+        stderr = capture_stderr { described_class.start }
+        expect(stderr).to include("[DEPRECATION]")
+        expect(stderr).to include("`.simplecov`")
+        expect(stderr).to include("spec_helper.rb")
+        expect(stderr).to include("581")
+      end
+
+      it "doesn't repeat the warning on subsequent calls" do
+        allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
+                                                   install_at_exit_hook: nil)
+        first  = capture_stderr { described_class.start }
+        second = capture_stderr { described_class.start }
+        expect(first).to include("[DEPRECATION]")
+        expect(second).to be_empty
+      end
+    end
+  end
+
+  describe ".with_dot_simplecov_autoload" do
+    it "sets the flag during the block and restores it after" do
+      described_class.instance_variable_set(:@autoloading_dot_simplecov, false)
+      observed = nil
+      described_class.with_dot_simplecov_autoload do
+        observed = described_class.instance_variable_get(:@autoloading_dot_simplecov)
+      end
+      expect(observed).to be(true)
+      expect(described_class.instance_variable_get(:@autoloading_dot_simplecov)).to be(false)
+    end
+
+    it "restores the flag even when the block raises" do
+      described_class.instance_variable_set(:@autoloading_dot_simplecov, false)
+      expect { described_class.with_dot_simplecov_autoload { raise "boom" } }.to raise_error("boom")
+      expect(described_class.instance_variable_get(:@autoloading_dot_simplecov)).to be(false)
+    end
   end
 
   describe ".initial_setup" do
@@ -314,6 +383,7 @@ RSpec.describe SimpleCov do
     it "runs exit tasks when in the same process and Coverage is running" do
       described_class.pid = Process.pid
       allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive(:defer_to_existing_report?).and_return(false)
       allow(described_class).to receive(:run_exit_tasks!)
       described_class.at_exit_behavior
       expect(described_class).to have_received(:run_exit_tasks!)
@@ -325,6 +395,80 @@ RSpec.describe SimpleCov do
       allow(described_class).to receive(:run_exit_tasks!)
       described_class.at_exit_behavior
       expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+
+    it "defers to the existing on-disk report when our result is empty and the disk report is fresher" do
+      described_class.pid = Process.pid
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive(:defer_to_existing_report?).and_return(true)
+      allow(described_class).to receive(:run_exit_tasks!)
+      described_class.at_exit_behavior
+      expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+  end
+
+  describe ".defer_to_existing_report?" do
+    let(:tmp) { Dir.mktmpdir }
+    let(:last_run_path) { File.join(tmp, ".last_run.json") }
+
+    before { allow(described_class).to receive(:coverage_path).and_return(tmp) }
+    after { FileUtils.remove_entry(tmp) }
+
+    it "is false when process_start_time is unset" do
+      allow(described_class).to receive(:process_start_time).and_return(nil)
+      expect(described_class.defer_to_existing_report?).to be false
+    end
+
+    it "is false when no on-disk last_run report exists" do
+      allow(described_class).to receive(:process_start_time).and_return(Time.now)
+      expect(described_class.defer_to_existing_report?).to be false
+    end
+
+    it "is false when the on-disk report predates this process" do
+      File.write(last_run_path, "{}")
+      old = File.mtime(last_run_path) - 60
+      allow(described_class).to receive(:process_start_time).and_return(Time.now)
+      File.utime(old, old, last_run_path)
+      expect(described_class.defer_to_existing_report?).to be false
+    end
+
+    context "when on-disk report is newer than this process" do
+      before do
+        File.write(last_run_path, "{}")
+        future = Time.now + 60
+        File.utime(future, future, last_run_path)
+        allow(described_class).to receive(:process_start_time).and_return(Time.now)
+      end
+
+      it "is false when our merged result still has files (we have something to contribute)" do
+        result = instance_double(SimpleCov::Result, files: [:some_file])
+        allow(described_class).to receive(:result).and_return(result)
+        expect(described_class.defer_to_existing_report?).to be false
+      end
+
+      it "is true when our merged result is empty (we'd clobber a better report)" do
+        result = instance_double(SimpleCov::Result, files: [])
+        allow(described_class).to receive(:result).and_return(result)
+        allow(described_class).to receive(:warn_about_deferred_report)
+        expect(described_class.defer_to_existing_report?).to be true
+      end
+
+      it "warns about the deferral once when triggered" do
+        result = instance_double(SimpleCov::Result, files: [])
+        allow(described_class).to receive_messages(result: result, print_error_status: true)
+        stderr = capture_stderr { described_class.defer_to_existing_report? }
+        expect(stderr).to include("Skipping SimpleCov report")
+        expect(stderr).to include("581")
+      end
+
+      it "still defers but stays silent when print_error_status is false" do
+        result = instance_double(SimpleCov::Result, files: [])
+        allow(described_class).to receive_messages(result: result, print_error_status: false)
+        stderr = capture_stderr do
+          expect(described_class.defer_to_existing_report?).to be true
+        end
+        expect(stderr).to be_empty
+      end
     end
   end
 

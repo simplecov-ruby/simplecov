@@ -155,11 +155,32 @@ module SimpleCov
 
           # A single result only ever has one command_name, see `SimpleCov::Result#to_hash`
           command_name, data = result.to_hash.first
-          new_resultset[command_name] = data
+          new_resultset[command_name] = merged_entry(new_resultset[command_name], data)
 
           atomic_write_resultset(new_resultset)
         end
         true
+      end
+
+      # If an entry with the same command_name was written AFTER our process
+      # started, a sibling test runner (typically a subprocess our parent
+      # process shelled out to) wrote it. Combine coverage data rather than
+      # overwriting, so an empty parent-process result doesn't clobber the
+      # subprocess's real data. See https://github.com/simplecov-ruby/simplecov/issues/581.
+      def merged_entry(existing, incoming)
+        return incoming unless concurrent_runner_entry?(existing)
+
+        incoming.merge(
+          "coverage" => Combine.combine(Combine::ResultsCombiner, existing["coverage"], incoming["coverage"])
+        )
+      end
+
+      def concurrent_runner_entry?(entry)
+        return false unless entry.is_a?(Hash)
+
+        timestamp = entry["timestamp"]
+        process_start = SimpleCov.process_start_time
+        timestamp && process_start && timestamp.to_i >= process_start.to_i
       end
 
       # Write to a temp file first, then atomically rename to avoid other

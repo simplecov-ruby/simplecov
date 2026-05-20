@@ -12,6 +12,7 @@ Unreleased
 * HTML and JSON formatters now write the "Coverage report generated for X to Y" status line (and the per-criterion totals beneath it) to stderr instead of stdout. The message is a diagnostic, not the program's output, and routing it to stdout polluted pipelines like `rspec -f json`. Suppress it entirely with `silent: true` on the formatter; redirect with `2>&1` if you want the old behavior. See #1060.
 
 ## Deprecations
+* Calling `SimpleCov.start` from `.simplecov` is deprecated. Coverage tracking still begins for backward compatibility, but a one-time deprecation warning fires pointing the user at moving the call into `spec_helper.rb` / `test_helper.rb`; a future release will require the explicit `SimpleCov.start` from a test helper. The migration goes hand-in-hand with the bugfix below: once `SimpleCov.start` lives in the test helper, the parent process that auto-loads `.simplecov` never starts tracking and the empty-report-overwrite scenario can't arise. See #581.
 * `# :nocov:` toggle comments (and the configurable `SimpleCov.nocov_token` / `SimpleCov.skip_token`) are deprecated in favor of the new `# simplecov:disable` / `# simplecov:enable` directives. Each file that still uses `# :nocov:` emits a one-time deprecation warning to stderr at load time pointing at the recommended replacement, and any call to `SimpleCov.nocov_token` or `SimpleCov.skip_token` (getter or setter) likewise warns. The directive will be removed in a future release.
 
 ## Enhancements
@@ -35,6 +36,7 @@ Unreleased
 * `CommandGuesser` now appends the framework name to parallel test data (e.g. `"RSpec (1/2)"` instead of `"(1/2)"`)
 
 ## Bugfixes
+* Fix the parent-process / subprocess race where a Rakefile (or Rails `Bundler.require`) caused `.simplecov` to auto-load `SimpleCov.start` in the rake parent, which then shelled out to a test runner subprocess; the subprocess wrote a correct report, then the parent's `at_exit` would clobber it with an empty 0% report. Three layers of defense now apply: (1) `.simplecov` is treated as configuration only and no longer starts tracking from the parent (see Deprecations); (2) `ResultMerger.store_result` merges incoming entries with same-`command_name` entries that were written after our `process_start_time` instead of overwriting them; (3) `SimpleCov.at_exit_behavior` defers entirely when our merged result is empty and `coverage/.last_run.json` is fresher than this process. See #581.
 * Don't report misleading 100% branch/method coverage for files added via `track_files` that were never loaded. See #902
 * Fix HTML formatter tab bar layout: dark mode toggle no longer wraps onto two lines, and tabs connect seamlessly with the content panel
 * Allow `SimpleCov.root('/')` so files outside the conventional project root can be tracked (e.g. Docker layouts where code and tests are siblings at `/`). The root-prefix regex no longer doubles the separator (`//`), and `project_name` no longer crashes when `root` has no parent segment. The user-facing `:root_filter` profile and the unconditional `UselessResultsRemover` now share a single regex source instead of computing it independently. See #860.

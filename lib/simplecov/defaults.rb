@@ -36,7 +36,10 @@ config_path = Pathname.new(SimpleCov.root)
 loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
-    begin
+    # `.simplecov` is a configuration file; SimpleCov.start calls inside
+    # it are intercepted and converted to configuration, with a deprecation
+    # warning. See `SimpleCov.with_dot_simplecov_autoload` and issue #581.
+    SimpleCov.with_dot_simplecov_autoload do
       load filename
     rescue LoadError, StandardError
       # simplecov:disable — only fires when .simplecov is unreadable

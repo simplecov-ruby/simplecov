@@ -260,29 +260,34 @@ Please check out the [Configuration] API documentation to find out what you can 
 
 ## Using .simplecov for centralized config
 
-If you use SimpleCov to merge multiple test suite results (e.g. Test/Unit and Cucumber) into a single report, you'd
-normally have to set up all your config options twice, once in `test_helper.rb` and once in `env.rb`.
-
-To avoid this, you can place a file called `.simplecov` in your project root. You can then just leave the
-`require 'simplecov'` in each test setup helper (**at the top**) and move the `SimpleCov.start` code with all your
-custom config options into `.simplecov`:
+If you use SimpleCov to merge multiple test suite results (e.g. RSpec and Cucumber) into a single report, you'd
+normally have to repeat your filters / groups / profile in every test helper. To avoid that, place a `.simplecov`
+file at your project root with the shared configuration; each test helper then requires SimpleCov and explicitly
+starts it:
 
 ```ruby
-# test/test_helper.rb
+# .simplecov — configuration only
+SimpleCov.profiles.load 'rails'
+add_filter 'lib/generators'
+add_group 'Models', 'app/models'
+
+# spec/spec_helper.rb
 require 'simplecov'
+SimpleCov.start
 
 # features/support/env.rb
 require 'simplecov'
-
-# .simplecov
-SimpleCov.start 'rails' do
-  # any custom configs like groups and filters can be here at a central place
-end
+SimpleCov.start
 ```
 
-Using `.simplecov` rather than separately requiring SimpleCov multiple times is recommended if you are merging multiple
-test frameworks like Cucumber and RSpec that rely on each other, as invoking SimpleCov multiple times can cause coverage
-information to be lost.
+> **Note**: Calling `SimpleCov.start` directly from `.simplecov` is deprecated as of this release. Tracking
+> still begins for backward compatibility, but a one-time deprecation warning fires; a future release will
+> require the explicit `SimpleCov.start` from a test helper. Migrating prevents a long-standing bug where
+> `.simplecov` auto-loaded in a Rakefile or Rails' `Bundler.require` would leave an empty parent-process
+> report to overwrite the test subprocess's good one. See #581.
+
+Using `.simplecov` rather than duplicating configuration in every test helper is recommended if you are merging
+multiple test frameworks like Cucumber and RSpec that rely on each other.
 
 ## Branch coverage (Ruby "~> 2.5")
 Add branch coverage measurement statistics to your results. Supported in CRuby versions 2.5+.

@@ -276,6 +276,63 @@ RSpec.describe SimpleCov::ResultMerger do
       described_class.store_result({})
       expect(described_class).to have_received(:synchronize_resultset)
     end
+
+    # See https://github.com/simplecov-ruby/simplecov/issues/581. When a parent
+    # process (Rakefile, Rails Bundler.require) shells out to the test runner,
+    # the subprocess writes its real result to the resultset and then the
+    # parent's at_exit hook stores its own (empty) result under the same
+    # command_name. Without merging, the parent overwrites the subprocess's
+    # data; with the guard, the parent's incoming entry is combined with the
+    # existing one so the subprocess's coverage survives.
+    describe "merging same-command-name entries written by a concurrent runner" do
+      let(:process_start) { Time.now }
+      let(:subprocess_result) do
+        SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}},
+          command_name: "RSpec"
+        )
+      end
+      let(:parent_empty_result) { SimpleCov::Result.new({}, command_name: "RSpec") }
+
+      before { allow(SimpleCov).to receive(:process_start_time).and_return(process_start) }
+
+      it "merges parent's incoming entry into the subprocess's when newer than our process_start_time" do
+        subprocess_result.created_at = process_start + 1 # subprocess finished after we started
+        described_class.store_result(subprocess_result)
+
+        parent_empty_result.created_at = process_start + 2
+        described_class.store_result(parent_empty_result)
+
+        merged = described_class.read_resultset.fetch("RSpec").fetch("coverage")
+        expect(merged.keys).to contain_exactly(source_fixture("sample.rb"))
+      end
+
+      it "still overwrites an older entry from a previous run (older than process_start)" do
+        # A stale entry from a previous test run shouldn't be merged in — it's
+        # not from a concurrent runner, just leftover state.
+        stale = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}},
+          command_name: "RSpec"
+        )
+        stale.created_at = process_start - 60
+        described_class.store_result(stale)
+
+        parent_empty_result.created_at = process_start + 1
+        described_class.store_result(parent_empty_result)
+
+        expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
+      end
+
+      it "is a no-op when process_start_time is unset (e.g. SimpleCov.start was never called)" do
+        allow(SimpleCov).to receive(:process_start_time).and_return(nil)
+
+        subprocess_result.created_at = Time.now
+        described_class.store_result(subprocess_result)
+        described_class.store_result(parent_empty_result)
+
+        expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
+      end
+    end
   end
 
   describe ".resultset" do
