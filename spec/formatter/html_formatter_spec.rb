@@ -183,6 +183,23 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
         expected_path = File.join(SimpleCov.coverage_path, "index.html")
         expect(capture).to include("Coverage report generated for RSpec to #{expected_path}")
       end
+
+      # The base class returns nil from `entry_point_filename` so a
+      # third-party formatter that uses `Base` without overriding gets
+      # the bare directory path in the status line, not "/index.html".
+      it "leaves the bare directory in place for a Base subclass that doesn't override entry_point_filename" do
+        # `format` is overridden to a no-op so we can instantiate a
+        # bare Base subclass without crashing on the abstract method.
+        bare_subclass = Class.new(SimpleCov::Formatter::Base) do
+          def format(_result); end
+        end
+        bare = bare_subclass.new
+        result = instance_double(SimpleCov::Result,
+                                 command_name: "RSpec",
+                                 coverage_statistics: {})
+        expect(bare.send(:displayable_output_path)).not_to end_with("/index.html")
+        expect(bare.send(:output_message, result)).to include("to tmp/coverage")
+      end
     end
 
     it "colorizes the percent when SimpleCov::Color is enabled" do

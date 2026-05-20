@@ -551,6 +551,22 @@ SimpleCov.start :rails do
 end
 ```
 
+## Writing the report somewhere else
+
+By default the coverage report ends up in `SimpleCov.root / SimpleCov.coverage_dir`. For out-of-tree build setups
+(CMake/CTest, Bazel, etc.) — where the build directory is anywhere on the filesystem and you don't want the report
+under the source root — set `SimpleCov.coverage_path` directly:
+
+```ruby
+SimpleCov.start do
+  root '/source/checkout'
+  coverage_path '/tmp/build/coverage'
+end
+```
+
+Setting `coverage_path` explicitly pins the destination — subsequent changes to `root` or `coverage_dir` don't move
+it. The directory is created if it doesn't already exist.
+
 ## Groups
 
 You can separate your source files into groups. For example, in a Rails app, you'll want to have separate listings for

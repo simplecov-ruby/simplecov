@@ -21,7 +21,7 @@ module SimpleCov
     def root(root = nil)
       return @root if defined?(@root) && root.nil?
 
-      @coverage_path = nil # invalidate cache
+      @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
     end
 
@@ -33,20 +33,38 @@ module SimpleCov
     def coverage_dir(dir = nil)
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
 
-      @coverage_path = nil # invalidate cache
+      @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @coverage_dir = dir || "coverage"
     end
 
     #
-    # Returns the full path to the output directory using SimpleCov.root
-    # and SimpleCov.coverage_dir, so you can adjust this by configuring those
-    # values. Will create the directory if it's missing
+    # Returns the full path to the output directory. By default this is
+    # constructed from `SimpleCov.root` + `SimpleCov.coverage_dir` so
+    # adjusting either of those propagates here, but you can override the
+    # whole thing with an arbitrary absolute path — handy for out-of-tree
+    # build directories (CMake/CTest setups etc.) where the coverage
+    # report doesn't live under the source root:
     #
-    def coverage_path
+    #     SimpleCov.start do
+    #       root '/foo'
+    #       coverage_path '/tmp/build/coverage'
+    #     end
+    #
+    # Either way, the directory is created if it doesn't yet exist.
+    #
+    # See https://github.com/simplecov-ruby/simplecov/issues/716.
+    #
+    def coverage_path(path = nil)
+      if path
+        @coverage_path = File.expand_path(path)
+        @coverage_path_explicit = true
+        FileUtils.mkdir_p @coverage_path
+      end
+
       @coverage_path ||= begin
-        coverage_path = File.expand_path(coverage_dir, root)
-        FileUtils.mkdir_p coverage_path
-        coverage_path
+        computed = File.expand_path(coverage_dir, root)
+        FileUtils.mkdir_p computed
+        computed
       end
     end
 

@@ -86,6 +86,66 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  describe "#coverage_path" do
+    let(:tmp) { Dir.mktmpdir }
+
+    before { config.root(tmp) }
+    after { FileUtils.remove_entry(tmp) }
+
+    it "defaults to root + coverage_dir" do
+      expect(config.coverage_path).to eq(File.join(tmp, "coverage"))
+    end
+
+    it "tracks changes to coverage_dir" do
+      config.coverage_dir("cov")
+      expect(config.coverage_path).to eq(File.join(tmp, "cov"))
+    end
+
+    it "accepts an explicit absolute path and overrides the root+dir construction (#716)" do
+      Dir.mktmpdir do |out|
+        config.coverage_path(out)
+        expect(config.coverage_path).to eq(out)
+      end
+    end
+
+    it "creates the directory when set explicitly" do
+      Dir.mktmpdir do |parent|
+        target = File.join(parent, "build", "coverage")
+        config.coverage_path(target)
+        expect(File.directory?(target)).to be(true)
+      end
+    end
+
+    it "does not let a later coverage_dir change override the explicit path" do
+      Dir.mktmpdir do |out|
+        config.coverage_path(out)
+        config.coverage_dir("ignored")
+        expect(config.coverage_path).to eq(out)
+      end
+    end
+
+    it "does not let a later root change override the explicit path" do
+      Dir.mktmpdir do |out|
+        config.coverage_path(out)
+        Dir.mktmpdir do |other_root|
+          config.root(other_root)
+          expect(config.coverage_path).to eq(out)
+        end
+      end
+    end
+
+    it "expands a relative explicit path against the current working directory" do
+      Dir.mktmpdir do |cwd|
+        Dir.chdir(cwd) do
+          config.coverage_path("build/cov")
+          # `File.realpath` so we compare against the same symlink-resolved
+          # form `File.expand_path` returns (on macOS `/var` -> `/private/var`).
+          expect(config.coverage_path).to eq(File.join(File.realpath(cwd), "build/cov"))
+        end
+      end
+    end
+  end
+
   describe "#tracked_files" do
     context "when configured" do
       let(:glob) { "{app,lib}/**/*.rb" }
