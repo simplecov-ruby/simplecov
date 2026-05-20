@@ -12,7 +12,7 @@ module SimpleCov
       # @return [Array<Hash>] {:criterion, :expected, :actual}
       def minimum_overall(result, thresholds)
         thresholds.filter_map do |criterion, expected|
-          actual = round(result.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
+          actual = percent_for(result, criterion) or next
           {criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
@@ -45,8 +45,21 @@ module SimpleCov
 
     private
 
+      # Look up a criterion's percent on any coverage_statistics-bearing
+      # object (Result, SourceFile, FileList). Returns nil — and the
+      # caller silently skips — when the criterion was configured but not
+      # actually measured by the runtime (e.g. `minimum_coverage branch:
+      # 100` under the "strict" profile on JRuby, where the Coverage
+      # module doesn't emit branch data). The config-time
+      # `raise_if_criterion_disabled` check still catches the genuine
+      # "forgot to enable the criterion" mistake before we ever get here.
+      def percent_for(stats_source, criterion)
+        stats = stats_source.coverage_statistics[SimpleCov.coverage_statistics_key(criterion)]
+        round(stats.percent) if stats
+      end
+
       def file_minimum_violation(file, criterion, expected)
-        actual = round(file.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
+        actual = percent_for(file, criterion) or return
         return unless actual < expected
 
         {
@@ -60,7 +73,7 @@ module SimpleCov
 
       def group_minimum_violations(group_name, group, minimums)
         minimums.filter_map do |criterion, expected|
-          actual = round(group.coverage_statistics.fetch(SimpleCov.coverage_statistics_key(criterion)).percent)
+          actual = percent_for(group, criterion) or next
           {group_name: group_name, criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
@@ -80,7 +93,7 @@ module SimpleCov
         last_coverage_percent ||= last_run.dig(:result, :covered_percent) if stats_key == :line
         return unless last_coverage_percent
 
-        current = round(result.coverage_statistics.fetch(stats_key).percent)
+        current = percent_for(result, criterion) or return
         (last_coverage_percent - current).floor(10)
       end
 

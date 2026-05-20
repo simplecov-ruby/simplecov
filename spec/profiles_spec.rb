@@ -26,9 +26,6 @@ RSpec.describe SimpleCov::Profiles do
   end
 
   describe "the bundled 'strict' profile (#1061)" do
-    let(:config_class) { Class.new { include SimpleCov::Configuration } }
-    let(:config) { config_class.new }
-
     around do |example|
       prev_criteria = SimpleCov.coverage_criteria.dup
       prev_min      = SimpleCov.minimum_coverage.dup
@@ -39,30 +36,16 @@ RSpec.describe SimpleCov::Profiles do
       SimpleCov.minimum_coverage(prev_min.empty? ? {} : prev_min)
     end
 
-    it "enables every supported criterion and pins each to 100%" do
+    # No engine-conditional logic in the profile itself — every clause
+    # runs unconditionally, and CoverageViolations skips threshold
+    # lookups for criteria the runtime didn't measure. So on JRuby the
+    # branch / method thresholds silently no-op and only :line is
+    # enforced at check time.
+    it "enables every criterion and pins each to 100%" do
       SimpleCov.load_profile "strict"
 
-      expect(SimpleCov.coverage_criteria).to include(:line)
-      expect(SimpleCov.minimum_coverage[:line]).to eq(100)
-
-      if SimpleCov.branch_coverage_supported?
-        expect(SimpleCov.coverage_criteria).to include(:branch)
-        expect(SimpleCov.minimum_coverage[:branch]).to eq(100)
-      end
-
-      if SimpleCov.method_coverage_supported?
-        expect(SimpleCov.coverage_criteria).to include(:method)
-        expect(SimpleCov.minimum_coverage[:method]).to eq(100)
-      end
-    end
-
-    it "skips branch/method when the runtime doesn't support them" do
-      # Stub support negative for both — the profile should still load
-      # without raising and only pin line at 100%.
-      allow(SimpleCov).to receive_messages(branch_coverage_supported?: false, method_coverage_supported?: false)
-      SimpleCov.load_profile "strict"
-
-      expect(SimpleCov.minimum_coverage).to eq(line: 100)
+      expect(SimpleCov.coverage_criteria).to include(:line, :branch, :method)
+      expect(SimpleCov.minimum_coverage).to eq(line: 100, branch: 100, method: 100)
     end
   end
 end
