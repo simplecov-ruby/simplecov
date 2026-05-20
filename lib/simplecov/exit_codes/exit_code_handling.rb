@@ -24,6 +24,7 @@ module SimpleCov
           MinimumOverallCoverageCheck.new(result, coverage_limits.minimum_coverage),
           MinimumCoverageByFileCheck.new(result, coverage_limits.minimum_coverage_by_file),
           MinimumCoverageByGroupCheck.new(result, coverage_limits.minimum_coverage_by_group),
+          MaximumOverallCoverageCheck.new(result, coverage_limits.maximum_coverage),
           MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop)
         ]
       end

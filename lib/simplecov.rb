@@ -315,13 +315,15 @@ module SimpleCov
       :minimum_coverage,
       :minimum_coverage_by_file,
       :minimum_coverage_by_group,
+      :maximum_coverage,
       :maximum_coverage_drop,
       keyword_init: true
     )
     def result_exit_status(result)
       coverage_limits = CoverageLimits.new(
         minimum_coverage: minimum_coverage, minimum_coverage_by_file: minimum_coverage_by_file,
-        minimum_coverage_by_group: minimum_coverage_by_group, maximum_coverage_drop: maximum_coverage_drop
+        minimum_coverage_by_group: minimum_coverage_by_group,
+        maximum_coverage: maximum_coverage, maximum_coverage_drop: maximum_coverage_drop
       )
 
       ExitCodes::ExitCodeHandling.call(result, coverage_limits: coverage_limits)

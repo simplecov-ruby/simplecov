@@ -318,6 +318,43 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#maximum_coverage" do
+      it_behaves_like "setting coverage expectations", :maximum_coverage
+    end
+
+    describe "#expected_coverage" do
+      after { config.clear_coverage_criteria }
+
+      it "sets both minimum_coverage and maximum_coverage when called with a number" do
+        config.expected_coverage(95.42)
+
+        expect(config.minimum_coverage).to eq line: 95.42
+        expect(config.maximum_coverage).to eq line: 95.42
+      end
+
+      it "sets both when called with a per-criterion hash" do
+        config.enable_coverage :branch
+        config.expected_coverage(line: 90.0, branch: 85.0)
+
+        expect(config.minimum_coverage).to eq line: 90.0, branch: 85.0
+        expect(config.maximum_coverage).to eq line: 90.0, branch: 85.0
+      end
+
+      it "returns the current minimum_coverage when called with no argument" do
+        config.expected_coverage(95.42)
+
+        expect(config.expected_coverage).to eq line: 95.42
+      end
+
+      it "returns the empty default when nothing has been configured" do
+        expect(config.expected_coverage).to eq({})
+      end
+
+      it "raises when an unknown criterion is provided" do
+        expect { config.expected_coverage(unknown: 42) }.to raise_error(/unsupported.*unknown/i)
+      end
+    end
+
     describe "#maximum_coverage_drop" do
       it_behaves_like "setting coverage expectations", :maximum_coverage_drop
     end

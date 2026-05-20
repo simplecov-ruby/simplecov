@@ -358,6 +358,31 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with maximum_coverage exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage).and_return(line: 85)
+      end
+
+      it "reports the violation in errors" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "maximum_coverage" => {"lines" => {"expected" => 85, "actual" => 90.0}}
+        )
+      end
+    end
+
+    context "with maximum_coverage not exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage).and_return(line: 95)
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
     context "with maximum_coverage_drop exceeded" do
       before do
         allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)

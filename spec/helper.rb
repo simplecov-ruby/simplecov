@@ -99,12 +99,13 @@ unless DOGFOOD_DISABLED
       # helper's coupling to internal API minimal.
       limits = Struct.new(
         :minimum_coverage, :minimum_coverage_by_file,
-        :minimum_coverage_by_group, :maximum_coverage_drop,
+        :minimum_coverage_by_group, :maximum_coverage, :maximum_coverage_drop,
         keyword_init: true
       ).new(
         minimum_coverage: DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {},
         minimum_coverage_by_file: {},
         minimum_coverage_by_group: {},
+        maximum_coverage: {},
         maximum_coverage_drop: {}
       )
       exit_status = SimpleCov::ExitCodes::ExitCodeHandling.call(result, coverage_limits: limits)

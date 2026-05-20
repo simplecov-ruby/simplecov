@@ -46,6 +46,7 @@ module SimpleCov
           format_minimum_coverage_errors
           format_minimum_coverage_by_file_errors
           format_minimum_coverage_by_group_errors
+          format_maximum_coverage_errors
           format_maximum_coverage_drop_errors
         end
 
@@ -78,6 +79,14 @@ module SimpleCov
             bucket = formatted_result[:errors][:minimum_coverage_by_group] ||= {}
             group_errors = bucket[violation.fetch(:group_name)] ||= {}
             group_errors[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
+          end
+        end
+
+        def format_maximum_coverage_errors
+          SimpleCov::CoverageViolations.maximum_overall(@result, SimpleCov.maximum_coverage).each do |violation|
+            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
+            bucket = formatted_result[:errors][:maximum_coverage] ||= {}
+            bucket[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
           end
         end
 

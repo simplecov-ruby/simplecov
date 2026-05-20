@@ -17,6 +17,18 @@ module SimpleCov
         end
       end
 
+      # @return [Array<Hash>] {:criterion, :expected, :actual}
+      # Tolerance: `percent_for` floors the actual percent to two decimal
+      # places (matching the existing minimum-coverage behavior), so an
+      # actual of e.g. 95.4287 is treated as 95.42 — meaning a maximum of
+      # 95.42 still passes. See issue #187 for the rationale.
+      def maximum_overall(result, thresholds)
+        thresholds.filter_map do |criterion, expected|
+          actual = percent_for(result, criterion) or next
+          {criterion: criterion, expected: expected, actual: actual} if actual > expected
+        end
+      end
+
       # @return [Array<Hash>] {:criterion, :expected, :actual, :filename, :project_filename}
       def minimum_by_file(result, thresholds)
         thresholds.flat_map do |criterion, expected|

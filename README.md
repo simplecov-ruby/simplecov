@@ -946,6 +946,32 @@ SimpleCov.minimum_coverage_by_group 'Models' => { line: 80 }, 'Controllers' => {
 SimpleCov.minimum_coverage_by_group 'Models' => { line: 90, branch: 80 }, 'Controllers' => { line: 60, branch: 50 }
 ```
 
+### Maximum coverage
+
+The mirror of `minimum_coverage`: define a maximum coverage percentage. SimpleCov will return non-zero if the actual coverage exceeds it. By itself this is rarely useful — but paired with `minimum_coverage` (or set via `expected_coverage`, below) it pins the suite to a single value, so a coverage *increase* is reported instead of silently absorbed.
+
+```ruby
+SimpleCov.maximum_coverage 90
+# same as above (the default is to check line coverage)
+SimpleCov.maximum_coverage line: 90
+# check for a maximum line coverage of 90% and maximum 80% branch coverage
+SimpleCov.maximum_coverage line: 90, branch: 80
+```
+
+### Expected coverage
+
+`expected_coverage` sets both `minimum_coverage` and `maximum_coverage` to the same value, pinning coverage to an exact figure. If coverage drops, the build fails (per minimum); if it improves, the build also fails — your cue to bump the threshold up. This produces small, steady improvements over time without letting things slide.
+
+```ruby
+SimpleCov.expected_coverage 95.42
+# same as above (the default is to check line coverage)
+SimpleCov.expected_coverage line: 95.42
+# pin line at 100% and branch at 95%
+SimpleCov.expected_coverage line: 100, branch: 95
+```
+
+The comparison floors the actual percent to two decimal places, so an actual of 95.4287 is treated as 95.42 — both the minimum and maximum checks still pass at `expected_coverage 95.42`.
+
 ### Maximum coverage drop
 
 You can define the maximum coverage drop percentage at once. SimpleCov will return non-zero if exceeded.

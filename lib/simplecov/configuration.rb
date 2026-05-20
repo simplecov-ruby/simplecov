@@ -361,6 +361,53 @@ module SimpleCov
     end
 
     #
+    # Defines the maximum overall coverage allowed for the testsuite to pass.
+    # SimpleCov will return non-zero if the current coverage exceeds this threshold.
+    #
+    # Most users only want a minimum, but a maximum is useful in two ways:
+    # paired with `minimum_coverage` (or via `expected_coverage`) it pins
+    # coverage to an exact value, so an unexpected jump up — typically a
+    # sign that the threshold should be bumped — fails the build instead
+    # of silently being absorbed. See https://github.com/simplecov-ruby/simplecov/issues/187.
+    #
+    # Default is unset (no upper bound).
+    #
+    def maximum_coverage(coverage = nil)
+      return @maximum_coverage ||= {} unless coverage
+
+      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
+
+      raise_on_invalid_coverage(coverage, "maximum_coverage")
+
+      @maximum_coverage = coverage
+    end
+
+    #
+    # Sets both `minimum_coverage` and `maximum_coverage` to the same value,
+    # pinning the suite to an exact coverage figure. Useful for keeping
+    # coverage from regressing AND from silently improving — when it does
+    # improve, you want to know so you can ratchet the threshold up.
+    #
+    # Accepts the same shapes as `minimum_coverage`: a Numeric (applied to
+    # the primary criterion) or a Hash of criteria to thresholds.
+    #
+    #     SimpleCov.expected_coverage 95.42
+    #     SimpleCov.expected_coverage line: 100, branch: 95
+    #
+    # Tolerance: comparisons floor the actual coverage to two decimal
+    # places before checking, so an actual of e.g. 95.4287 is treated as
+    # 95.42 for both the minimum and maximum checks.
+    #
+    # See https://github.com/simplecov-ruby/simplecov/issues/187.
+    #
+    def expected_coverage(coverage = nil)
+      return minimum_coverage if coverage.nil?
+
+      minimum_coverage(coverage)
+      maximum_coverage(coverage)
+    end
+
+    #
     # Defines the maximum coverage drop at once allowed for the testsuite to pass.
     # SimpleCov will return non-zero if the coverage decreases by more than this threshold.
     #
