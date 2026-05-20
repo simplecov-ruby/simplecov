@@ -852,6 +852,28 @@ SimpleCov.start 'rails' do
 end
 ```
 
+### The `strict` profile
+
+For projects that have already reached full coverage (or want to ratchet up to it), the bundled `strict` profile
+enables line, branch, and method coverage and pins the minimum threshold for each at 100%:
+
+```ruby
+SimpleCov.start 'strict'
+```
+
+That's equivalent to writing out:
+
+```ruby
+SimpleCov.start do
+  enable_coverage :branch
+  enable_coverage :method
+  minimum_coverage line: 100, branch: 100, method: 100
+end
+```
+
+The profile drops the branch / method clauses on engines that don't support those criteria (JRuby), so it still
+loads cleanly there — just enforcing line coverage at 100%.
+
 ### Custom profiles
 
 You can load additional profiles with the SimpleCov.load_profile('xyz') method. This allows you to build upon an
