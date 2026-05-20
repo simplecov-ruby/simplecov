@@ -13,7 +13,8 @@ RSpec.describe "return codes" do # rubocop:disable RSpec/DescribeClass
       end
     end
 
-    let(:capture)         { Open3.capture3(command) }
+    let(:capture)         { Open3.capture3(env, command) }
+    let(:env)             { {} }
     let(:captured_stderr) { capture[1] }
     let(:status)          { capture[2] }
 
@@ -56,7 +57,7 @@ RSpec.describe "return codes" do # rubocop:disable RSpec/DescribeClass
       end
 
       context "when print_error_status is disabled" do
-        let(:command) { "PRINT_ERROR_STATUS=false #{super()}" }
+        let(:env) { super().merge("PRINT_ERROR_STATUS" => "false") }
 
         it "has a non-zero exit status" do
           expect(status.exitstatus).not_to be_zero

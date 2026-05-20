@@ -35,6 +35,8 @@ RSpec.describe SimpleCov::UselessResultsRemover do
 
   context "when SimpleCov.root is the filesystem root" do
     around do |example|
+      skip "filesystem root semantics are Unix-only" if Gem.win_platform?
+
       previous_root = SimpleCov.root
       described_class.instance_variable_set(:@root_regx, nil)
       SimpleCov.root("/")

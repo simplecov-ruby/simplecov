@@ -3,8 +3,13 @@
 # Dogfood: start Ruby's Coverage module *before* requiring simplecov so
 # simplecov's own lib/ files get tracked. Set SIMPLECOV_NO_DOGFOOD=1 to
 # skip — useful when running individual specs interactively or when a
-# dependency's behaviour around Coverage is being investigated.
-unless ENV["SIMPLECOV_NO_DOGFOOD"]
+# dependency's behaviour around Coverage is being investigated. Skipped
+# on Windows because the Unix-only specs we exclude there (cross-process
+# flock, `SimpleCov.root("/")`) uniquely cover a handful of lib/ lines,
+# so the 100% threshold can't be met from a Windows run alone.
+DOGFOOD_DISABLED = ENV["SIMPLECOV_NO_DOGFOOD"] || Gem.win_platform?
+
+unless DOGFOOD_DISABLED
   require "coverage"
   # Build the criteria hash by what the runtime actually supports — JRuby
   # silently ignores `branches:`/`methods:` (with warnings); some engines
@@ -39,7 +44,7 @@ SimpleCov.remove_filter %r{\A(test|features|spec|autotest)/}
 
 SimpleCov.coverage_dir("tmp/coverage")
 
-unless ENV["SIMPLECOV_NO_DOGFOOD"]
+unless DOGFOOD_DISABLED
   # `start_tracking` (not `start`) handles bookkeeping (pid,
   # process_start_time, fork hook) without auto-installing the at_exit
   # formatter — the after(:suite) hook below drives the report
