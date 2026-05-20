@@ -4,7 +4,8 @@ on: [push, pull_request]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
 
     env:
       BUNDLE_WITHOUT: "benchmark"
@@ -13,6 +14,7 @@ jobs:
       fail-fast: false
 
       matrix:
+        os: [ubuntu-latest]
         ruby-version:
           - '3.1'
           - '3.2'
@@ -22,11 +24,18 @@ jobs:
           - jruby-9.4
           - jruby-10.0
           - truffleruby
+        include:
+          - os: macos-latest
+            ruby-version: ruby
+          - os: windows-latest
+            ruby-version: ruby
 
     steps:
       - uses: actions/checkout@v6
 
-      - run: rm Gemfile.lock
+      - name: Remove Gemfile.lock
+        run: rm Gemfile.lock
+        shell: bash
 
       - uses: ruby/setup-ruby@v1.307.0
         with:
@@ -36,11 +45,11 @@ jobs:
 
       - name: Run tests
         run: bundle exec rake test
-        if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby'"
+        if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby' && matrix.os != 'windows-latest'"
 
-      # Run only `rake spec` on truffleruby and jruby, because `rake` runs
-      # cucumber which requires headless Chrome via cuprite/ferrum — this is
-      # unreliable on alternative Ruby implementations.
-      - name: Run specs (alternative implementations)
+      # Run only `rake spec` on truffleruby, jruby, and Windows. `rake` runs
+      # cucumber which requires headless Chrome via cuprite/ferrum, which is
+      # unreliable on alternative Ruby implementations and on Windows runners.
+      - name: Run specs only
         run: bundle exec rake spec
-        if: "contains(matrix.ruby-version, 'jruby') || matrix.ruby-version == 'truffleruby'"
+        if: "contains(matrix.ruby-version, 'jruby') || matrix.ruby-version == 'truffleruby' || matrix.os == 'windows-latest'"

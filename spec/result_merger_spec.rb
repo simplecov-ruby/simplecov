@@ -301,7 +301,9 @@ RSpec.describe SimpleCov::ResultMerger do
       end.not_to raise_error
     end
 
-    it "blocks other processes" do
+    it "blocks other processes" do # rubocop:disable RSpec/ExampleLength
+      skip "POSIX shell redirection and cross-process flock semantics are Unix-only" if Gem.win_platform?
+
       file = Tempfile.new("foo")
 
       test_script = <<-CODE

@@ -1,0 +1,4 @@
+# Normalize line endings: auto-detect text vs binary, and force LF in the
+# working tree. Spec fixtures and source files compare against "...\n", so
+# Windows checkouts must not introduce CRLF.
+* text=auto eol=lf

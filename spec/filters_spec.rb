@@ -223,7 +223,10 @@ RSpec.describe SimpleCov::Filter do
     skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
 
     def a_file(path)
-      path = File.join(SimpleCov.root, path) unless path.start_with?("/")
+      # Treat both Unix-style `/foo` and Windows-style `C:/foo` as absolute.
+      # `File.absolute_path?` alone doesn't recognize `/foo` on Windows;
+      # `start_with?("/")` alone doesn't recognize drive-letter paths.
+      path = File.join(SimpleCov.root, path) unless path.start_with?("/") || File.absolute_path?(path)
       SimpleCov::SourceFile.new(path, [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
     end
 
