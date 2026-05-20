@@ -933,6 +933,20 @@ SimpleCov.minimum_coverage_by_file line: 80
 SimpleCov.minimum_coverage_by_file line: 90, branch: 80
 ```
 
+You can also raise the bar for specific files or directories by passing String or Regexp keys alongside the Symbol-keyed defaults. The String form does an exact match against the project-relative path, or a directory-prefix match when it ends in `/`; the Regexp form is matched against the project-relative path. Per-path values may be a single number (applied to the primary criterion) or a per-criterion Hash. For each file, the effective threshold is the defaults merged with any matching overrides — later overrides win per criterion, and overrides themselves win over defaults. See #575.
+
+```ruby
+# 70% line coverage everywhere — but require 100% for one critical file
+SimpleCov.minimum_coverage_by_file line: 70, 'app/mailers/request_mailer.rb' => 100
+
+# Directory prefix + Regexp; per-criterion override for the payments code
+SimpleCov.minimum_coverage_by_file(
+  line: 70,
+  'lib/auth/' => 95,
+  %r{\Alib/payments/} => { line: 100, branch: 90 }
+)
+```
+
 ### Minimum coverage by group
 
 You can define the minimum coverage percentage expected for specific groups. SimpleCov will return non-zero if unmet, 

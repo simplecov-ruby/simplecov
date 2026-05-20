@@ -70,3 +70,49 @@ Feature:
     And the output should contain "Branch coverage by file (50.00%) is below the expected minimum coverage (70.00%) in lib/faked_project/some_class.rb."
     And the output should not contain "Line coverage ("
     And the output should contain "SimpleCov failed with exit 2"
+
+  Scenario: Per-path override raises the bar for a specific file
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        minimum_coverage_by_file line: 70, 'lib/faked_project/framework_specific.rb' => 100
+      end
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should not be 0
+    And the output should contain "Line coverage by file (75.00%) is below the expected minimum coverage (100.00%) in lib/faked_project/framework_specific.rb."
+    And the output should contain "SimpleCov failed with exit 2"
+
+  Scenario: Per-path override does not flag files that pass the default but not the override
+    # framework_specific.rb is at 75% — passes the default 70%; some_class.rb is
+    # at 80% — passes both. The directory-prefix override raises the bar to 90%
+    # for lib/faked_project/, so framework_specific.rb fails its override.
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        minimum_coverage_by_file line: 70, 'lib/faked_project/' => 90
+      end
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should not be 0
+    And the output should contain "Line coverage by file (75.00%) is below the expected minimum coverage (90.00%) in lib/faked_project/framework_specific.rb."
+    And the output should contain "SimpleCov failed with exit 2"
+
+  Scenario: Per-path override that no file matches has no effect
+    Given SimpleCov for Test/Unit is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_filter 'test.rb'
+        minimum_coverage_by_file line: 70, 'lib/nonexistent.rb' => 100
+      end
+      """
+
+    When I run `bundle exec rake test`
+    Then the exit status should be 0

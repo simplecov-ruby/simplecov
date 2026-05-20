@@ -30,9 +30,15 @@ module SimpleCov
       end
 
       # @return [Array<Hash>] {:criterion, :expected, :actual, :filename, :project_filename}
-      def minimum_by_file(result, thresholds)
-        thresholds.flat_map do |criterion, expected|
-          result.files.filter_map { |file| file_minimum_violation(file, criterion, expected) }
+      #
+      # `defaults` is the criterion-keyed Hash applied to every file.
+      # `overrides` is an ordered Hash<pattern, criterion_thresholds> of per-path
+      # overrides; for each file, defaults are merged with every matching override
+      # (later wins per criterion, overrides win over defaults).
+      def minimum_by_file(result, defaults, overrides = {})
+        result.files.flat_map do |file|
+          effective = effective_per_file_thresholds(file, defaults, overrides)
+          effective.filter_map { |criterion, expected| file_minimum_violation(file, criterion, expected) }
         end
       end
 
@@ -68,6 +74,31 @@ module SimpleCov
       def percent_for(stats_source, criterion)
         stats = stats_source.coverage_statistics[SimpleCov.coverage_statistics_key(criterion)]
         round(stats.percent) if stats
+      end
+
+      # Walk the overrides in declaration order, merging each one that matches
+      # the file's project path into the running effective threshold (so the
+      # most-specific or latest-declared override wins per criterion). Returns
+      # the defaults Hash unchanged when nothing matches.
+      def effective_per_file_thresholds(file, defaults, overrides)
+        return defaults if overrides.empty?
+
+        path = file.project_filename
+        overrides.reduce(defaults) do |acc, (pattern, criterion_thresholds)|
+          path_matches?(path, pattern) ? acc.merge(criterion_thresholds) : acc
+        end
+      end
+
+      # Per-path matching for `minimum_coverage_by_file` overrides. Strings
+      # ending in `/` are treated as directory prefixes; otherwise they must
+      # match `project_filename` exactly. Regexps are tested via `match?`.
+      # The configuration setter rejects anything other than String/Regexp,
+      # so no dead `else` branch is needed here.
+      def path_matches?(project_filename, pattern)
+        return project_filename.match?(pattern) if pattern.is_a?(Regexp)
+        return project_filename.start_with?(pattern) if pattern.end_with?("/")
+
+        project_filename == pattern
       end
 
       def file_minimum_violation(file, criterion, expected)

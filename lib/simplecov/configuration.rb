@@ -426,18 +426,33 @@ module SimpleCov
     #
     # Defines the minimum coverage per file required for the testsuite to pass.
     # SimpleCov will return non-zero if the current coverage of the least covered file
-    # is below this threshold.
+    # is below this threshold. Default is 0% (disabled).
     #
-    # Default is 0% (disabled)
+    # Accepts a Numeric (global threshold on the primary criterion), a Symbol-keyed
+    # Hash (per-criterion globals), or a Hash mixing Symbol keys with String / Regexp
+    # keys to declare per-path overrides. For each file the effective threshold is
+    # the Symbol-keyed defaults merged with any matching overrides — later overrides
+    # win per criterion, overrides win over defaults. See the README and #575.
     #
     def minimum_coverage_by_file(coverage = nil)
       return @minimum_coverage_by_file ||= {} unless coverage
 
       coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
 
-      raise_on_invalid_coverage(coverage, "minimum_coverage_by_file")
+      defaults, overrides = partition_per_file_thresholds(coverage)
 
-      @minimum_coverage_by_file = coverage
+      raise_on_invalid_coverage(defaults, "minimum_coverage_by_file")
+      overrides.each_value { |criteria| raise_on_invalid_coverage(criteria, "minimum_coverage_by_file") }
+
+      @minimum_coverage_by_file = defaults
+      @minimum_coverage_by_file_overrides = overrides
+    end
+
+    # Returns the per-path overrides set via `minimum_coverage_by_file`,
+    # as an ordered Hash mapping each pattern (String or Regexp) to its
+    # per-criterion thresholds Hash. Defaults to an empty Hash.
+    def minimum_coverage_by_file_overrides
+      @minimum_coverage_by_file_overrides ||= {}
     end
 
     #
@@ -679,6 +694,24 @@ module SimpleCov
 
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
+    end
+
+    # Split a `minimum_coverage_by_file` argument into Symbol-keyed criterion
+    # defaults and String/Regexp-keyed per-path overrides; normalize Numeric
+    # override values to `{primary_coverage => N}` so downstream code only
+    # has one shape to handle.
+    def partition_per_file_thresholds(coverage)
+      coverage.each_key { |key| validate_per_file_key(key) }
+      defaults, raw = coverage.partition { |key, _| key.is_a?(Symbol) }.map(&:to_h)
+      overrides = raw.transform_values { |value| value.is_a?(Numeric) ? {primary_coverage => value} : value }
+      [defaults, overrides]
+    end
+
+    def validate_per_file_key(key)
+      return if key.is_a?(Symbol) || key.is_a?(String) || key.is_a?(Regexp)
+
+      raise SimpleCov::ConfigurationError,
+            "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got #{key.inspect}"
     end
 
     # Copy instance variables from block_context into self, saving any of ours

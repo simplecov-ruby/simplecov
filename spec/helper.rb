@@ -98,12 +98,13 @@ unless DOGFOOD_DISABLED
       # to the four limit readers — building a local Struct keeps this
       # helper's coupling to internal API minimal.
       limits = Struct.new(
-        :minimum_coverage, :minimum_coverage_by_file,
+        :minimum_coverage, :minimum_coverage_by_file, :minimum_coverage_by_file_overrides,
         :minimum_coverage_by_group, :maximum_coverage, :maximum_coverage_drop,
         keyword_init: true
       ).new(
         minimum_coverage: DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {},
         minimum_coverage_by_file: {},
+        minimum_coverage_by_file_overrides: {},
         minimum_coverage_by_group: {},
         maximum_coverage: {},
         maximum_coverage_drop: {}

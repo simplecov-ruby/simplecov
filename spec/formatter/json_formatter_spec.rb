@@ -324,6 +324,25 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with a minimum_coverage_by_file per-path override" do
+      before do
+        allow(SimpleCov).to receive_messages(
+          minimum_coverage_by_file: {},
+          minimum_coverage_by_file_overrides: {project_fixture_filename("json/sample.rb") => {line: 100}}
+        )
+      end
+
+      it "reports the file under its override threshold in errors" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage_by_file" => {
+            "lines" => {project_fixture_filename("json/sample.rb") => {"expected" => 100, "actual" => 90.0}}
+          }
+        )
+      end
+    end
+
     context "with minimum_coverage_by_group below threshold" do
       let(:sample_filename) { source_fixture("json/sample.rb") }
       let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 7, missed: 3) }

@@ -62,14 +62,18 @@ module SimpleCov
         end
 
         def format_minimum_coverage_by_file_errors
-          violations = SimpleCov::CoverageViolations.minimum_by_file(@result, SimpleCov.minimum_coverage_by_file)
-          violations.each do |violation|
-            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-            bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
-            criterion_errors = bucket[key] ||= {}
-            criterion_errors[violation.fetch(:project_filename)] =
-              {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
-          end
+          violations = SimpleCov::CoverageViolations.minimum_by_file(
+            @result, SimpleCov.minimum_coverage_by_file, SimpleCov.minimum_coverage_by_file_overrides
+          )
+          violations.each { |violation| record_minimum_coverage_by_file_error(violation) }
+        end
+
+        def record_minimum_coverage_by_file_error(violation)
+          key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
+          bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
+          criterion_errors = bucket[key] ||= {}
+          criterion_errors[violation.fetch(:project_filename)] =
+            {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
         end
 
         def format_minimum_coverage_by_group_errors

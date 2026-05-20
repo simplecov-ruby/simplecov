@@ -246,6 +246,67 @@ RSpec.describe SimpleCov::Configuration do
 
     describe "#minimum_coverage_by_file" do
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
+
+      context "with per-path overrides" do
+        after { config.clear_coverage_criteria }
+
+        it "splits Symbol-keyed defaults from String-keyed overrides" do
+          config.minimum_coverage_by_file line: 70, "app/critical.rb" => 100
+
+          expect(config.minimum_coverage_by_file).to eq line: 70
+          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
+        end
+
+        it "normalizes a Numeric override into the primary criterion" do
+          config.minimum_coverage_by_file "app/critical.rb" => 100
+
+          expect(config.minimum_coverage_by_file).to eq({})
+          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
+        end
+
+        it "accepts a per-criterion Hash as an override value" do
+          config.enable_coverage :branch
+          config.minimum_coverage_by_file "app/critical.rb" => {line: 100, branch: 90}
+
+          expect(config.minimum_coverage_by_file_overrides)
+            .to eq("app/critical.rb" => {line: 100, branch: 90})
+        end
+
+        it "accepts Regexp keys" do
+          config.minimum_coverage_by_file(%r{\Aapp/mailers/} => 100)
+
+          expect(config.minimum_coverage_by_file_overrides).to eq(%r{\Aapp/mailers/} => {line: 100})
+        end
+
+        it "preserves the declaration order of overrides" do
+          config.minimum_coverage_by_file(
+            "lib/" => 80,
+            "lib/critical.rb" => 100,
+            %r{spec/} => 50
+          )
+
+          expect(config.minimum_coverage_by_file_overrides.keys)
+            .to eq(["lib/", "lib/critical.rb", %r{spec/}])
+        end
+
+        it "raises when an override value uses an unsupported criterion" do
+          expect do
+            config.minimum_coverage_by_file "app/critical.rb" => {unknown: 100}
+          end.to raise_error(/unsupported.*unknown/i)
+        end
+
+        it "raises when a key is neither Symbol nor String nor Regexp" do
+          expect do
+            config.minimum_coverage_by_file 42 => 100
+          end.to raise_error(SimpleCov::ConfigurationError, /must be Symbol/)
+        end
+      end
+
+      describe "#minimum_coverage_by_file_overrides" do
+        it "defaults to an empty Hash" do
+          expect(config.minimum_coverage_by_file_overrides).to eq({})
+        end
+      end
     end
 
     describe "#minimum_coverage_by_group" do

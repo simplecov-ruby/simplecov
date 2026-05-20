@@ -314,6 +314,7 @@ module SimpleCov
     CoverageLimits = Struct.new(
       :minimum_coverage,
       :minimum_coverage_by_file,
+      :minimum_coverage_by_file_overrides,
       :minimum_coverage_by_group,
       :maximum_coverage,
       :maximum_coverage_drop,
@@ -321,9 +322,12 @@ module SimpleCov
     )
     def result_exit_status(result)
       coverage_limits = CoverageLimits.new(
-        minimum_coverage: minimum_coverage, minimum_coverage_by_file: minimum_coverage_by_file,
+        minimum_coverage: minimum_coverage,
+        minimum_coverage_by_file: minimum_coverage_by_file,
+        minimum_coverage_by_file_overrides: minimum_coverage_by_file_overrides,
         minimum_coverage_by_group: minimum_coverage_by_group,
-        maximum_coverage: maximum_coverage, maximum_coverage_drop: maximum_coverage_drop
+        maximum_coverage: maximum_coverage,
+        maximum_coverage_drop: maximum_coverage_drop
       )
 
       ExitCodes::ExitCodeHandling.call(result, coverage_limits: coverage_limits)
