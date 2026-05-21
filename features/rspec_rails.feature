@@ -14,10 +14,10 @@ Feature:
     When I open the coverage report generated with `bundle exec rspec`
     Then I should see the groups:
       | name        | coverage | files |
-      | All Files   | 36.36%   | 5     |
+      | All Files   | 50.00%   | 5     |
       | Controllers | 0.00%    | 1     |
       | Channels    | 100.00%  | 0     |
-      | Models      | 50.00%   | 2     |
+      | Models      | 60.00%   | 2     |
       | Mailers     | 100.00%  | 0     |
       | Helpers     | 100.00%  | 1     |
       | Jobs        | 0.00%    | 1     |
