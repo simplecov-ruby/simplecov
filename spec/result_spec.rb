@@ -279,5 +279,45 @@ RSpec.describe SimpleCov::Result do
         expect(stats[:line].covered).to be_positive
       end
     end
+
+    # Regression for https://github.com/simplecov-ruby/simplecov/issues/980.
+    # When a resultset references source files that don't exist locally,
+    # the silent "0 / 0 (100.00%)" outcome looks like success. Result now
+    # emits a single summary warning naming the missing paths.
+    describe "warning when resultset paths don't exist on this filesystem" do
+      let(:missing_only) do
+        {
+          "/does/not/exist/foo.rb" => {"lines" => [1, nil, 0]},
+          "/also/missing/bar.rb" => {"lines" => [1, 1, nil]}
+        }
+      end
+
+      it "emits a louder warning when every source file is missing (the collate-across-machines case)" do
+        stderr = capture_stderr { described_class.new(missing_only) }
+        expect(stderr).to include("dropped all 2 source file(s)")
+        expect(stderr).to include("/does/not/exist/foo.rb")
+        expect(stderr).to include("/also/missing/bar.rb")
+        expect(stderr).to include("SimpleCov.collate")
+      end
+
+      it "emits a quieter warning when some-but-not-all source files are missing" do
+        partial = original_result.merge("/does/not/exist/foo.rb" => {"lines" => [1, nil]})
+        stderr = capture_stderr { described_class.new(partial) }
+        expect(stderr).to include("dropped 1 source file(s)")
+        expect(stderr).to include("/does/not/exist/foo.rb")
+        expect(stderr).not_to include("SimpleCov.collate")
+      end
+
+      it "doesn't warn when every source file is present" do
+        stderr = capture_stderr { described_class.new(original_result) }
+        expect(stderr).to be_empty
+      end
+
+      it "caps the listed paths at five with a `+N more` suffix" do
+        many_missing = (1..8).to_h { |n| ["/missing/file#{n}.rb", {"lines" => [1]}] }
+        stderr = capture_stderr { described_class.new(many_missing) }
+        expect(stderr).to include("(+3 more)")
+      end
+    end
   end
 end
