@@ -34,6 +34,7 @@ Unreleased
 * Merged `simplecov-html` formatter into the main gem. A backward-compatibility shim ensures `require "simplecov-html"` still works.
 * Merged `simplecov_json_formatter` into the main gem. A backward-compatibility shim ensures `require "simplecov_json_formatter"` still works.
 * `CommandGuesser` now appends the framework name to parallel test data (e.g. `"RSpec (1/2)"` instead of `"(1/2)"`)
+* `SimpleCov::Result.new` is roughly 7× faster for already-string-keyed input (the `SimpleCov.collate` hot path). The previous implementation deep-cloned each file's coverage data with `JSON.parse(JSON.dump(coverage))` per source file — a useful normalization for live `Coverage.result` symbol keys, but pure overhead for resultsets loaded from disk that already have string keys. `Result` now stringifies the outer hash keys with `transform_keys` only when needed; the inner branch/method-key shape is already handled by `SourceFile#restore_ruby_data_structure`. See #916.
 
 ## Bugfixes
 * `SimpleCov::Result` now warns when it drops source files because their absolute paths aren't on the local filesystem, instead of silently producing an empty `0 / 0 (100.00%)` report. The most common trigger is `SimpleCov.collate` invoked from a machine or working directory different from where the individual resultsets were generated — when *every* entry is missing the warning explicitly names that case and points at the issue; when only some are missing the warning is quieter and lists up to five paths with a `(+N more)` suffix. See #980.

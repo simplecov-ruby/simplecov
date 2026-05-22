@@ -126,9 +126,20 @@ module SimpleCov
 
       SimpleCov::SourceFile.new(
         filename,
-        JSON.parse(JSON.dump(coverage)),
+        stringify_outer_keys(coverage),
         loaded: !not_loaded_files.include?(filename)
       )
+    end
+
+    # `Coverage.result` returns symbol keys (`:lines`, `:branches`,
+    # `:methods`); resultsets loaded from disk are already string-keyed.
+    # SourceFile reads with strings, and handles both Array and
+    # stringified-Array branch/method keys via `restore_ruby_data_structure`,
+    # so only the outer hash needs normalizing. The transform is cheap
+    # enough (three keys) that branching on input shape would cost more
+    # than just always doing it.
+    def stringify_outer_keys(coverage)
+      coverage.transform_keys(&:to_s)
     end
 
     # When a resultset references source files that don't exist on the local
