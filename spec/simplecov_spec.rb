@@ -246,19 +246,21 @@ RSpec.describe SimpleCov do
 
   describe ".add_not_loaded_files" do
     around do |example|
-      previous = described_class.tracked_files
+      previous_tracked = described_class.tracked_files
+      previous_cover = described_class.cover_filters.dup
       example.run
-      described_class.track_files(previous)
+    ensure
+      described_class.instance_variable_set(:@tracked_files, previous_tracked)
+      described_class.instance_variable_set(:@cover_filters, previous_cover)
     end
 
-    it "returns the input unchanged when no track_files glob is configured" do
-      described_class.track_files(nil)
+    it "returns the input unchanged when no discovery glob is configured" do
       result = {"/abs/foo.rb" => {"lines" => [1]}}
       expect(described_class.send(:add_not_loaded_files, result)).to eq([result, Set.new])
     end
 
-    it "augments the result with files matched by the glob that weren't loaded" do
-      described_class.track_files("spec/fixtures/sample.rb")
+    it "augments the result with files matched by a cover glob that weren't loaded" do
+      described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       result, not_loaded = described_class.send(:add_not_loaded_files, {})
       expect(not_loaded).to include(sample)
@@ -266,7 +268,7 @@ RSpec.describe SimpleCov do
     end
 
     it "skips files that are already present in the input result" do
-      described_class.track_files("spec/fixtures/sample.rb")
+      described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       preloaded = {sample => {"lines" => [1]}}
       result, not_loaded = described_class.send(:add_not_loaded_files, preloaded)
@@ -274,16 +276,23 @@ RSpec.describe SimpleCov do
       expect(result[sample]).to eq("lines" => [1])
     end
 
-    # The track_files glob has to be project-root-relative, not cwd-
+    # The discovery glob has to be project-root-relative, not cwd-
     # relative — test runners that chdir would otherwise silently miss
     # unloaded files and emit different file sets per environment. See #1106.
     it "resolves the glob relative to SimpleCov.root regardless of cwd" do
-      described_class.track_files("spec/fixtures/sample.rb")
+      described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
       Dir.chdir(Dir.tmpdir) do
         _result, not_loaded = described_class.send(:add_not_loaded_files, {})
         expect(not_loaded).to include(sample)
       end
+    end
+
+    it "still honors the legacy track_files glob" do
+      capture_stderr { described_class.track_files("spec/fixtures/sample.rb") }
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      expect(not_loaded).to include(sample)
     end
   end
 
@@ -455,15 +464,15 @@ RSpec.describe SimpleCov do
 
       it "warns about the deferral once when triggered" do
         result = instance_double(SimpleCov::Result, files: [])
-        allow(described_class).to receive_messages(result: result, print_error_status: true)
+        allow(described_class).to receive_messages(result: result, print_errors: true)
         stderr = capture_stderr { described_class.defer_to_existing_report? }
         expect(stderr).to include("Skipping SimpleCov report")
         expect(stderr).to include("581")
       end
 
-      it "still defers but stays silent when print_error_status is false" do
+      it "still defers but stays silent when print_errors is false" do
         result = instance_double(SimpleCov::Result, files: [])
-        allow(described_class).to receive_messages(result: result, print_error_status: false)
+        allow(described_class).to receive_messages(result: result, print_errors: false)
         stderr = capture_stderr do
           expect(described_class.defer_to_existing_report?).to be true
         end
@@ -511,16 +520,16 @@ RSpec.describe SimpleCov do
   end
 
   describe ".exit_and_report_previous_error" do
-    it "warns when print_error_status is true and exits with the given status" do
-      allow(described_class).to receive(:print_error_status).and_return(true)
+    it "warns when print_errors is true and exits with the given status" do
+      allow(described_class).to receive(:print_errors).and_return(true)
       allow(Kernel).to receive(:exit)
       stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
       expect(stderr).to include("Stopped processing SimpleCov")
       expect(Kernel).to have_received(:exit).with(2)
     end
 
-    it "is silent when print_error_status is false" do
-      allow(described_class).to receive(:print_error_status).and_return(false)
+    it "is silent when print_errors is false" do
+      allow(described_class).to receive(:print_errors).and_return(false)
       allow(Kernel).to receive(:exit)
       stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
       expect(stderr).to be_empty
@@ -529,7 +538,7 @@ RSpec.describe SimpleCov do
 
   describe ".process_results_and_report_error" do
     it "exits with the coverage-related error status when process_result returns positive" do
-      allow(described_class).to receive_messages(result: double, process_result: 2, print_error_status: true)
+      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: true)
       allow(Kernel).to receive(:exit)
 
       stderr = capture_stderr { described_class.process_results_and_report_error }
@@ -545,8 +554,8 @@ RSpec.describe SimpleCov do
       expect(Kernel).not_to have_received(:exit)
     end
 
-    it "stays silent when print_error_status is false but still exits" do
-      allow(described_class).to receive_messages(result: double, process_result: 2, print_error_status: false)
+    it "stays silent when print_errors is false but still exits" do
+      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: false)
       allow(Kernel).to receive(:exit)
       stderr = capture_stderr { described_class.process_results_and_report_error }
       expect(stderr).to be_empty
@@ -574,7 +583,7 @@ RSpec.describe SimpleCov do
     end
 
     it "buckets files into matching groups and collects unmatched into Ungrouped" do
-      described_class.add_group("Lib", "lib")
+      described_class.group("Lib", "lib")
       result = described_class.grouped(files)
       expect(result.keys).to contain_exactly("Lib", "Ungrouped")
       expect(result["Lib"].map(&:project_filename)).to eq(["lib/foo.rb"])
@@ -582,7 +591,7 @@ RSpec.describe SimpleCov do
     end
 
     it "skips Ungrouped when every file matches a group" do
-      described_class.add_group("All", //)
+      described_class.group("All", //)
       result = described_class.grouped(files)
       expect(result.keys).to contain_exactly("All")
     end
@@ -596,7 +605,7 @@ RSpec.describe SimpleCov do
 
     context "with merging disabled" do
       before do
-        allow(described_class).to receive(:use_merging).once.and_return(false)
+        allow(described_class).to receive(:merging).once.and_return(false)
         allow(described_class).to receive(:wait_for_other_processes)
       end
 
@@ -660,7 +669,7 @@ RSpec.describe SimpleCov do
       let(:the_merged_result) { double }
 
       before do
-        allow(described_class).to receive(:use_merging).once.and_return(true)
+        allow(described_class).to receive(:merging).once.and_return(true)
         allow(SimpleCov::ResultMerger).to receive(:store_result).once
         allow(SimpleCov::ResultMerger).to receive(:merged_result).once.and_return(the_merged_result)
         allow(described_class).to receive(:wait_for_other_processes)

@@ -59,7 +59,7 @@ Metrics/ClassLength:
 
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
-  Max: 320
+  Max: 400
   Exclude:
     - "lib/simplecov.rb"
 

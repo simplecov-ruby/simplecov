@@ -107,6 +107,16 @@ module SimpleCov
     end
   end
 
+  # Filter that matches when the source file's project path matches the
+  # configured shell glob (e.g. "lib/**/*.rb"). Used by `cover` and
+  # `skip` when callers want glob semantics instead of the substring
+  # match of `StringFilter`.
+  class GlobFilter < SimpleCov::Filter
+    def matches?(source_file)
+      File.fnmatch?(filter_argument, source_file.project_filename, File::FNM_PATHNAME | File::FNM_EXTGLOB)
+    end
+  end
+
   # Filter that matches when any of its component filters (built from the
   # array's elements) match the source file.
   class ArrayFilter < SimpleCov::Filter

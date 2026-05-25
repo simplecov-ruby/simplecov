@@ -111,7 +111,7 @@ RSpec.describe SimpleCov::Result do
 
     context "with some filters set up" do
       before do
-        SimpleCov.add_filter "sample.rb"
+        SimpleCov.skip "sample.rb"
       end
 
       it "has 2 files in a new simple cov result" do
@@ -140,6 +140,12 @@ RSpec.describe SimpleCov::Result do
           "sample_controller.rb"
         )
       end
+
+      it "restricts the file set to those matching a cover filter (when any are passed)" do
+        only_sample = SimpleCov::GlobFilter.new("spec/fixtures/sample.rb")
+        result = described_class.new(original_result, filters: [], cover_filters: [only_sample])
+        expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly("sample.rb")
+      end
     end
 
     context "with groups set up for all files" do
@@ -148,9 +154,9 @@ RSpec.describe SimpleCov::Result do
       end
 
       before do
-        SimpleCov.add_group "Models", "app/models"
-        SimpleCov.add_group "Controllers", ["app/controllers"]
-        SimpleCov.add_group "Other" do |src_file|
+        SimpleCov.group "Models", "app/models"
+        SimpleCov.group "Controllers", ["app/controllers"]
+        SimpleCov.group "Other" do |src_file|
           File.basename(src_file.filename) == "sample.rb"
         end
       end
@@ -191,6 +197,15 @@ RSpec.describe SimpleCov::Result do
           expect(formatted.first).to be_a String
         end
       end
+
+      # `formatter false` / `formatters []` opts out of formatting; see #964.
+      context "when no formatter is configured (opted out)" do
+        before { SimpleCov.formatter(false) }
+
+        it "returns nil from result.format! without raising" do
+          expect(result.format!).to be_nil
+        end
+      end
     end
 
     context "with groups set up that do not match all files" do
@@ -198,8 +213,8 @@ RSpec.describe SimpleCov::Result do
 
       before do
         SimpleCov.configure do
-          add_group "Models", "app/models"
-          add_group "Controllers", "app/controllers"
+          group "Models", "app/models"
+          group "Controllers", "app/controllers"
         end
       end
 

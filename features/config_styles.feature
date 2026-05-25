@@ -56,7 +56,7 @@ Feature:
   Scenario: Explicitly before start block
     Given a file named ".simplecov" with:
       """
-      SimpleCov.add_filter 'test'
+      SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
       SimpleCov.start
       """
@@ -69,7 +69,7 @@ Feature:
     Given a file named ".simplecov" with:
       """
       SimpleCov.start
-      SimpleCov.add_filter 'test'
+      SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
       """
 

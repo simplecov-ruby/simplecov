@@ -187,7 +187,7 @@ module SimpleCov
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
-      if use_merging
+      if merging
         wait_for_other_processes
         SimpleCov::ResultMerger.store_result(@result) if result?
         @result = SimpleCov::ResultMerger.merged_result
@@ -285,7 +285,7 @@ module SimpleCov
     end
 
     def warn_about_deferred_report
-      return unless print_error_status
+      return unless print_errors
 
       warn SimpleCov::Color.colorize(
         "Skipping SimpleCov report — this process tracked no application code and a newer " \
@@ -341,7 +341,7 @@ module SimpleCov
     #
     # Thinking: Move this behavior earlier so if there was an error we do nothing?
     def exit_and_report_previous_error(exit_status)
-      if print_error_status
+      if print_errors
         warn SimpleCov::Color.colorize(
           "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
           :yellow
@@ -361,7 +361,7 @@ module SimpleCov
       # Force exit with stored status (see github issue #5)
       return unless exit_status.positive?
 
-      if print_error_status
+      if print_errors
         warn SimpleCov::Color.colorize(
           "SimpleCov failed with exit #{exit_status} due to a coverage related error", :red
         )
@@ -507,14 +507,33 @@ module SimpleCov
     # the line-by-line coverage to zero (if relevant) or nil (comments / whitespace etc).
     #
     def add_not_loaded_files(result)
-      return [result, Set.new] unless tracked_files
+      globs = unloaded_file_discovery_globs
+      return [result, Set.new] if globs.empty?
 
-      result = result.dup
-      # Glob and expand relative to SimpleCov.root, not Dir.pwd — test runners
-      # that chdir (or CI scripts that invoke the suite from a subdir) would
-      # otherwise silently miss the unloaded-file injection and produce a
-      # different file set per environment. See issue #1106.
-      not_loaded_files = Dir.glob(tracked_files, base: root).each_with_object(Set.new) do |file, set|
+      inject_unloaded_files(result.dup, discover_unloaded_paths(globs))
+    end
+
+    # Globs to expand on disk when injecting unloaded files into the
+    # result. Combines the legacy `track_files` glob (additive only)
+    # with every string glob declared via `cover` (also restrictive,
+    # but the restriction lives in `Result#apply_cover_filters!`).
+    def unloaded_file_discovery_globs
+      globs = []
+      globs << tracked_files if tracked_files
+      globs.concat(cover_globs)
+      globs
+    end
+
+    # Expand the given globs relative to SimpleCov.root, not Dir.pwd —
+    # test runners that chdir (or CI scripts that invoke the suite from
+    # a subdir) would otherwise silently miss the unloaded-file injection
+    # and produce a different file set per environment. See issue #1106.
+    def discover_unloaded_paths(globs)
+      globs.flat_map { |glob| Dir.glob(glob, base: root) }.uniq
+    end
+
+    def inject_unloaded_files(result, candidate_paths)
+      not_loaded_files = candidate_paths.each_with_object(Set.new) do |file, set|
         absolute_path = File.expand_path(file, root)
         next if result.key?(absolute_path)
 
@@ -592,18 +611,28 @@ module SimpleCov
       Minitest.after_run { SimpleCov.at_exit_behavior }
     end
 
-    # parallel_tests isn't always available, see: https://github.com/grosser/parallel_tests/issues/772
+    # Auto-require `parallel_tests` when it's installed AND the env vars
+    # it sets are present, so `wait_for_other_processes` and friends can
+    # call `ParallelTests.last_process?` later. `parallel_tests` is an
+    # optional dependency (see https://github.com/grosser/parallel_tests/issues/772),
+    # and `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` are commonly set for
+    # other reasons (custom subprocess coordination, CI sharding), so a
+    # missing gem is treated as "user isn't using parallel_tests" — silently
+    # skip rather than warn. Users who want to override the auto-detect can
+    # set `SimpleCov.parallel_tests true` (force on) or `false` (force off).
+    # See #1018.
     def make_parallel_tests_available
       return if defined?(ParallelTests) # simplecov:disable — only true after a previous load
-      return unless probably_running_parallel_tests? # simplecov:disable — false outside parallel_tests
+      return if SimpleCov.parallel_tests == false # simplecov:disable — only fires when user opts out
+      # simplecov:disable — false outside parallel_tests
+      return unless SimpleCov.parallel_tests || probably_running_parallel_tests?
 
       # simplecov:disable — only fires under a real parallel_tests setup
       require "parallel_tests"
     rescue LoadError
-      warn(
-        "SimpleCov guessed you were running inside parallel tests but couldn't load it. " \
-        "Please file a bug report with us!"
-      )
+      # The gem isn't installed; the env vars were set for some other
+      # reason. Stay quiet — warning here regressed users who use those
+      # env vars for their own subprocess coordination (see #1018).
       # simplecov:enable
     end
 

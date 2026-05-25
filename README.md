@@ -258,6 +258,57 @@ to use SimpleCov with them. Here's an overview of the known ones:
 
 Please check out the [Configuration] API documentation to find out what you can customize.
 
+### Migrating from the legacy configuration API
+
+The configuration DSL was redesigned to use a smaller set of consistent verbs.
+The legacy methods continue to work but emit deprecation warnings that name
+their replacement; the table below is the canonical migration map.
+
+| Legacy                              | New                              | Notes                                                                                                                  |
+|-------------------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `add_filter "lib/legacy"`           | `skip "lib/legacy"`              | Identical matcher grammar (string = path-segment substring; Regexp; block; Array). No behavior change.                 |
+| `add_group "Models", "app/models"`  | `group "Models", "app/models"`   | Identical matcher grammar. No behavior change.                                                                         |
+| `track_files "lib/**/*.rb"`         | `cover "lib/**/*.rb"`            | `cover` includes unloaded files (the legacy `track_files` behavior) **and** restricts the report to the matching set. To keep the old additive-only behavior, pass every directory you want reported: `cover "lib/**/*.rb", "app/**/*.rb"`. |
+| `use_merging false`                 | `merging false`                  | Same value, same behavior.                                                                                             |
+| `enable_for_subprocesses true`      | `merge_subprocesses true`        | Same value, same behavior.                                                                                             |
+| `enable_coverage_for_eval`          | `enable_coverage :eval`          | Eval coverage now folds into the same call you use to enable `:line`/`:branch`/`:method`: `enable_coverage :branch, :eval`. |
+| `print_error_status` (reader)       | `print_errors`                   | Reader only. The `print_error_status=` writer still works without a warning, but `print_errors true`/`print_errors false` is the new spelling. |
+
+Brand-new in the redesigned API (no legacy method to migrate from):
+
+| Method                              | Purpose                                                                                                                  |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `cover "lib/**/*.rb"`               | Positive scope (allowlist). Multiple calls union; strings are globs. See above for the relationship with `track_files`.  |
+| `no_default_skips`                  | Clear every previously-installed filter — defaults and anything earlier in the block — so subsequent `skip`s start clean.|
+| `formatter false` / `formatters []` | Opt out of formatting entirely. Workers in big parallel CI runs only need their `.resultset.json` for a final `SimpleCov.collate` step; skipping the formatter saves the per-job HTML / multi-formatter overhead. See #964. |
+| `parallel_tests true` / `false`     | Force on / off the auto-require of the `parallel_tests` gem. Default (unset) auto-detects from `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` and silently skips if the gem isn't installed. Set explicitly when you use those env vars for unrelated subprocess coordination. See #1018. |
+
+Example before/after:
+
+```ruby
+# Before
+SimpleCov.start do
+  add_filter "/test/"
+  add_filter %r{\Aconfig/}
+  add_group "Models", "app/models"
+  track_files "lib/**/*.rb"
+  enable_coverage_for_eval
+  use_merging true
+  enable_for_subprocesses true
+end
+
+# After
+SimpleCov.start do
+  skip "/test/"
+  skip %r{\Aconfig/}
+  group "Models", "app/models"
+  cover "lib/**/*.rb"
+  enable_coverage :eval
+  merging true
+  merge_subprocesses true
+end
+```
+
 ## Using .simplecov for centralized config
 
 If you use SimpleCov to merge multiple test suite results (e.g. RSpec and Cucumber) into a single report, you'd

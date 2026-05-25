@@ -69,11 +69,66 @@ module SimpleCov
     end
 
     #
+    # Restrict the universe of files in the coverage report to those matching
+    # one or more globs, regexps, or block predicates. Multiple calls union;
+    # when any `cover` matcher is configured the report drops every file that
+    # doesn't match at least one of them.
+    #
+    # Strings are interpreted as shell globs (e.g. "lib/**/*.rb"), not
+    # substring matches — this is a deliberate departure from the legacy
+    # `add_filter` semantics and matches the way `track_files` already
+    # interprets its argument.
+    #
+    # When the matcher is a string-glob, `cover` also expands the glob on
+    # disk so files that exist but were never required during the run still
+    # appear in the report (at 0% coverage). This is the "include unloaded
+    # files" half of the legacy `track_files` behavior, rolled into the
+    # same call.
+    #
+    #     SimpleCov.start do
+    #       cover "lib/**/*.rb", "app/**/*.rb"
+    #       cover(/_helper\.rb\z/)
+    #       cover { |sf| sf.lines.count > 5 }
+    #     end
+    #
+    def cover(*args, &block)
+      args.each { |arg| cover_filters << build_cover_filter(arg) }
+      cover_filters << SimpleCov::BlockFilter.new(block) if block
+      cover_filters
+    end
+
+    #
+    # Returns the list of configured inclusion filters added via `cover`.
+    #
+    def cover_filters
+      @cover_filters ||= []
+    end
+
+    #
+    # Returns the list of string globs passed to `cover` — used by the
+    # disk-discovery pass in `SimpleCov.add_not_loaded_files` so files
+    # matching a `cover` glob appear in the report even when they were
+    # never required during the suite.
+    #
+    def cover_globs
+      cover_filters.grep(SimpleCov::GlobFilter).map(&:filter_argument)
+    end
+
+    #
+    # DEPRECATED: prefer `cover`, which both includes unloaded files (the
+    # historical `track_files` behavior) and restricts the report to the
+    # matching set.
+    #
     # Coverage results will always include files matched by this glob, whether
     # or not they were explicitly required. Without this, un-required files
     # will not be present in the final report.
     #
     def track_files(glob)
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.track_files` is deprecated. " \
+           "Replace with `SimpleCov.cover #{glob.inspect}` — `cover` includes unloaded files on disk " \
+           "(the historical `track_files` behavior) and also restricts the report to the matching set. " \
+           "If you want to keep additional files outside #{glob.inspect} in the report, pass every " \
+           "directory you care about, e.g. `cover #{glob.inspect}, \"app/**/*.rb\"`."
       @tracked_files = glob
     end
 
@@ -86,7 +141,8 @@ module SimpleCov
     end
 
     #
-    # Returns the list of configured filters. Add filters using SimpleCov.add_filter.
+    # Returns the list of configured exclusion filters added via `skip`
+    # (or the deprecated `add_filter`).
     #
     def filters
       @filters ||= []
@@ -108,53 +164,74 @@ module SimpleCov
     end
 
     #
-    # Gets or sets the configured formatter.
+    # Gets or sets the configured formatter. Pass `false` (or `nil`) to
+    # opt out of formatting entirely — worker processes in big parallel
+    # CI setups (see #964) only need their `.resultset.json` on disk so
+    # a final `SimpleCov.collate` job can produce the report; running
+    # them without a formatter saves the per-job HTML/multi-formatter
+    # overhead.
     #
-    # Configure with: SimpleCov.formatter(SimpleCov::Formatter::SimpleFormatter)
+    #     SimpleCov.start do
+    #       formatter SimpleCov::Formatter::SimpleFormatter   # one formatter
+    #       formatter false                                   # no formatter
+    #     end
     #
-    def formatter(formatter = nil)
-      return @formatter if defined?(@formatter) && formatter.nil?
+    def formatter(formatter = :__no_arg__)
+      return @formatter if formatter == :__no_arg__
 
-      @formatter = formatter
-      unless @formatter
-        raise SimpleCov::ConfigurationError,
-              "No formatter configured. " \
-              "Please specify a formatter using SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter"
-      end
-
-      @formatter
+      @formatter = formatter || nil # normalize `false` to `nil`
     end
 
     #
-    # Sets the configured formatters.
+    # Sets the configured formatters. Pass `[]` to opt out of formatting
+    # entirely; see `formatter` for the rationale.
+    #
+    #     SimpleCov.start do
+    #       formatters [SimpleCov::Formatter::SimpleFormatter,
+    #                   SimpleCov::Formatter::HTMLFormatter]
+    #       formatters []   # no formatter
+    #     end
+    #
+    def formatters(formatters = :__no_arg__)
+      return Array(formatter) if formatters == :__no_arg__
+
+      self.formatters = formatters
+      formatters
+    end
+
+    #
+    # Sets the configured formatters. Equivalent to `formatters [...]` /
+    # `formatters []`; the assignment form is what runs when the DSL block
+    # uses `self.formatters = [...]`.
     #
     def formatters=(formatters)
-      @formatter = SimpleCov::Formatter::MultiFormatter.new(formatters)
+      @formatter = formatters.empty? ? nil : SimpleCov::Formatter::MultiFormatter.new(formatters)
     end
 
     #
-    # Gets the configured formatters.
+    # Get or set whether to print a non-success status line at the end of
+    # the run when the suite fails a coverage threshold check. Defaults to
+    # true. Called with no arguments returns the current value; called with
+    # an explicit boolean assigns it.
     #
-    def formatters
-      # MultiFormatter.new returns a Class (not an instance), so this
-      # branch never fires in practice — the `Array(formatter)` path
-      # below handles both single-formatter and multi-formatter setups.
-      # Kept for backwards compatibility with any caller that may have
-      # assigned a MultiFormatter *instance* to @formatter directly.
-      # simplecov:disable
-      if @formatter.is_a?(SimpleCov::Formatter::MultiFormatter)
-        @formatter.formatters
-        # simplecov:enable
-      else
-        Array(formatter)
-      end
+    #     SimpleCov.start do
+    #       print_errors false
+    #     end
+    #
+    def print_errors(value = :__no_arg__)
+      return defined?(@print_error_status) ? @print_error_status : true if value == :__no_arg__
+
+      @print_error_status = value
     end
 
     #
-    # Whether we should print non-success status codes. This can be
-    # configured with the #print_error_status= method.
+    # DEPRECATED: alias for `print_errors`. Same value, same behavior.
+    # The `print_error_status=` setter is also still available (it's an
+    # attr_writer on the same instance variable).
     #
     def print_error_status
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.print_error_status` is deprecated. " \
+           "Replace with `SimpleCov.print_errors` (same value)."
       defined?(@print_error_status) ? @print_error_status : true
     end
 
@@ -253,17 +330,63 @@ module SimpleCov
       SimpleCov.result? || (defined?(Coverage) && Coverage.running?)
     end
 
-    # gets or sets the enabled_for_subprocess configuration
-    # when true, this will inject SimpleCov code into Process.fork
-    def enable_for_subprocesses(value = nil)
+    #
+    # Get or set whether SimpleCov should hook `Process._fork` to attach
+    # itself to subprocesses. Required when the suite uses parallel test
+    # workers (e.g. Rails' `parallelize(workers:)`); without this, the
+    # workers' coverage is dropped on the floor. Defaults to false.
+    #
+    #     SimpleCov.start do
+    #       merge_subprocesses true
+    #     end
+    #
+    def merge_subprocesses(value = nil)
       return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
 
       @enable_for_subprocesses = value || false
     end
 
-    # gets the enabled_for_subprocess configuration
+    # @api private
+    # Predicate used by `start_tracking` to decide whether to install the
+    # fork hook. Not part of the configuration DSL.
     def enabled_for_subprocesses?
-      enable_for_subprocesses
+      defined?(@enable_for_subprocesses) ? @enable_for_subprocesses : false
+    end
+
+    #
+    # Get or set whether SimpleCov should auto-require the `parallel_tests`
+    # gem when it sees `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` in the
+    # environment. Defaults to auto-detect (nil): `SimpleCov.start` only
+    # requires the gem when it's actually installed, and silently skips
+    # otherwise.
+    #
+    # Set explicitly to opt in or out:
+    #
+    #     SimpleCov.start do
+    #       parallel_tests true   # explicit opt-in; assume it's available
+    #       parallel_tests false  # explicit opt-out; never auto-require
+    #     end
+    #
+    # Useful when those env vars are set for reasons unrelated to the
+    # parallel_tests gem (subprocess coordination, custom CI sharding,
+    # etc.) and the auto-require's `LoadError` warning is unwanted. See
+    # #1018.
+    #
+    def parallel_tests(value = :__no_arg__)
+      return defined?(@parallel_tests) ? @parallel_tests : nil if value == :__no_arg__
+
+      @parallel_tests = value
+    end
+
+    #
+    # DEPRECATED: alias for `merge_subprocesses`. Same value, same behavior.
+    #
+    def enable_for_subprocesses(value = nil)
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.enable_for_subprocesses` is deprecated. " \
+           "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior)."
+      return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
+
+      @enable_for_subprocesses = value || false
     end
 
     #
@@ -278,7 +401,7 @@ module SimpleCov
     #         # This needs a unique name so it won't be ovewritten
     #         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
     #         # be quiet — the parent process is in charge of using the regular formatter and checking coverage totals
-    #         SimpleCov.print_error_status = false
+    #         SimpleCov.print_errors false
     #         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
     #         SimpleCov.minimum_coverage 0
     #         # start
@@ -292,7 +415,7 @@ module SimpleCov
         # This needs a unique name so it won't be ovewritten
         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
         # be quiet, the parent process will be in charge of using the regular formatter and checking coverage totals
-        SimpleCov.print_error_status = false
+        SimpleCov.print_errors false
         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
         SimpleCov.minimum_coverage 0
         # start
@@ -312,10 +435,26 @@ module SimpleCov
     end
 
     #
-    # Defines whether to use result merging so all your test suites (test:units, test:functionals, cucumber, ...)
-    # are joined and combined into a single coverage report
+    # Get or set whether to merge results from multiple test suites
+    # (test:units, test:functionals, cucumber, ...) into a single coverage
+    # report. Defaults to true.
+    #
+    #     SimpleCov.start do
+    #       merging false   # disable for one-shot runs
+    #     end
+    #
+    def merging(use = nil)
+      @use_merging = use unless use.nil?
+      @use_merging = true unless defined?(@use_merging) && @use_merging == false
+      @use_merging
+    end
+
+    #
+    # DEPRECATED: alias for `merging`. Same value, same behavior.
     #
     def use_merging(use = nil)
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.use_merging` is deprecated. " \
+           "Replace with `SimpleCov.merging` (same value, same behavior)."
       @use_merging = use unless use.nil?
       @use_merging = true unless defined?(@use_merging) && @use_merging == false
     end
@@ -485,24 +624,39 @@ module SimpleCov
     end
 
     #
-    # Add a filter to the processing chain.
-    # There are four ways to define a filter:
+    # Drop matching files from the coverage report. The inverse of `cover`.
     #
-    # * as a String that will then be matched against all source files' file paths,
-    #     SimpleCov.add_filter 'app/models' # will reject all your models
-    # * as a block which will be passed the source file in question and should either
-    #   return a true or false value, depending on whether the file should be removed
-    #     SimpleCov.add_filter do |src_file|
-    #       File.basename(src_file.filename) == 'environment.rb'
-    #     end # Will exclude environment.rb files from the results
-    # * as an array of strings that are matched against all source files' file
-    #   paths and then ignored (basically string filter multiple times)
-    #     SimpleCov.add_filter ['app/models', 'app/helpers'] # ignores both dirs
-    # * as an instance of a subclass of SimpleCov::Filter. See the documentation there
-    #   on how to define your own filter classes
+    # There are four ways to define a skip:
+    #
+    # * as a String that is matched (path-segment substring) against the
+    #     project-relative path of each source file:
+    #     SimpleCov.skip 'app/models' # drops everything under app/models
+    # * as a Regexp matched against the same project-relative path:
+    #     SimpleCov.skip %r{\Aconfig/}
+    # * as a block that receives the SourceFile and returns truthy to drop:
+    #     SimpleCov.skip do |sf|
+    #       File.basename(sf.filename) == 'environment.rb'
+    #     end
+    # * as an Array of any of the above, dispatched element-by-element.
+    #
+    # Note on string semantics: `skip` uses the same path-segment substring
+    # matcher as the legacy `add_filter` (so `skip 'lib'` matches `/lib/foo.rb`
+    # but not `/library.rb`). This differs from `cover`'s string-as-glob
+    # behavior. The split is preserved for ergonomic continuity with
+    # `add_filter`; pass a Regexp if you need precise control.
+    #
+    def skip(filter_argument = nil, &)
+      filters << parse_filter(filter_argument, &)
+    end
+
+    #
+    # DEPRECATED: alias for `skip`. Same matcher grammar, identical behavior.
     #
     def add_filter(filter_argument = nil, &)
-      filters << parse_filter(filter_argument, &)
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_filter` is deprecated. " \
+           "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: " \
+           "`SimpleCov.skip #{filter_argument.inspect}`."
+      skip(filter_argument, &)
     end
 
     #
@@ -533,12 +687,39 @@ module SimpleCov
     end
 
     #
-    # Define a group for files. Works similar to add_filter, only that the first
-    # argument is the desired group name and files PASSING the filter end up in the group
-    # (while filters exclude when the filter is applicable).
+    # Define a display group for files. Same matcher grammar as `skip`,
+    # but instead of dropping the matching files it bins them under
+    # `group_name` for the formatter. Files matched by no group fall
+    # into the implicit "Ungrouped" bucket.
+    #
+    def group(group_name, filter_argument = nil, &)
+      groups[group_name] = parse_filter(filter_argument, &)
+    end
+
+    #
+    # DEPRECATED: alias for `group`. Same arguments, same behavior.
     #
     def add_group(group_name, filter_argument = nil, &)
-      groups[group_name] = parse_filter(filter_argument, &)
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_group` is deprecated. " \
+           "Replace with `SimpleCov.group` (same arguments, same behavior). Example: " \
+           "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`."
+      group(group_name, filter_argument, &)
+    end
+
+    #
+    # Drop every filter previously installed (defaults plus anything
+    # earlier in this block) so subsequent `skip` calls start from a
+    # clean slate. Equivalent to `clear_filters`, but named for the
+    # common case: opting out of the default `vendor/bundle/`,
+    # hidden-files, root-boundary, and test-framework filters that
+    # `SimpleCov.start` installs before the user's block runs.
+    #
+    # Order matters — `no_default_skips` wipes anything that has been
+    # registered up to that point, so call it before your own `skip`
+    # invocations.
+    #
+    def no_default_skips
+      clear_filters
     end
 
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch method oneshot_line].freeze
@@ -563,13 +744,28 @@ module SimpleCov
       @coverage_criterion = criterion
     end
 
-    def enable_coverage(criterion)
-      raise_if_criterion_unsupported(criterion)
+    # Enable one or more coverage criteria. Accepts a single Symbol
+    # (`enable_coverage :branch`) or several at once
+    # (`enable_coverage :branch, :method`).
+    #
+    # `:eval` is accepted as a shorthand for the standalone eval-coverage
+    # toggle. Note that `:eval` is not a regular coverage criterion — it
+    # opts the Coverage runtime into instrumenting `eval`'d code rather
+    # than enabling a third measurement type — but folding it into this
+    # method lets one call configure everything you want to measure.
+    def enable_coverage(*criteria)
+      criteria.each do |criterion|
+        if criterion == :eval
+          enable_eval_coverage
+        else
+          raise_if_criterion_unsupported(criterion)
 
-      # :oneshot_lines can not be combined with :lines
-      coverage_criteria.delete(DEFAULT_COVERAGE_CRITERION) if criterion == ONESHOT_LINE_COVERAGE_CRITERION
+          # :oneshot_lines can not be combined with :lines
+          coverage_criteria.delete(DEFAULT_COVERAGE_CRITERION) if criterion == ONESHOT_LINE_COVERAGE_CRITERION
 
-      coverage_criteria << criterion
+          coverage_criteria << criterion
+        end
+      end
     end
 
     # Remove `criterion` from the set of enabled coverage criteria. The
@@ -654,15 +850,28 @@ module SimpleCov
       @coverage_for_eval_enabled ||= false
     end
 
+    #
+    # DEPRECATED: prefer `enable_coverage :eval`, which folds the eval
+    # toggle into the same call that enables `:line` / `:branch` / etc.
+    #
     def enable_coverage_for_eval
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.enable_coverage_for_eval` is deprecated. " \
+           "Replace with `SimpleCov.enable_coverage :eval`."
+      enable_eval_coverage
+    end
+
+  private
+
+    # Shared implementation backing both `enable_coverage :eval` and the
+    # deprecated `enable_coverage_for_eval`. Sets the flag when the runtime
+    # supports eval coverage; warns and leaves the flag false otherwise.
+    def enable_eval_coverage
       if coverage_for_eval_supported?
         @coverage_for_eval_enabled = true
       else
         warn "Coverage for eval is not available; Use Ruby 3.2.0 or later"
       end
     end
-
-  private
 
     # If `:line` is enabled, it's the default primary — keeps the
     # historical behavior for every existing project. If the user has
@@ -743,6 +952,24 @@ module SimpleCov
       raise ArgumentError, "Please specify either a filter or a block to filter with" unless filter
 
       SimpleCov::Filter.build_filter(filter)
+    end
+
+    # Build a filter for a `cover` argument. Strings are treated as
+    # globs (not substrings — that's `skip`/`add_filter`'s semantics),
+    # which matches the way `track_files` interpreted its string argument
+    # and reflects the "this is the set of files I want reported"
+    # mental model behind `cover`.
+    def build_cover_filter(arg)
+      case arg
+      when String            then SimpleCov::GlobFilter.new(arg)
+      when Regexp            then SimpleCov::RegexFilter.new(arg)
+      when Proc              then SimpleCov::BlockFilter.new(arg)
+      when SimpleCov::Filter then arg
+      when Array             then SimpleCov::ArrayFilter.new(arg.map { |a| build_cover_filter(a) })
+      else raise SimpleCov::ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
+                                                "expected a String glob, Regexp, Proc, " \
+                                                "SimpleCov::Filter, or Array of those."
+      end
     end
   end
 end

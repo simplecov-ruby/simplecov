@@ -38,7 +38,8 @@ module SimpleCov
     # Results and don't want the project's filters applied. `groups`
     # behaves the same way against `SimpleCov.groups`.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   filters: SimpleCov.filters, groups: SimpleCov.groups)
+                   filters: SimpleCov.filters, cover_filters: SimpleCov.cover_filters,
+                   groups: SimpleCov.groups)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
@@ -46,6 +47,7 @@ module SimpleCov
       @missing_source_files = []
       @files = build_files(original_result, not_loaded_files)
       warn_about_missing_source_files(original_result.size) if @missing_source_files.any?
+      apply_cover_filters!(cover_filters)
       apply_filters!(filters)
     end
 
@@ -75,9 +77,16 @@ module SimpleCov
       @groups ||= apply_groups
     end
 
-    # Applies the configured SimpleCov.formatter on this result
+    # Applies the configured SimpleCov.formatter on this result. Returns
+    # nil if formatting has been opted out of (`SimpleCov.formatter false`
+    # / `SimpleCov.formatters []`) — the cheap path for non-final
+    # processes in a parallel CI run, which only need their
+    # `.resultset.json` on disk. See #964.
     def format!
-      SimpleCov.formatter.new.format(self)
+      formatter = SimpleCov.formatter
+      return nil if formatter.nil?
+
+      formatter.new.format(self)
     end
 
     # Defines when this result has been created. Defaults to Time.now
@@ -189,6 +198,18 @@ module SimpleCov
       filters.each do |filter|
         @files = SimpleCov::FileList.new(@files.reject { |source_file| filter.matches?(source_file) })
       end
+    end
+
+    # When any `cover` matcher is configured, restrict `@files` to source
+    # files matching at least one of them. With no cover matchers configured
+    # this is a no-op, preserving the historical "everything required, then
+    # filtered" universe.
+    def apply_cover_filters!(cover_filters)
+      return if cover_filters.empty?
+
+      @files = SimpleCov::FileList.new(
+        @files.select { |source_file| cover_filters.any? { |filter| filter.matches?(source_file) } }
+      )
     end
 
     # Build the per-group FileLists from `@groups_config`, plus the
