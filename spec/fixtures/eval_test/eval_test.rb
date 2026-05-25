@@ -1,7 +1,7 @@
 require "simplecov"
 require "erb" # ERB was extracted from stdlib in Ruby 3.x
 
-SimpleCov.enable_coverage_for_eval
+SimpleCov.enable_coverage :eval
 SimpleCov.start "rails"
 
 file = File.join(__dir__, "eval_test.erb")

@@ -60,6 +60,14 @@ RSpec.describe SimpleCov::Filter do
     expect(SimpleCov::RegexFilter.new(%r{^spec/})).to be_matches source_file
   end
 
+  it "matches a SimpleCov::GlobFilter that includes the path" do
+    expect(SimpleCov::GlobFilter.new("spec/fixtures/**/*.rb")).to be_matches source_file
+  end
+
+  it "doesn't match a SimpleCov::GlobFilter that excludes the path" do
+    expect(SimpleCov::GlobFilter.new("lib/**/*.rb")).not_to be_matches source_file
+  end
+
   it "doesn't match a new SimpleCov::BlockFilter that is not applicable" do
     expect(SimpleCov::BlockFilter.new(proc { |s| File.basename(s.filename) == "foo.rb" })).not_to be_matches source_file
   end
@@ -132,36 +140,32 @@ RSpec.describe SimpleCov::Filter do
     end
 
     it 'returns 0 items after executing SimpleCov.filtered on files when using a "sample" string filter' do
-      SimpleCov.add_filter "sample"
+      SimpleCov.skip "sample"
       expect(SimpleCov.filtered(filter).count).to be_zero
     end
 
     it 'returns 0 items after executing SimpleCov.filtered on files when using a "spec/fixtures" string filter' do
-      SimpleCov.add_filter "spec/fixtures"
+      SimpleCov.skip "spec/fixtures"
       expect(SimpleCov.filtered(filter).count).to be_zero
     end
 
     it 'returns 1 item after executing SimpleCov.filtered on files when using a "fooo" string filter' do
-      SimpleCov.add_filter "fooo"
+      SimpleCov.skip "fooo"
       expect(SimpleCov.filtered(filter).count).to eq(1)
     end
 
     it "returns 0 items after executing SimpleCov.filtered on files when using a block filter that returns true" do
-      SimpleCov.add_filter do
-        true
-      end
+      SimpleCov.skip(&proc { true })
       expect(SimpleCov.filtered(filter).count).to be_zero
     end
 
     it "returns 1 item after executing SimpleCov.filtered on files when using an always-false block filter" do
-      SimpleCov.add_filter do
-        false
-      end
+      SimpleCov.skip(&proc { false })
       expect(SimpleCov.filtered(filter).count).to eq(1)
     end
 
     it "returns a FileList after filtering" do
-      SimpleCov.add_filter "fooo"
+      SimpleCov.skip "fooo"
       expect(SimpleCov.filtered(filter)).to be_a SimpleCov::FileList
     end
   end
@@ -175,29 +179,29 @@ RSpec.describe SimpleCov::Filter do
     end
 
     it "removes a string filter that matches by value" do
-      SimpleCov.add_filter "spec"
-      SimpleCov.add_filter "lib"
+      SimpleCov.skip "spec"
+      SimpleCov.skip "lib"
       expect(SimpleCov.remove_filter("spec")).to be true
       expect(SimpleCov.filters.map(&:filter_argument)).to eq(["lib"])
     end
 
     it "removes a regex filter that matches by value" do
-      SimpleCov.add_filter(/\A\..*/)
-      SimpleCov.add_filter(/\Aapp/)
+      SimpleCov.skip(/\A\..*/)
+      SimpleCov.skip(/\Aapp/)
       expect(SimpleCov.remove_filter(/\A\..*/)).to be true
       expect(SimpleCov.filters.map(&:filter_argument)).to eq([/\Aapp/])
     end
 
     it "removes every matching filter, not just the first" do
-      SimpleCov.add_filter "spec"
-      SimpleCov.add_filter "spec"
-      SimpleCov.add_filter "lib"
+      SimpleCov.skip "spec"
+      SimpleCov.skip "spec"
+      SimpleCov.skip "lib"
       SimpleCov.remove_filter("spec")
       expect(SimpleCov.filters.map(&:filter_argument)).to eq(["lib"])
     end
 
     it "returns false when nothing matches" do
-      SimpleCov.add_filter "spec"
+      SimpleCov.skip "spec"
       expect(SimpleCov.remove_filter("nope")).to be false
       expect(SimpleCov.filters.size).to eq(1)
     end
@@ -212,8 +216,8 @@ RSpec.describe SimpleCov::Filter do
     end
 
     it "empties the filter chain" do
-      SimpleCov.add_filter "spec"
-      SimpleCov.add_filter(/\A\..*/)
+      SimpleCov.skip "spec"
+      SimpleCov.skip(/\A\..*/)
       SimpleCov.clear_filters
       expect(SimpleCov.filters).to be_empty
     end
