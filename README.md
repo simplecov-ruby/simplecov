@@ -787,7 +787,7 @@ SimpleCov.start 'rails' do
     ])
   end
 
-  cover "**/*.rb"
+  cover "{app,lib}/**/*.rb"
 end
 ```
 
