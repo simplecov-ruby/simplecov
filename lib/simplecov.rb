@@ -409,11 +409,22 @@ module SimpleCov
     def final_result_process?
       return true unless defined?(ParallelTests) && ENV["TEST_ENV_NUMBER"]
 
-      # parallel_tests sets the first process's TEST_ENV_NUMBER to "" and
-      # `ParallelTests.last_process?` does `"" == "1"`, which is false —
-      # so with PARALLEL_TEST_GROUPS=1 the only process in the run never
-      # runs the final-result work. Treat any single-group run as final.
-      ENV["PARALLEL_TEST_GROUPS"].to_i <= 1 || ParallelTests.last_process?
+      # Pick the *first* started process to do the final-result work, not
+      # the last. Two reasons: (1) the parallel_tests README explicitly
+      # recommends `ParallelTests.first_process?` for "run something
+      # once after every worker finishes" hooks, so user code that
+      # implements its own `wait_for_other_processes_to_finish` (e.g. in
+      # an RSpec `after(:suite)`) overwhelmingly waits in the first
+      # process — picking the same side avoids the cross-process
+      # deadlock #922 reported. (2) `first_process?` naturally handles
+      # the PARALLEL_TEST_GROUPS=1 case: parallel_tests sets the first
+      # worker's TEST_ENV_NUMBER to "" and `first_process?` tests for
+      # that empty string, so a single-group run correctly returns true
+      # without needing the previous `GROUPS.to_i <= 1` workaround
+      # (#1066). Users who waited in the LAST process now hit the
+      # symmetric deadlock and must migrate to `first_process?`; the
+      # CHANGELOG calls this out.
+      ParallelTests.first_process?
     end
 
     #
@@ -613,7 +624,7 @@ module SimpleCov
 
     # Auto-require `parallel_tests` when it's installed AND the env vars
     # it sets are present, so `wait_for_other_processes` and friends can
-    # call `ParallelTests.last_process?` later. `parallel_tests` is an
+    # call `ParallelTests.first_process?` later. `parallel_tests` is an
     # optional dependency (see https://github.com/grosser/parallel_tests/issues/772),
     # and `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` are commonly set for
     # other reasons (custom subprocess coordination, CI sharding), so a

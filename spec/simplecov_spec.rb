@@ -314,11 +314,11 @@ RSpec.describe SimpleCov do
     end
 
     context "when running under a faked parallel_tests setup" do
-      # `Class.new { def self.last_process?; end }` rather than a plain
+      # `Class.new { def self.first_process?; end }` rather than a plain
       # Class.new so rspec-mocks 4's verify_partial_doubles check (now
       # on by default) accepts the subsequent `allow(...).to receive(
-      # :last_process?)` stubs.
-      before { stub_const("ParallelTests", Class.new { def self.last_process?; end }) }
+      # :first_process?)` stubs.
+      before { stub_const("ParallelTests", Class.new { def self.first_process?; end }) }
 
       around do |example|
         prev_n, prev_g = ENV.values_at("TEST_ENV_NUMBER", "PARALLEL_TEST_GROUPS")
@@ -329,28 +329,29 @@ RSpec.describe SimpleCov do
       end
 
       # parallel_tests sets the first worker's TEST_ENV_NUMBER to "" and
-      # last_process? compares it against PARALLEL_TEST_GROUPS as a string,
-      # so "" == "1" is false. Without compensating, a `parallel:spec[1]`
-      # run silently skipped minimum_coverage enforcement (#1066).
+      # `first_process?` tests for that empty string, so single-group runs
+      # (PARALLEL_TEST_GROUPS=1) naturally return true — no explicit
+      # GROUPS=1 fallback needed (the old fallback compensated for
+      # `last_process?`'s `"" == "1"` mismatch — see #1066).
       it "is true when running with PARALLEL_TEST_GROUPS=1" do
         ENV["TEST_ENV_NUMBER"] = ""
         ENV["PARALLEL_TEST_GROUPS"] = "1"
-        allow(ParallelTests).to receive(:last_process?).and_return(false)
+        allow(ParallelTests).to receive(:first_process?).and_return(true)
         expect(described_class.send(:final_result_process?)).to be true
       end
 
-      it "is false for a non-last worker in a multi-group run" do
+      it "is true for the first worker in a multi-group run" do
         ENV["TEST_ENV_NUMBER"] = ""
         ENV["PARALLEL_TEST_GROUPS"] = "2"
-        allow(ParallelTests).to receive(:last_process?).and_return(false)
-        expect(described_class.send(:final_result_process?)).to be false
+        allow(ParallelTests).to receive(:first_process?).and_return(true)
+        expect(described_class.send(:final_result_process?)).to be true
       end
 
-      it "is true for the last worker in a multi-group run" do
+      it "is false for a non-first worker in a multi-group run" do
         ENV["TEST_ENV_NUMBER"] = "2"
         ENV["PARALLEL_TEST_GROUPS"] = "2"
-        allow(ParallelTests).to receive(:last_process?).and_return(true)
-        expect(described_class.send(:final_result_process?)).to be true
+        allow(ParallelTests).to receive(:first_process?).and_return(false)
+        expect(described_class.send(:final_result_process?)).to be false
       end
     end
   end
