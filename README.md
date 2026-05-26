@@ -318,7 +318,7 @@ starts it:
 
 ```ruby
 # .simplecov — configuration only
-SimpleCov.profiles.load 'rails'
+SimpleCov.load_profile 'rails'
 SimpleCov.skip 'lib/generators'
 SimpleCov.group 'Models', 'app/models'
 
