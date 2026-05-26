@@ -191,8 +191,23 @@ async function precomputeFileIds(filenames: string[]): Promise<void> {
   filenames.forEach((fn, i) => { fileIds[fn] = hashes[i]; });
 }
 
+// Build a stable, unique HTML id / CSS class name from a group title.
+// The id is used in three places: the container `<div id="...">`, the
+// tab `<a>`'s `className`, and a `.group_tabs a.<id>` CSS selector — so
+// the result must be a valid CSS class name (ASCII letters/digits, plus
+// `_` / `-`, not starting with a digit).
+//
+// The previous implementation stripped EVERY non-letter prefix and then
+// every remaining non-alphanumeric char, which collapsed distinct titles
+// like ">100LOC" and "<10LOC" into the same id ("LOC") — both containers
+// got the same DOM id and the tabs rendered to one effective group. See
+// #1038. A naive substitution (`> → _`, `< → _`) still loses uniqueness
+// for any pair that differs only in which non-id char they use, so each
+// non-id char is encoded as `_<hex codepoint>_` instead. Prefix with `g-`
+// so the result always starts with a letter regardless of the original
+// title.
 function toHtmlId(value: string): string {
-  return value.replace(/^[^a-zA-Z]+/, '').replace(/[^a-zA-Z0-9\-_]/g, '');
+  return 'g-' + value.replace(/[^a-zA-Z0-9_-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`);
 }
 
 // --- Coverage rendering helpers -------------------------------

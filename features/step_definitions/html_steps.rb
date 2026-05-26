@@ -4,8 +4,14 @@ Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
   expect(page).to have_css("#content .file_list_container", count: expected_groups.count)
 
+  # Mirrors `toHtmlId` in html_frontend/src/app.ts: prefix with "g-" so the
+  # id always starts with a letter, then encode each non-id char as
+  # "_<hex>_" so distinct non-id chars produce distinct ids (the previous
+  # implementation stripped non-letters entirely, which collapsed names like
+  # ">100LOC" and "<10LOC" onto the same id — see #1038).
   expected_groups.each do |group|
-    with_scope "#content ##{group['name'].gsub(/[^a-z]/i, '')}.file_list_container" do
+    container_id = "g-#{group['name'].gsub(/[^a-zA-Z0-9_-]/) { |c| "_#{c.ord.to_s(16)}_" }}"
+    with_scope "#content ##{container_id}.file_list_container" do
       file_count_in_group = page.all("a.src_link").count
       expect(file_count_in_group).to eq(group["files"].to_i)
 

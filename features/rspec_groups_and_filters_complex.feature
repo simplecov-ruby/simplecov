@@ -38,3 +38,32 @@ Feature: Sophisticated grouping and filtering on RSpec
     And I should see the source files:
       | name                            | coverage |
       | lib/faked_project/meta_magic.rb | 100.00%  |
+
+  # Regression for #1038: two groups whose names share an alphanumeric
+  # suffix but differ only in a leading non-letter (e.g. "<group" vs.
+  # ">group") used to render to the same HTML container id, so the
+  # second group's content silently replaced the first's in the report.
+  Scenario: Groups with leading non-letter characters get distinct HTML containers
+    Given SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        add_group '<group' do |src_file|
+          src_file.filename =~ /MaGiC/i
+        end
+        add_group '>group' do |src_file|
+          src_file.filename =~ /framework_specific/i
+        end
+
+        add_filter 'faked_project.rb'
+        add_filter {|src_file| src_file.lines.any? {|line| line.src =~ /describe/ } }
+        add_filter {|src_file| src_file.covered_percent < 100 }
+      end
+      """
+
+    When I open the coverage report generated with `bundle exec rspec spec`
+    Then I should see the groups:
+      | name      | coverage | files |
+      | All Files | 100.00%  | 1     |
+      | <group    | 100.00%  | 1     |
+      | >group    | 100.00%  | 0     |
