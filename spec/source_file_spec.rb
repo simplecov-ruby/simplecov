@@ -633,6 +633,100 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
+  context "with ignore_branches :implicit_else configured" do
+    around do |example|
+      # `ignore_branches` mutates the underlying array via `concat`, so dup the
+      # previous value before mutating — otherwise restoring the captured
+      # reference puts back the post-mutation array.
+      previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
+      SimpleCov.ignore_branches :implicit_else
+      example.run
+    ensure
+      SimpleCov.instance_variable_set(:@ignored_branches, previous)
+    end
+
+    describe "a file with `case` and no `else` arm" do
+      subject(:source_file) do
+        described_class.new(source_fixture("case_without_else.rb"), CoverageFixtures::CASE_WITHOUT_ELSE_RB)
+      end
+
+      it "drops the synthetic else branch from the totals" do
+        expect(source_file.total_branches.size).to eq 3
+        expect(source_file.covered_branches.size).to eq 1
+        expect(source_file.missed_branches.size).to eq 2
+      end
+
+      it "leaves no `:else` entry on the condition line" do
+        expect(source_file.branches_for_line(3)).to eq []
+      end
+
+      it "still reports the three explicit `when` arms" do
+        expect(source_file.branches_report).to eq(
+          4 => [[:when, 0]],
+          6 => [[:when, 1]],
+          8 => [[:when, 0]]
+        )
+      end
+    end
+
+    describe "a file with an explicit `else` arm" do
+      subject(:source_file) do
+        described_class.new(source_fixture("case.rb"), CoverageFixtures::CASE_RB)
+      end
+
+      it "keeps the explicit else branch — the heuristic matches only synthetic ones" do
+        expect(source_file.total_branches.size).to eq 4
+        expect(source_file.branches_report).to eq(
+          4 => [[:when, 0]],
+          6 => [[:when, 1]],
+          8 => [[:when, 0]],
+          10 => [[:else, 0]]
+        )
+      end
+    end
+
+    # Regression guard for a ternary's explicit `else` arm that lives on the
+    # same line as its condition. The structural heuristic that compares
+    # `start_line` alone would mis-classify this as synthetic; comparing the
+    # full source range (start_line/start_col/end_line/end_col against the
+    # parent) keeps the explicit branch counted. See PR #1189 review.
+    describe "a file with an inline (ternary) explicit `else`" do
+      subject(:source_file) do
+        described_class.new(source_fixture("inline.rb"), CoverageFixtures::INLINE_RB)
+      end
+
+      it "preserves the ternary's explicit else on the condition's line" do
+        # Both arms of the ternary on line 3 must still be present, alongside
+        # the multi-line if/else's two arms.
+        expect(source_file.total_branches.size).to eq 4
+
+        # Specifically: line 3 still reports both :then and :else.
+        line_3_types = source_file.branches_for_line(3).map(&:first).sort
+        expect(line_3_types).to eq %i[else then]
+      end
+    end
+
+    # Regression guard for the `if`-without-else (postfix `return if cond`)
+    # shape — synthetic else here reuses the parent condition's full range
+    # and SHOULD drop. Pairs with the previous spec so that both the
+    # synthetic-on-the-condition-line case and the explicit-on-the-
+    # condition-line case are exercised by the same heuristic.
+    describe "a file with `if`/`unless` constructs (postfix and block)" do
+      subject(:source_file) do
+        described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
+      end
+
+      it "drops the postfix `if`'s synthetic else but keeps the block `if`'s explicit else" do
+        # BRANCHES_RB has three :if conditions:
+        #   line 3: `return if arg < 0` → synthetic else (full-range match, drops)
+        #   line 5: `arg == 42 ? :yes : :no` → explicit else (narrower cols, keeps)
+        #   lines 7-11: `if arg.odd? ... else ... end` → explicit else (keeps)
+        else_lines = source_file.branches.select { |b| b.type == :else }.map(&:start_line)
+        expect(else_lines).to contain_exactly(5, 10) # postfix-if's synthetic else at line 3 is gone
+      end
+    end
+  end
+
   context "when a file with if/elsif" do
     subject(:source_file) do
       described_class.new(source_fixture("elsif.rb"), CoverageFixtures::ELSIF_RB)

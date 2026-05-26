@@ -816,6 +816,53 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#ignore_branches" do
+      it "defaults to empty" do
+        expect(config.ignored_branches).to eq []
+      end
+
+      it "stores a single token" do
+        config.ignore_branches :implicit_else
+
+        expect(config.ignored_branches).to eq [:implicit_else]
+        expect(config.ignored_branch?(:implicit_else)).to be true
+      end
+
+      it "is variadic and unions across calls" do
+        config.ignore_branches :implicit_else
+        config.ignore_branches :implicit_else # duplicate is a no-op
+
+        expect(config.ignored_branches).to eq [:implicit_else]
+      end
+
+      it "raises on an unknown token" do
+        expect { config.ignore_branches :implict_else }
+          .to raise_error(SimpleCov::ConfigurationError, /Unsupported branch type :implict_else/)
+      end
+
+      it "names the supported tokens in the error message" do
+        expect { config.ignore_branches :nope }
+          .to raise_error(SimpleCov::ConfigurationError, /supported values are \[:implicit_else\]/)
+      end
+
+      it "stores the setting even when branch coverage is not enabled" do
+        # Branch coverage is off by default; only :line is in coverage_criteria.
+        expect(config.coverage_criteria).to contain_exactly :line
+        config.ignore_branches :implicit_else
+
+        # No raise, setting persists for later.
+        expect(config.ignored_branch?(:implicit_else)).to be true
+      end
+
+      it "is order-independent with respect to enable_coverage" do
+        config.ignore_branches :implicit_else
+        config.enable_coverage :branch
+
+        expect(config.coverage_criteria).to include :branch
+        expect(config.ignored_branch?(:implicit_else)).to be true
+      end
+    end
+
     describe "#disable_coverage" do
       it "removes the criterion from the enabled set" do
         config.enable_coverage :branch
