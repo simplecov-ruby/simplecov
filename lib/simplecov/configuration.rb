@@ -806,6 +806,45 @@ module SimpleCov
       @primary_coverage = nil if @primary_coverage == criterion
     end
 
+    # Branch coverage entries that should not count toward the report when
+    # they appear in the raw `Coverage.result`. The only currently supported
+    # token is `:implicit_else` — synthetic `else` arms that Ruby's Coverage
+    # library reports for constructs without a literal `else` keyword (e.g.
+    # `case/in` without `else`, `case/when` without `else`, `||=`, `&&=`,
+    # and `if` without `else`). They show up as "missed" branches and
+    # depress the branch-coverage percentage even though the source has no
+    # corresponding code to exercise. See #1033.
+    #
+    # Variadic — pass one or more tokens. Multiple calls union:
+    #
+    #     SimpleCov.start do
+    #       enable_coverage :branch
+    #       ignore_branches :implicit_else
+    #     end
+    #
+    # The setting is recorded regardless of whether branch coverage is
+    # enabled at call time, so call order doesn't matter:
+    # `ignore_branches :implicit_else` before `enable_coverage :branch`
+    # (or vice versa) both apply the filter. If branch coverage is never
+    # enabled, the stored setting has nothing to filter and produces no
+    # observable change in the report. Unknown tokens raise
+    # `SimpleCov::ConfigurationError` immediately to catch typos.
+    IGNORABLE_BRANCH_TYPES = %i[implicit_else].freeze
+
+    def ignore_branches(*types)
+      types.each { |type| raise_if_branch_type_unsupported(type) }
+      ignored_branches.concat(types).uniq!
+      ignored_branches
+    end
+
+    def ignored_branches
+      @ignored_branches ||= []
+    end
+
+    def ignored_branch?(type)
+      ignored_branches.include?(type)
+    end
+
     def primary_coverage(criterion = nil)
       if criterion.nil?
         @primary_coverage ||= default_primary_coverage
@@ -921,6 +960,14 @@ module SimpleCov
 
       raise SimpleCov::ConfigurationError,
             "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+    end
+
+    def raise_if_branch_type_unsupported(type)
+      return if IGNORABLE_BRANCH_TYPES.member?(type)
+
+      raise SimpleCov::ConfigurationError,
+            "Unsupported branch type #{type.inspect} for `ignore_branches`; " \
+            "supported values are #{IGNORABLE_BRANCH_TYPES.inspect}"
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)

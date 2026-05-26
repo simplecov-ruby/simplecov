@@ -380,6 +380,28 @@ Note that even if you don't declare an `else` branch, it will still show up in t
 reports, meaning that the condition of the `if` was not hit or that no `when` of `case`
 was hit during the test runs.
 
+### Ignoring implicit `else` branches
+
+Ruby's `Coverage` library reports an `:else` branch for several syntactic
+constructs even when the source has no literal `else` keyword — exhaustive
+`case/in` pattern matches, `case/when` without an `else` arm, `||=` / `&&=`,
+and `if` / `unless` without an `else`. Those synthetic branches show up as
+missed and depress the branch-coverage percentage despite there being no
+code to test. If your style relies on exhaustive pattern matching (or you
+just want `||=` to stop tanking coverage), opt out:
+
+```ruby
+SimpleCov.start do
+  enable_coverage :branch
+  ignore_branches :implicit_else
+end
+```
+
+`ignore_branches` is variadic — only `:implicit_else` is currently supported, but the
+shape leaves room for future synthetic branch types. Calling it before (or without)
+`enable_coverage :branch` is harmless: the setting is stored and applies once branch
+coverage is enabled. Explicit `else` arms still count.
+
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
 conditionals - meaning coverage of sequential code is of no interest to it. A file without
 conditional logic will have no branch coverage data and SimpleCov will report 0 of 0
