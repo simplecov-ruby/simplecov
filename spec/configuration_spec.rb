@@ -209,6 +209,16 @@ RSpec.describe SimpleCov::Configuration do
       expect(stderr).to include("`SimpleCov.cover \"lib/**/*.rb\"`")
     end
 
+    # `track_files(nil)` clears the legacy glob, but `cover(nil)` raises —
+    # don't point users at an invalid call. Copilot review on #1188.
+    it "suggests cover_filters.clear when called with nil to clear the glob" do
+      stderr = capture_stderr { config.track_files(nil) }
+
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("`SimpleCov.cover_filters.clear`")
+      expect(stderr).not_to include("`SimpleCov.cover nil`")
+    end
+
     describe "#cover" do
       it "stores a string glob as a GlobFilter" do
         config.cover "lib/**/*.rb"
@@ -255,6 +265,21 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.cover_filters.first).to be_a(SimpleCov::ArrayFilter)
       end
 
+      # Without recursion, `cover_globs.grep(GlobFilter)` only saw the top-level
+      # filters, so an array-wrapped glob silently failed to drive unloaded-file
+      # discovery (Copilot review on #1188).
+      it "collects globs nested inside an ArrayFilter for unloaded-file discovery" do
+        config.cover(["lib/**/*.rb", /_helper\.rb\z/])
+
+        expect(config.cover_globs).to eq ["lib/**/*.rb"]
+      end
+
+      it "ignores non-glob cover filters when collecting globs (Regexp, Block)" do
+        config.cover(/_service\.rb\z/) { |sf| sf.filename.end_with?("foo.rb") }
+
+        expect(config.cover_globs).to be_empty
+      end
+
       it "raises on unsupported argument types" do
         expect { config.cover(42) }.to raise_error(SimpleCov::ConfigurationError, /Unsupported `cover` argument/)
       end
@@ -279,6 +304,16 @@ RSpec.describe SimpleCov::Configuration do
         expect(stderr).to include("`SimpleCov.skip \"lib/legacy\"`")
         expect(config.filters.size).to eq 1
       end
+
+      # The default warning interpolates `filter_argument.inspect`, which is
+      # `nil` for the block form (`add_filter { ... }`); suggest the block
+      # form spelling instead. Copilot review on #1188.
+      it "suggests the block form when a block was given" do
+        stderr = capture_stderr { config.add_filter { |sf| sf.filename.include?("legacy") } }
+
+        expect(stderr).to include("`SimpleCov.skip { ... }`")
+        expect(stderr).not_to include("nil")
+      end
     end
 
     describe "#group" do
@@ -298,6 +333,15 @@ RSpec.describe SimpleCov::Configuration do
         expect(stderr).to include("`SimpleCov.add_group`")
         expect(stderr).to include("`SimpleCov.group \"Models\", \"app/models\"`")
         expect(config.groups.keys).to eq ["Models"]
+      end
+
+      # `add_group "Name" { ... }` would otherwise display as
+      # `SimpleCov.group "Name", nil`, dropping the block. Copilot review on #1188.
+      it "suggests the block form when a block was given" do
+        stderr = capture_stderr { config.add_group("Other") { |sf| sf.filename.include?("xyz") } }
+
+        expect(stderr).to include("`SimpleCov.group \"Other\" { ... }`")
+        expect(stderr).not_to include('"Other", nil')
       end
     end
 

@@ -110,8 +110,12 @@ module SimpleCov
     # matching a `cover` glob appear in the report even when they were
     # never required during the suite.
     #
+    # Walks into `ArrayFilter` entries (built when a caller passes an
+    # array to `cover`) so a glob nested inside `cover(["lib/**/*.rb",
+    # /helper\.rb\z/])` still drives unloaded-file discovery.
+    #
     def cover_globs
-      cover_filters.grep(SimpleCov::GlobFilter).map(&:filter_argument)
+      collect_cover_globs(cover_filters)
     end
 
     #
@@ -125,11 +129,25 @@ module SimpleCov
     #
     def track_files(glob)
       warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.track_files` is deprecated. " \
-           "Replace with `SimpleCov.cover #{glob.inspect}` — `cover` includes unloaded files on disk " \
-           "(the historical `track_files` behavior) and also restricts the report to the matching set. " \
-           "If you want to keep additional files outside #{glob.inspect} in the report, pass every " \
-           "directory you care about, e.g. `cover #{glob.inspect}, \"app/**/*.rb\"`."
+           "#{track_files_replacement_hint(glob)}"
       @tracked_files = glob
+    end
+
+    # `track_files(nil)` is the documented way to clear a previously-set
+    # glob, but `cover(nil)` raises `ConfigurationError`, so don't point
+    # users at it. The `cover` API has no direct equivalent for "reset
+    # the inclusion list" — `clear_filters` and `no_default_skips`
+    # operate on the skip chain, not the cover chain. Point users at the
+    # `@cover_filters` reset instead.
+    def track_files_replacement_hint(glob)
+      if glob.nil?
+        "Replace with `SimpleCov.cover_filters.clear` — clearing the inclusion list."
+      else
+        "Replace with `SimpleCov.cover #{glob.inspect}` — `cover` includes unloaded files on disk " \
+          "(the historical `track_files` behavior) and also restricts the report to the matching set. " \
+          "If you want to keep additional files outside #{glob.inspect} in the report, pass every " \
+          "directory you care about, e.g. `cover #{glob.inspect}, \"app/**/*.rb\"`."
+      end
     end
 
     #
@@ -652,11 +670,11 @@ module SimpleCov
     #
     # DEPRECATED: alias for `skip`. Same matcher grammar, identical behavior.
     #
-    def add_filter(filter_argument = nil, &)
+    def add_filter(filter_argument = nil, &block)
+      example = block ? "`SimpleCov.skip { ... }`" : "`SimpleCov.skip #{filter_argument.inspect}`"
       warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_filter` is deprecated. " \
-           "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: " \
-           "`SimpleCov.skip #{filter_argument.inspect}`."
-      skip(filter_argument, &)
+           "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}."
+      skip(filter_argument, &block)
     end
 
     #
@@ -699,11 +717,15 @@ module SimpleCov
     #
     # DEPRECATED: alias for `group`. Same arguments, same behavior.
     #
-    def add_group(group_name, filter_argument = nil, &)
+    def add_group(group_name, filter_argument = nil, &block)
+      example = if block
+                  "`SimpleCov.group #{group_name.inspect} { ... }`"
+                else
+                  "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`"
+                end
       warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_group` is deprecated. " \
-           "Replace with `SimpleCov.group` (same arguments, same behavior). Example: " \
-           "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`."
-      group(group_name, filter_argument, &)
+           "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
+      group(group_name, filter_argument, &block)
     end
 
     #
@@ -969,6 +991,18 @@ module SimpleCov
       else raise SimpleCov::ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
                                                 "expected a String glob, Regexp, Proc, " \
                                                 "SimpleCov::Filter, or Array of those."
+      end
+    end
+
+    # Walk a list of cover filters and return the string globs they hold,
+    # descending into `ArrayFilter` wrappers built by `cover(["a", "b"])`.
+    def collect_cover_globs(filter_list)
+      filter_list.flat_map do |filter|
+        case filter
+        when SimpleCov::GlobFilter  then filter.filter_argument
+        when SimpleCov::ArrayFilter then collect_cover_globs(filter.filter_argument)
+        else []
+        end
       end
     end
   end

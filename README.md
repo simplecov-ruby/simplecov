@@ -319,8 +319,8 @@ starts it:
 ```ruby
 # .simplecov — configuration only
 SimpleCov.profiles.load 'rails'
-add_filter 'lib/generators'
-add_group 'Models', 'app/models'
+skip 'lib/generators'
+group 'Models', 'app/models'
 
 # spec/spec_helper.rb
 require 'simplecov'
@@ -445,7 +445,7 @@ You can measure coverage for code that is evaluated by `Kernel#eval`. Supported 
 
 ```ruby
 SimpleCov.start do
-  enable_coverage_for_eval
+  enable_coverage :eval
 end
 ```
 
@@ -481,7 +481,7 @@ end
 ```
 
 `remove_filter` matches by value, so you pass back the same `String` or `Regexp` the default profile used. For filters
-added with a block, pass the same `Proc` object you originally handed to `add_filter`.
+added with a block, pass the same `Proc` object you originally handed to `skip`.
 
 You can also define your own filters to remove things like configuration files, tests, or anything else you don't need
 in your coverage report.
@@ -495,7 +495,7 @@ file's path), a block or by passing in your own Filter class.
 
 ```ruby
 SimpleCov.start do
-  add_filter "/test/"
+  skip "/test/"
 end
 ```
 
@@ -505,7 +505,7 @@ This simple string filter will remove all files that match "/test/" in their pat
 
 ```ruby
 SimpleCov.start do
-  add_filter %r{^/test/}
+  skip %r{^/test/}
 end
 ```
 
@@ -515,7 +515,7 @@ This simple regex filter will remove all files that start with /test/ in their p
 
 ```ruby
 SimpleCov.start do
-  add_filter do |source_file|
+  skip do |source_file|
     source_file.lines.count < 5
   end
 end
@@ -535,7 +535,7 @@ class LineFilter < SimpleCov::Filter
   end
 end
 
-SimpleCov.add_filter LineFilter.new(5)
+SimpleCov.skip LineFilter.new(5)
 ```
 
 Defining your own filters is pretty easy: Just inherit from SimpleCov::Filter and define a method
@@ -548,7 +548,7 @@ given source_file. The filter_argument method is being set in the SimpleCov::Fil
 ```ruby
 SimpleCov.start do
   proc = Proc.new { |source_file| false }
-  add_filter ["string", /regex/, proc, LineFilter.new(5)]
+  skip ["string", /regex/, proc, LineFilter.new(5)]
 end
 ```
 
@@ -603,7 +603,7 @@ works when there is no useful common ancestor — and then express the inclusion
 ```ruby
 SimpleCov.root '/'
 SimpleCov.start :rails do
-  add_filter { |src| !src.filename.start_with?(Rails.root.to_s, '/path/to/my_engine') }
+  skip { |src| !src.filename.start_with?(Rails.root.to_s, '/path/to/my_engine') }
 end
 ```
 
@@ -634,13 +634,13 @@ Add your groups with:
 
 ```ruby
 SimpleCov.start do
-  add_group "Models", "app/models"
-  add_group "Controllers", "app/controllers"
-  add_group "Long files" do |src_file|
+  group "Models", "app/models"
+  group "Controllers", "app/controllers"
+  group "Long files" do |src_file|
     src_file.lines.count > 100
   end
-  add_group "Multiple Files", ["app/models", "app/controllers"] # You can also pass in an array
-  add_group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
+  group "Multiple Files", ["app/models", "app/controllers"] # You can also pass in an array
+  group "Short files", LineFilter.new(5) # Using the LineFilter class defined in Filters section above
 end
 ```
 
@@ -721,7 +721,7 @@ subsequent test runs, result sets that are older than `SimpleCov.merge_timeout` 
 the timeout is 600 seconds (10 minutes), and you can raise (or lower) it by specifying `SimpleCov.merge_timeout 3600`
 (1 hour), or, inside a configure/start block, with just `merge_timeout 3600`.
 
-You can deactivate this automatic merging altogether with `SimpleCov.use_merging false`.
+You can deactivate this automatic merging altogether with `SimpleCov.merging false`.
 
 ### Merging test runs under different execution environments
 
@@ -765,7 +765,7 @@ SimpleCov.start 'rails' do
     ])
   end
 
-  track_files "**/*.rb"
+  cover "**/*.rb"
 end
 ```
 
@@ -787,19 +787,19 @@ end
 
 ## Running simplecov against subprocesses
 
-`SimpleCov.enable_for_subprocesses` will allow SimpleCov to observe subprocesses starting using `Process.fork`.
+`SimpleCov.merge_subprocesses` will allow SimpleCov to observe subprocesses starting using `Process.fork`.
 This modifies Ruby's core Process.fork method so that SimpleCov can see into it, appending `" (subprocess #{pid})"`
 to the `SimpleCov.command_name`, with results that can be merged together using SimpleCov's merging feature.
 
 To configure this, use `.at_fork`.
 
 ```ruby
-SimpleCov.enable_for_subprocesses true
+SimpleCov.merge_subprocesses true
 SimpleCov.at_fork do |pid|
   # This needs a unique name so it won't be overwritten
   SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
   # be quiet, the parent process will be in charge of output and checking coverage totals
-  SimpleCov.print_error_status = false
+  SimpleCov.print_errors false
   SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
   SimpleCov.minimum_coverage 0
   # start
@@ -870,7 +870,7 @@ SimpleCov failed with exit 1
 This `STDERR` message can be disabled with:
 
 ```
-SimpleCov.print_error_status = false
+SimpleCov.print_errors false
 ```
 
 ## Profiles
@@ -884,13 +884,13 @@ comes bundled with a 'rails' profile. It looks somewhat like this:
 
 ```ruby
 SimpleCov.profiles.define 'rails' do
-  add_filter '/test/'
-  add_filter '/config/'
+  skip '/test/'
+  skip '/config/'
 
-  add_group 'Controllers', 'app/controllers'
-  add_group 'Models', 'app/models'
-  add_group 'Helpers', 'app/helpers'
-  add_group 'Libraries', 'lib'
+  group 'Controllers', 'app/controllers'
+  group 'Models', 'app/models'
+  group 'Helpers', 'app/helpers'
+  group 'Libraries', 'lib'
 end
 ```
 
@@ -940,7 +940,7 @@ existing profile and customize it so you can reuse it in unit tests and Cucumber
 require 'simplecov'
 SimpleCov.profiles.define 'myprofile' do
   load_profile 'rails'
-  add_filter 'vendor' # Don't include vendored stuff
+  skip 'vendor' # Don't include vendored stuff
 end
 
 # features/support/env.rb
@@ -1298,10 +1298,12 @@ Two ways to make the report deterministic:
 
 - Set `config.eager_load = true` everywhere in `test.rb` (slower locally
   but matches CI, and matches what users actually see in production).
-- Stick with the `rails` profile's bundled
-  `track_files "{app,lib}/**/*.rb"` so unloaded files are folded into the
-  report at 0% on every run, regardless of eager_load. (`track_files` is
-  resolved relative to `SimpleCov.root`, not the test runner's cwd.)
+- Stick with the `rails` profile, which folds `{app,lib}/**/*.rb` into the
+  report at 0% on every run regardless of eager_load. (The profile resolves
+  the glob relative to `SimpleCov.root`, not the test runner's cwd.) Outside
+  the profile, the new spelling is `cover "{app,lib}/**/*.rb"` — see the
+  legacy-API migration table above for the relationship with the older
+  `track_files`.
 
 ## Troubleshooting
 
