@@ -319,8 +319,8 @@ starts it:
 ```ruby
 # .simplecov — configuration only
 SimpleCov.profiles.load 'rails'
-skip 'lib/generators'
-group 'Models', 'app/models'
+SimpleCov.skip 'lib/generators'
+SimpleCov.group 'Models', 'app/models'
 
 # spec/spec_helper.rb
 require 'simplecov'
