@@ -6,6 +6,6 @@ SimpleCov.profiles.define "root_filter" do
   # place; this profile is the user-facing entry point that tools like
   # `SimpleCov.filtered` apply.
   skip do |src|
-    src.filename !~ SimpleCov::UselessResultsRemover.root_regx
+    src.filename !~ SimpleCov::UselessResultsRemover.root_regex
   end
 end

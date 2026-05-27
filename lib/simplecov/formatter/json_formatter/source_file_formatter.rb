@@ -37,8 +37,8 @@ module SimpleCov
         end
 
         def line_coverage_section
-          covered = @source_file.covered_lines.count
-          missed = @source_file.missed_lines.count
+          covered = @source_file.covered_lines.size
+          missed = @source_file.missed_lines.size
           {
             lines: @source_file.lines.map { |line| format_line(line) },
             lines_covered_percent: @source_file.covered_percent,
@@ -52,9 +52,9 @@ module SimpleCov
           {
             branches: @source_file.branches.map { |branch| format_branch(branch) },
             branches_covered_percent: @source_file.branches_coverage_percent,
-            covered_branches: @source_file.covered_branches.count,
-            missed_branches: @source_file.missed_branches.count,
-            total_branches: @source_file.total_branches.count
+            covered_branches: @source_file.covered_branches.size,
+            missed_branches: @source_file.missed_branches.size,
+            total_branches: @source_file.total_branches.size
           }
         end
 
@@ -62,9 +62,9 @@ module SimpleCov
           {
             methods: @source_file.methods.map { |method| format_method(method) },
             methods_covered_percent: @source_file.methods_coverage_percent,
-            covered_methods: @source_file.covered_methods.count,
-            missed_methods: @source_file.missed_methods.count,
-            total_methods: @source_file.methods.count
+            covered_methods: @source_file.covered_methods.size,
+            missed_methods: @source_file.missed_methods.size,
+            total_methods: @source_file.methods.size
           }
         end
 

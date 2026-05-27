@@ -22,8 +22,7 @@ module SimpleCov
       # When parallel_tests (or a compatible runner) is driving the suite,
       # tag the command name with this worker's position in the pool.
       def parallel_data
-        groups = ENV.fetch("PARALLEL_TEST_GROUPS", nil)
-        number = ENV.fetch("TEST_ENV_NUMBER", nil)
+        groups, number = ENV.values_at("PARALLEL_TEST_GROUPS", "TEST_ENV_NUMBER")
         return unless groups && number
 
         # parallel_tests sets the first worker's TEST_ENV_NUMBER to "" rather

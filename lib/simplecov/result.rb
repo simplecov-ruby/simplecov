@@ -132,8 +132,7 @@ module SimpleCov
     end
 
     def coverage
-      keys = original_result.keys & filenames
-      keys.zip(original_result.values_at(*keys)).to_h
+      original_result.slice(*filenames)
     end
 
     # Applies the given filter chain to `@files`, dropping each source

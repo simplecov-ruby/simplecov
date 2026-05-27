@@ -45,14 +45,14 @@ module SimpleCov
     def never_lines
       return 0.0 if empty?
 
-      sum { |f| f.never_lines.count }
+      sum { |f| f.never_lines.size }
     end
 
     # Returns the count of skipped lines
     def skipped_lines
       return 0.0 if empty?
 
-      sum { |f| f.skipped_lines.count }
+      sum { |f| f.skipped_lines.size }
     end
 
     # Computes the coverage based upon lines covered and lines missed for each file

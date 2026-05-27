@@ -67,7 +67,7 @@ module SimpleCov
         SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
       end
 
-      in_group  = grouped.values.flat_map(&:to_a)
+      in_group  = grouped_file_set(grouped)
       ungrouped = files.reject { |source_file| in_group.include?(source_file) }
       grouped["Ungrouped"] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
 
@@ -104,6 +104,10 @@ module SimpleCov
       configure(&block) if block
     end
 
+    def grouped_file_set(grouped)
+      grouped.values.each_with_object(Set.new) { |file_list, set| set.merge(file_list) }
+    end
+
     # Finds files that were to be tracked but were not loaded, and
     # initializes their line-by-line coverage to zero (or nil for
     # comments / whitespace).
@@ -119,10 +123,7 @@ module SimpleCov
     # with every string glob declared via `cover` (also restrictive,
     # but the restriction lives in `Result#apply_cover_filters!`).
     def unloaded_file_discovery_globs
-      globs = []
-      globs << tracked_files if tracked_files
-      globs.concat(cover_globs)
-      globs
+      [tracked_files, *cover_globs].compact
     end
 
     # Expand the given globs relative to SimpleCov.root, not Dir.pwd —
