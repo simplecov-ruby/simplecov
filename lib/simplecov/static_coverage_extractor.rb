@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 begin
   require "prism"
 rescue LoadError
@@ -68,6 +70,35 @@ module SimpleCov
       # input that Prism accepts at parse time.
       nil
       # simplecov:enable line
+    end
+
+    # Summarize a source file's REAL branch and method positions, for the
+    # `:eval_generated` filter (SimpleCov.ignore_branches /
+    # SimpleCov.ignore_methods, #1046). Returns a hash:
+    #
+    #   {
+    #     branches: Set[start_line, ...],         # e.g., [3, 12, 20]
+    #     methods:  Set[[name, start_line], ...]  # e.g., [[:foo, 7], [:bar, 13]]
+    #   }
+    #
+    # Branch matching is start_line-only because Coverage's condition type
+    # vocabulary (`:if`, `:unless`, `:case`, `:while`, `:until`) does not
+    # always match Prism's emitted type (the existing visitor reports
+    # `:if` for `unless` and ternary). Coincidental line-sharing between
+    # a real branch and an eval-generated one will keep both, which is
+    # an acceptable false-negative for an opt-in filter. Method matching
+    # uses (name, start_line) since a method name is unique at any line.
+    #
+    # Returns nil when Prism is unavailable or parsing fails, signaling
+    # callers to keep every Coverage entry (no false drops).
+    def real_source_positions(source)
+      extracted = call(source)
+      return nil unless extracted
+
+      {
+        branches: extracted["branches"].keys.to_set { |tuple| tuple[2] },
+        methods: extracted["methods"].keys.to_set { |tuple| [tuple[1], tuple[2]] }
+      }
     end
 
     # simplecov:disable branch

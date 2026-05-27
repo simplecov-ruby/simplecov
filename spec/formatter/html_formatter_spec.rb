@@ -329,7 +329,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     it "computes the expected total line-coverage percentage" do
-      expect(coverage_data["total"]["lines"]["percent"]).to be_within(0.01).of(74.12)
+      expect(coverage_data["total"]["lines"]["percent"]).to be_within(0.01).of(75.28)
     end
 
     it "reports the expected per-file line coverages" do
@@ -338,7 +338,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
       expect(formatted).to eq %w[
         57.14% 64.28% 66.66% 66.66% 80.00% 85.71%
-        85.71% 85.71% 100.00% 100.00% 100.00% 100.00%
+        85.71% 85.71% 100.00% 100.00% 100.00% 100.00% 100.00%
       ]
     end
 
@@ -358,7 +358,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       formatted = pcts.map { |p| format("%.2f%%", (p * 100).floor / 100.0) }.sort_by(&:to_f)
 
       expect(formatted).to eq %w[
-        25.00% 25.00% 45.83% 50.00% 50.00% 50.00%
+        25.00% 25.00% 45.83% 50.00% 50.00% 50.00% 50.00%
         60.00% 75.00% 100.00% 100.00% 100.00% 100.00%
       ]
     end

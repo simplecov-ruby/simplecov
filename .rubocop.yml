@@ -55,11 +55,11 @@ Metrics/BlockNesting:
   Max: 2
 
 Metrics/ClassLength:
-  Max: 320
+  Max: 330
 
 Metrics/ModuleLength:
   Description: Avoid modules longer than 100 lines of code.
-  Max: 420
+  Max: 440
   Exclude:
     - "lib/simplecov.rb"
 

@@ -842,7 +842,7 @@ RSpec.describe SimpleCov::Configuration do
 
       it "names the supported tokens in the error message" do
         expect { config.ignore_branches :nope }
-          .to raise_error(SimpleCov::ConfigurationError, /supported values are \[:implicit_else\]/)
+          .to raise_error(SimpleCov::ConfigurationError, /Supported values are \[:implicit_else, :eval_generated\]/)
       end
 
       it "stores the setting even when branch coverage is not enabled" do
@@ -860,6 +860,46 @@ RSpec.describe SimpleCov::Configuration do
 
         expect(config.coverage_criteria).to include :branch
         expect(config.ignored_branch?(:implicit_else)).to be true
+      end
+
+      it "accepts :eval_generated alongside :implicit_else" do
+        config.ignore_branches :implicit_else, :eval_generated
+
+        expect(config.ignored_branch?(:implicit_else)).to be true
+        expect(config.ignored_branch?(:eval_generated)).to be true
+      end
+    end
+
+    describe "#ignore_methods" do
+      it "starts empty" do
+        expect(config.ignored_methods).to eq []
+      end
+
+      it "records the requested token" do
+        config.ignore_methods :eval_generated
+
+        expect(config.ignored_methods).to eq [:eval_generated]
+        expect(config.ignored_method?(:eval_generated)).to be true
+      end
+
+      it "deduplicates across calls" do
+        config.ignore_methods :eval_generated
+        config.ignore_methods :eval_generated
+
+        expect(config.ignored_methods).to eq [:eval_generated]
+      end
+
+      it "raises on an unknown token" do
+        expect { config.ignore_methods :nope }
+          .to raise_error(SimpleCov::ConfigurationError,
+                          /Unsupported method type :nope.*Supported values are \[:eval_generated\]/m)
+      end
+
+      it "stores the setting even when method coverage is not enabled" do
+        expect(config.coverage_criteria).to contain_exactly :line
+        config.ignore_methods :eval_generated
+
+        expect(config.ignored_method?(:eval_generated)).to be true
       end
     end
 

@@ -3,6 +3,7 @@
 require "ripper"
 require "set"
 require_relative "directive"
+require_relative "static_coverage_extractor"
 
 module SimpleCov
   #
@@ -335,10 +336,34 @@ module SimpleCov
     def build_branches
       coverage_branch_data = coverage_data["branches"] || {}
       branches = coverage_branch_data.flat_map do |condition, coverage_branches|
+        next [] if eval_generated_condition_to_ignore?(condition)
+
         build_branches_from(condition, coverage_branches)
       end
 
       process_skipped_branches(branches)
+    end
+
+    # Detect a Coverage-reported branch condition that originates from
+    # `eval`/`module_eval`/`class_eval`/`instance_eval` rather than from
+    # the file's literal source. Coverage attributes such branches to the
+    # caller's `__FILE__`/`__LINE__`, so a Rails `delegate :foo, to: :bar`
+    # call surfaces inside the source file as if there were branches at
+    # the `delegate` line. Prism never sees those branches in the static
+    # source, so a condition whose start_line isn't in the real-source
+    # branch set must be eval-generated. Only consulted when the user has
+    # opted in via `SimpleCov.ignore_branches :eval_generated`. See #1046.
+    def eval_generated_condition_to_ignore?(condition)
+      return false unless SimpleCov.ignored_branch?(:eval_generated)
+
+      positions = real_source_positions
+      # simplecov:disable branch — nil branch fires only when Prism is unavailable
+      return false unless positions
+
+      # simplecov:enable branch
+
+      _type, _id, start_line, * = restore_ruby_data_structure(condition)
+      !positions[:branches].include?(start_line)
     end
 
     def process_skipped_branches(branches)
@@ -511,12 +536,44 @@ module SimpleCov
     end
 
     def build_methods
-      methods = coverage_data.fetch("methods", {}).map do |info, hit_count|
+      methods = coverage_data.fetch("methods", {}).filter_map do |info, hit_count|
         info = restore_ruby_data_structure(info)
+        next if eval_generated_method_to_ignore?(info)
+
         SourceFile::Method.new(self, info, hit_count)
       end
 
       process_skipped_methods(methods)
+    end
+
+    # See `eval_generated_condition_to_ignore?` for the rationale. Coverage
+    # reports an eval'd `def` at the eval caller's line and name, so a
+    # method whose `(name, start_line)` is absent from the real-source
+    # `def` set is eval-generated. Only consulted when the user has opted
+    # in via `SimpleCov.ignore_methods :eval_generated`. See #1046.
+    def eval_generated_method_to_ignore?(info)
+      return false unless SimpleCov.ignored_method?(:eval_generated)
+
+      positions = real_source_positions
+      # simplecov:disable branch — nil branch fires only when Prism is unavailable
+      return false unless positions
+
+      # simplecov:enable branch
+
+      _class_name, name, start_line, * = info
+      !positions[:methods].include?([name, start_line])
+    end
+
+    # Memoize the Prism-derived set of real source positions (branches at
+    # which lines, methods at which (name, line) pairs). Returns nil when
+    # Prism is unavailable on this Ruby (older than 3.3 without the gem)
+    # or when parsing fails. A nil return makes both eval_generated
+    # filters short-circuit to "keep everything" — no false drops when
+    # we can't see the static source clearly.
+    def real_source_positions
+      return @real_source_positions if defined?(@real_source_positions)
+
+      @real_source_positions = StaticCoverageExtractor.real_source_positions(src.join)
     end
 
     def process_skipped_methods(methods)
