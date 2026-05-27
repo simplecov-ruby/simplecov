@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "time"
+require_relative "errors_formatter"
+require_relative "source_file_formatter"
 
 module SimpleCov
   module Formatter
@@ -13,97 +15,26 @@ module SimpleCov
         end
 
         def format
-          format_total
-          format_files
-          format_groups
-          format_errors
-
-          formatted_result
+          {
+            meta: format_meta,
+            total: format_coverage_statistics(@result.coverage_statistics),
+            coverage: format_files,
+            groups: format_groups,
+            errors: ErrorsFormatter.new(@result).call
+          }
         end
 
       private
 
-        def format_total
-          formatted_result[:total] = format_coverage_statistics(@result.coverage_statistics)
-        end
-
         def format_files
-          @result.files.each do |source_file|
-            formatted_result[:coverage][source_file.project_filename] =
-              format_source_file(source_file)
-          end
+          @result.files.to_h { |source_file| [source_file.project_filename, SourceFileFormatter.new(source_file).call] }
         end
 
         def format_groups
-          @result.groups.each do |name, file_list|
-            group_data = format_coverage_statistics(file_list.coverage_statistics)
-            group_data[:files] = file_list.map(&:project_filename)
-            formatted_result[:groups][name] = group_data
+          @result.groups.to_h do |name, file_list|
+            stats = format_coverage_statistics(file_list.coverage_statistics)
+            [name, stats.merge(files: file_list.map(&:project_filename))]
           end
-        end
-
-        def format_errors
-          format_minimum_coverage_errors
-          format_minimum_coverage_by_file_errors
-          format_minimum_coverage_by_group_errors
-          format_maximum_coverage_errors
-          format_maximum_coverage_drop_errors
-        end
-
-        CRITERION_KEYS = {line: :lines, branch: :branches, method: :methods}.freeze
-        private_constant :CRITERION_KEYS
-
-        def format_minimum_coverage_errors
-          SimpleCov::CoverageViolations.minimum_overall(@result, SimpleCov.minimum_coverage).each do |violation|
-            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-            bucket = formatted_result[:errors][:minimum_coverage] ||= {}
-            bucket[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
-          end
-        end
-
-        def format_minimum_coverage_by_file_errors
-          violations = SimpleCov::CoverageViolations.minimum_by_file(
-            @result, SimpleCov.minimum_coverage_by_file, SimpleCov.minimum_coverage_by_file_overrides
-          )
-          violations.each { |violation| record_minimum_coverage_by_file_error(violation) }
-        end
-
-        def record_minimum_coverage_by_file_error(violation)
-          key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-          bucket = formatted_result[:errors][:minimum_coverage_by_file] ||= {}
-          criterion_errors = bucket[key] ||= {}
-          criterion_errors[violation.fetch(:project_filename)] =
-            {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
-        end
-
-        def format_minimum_coverage_by_group_errors
-          violations = SimpleCov::CoverageViolations.minimum_by_group(@result, SimpleCov.minimum_coverage_by_group)
-          violations.each do |violation|
-            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-            bucket = formatted_result[:errors][:minimum_coverage_by_group] ||= {}
-            group_errors = bucket[violation.fetch(:group_name)] ||= {}
-            group_errors[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
-          end
-        end
-
-        def format_maximum_coverage_errors
-          SimpleCov::CoverageViolations.maximum_overall(@result, SimpleCov.maximum_coverage).each do |violation|
-            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-            bucket = formatted_result[:errors][:maximum_coverage] ||= {}
-            bucket[key] = {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
-          end
-        end
-
-        def format_maximum_coverage_drop_errors
-          SimpleCov::CoverageViolations.maximum_drop(@result, SimpleCov.maximum_coverage_drop).each do |violation|
-            key = CRITERION_KEYS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
-            bucket = formatted_result[:errors][:maximum_coverage_drop] ||= {}
-            bucket[key] = {maximum: violation.fetch(:maximum), actual: violation.fetch(:actual)}
-          end
-        end
-
-        def formatted_result
-          @formatted_result ||= {meta: format_meta, total: {}, coverage: {}, groups: {}, errors: {}}
         end
 
         def format_meta
@@ -115,87 +46,6 @@ module SimpleCov
             root: SimpleCov.root,
             branch_coverage: SimpleCov.branch_coverage?,
             method_coverage: SimpleCov.method_coverage?
-          }
-        end
-
-        def format_source_file(source_file)
-          result = format_source_code(source_file)
-          result.merge!(format_line_coverage(source_file)) if line_coverage_enabled?
-          result.merge!(format_branch_coverage(source_file)) if SimpleCov.branch_coverage?
-          result.merge!(format_method_coverage(source_file)) if SimpleCov.method_coverage?
-          result
-        end
-
-        # `:oneshot_line` is a synonym for `:line` for stats purposes
-        # (see `SimpleCov.coverage_statistics_key`), so treat either as
-        # "line coverage is on" for the line-block emit decisions.
-        def line_coverage_enabled?
-          SimpleCov.coverage_criterion_enabled?(:line) || SimpleCov.coverage_criterion_enabled?(:oneshot_line)
-        end
-
-        def format_source_code(source_file)
-          {source: source_file.lines.map { |line| ensure_utf8(line.src.chomp) }}
-        end
-
-        def ensure_utf8(str)
-          str.encode("UTF-8", invalid: :replace, undef: :replace)
-        end
-
-        def format_line_coverage(source_file)
-          covered = source_file.covered_lines.count
-          missed = source_file.missed_lines.count
-          {
-            lines: source_file.lines.map { |line| format_line(line) },
-            lines_covered_percent: source_file.covered_percent,
-            covered_lines: covered,
-            missed_lines: missed,
-            total_lines: covered + missed
-          }
-        end
-
-        def format_branch_coverage(source_file)
-          {
-            branches: source_file.branches.map { |branch| format_branch(branch) },
-            branches_covered_percent: source_file.branches_coverage_percent,
-            covered_branches: source_file.covered_branches.count,
-            missed_branches: source_file.missed_branches.count,
-            total_branches: source_file.total_branches.count
-          }
-        end
-
-        def format_method_coverage(source_file)
-          {
-            methods: source_file.methods.map { |method| format_method(method) },
-            methods_covered_percent: source_file.methods_coverage_percent,
-            covered_methods: source_file.covered_methods.count,
-            missed_methods: source_file.missed_methods.count,
-            total_methods: source_file.methods.count
-          }
-        end
-
-        def format_line(line)
-          return line.coverage unless line.skipped?
-
-          "ignored"
-        end
-
-        def format_branch(branch)
-          {
-            type: branch.type,
-            start_line: branch.start_line,
-            end_line: branch.end_line,
-            coverage: format_line(branch),
-            inline: branch.inline?,
-            report_line: branch.report_line
-          }
-        end
-
-        def format_method(method)
-          {
-            name: method.to_s,
-            start_line: method.start_line,
-            end_line: method.end_line,
-            coverage: format_line(method)
           }
         end
 

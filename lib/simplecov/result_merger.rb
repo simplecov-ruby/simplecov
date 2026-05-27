@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
-require "json"
+require_relative "result_merger/legacy_format_adapter"
+require_relative "result_merger/resultset_file"
+require_relative "result_merger/resultset_store"
 
 module SimpleCov
   #
@@ -10,13 +12,8 @@ module SimpleCov
   #
   module ResultMerger
     class << self
-      # The path to the .resultset.json cache file
       def resultset_path
-        File.join(SimpleCov.coverage_path, ".resultset.json")
-      end
-
-      def resultset_writelock
-        File.join(SimpleCov.coverage_path, ".resultset.json.lock")
+        ResultsetStore.resultset_path
       end
 
       def merge_and_store(*file_paths, ignore_timeout: false)
@@ -44,38 +41,14 @@ module SimpleCov
       end
 
       def valid_results(file_path, ignore_timeout: false)
-        results = parse_file(file_path)
-        merge_valid_results(results, ignore_timeout: ignore_timeout)
-      end
-
-      def parse_file(path)
-        data = read_file(path)
-        parse_json(data)
-      end
-
-      def read_file(path)
-        return unless File.exist?(path)
-
-        data = File.read(path)
-        return if data.nil? || data.length < 2
-
-        data
-      end
-
-      def parse_json(content)
-        return {} unless content
-
-        JSON.parse(content) || {}
-      rescue StandardError
-        warn "[SimpleCov]: Warning! Parsing JSON content of resultset file failed"
-        {}
+        merge_valid_results(ResultsetFile.parse(file_path), ignore_timeout: ignore_timeout)
       end
 
       def merge_valid_results(results, ignore_timeout: false)
         results = drop_expired_results(results) unless ignore_timeout
 
         command_plus_coverage = results.map do |command_name, data|
-          [[command_name], adapt_result(data.fetch("coverage"))]
+          [[command_name], LegacyFormatAdapter.call(data.fetch("coverage"))]
         end
 
         # one file itself _might_ include multiple test runs
@@ -91,7 +64,7 @@ module SimpleCov
       end
 
       def within_merge_timeout?(data)
-        time_since_result_creation(data) < SimpleCov.merge_timeout
+        (Time.now - Time.at(data.fetch("timestamp"))) < SimpleCov.merge_timeout
       end
 
       def warn_about_expired_results(expired_command_names)
@@ -99,10 +72,6 @@ module SimpleCov
              "merge_timeout (#{SimpleCov.merge_timeout}s) from the merged report: " \
              "#{expired_command_names.sort.join(', ')}. " \
              "Increase SimpleCov.merge_timeout to include them."
-      end
-
-      def time_since_result_creation(data)
-        Time.now - Time.at(data.fetch("timestamp"))
       end
 
       def create_result(command_names, coverage)
@@ -119,9 +88,7 @@ module SimpleCov
         results.reduce do |(memo_command, memo_coverage), (command, coverage)|
           # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
           merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
-          merged_command = memo_command + command
-
-          [merged_command, merged_coverage]
+          [memo_command + command, merged_coverage]
         end
       end
 
@@ -130,21 +97,13 @@ module SimpleCov
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
       def merged_result
-        # conceptually this is just doing `merge_results(resultset_path)`
-        # it's more involved to make syre `synchronize_resultset` is only used around reading
-        resultset_hash = read_resultset
-        command_names, coverage = merge_valid_results(resultset_hash)
-
+        command_names, coverage = merge_valid_results(read_resultset)
         create_result(command_names, coverage)
       end
 
       def read_resultset
-        resultset_content =
-          synchronize_resultset do
-            read_file(resultset_path)
-          end
-
-        parse_json(resultset_content)
+        content = synchronize_resultset { ResultsetFile.read(resultset_path) }
+        ResultsetFile.decode(content)
       end
 
       # Saves the given SimpleCov::Result in the resultset cache
@@ -157,7 +116,7 @@ module SimpleCov
           command_name, data = result.to_hash.first
           new_resultset[command_name] = merged_entry(new_resultset[command_name], data)
 
-          atomic_write_resultset(new_resultset)
+          ResultsetStore.write(new_resultset)
         end
         true
       end
@@ -183,54 +142,8 @@ module SimpleCov
         timestamp && process_start && timestamp.to_i >= process_start.to_i
       end
 
-      # Write to a temp file first, then atomically rename to avoid other
-      # processes reading a truncated/incomplete .resultset.json.
-      def atomic_write_resultset(resultset)
-        temp_path = "#{resultset_path}.#{Process.pid}.tmp"
-        File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(resultset) }
-        File.rename(temp_path, resultset_path)
-      end
-
-      # Ensure only one process is reading or writing the resultset at any
-      # given time
-      def synchronize_resultset
-        # make it reentrant
-        return yield if defined?(@resultset_locked) && @resultset_locked
-
-        begin
-          @resultset_locked = true
-          File.open(resultset_writelock, "w+") do |f|
-            f.flock(File::LOCK_EX)
-            yield
-          end
-        ensure
-          @resultset_locked = false
-        end
-      end
-
-      # We changed the format of the raw result data in simplecov, as people are likely
-      # to have "old" resultsets lying around (but not too old so that they're still
-      # considered we can adapt them).
-      # See https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
-      def adapt_result(result)
-        if pre_simplecov_0_18_result?(result)
-          adapt_pre_simplecov_0_18_result(result)
-        else
-          result
-        end
-      end
-
-      # pre 0.18 coverage data pointed from file directly to an array of line coverage
-      def pre_simplecov_0_18_result?(result)
-        _key, data = result.first
-
-        data.is_a?(Array)
-      end
-
-      def adapt_pre_simplecov_0_18_result(result)
-        result.transform_values do |line_coverage_data|
-          {"lines" => line_coverage_data}
-        end
+      def synchronize_resultset(&)
+        ResultsetStore.synchronize(&)
       end
     end
   end

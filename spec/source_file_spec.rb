@@ -844,7 +844,7 @@ RSpec.describe SimpleCov::SourceFile do
       described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
     end
 
-    before { described_class.nocov_warned.clear }
+    before { SimpleCov::SourceFile::SkipChunks.nocov_warned.clear }
 
     it "warns once per file with the recommended replacement" do
       stderr = capture_stderr { source_file.lines }
@@ -1285,15 +1285,15 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  describe "parse_ruby_array_string edge cases" do
-    let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
+  describe SimpleCov::SourceFile::RubyDataParser do
+    describe ".parse_array_string" do
+      it "handles negative integers via the unary path" do
+        expect(described_class.parse_array_string("[1, -2, 3]")).to eq([1, -2, 3])
+      end
 
-    it "handles negative integers via the unary path" do
-      expect(source_file.send(:parse_ruby_array_string, "[1, -2, 3]")).to eq([1, -2, 3])
-    end
-
-    it "raises when the input isn't an array literal" do
-      expect { source_file.send(:parse_ruby_array_string, "42") }.to raise_error(ArgumentError, /array literal/)
+      it "raises when the input isn't an array literal" do
+        expect { described_class.parse_array_string("42") }.to raise_error(ArgumentError, /array literal/)
+      end
     end
   end
 

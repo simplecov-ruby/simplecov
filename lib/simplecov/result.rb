@@ -2,6 +2,8 @@
 
 require "digest/sha1"
 require "forwardable"
+require_relative "result/missing_source_files_reporter"
+require_relative "result/source_file_builder"
 
 module SimpleCov
   #
@@ -44,9 +46,9 @@ module SimpleCov
       @command_name = command_name
       @created_at = created_at
       @groups_config = groups
-      @missing_source_files = []
-      @files = build_files(original_result, not_loaded_files)
-      warn_about_missing_source_files(original_result.size) if @missing_source_files.any?
+      builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
+      @files = builder.call
+      warn_about_missing_source_files(builder.missing_source_files, original_result.size)
       apply_cover_filters!(cover_filters)
       apply_filters!(filters)
     end
@@ -119,72 +121,14 @@ module SimpleCov
 
   private
 
-    def build_files(original_result, not_loaded_files)
-      SimpleCov::FileList.new(
-        original_result
-          .filter_map { |filename, coverage| build_source_file(filename, coverage, not_loaded_files) }
-          .sort_by(&:filename)
-      )
-    end
+    def warn_about_missing_source_files(missing, input_size)
+      return if missing.empty?
 
-    def build_source_file(filename, coverage, not_loaded_files)
-      unless File.file?(filename)
-        @missing_source_files << filename
-        return
-      end
-
-      SimpleCov::SourceFile.new(
-        filename,
-        stringify_outer_keys(coverage),
-        loaded: !not_loaded_files.include?(filename)
-      )
-    end
-
-    # `Coverage.result` returns symbol keys (`:lines`, `:branches`,
-    # `:methods`); resultsets loaded from disk are already string-keyed.
-    # SourceFile reads with strings, and handles both Array and
-    # stringified-Array branch/method keys via `restore_ruby_data_structure`,
-    # so only the outer hash needs normalizing. The transform is cheap
-    # enough (three keys) that branching on input shape would cost more
-    # than just always doing it.
-    def stringify_outer_keys(coverage)
-      coverage.transform_keys(&:to_s)
-    end
-
-    # When a resultset references source files that don't exist on the local
-    # filesystem they're silently dropped — which produces an empty `0 / 0
-    # (100.00%)` report that looks like success but isn't. Emit a single
-    # warning summarizing the drop and, when every entry was lost, point at
-    # the typical cause (`SimpleCov.collate` invoked from a machine or path
-    # different from where the resultsets were generated). See #980.
-    def warn_about_missing_source_files(input_size)
-      message = missing_source_warning(input_size)
-      warn SimpleCov::Color.colorize(message, :yellow)
-    end
-
-    def missing_source_warning(input_size)
-      every_entry_dropped = @files.empty? && @missing_source_files.size == input_size
-      every_entry_dropped ? all_missing_warning : partial_missing_warning
-    end
-
-    def all_missing_warning
-      "SimpleCov dropped all #{@missing_source_files.size} source file(s) from the result — " \
-        "none of the paths in the resultset exist on this filesystem: " \
-        "#{missing_source_paths_summary}. If you're running `SimpleCov.collate`, the source " \
-        "files must be available at the same absolute paths as when the individual resultsets " \
-        "were generated."
-    end
-
-    def partial_missing_warning
-      "SimpleCov dropped #{@missing_source_files.size} source file(s) from the result because " \
-        "they don't exist on this filesystem: #{missing_source_paths_summary}. They were " \
-        "tracked in the resultset but have since moved or been removed."
-    end
-
-    def missing_source_paths_summary
-      sample = @missing_source_files.first(5).join(", ")
-      remaining = @missing_source_files.size - 5
-      remaining.positive? ? "#{sample} (+#{remaining} more)" : sample
+      MissingSourceFilesReporter.new(
+        missing,
+        input_size: input_size,
+        every_entry_dropped: @files.empty? && missing.size == input_size
+      ).warn!
     end
 
     def coverage

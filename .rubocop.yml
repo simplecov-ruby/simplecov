@@ -49,15 +49,6 @@ Metrics/BlockLength:
     - "spec/**/*.rb"
     - "features/step_definitions/**/*.rb"
 
-Metrics/ClassLength:
-  Max: 330
-
-Metrics/ModuleLength:
-  Description: Avoid modules longer than 100 lines of code.
-  Max: 440
-  Exclude:
-    - "lib/simplecov.rb"
-
 Metrics/ParameterLists:
   Description: Avoid parameter lists longer than three or four parameters.
   StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#too-many-params

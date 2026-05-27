@@ -208,31 +208,6 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".start_coverage_with_criteria" do
-    it "passes eval: true to Coverage.start when coverage_for_eval is enabled" do
-      allow(Coverage).to receive_messages(running?: false)
-      allow(Coverage).to receive(:start)
-      allow(described_class).to receive(:coverage_for_eval_enabled?).and_return(true)
-      described_class.send(:start_coverage_with_criteria)
-      expect(Coverage).to have_received(:start).with(hash_including(eval: true))
-    end
-
-    it "omits `lines: true` when :line coverage has been disabled" do
-      skip "branch coverage not supported on this engine" unless described_class.branch_coverage_supported?
-
-      allow(Coverage).to receive_messages(running?: false)
-      allow(Coverage).to receive(:start)
-      previous = described_class.coverage_criteria.dup
-      described_class.enable_coverage :branch
-      described_class.disable_coverage :line
-      described_class.send(:start_coverage_with_criteria)
-      expect(Coverage).to have_received(:start).with(branches: true)
-    ensure
-      described_class.clear_coverage_criteria
-      previous&.each { |c| described_class.enable_coverage(c) }
-    end
-  end
-
   describe ".start_tracking with all criteria disabled" do
     it "raises a ConfigurationError" do
       previous = described_class.coverage_criteria.dup
@@ -1003,6 +978,27 @@ RSpec.describe SimpleCov do
       described_class.send :start_coverage_measurement
 
       expect(Coverage).to have_received(:start).with({lines: true, methods: true})
+    end
+
+    it "passes eval: true to Coverage.start when coverage_for_eval is enabled" do
+      allow(Coverage).to receive(:start)
+      allow(described_class).to receive(:coverage_for_eval_enabled?).and_return(true)
+      described_class.send(:start_coverage_measurement)
+      expect(Coverage).to have_received(:start).with(hash_including(eval: true))
+    end
+
+    it "omits `lines: true` when :line coverage has been disabled" do
+      skip "branch coverage not supported on this engine" unless described_class.branch_coverage_supported?
+
+      allow(Coverage).to receive(:start)
+      previous = described_class.coverage_criteria.dup
+      described_class.enable_coverage :branch
+      described_class.disable_coverage :line
+      described_class.send(:start_coverage_measurement)
+      expect(Coverage).to have_received(:start).with(branches: true)
+    ensure
+      described_class.clear_coverage_criteria
+      previous&.each { |c| described_class.enable_coverage(c) }
     end
   end
 end
