@@ -318,7 +318,13 @@ RSpec.describe SimpleCov do
       # Class.new so rspec-mocks 4's verify_partial_doubles check (now
       # on by default) accepts the subsequent `allow(...).to receive(
       # :first_process?)` stubs.
-      before { stub_const("ParallelTests", Class.new { def self.first_process?; end }) }
+      before do
+        stub_const("ParallelTests", Class.new { def self.first_process?; end })
+        # SimpleCov::ParallelAdapters.current is memoized after first read
+        # (typically during SimpleCov.start at suite boot). Clear it so
+        # each example picks up the freshly stubbed ParallelTests + ENV.
+        SimpleCov::ParallelAdapters.reset_current!
+      end
 
       around do |example|
         prev_n, prev_g = ENV.values_at("TEST_ENV_NUMBER", "PARALLEL_TEST_GROUPS")
@@ -326,6 +332,7 @@ RSpec.describe SimpleCov do
       ensure
         ENV["TEST_ENV_NUMBER"] = prev_n
         ENV["PARALLEL_TEST_GROUPS"] = prev_g
+        SimpleCov::ParallelAdapters.reset_current!
       end
 
       # parallel_tests sets the first worker's TEST_ENV_NUMBER to "" and
@@ -363,16 +370,12 @@ RSpec.describe SimpleCov do
   end
 
   describe ".wait_for_parallel_results" do
-    it "returns early when PARALLEL_TEST_GROUPS is unset" do
-      ENV.delete("PARALLEL_TEST_GROUPS")
-      expect(described_class.send(:wait_for_parallel_results)).to be_nil
+    it "returns early when expected worker count is 1 (single-process or single-group)" do
+      expect(described_class.send(:wait_for_parallel_results, 1)).to be_nil
     end
 
-    it "returns early for a single-group parallel run" do
-      ENV["PARALLEL_TEST_GROUPS"] = "1"
-      expect(described_class.send(:wait_for_parallel_results)).to be_nil
-    ensure
-      ENV.delete("PARALLEL_TEST_GROUPS")
+    it "returns early when expected worker count is 0" do
+      expect(described_class.send(:wait_for_parallel_results, 0)).to be_nil
     end
   end
 

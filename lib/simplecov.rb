@@ -131,7 +131,11 @@ module SimpleCov
                                               ::Process.respond_to?(:_fork)
       # simplecov:enable
 
-      make_parallel_tests_available
+      # Trigger adapter selection now so the (possibly lazy)
+      # parallel_tests gem load happens at start_tracking time rather
+      # than mid-suite. `current` is memoized; subsequent calls are
+      # cheap.
+      SimpleCov::ParallelAdapters.current
 
       @result = nil
       self.pid = Process.pid
@@ -407,53 +411,44 @@ module SimpleCov
     # @api private
     #
     def final_result_process?
-      return true unless defined?(ParallelTests) && ENV["TEST_ENV_NUMBER"]
+      adapter = SimpleCov::ParallelAdapters.current
+      return true unless adapter
 
-      # Pick the *first* started process to do the final-result work, not
-      # the last. Two reasons: (1) the parallel_tests README explicitly
-      # recommends `ParallelTests.first_process?` for "run something
-      # once after every worker finishes" hooks, so user code that
-      # implements its own `wait_for_other_processes_to_finish` (e.g. in
-      # an RSpec `after(:suite)`) overwhelmingly waits in the first
-      # process — picking the same side avoids the cross-process
-      # deadlock #922 reported. (2) `first_process?` naturally handles
-      # the PARALLEL_TEST_GROUPS=1 case: parallel_tests sets the first
-      # worker's TEST_ENV_NUMBER to "" and `first_process?` tests for
-      # that empty string, so a single-group run correctly returns true
-      # without needing the previous `GROUPS.to_i <= 1` workaround
-      # (#1066). Users who waited in the LAST process now hit the
-      # symmetric deadlock and must migrate to `first_process?`; the
-      # CHANGELOG calls this out.
-      ParallelTests.first_process?
+      adapter.first_worker?
     end
 
     #
     # @api private
     #
     # simplecov:disable
-    # Methods below only fire under parallel_tests; not reachable from a
-    # single-process rspec run. Cucumber's test_projects exercise the
-    # parallel_tests integration end-to-end in subprocesses, but those
-    # subprocesses don't merge their Coverage data back into the parent
-    # this dogfood report measures.
+    # Methods below only fire under a parallel test runner; not reachable
+    # from a single-process rspec run. Cucumber's test_projects exercise
+    # the parallel_tests integration end-to-end in subprocesses, but
+    # those subprocesses don't merge their Coverage data back into the
+    # parent this dogfood report measures.
     def wait_for_other_processes
-      return unless defined?(ParallelTests) && final_result_process?
+      adapter = SimpleCov::ParallelAdapters.current
+      return unless adapter && final_result_process?
 
-      ParallelTests.wait_for_other_processes_to_finish
+      # Native synchronization first (adapters that wrap a runner with a
+      # real "wait" primitive — parallel_tests' `wait_for_other_processes_to_finish`
+      # — implement this; adapters without a native API no-op and rely
+      # on the polling fallback below).
+      adapter.wait_for_siblings
 
-      # ParallelTests signals "done" before at_exit handlers finish, so other
-      # processes may still be writing their results. Poll the resultset until
-      # all parallel groups have reported or a timeout is reached.
-      wait_for_parallel_results
+      # The native wait can return before sibling at_exit handlers finish
+      # writing resultsets, and adapters without a native wait have nothing
+      # else. Either way, poll the resultset cache until all expected
+      # workers have reported or a timeout is reached.
+      wait_for_parallel_results(adapter.expected_worker_count)
     end
     # simplecov:enable
 
     # @api private
-    def wait_for_parallel_results
-      expected = ENV["PARALLEL_TEST_GROUPS"]&.to_i
-      return unless expected && expected > 1 # simplecov:disable branch — only false in real parallel_tests run
+    def wait_for_parallel_results(expected)
+      return unless expected > 1 # simplecov:disable branch — only false in real parallel runs
 
-      # simplecov:disable — only fires when ENV is set with >1 group
+      # simplecov:disable — only fires under multi-worker parallel runs
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 10
       loop do
         resultset = SimpleCov::ResultMerger.read_resultset
@@ -622,35 +617,6 @@ module SimpleCov
       Minitest.after_run { SimpleCov.at_exit_behavior }
     end
 
-    # Auto-require `parallel_tests` when it's installed AND the env vars
-    # it sets are present, so `wait_for_other_processes` and friends can
-    # call `ParallelTests.first_process?` later. `parallel_tests` is an
-    # optional dependency (see https://github.com/grosser/parallel_tests/issues/772),
-    # and `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` are commonly set for
-    # other reasons (custom subprocess coordination, CI sharding), so a
-    # missing gem is treated as "user isn't using parallel_tests" — silently
-    # skip rather than warn. Users who want to override the auto-detect can
-    # set `SimpleCov.parallel_tests true` (force on) or `false` (force off).
-    # See #1018.
-    def make_parallel_tests_available
-      return if defined?(ParallelTests) # simplecov:disable — only true after a previous load
-      return if SimpleCov.parallel_tests == false # simplecov:disable — only fires when user opts out
-      # simplecov:disable — false outside parallel_tests
-      return unless SimpleCov.parallel_tests || probably_running_parallel_tests?
-
-      # simplecov:disable — only fires under a real parallel_tests setup
-      require "parallel_tests"
-    rescue LoadError
-      # The gem isn't installed; the env vars were set for some other
-      # reason. Stay quiet — warning here regressed users who use those
-      # env vars for their own subprocess coordination (see #1018).
-      # simplecov:enable
-    end
-
-    def probably_running_parallel_tests?
-      ENV.fetch("TEST_ENV_NUMBER", nil) && ENV.fetch("PARALLEL_TEST_GROUPS", nil)
-    end
-
     # JRuby coverage data is unreliable unless full-trace mode is enabled.
     # @see https://github.com/jruby/jruby/issues/1196
     # @see https://github.com/simplecov-ruby/simplecov/issues/420
@@ -690,6 +656,7 @@ require_relative "simplecov/formatter"
 require_relative "simplecov/last_run"
 require_relative "simplecov/lines_classifier"
 require_relative "simplecov/result_merger"
+require_relative "simplecov/parallel_adapters"
 require_relative "simplecov/command_guesser"
 require_relative "simplecov/version"
 require_relative "simplecov/result_adapter"
