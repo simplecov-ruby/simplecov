@@ -20,12 +20,12 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
     schemer.validate(document).map { |e| "#{e['data_pointer']}: #{e['error']}" }
   end
 
-  it "is itself a valid JSON Schema (draft-07)" do
-    expect(JSONSchemer.draft7.validate(schema_doc).to_a).to be_empty
+  it "is itself a valid JSON Schema (2020-12)" do
+    expect(JSONSchemer.draft202012.validate(schema_doc).to_a).to be_empty
   end
 
-  it "declares draft-07 as its meta-schema" do
-    expect(schema_doc.fetch("$schema")).to eq("http://json-schema.org/draft-07/schema#")
+  it "declares 2020-12 as its meta-schema" do
+    expect(schema_doc.fetch("$schema")).to eq("https://json-schema.org/draft/2020-12/schema")
   end
 
   # The unversioned alias is a convenience pointer to the latest version.

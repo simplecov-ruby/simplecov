@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
   "title": "SimpleCov coverage.json",
   "description": "Schema for the coverage.json file emitted by SimpleCov's JSONFormatter. Versioned independently of the gem. Non-breaking additions bump the minor segment of schema_version, breaking changes bump the major segment. The versioned file at schemas/coverage-vX.Y.schema.json is the canonical artifact for that version, schemas/coverage.schema.json is a convenience alias for the latest.",
