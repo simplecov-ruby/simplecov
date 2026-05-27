@@ -1,5 +1,3 @@
-# yes rubocop you are right but I want to test nesting!
-# rubocop:disable Metrics/BlockNesting
 module NestedBranches
   def self.call(arg)
     if arg.even?
@@ -12,4 +10,3 @@ module NestedBranches
     end
   end
 end
-# rubocop:enable Metrics/BlockNesting

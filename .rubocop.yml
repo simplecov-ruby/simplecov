@@ -49,11 +49,6 @@ Metrics/BlockLength:
     - "spec/**/*.rb"
     - "features/step_definitions/**/*.rb"
 
-Metrics/BlockNesting:
-  Description: Avoid excessive block nesting.
-  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#three-is-the-number-thou-shalt-count
-  Max: 2
-
 Metrics/ClassLength:
   Max: 330
 
@@ -135,23 +130,6 @@ Style/EnvHome:
   # the `||` fall-through chain in lib/simplecov/load_global_config.rb.
   Enabled: false
 
-Style/HashSyntax:
-  Description: Checks hash literal syntax.
-  EnforcedStyle: ruby19
-
-Style/SpecialGlobalVars:
-  Description: Looks for uses of Perl-style global variables.
-  Exclude:
-    - "spec/deleted_source_spec.rb"
-    - "spec/return_codes_spec.rb"
-    - "lib/simplecov/defaults.rb"
-
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes
-
-Style/TrailingCommaInArrayLiteral:
-  EnforcedStyleForMultiline: no_comma
-
-Style/TrailingCommaInHashLiteral:
-  EnforcedStyleForMultiline: no_comma

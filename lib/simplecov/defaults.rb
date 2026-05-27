@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "English"
 require "pathname"
 require_relative "formatter/html_formatter"
 
@@ -45,7 +46,7 @@ loop do
       # simplecov:disable — only fires when .simplecov is unreadable
       # or raises during load
       warn "Warning: Error occurred while trying to load #{filename}. " \
-           "Error message: #{$!.message}"
+           "Error message: #{$ERROR_INFO.message}"
       # simplecov:enable
     end
     break
