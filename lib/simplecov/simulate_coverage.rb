@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "static_coverage_extractor"
+
 module SimpleCov
   #
   # Responsible for producing file coverage metrics.
@@ -20,19 +22,30 @@ module SimpleCov
     # loaded or just tracked, fixing the multi-line statement discrepancy
     # in https://github.com/simplecov-ruby/simplecov/issues/654.
     #
+    # Branches and methods are enumerated by static analysis (via
+    # `StaticCoverageExtractor`, which uses Prism). Earlier behavior left
+    # both as empty hashes, which made unloaded files invisible to the
+    # branch/method denominators while their lines DID count — so a
+    # `track_files`/`cover` glob that picked up files without specs
+    # silently inflated branch% relative to line%. See
+    # https://github.com/simplecov-ruby/simplecov/issues/1059. When Prism
+    # isn't loadable (Ruby < 3.3 without the prism gem) or the file
+    # can't be parsed, fall back to the old empty hashes — old behavior,
+    # old tradeoff.
+    #
     # @return [Hash]
     #
     def call(absolute_path)
       source_lines = read_lines(absolute_path)
       lines = coverage_stub(absolute_path, source_lines) ||
               LinesClassifier.new.classify(source_lines)
+      synthesized = StaticCoverageExtractor.call(source_lines.join) ||
+                    {"branches" => {}, "methods" => {}}
 
       {
         "lines" => lines,
-        # we don't want to parse branches/methods ourselves...
-        # requiring files can have side effects and we don't want to trigger that
-        "branches" => {},
-        "methods" => {}
+        "branches" => synthesized["branches"],
+        "methods" => synthesized["methods"]
       }
     end
 

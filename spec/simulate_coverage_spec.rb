@@ -26,10 +26,37 @@ RSpec.describe SimpleCov::SimulateCoverage do
       expect(result["lines"]).not_to be_empty
     end
 
-    it "returns empty branches and methods (we never parse them)" do
+    # Pre-#1059 behavior was to leave branches/methods empty, so unloaded
+    # files were invisible to those denominators while their lines DID
+    # count. SimulateCoverage now enumerates branches and methods via
+    # StaticCoverageExtractor so the totals stay symmetric. On Rubies
+    # without Prism the static path no-ops and the fields stay empty —
+    # both shapes are documented as valid here.
+    it "returns hash-shaped branches and methods" do
       result = described_class.call(fixture)
-      expect(result["branches"]).to eq({})
-      expect(result["methods"]).to eq({})
+      expect(result["branches"]).to be_a(Hash)
+      expect(result["methods"]).to be_a(Hash)
+    end
+
+    context "when Prism is available" do
+      it "synthesizes branch entries for unloaded files",
+         if: SimpleCov::StaticCoverageExtractor.available? do
+        with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
+          result = described_class.call(path)
+          expect(result["branches"]).not_to be_empty
+          types = result["branches"].keys.map(&:first)
+          expect(types).to include(:if)
+        end
+      end
+
+      it "synthesizes method entries for unloaded files",
+         if: SimpleCov::StaticCoverageExtractor.available? do
+        with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
+          result = described_class.call(path)
+          method_names = result["methods"].keys.map { |k| k[1] }
+          expect(method_names).to include(:bar)
+        end
+      end
     end
 
     # Regression for https://github.com/simplecov-ruby/simplecov/issues/654.
