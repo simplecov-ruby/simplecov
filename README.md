@@ -1215,6 +1215,63 @@ $ simplecov uncovered --threshold 90 --top 5
 `--json` emits the same rows as a JSON array (an empty array when
 nothing is below the threshold), useful for piping into a CI gate.
 
+## Parallel-test-runner adapters
+
+SimpleCov coordinates with parallel test runners through a small pluggable
+adapter interface (`SimpleCov::ParallelAdapters`). Two adapters ship out of
+the box:
+
+- **`ParallelTestsAdapter`** — wraps the
+  [grosser/parallel_tests](https://github.com/grosser/parallel_tests) gem
+  and uses its `ParallelTests.first_process?` /
+  `ParallelTests.wait_for_other_processes_to_finish` APIs for precise
+  worker coordination.
+- **`GenericAdapter`** — catch-all for any runner that follows the
+  `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` env-var convention but
+  doesn't ship a Ruby API (parallel_rspec, knapsack-style splitters,
+  custom CI sharding scripts). Activates when `TEST_ENV_NUMBER` is set
+  and no more-specific adapter is.
+
+Adapters are tried in registration order; the first whose `active?`
+returns `true` is chosen for the run. With both built-ins this means
+parallel_tests users get the precise gem-based path, and parallel_rspec
+(or any env-var-only runner) gets the polling-based fallback without any
+configuration change. See #1065.
+
+### Registering a custom adapter
+
+If you use a parallel runner that uses different env vars or has its own
+synchronization API, define a class that inherits from
+`SimpleCov::ParallelAdapters::Base` and register it:
+
+```ruby
+# In your spec_helper.rb / test_helper.rb (before SimpleCov.start)
+class MyRunnerAdapter < SimpleCov::ParallelAdapters::Base
+  def self.active?
+    !ENV["MY_RUNNER_PID"].nil?
+  end
+
+  def self.first_worker?
+    ENV["MY_RUNNER_PID"].to_i == 1
+  end
+
+  def self.wait_for_siblings
+    MyRunner.barrier!   # if your runner provides a sync primitive
+  end
+
+  def self.expected_worker_count
+    ENV["MY_RUNNER_WORKERS"].to_i
+  end
+end
+
+SimpleCov::ParallelAdapters.register MyRunnerAdapter
+```
+
+Custom adapters are inserted at the front of the selection chain so they
+take precedence over the built-ins. `Base` provides safe no-op defaults
+for any method you don't override (single-process semantics: `active?`
+returns `false`, `first_worker?` returns `true`, etc.).
+
 ## Merging resultsets from parallel CI workers
 
 CI matrices that produce one `.resultset.json` per worker can stitch
