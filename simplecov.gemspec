@@ -18,8 +18,24 @@ Gem::Specification.new do |gem|
   gem.name        = "simplecov"
   gem.version     = version
   gem.platform    = Gem::Platform::RUBY
-  gem.authors     = ["Christoph Olszowka", "Tobias Pfeiffer"]
-  gem.email       = ["christoph at olszowka de", "pragtob@gmail.com"]
+  gem.authors = [
+    "Erik Berlin",
+    "Benjamin Fleischer",
+    "Akira Matsuda",
+    "Christoph Olszowka",
+    "Tobias Pfeiffer",
+    "David Rodríguez",
+    "Xavier Shay"
+  ]
+  gem.email = [
+    "sferik@gmail.com",
+    "github@benjaminfleischer.com",
+    "ronnie@dio.jp",
+    "christoph@olszowka.de",
+    "pragtob@gmail.com",
+    "deivid.rodriguez@gmail.com",
+    "xavier@rhnh.net"
+  ]
   gem.homepage    = "https://github.com/simplecov-ruby/simplecov"
   gem.summary     = "Code coverage for Ruby"
   gem.description = "Code coverage for Ruby with a powerful configuration library " \
