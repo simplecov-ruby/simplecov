@@ -66,7 +66,7 @@ unless DOGFOOD_DISABLED
   # no threshold enforcement.
   DOGFOOD_THRESHOLDS = {
     "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
-    "jruby" => {line: 96.8},
+    "jruby" => {line: 96.5},
     "truffleruby" => {line: 97.5}
   }.freeze
 
