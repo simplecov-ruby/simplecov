@@ -42,9 +42,9 @@ module SimpleCov
     def fetch_proc(name)
       name = name.to_sym
       autoload_profile(name) unless key?(name)
-      raise SimpleCov::ConfigurationError, "Could not find SimpleCov Profile called '#{name}'" unless key?(name)
+      return self[name] if key?(name)
 
-      self[name]
+      raise SimpleCov::ConfigurationError, "Could not find SimpleCov Profile called '#{name}'"
     end
 
   private

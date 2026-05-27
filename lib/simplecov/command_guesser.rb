@@ -19,13 +19,17 @@ module SimpleCov
 
     private
 
+      # When parallel_tests (or a compatible runner) is driving the suite,
+      # tag the command name with this worker's position in the pool.
       def parallel_data
-        # If being run from inside parallel_tests set the command name according to the process number
-        return unless ENV["PARALLEL_TEST_GROUPS"] && ENV["TEST_ENV_NUMBER"]
-
+        groups = ENV.fetch("PARALLEL_TEST_GROUPS", nil)
         number = ENV.fetch("TEST_ENV_NUMBER", nil)
+        return unless groups && number
+
+        # parallel_tests sets the first worker's TEST_ENV_NUMBER to "" rather
+        # than "1"; restore the position so the rendered label reads cleanly.
         number = "1" if number.empty?
-        "(#{number}/#{ENV.fetch('PARALLEL_TEST_GROUPS', nil)})"
+        "(#{number}/#{groups})"
       end
 
       COMMAND_LINE_FRAMEWORKS = {

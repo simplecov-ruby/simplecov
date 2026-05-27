@@ -59,10 +59,7 @@ module SimpleCov
       def lookup(coverage_hash, path)
         absolute = File.expand_path(path)
         suffix   = "/#{path}"
-        coverage_hash.each do |fname, payload|
-          return [fname, payload] if fname == absolute || fname == path || fname.end_with?(suffix)
-        end
-        nil
+        coverage_hash.find { |fname, _| fname == absolute || fname == path || fname.end_with?(suffix) }
       end
 
       def emit(match, opts, stdout)

@@ -16,7 +16,7 @@ module SimpleCov
         def active?
           ensure_loaded
           # !! to coerce `defined?` (returns nil or "constant") to a proper bool.
-          !!(defined?(::ParallelTests) && !ENV.fetch("TEST_ENV_NUMBER", nil).nil?)
+          !!(defined?(::ParallelTests) && ENV.key?("TEST_ENV_NUMBER"))
         end
 
         # Pick the *first* started process to do the final-result work,
@@ -69,7 +69,7 @@ module SimpleCov
         end
 
         def env_suggests_parallel_tests?
-          !ENV.fetch("TEST_ENV_NUMBER", nil).nil? && !ENV.fetch("PARALLEL_TEST_GROUPS", nil).nil?
+          ENV.key?("TEST_ENV_NUMBER") && ENV.key?("PARALLEL_TEST_GROUPS")
         end
       end
     end

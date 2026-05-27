@@ -23,7 +23,7 @@ module SimpleCov
     class GenericAdapter < Base
       class << self
         def active?
-          !ENV.fetch("TEST_ENV_NUMBER", nil).nil?
+          ENV.key?("TEST_ENV_NUMBER")
         end
 
         # parallel_tests sets the first worker's TEST_ENV_NUMBER to "";

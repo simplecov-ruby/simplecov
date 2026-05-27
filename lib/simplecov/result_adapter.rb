@@ -18,18 +18,24 @@ module SimpleCov
     def adapt
       return unless result
 
-      result.each_with_object({}) do |(file_name, cover_statistic), adapted_result|
-        if cover_statistic.is_a?(Array)
-          adapted_result.merge!(file_name => {"lines" => cover_statistic})
-        else
-          adapt_oneshot_lines_if_needed(file_name, cover_statistic)
-          normalize_method_keys(cover_statistic)
-          adapted_result.merge!(file_name => cover_statistic)
-        end
+      result.to_h do |file_name, cover_statistic|
+        [file_name, adapt_one(file_name, cover_statistic)]
       end
     end
 
   private
+
+    # Pre-0.18 resultsets pointed each filename straight at a line-coverage
+    # array; everything since uses the `{lines:, branches:, methods:}`
+    # shape. Newer entries also need their methods table massaged before
+    # downstream code merges across processes.
+    def adapt_one(file_name, cover_statistic)
+      return {"lines" => cover_statistic} if cover_statistic.is_a?(Array)
+
+      adapt_oneshot_lines_if_needed(file_name, cover_statistic)
+      normalize_method_keys(cover_statistic)
+      cover_statistic
+    end
 
     # Normalize memory addresses in method coverage keys so that results
     # from different processes can be merged. Anonymous class names like
