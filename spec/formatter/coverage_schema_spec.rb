@@ -5,13 +5,15 @@ require "json"
 require "json_schemer"
 
 # Validates that every shape JSONFormatter is expected to emit conforms to
-# the contract in schemas/coverage.schema.json. The schema is published
-# as the public contract for coverage.json consumers; this spec catches
-# drift between code and schema at test time so neither can rot
-# independently.
+# the contract in schemas/coverage-v1.0.schema.json. The schema is
+# published as the public contract for coverage.json consumers, this
+# spec catches drift between code and schema at test time so neither
+# can rot independently.
 describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
-  let(:schema_path) { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
+  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.0.schema.json", __dir__) }
+  let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }
+  let(:alias_doc)   { JSON.parse(File.read(alias_path)) }
   let(:schemer)     { JSONSchemer.schema(schema_doc) }
 
   def validate_against_schema(document)
@@ -24,6 +26,18 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
 
   it "declares draft-07 as its meta-schema" do
     expect(schema_doc.fetch("$schema")).to eq("http://json-schema.org/draft-07/schema#")
+  end
+
+  # The unversioned alias is a convenience pointer to the latest version.
+  # Allow only the metadata triple to diverge (title, description, $id)
+  # so the canonical and alias can't drift in shape unnoticed.
+  it "ships an unversioned alias that mirrors the latest versioned canonical" do
+    alias_metadata_keys = %w[$id title description]
+    expect(alias_doc.except(*alias_metadata_keys)).to eq(schema_doc.except(*alias_metadata_keys))
+  end
+
+  it "pins the versioned canonical's $id to a versioned URL" do
+    expect(schema_doc.fetch("$id")).to match(%r{/schemas/coverage-v\d+\.\d+\.schema\.json\z})
   end
 
   # Guards against drift: a document claiming a foreign schema_version

@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage.schema.json",
-  "title": "SimpleCov coverage.json (latest)",
-  "description": "Convenience alias for the latest coverage.json schema. Mirrors schemas/coverage-v1.0.schema.json except for the $id (which is the unversioned URL). For long-lived integrations, pin to the versioned canonical (schemas/coverage-vX.Y.schema.json) so the contract you validate against does not silently shift when a new SimpleCov release bumps the schema.",
+  "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
+  "title": "SimpleCov coverage.json",
+  "description": "Schema for the coverage.json file emitted by SimpleCov's JSONFormatter. Versioned independently of the gem. Non-breaking additions bump the minor segment of schema_version, breaking changes bump the major segment. The versioned file at schemas/coverage-vX.Y.schema.json is the canonical artifact for that version, schemas/coverage.schema.json is a convenience alias for the latest.",
   "type": "object",
   "required": ["$schema", "meta", "total", "coverage", "groups", "errors"],
   "additionalProperties": false,
