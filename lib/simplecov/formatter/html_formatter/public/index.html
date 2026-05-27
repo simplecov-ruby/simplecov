@@ -8,9 +8,13 @@
     <link href="application.css" rel="stylesheet">
     <script>
       // Apply the saved dark/light preference before paint to avoid a flash.
-      const pref = localStorage.getItem('simplecov-dark-mode');
-      if (pref === 'dark' || pref === 'light') {
-        document.documentElement.classList.add(`${pref}-mode`);
+      try {
+        const pref = localStorage.getItem('simplecov-dark-mode');
+        if (pref === 'dark' || pref === 'light') {
+          document.documentElement.classList.add(`${pref}-mode`);
+        }
+      } catch (_error) {
+        // localStorage can be unavailable in locked-down browser contexts.
       }
     </script>
   </head>

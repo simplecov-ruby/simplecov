@@ -129,10 +129,16 @@ function on(
   }
 }
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
+
 function escapeHTML(str: string): string {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
+  return str.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 }
 
 // --- Timeago --------------------------------------------------
@@ -218,7 +224,7 @@ async function precomputeFileIds(filenames: string[]): Promise<void> {
 // so the result always starts with a letter regardless of the original
 // title.
 function toHtmlId(value: string): string {
-  return 'g-' + value.replace(/[^a-zA-Z0-9_-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`);
+  return 'g-' + value.replace(/[^a-zA-Z0-9_-]/gu, (c) => `_${c.codePointAt(0)!.toString(16)}_`);
 }
 
 // --- Coverage rendering helpers -------------------------------
@@ -331,10 +337,10 @@ function lineStatus(
 function buildBranchesReport(branches: BranchEntry[] | undefined): Record<number, [string, number][]> {
   const report: Record<number, [string, number][]> = {};
   if (!branches) return report;
-  for (const b of branches) {
-    if (b.coverage === 'ignored') continue;
-    if (!report[b.report_line]) report[b.report_line] = [];
-    report[b.report_line].push([b.type, b.coverage as number]);
+  for (const { coverage, report_line: reportLine, type } of branches) {
+    if (coverage === 'ignored') continue;
+    const lineReport = report[reportLine] || (report[reportLine] = []);
+    lineReport.push([type, coverage]);
   }
   return report;
 }
@@ -365,49 +371,50 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
   const branchesReport = buildBranchesReport(data.branches);
   const missedMethodLineSet = buildMissedMethodLines(data.methods);
 
-  let html = `<div class="source_table" id="${id}">`;
-  html += '<div class="header">';
-  html += `<h2>${escapeHTML(filename)}</h2>`;
-  html += renderCoverageSummary(coveredLines, totalLines, coveredBranches, totalBranches, coveredMethods, totalMethods, branchCoverage, methodCoverage, showMethodToggle);
+  const html = [
+    `<div class="source_table" id="${id}">`,
+    '<div class="header">',
+    `<h2>${escapeHTML(filename)}</h2>`,
+    renderCoverageSummary(coveredLines, totalLines, coveredBranches, totalBranches, coveredMethods, totalMethods, branchCoverage, methodCoverage, showMethodToggle)
+  ];
 
   if (showMethodToggle) {
-    html += '<div class="t-missed-method-list" style="display: none"><ul>';
-    for (const m of missedMethodsList) {
-      html += `<li><tt>${escapeHTML(m.name)}</tt></li>`;
-    }
-    html += '</ul></div>';
+    html.push(
+      '<div class="t-missed-method-list" style="display: none"><ul>',
+      missedMethodsList.map((m) => `<li><tt>${escapeHTML(m.name)}</tt></li>`).join(''),
+      '</ul></div>'
+    );
   }
-  html += '</div>';
+  html.push('</div>', '<pre><ol>');
 
-  // Source lines
-  html += '<pre><ol>';
   for (let i = 0; i < data.source.length; i++) {
     const lineCov = data.lines[i];
     const status = lineStatus(i, lineCov, branchesReport, missedMethodLineSet, branchCoverage, methodCoverage);
     const lineNum = i + 1;
     const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
-
-    html += `<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`;
+    const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
 
     if (status === 'covered' || (lineCov !== null && lineCov !== 'ignored' && lineCov !== 0)) {
-      html += `<span class="hits" data-content="${lineCov}"></span>`;
+      lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
     } else if (lineCov === 'ignored') {
-      html += '<span class="hits" data-content="skipped"></span>';
+      lineHtml.push('<span class="hits" data-content="skipped"></span>');
     }
 
     if (branchCoverage) {
       const lineBranches = branchesReport[lineNum];
       if (lineBranches) {
         for (const [branchType, hitCount] of lineBranches) {
-          html += `<span class="hits" data-content="${branchType}: ${hitCount}" title="${branchType} branch hit ${hitCount} times"></span>`;
+          const label = escapeHTML(branchType);
+          lineHtml.push(`<span class="hits" data-content="${label}: ${hitCount}" title="${label} branch hit ${hitCount} times"></span>`);
         }
       }
     }
 
-    html += `<code class="ruby">${escapeHTML(data.source[i])}</code></li>`;
+    lineHtml.push(`<code class="ruby">${escapeHTML(data.source[i])}</code></li>`);
+    html.push(lineHtml.join(''));
   }
-  html += '</ol></pre></div>';
-  return html;
+  html.push('</ol></pre></div>');
+  return html.join('');
 }
 
 // --- Rendering: File list table --------------------------------
@@ -426,24 +433,27 @@ function renderFileList(
   const branchStats = branchCoverage ? stats.branches : undefined;
   const methodStats = methodCoverage ? stats.methods : undefined;
 
-  let html = `<div class="file_list_container" id="${containerId}" data-total-files="${filenames.length}">`;
-  html += `<span class="group_name hide">${escapeHTML(title)}</span>`;
-  html += `<span class="covered_percent hide"><span class="${pctClass(lineStats.percent)}">${fmtPct(lineStats.percent)}%</span></span>`;
-
-  html += '<div class="file_list--responsive"><table class="file_list"><thead><tr>';
-  html += `<th class="cell--left"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths\u2026"></div></th>`;
-  html += renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines');
-  if (branchCoverage) html += renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches');
-  if (methodCoverage) html += renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods');
-  html += '</tr>';
+  const html = [
+    `<div class="file_list_container" id="${containerId}" data-total-files="${filenames.length}">`,
+    `<span class="group_name hide">${escapeHTML(title)}</span>`,
+    `<span class="covered_percent hide"><span class="${pctClass(lineStats.percent)}">${fmtPct(lineStats.percent)}%</span></span>`,
+    '<div class="file_list--responsive"><table class="file_list"><thead><tr>',
+    `<th class="cell--left"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths\u2026"></div></th>`,
+    renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines')
+  ];
+  if (branchCoverage) html.push(renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches'));
+  if (methodCoverage) html.push(renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods'));
+  html.push('</tr>');
 
   // Totals row
   const fileLabel = filenames.length === 1 ? 'file' : 'files';
-  html += `<tr class="totals-row"><td class="strong t-file-count">${fmtNum(filenames.length)} ${fileLabel}</td>`;
-  html += renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true);
-  if (branchStats) html += renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true);
-  if (methodStats) html += renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true);
-  html += '</tr></thead><tbody>';
+  html.push(
+    `<tr class="totals-row"><td class="strong t-file-count">${fmtNum(filenames.length)} ${fileLabel}</td>`,
+    renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true)
+  );
+  if (branchStats) html.push(renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true));
+  if (methodStats) html.push(renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true));
+  html.push('</tr></thead><tbody>');
 
   // File rows
   for (const fn of filenames) {
@@ -451,28 +461,35 @@ function renderFileList(
     if (!f) continue;
     const id = fileId(fn);
 
-    let dataAttrs = `data-covered-lines="${f.covered_lines}" data-relevant-lines="${f.total_lines}"`;
+    const dataAttrs = [
+      `data-covered-lines="${f.covered_lines}"`,
+      `data-relevant-lines="${f.total_lines}"`
+    ];
     if (branchCoverage) {
-      dataAttrs += ` data-covered-branches="${f.covered_branches || 0}" data-total-branches="${f.total_branches || 0}"`;
+      dataAttrs.push(`data-covered-branches="${f.covered_branches || 0}"`, `data-total-branches="${f.total_branches || 0}"`);
     }
     if (methodCoverage) {
-      dataAttrs += ` data-covered-methods="${f.covered_methods || 0}" data-total-methods="${f.total_methods || 0}"`;
+      dataAttrs.push(`data-covered-methods="${f.covered_methods || 0}"`, `data-total-methods="${f.total_methods || 0}"`);
     }
 
-    html += `<tr class="t-file" ${dataAttrs}>`;
-    html += `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`;
-    html += renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false);
+    html.push(
+      `<tr class="t-file" ${dataAttrs.join(' ')}>`,
+      `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`,
+      renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false)
+    );
     if (branchCoverage) {
-      html += renderCoverageCells(f.branches_covered_percent || 100.0, f.covered_branches || 0, f.total_branches || 0, 'branch', false);
+      const pct = f.branches_covered_percent === undefined ? 100.0 : f.branches_covered_percent;
+      html.push(renderCoverageCells(pct, f.covered_branches || 0, f.total_branches || 0, 'branch', false));
     }
     if (methodCoverage) {
-      html += renderCoverageCells(f.methods_covered_percent || 100.0, f.covered_methods || 0, f.total_methods || 0, 'method', false);
+      const pct = f.methods_covered_percent === undefined ? 100.0 : f.methods_covered_percent;
+      html.push(renderCoverageCells(pct, f.covered_methods || 0, f.total_methods || 0, 'method', false));
     }
-    html += '</tr>';
+    html.push('</tr>');
   }
 
-  html += '</tbody></table></div></div>';
-  return html;
+  html.push('</tbody></table></div></div>');
+  return html.join('');
 }
 
 // --- Rendering: Full page from data ---------------------------
@@ -554,26 +571,29 @@ function getVisibleChild(row: Element, index: number): Element | null {
 function getSortValue(td: Element | null): number | string {
   if (!td) return '';
   const order = td.getAttribute('data-order');
-  if (order !== null) return parseFloat(order);
+  if (order !== null) return Number.parseFloat(order);
   const text = (td.textContent || '').trim();
-  const num = parseFloat(text);
-  return isNaN(num) ? text.toLowerCase() : num;
+  const num = Number.parseFloat(text);
+  return Number.isNaN(num) ? text.toLowerCase() : num;
 }
 
 function sortTable(table: Element, colIndex: number): void {
   const tableId = table.id || table.getAttribute('data-sort-id') || 'default';
-  const state = sortState[tableId] || {} as SortEntry;
+  const state = sortState[tableId];
 
   const dir: 'asc' | 'desc' =
-    state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
+    state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
   sortState[tableId] = { colIndex, direction: dir };
 
   const tbody = table.querySelector('tbody')!;
-  const rows = Array.from(tbody.querySelectorAll('tr.t-file'));
+  const rows = Array.from(tbody.querySelectorAll('tr.t-file')).map((row) => ({
+    row,
+    value: getSortValue(getVisibleChild(row, colIndex))
+  }));
 
   rows.sort((a, b) => {
-    const aVal = getSortValue(getVisibleChild(a, colIndex));
-    const bVal = getSortValue(getVisibleChild(b, colIndex));
+    const aVal = a.value;
+    const bVal = b.value;
     let cmp: number;
     if (typeof aVal === 'number' && typeof bVal === 'number') {
       cmp = aVal - bVal;
@@ -583,12 +603,14 @@ function sortTable(table: Element, colIndex: number): void {
     return dir === 'asc' ? cmp : -cmp;
   });
 
-  tbody.append(...rows);
+  const fragment = document.createDocumentFragment();
+  rows.forEach(({ row }) => fragment.appendChild(row));
+  tbody.appendChild(fragment);
 
   // Update sort indicators
   let tdPos = 0;
   $$('thead tr:first-child th', table).forEach((th) => {
-    const span = parseInt(th.getAttribute('colspan') || '1', 10);
+    const span = Number.parseInt(th.getAttribute('colspan') || '1', 10);
     th.classList.remove('sorting_asc', 'sorting_desc', 'sorting');
     const isActive = colIndex >= tdPos && colIndex < tdPos + span;
     th.classList.add(isActive ? (dir === 'asc' ? 'sorting_asc' : 'sorting_desc') : 'sorting');
@@ -624,27 +646,28 @@ const comparators: Record<string, (value: number, threshold: number) => boolean>
 };
 
 function compare(op: string, value: number, threshold: number): boolean {
-  return (comparators[op] || (() => true))(value, threshold);
+  const comparator = comparators[op];
+  return comparator ? comparator(value, threshold) : true;
 }
 
 // --- Filter & totals ------------------------------------------
 
 function parseFilters(container: Element): ActiveFilter[] {
-  return $$('.col-filter__value', container)
-    .map((input: Element) => {
-      const inp = input as HTMLInputElement;
-      if (!inp.value) return null;
-      const threshold = parseFloat(inp.value);
-      if (isNaN(threshold)) return null;
-      const type = inp.dataset.type || '';
-      const opSelect = $(`.col-filter__op[data-type="${type}"]`, container) as HTMLSelectElement | null;
-      const op = opSelect ? opSelect.value : '';
-      if (!op) return null;
-      const attrs = dataAttrMap[type];
-      if (!attrs) return null;
-      return { attrs, op, threshold } as ActiveFilter;
-    })
-    .filter((f): f is ActiveFilter => f !== null);
+  const filters: ActiveFilter[] = [];
+  for (const input of $$('.col-filter__value', container)) {
+    const inp = input as HTMLInputElement;
+    if (!inp.value) continue;
+
+    const threshold = Number.parseFloat(inp.value);
+    if (Number.isNaN(threshold)) continue;
+
+    const type = inp.dataset.type || '';
+    const opSelect = $(`.col-filter__op[data-type="${type}"]`, container) as HTMLSelectElement | null;
+    const op = opSelect ? opSelect.value : '';
+    const attrs = dataAttrMap[type];
+    if (op && attrs) filters.push({ attrs, op, threshold });
+  }
+  return filters;
 }
 
 function filterTable(container: Element): void {
@@ -652,27 +675,18 @@ function filterTable(container: Element): void {
   if (!table) return;
 
   const nameInput = $('.col-filter--name', container) as HTMLInputElement | null;
-  const nameQuery = nameInput ? nameInput.value : '';
+  const nameQuery = nameInput ? nameInput.value.trim().toLowerCase() : '';
   const filters = parseFilters(container);
 
   $$('tbody tr.t-file', table).forEach(row => {
     const htmlRow = row as HTMLElement;
-    let visible = true;
-
-    if (nameQuery) {
-      const name = (row.children[0].textContent || '').toLowerCase();
-      if (!name.includes(nameQuery.toLowerCase())) visible = false;
-    }
-
-    if (visible) {
-      for (const f of filters) {
-        const covered = parseInt(htmlRow.dataset[f.attrs.covered] || '0', 10) || 0;
-        const total = parseInt(htmlRow.dataset[f.attrs.total] || '0', 10) || 0;
-        const pct = total > 0 ? (covered * 100.0) / total : 100;
-        if (!compare(f.op, pct, f.threshold)) { visible = false; break; }
-      }
-    }
-
+    const name = (row.children[0].textContent || '').toLowerCase();
+    const visible = (!nameQuery || name.includes(nameQuery)) && filters.every((f) => {
+      const covered = Number.parseInt(htmlRow.dataset[f.attrs.covered] || '0', 10) || 0;
+      const total = Number.parseInt(htmlRow.dataset[f.attrs.total] || '0', 10) || 0;
+      const pct = total > 0 ? (covered * 100.0) / total : 100;
+      return compare(f.op, pct, f.threshold);
+    });
     htmlRow.style.display = visible ? '' : 'none';
   });
 
@@ -682,7 +696,7 @@ function filterTable(container: Element): void {
 }
 
 function updateFilterOptions(input: HTMLInputElement): void {
-  const val = parseFloat(input.value);
+  const val = Number.parseFloat(input.value);
   const wrapper = input.closest('.col-filter__coverage');
   const select = wrapper ? wrapper.querySelector('.col-filter__op') as HTMLSelectElement | null : null;
   if (!select) return;
@@ -701,13 +715,14 @@ function updateTotalsRow(container: Element): void {
     .filter(r => (r as HTMLElement).style.display !== 'none');
 
   function sumData(attr: string): number {
-    let total = 0;
-    rows.forEach(r => { total += parseInt((r as HTMLElement).dataset[attr] || '0', 10) || 0; });
-    return total;
+    return rows.reduce(
+      (total, r) => total + (Number.parseInt((r as HTMLElement).dataset[attr] || '0', 10) || 0),
+      0
+    );
   }
 
   const fileCount = $('.t-file-count', container);
-  const totalFiles = parseInt(container.getAttribute('data-total-files') || '0', 10);
+  const totalFiles = Number.parseInt(container.getAttribute('data-total-files') || '0', 10);
   if (fileCount) {
     const label = rows.length === 1 ? ' file' : ' files';
     fileCount.textContent = rows.length === totalFiles
@@ -733,7 +748,10 @@ function updateCoverageCells(
   const numEl = $(prefix + '-num', container);
   const denEl = $(prefix + '-den', container);
   if (total === 0) {
-    if (covCell) { covCell.innerHTML = ''; covCell.className = covCell.className.replace(/green|yellow|red/g, '').trim(); }
+    if (covCell) {
+      covCell.innerHTML = '';
+      covCell.classList.remove('green', 'yellow', 'red');
+    }
     if (numEl) numEl.textContent = '';
     if (denEl) denEl.textContent = '';
     return;
@@ -742,7 +760,8 @@ function updateCoverageCells(
   const cls = pctClass(p);
   if (covCell) {
     covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
-    covCell.className = `${covCell.className.replace(/green|yellow|red/g, '').trim()} ${cls}`;
+    covCell.classList.remove('green', 'yellow', 'red');
+    covCell.classList.add(cls);
   }
   if (numEl) numEl.textContent = fmtNum(covered) + '/';
   if (denEl) denEl.textContent = fmtNum(total);
@@ -780,7 +799,9 @@ function setBarSizerWidth(sizers: Element[], px: number): void {
   const w = px + 'px';
   sizers.forEach(s => {
     const st = (s as HTMLElement).style;
-    st.width = w; st.minWidth = w; st.maxWidth = w;
+    st.width = w;
+    st.minWidth = w;
+    st.maxWidth = w;
   });
 }
 
@@ -987,6 +1008,28 @@ function navigateToActiveTab(): void {
 
 // --- Dark mode ------------------------------------------------
 
+const THEME_STORAGE_KEY = 'simplecov-dark-mode';
+
+// localStorage can throw in locked-down contexts (Safari private mode,
+// sandboxed iframes, browsers with storage disabled). The head-script
+// preflight already guards against this; mirror the guard here so the
+// toggle click and the prefers-color-scheme listener don't blow up.
+function getThemePreference(): string | null {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setThemePreference(value: string): void {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, value);
+  } catch {
+    // No-op: same locked-down contexts as the preflight try/catch.
+  }
+}
+
 function initDarkMode(): void {
   const toggle = document.getElementById('dark-mode-toggle');
   if (!toggle) return;
@@ -1009,12 +1052,12 @@ function initDarkMode(): void {
     const switchToLight = isDark();
     root.classList.toggle('light-mode', switchToLight);
     root.classList.toggle('dark-mode', !switchToLight);
-    localStorage.setItem('simplecov-dark-mode', switchToLight ? 'light' : 'dark');
+    setThemePreference(switchToLight ? 'light' : 'dark');
     updateLabel();
   });
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (!localStorage.getItem('simplecov-dark-mode')) updateLabel();
+    if (!getThemePreference()) updateLabel();
   });
 }
 
@@ -1042,7 +1085,7 @@ async function init(): Promise<void> {
     let minDelay = Infinity;
     $$('abbr.timeago').forEach(el => {
       const date = new Date(el.getAttribute('title') || '');
-      if (isNaN(date.getTime())) return;
+      if (Number.isNaN(date.getTime())) return;
       el.textContent = timeago(date);
       minDelay = Math.min(minDelay, timeagoNextTick(date));
     });
@@ -1056,7 +1099,7 @@ async function init(): Promise<void> {
   function thToTdIndex(table: Element, clickedTh: Element): number {
     let idx = 0;
     for (const th of $$('thead tr:first-child th', table)) {
-      const span = parseInt(th.getAttribute('colspan') || '1', 10);
+      const span = Number.parseInt(th.getAttribute('colspan') || '1', 10);
       if (th === clickedTh) return idx + span - 1;
       idx += span;
     }
