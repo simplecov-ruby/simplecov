@@ -59,8 +59,12 @@ module SimpleCov
       SimpleCov::FileList.new result
     end
 
-    # Applies the configured groups to the given array of SimpleCov::SourceFile items
-    def grouped(files)
+    # Bin the given source files by group filter. `groups:` defaults to
+    # `SimpleCov.groups`; pass a Hash explicitly to bin against a
+    # different group config (e.g., the snapshot a Result captured at
+    # construction). Files matched by no group fall into the implicit
+    # "Ungrouped" bucket.
+    def grouped(files, groups: SimpleCov.groups)
       return {} if groups.empty?
 
       grouped = groups.transform_values do |filter|

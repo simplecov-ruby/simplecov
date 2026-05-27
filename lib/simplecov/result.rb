@@ -74,9 +74,9 @@ module SimpleCov
       source_file_for(path)&.coverage_statistics
     end
 
-    # Returns a Hash of groups for this result. Define groups using SimpleCov.add_group 'Models', 'app/models'
+    # Returns a Hash of groups for this result. Define groups using SimpleCov.group 'Models', 'app/models'
     def groups
-      @groups ||= apply_groups
+      @groups ||= SimpleCov.grouped(files, groups: @groups_config)
     end
 
     # Applies the configured SimpleCov.formatter on this result. Returns
@@ -153,23 +153,6 @@ module SimpleCov
       @files = SimpleCov::FileList.new(
         @files.select { |source_file| cover_filters.any? { |filter| filter.matches?(source_file) } }
       )
-    end
-
-    # Build the per-group FileLists from `@groups_config`, plus the
-    # implicit "Ungrouped" bucket for files that no group filter
-    # matched.
-    def apply_groups
-      return {} if @groups_config.empty?
-
-      grouped = @groups_config.transform_values do |filter|
-        SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
-      end
-
-      in_group  = grouped.values.flat_map(&:to_a)
-      ungrouped = files.reject { |source_file| in_group.include?(source_file) }
-      grouped["Ungrouped"] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
-
-      grouped
     end
   end
 end
