@@ -10,17 +10,29 @@ module SimpleCov
       # Builds the hash that JSONFormatter serializes to coverage.json:
       # meta, per-file coverage data, group totals, and aggregate stats.
       class ResultHashFormatter
+        # Bump SCHEMA_VERSION (and SCHEMA_URL) when the JSON shape
+        # changes. Additive changes bump the minor segment, removals or
+        # shape changes bump the major segment. The versioned file at
+        # schemas/coverage-vX.Y.schema.json is the canonical artifact
+        # consumers should pin to, schemas/coverage.schema.json is a
+        # convenience alias that always tracks the latest. See the
+        # `coverage.json` schema section of the README for the rationale.
+        SCHEMA_VERSION = "1.0"
+        SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
+        private_constant :SCHEMA_VERSION, :SCHEMA_URL
+
         def initialize(result)
           @result = result
         end
 
         def format
           {
-            meta: format_meta,
-            total: format_coverage_statistics(@result.coverage_statistics),
-            coverage: format_files,
-            groups: format_groups,
-            errors: ErrorsFormatter.new(@result).call
+            :$schema => SCHEMA_URL,
+            :meta => format_meta,
+            :total => format_coverage_statistics(@result.coverage_statistics),
+            :coverage => format_files,
+            :groups => format_groups,
+            :errors => ErrorsFormatter.new(@result).call
           }
         end
 
@@ -36,13 +48,6 @@ module SimpleCov
             [name, stats.merge(files: file_list.map(&:project_filename))]
           end
         end
-
-        # Bump SCHEMA_VERSION when the JSON shape changes. Additive
-        # changes bump the minor segment; removals or shape changes bump
-        # major. See schemas/coverage.schema.json for the contract this
-        # version describes.
-        SCHEMA_VERSION = "1.0"
-        private_constant :SCHEMA_VERSION
 
         def format_meta
           {

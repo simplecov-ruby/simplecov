@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
   "meta": {
     "schema_version": "1.0",
     "simplecov_version": "0.22.0",
