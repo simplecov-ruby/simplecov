@@ -11,10 +11,6 @@
 // upfront so the synchronous render path can look them up freely.
 export async function hash(str: string): Promise<string> {
   const bytes = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest('SHA-1', bytes);
-  let out = '';
-  for (const b of new Uint8Array(buf, 0, 4)) {
-    out += ('0' + b.toString(16)).slice(-2);
-  }
-  return out;
+  const digest = await crypto.subtle.digest('SHA-1', bytes);
+  return Array.from(new Uint8Array(digest, 0, 4), (b) => b.toString(16).padStart(2, '0')).join('');
 }

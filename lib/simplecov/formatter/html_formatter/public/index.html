@@ -1,20 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Code Coverage</title>
-    <script src="application.js" type="text/javascript"></script>
-    <link href="application.css" media="screen, projection, print" rel="stylesheet" type="text/css" />
-    <script type="text/javascript">
-      (function() {
-        var pref = localStorage.getItem('simplecov-dark-mode');
-        if (pref === 'dark') {
-          document.documentElement.classList.add('dark-mode');
-        } else if (pref === 'light') {
-          document.documentElement.classList.add('light-mode');
-        }
-      })();
+    <script src="application.js" defer></script>
+    <link href="application.css" rel="stylesheet">
+    <script>
+      // Apply the saved dark/light preference before paint to avoid a flash.
+      const pref = localStorage.getItem('simplecov-dark-mode');
+      if (pref === 'dark' || pref === 'light') {
+        document.documentElement.classList.add(`${pref}-mode`);
+      }
     </script>
   </head>
 
@@ -50,6 +47,6 @@
       <div class="source-dialog__body" id="source-dialog-body" tabindex="0"></div>
     </dialog>
 
-    <script src="coverage_data.js" type="text/javascript"></script>
+    <script src="coverage_data.js" defer></script>
   </body>
 </html>

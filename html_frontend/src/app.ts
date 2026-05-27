@@ -83,6 +83,17 @@ declare global {
   }
 }
 
+// Module-level state populated by renderPage() and consumed by the
+// on-demand source-file materializer. Holding it here (typed) avoids
+// hanging caches off the global Window object.
+interface RenderState {
+  idToFilename: Record<string, string>;
+  coverage: Record<string, FileCoverage>;
+  branchCoverage: boolean;
+  methodCoverage: boolean;
+}
+let renderState: RenderState | null = null;
+
 // --- Constants ------------------------------------------------
 
 const MAX_BAR_WIDTH = 240;
@@ -483,25 +494,26 @@ function renderPage(data: CoverageData): void {
 
   if (branchCoverage) document.body.setAttribute('data-branch-coverage', 'true');
 
-  // Content: file lists
+  // Content: file lists. Building the full markup in memory and assigning
+  // innerHTML once avoids the O(n^2) re-parse that `innerHTML += ...` in a
+  // loop would trigger on reports with many groups.
   const content = document.getElementById('content')!;
-  content.innerHTML = renderFileList('All Files', allFiles, data.total, data.coverage, branchCoverage, methodCoverage);
-
+  const fileListSections = [
+    renderFileList('All Files', allFiles, data.total, data.coverage, branchCoverage, methodCoverage),
+  ];
   for (const groupName of Object.keys(data.groups)) {
     const group = data.groups[groupName];
-    const groupFiles = group.files || [];
-    content.innerHTML += renderFileList(groupName, groupFiles, group, data.coverage, branchCoverage, methodCoverage);
+    fileListSections.push(
+      renderFileList(groupName, group.files || [], group, data.coverage, branchCoverage, methodCoverage)
+    );
   }
+  content.innerHTML = fileListSections.join('');
 
-  // Build id → filename lookup map for O(1) source file materialization
+  // Cache the lookup map and coverage data so the on-demand source file
+  // materializer can resolve an id back to its FileCoverage in O(1).
   const idToFilename: Record<string, string> = {};
-  for (const fn of allFiles) {
-    idToFilename[fileId(fn)] = fn;
-  }
-  (window as any)._simplecovIdMap = idToFilename;
-  (window as any)._simplecovFiles = data.coverage;
-  (window as any)._simplecovBranchCoverage = branchCoverage;
-  (window as any)._simplecovMethodCoverage = methodCoverage;
+  for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
+  renderState = { idToFilename, coverage: data.coverage, branchCoverage, methodCoverage };
 
   // Footer
   const timestamp = new Date(meta.timestamp);
@@ -535,13 +547,8 @@ interface SortEntry {
 const sortState: Record<string, SortEntry> = {};
 
 function getVisibleChild(row: Element, index: number): Element | null {
-  let count = 0;
-  for (let i = 0; i < row.children.length; i++) {
-    if ((row.children[i] as HTMLElement).style.display === 'none') continue;
-    if (count === index) return row.children[i];
-    count++;
-  }
-  return null;
+  const visible = Array.from(row.children).filter((c) => (c as HTMLElement).style.display !== 'none');
+  return visible[index] ?? null;
 }
 
 function getSortValue(td: Element | null): number | string {
@@ -746,23 +753,24 @@ function updateCoverageCells(
 function materializeSourceFile(sourceFileId: string): HTMLElement | null {
   const existing = document.getElementById(sourceFileId);
   if (existing) return existing;
+  if (!renderState) return null;
 
-  const idMap = (window as any)._simplecovIdMap as Record<string, string>;
-  const coverage = (window as any)._simplecovFiles as Record<string, FileCoverage>;
-  const branchCov = (window as any)._simplecovBranchCoverage as boolean;
-  const methodCov = (window as any)._simplecovMethodCoverage as boolean;
-
-  const targetFilename = idMap[sourceFileId];
+  const targetFilename = renderState.idToFilename[sourceFileId];
   if (!targetFilename) return null;
 
-  const html = renderSourceFile(targetFilename, coverage[targetFilename], branchCov, methodCov);
+  const html = renderSourceFile(
+    targetFilename,
+    renderState.coverage[targetFilename],
+    renderState.branchCoverage,
+    renderState.methodCoverage,
+  );
   const container = document.querySelector('.source_files')!;
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
   const el = wrapper.firstElementChild as HTMLElement;
   container.appendChild(el);
 
-  $$('pre code', el).forEach(e => { hljs.highlightElement(e as HTMLElement); });
+  $$('pre code', el).forEach((e) => hljs.highlightElement(e as HTMLElement));
   return el;
 }
 
@@ -866,21 +874,14 @@ function jumpToMissedLine(direction: 1 | -1): void {
   const lines = getMissedLines();
   if (!lines.length) return;
 
-  const scrollTop = dialogBody.scrollTop;
-  const midpoint = scrollTop + dialogBody.clientHeight / 2;
+  const midpoint = dialogBody.scrollTop + dialogBody.clientHeight / 2;
+  // The -10 bias on the backward search keeps the currently-centered line
+  // from counting as its own "previous" hit when we're sitting on it.
+  const target = direction === 1
+    ? lines.find((li) => li.offsetTop > midpoint) || lines[0]
+    : lines.findLast((li) => li.offsetTop < midpoint - 10) || lines[lines.length - 1];
 
-  if (direction === 1) {
-    const next = lines.find(li => li.offsetTop > midpoint);
-    const target = next || lines[0];
-    dialogBody.scrollTop = target.offsetTop - dialogBody.clientHeight / 3;
-  } else {
-    let prev: HTMLElement | null = null;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].offsetTop < midpoint - 10) { prev = lines[i]; break; }
-    }
-    const target = prev || lines[lines.length - 1];
-    dialogBody.scrollTop = target.offsetTop - dialogBody.clientHeight / 3;
-  }
+  dialogBody.scrollTop = target.offsetTop - dialogBody.clientHeight / 3;
 }
 
 // --- Source file dialog ----------------------------------------
@@ -1019,15 +1020,10 @@ function initDarkMode(): void {
 
 // --- Initialization -------------------------------------------
 
-// Wait for coverage data to be available, then render
+// Render the coverage page. Both `application.js` and `coverage_data.js`
+// use `defer`, so `coverage_data.js` is guaranteed to have populated
+// `window.SIMPLECOV_DATA` by the time `DOMContentLoaded` fires.
 async function init(): Promise<void> {
-  if (!window.SIMPLECOV_DATA) {
-    // Data not loaded yet - the coverage_data.js script tag is at the end of body,
-    // so if DOMContentLoaded fires first, wait for it
-    window.addEventListener('load', init);
-    return;
-  }
-
   const data = window.SIMPLECOV_DATA;
 
   // Show loading indicator
