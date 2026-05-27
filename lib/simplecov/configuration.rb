@@ -947,7 +947,7 @@ module SimpleCov
 
     def coverage_for_eval_supported?
       require "coverage"
-      defined?(Coverage.supported?) && Coverage.supported?(:eval)
+      Coverage.respond_to?(:supported?) && Coverage.supported?(:eval)
     end
 
     def coverage_for_eval_enabled?

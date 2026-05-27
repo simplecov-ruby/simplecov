@@ -29,11 +29,13 @@ RSpec.describe SimpleCov::Profiles do
     around do |example|
       prev_criteria = SimpleCov.coverage_criteria.dup
       prev_min      = SimpleCov.minimum_coverage.dup
+      prev_eval     = SimpleCov.instance_variable_get(:@coverage_for_eval_enabled)
       example.run
     ensure
       SimpleCov.clear_coverage_criteria
       prev_criteria.each { |c| SimpleCov.enable_coverage(c) }
       SimpleCov.minimum_coverage(prev_min.empty? ? {} : prev_min)
+      SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, prev_eval)
     end
 
     # No engine-conditional logic in the profile itself — every clause
@@ -46,6 +48,18 @@ RSpec.describe SimpleCov::Profiles do
 
       expect(SimpleCov.coverage_criteria).to include(:line, :branch, :method)
       expect(SimpleCov.minimum_coverage).to eq(line: 100, branch: 100, method: 100)
+    end
+
+    # `:eval` widens the strict universe to include code passed through
+    # `Kernel#eval` (ERB templates, etc.) on runtimes that support it.
+    # On older Rubies the toggle is silently skipped — `enable_coverage
+    # :eval` would otherwise warn about missing runtime support every
+    # time the profile loaded.
+    it "enables :eval when the runtime supports it" do
+      SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, false)
+      SimpleCov.load_profile "strict"
+
+      expect(SimpleCov.coverage_for_eval_enabled?).to eq(SimpleCov.coverage_for_eval_supported?)
     end
   end
 end

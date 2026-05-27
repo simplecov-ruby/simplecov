@@ -970,12 +970,15 @@ That's equivalent to writing out:
 SimpleCov.start do
   enable_coverage :branch
   enable_coverage :method
+  enable_coverage :eval if Coverage.respond_to?(:supported?) && Coverage.supported?(:eval)
   minimum_coverage line: 100, branch: 100, method: 100
 end
 ```
 
 The profile drops the branch / method clauses on engines that don't support those criteria (JRuby), so it still
-loads cleanly there — just enforcing line coverage at 100%.
+loads cleanly there — just enforcing line coverage at 100%. `:eval` is included on Ruby 3.2+ (where the runtime
+supports it), so any code reached through `Kernel#eval` — typically ERB templates with `ERB#filename=` set — is
+held to the same 100% bar. On older Rubies, the `:eval` clause is silently skipped.
 
 ### Custom profiles
 
