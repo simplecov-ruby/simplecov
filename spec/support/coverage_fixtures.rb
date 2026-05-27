@@ -115,6 +115,30 @@ module CoverageFixtures
     }
   }.freeze
 
+  # Mimics what Ruby's `Coverage` reports for a file that uses an
+  # eval-based macro (e.g., Rails' `delegate` or `def_delegators`). The
+  # eval-generated method (`:hello`) and the branch inside its body get
+  # attributed to the macro's source line (line 2 here), even though
+  # there's no real `def hello` or `if`/`case`/etc. at that line in the
+  # static source. `ignore_methods :eval_generated` and
+  # `ignore_branches :eval_generated` use Prism to recognize and drop
+  # those entries. See #1046.
+  EVAL_GENERATED_RB = {
+    "lines" => [nil, 1, 1, 1, nil, 1, nil, nil],
+    "branches" => {
+      # Eval-generated `:if` attributed to the def_delegators call line.
+      [:if, 0, 2, 2, 2, 35] => {[:then, 1, 2, 2, 2, 35] => 1, [:else, 2, 2, 2, 2, 35] => 0},
+      # Real `:if` inside `initialize` (line 4, hypothetical body branch).
+      [:if, 3, 4, 4, 4, 24] => {[:then, 4, 4, 4, 4, 24] => 1, [:else, 5, 4, 4, 4, 24] => 0}
+    },
+    "methods" => {
+      # Eval-generated method at the def_delegators call line.
+      ["EvalHost", :hello, 2, 2, 2, 35] => 1,
+      # Real `def initialize` at line 3.
+      ["EvalHost", :initialize, 3, 2, 5, 5] => 1
+    }
+  }.freeze
+
   UNEVEN_NOCOVS_RB = {
     "lines" => [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
     "branches" => {
@@ -136,6 +160,7 @@ module CoverageFixtures
     "elsif.rb" => ELSIF_RB,
     "branch_tester_script.rb" => BRANCH_TESTER_RB,
     "single_nocov.rb" => SINGLE_NOCOV_RB,
-    "uneven_nocovs.rb" => UNEVEN_NOCOVS_RB
+    "uneven_nocovs.rb" => UNEVEN_NOCOVS_RB,
+    "eval_generated.rb" => EVAL_GENERATED_RB
   }.freeze
 end

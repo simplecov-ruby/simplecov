@@ -807,29 +807,40 @@ module SimpleCov
     end
 
     # Branch coverage entries that should not count toward the report when
-    # they appear in the raw `Coverage.result`. The only currently supported
-    # token is `:implicit_else` — synthetic `else` arms that Ruby's Coverage
-    # library reports for constructs without a literal `else` keyword (e.g.
-    # `case/in` without `else`, `case/when` without `else`, `||=`, `&&=`,
-    # and `if` without `else`). They show up as "missed" branches and
-    # depress the branch-coverage percentage even though the source has no
-    # corresponding code to exercise. See #1033.
+    # they appear in the raw `Coverage.result`. Supported tokens:
     #
-    # Variadic — pass one or more tokens. Multiple calls union:
+    # * `:implicit_else` (see #1033) drops synthetic `else` arms that
+    #   Ruby's Coverage library reports for constructs without a literal
+    #   `else` keyword (`case/in` without `else`, `case/when` without
+    #   `else`, `||=`, `&&=`, `if` without `else`). They show up as
+    #   "missed" branches and depress the branch-coverage percentage
+    #   even though the source has no corresponding code to exercise.
+    # * `:eval_generated` (see #1046) drops branches whose source range
+    #   does not correspond to a real conditional in the file. Ruby's
+    #   Coverage attributes `module_eval(body, __FILE__, __LINE__)` to
+    #   the calling file/line, so macros like Rails' `delegate` inject
+    #   "missed" entries into otherwise clean source files when
+    #   `enable_coverage :eval` is on. Detection uses Prism to walk the
+    #   real source and treats any Coverage entry whose start_line does
+    #   not coincide with a real branch construct (`if`, `unless`,
+    #   ternary, `case/when`, `case/in`, `while`, `until`) as
+    #   eval-generated.
+    #
+    # Variadic. Pass one or more tokens. Multiple calls union:
     #
     #     SimpleCov.start do
     #       enable_coverage :branch
-    #       ignore_branches :implicit_else
+    #       ignore_branches :implicit_else, :eval_generated
     #     end
     #
     # The setting is recorded regardless of whether branch coverage is
-    # enabled at call time, so call order doesn't matter:
+    # enabled at call time, so call order doesn't matter.
     # `ignore_branches :implicit_else` before `enable_coverage :branch`
     # (or vice versa) both apply the filter. If branch coverage is never
     # enabled, the stored setting has nothing to filter and produces no
     # observable change in the report. Unknown tokens raise
     # `SimpleCov::ConfigurationError` immediately to catch typos.
-    IGNORABLE_BRANCH_TYPES = %i[implicit_else].freeze
+    IGNORABLE_BRANCH_TYPES = %i[implicit_else eval_generated].freeze
 
     def ignore_branches(*types)
       types.each { |type| raise_if_branch_type_unsupported(type) }
@@ -843,6 +854,38 @@ module SimpleCov
 
     def ignored_branch?(type)
       ignored_branches.include?(type)
+    end
+
+    # Method coverage entries that should not count toward the report
+    # when they appear in the raw `Coverage.result`. The only currently
+    # supported token is `:eval_generated` (see #1046), which drops
+    # method entries whose source position does not correspond to a
+    # real `def` keyword in the file. Macros that synthesize methods
+    # via `module_eval` / `class_eval` (Rails' `delegate`, ActiveRecord
+    # associations, `attr_accessor`-style helpers) inject "missed"
+    # method entries when `enable_coverage :eval` is on. Detection uses
+    # Prism to walk the real source and treat any Coverage method
+    # entry whose start_line does not match a real `def` as
+    # eval-generated.
+    #
+    # Variadic. Same lifecycle as `ignore_branches`: setting is recorded
+    # regardless of whether method coverage is enabled, applies once
+    # method coverage is enabled, no observable effect if it never is.
+    # Unknown tokens raise `SimpleCov::ConfigurationError`.
+    IGNORABLE_METHOD_TYPES = %i[eval_generated].freeze
+
+    def ignore_methods(*types)
+      types.each { |type| raise_if_method_type_unsupported(type) }
+      ignored_methods.concat(types).uniq!
+      ignored_methods
+    end
+
+    def ignored_methods
+      @ignored_methods ||= []
+    end
+
+    def ignored_method?(type)
+      ignored_methods.include?(type)
     end
 
     def primary_coverage(criterion = nil)
@@ -966,8 +1009,16 @@ module SimpleCov
       return if IGNORABLE_BRANCH_TYPES.member?(type)
 
       raise SimpleCov::ConfigurationError,
-            "Unsupported branch type #{type.inspect} for `ignore_branches`; " \
-            "supported values are #{IGNORABLE_BRANCH_TYPES.inspect}"
+            "Unsupported branch type #{type.inspect} for `ignore_branches`. " \
+            "Supported values are #{IGNORABLE_BRANCH_TYPES.inspect}"
+    end
+
+    def raise_if_method_type_unsupported(type)
+      return if IGNORABLE_METHOD_TYPES.member?(type)
+
+      raise SimpleCov::ConfigurationError,
+            "Unsupported method type #{type.inspect} for `ignore_methods`. " \
+            "Supported values are #{IGNORABLE_METHOD_TYPES.inspect}"
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)

@@ -176,4 +176,39 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
     end
   end
+
+  describe ".real_source_positions" do
+    context "when Prism is not available" do
+      it "returns nil so the eval_generated filter is a no-op" do
+        skip "Prism is available; the no-Prism path can't be exercised on this Ruby" if described_class.available?
+
+        expect(described_class.real_source_positions("def f; end\n")).to be_nil
+      end
+    end
+
+    context "when Prism is available", if: described_class.available? do
+      it "returns nil on a parse failure" do
+        expect(described_class.real_source_positions("def f(\n")).to be_nil
+      end
+
+      it "lists branch condition start lines" do
+        src = "x = 1\nif x > 0\n  :a\nend\ncase x\nwhen 1 then :b\nend\n"
+        positions = described_class.real_source_positions(src)
+        # `if` at line 2, `case` at line 5
+        expect(positions[:branches]).to contain_exactly(2, 5)
+      end
+
+      it "lists method (name, start_line) pairs" do
+        src = "class Foo\n  def bar; end\n  def baz; end\nend\n"
+        positions = described_class.real_source_positions(src)
+        expect(positions[:methods]).to contain_exactly([:bar, 2], [:baz, 3])
+      end
+
+      it "returns empty sets for a source with no defs or branches" do
+        positions = described_class.real_source_positions("a = 1\nb = a + 1\n")
+        expect(positions[:branches]).to be_empty
+        expect(positions[:methods]).to be_empty
+      end
+    end
+  end
 end

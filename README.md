@@ -397,10 +397,35 @@ SimpleCov.start do
 end
 ```
 
-`ignore_branches` is variadic — only `:implicit_else` is currently supported, but the
-shape leaves room for future synthetic branch types. Calling it before (or without)
-`enable_coverage :branch` is harmless: the setting is stored and applies once branch
-coverage is enabled. Explicit `else` arms still count.
+`ignore_branches` is variadic. `:implicit_else` and `:eval_generated` (described below)
+are the currently supported tokens. Calling it before (or without) `enable_coverage :branch`
+is harmless: the setting is stored and applies once branch coverage is enabled.
+Explicit `else` arms still count.
+
+### Ignoring eval-generated branches and methods
+
+Rails' `delegate` (and other macros that call `module_eval(body, __FILE__, __LINE__)`)
+make Ruby's `Coverage` library attribute the eval'd code to the macro's source line.
+The result is a `delegate :foo, to: :bar` line that surfaces in the report as if it
+had its own `def foo` and an `if` branch — both reported as missed when the delegated
+method isn't called from the suite. Drop those synthetic entries:
+
+```ruby
+SimpleCov.start do
+  enable_coverage :branch
+  enable_coverage :method
+  ignore_branches :eval_generated
+  ignore_methods :eval_generated
+end
+```
+
+`ignore_methods` is variadic; `:eval_generated` is the only currently supported token.
+Both filters detect eval-generated entries by walking the static source with
+[Prism](https://github.com/ruby/prism) and dropping any Coverage entry whose start
+line lacks a real `def` keyword (for methods) or branch construct (for branches).
+Prism is bundled with Ruby 3.3+; on older Rubies `gem install prism` enables the
+filter, otherwise it's a silent no-op. Real `def`s and branches that share a line
+with an eval-generated entry are kept (line-presence is the matcher).
 
 **Is branch coverage strictly better?** No. Branch coverage really only concerns itself with
 conditionals - meaning coverage of sequential code is of no interest to it. A file without
