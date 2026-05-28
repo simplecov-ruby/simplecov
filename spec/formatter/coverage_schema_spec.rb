@@ -85,6 +85,16 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
       expect(errors).to be_empty, errors.join("\n")
     end
 
+    it "validates a result emitted with SimpleCov.source_in_json off (no per-file `source` array)" do
+      allow(SimpleCov).to receive(:source_in_json).and_return(false)
+      result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}})
+      document = emit(result)
+      # Sanity: the `source` field really is omitted, not just empty.
+      expect(document.fetch("coverage").values.first).not_to have_key("source")
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+    end
+
     it "validates a result with branch coverage enabled" do
       allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
       result = SimpleCov::Result.new({

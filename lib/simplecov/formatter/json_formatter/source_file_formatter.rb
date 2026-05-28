@@ -7,12 +7,13 @@ module SimpleCov
       # in coverage.json: source code plus per-enabled-criterion arrays
       # and totals.
       class SourceFileFormatter
-        def initialize(source_file)
+        def initialize(source_file, include_source: true)
           @source_file = source_file
+          @include_source = include_source
         end
 
         def call
-          result = format_source_code
+          result = @include_source ? format_source_code : {}
           result.merge!(line_coverage_section) if line_coverage_enabled?
           result.merge!(branch_coverage_section) if SimpleCov.branch_coverage?
           result.merge!(method_coverage_section) if SimpleCov.method_coverage?

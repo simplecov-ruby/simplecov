@@ -119,6 +119,24 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(file_data["source"]).not_to be_empty
     end
 
+    # The client-side viewer renders source from the embedded array,
+    # so coverage_data.js must keep `source` regardless of the
+    # `source_in_json` setting. The setting only controls the side-file
+    # coverage.json, which downstream tools that read source from disk
+    # can opt into shrinking.
+    it "keeps source in coverage_data.js even when SimpleCov.source_in_json is false" do
+      allow(SimpleCov).to receive(:source_in_json).and_return(false)
+      formatter.format(make_result)
+      expect(coverage_data["coverage"].values.first).to include("source")
+    end
+
+    it "drops source from coverage.json when SimpleCov.source_in_json is false" do
+      allow(SimpleCov).to receive(:source_in_json).and_return(false)
+      formatter.format(make_result)
+      external = JSON.parse(File.read(File.join(coverage_dir, "coverage.json")))
+      expect(external["coverage"].values.first).not_to include("source")
+    end
+
     it "embeds the metadata section in the coverage payload" do
       meta = coverage_data["meta"]
 

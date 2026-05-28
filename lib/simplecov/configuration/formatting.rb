@@ -65,6 +65,28 @@ module SimpleCov
       @print_error_status = value
     end
 
+    #
+    # Get or set whether `coverage.json` includes the full source-text
+    # array for every file. Defaults to true. Set to false when a
+    # downstream tool reads the project's source files directly and
+    # only needs the coverage metrics, so `coverage.json` doesn't carry
+    # a copy of the source tree (which dominates the payload on larger
+    # projects).
+    #
+    # The HTML viewer's `coverage_data.js` always includes source —
+    # the client-side renderer needs it. Only `coverage.json` honors
+    # this setting.
+    #
+    #     SimpleCov.start do
+    #       source_in_json false
+    #     end
+    #
+    def source_in_json(value = :__no_arg__)
+      return defined?(@source_in_json) ? @source_in_json : true if value == :__no_arg__
+
+      @source_in_json = value
+    end
+
     # DEPRECATED: alias for `print_errors`. Same value, same behavior.
     def print_error_status
       warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.print_error_status` is deprecated. " \

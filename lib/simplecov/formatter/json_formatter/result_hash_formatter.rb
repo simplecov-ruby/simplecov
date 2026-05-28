@@ -21,8 +21,9 @@ module SimpleCov
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 
-        def initialize(result)
+        def initialize(result, include_source: true)
           @result = result
+          @include_source = include_source
         end
 
         def format
@@ -39,7 +40,9 @@ module SimpleCov
       private
 
         def format_files
-          @result.files.to_h { |source_file| [source_file.project_filename, SourceFileFormatter.new(source_file).call] }
+          @result.files.to_h do |source_file|
+            [source_file.project_filename, SourceFileFormatter.new(source_file, include_source: @include_source).call]
+          end
         end
 
         def format_groups
