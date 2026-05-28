@@ -15,11 +15,19 @@ module SimpleCov
       DATA_FILENAME = "coverage_data.js"
 
       def format(result)
-        json = JSON.pretty_generate(JSONFormatter.build_hash(result))
-
+        # `coverage_data.js` feeds the client-side viewer, which renders
+        # source from the embedded array — it always needs `source`,
+        # regardless of `SimpleCov.source_in_json`. The side-file
+        # `coverage.json` honors the setting so downstream tools that
+        # read source from disk can opt into a smaller payload. When
+        # the setting is at its default (true), the two files share a
+        # single serialization.
         FileUtils.mkdir_p(output_path)
-        atomic_write(File.join(output_path, JSONFormatter::FILENAME), json)
-        atomic_write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n")
+        viewer_json = JSON.pretty_generate(JSONFormatter.build_hash(result, include_source: true))
+        coverage_json = SimpleCov.source_in_json ? viewer_json : JSON.pretty_generate(JSONFormatter.build_hash(result))
+
+        atomic_write(File.join(output_path, JSONFormatter::FILENAME), coverage_json)
+        atomic_write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{viewer_json};\n")
 
         copy_static_assets
         # stderr, not stdout: this is a status message, not the program's

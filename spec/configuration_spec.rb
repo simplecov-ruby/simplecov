@@ -163,6 +163,23 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  describe "#source_in_json" do
+    it "defaults to true" do
+      expect(config.source_in_json).to be true
+    end
+
+    it "reads back the assigned value" do
+      config.source_in_json false
+      expect(config.source_in_json).to be false
+    end
+
+    it "round-trips a true assignment" do
+      config.source_in_json false
+      config.source_in_json true
+      expect(config.source_in_json).to be true
+    end
+  end
+
   describe "#print_error_status (deprecated)" do
     it "warns when read and still returns the value" do
       config.print_error_status = false

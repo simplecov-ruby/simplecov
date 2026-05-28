@@ -13,8 +13,13 @@ module SimpleCov
     class JSONFormatter < Base
       FILENAME = "coverage.json"
 
-      def self.build_hash(result)
-        ResultHashFormatter.new(result).format
+      # `include_source:` defaults to `SimpleCov.source_in_json` (true
+      # by default) so the historical payload shape is unchanged.
+      # Callers that need the source array regardless of the global
+      # setting (the HTML formatter, which feeds the client-side
+      # viewer) pass `include_source: true` explicitly.
+      def self.build_hash(result, include_source: SimpleCov.source_in_json)
+        ResultHashFormatter.new(result, include_source: include_source).format
       end
 
       def format(result)

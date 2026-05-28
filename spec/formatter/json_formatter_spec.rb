@@ -150,6 +150,29 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with the source_in_json toggle" do
+      let(:file_entry) { json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb")) }
+
+      it "includes the source array by default" do
+        formatter.format(result)
+        expect(file_entry).to have_key("source")
+        expect(file_entry["source"]).to be_an(Array)
+        expect(file_entry["source"]).not_to be_empty
+      end
+
+      it "omits the source array when SimpleCov.source_in_json is false" do
+        allow(SimpleCov).to receive(:source_in_json).and_return(false)
+        formatter.format(result)
+        expect(file_entry).not_to have_key("source")
+      end
+
+      it "still includes line / branch / method sections when source is omitted" do
+        allow(SimpleCov).to receive(:source_in_json).and_return(false)
+        formatter.format(result)
+        expect(file_entry).to include("lines", "covered_lines", "missed_lines", "total_lines", "lines_covered_percent")
+      end
+    end
+
     context "with branch coverage" do
       let(:original_lines) do
         [nil, 1, 1, 1, 1, nil, nil, 1, 1,
