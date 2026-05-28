@@ -55,6 +55,41 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  describe "#color" do
+    context "when not manually set" do
+      it "defaults to :auto" do
+        expect(config.color).to eq(:auto)
+      end
+    end
+
+    context "when set to true" do
+      before { config.color true }
+
+      it "reads back the assigned value" do
+        expect(config.color).to be true
+      end
+    end
+
+    context "when set to false" do
+      before { config.color false }
+
+      it "reads back the assigned value" do
+        expect(config.color).to be false
+      end
+    end
+
+    context "when set back to :auto" do
+      before do
+        config.color true
+        config.color :auto
+      end
+
+      it "reads back :auto" do
+        expect(config.color).to eq(:auto)
+      end
+    end
+  end
+
   describe "#project_name" do
     it "uses the basename of the configured root, capitalized" do
       config.root("/Users/erik/Code/my_app")

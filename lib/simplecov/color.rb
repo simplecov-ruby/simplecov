@@ -6,12 +6,15 @@ module SimpleCov
   # team's mental model of "what's the cutoff" is the same whether
   # they're reading the terminal output or the HTML report.
   #
-  # Color is on only when stderr is a TTY, with the usual env-var
-  # overrides:
+  # Color precedence, highest first:
   #
-  # - `NO_COLOR` (any non-empty value) → force off (see no-color.org)
-  # - `FORCE_COLOR` (any non-empty value) → force on
-  # - `NO_COLOR` wins if both are set
+  # - `SimpleCov.color = true` / `false` (programmatic override, wins
+  #   over everything; default is `:auto` which falls through)
+  # - `NO_COLOR` env var (any non-empty value) → off (see no-color.org)
+  # - `FORCE_COLOR` env var (any non-empty value) → on
+  # - `stream.tty?` fallback
+  #
+  # `NO_COLOR` wins over `FORCE_COLOR` if both env vars are set.
   module Color
     GREEN_THRESHOLD  = 90
     YELLOW_THRESHOLD = 75
@@ -26,11 +29,13 @@ module SimpleCov
   module_function
 
     # `stream` is the IO that the colorized text is destined for. The
-    # formatter writes to stderr, so that's the default; CLI subcommands
+    # formatter writes to stderr, so that's the default. CLI subcommands
     # that print to stdout should pass `$stdout` so a redirected pipe
-    # doesn't get ANSI sequences. `NO_COLOR` / `FORCE_COLOR` env vars
-    # short-circuit either direction.
+    # doesn't get ANSI sequences. See the module-level comment for
+    # precedence.
     def enabled?(stream = $stderr)
+      config = SimpleCov.color
+      return config if [true, false].include?(config)
       return false if env_set?("NO_COLOR")
       return true  if env_set?("FORCE_COLOR")
 

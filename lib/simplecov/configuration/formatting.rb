@@ -37,6 +37,22 @@ module SimpleCov
     end
 
     #
+    # Get or set whether SimpleCov colorizes its stderr diagnostics. Accepts
+    # `true` (always on), `false` (always off), or `:auto` (default: defer
+    # to `SimpleCov::Color`, which checks `$stderr.tty?` with `NO_COLOR`
+    # and `FORCE_COLOR` overrides). An explicit `true`/`false` wins over
+    # both auto-detection and the env vars, which is the right escape
+    # hatch when stderr is being piped through a wrapper that still
+    # renders ANSI in its own terminal (parallel_tests with
+    # `--combine-stderr`, log multiplexers, some CI runners). See #1157.
+    #
+    def color(value = :__no_arg__)
+      return defined?(@color) ? @color : :auto if value == :__no_arg__
+
+      @color = value
+    end
+
+    #
     # Get or set whether SimpleCov prints its own diagnostic warnings to
     # stderr. Covers per-check threshold violations, the trailing
     # "SimpleCov failed with exit ..." summary, and the deferred-report /

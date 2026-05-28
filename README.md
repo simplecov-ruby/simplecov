@@ -944,6 +944,31 @@ This `STDERR` message can be disabled with:
 SimpleCov.print_errors false
 ```
 
+## Color output
+
+When color is enabled, SimpleCov highlights coverage percentages in its `STDERR` diagnostics by band
+(green for `>= 90%`, yellow for `>= 75%`, red below) and prints the "SimpleCov failed with exit ..."
+summary in red. By default, color is on only when `STDERR` is a TTY. Two environment variables
+override that:
+
+- `NO_COLOR=1` (any non-empty value) disables color even when stderr is a TTY. Honors the
+  [no-color.org](https://no-color.org) convention.
+- `FORCE_COLOR=1` (any non-empty value) enables color even when stderr is not a TTY. Useful when
+  stderr is piped through a wrapper that itself renders ANSI in a terminal (`parallel_tests
+  --combine-stderr`, log multiplexers, some CI runners).
+
+`NO_COLOR` wins if both env vars are set.
+
+For programmatic control, use `SimpleCov.color`:
+
+```ruby
+SimpleCov.color true   # always on
+SimpleCov.color false  # always off
+SimpleCov.color :auto  # default behavior: NO_COLOR/FORCE_COLOR/TTY
+```
+
+An explicit `true` or `false` wins over the env vars and TTY detection.
+
 ## Profiles
 
 By default, SimpleCov's only config assumption is that you only want coverage reports for files inside your project
