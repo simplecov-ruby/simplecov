@@ -69,6 +69,15 @@ end
 Aruba.configure do |config|
   config.allow_absolute_paths = true
 
-  # JRuby needs a bit longer to get going
-  config.exit_timeout = RUBY_ENGINE == "jruby" ? 60 : 20
+  # Per-command ceiling. The 20-second default was tight enough that
+  # cold-cache `bundle exec rspec` / `bundle exec parallel_rspec` /
+  # `bundle exec rake test` invocations in the test_projects features
+  # (old_version_json, parallel_tests, test_unit_without_simplecov)
+  # would occasionally time out and fail before the work even
+  # finished, even though the same scenarios passed instantly on a
+  # warm cache. `--retry 3 --no-strict-flaky` masked the failures
+  # but blew the suite's wall time up by 10x or more on cold runs.
+  # 60 seconds accommodates first-bundle-activation latency on slow
+  # CI runners without slowing the happy path (timeout is a ceiling).
+  config.exit_timeout = RUBY_ENGINE == "jruby" ? 120 : 60
 end
