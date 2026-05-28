@@ -32,6 +32,7 @@ require "open3"
 require "tmpdir"
 # loaded before simplecov to also capture parse time warnings
 require "support/fail_rspec_on_ruby_warning"
+require "support/with_env"
 require "simplecov"
 
 # The default profile chain now includes `test_frameworks`, which

@@ -62,19 +62,15 @@ RSpec.describe SimpleCov::CommandGuesser do
 
   it "appends parallel data" do
     guesser.original_run_command = "/some/path/spec/foo.rb"
-    allow(ENV).to receive(:values_at).and_call_original
-    allow(ENV).to receive(:values_at)
-      .with("PARALLEL_TEST_GROUPS", "TEST_ENV_NUMBER")
-      .and_return(%w[2 1])
-    expect(guesser.guess).to eq("RSpec (1/2)")
+    with_env("PARALLEL_TEST_GROUPS" => "2", "TEST_ENV_NUMBER" => "1") do
+      expect(guesser.guess).to eq("RSpec (1/2)")
+    end
   end
 
   it 'treats an empty TEST_ENV_NUMBER as worker "1"' do
     guesser.original_run_command = "/some/path/spec/foo.rb"
-    allow(ENV).to receive(:values_at).and_call_original
-    allow(ENV).to receive(:values_at)
-      .with("PARALLEL_TEST_GROUPS", "TEST_ENV_NUMBER")
-      .and_return(["2", ""])
-    expect(guesser.guess).to eq("RSpec (1/2)")
+    with_env("PARALLEL_TEST_GROUPS" => "2", "TEST_ENV_NUMBER" => "") do
+      expect(guesser.guess).to eq("RSpec (1/2)")
+    end
   end
 end
