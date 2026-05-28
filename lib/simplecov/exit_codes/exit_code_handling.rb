@@ -12,7 +12,7 @@ module SimpleCov
 
         failing_check = checks.find(&:failing?)
         if failing_check
-          failing_check.report
+          failing_check.report if SimpleCov.print_errors
           failing_check.exit_code
         else
           SimpleCov::ExitCodes::SUCCESS

@@ -37,9 +37,11 @@ module SimpleCov
     end
 
     #
-    # Get or set whether to print a non-success status line at the end
-    # of the run when the suite fails a coverage threshold check.
-    # Defaults to true.
+    # Get or set whether SimpleCov prints its own diagnostic warnings to
+    # stderr. Covers per-check threshold violations, the trailing
+    # "SimpleCov failed with exit ..." summary, and the deferred-report /
+    # previous-error notices. Defaults to true. Set to false to silence
+    # SimpleCov entirely when parsing tooling output (see issue #1155).
     #
     def print_errors(value = :__no_arg__)
       return defined?(@print_error_status) ? @print_error_status : true if value == :__no_arg__
