@@ -345,12 +345,38 @@ RSpec.describe SimpleCov do
   end
 
   describe ".wait_for_parallel_results" do
-    it "returns early when expected worker count is 1 (single-process or single-group)" do
-      expect(described_class.send(:wait_for_parallel_results, 1)).to be_nil
+    it "returns true immediately when expected worker count is 1 (single-process or single-group)" do
+      expect(described_class.send(:wait_for_parallel_results, 1)).to be(true)
     end
 
-    it "returns early when expected worker count is 0" do
-      expect(described_class.send(:wait_for_parallel_results, 0)).to be_nil
+    it "returns true immediately when expected worker count is 0" do
+      expect(described_class.send(:wait_for_parallel_results, 0)).to be(true)
+    end
+  end
+
+  describe ".parallel_results_complete?" do
+    around do |example|
+      ivar = :@parallel_results_complete
+      previous_defined = described_class.instance_variable_defined?(ivar)
+      previous = described_class.instance_variable_get(ivar)
+      example.run
+    ensure
+      if previous_defined
+        described_class.instance_variable_set(ivar, previous)
+      elsif described_class.instance_variable_defined?(ivar)
+        described_class.remove_instance_variable(ivar)
+      end
+    end
+
+    it "defaults to true outside a parallel run" do
+      ivar = :@parallel_results_complete
+      described_class.remove_instance_variable(ivar) if described_class.instance_variable_defined?(ivar)
+      expect(described_class.parallel_results_complete?).to be(true)
+    end
+
+    it "is false after wait_for_other_processes reports a timeout" do
+      described_class.instance_variable_set(:@parallel_results_complete, false)
+      expect(described_class.parallel_results_complete?).to be(false)
     end
   end
 
