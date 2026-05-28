@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "json"
 
 module SimpleCov
@@ -19,6 +20,7 @@ module SimpleCov
       end
 
       def write(resultset)
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
         temp_path = "#{resultset_path}.#{Process.pid}.tmp"
         File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(resultset) }
         File.rename(temp_path, resultset_path)
@@ -27,17 +29,20 @@ module SimpleCov
       # Ensure only one process is reading or writing the resultset at
       # any given time. Reentrant: the lock is acquired once per outer
       # call no matter how deeply nested.
-      def synchronize
+      def synchronize(&)
         return yield if @locked
 
-        begin
-          @locked = true
-          File.open(writelock_path, "w+") do |f|
-            f.flock(File::LOCK_EX)
-            yield
-          end
-        ensure
-          @locked = false
+        @locked = true
+        with_flock(&)
+      ensure
+        @locked = false
+      end
+
+      def with_flock
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.open(writelock_path, "w+") do |f|
+          f.flock(File::LOCK_EX)
+          yield
         end
       end
     end

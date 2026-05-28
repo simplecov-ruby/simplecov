@@ -40,6 +40,14 @@ module SimpleCov
     # callers can override with an arbitrary absolute path — handy for
     # out-of-tree build directories. See #716.
     #
+    # Reading is pure: the directory is only created when a path is
+    # explicitly assigned (the user has signaled they intend to write
+    # there). The codepaths that actually write into the directory
+    # (formatters, `LastRun`, `ResultsetStore`) ensure existence
+    # themselves, so read-only CLI subcommands that interpolate the
+    # path into status text don't materialize a stray `coverage/`
+    # directory.
+    #
     def coverage_path(path = nil)
       if path
         @coverage_path = File.expand_path(path)
@@ -47,11 +55,7 @@ module SimpleCov
         FileUtils.mkdir_p @coverage_path
       end
 
-      @coverage_path ||= begin
-        computed = File.expand_path(coverage_dir, root)
-        FileUtils.mkdir_p computed
-        computed
-      end
+      @coverage_path ||= File.expand_path(coverage_dir, root)
     end
 
     #

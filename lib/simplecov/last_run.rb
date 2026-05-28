@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "json"
 
 module SimpleCov
@@ -24,6 +25,7 @@ module SimpleCov
       # concurrent reader (e.g. another parallel-tests worker checking
       # MaximumCoverageDrop) never sees a half-written file.
       def write(json)
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
         temp_path = "#{last_run_path}.#{Process.pid}.tmp"
         File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(json) }
         File.rename(temp_path, last_run_path)
