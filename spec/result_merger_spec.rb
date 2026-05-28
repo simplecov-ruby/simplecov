@@ -37,7 +37,7 @@ RSpec.describe SimpleCov::ResultMerger do
       source_fixture("app/models/user.rb") => {"lines" => [nil, 2, 6, 2, nil, nil, 2, 0, nil, nil]},
       source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 4, 2, 1, nil, nil, 2, 0, nil, nil]},
       source_fixture("resultset1.rb") => {"lines" => [1, 1, 1, 1]},
-      source_fixture("parallel_tests.rb") => {"lines" => [nil, nil, nil, 0]},
+      source_fixture("parallel_tests.rb") => {"lines" => [nil, 0, 0, 0]},
       source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]},
       source_fixture("resultset2.rb") => {"lines" => [nil, 1, 1, nil]},
       source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]}

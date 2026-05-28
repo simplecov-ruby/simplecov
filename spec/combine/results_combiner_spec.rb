@@ -89,7 +89,11 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
       end
 
       it "has proper results for parallel_tests.rb" do
-        expect(combined[source_fixture("parallel_tests.rb")]["lines"]).to eq([nil, nil, nil, 0])
+        # First resultset reports [nil, 0, nil, 0]; second reports
+        # [nil, nil, 0, 0]. A line is treated as relevant when either
+        # side considered it relevant, so positions 1 and 2 stay at
+        # 0 rather than collapsing to nil.
+        expect(combined[source_fixture("parallel_tests.rb")]["lines"]).to eq([nil, 0, 0, 0])
       end
 
       it "has proper results for conditionally_loaded_1.rb" do
