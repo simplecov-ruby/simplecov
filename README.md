@@ -639,6 +639,30 @@ Directive markers inside string literals or heredocs are ignored.
 > You shouldn't have to skip private methods that are being included in your coverage. If you appropriately test
 > the public interface of your classes and objects you should automatically get full coverage of your private methods.
 
+### How `cover` and `skip` interact
+
+`cover` and `skip` operate on different sides of the same chain. `skip` (and its deprecated `add_filter` alias) drops
+matching files from the report. `cover` declares a positive scope that restricts the final report to files matching
+at least one `cover` matcher.
+
+Order: `skip` runs first, then `cover`. A file matched by any `skip` filter is dropped before `cover` is consulted, so
+a file matched by both is dropped, not kept. The two are not commutative.
+
+```ruby
+SimpleCov.start do
+  cover "{app,lib}/**/*.rb"
+  skip  "app/legacy"
+end
+```
+
+That config covers `app/` and `lib/`, then drops `app/legacy/`. With only `cover` and no overlapping `skip`, every
+configured default filter (hidden files, vendored gems, test directories) still applies — `cover` doesn't bypass them.
+Use `no_default_skips` if you want to opt out of the defaults wholesale before adding your own.
+
+`cover` also expands string-glob matchers on disk so files that exist but were never `require`'d during the run still
+appear in the report (at 0% coverage). Regexp and Proc cover matchers don't trigger disk discovery — they only filter
+the universe of files that Ruby's `Coverage` library reported.
+
 ## Default root filter and coverage for things outside of it
 
 See [Default filters](#default-filters) above for the full list. The `root_filter` in particular drops every file
@@ -1001,6 +1025,29 @@ SimpleCov.start 'myprofile'
 require 'simplecov_custom_profile'
 SimpleCov.start 'myprofile'
 ```
+
+### Profile plugin gems
+
+If `SimpleCov.start "<name>"` doesn't find a profile registered under `<name>`, the bundled profile loader tries to
+autoload one in two steps: first `require "simplecov/profiles/<name>"` (the path bundled profiles like `rails` and
+`strict` live at), then `require "simplecov-profile-<name>"` (the conventional name for a third-party plugin gem).
+Either require is expected to call `SimpleCov.profiles.define "<name>" do ... end` so the registered block can then
+be applied. If both requires fail or neither registers the profile, `SimpleCov.start` raises
+`SimpleCov::ConfigurationError`.
+
+To publish your own profile as a gem, name it `simplecov-profile-<name>` and have its main file call
+`SimpleCov.profiles.define`:
+
+```ruby
+# In a gem named simplecov-profile-myteam
+SimpleCov.profiles.define "myteam" do
+  enable_coverage :branch
+  cover "{app,lib}/**/*.rb"
+  skip  "app/legacy"
+end
+```
+
+A user who adds the gem to their Gemfile can then `SimpleCov.start "myteam"` without explicitly requiring it.
 
 ## Customizing exit behaviour
 
