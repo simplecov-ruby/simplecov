@@ -5,6 +5,13 @@ require "tempfile"
 require "timeout"
 
 RSpec.describe SimpleCov::ResultMerger do
+  before do
+    # Several examples write the resultset cache directly. SimpleCov.coverage_path
+    # only creates the directory when called with an explicit path, so depending on
+    # example order it may not exist yet — ensure it does before each example.
+    FileUtils.mkdir_p(File.dirname(described_class.resultset_path))
+  end
+
   after do
     FileUtils.rm_f(described_class.resultset_path)
   end
