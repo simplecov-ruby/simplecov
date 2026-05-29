@@ -59,10 +59,23 @@ module SimpleCov
             command_name: @result.command_name,
             project_name: SimpleCov.project_name,
             timestamp: @result.created_at.iso8601(3),
-            root: SimpleCov.root,
+            root: SimpleCov.root
+          }.merge!(coverage_flags)
+        end
+
+        def coverage_flags
+          {
+            line_coverage: line_coverage_enabled?,
             branch_coverage: SimpleCov.branch_coverage?,
             method_coverage: SimpleCov.method_coverage?
           }
+        end
+
+        # Mirrors SourceFileFormatter's predicate so meta.line_coverage
+        # tracks exactly which configurations cause the formatter to
+        # emit line stats.
+        def line_coverage_enabled?
+          SimpleCov.coverage_criterion_enabled?(:line) || SimpleCov.coverage_criterion_enabled?(:oneshot_line)
         end
 
         def format_coverage_statistics(statistics)

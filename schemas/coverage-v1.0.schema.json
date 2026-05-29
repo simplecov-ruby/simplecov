@@ -21,6 +21,7 @@
         "project_name",
         "timestamp",
         "root",
+        "line_coverage",
         "branch_coverage",
         "method_coverage"
       ],
@@ -46,6 +47,7 @@
           "type": "string",
           "description": "Absolute path to SimpleCov.root at the time of write."
         },
+        "line_coverage": {"type": "boolean"},
         "branch_coverage": {"type": "boolean"},
         "method_coverage": {"type": "boolean"}
       }
@@ -103,8 +105,12 @@
   "definitions": {
     "totals": {
       "type": "object",
-      "required": ["lines"],
       "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
       "properties": {
         "lines": {"$ref": "#/definitions/line_statistic"},
         "branches": {"$ref": "#/definitions/coverage_statistic"},
@@ -113,9 +119,19 @@
     },
     "source_file": {
       "type": "object",
-      "required": ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
       "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
       "dependentRequired": {
+        "lines":                    ["lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
+        "lines_covered_percent":    ["lines", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
+        "covered_lines":            ["lines", "lines_covered_percent", "missed_lines", "omitted_lines", "total_lines"],
+        "missed_lines":             ["lines", "lines_covered_percent", "covered_lines", "omitted_lines", "total_lines"],
+        "omitted_lines":            ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "total_lines"],
+        "total_lines":              ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines"],
         "branches":                 ["branches_covered_percent", "covered_branches", "missed_branches", "total_branches"],
         "branches_covered_percent": ["branches", "covered_branches", "missed_branches", "total_branches"],
         "covered_branches":         ["branches", "branches_covered_percent", "missed_branches", "total_branches"],
@@ -130,7 +146,7 @@
       "properties": {
         "lines": {
           "type": "array",
-          "description": "Per-source-line coverage. Element index N corresponds to source line N+1. Integer hit-count, null for non-relevant (blank/comment) lines, or the string \"ignored\" for lines inside a simplecov:disable / :nocov: region.",
+          "description": "Per-source-line coverage. Element index N corresponds to source line N+1. Integer hit-count, null for non-relevant (blank/comment) lines, or the string \"ignored\" for lines inside a simplecov:disable / :nocov: region. Present if and only if `meta.line_coverage` is true. When present, the five line stat fields (`lines_covered_percent`, `covered_lines`, `missed_lines`, `omitted_lines`, `total_lines`) are guaranteed to be present too.",
           "items": {"$ref": "#/definitions/line_coverage"}
         },
         "source": {
@@ -195,8 +211,13 @@
     },
     "group": {
       "type": "object",
-      "required": ["lines", "files"],
+      "required": ["files"],
       "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
       "properties": {
         "lines": {"$ref": "#/definitions/line_statistic"},
         "branches": {"$ref": "#/definitions/coverage_statistic"},

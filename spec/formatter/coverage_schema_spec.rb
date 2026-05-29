@@ -113,6 +113,32 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
       expect(errors).to be_empty, errors.join("\n")
     end
 
+    # `disable_coverage :line` is a real configuration. The formatter
+    # then drops all line keys from `total`, per-file payloads, and
+    # group totals. Guard against the schema drifting back into
+    # requiring those keys.
+    it "validates a result emitted with line coverage disabled" do
+      allow(SimpleCov).to receive(:coverage_criterion_enabled?).and_call_original
+      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
+      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
+      allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
+      result = SimpleCov::Result.new({
+                                       source_fixture("json/sample.rb") => {
+                                         "lines" => [nil, 1, 1, 0],
+                                         "branches" => {[:if, 0, 1, 0, 4, 0] => {
+                                           [:then, 1, 2, 2, 2, 6] => 1,
+                                           [:else, 2, 3, 2, 3, 6] => 0
+                                         }}
+                                       }
+                                     })
+      document = emit(result)
+      expect(document.fetch("meta").fetch("line_coverage")).to be(false)
+      expect(document.fetch("total")).not_to have_key("lines")
+      expect(document.fetch("coverage").values.first).not_to have_key("lines")
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+    end
+
     it "validates a result with method coverage enabled" do
       allow(SimpleCov).to receive(:method_coverage?).and_return(true)
       result = SimpleCov::Result.new({
