@@ -176,7 +176,7 @@
         "end_line": {"type": "integer", "minimum": 1},
         "coverage": {"$ref": "#/definitions/line_coverage"},
         "inline": {"type": "boolean"},
-        "report_line": {"type": "integer", "minimum": 1}
+        "report_line": {"type": "integer", "minimum": 1, "description": "Line of the conditional that owns this branch (the `if`, `case`, or `&&` line), not the start of the branch body. Useful for rendering annotations at the decision point."}
       }
     },
     "method": {
@@ -220,9 +220,9 @@
           "minimum": 0,
           "description": "Lines that cannot be covered (blank, comment, etc.). Only present on line stats."
         },
-        "total": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 0, "description": "Executable lines: `covered + missed`. Does not include `omitted`."},
         "percent": {"type": "number"},
-        "strength": {"type": "number"}
+        "strength": {"type": "number", "description": "Average number of executions across covered lines (hits per covered line)."}
       }
     },
     "coverage_statistic": {
@@ -232,13 +232,13 @@
       "properties": {
         "covered": {"type": "integer", "minimum": 0},
         "missed": {"type": "integer", "minimum": 0},
-        "total": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 0, "description": "Total branches or methods: `covered + missed`."},
         "percent": {"type": "number"},
-        "strength": {"type": "number"}
+        "strength": {"type": "number", "description": "Average number of executions across covered branches or methods (hits per covered item)."}
       }
     },
     "line_coverage": {
-      "description": "Integer hit-count for executable lines/branches/methods, null for non-relevant lines, or the literal string \"ignored\" for code inside a simplecov:disable region.",
+      "description": "Coverage value for an executable line, branch, or method. Integer is the hit count, `null` marks a non-executable line (blank or comment, only meaningful inside the per-file `lines` array), and the literal string `\"ignored\"` marks code inside a simplecov:disable / :nocov: region. The same three-way shape is reused for branch and method `coverage` fields, where `null` does not occur but `\"ignored\"` does.",
       "oneOf": [
         {"type": "integer", "minimum": 0},
         {"type": "null"},
