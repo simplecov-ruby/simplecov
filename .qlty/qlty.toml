@@ -1,0 +1,30 @@
+# Qlty configuration. Used by both the Qlty CLI and Qlty Cloud.
+# Reference: https://qlty.sh/d/qlty-toml
+config_version = "0"
+
+# The HTML formatter's public/ directory holds generated build artifacts, not
+# source: application.js and application.css are minified esbuild bundles (the
+# JS bundle also inlines vendored highlight.js) and index.html is copied from
+# html_frontend/src. Exclude them from analysis — the real, analyzed source is
+# the TypeScript under html_frontend/src. These patterns augment qlty's
+# built-in defaults (node_modules, vendor, etc.).
+exclude_patterns = [
+  "**/simplecov/formatter/html_formatter/public/**",
+]
+
+# Treat the test suites as tests so they're held out of smell analysis
+# (matches qlty's default test detection).
+test_patterns = [
+  "**/test/**",
+  "**/spec/**",
+  "**/*.test.*",
+  "**/*.spec.*",
+  "**/*_test.*",
+  "**/*_spec.*",
+  "**/test_*.*",
+  "**/spec_*.*",
+]
+
+[[source]]
+name = "default"
+default = true
