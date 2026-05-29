@@ -350,9 +350,7 @@ function lineStatus(args: LineStatusArgs): string {
   // Method miss
   if (methodCoverage && missedMethodLines.has(lineNum)) return 'missed-method';
 
-  if (lineCov === null) return 'never';
-  if (lineCov === 0) return 'missed';
-  return 'covered';
+  return lineCov === null ? 'never' : lineCov === 0 ? 'missed' : 'covered';
 }
 
 function buildBranchesReport(branches: BranchEntry[] | undefined): Record<number, [string, number][]> {
@@ -375,6 +373,38 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
     }
   }
   return set;
+}
+
+interface SourceLineArgs {
+  index: number;
+  source: string;
+  lineCov: number | null | 'ignored';
+  status: string;
+  branchCoverage: boolean;
+  lineBranches?: [string, number][];
+}
+
+function renderSourceLine(args: SourceLineArgs): string {
+  const { index, source, lineCov, status, branchCoverage, lineBranches } = args;
+  const lineNum = index + 1;
+  const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
+  const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
+
+  if (status === 'covered' || (lineCov !== null && lineCov !== 'ignored' && lineCov !== 0)) {
+    lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
+  } else if (lineCov === 'ignored') {
+    lineHtml.push('<span class="hits" data-content="skipped"></span>');
+  }
+
+  if (branchCoverage && lineBranches) {
+    for (const [branchType, hitCount] of lineBranches) {
+      const label = escapeHTML(branchType);
+      lineHtml.push(`<span class="hits" data-content="${label}: ${hitCount}" title="${label} branch hit ${hitCount} times"></span>`);
+    }
+  }
+
+  lineHtml.push(`<code class="ruby">${escapeHTML(source)}</code></li>`);
+  return lineHtml.join('');
 }
 
 function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
@@ -419,28 +449,14 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
       lineIndex: i, lineCov, branchesReport,
       missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage
     });
-    const lineNum = i + 1;
-    const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
-    const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
-
-    if (status === 'covered' || (lineCov !== null && lineCov !== 'ignored' && lineCov !== 0)) {
-      lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
-    } else if (lineCov === 'ignored') {
-      lineHtml.push('<span class="hits" data-content="skipped"></span>');
-    }
-
-    if (branchCoverage) {
-      const lineBranches = branchesReport[lineNum];
-      if (lineBranches) {
-        for (const [branchType, hitCount] of lineBranches) {
-          const label = escapeHTML(branchType);
-          lineHtml.push(`<span class="hits" data-content="${label}: ${hitCount}" title="${label} branch hit ${hitCount} times"></span>`);
-        }
-      }
-    }
-
-    lineHtml.push(`<code class="ruby">${escapeHTML(data.source[i])}</code></li>`);
-    html.push(lineHtml.join(''));
+    html.push(renderSourceLine({
+      index: i,
+      source: data.source[i],
+      lineCov,
+      status,
+      branchCoverage,
+      lineBranches: branchCoverage ? branchesReport[i + 1] : undefined
+    }));
   }
   html.push('</ol></pre></div>');
   return html.join('');
@@ -457,10 +473,11 @@ interface FileListArgs {
   methodCoverage: boolean;
 }
 
-function renderFileList(args: FileListArgs): string {
-  const { title, filenames, stats, allCoverage, branchCoverage, methodCoverage } = args;
+// Container open + <thead> (column headers and the totals row), i.e.
+// everything in a file-list section before the per-file <tbody> rows.
+function renderFileListHead(args: FileListArgs): string {
+  const { title, filenames, stats, branchCoverage, methodCoverage } = args;
   const containerId = toHtmlId(title);
-
   const lineStats = stats.lines;
   const branchStats = branchCoverage ? stats.branches : undefined;
   const methodStats = methodCoverage ? stats.methods : undefined;
@@ -477,7 +494,6 @@ function renderFileList(args: FileListArgs): string {
   if (methodCoverage) html.push(renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods'));
   html.push('</tr>');
 
-  // Totals row
   const fileLabel = filenames.length === 1 ? 'file' : 'files';
   html.push(
     `<tr class="totals-row"><td class="strong t-file-count">${fmtNum(filenames.length)} ${fileLabel}</td>`,
@@ -487,39 +503,57 @@ function renderFileList(args: FileListArgs): string {
   if (methodStats) html.push(renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true));
   html.push('</tr></thead><tbody>');
 
-  // File rows
+  return html.join('');
+}
+
+interface FileRowArgs {
+  filename: string;
+  coverage: FileCoverage;
+  branchCoverage: boolean;
+  methodCoverage: boolean;
+}
+
+function renderFileRow(args: FileRowArgs): string {
+  const { filename, coverage: f, branchCoverage, methodCoverage } = args;
+  const id = fileId(filename);
+
+  const dataAttrs = [
+    `data-covered-lines="${f.covered_lines}"`,
+    `data-relevant-lines="${f.total_lines}"`
+  ];
+  if (branchCoverage) {
+    dataAttrs.push(`data-covered-branches="${f.covered_branches || 0}"`, `data-total-branches="${f.total_branches || 0}"`);
+  }
+  if (methodCoverage) {
+    dataAttrs.push(`data-covered-methods="${f.covered_methods || 0}"`, `data-total-methods="${f.total_methods || 0}"`);
+  }
+
+  const cells = [
+    `<tr class="t-file" ${dataAttrs.join(' ')}>`,
+    `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(filename)}">${escapeHTML(filename)}</a></td>`,
+    renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false)
+  ];
+  if (branchCoverage) {
+    const pct = f.branches_covered_percent === undefined ? 100.0 : f.branches_covered_percent;
+    cells.push(renderCoverageCells(pct, f.covered_branches || 0, f.total_branches || 0, 'branch', false));
+  }
+  if (methodCoverage) {
+    const pct = f.methods_covered_percent === undefined ? 100.0 : f.methods_covered_percent;
+    cells.push(renderCoverageCells(pct, f.covered_methods || 0, f.total_methods || 0, 'method', false));
+  }
+  cells.push('</tr>');
+  return cells.join('');
+}
+
+function renderFileList(args: FileListArgs): string {
+  const { filenames, allCoverage, branchCoverage, methodCoverage } = args;
+
+  const html = [renderFileListHead(args)];
   for (const fn of filenames) {
     const f = allCoverage[fn];
     if (!f) continue;
-    const id = fileId(fn);
-
-    const dataAttrs = [
-      `data-covered-lines="${f.covered_lines}"`,
-      `data-relevant-lines="${f.total_lines}"`
-    ];
-    if (branchCoverage) {
-      dataAttrs.push(`data-covered-branches="${f.covered_branches || 0}"`, `data-total-branches="${f.total_branches || 0}"`);
-    }
-    if (methodCoverage) {
-      dataAttrs.push(`data-covered-methods="${f.covered_methods || 0}"`, `data-total-methods="${f.total_methods || 0}"`);
-    }
-
-    html.push(
-      `<tr class="t-file" ${dataAttrs.join(' ')}>`,
-      `<td class="strong t-file__name"><a href="#${id}" class="src_link" title="${escapeHTML(fn)}">${escapeHTML(fn)}</a></td>`,
-      renderCoverageCells(f.lines_covered_percent, f.covered_lines, f.total_lines, 'line', false)
-    );
-    if (branchCoverage) {
-      const pct = f.branches_covered_percent === undefined ? 100.0 : f.branches_covered_percent;
-      html.push(renderCoverageCells(pct, f.covered_branches || 0, f.total_branches || 0, 'branch', false));
-    }
-    if (methodCoverage) {
-      const pct = f.methods_covered_percent === undefined ? 100.0 : f.methods_covered_percent;
-      html.push(renderCoverageCells(pct, f.covered_methods || 0, f.total_methods || 0, 'method', false));
-    }
-    html.push('</tr>');
+    html.push(renderFileRow({ filename: fn, coverage: f, branchCoverage, methodCoverage }));
   }
-
   html.push('</tbody></table></div></div>');
   return html.join('');
 }
@@ -1098,46 +1132,31 @@ function initDarkMode(): void {
 // Render the coverage page. Both `application.js` and `coverage_data.js`
 // use `defer`, so `coverage_data.js` is guaranteed to have populated
 // `window.SIMPLECOV_DATA` by the time `DOMContentLoaded` fires.
-async function init(): Promise<void> {
-  const data = window.SIMPLECOV_DATA;
+// Timeago — schedule the next update for exactly when the text would change.
+function scheduleTimeago(): void {
+  let minDelay = Infinity;
+  $$('abbr.timeago').forEach(el => {
+    const date = new Date(el.getAttribute('title') || '');
+    if (Number.isNaN(date.getTime())) return;
+    el.textContent = timeago(date);
+    minDelay = Math.min(minDelay, timeagoNextTick(date));
+  });
+  if (minDelay < Infinity) setTimeout(scheduleTimeago, minDelay);
+}
 
-  // Show loading indicator
-  const loadingEl = document.getElementById('loading');
-  if (loadingEl) loadingEl.style.display = '';
-
-  // Web Crypto's digest API is async, so resolve every file's id up front;
-  // every renderer downstream looks them up synchronously.
-  await precomputeFileIds(Object.keys(data.coverage));
-
-  // Render all content from data
-  renderPage(data);
-
-  // Timeago — schedule the next update for exactly when the text would change
-  function scheduleTimeago(): void {
-    let minDelay = Infinity;
-    $$('abbr.timeago').forEach(el => {
-      const date = new Date(el.getAttribute('title') || '');
-      if (Number.isNaN(date.getTime())) return;
-      el.textContent = timeago(date);
-      minDelay = Math.min(minDelay, timeagoNextTick(date));
-    });
-    if (minDelay < Infinity) setTimeout(scheduleTimeago, minDelay);
+// Map a clicked <th> to the index of the (rightmost) <td> it spans, so that
+// sorting a multi-column header sorts on its numeric (rightmost) column.
+function thToTdIndex(table: Element, clickedTh: Element): number {
+  let idx = 0;
+  for (const th of $$('thead tr:first-child th', table)) {
+    const span = Number.parseInt(th.getAttribute('colspan') || '1', 10);
+    if (th === clickedTh) return idx + span - 1;
+    idx += span;
   }
-  scheduleTimeago();
+  return idx;
+}
 
-  initDarkMode();
-
-  // Table sorting
-  function thToTdIndex(table: Element, clickedTh: Element): number {
-    let idx = 0;
-    for (const th of $$('thead tr:first-child th', table)) {
-      const span = Number.parseInt(th.getAttribute('colspan') || '1', 10);
-      if (th === clickedTh) return idx + span - 1;
-      idx += span;
-    }
-    return idx;
-  }
-
+function setupTableSorting(): void {
   $$('table.file_list').forEach(table => {
     $$('thead tr:first-child th', table).forEach((th) => {
       th.classList.add('sorting');
@@ -1145,7 +1164,9 @@ async function init(): Promise<void> {
       th.addEventListener('click', () => sortTable(table, thToTdIndex(table, th)));
     });
   });
+}
 
+function setupColumnFilters(): void {
   // Filter options init
   $$('.col-filter__value').forEach(el => updateFilterOptions(el as HTMLInputElement));
 
@@ -1163,53 +1184,66 @@ async function init(): Promise<void> {
     if (this.classList.contains('col-filter__value')) updateFilterOptions(this as HTMLInputElement);
     filterTable(this.closest('.file_list_container')!);
   });
+}
 
-  // Keyboard shortcuts
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    const inInput = (e.target as Element).matches('input, select, textarea');
+function focusActiveFilter(): void {
+  const visible = $$('.file_list_container').filter(c => (c as HTMLElement).style.display !== 'none');
+  const input = visible.length ? $('.col-filter--name', visible[0]) as HTMLElement | null : null;
+  if (input) input.focus();
+}
 
-    if (e.key === '/' && !inInput) {
-      e.preventDefault();
-      const visible = $$('.file_list_container').filter(c => (c as HTMLElement).style.display !== 'none');
-      const input = visible.length ? $('.col-filter--name', visible[0]) as HTMLElement | null : null;
-      if (input) input.focus();
-      return;
-    }
+function handleEscape(e: KeyboardEvent, inInput: boolean): void {
+  if (dialog.open) {
+    e.preventDefault();
+    navigateToActiveTab();
+  } else if (inInput) {
+    (e.target as HTMLElement).blur();
+  } else if (focusedRow) {
+    setFocusedRow(null);
+  }
+}
 
-    if (e.key === 'Escape') {
-      if (dialog.open) {
-        e.preventDefault();
-        navigateToActiveTab();
-      } else if (inInput) {
-        (e.target as HTMLElement).blur();
-      } else if (focusedRow) {
-        setFocusedRow(null);
-      }
-      return;
-    }
+// 'n'/'N'/'p' jump between missed lines while the source dialog is open.
+function handleDialogKeys(e: KeyboardEvent): void {
+  if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); jumpToMissedLine(1); }
+  if (e.key === 'N' || (e.key === 'n' && e.shiftKey) || e.key === 'p') { e.preventDefault(); jumpToMissedLine(-1); }
+}
 
-    if (inInput) return;
+// 'j'/'k'/'Enter' move the keyboard focus through the file list.
+function handleFileListKeys(e: KeyboardEvent): void {
+  if (e.key === 'j') { e.preventDefault(); moveFocus(1); }
+  if (e.key === 'k') { e.preventDefault(); moveFocus(-1); }
+  if (e.key === 'Enter' && focusedRow) { e.preventDefault(); openFocusedRow(); }
+}
 
-    if (dialog.open) {
-      if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); jumpToMissedLine(1); }
-      if (e.key === 'N' || (e.key === 'n' && e.shiftKey) || e.key === 'p') { e.preventDefault(); jumpToMissedLine(-1); }
-      return;
-    }
+function handleKeydown(e: KeyboardEvent): void {
+  const inInput = (e.target as Element).matches('input, select, textarea');
 
-    if (e.key === 'j') { e.preventDefault(); moveFocus(1); }
-    if (e.key === 'k') { e.preventDefault(); moveFocus(-1); }
-    if (e.key === 'Enter' && focusedRow) { e.preventDefault(); openFocusedRow(); }
-  });
+  if (e.key === '/' && !inInput) {
+    e.preventDefault();
+    focusActiveFilter();
+  } else if (e.key === 'Escape') {
+    handleEscape(e, inInput);
+  } else if (inInput) {
+    // Other keys are left to the focused input.
+  } else if (dialog.open) {
+    handleDialogKeys(e);
+  } else {
+    handleFileListKeys(e);
+  }
+}
 
-  // Dialog setup
+function setupSourceDialog(): void {
   dialog = document.getElementById('source-dialog') as HTMLDialogElement;
   dialogBody = document.getElementById('source-dialog-body')!;
   dialogTitle = document.getElementById('source-dialog-title')!;
 
   dialog.querySelector('.source-dialog__close')!.addEventListener('click', navigateToActiveTab);
   dialog.addEventListener('click', e => { if (e.target === dialog) navigateToActiveTab(); });
+}
 
-  // Event delegation for dynamic content
+// Event delegation for dynamically-materialized source content.
+function setupEventDelegation(): void {
   on(document, 'click', '.t-missed-method-toggle', function (e: Event) {
     e.preventDefault();
     const parent = this.closest('.header') || this.closest('.source-dialog__title') || this.closest('.source-dialog__header');
@@ -1237,8 +1271,10 @@ async function init(): Promise<void> {
   });
 
   window.addEventListener('hashchange', navigateToHash);
+}
 
-  // Tab system
+// Build the group tab bar from the rendered file-list containers.
+function setupTabs(): void {
   $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
 
   $$('.file_list_container').forEach(container => {
@@ -1260,14 +1296,9 @@ async function init(): Promise<void> {
     e.preventDefault();
     window.location.hash = this.getAttribute('href')!.replace('#', '#_');
   });
+}
 
-  // Equalize bar column widths
-  window.addEventListener('resize', scheduleEqualizeBarWidths);
-
-  // Initial state
-  navigateToHash();
-
-  // Finalize loading
+function finishLoading(loadingEl: HTMLElement | null): void {
   if (loadingEl) {
     loadingEl.style.transition = 'opacity 0.3s';
     loadingEl.style.opacity = '0';
@@ -1278,6 +1309,39 @@ async function init(): Promise<void> {
   if (wrapperEl) wrapperEl.classList.remove('hide');
 
   equalizeBarWidths();
+}
+
+async function init(): Promise<void> {
+  const data = window.SIMPLECOV_DATA;
+
+  // Show loading indicator
+  const loadingEl = document.getElementById('loading');
+  if (loadingEl) loadingEl.style.display = '';
+
+  // Web Crypto's digest API is async, so resolve every file's id up front;
+  // every renderer downstream looks them up synchronously.
+  await precomputeFileIds(Object.keys(data.coverage));
+
+  // Render all content from data
+  renderPage(data);
+
+  scheduleTimeago();
+  initDarkMode();
+  setupTableSorting();
+  setupColumnFilters();
+  document.addEventListener('keydown', handleKeydown);
+  setupSourceDialog();
+  setupEventDelegation();
+  setupTabs();
+
+  // Equalize bar column widths
+  window.addEventListener('resize', scheduleEqualizeBarWidths);
+
+  // Initial state
+  navigateToHash();
+
+  // Finalize loading
+  finishLoading(loadingEl);
 }
 
 document.addEventListener('DOMContentLoaded', init);
