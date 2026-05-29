@@ -113,7 +113,7 @@
     },
     "source_file": {
       "type": "object",
-      "required": ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "total_lines"],
+      "required": ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
       "additionalProperties": false,
       "properties": {
         "lines": {
@@ -127,9 +127,10 @@
           "items": {"type": "string"}
         },
         "lines_covered_percent": {"type": "number"},
-        "covered_lines": {"type": "integer", "minimum": 0},
-        "missed_lines": {"type": "integer", "minimum": 0},
-        "total_lines": {"type": "integer", "minimum": 0},
+        "covered_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines that were hit at least once."},
+        "missed_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines that were never hit."},
+        "omitted_lines": {"type": "integer", "minimum": 0, "description": "Count of non-executable lines (blank lines, comments). Mirrors `total.lines.omitted` at the per-file level. Excludes lines inside simplecov:disable / :nocov: regions, which surface as `\"ignored\"` in the `lines` array."},
+        "total_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines: `covered_lines + missed_lines`. Does not include non-executable (omitted) lines or lines inside simplecov:disable / :nocov: regions, so this can be smaller than `lines.length`."},
         "branches": {
           "type": "array",
           "items": {"$ref": "#/definitions/branch"}

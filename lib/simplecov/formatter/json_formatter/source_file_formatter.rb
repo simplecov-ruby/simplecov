@@ -45,6 +45,7 @@ module SimpleCov
             lines_covered_percent: @source_file.covered_percent,
             covered_lines: covered,
             missed_lines: missed,
+            omitted_lines: @source_file.never_lines.size,
             total_lines: covered + missed
           }
         end
