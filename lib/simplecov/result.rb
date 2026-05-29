@@ -31,26 +31,40 @@ module SimpleCov
                    :coverage_statistics, :coverage_statistics_by_file
     def_delegator :files, :lines_of_code, :total_lines
 
+    # Bundles the filter and grouping configuration a Result applies to its
+    # source files after building them. Each field defaults to the SimpleCov
+    # singleton's configuration, so ordinary callers never construct one;
+    # tests pass a custom instance to opt out of (or extend) the project's
+    # filters or groups (e.g. `filters: []` to keep every file). Grouping the
+    # three together keeps Result#initialize's parameter list small.
+    class FilterConfig
+      attr_reader :filters, :cover_filters, :groups
+
+      def initialize(filters: SimpleCov.filters, cover_filters: SimpleCov.cover_filters, groups: SimpleCov.groups)
+        @filters = filters
+        @cover_filters = cover_filters
+        @groups = groups
+      end
+    end
+
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data).
     #
-    # `filters` defaults to the singleton's configured filter chain
-    # (`SimpleCov.filters`) so existing call sites are unchanged. Pass an
-    # empty array to opt out — useful for tests that build synthetic
-    # Results and don't want the project's filters applied. `groups`
-    # behaves the same way against `SimpleCov.groups`.
+    # `filter_config` defaults to the SimpleCov singleton's filter / group
+    # configuration so existing call sites are unchanged. Pass a custom
+    # FilterConfig to opt out — useful for tests that build synthetic Results
+    # and don't want the project's filters or groups applied.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   filters: SimpleCov.filters, cover_filters: SimpleCov.cover_filters,
-                   groups: SimpleCov.groups)
+                   filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
-      @groups_config = groups
+      @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
       warn_about_missing_source_files(builder.missing_source_files, original_result.size)
-      apply_cover_filters!(cover_filters)
-      apply_filters!(filters)
+      apply_cover_filters!(filter_config.cover_filters)
+      apply_filters!(filter_config.filters)
     end
 
     # Returns all filenames for source files contained in this result

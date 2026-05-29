@@ -127,13 +127,14 @@ RSpec.describe SimpleCov::Result do
       end
 
       it "ignores the global filter chain when filters: [] is passed" do
-        result = described_class.new(original_result, filters: [])
+        result = described_class.new(original_result, filter_config: SimpleCov::Result::FilterConfig.new(filters: []))
         expect(result.source_files.length).to eq(3)
       end
 
       it "uses the explicitly-passed filters instead of the singleton's" do
         explicit_filter = SimpleCov::StringFilter.new("user.rb")
-        result = described_class.new(original_result, filters: [explicit_filter])
+        filter_config = SimpleCov::Result::FilterConfig.new(filters: [explicit_filter])
+        result = described_class.new(original_result, filter_config: filter_config)
         # Drops user.rb, keeps sample.rb (which the global chain would have filtered)
         expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly(
           "sample.rb",
@@ -143,7 +144,8 @@ RSpec.describe SimpleCov::Result do
 
       it "restricts the file set to those matching a cover filter (when any are passed)" do
         only_sample = SimpleCov::GlobFilter.new("spec/fixtures/sample.rb")
-        result = described_class.new(original_result, filters: [], cover_filters: [only_sample])
+        filter_config = SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [only_sample])
+        result = described_class.new(original_result, filter_config: filter_config)
         expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly("sample.rb")
       end
     end

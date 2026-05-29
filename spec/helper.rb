@@ -84,7 +84,8 @@ unless DOGFOOD_DISABLED
       # against line-only fixtures.
       SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
       SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
-      result = SimpleCov::Result.new(adapted, filters: SimpleCov.filters + extra_filters, groups: {})
+      filter_config = SimpleCov::Result::FilterConfig.new(filters: SimpleCov.filters + extra_filters, groups: {})
+      result = SimpleCov::Result.new(adapted, filter_config: filter_config)
 
       # Leading newline so the formatter's message doesn't fuse onto
       # RSpec's progress-formatter dots when run via `rake spec` / `rspec`.
