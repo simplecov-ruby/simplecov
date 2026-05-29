@@ -42,8 +42,8 @@ module SimpleCov
         end
 
         def record_by_file(violation)
-          criterion_bucket = bucket(:minimum_coverage_by_file)[key_for(violation)] ||= {}
-          criterion_bucket[violation.fetch(:project_filename)] = expected_actual(violation)
+          file_bucket = bucket(:minimum_coverage_by_file)[violation.fetch(:project_filename)] ||= {}
+          file_bucket[key_for(violation)] = expected_actual(violation)
         end
 
         def format_minimum_by_group

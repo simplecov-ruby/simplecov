@@ -73,7 +73,7 @@
         },
         "minimum_coverage_by_file": {
           "type": "object",
-          "description": "Keyed by criterion, then by project-relative filename.",
+          "description": "Keyed by project-relative filename, then by criterion (lines, branches, methods).",
           "additionalProperties": {
             "type": "object",
             "additionalProperties": {"$ref": "#/definitions/expected_actual"}
@@ -81,7 +81,7 @@
         },
         "minimum_coverage_by_group": {
           "type": "object",
-          "description": "Keyed by group name, then by criterion.",
+          "description": "Keyed by group name, then by criterion (lines, branches, methods).",
           "additionalProperties": {
             "type": "object",
             "additionalProperties": {"$ref": "#/definitions/expected_actual"}

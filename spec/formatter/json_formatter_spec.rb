@@ -298,7 +298,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "lines" => {project_fixture_filename("json/sample.rb") => {"expected" => 95, "actual" => 90.0}}
+            project_fixture_filename("json/sample.rb") => {"lines" => {"expected" => 95, "actual" => 90.0}}
           }
         )
       end
@@ -330,7 +330,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "branches" => {project_fixture_filename("json/sample.rb") => {"expected" => 75, "actual" => 50.0}}
+            project_fixture_filename("json/sample.rb") => {"branches" => {"expected" => 75, "actual" => 50.0}}
           }
         )
       end
@@ -360,7 +360,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         errors = json_output.fetch("errors")
         expect(errors).to eq(
           "minimum_coverage_by_file" => {
-            "lines" => {project_fixture_filename("json/sample.rb") => {"expected" => 100, "actual" => 90.0}}
+            project_fixture_filename("json/sample.rb") => {"lines" => {"expected" => 100, "actual" => 90.0}}
           }
         )
       end
