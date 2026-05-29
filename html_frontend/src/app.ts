@@ -267,22 +267,34 @@ function renderHeaderCells(label: string, type: string, coveredLabel: string, to
 
 // --- Rendering: Coverage summary (per source file) ------------
 
-function renderTypeSummary(type: string, label: string, covered: number, total: number, enabled: boolean, opts: { suffix?: string; missedClass?: string; toggle?: boolean } = {}): string {
+interface TypeSummary {
+  type: string;
+  label: string;
+  covered: number;
+  total: number;
+  enabled: boolean;
+  suffix?: string;
+  missedClass?: string;
+  toggle?: boolean;
+}
+
+function renderTypeSummary(summary: TypeSummary): string {
+  const { type, label, covered, total, enabled, toggle } = summary;
   if (!enabled) {
     return `<div class="t-${type}-summary">\n    ${label}: <span class="coverage-disabled">disabled</span>\n  </div>`;
   }
   const missed = total - covered;
   const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
   const css = pctClass(pct);
-  const suffix = opts.suffix || 'covered';
-  const missedClass = opts.missedClass || 'red';
+  const suffix = summary.suffix || 'covered';
+  const missedClass = summary.missedClass || 'red';
 
   let parts = `<div class="t-${type}-summary">\n    ${label}: ` +
     `<span class="${css}"><b>${fmtPct(pct)}%</b></span>` +
     `<span class="coverage-cell__fraction"> ${covered}/${total} ${suffix}</span>`;
 
   if (missed > 0) {
-    const missedHtml = opts.toggle
+    const missedHtml = toggle
       ? `<a href="#" class="t-missed-method-toggle"><b>${missed}</b> missed</a>`
       : `<span class="${missedClass}"><b>${missed}</b> missed</span>`;
     parts += `<span class="coverage-cell__fraction">,</span>\n    ${missedHtml}`;
@@ -291,30 +303,39 @@ function renderTypeSummary(type: string, label: string, covered: number, total: 
   return parts;
 }
 
-function renderCoverageSummary(
-  coveredLines: number, totalLines: number,
-  coveredBranches: number, totalBranches: number,
-  coveredMethods: number, totalMethods: number,
-  branchCoverage: boolean, methodCoverage: boolean,
-  showMethodToggle: boolean
-): string {
+interface CoverageSummaryArgs {
+  coveredLines: number;
+  totalLines: number;
+  coveredBranches: number;
+  totalBranches: number;
+  coveredMethods: number;
+  totalMethods: number;
+  branchCoverage: boolean;
+  methodCoverage: boolean;
+  showMethodToggle: boolean;
+}
+
+function renderCoverageSummary(args: CoverageSummaryArgs): string {
   return '<div class="summary-stats">' +
-    renderTypeSummary('line', 'Line coverage', coveredLines, totalLines, true, { suffix: 'relevant lines covered' }) +
-    renderTypeSummary('branch', 'Branch coverage', coveredBranches, totalBranches, branchCoverage, { missedClass: 'missed-branch-text' }) +
-    renderTypeSummary('method', 'Method coverage', coveredMethods, totalMethods, methodCoverage, { missedClass: 'missed-method-text-color', toggle: showMethodToggle }) +
+    renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: true, suffix: 'relevant lines covered' }) +
+    renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, missedClass: 'missed-branch-text' }) +
+    renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
     '</div>';
 }
 
 // --- Rendering: Source file view ------------------------------
 
-function lineStatus(
-  lineIndex: number,
-  lineCov: number | null | 'ignored',
-  branchesReport: Record<number, [string, number][]>,
-  missedMethodLines: Set<number>,
-  branchCoverage: boolean,
-  methodCoverage: boolean
-): string {
+interface LineStatusArgs {
+  lineIndex: number;
+  lineCov: number | null | 'ignored';
+  branchesReport: Record<number, [string, number][]>;
+  missedMethodLines: Set<number>;
+  branchCoverage: boolean;
+  methodCoverage: boolean;
+}
+
+function lineStatus(args: LineStatusArgs): string {
+  const { lineIndex, lineCov, branchesReport, missedMethodLines, branchCoverage, methodCoverage } = args;
   const lineNum = lineIndex + 1;
 
   // Check basic status
@@ -375,7 +396,12 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
     `<div class="source_table" id="${id}">`,
     '<div class="header">',
     `<h2>${escapeHTML(filename)}</h2>`,
-    renderCoverageSummary(coveredLines, totalLines, coveredBranches, totalBranches, coveredMethods, totalMethods, branchCoverage, methodCoverage, showMethodToggle)
+    renderCoverageSummary({
+      coveredLines, totalLines,
+      coveredBranches, totalBranches,
+      coveredMethods, totalMethods,
+      branchCoverage, methodCoverage, showMethodToggle
+    })
   ];
 
   if (showMethodToggle) {
@@ -389,7 +415,10 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
 
   for (let i = 0; i < data.source.length; i++) {
     const lineCov = data.lines[i];
-    const status = lineStatus(i, lineCov, branchesReport, missedMethodLineSet, branchCoverage, methodCoverage);
+    const status = lineStatus({
+      lineIndex: i, lineCov, branchesReport,
+      missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage
+    });
     const lineNum = i + 1;
     const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
     const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
@@ -419,14 +448,17 @@ function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: 
 
 // --- Rendering: File list table --------------------------------
 
-function renderFileList(
-  title: string,
-  filenames: string[],
-  stats: StatGroup,
-  allCoverage: Record<string, FileCoverage>,
-  branchCoverage: boolean,
-  methodCoverage: boolean
-): string {
+interface FileListArgs {
+  title: string;
+  filenames: string[];
+  stats: StatGroup;
+  allCoverage: Record<string, FileCoverage>;
+  branchCoverage: boolean;
+  methodCoverage: boolean;
+}
+
+function renderFileList(args: FileListArgs): string {
+  const { title, filenames, stats, allCoverage, branchCoverage, methodCoverage } = args;
   const containerId = toHtmlId(title);
 
   const lineStats = stats.lines;
@@ -516,12 +548,12 @@ function renderPage(data: CoverageData): void {
   // loop would trigger on reports with many groups.
   const content = document.getElementById('content')!;
   const fileListSections = [
-    renderFileList('All Files', allFiles, data.total, data.coverage, branchCoverage, methodCoverage),
+    renderFileList({ title: 'All Files', filenames: allFiles, stats: data.total, allCoverage: data.coverage, branchCoverage, methodCoverage }),
   ];
   for (const groupName of Object.keys(data.groups)) {
     const group = data.groups[groupName];
     fileListSections.push(
-      renderFileList(groupName, group.files || [], group, data.coverage, branchCoverage, methodCoverage)
+      renderFileList({ title: groupName, filenames: group.files || [], stats: group, allCoverage: data.coverage, branchCoverage, methodCoverage })
     );
   }
   content.innerHTML = fileListSections.join('');
