@@ -63,7 +63,7 @@
     },
     "errors": {
       "type": "object",
-      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, and maximum_coverage_drop. Empty object when no thresholds were violated.",
+      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage, and maximum_coverage_drop. Empty object when no thresholds were violated.",
       "additionalProperties": false,
       "properties": {
         "minimum_coverage": {
@@ -86,6 +86,11 @@
             "type": "object",
             "additionalProperties": {"$ref": "#/definitions/expected_actual"}
           }
+        },
+        "maximum_coverage": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods. `expected` is the configured maximum, `actual` is the measured value that exceeded it.",
+          "additionalProperties": {"$ref": "#/definitions/expected_actual"}
         },
         "maximum_coverage_drop": {
           "type": "object",
