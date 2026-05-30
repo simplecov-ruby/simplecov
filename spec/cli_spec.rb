@@ -384,6 +384,24 @@ RSpec.describe SimpleCov::CLI do
       expect(JSON.parse(stdout.string)).to eq([])
     end
 
+    it "ranks by the chosen --criterion" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/a.rb" => {
+                                  "total_lines" => 10, "covered_lines" => 10, "lines_covered_percent" => 100.0,
+                                  "total_branches" => 4, "covered_branches" => 1, "branches_covered_percent" => 25.0
+                                }
+                              }
+                            ))
+      expect(run("uncovered", "--input", json_path, "--criterion", "branch")).to eq(0)
+      expect(stdout.string).to include("/abs/lib/a.rb").and include("25.00%")
+    end
+
+    it "rejects an unknown --criterion" do
+      expect(run("uncovered", "--input", json_path, "--criterion", "bogus")).to eq(1)
+      expect(stderr.string).to include("unknown --criterion")
+    end
+
     context "with colorization" do
       it "colorizes the listed percentages when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)

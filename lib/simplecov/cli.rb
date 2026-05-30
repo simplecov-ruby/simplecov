@@ -113,8 +113,9 @@ module SimpleCov
           --json                    Emit totals and group sections as JSON
 
         uncovered options:
-          --threshold N             Only show files below N% line coverage
+          --threshold N             Only show files below N% coverage
           --top N                   Show at most N files (default: 10)
+          --criterion C             line, branch, or method (default: line)
           --json                    Emit results as a JSON array (for CI)
 
         merge options:
