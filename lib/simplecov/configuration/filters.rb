@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # Inclusion / exclusion / grouping DSL: `cover`, `skip`, `group`,
+  # Inclusion / exclusion / grouping methods: `cover`, `skip`, `group`,
   # plus the deprecated `track_files` / `add_filter` / `add_group`
   # aliases. Mutates the same `filters`, `groups`, and `cover_filters`
   # collections the main Configuration module exposes.

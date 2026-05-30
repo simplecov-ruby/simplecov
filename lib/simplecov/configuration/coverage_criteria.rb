@@ -10,17 +10,6 @@ module SimpleCov
     DEFAULT_COVERAGE_CRITERION = :line
     ONESHOT_LINE_COVERAGE_CRITERION = :oneshot_line
 
-    #
-    # Define which coverage criterion should be evaluated. If not set
-    # the default is `:line`.
-    #
-    def coverage_criterion(criterion = nil)
-      return @coverage_criterion ||= primary_coverage unless criterion
-
-      raise_if_criterion_unsupported(criterion)
-      @coverage_criterion = criterion
-    end
-
     # Enable one or more coverage criteria. `:eval` is accepted as a
     # shorthand for the standalone eval-coverage toggle.
     def enable_coverage(*criteria)

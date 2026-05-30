@@ -2,7 +2,7 @@
 
 module SimpleCov
   # Coverage-entry filters scoped to branch / method criteria. See
-  # `ignore_branches` and `ignore_methods` for the DSL and #1033 /
+  # `ignore_branches` and `ignore_methods`, and #1033 /
   # #1046 for the synthetic-entry detection rationale.
   module Configuration
     # Branch types accepted by `ignore_branches`.

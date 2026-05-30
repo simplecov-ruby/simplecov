@@ -76,6 +76,9 @@ module SimpleCov
       coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
       defaults, overrides = partition_per_file_thresholds(coverage)
 
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.minimum_coverage_by_file` is deprecated. " \
+           "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}"
+
       raise_on_invalid_coverage(defaults, "minimum_coverage_by_file")
       overrides.each_value { |criteria| raise_on_invalid_coverage(criteria, "minimum_coverage_by_file") }
 
@@ -95,6 +98,8 @@ module SimpleCov
     def minimum_coverage_by_group(coverage = nil)
       return @minimum_coverage_by_group ||= {} unless coverage
 
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.minimum_coverage_by_group` is deprecated. " \
+           "Replace it with:\n#{per_group_coverage_replacement(coverage)}"
       @minimum_coverage_by_group = coverage.dup.transform_values do |group_coverage|
         group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
         raise_on_invalid_coverage(group_coverage, "minimum_coverage_by_group")
@@ -132,6 +137,38 @@ module SimpleCov
 
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
+    end
+
+    # Render the `coverage` configuration equivalent to a (deprecated)
+    # `minimum_coverage_by_file` argument so the deprecation warning can be
+    # copy-pasted verbatim into the user's config.
+    def per_file_coverage_replacement(defaults, overrides)
+      by_criterion = Hash.new { |hash, criterion| hash[criterion] = [] }
+      defaults.each { |criterion, percent| by_criterion[criterion] << "minimum_per_file #{percent}" }
+      overrides.each do |target, criteria|
+        criteria.each do |criterion, percent|
+          by_criterion[criterion] << "minimum_per_file #{percent}, only: #{target.inspect}"
+        end
+      end
+      render_coverage_blocks(by_criterion)
+    end
+
+    # Same, for a (deprecated) `minimum_coverage_by_group` argument.
+    def per_group_coverage_replacement(coverage)
+      by_criterion = Hash.new { |hash, criterion| hash[criterion] = [] }
+      coverage.each do |group_name, group_coverage|
+        group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
+        group_coverage.each do |criterion, percent|
+          by_criterion[criterion] << "minimum_per_group #{percent}, only: #{group_name.inspect}"
+        end
+      end
+      render_coverage_blocks(by_criterion)
+    end
+
+    def render_coverage_blocks(by_criterion)
+      by_criterion.map do |criterion, statements|
+        "  coverage(#{criterion.inspect}) { #{statements.join('; ')} }"
+      end.join("\n")
     end
   end
 end

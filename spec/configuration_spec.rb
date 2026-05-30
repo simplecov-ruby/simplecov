@@ -11,6 +11,129 @@ RSpec.describe SimpleCov::Configuration do
   end
   let(:config) { config_class.new }
 
+  # The criterion-first `coverage` method is a uniform front-end over the same
+  # threshold stores the flat `minimum_coverage` family writes, so these
+  # examples assert against those stores.
+  describe "#coverage" do
+    after { config.clear_coverage_criteria }
+
+    describe "enabling" do
+      it "enables the named criterion just by mentioning it" do
+        config.coverage :branch
+        expect(config.coverage_criterion_enabled?(:branch)).to be true
+      end
+
+      it "disables a criterion with enabled: false" do
+        config.coverage :line, enabled: false
+        expect(config.coverage_criterion_enabled?(:line)).to be false
+      end
+
+      it "selects oneshot mode for line" do
+        config.coverage :line, oneshot: true
+        expect(config.coverage_criterion_enabled?(:oneshot_line)).to be true
+      end
+
+      it "rejects oneshot mode for non-line criteria" do
+        expect { config.coverage :branch, oneshot: true }
+          .to raise_error(SimpleCov::ConfigurationError, /only valid for/)
+      end
+
+      it "sets the primary criterion via a keyword" do
+        config.coverage :branch, primary: true
+        expect(config.primary_coverage).to eq(:branch)
+      end
+
+      it "sets the primary criterion via the block verb" do
+        config.coverage(:branch) { primary }
+        expect(config.primary_coverage).to eq(:branch)
+      end
+
+      it "enables eval coverage" do
+        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
+
+        config.coverage :eval
+        expect(config.coverage_for_eval_enabled?).to be true
+      end
+    end
+
+    describe "overall thresholds" do
+      it "stores per-criterion minimum / maximum / drop from the one-liner form" do
+        config.coverage :branch, minimum: 80, maximum: 95, maximum_drop: 5
+        expect(config.minimum_coverage).to eq(branch: 80)
+        expect(config.maximum_coverage).to eq(branch: 95)
+        expect(config.maximum_coverage_drop).to eq(branch: 5)
+      end
+
+      it "stores the same thresholds from the block form" do
+        config.coverage :line do
+          minimum 90
+          maximum_drop 5
+        end
+        expect(config.minimum_coverage).to eq(line: 90)
+        expect(config.maximum_coverage_drop).to eq(line: 5)
+      end
+
+      it "pins coverage with exact (sets both minimum and maximum)" do
+        config.coverage :line, exact: 95
+        expect(config.minimum_coverage).to eq(line: 95)
+        expect(config.maximum_coverage).to eq(line: 95)
+      end
+
+      it "produces the same store as `minimum_coverage line: 90, branch: 80`" do
+        config.coverage :branch, minimum: 80
+        config.coverage :line, minimum: 90
+        expect(config.minimum_coverage).to eq(line: 90, branch: 80)
+      end
+
+      it "rejects a percentage above 100 the same way the flat methods do" do
+        expect { config.coverage :line, minimum: 101 }.to output(/greater than 100/).to_stderr
+      end
+    end
+
+    describe "per-file thresholds" do
+      it "sets a default applied to every file (block and keyword forms)" do
+        config.coverage(:line) { minimum_per_file 80 }
+        expect(config.minimum_coverage_by_file).to eq(line: 80)
+
+        other = config_class.new
+        other.coverage :line, minimum_per_file: 80
+        expect(other.minimum_coverage_by_file).to eq(line: 80)
+      end
+
+      it "overrides the default for a String path or Regexp via only:" do
+        config.coverage :line do
+          minimum_per_file 80
+          minimum_per_file 100, only: "app/mailers/request_mailer.rb"
+          minimum_per_file 95, only: %r{\Aapp/payments/}
+        end
+        expect(config.minimum_coverage_by_file).to eq(line: 80)
+        expect(config.minimum_coverage_by_file_overrides).to eq(
+          "app/mailers/request_mailer.rb" => {line: 100},
+          %r{\Aapp/payments/} => {line: 95}
+        )
+      end
+
+      it "keeps line and branch overrides for the same path independent" do
+        config.coverage(:line) { minimum_per_file 100, only: "app/x.rb" }
+        config.coverage(:branch) { minimum_per_file 90, only: "app/x.rb" }
+        expect(config.minimum_coverage_by_file_overrides).to eq("app/x.rb" => {line: 100, branch: 90})
+      end
+
+      it "rejects a non-String/Regexp only: target" do
+        expect { config.coverage(:line) { minimum_per_file 100, only: :line } }
+          .to raise_error(SimpleCov::ConfigurationError, /must be a String path or Regexp/)
+      end
+    end
+
+    describe "per-group thresholds" do
+      it "stores a per-criterion minimum under the named group" do
+        config.coverage(:line) { minimum_per_group 95, only: "Models" }
+        config.coverage(:branch) { minimum_per_group 90, only: "Models" }
+        expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95, branch: 90})
+      end
+    end
+  end
+
   describe "#print_errors" do
     context "when not manually set" do
       it "defaults to true" do
@@ -518,10 +641,10 @@ RSpec.describe SimpleCov::Configuration do
         config.clear_coverage_criteria
       end
 
-      it "does not warn you about your usage" do
+      it "does not warn that coverage exceeds 100% for a valid value" do
         allow(config).to receive(:warn)
         config.public_send(coverage_setting, 100.00)
-        expect(config).not_to have_received(:warn)
+        expect(config).not_to have_received(:warn).with(/is greater than 100%/)
       end
 
       it "warns you about your usage" do
@@ -587,7 +710,23 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_file" do
+      # Deprecated: every call warns. Silence it here (the dedicated example
+      # below asserts the warning) so it doesn't trip the suite's app-warning
+      # guard. The methods are still exercised, so they stay covered.
+      before { allow(config).to receive(:warn) }
+
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
+
+      it "warns with the equivalent `coverage` configuration built from the real arguments" do
+        allow(config).to receive(:warn)
+        config.minimum_coverage_by_file line: 70, "app/x.rb" => 100
+        expect(config).to have_received(:warn).with(
+          a_string_including(
+            "`SimpleCov.minimum_coverage_by_file` is deprecated",
+            'coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: "app/x.rb" }'
+          )
+        )
+      end
 
       context "with per-path overrides" do
         after { config.clear_coverage_criteria }
@@ -652,14 +791,19 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_group" do
+      # Deprecated: every call warns. Silence it here (the dedicated example
+      # below asserts the warning) so it doesn't trip the suite's app-warning
+      # guard. The method is still exercised, so it stays covered.
+      before { allow(config).to receive(:warn) }
+
       after do
         config.clear_coverage_criteria
       end
 
-      it "does not warn you about your usage" do
+      it "does not warn that coverage exceeds 100% for a valid value" do
         allow(config).to receive(:warn)
         config.minimum_coverage_by_group({"Test Group 1" => 100.00})
-        expect(config).not_to have_received(:warn)
+        expect(config).not_to have_received(:warn).with(/is greater than 100%/)
       end
 
       it "warns you about your usage" do
@@ -667,6 +811,17 @@ RSpec.describe SimpleCov::Configuration do
         config.minimum_coverage_by_group({"Test Group 1" => 100.01})
         expect(config).to have_received(:warn)
           .with("The coverage you set for minimum_coverage_by_group is greater than 100%")
+      end
+
+      it "warns with the equivalent `coverage` configuration built from the real arguments" do
+        allow(config).to receive(:warn)
+        config.minimum_coverage_by_group({"Models" => 80})
+        expect(config).to have_received(:warn).with(
+          a_string_including(
+            "`SimpleCov.minimum_coverage_by_group` is deprecated",
+            'coverage(:line) { minimum_per_group 80, only: "Models" }'
+          )
+        )
       end
 
       it "sets the right coverage value when called with a number" do
@@ -791,37 +946,6 @@ RSpec.describe SimpleCov::Configuration do
         config.refuse_coverage_drop
 
         expect(config.maximum_coverage_drop).to eq line: 0
-      end
-    end
-
-    describe "#coverage_criterion" do
-      it "defaults to line" do
-        expect(config.coverage_criterion).to eq :line
-      end
-
-      it "works fine with line" do
-        config.coverage_criterion :line
-
-        expect(config.coverage_criterion).to eq :line
-      end
-
-      it "works fine with :branch" do
-        config.coverage_criterion :branch
-
-        expect(config.coverage_criterion).to eq :branch
-      end
-
-      it "works fine setting it back and forth" do
-        config.coverage_criterion :branch
-        config.coverage_criterion :line
-
-        expect(config.coverage_criterion).to eq :line
-      end
-
-      it "errors out on unknown coverage" do
-        expect do
-          config.coverage_criterion :unknown
-        end.to raise_error(/unsupported.*unknown.*line/i)
       end
     end
 
@@ -996,7 +1120,7 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "returns false for line coverage" do
-        config.coverage_criterion :line
+        config.primary_coverage :line
 
         expect(config).not_to be_branch_coverage
       end
@@ -1010,7 +1134,7 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "returns false for line coverage" do
-        config.coverage_criterion :line
+        config.primary_coverage :line
 
         expect(config).not_to be_method_coverage
       end
@@ -1021,14 +1145,6 @@ RSpec.describe SimpleCov::Configuration do
         config.enable_coverage :method
 
         expect(config.coverage_criteria).to contain_exactly :line, :method
-      end
-    end
-
-    describe "#coverage_criterion with :method" do
-      it "works fine with :method" do
-        config.coverage_criterion :method
-
-        expect(config.coverage_criterion).to eq :method
       end
     end
 

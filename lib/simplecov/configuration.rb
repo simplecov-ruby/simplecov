@@ -165,9 +165,10 @@ module SimpleCov
   end
 end
 
-require_relative "configuration/filters"
+require_relative "configuration/coverage"
 require_relative "configuration/coverage_criteria"
-require_relative "configuration/ignored_entries"
-require_relative "configuration/thresholds"
+require_relative "configuration/filters"
 require_relative "configuration/formatting"
+require_relative "configuration/ignored_entries"
 require_relative "configuration/merging"
+require_relative "configuration/thresholds"
