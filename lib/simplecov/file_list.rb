@@ -23,8 +23,12 @@ module SimpleCov
       @files = files
     end
 
-    def coverage_statistics
+    # The per-criterion coverage statistics across all files. With no argument
+    # returns the `{line:, branch:, method:}` Hash; pass a criterion symbol
+    # (`:line` / `:branch` / `:method`) to get that one CoverageStatistics.
+    def coverage_statistics(criterion = nil)
       @coverage_statistics ||= compute_coverage_statistics
+      criterion ? @coverage_statistics[criterion] : @coverage_statistics
     end
 
     def coverage_statistics_by_file
@@ -71,16 +75,18 @@ module SimpleCov
       coverage_statistics[:line]&.total
     end
 
-    # Computes the coverage based upon lines covered and lines missed
-    # @return [Float]
-    def covered_percent
-      coverage_statistics[:line]&.percent
+    # The coverage across all files in percent, for the given criterion (line
+    # by default). Returns nil if the criterion was not measured.
+    # @return [Float, nil]
+    def covered_percent(criterion = :line)
+      coverage_statistics(criterion)&.percent
     end
 
-    # Computes the strength (hits / line) based upon lines covered and lines missed
-    # @return [Float]
-    def covered_strength
-      coverage_statistics[:line]&.strength
+    # The strength (average hits per relevant unit) for the given criterion
+    # (line by default).
+    # @return [Float, nil]
+    def covered_strength(criterion = :line)
+      coverage_statistics(criterion)&.strength
     end
 
     # Return total count of branches in all files

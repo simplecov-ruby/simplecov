@@ -47,8 +47,12 @@ module SimpleCov
     # enabled during the run — those collapse to 0/0/0. Consumers
     # (FileList, formatters) decide which keys to surface based on
     # `SimpleCov.coverage_criterion_enabled?`.
-    def coverage_statistics
+    # The per-criterion coverage statistics for this file. With no argument
+    # returns the `{line:, branch:, method:}` Hash; pass a criterion symbol
+    # (`:line` / `:branch` / `:method`) to get that one CoverageStatistics.
+    def coverage_statistics(criterion = nil)
       @coverage_statistics ||= Statistics.new(self).call
+      criterion ? @coverage_statistics[criterion] : @coverage_statistics
     end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,
@@ -90,13 +94,14 @@ module SimpleCov
       lines[number - 1]
     end
 
-    # The coverage for this file in percent. 0 if the file has no coverage lines
-    def covered_percent
-      coverage_statistics[:line]&.percent
+    # The coverage for this file in percent, for the given criterion (line by
+    # default). Returns nil if the criterion was not measured.
+    def covered_percent(criterion = :line)
+      coverage_statistics(criterion)&.percent
     end
 
-    def covered_strength
-      coverage_statistics[:line]&.strength
+    def covered_strength(criterion = :line)
+      coverage_statistics(criterion)&.strength
     end
 
     def no_lines?
@@ -116,8 +121,11 @@ module SimpleCov
       total_branches.empty?
     end
 
+    # DEPRECATED: use `covered_percent(:branch)`.
     def branches_coverage_percent
-      coverage_statistics[:branch].percent
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
+           "Use `covered_percent(:branch)`."
+      covered_percent(:branch)
     end
 
     # Return the relevant branches to source file
@@ -166,8 +174,11 @@ module SimpleCov
       @missed_methods ||= methods.select(&:missed?)
     end
 
+    # DEPRECATED: use `covered_percent(:method)`.
     def methods_coverage_percent
-      coverage_statistics[:method].percent
+      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
+           "Use `covered_percent(:method)`."
+      covered_percent(:method)
     end
 
     # Whether this file was added via track_files but never loaded/required.

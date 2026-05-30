@@ -107,7 +107,7 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "is considered 100% branches covered" do
-        expect(source_file.branches_coverage_percent).to eq(100.0)
+        expect(source_file.covered_percent(:branch)).to eq(100.0)
       end
 
       it "has branch coverage report" do
@@ -122,7 +122,7 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "is considered 100% methods covered" do
-        expect(source_file.methods_coverage_percent).to eq(100.0)
+        expect(source_file.covered_percent(:method)).to eq(100.0)
       end
     end
   end
@@ -158,7 +158,7 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "is considered 66.(6)% methods covered" do
-        expect(source_file.methods_coverage_percent).to eq(66.66666666666667)
+        expect(source_file.covered_percent(:method)).to eq(66.66666666666667)
       end
     end
 
@@ -300,7 +300,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     it "reports 100% branch coverage (no branches to miss)" do
-      expect(source_file.branches_coverage_percent).to eq 100.0
+      expect(source_file.covered_percent(:branch)).to eq 100.0
     end
   end
 
@@ -311,7 +311,7 @@ RSpec.describe SimpleCov::SourceFile do
 
     describe "branch coverage" do
       it "has 50% branch coverage" do
-        expect(source_file.branches_coverage_percent).to eq 50.0
+        expect(source_file.covered_percent(:branch)).to eq 50.0
       end
 
       it "has total branches count 6" do
@@ -396,7 +396,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     it "has branches coverage percent 50.00" do
-      expect(source_file.branches_coverage_percent).to eq(50.00)
+      expect(source_file.covered_percent(:branch)).to eq(50.00)
     end
   end
 
@@ -414,7 +414,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     it "has 100.0 branch coverage" do
-      expect(source_file.branches_coverage_percent).to eq(100.00)
+      expect(source_file.covered_percent(:branch)).to eq(100.00)
     end
   end
 
@@ -1016,7 +1016,7 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "reports 0% branch coverage instead of 100%" do
-        expect(source_file.branches_coverage_percent).to eq 0.0
+        expect(source_file.covered_percent(:branch)).to eq 0.0
       end
 
       it "reports 0% method coverage instead of 100%" do
@@ -1276,12 +1276,32 @@ RSpec.describe SimpleCov::SourceFile do
     # than crashing on `nil.percent` / `nil.total`.
     let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
 
-    before { allow(source_file).to receive(:coverage_statistics).and_return({}) }
+    before do
+      allow(source_file).to receive(:coverage_statistics) { |criterion = nil| criterion ? nil : {} }
+    end
 
     it "returns 0 from lines_of_code and nil from covered_percent / covered_strength" do
       expect(source_file.lines_of_code).to eq(0)
       expect(source_file.covered_percent).to be_nil
       expect(source_file.covered_strength).to be_nil
+    end
+  end
+
+  describe "deprecated percent accessors" do
+    let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
+
+    before { allow(source_file).to receive(:warn) }
+
+    it "warns and delegates branches_coverage_percent to covered_percent(:branch)" do
+      allow(source_file).to receive(:covered_percent).with(:branch).and_return(42.0)
+      expect(source_file.branches_coverage_percent).to eq(42.0)
+      expect(source_file).to have_received(:warn).with(/branches_coverage_percent` is deprecated/)
+    end
+
+    it "warns and delegates methods_coverage_percent to covered_percent(:method)" do
+      allow(source_file).to receive(:covered_percent).with(:method).and_return(50.0)
+      expect(source_file.methods_coverage_percent).to eq(50.0)
+      expect(source_file).to have_received(:warn).with(/`SimpleCov::SourceFile#methods_coverage_percent` is deprecated/)
     end
   end
 

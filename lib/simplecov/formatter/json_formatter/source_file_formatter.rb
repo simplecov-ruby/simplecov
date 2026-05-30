@@ -51,7 +51,7 @@ module SimpleCov
         def branch_coverage_section
           {
             branches: @source_file.branches.map { |branch| format_branch(branch) },
-            branches_covered_percent: @source_file.branches_coverage_percent,
+            branches_covered_percent: @source_file.covered_percent(:branch),
             covered_branches: @source_file.covered_branches.size,
             missed_branches: @source_file.missed_branches.size,
             total_branches: @source_file.total_branches.size
@@ -61,7 +61,7 @@ module SimpleCov
         def method_coverage_section
           {
             methods: @source_file.methods.map { |method| format_method(method) },
-            methods_covered_percent: @source_file.methods_coverage_percent,
+            methods_covered_percent: @source_file.covered_percent(:method),
             covered_methods: @source_file.covered_methods.size,
             missed_methods: @source_file.missed_methods.size,
             total_methods: @source_file.methods.size
