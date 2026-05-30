@@ -88,6 +88,11 @@ RSpec.describe SimpleCov::Configuration do
       it "rejects a percentage above 100 the same way the flat methods do" do
         expect { config.coverage :line, minimum: 101 }.to output(/greater than 100/).to_stderr
       end
+
+      it "rejects an unknown keyword option" do
+        expect { config.coverage :line, minimum_per_group: 80 }
+          .to raise_error(SimpleCov::ConfigurationError, /Unknown `coverage` option :minimum_per_group/)
+      end
     end
 
     describe "per-file thresholds" do

@@ -25,31 +25,48 @@ module SimpleCov
   # set line thresholds or options. Thresholds feed the same internal stores
   # as the flat `minimum_coverage` family, so enforcement is unchanged.
   module Configuration
+    # One-liner keyword options `coverage` accepts, each forwarding to the
+    # `CoverageCriterion` verb of the same name. `minimum_per_group` is omitted
+    # because it needs an `only:` target, so it's block-only.
+    COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop minimum_per_file].freeze
+
     #
     # Configure (and, unless `enabled: false`, enable) a coverage criterion.
     #
-    # Options mirror the block verbs for one-liner use:
+    # Threshold options mirror the block verbs for one-liner use:
     #   coverage :branch, minimum: 80, maximum_drop: 5
     #
     # `primary: true` makes this the report's leading criterion (and the one a
     # bare `minimum_coverage 90` targets). `oneshot: true` (valid only for
     # `:line`) selects the faster oneshot-lines mode. `:eval` is enable-only.
     #
-    def coverage(criterion, primary: false, enabled: true, oneshot: false,
-                 minimum: nil, maximum: nil, exact: nil, maximum_drop: nil, minimum_per_file: nil, &block)
+    def coverage(criterion, primary: false, enabled: true, oneshot: false, **thresholds, &block)
       criterion = enable_coverage_criterion(criterion, enabled: enabled, oneshot: oneshot)
       primary_coverage(criterion) if primary
 
       configurator = CoverageCriterion.new(self, criterion)
-      {minimum:, maximum:, exact:, maximum_drop:, minimum_per_file:}.each do |verb, value|
-        configurator.public_send(verb, value) unless value.nil?
-      end
+      apply_threshold_options(configurator, thresholds)
       configurator.instance_eval(&block) if block
 
       criterion
     end
 
   private
+
+    # Forward the one-liner threshold keywords (`coverage :branch, minimum: 80`)
+    # to the matching `CoverageCriterion` verbs, rejecting anything that isn't a
+    # recognized threshold option.
+    def apply_threshold_options(configurator, options)
+      options.each do |verb, value|
+        unless COVERAGE_THRESHOLD_OPTIONS.include?(verb)
+          raise SimpleCov::ConfigurationError,
+                "Unknown `coverage` option #{verb.inspect}. " \
+                "Supported options are #{COVERAGE_THRESHOLD_OPTIONS.inspect}."
+        end
+
+        configurator.public_send(verb, value)
+      end
+    end
 
     # Enable the criterion (or its oneshot / eval variant) and return the
     # criterion symbol that thresholds should be stored under.
