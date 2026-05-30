@@ -196,7 +196,7 @@ COVERAGE=true rake test
 
 ### Migrating from the legacy configuration API
 
-The configuration DSL was redesigned to use a smaller set of consistent verbs. The legacy methods continue to work but
+The configuration API was redesigned to use a smaller set of consistent verbs. The legacy methods continue to work but
 emit deprecation warnings that name their replacement; the table below is the canonical migration map.
 
 | Legacy                              | New                              | Notes                                                                                                                  |
@@ -208,6 +208,8 @@ emit deprecation warnings that name their replacement; the table below is the ca
 | `enable_for_subprocesses true`      | `merge_subprocesses true`        | Same value, same behavior.                                                                                             |
 | `enable_coverage_for_eval`          | `enable_coverage :eval`          | Eval coverage now folds into the same call you use to enable `:line`/`:branch`/`:method`: `enable_coverage :branch, :eval`. |
 | `print_error_status` (reader)       | `print_errors`                   | Reader only. The `print_error_status=` writer still works without a warning, but `print_errors true`/`print_errors false` is the new spelling. |
+| `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` | `coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: 'app/x.rb' }` | The `coverage` block fixes the criterion, so per-path overrides are plain percentages with an `only:` target instead of a hash mixing Symbol / String / Regexp keys. See [Per-criterion thresholds](#per-criterion-thresholds-with-coverage). |
+| `minimum_coverage_by_group 'Models' => { line: 90 }` | `coverage(:line) { minimum_per_group 90, only: 'Models' }` | Same uniform shape as `minimum_per_file`. |
 
 Brand-new in the redesigned API (no legacy method to migrate from):
 
@@ -913,116 +915,69 @@ end
 The threshold settings below make SimpleCov exit non-zero when coverage doesn't meet your expectations, so they double
 as CI gates.
 
-### Minimum coverage
+### Per-criterion thresholds with `coverage`
 
-Require a minimum coverage percentage; SimpleCov returns non-zero if unmet.
+The `coverage` block configures each criterion (line, branch, method) the same way: because the criterion is fixed by
+the enclosing block, every threshold value is a plain percentage, so line, branch, and method coverage read identically.
+Naming a criterion also enables it (line is enabled by default).
 
 ```ruby
-SimpleCov.minimum_coverage 90
-# same as above (the default is to check line coverage)
-SimpleCov.minimum_coverage line: 90
-# check for a minimum line coverage of 90% and minimum 80% branch coverage
+SimpleCov.start do
+  coverage :line do
+    minimum           90    # suite-wide minimum; SimpleCov exits non-zero if unmet
+    minimum_per_file  80    # per-file minimum
+    minimum_per_file  100, only: "app/mailers/request_mailer.rb"  # per-path override (String path or Regexp)
+    minimum_per_group 95, only: "Models"                          # minimum for a named group
+    maximum_drop      5     # exit non-zero if coverage drops more than 5% between runs
+  end
+
+  coverage :branch, minimum: 80    # one-liner form for a single setting
+  coverage :method, minimum: 100
+end
+```
+
+| Verb | Effect |
+|------|--------|
+| `minimum N` | Suite-wide minimum for this criterion. |
+| `maximum N` | Suite-wide maximum: fails if coverage rises above N. Pairs with `minimum` to pin coverage so an unexpected jump fails instead of being silently absorbed. |
+| `exact N` | Pins coverage by setting both `minimum` and `maximum` to N. |
+| `maximum_drop N` | Maximum allowed drop between runs (`maximum_drop 0` refuses any drop). |
+| `minimum_per_file N` | Per-file minimum. Add `only: "path"` / `only: %r{regexp}` to override it for matching files (later, more specific overrides win). |
+| `minimum_per_group N, only: "Name"` | Minimum for a named [group](#groups). |
+
+Every verb is also a keyword on the one-liner form (`coverage :branch, minimum: 80, maximum_drop: 5`). Two more options:
+`coverage :line, oneshot: true` selects the faster [oneshot-lines mode](#oneshot-lines-coverage), and
+`coverage :branch, primary: true` makes branch the report's leading criterion (the one a bare `minimum_coverage 90`
+targets). `coverage :eval` enables [eval coverage](#eval-coverage).
+
+### Suite-wide shortcuts
+
+For the common case of a single suite-wide threshold, the flat helpers are convenient sugar over the block above. A bare
+number targets the primary criterion (line by default); a Hash sets per-criterion values:
+
+```ruby
+SimpleCov.minimum_coverage 90                      # primary criterion (line)
 SimpleCov.minimum_coverage line: 90, branch: 80
-```
-
-### Minimum coverage by file
-
-Require a minimum per-file percentage, so coverage stays consistent rather than being skewed by particularly good or
-bad areas of the code:
-
-```ruby
-SimpleCov.minimum_coverage_by_file 80
-# same as above (the default is to check line coverage by file)
-SimpleCov.minimum_coverage_by_file line: 80
-# check for a minimum line coverage by file of 90% and minimum 80% branch coverage
-SimpleCov.minimum_coverage_by_file line: 90, branch: 80
-```
-
-You can also raise the bar for specific files or directories by passing String or Regexp keys alongside the
-Symbol-keyed defaults. The String form does an exact match against the project-relative path, or a directory-prefix
-match when it ends in `/`; the Regexp form is matched against the project-relative path. Per-path values may be a single
-number (applied to the primary criterion) or a per-criterion Hash. For each file, the effective threshold is the
-defaults merged with any matching overrides — later overrides win per criterion, and overrides win over defaults. See #575.
-
-```ruby
-# 70% line coverage everywhere — but require 100% for one critical file
-SimpleCov.minimum_coverage_by_file line: 70, 'app/mailers/request_mailer.rb' => 100
-
-# Directory prefix + Regexp; per-criterion override for the payments code
-SimpleCov.minimum_coverage_by_file(
-  line: 70,
-  'lib/auth/' => 95,
-  %r{\Alib/payments/} => { line: 100, branch: 90 }
-)
-```
-
-### Minimum coverage by group
-
-Require a minimum percentage for specific groups, ensuring coverage is consistent across different parts of your
-codebase:
-
-```ruby
-SimpleCov.minimum_coverage_by_group 'Models' => 80, 'Controllers' => 60
-# same as above (the default is to check line coverage)
-SimpleCov.minimum_coverage_by_group 'Models' => { line: 80 }, 'Controllers' => { line: 60 }
-# check for a minimum line and branch coverage for 'Models' and 'Controllers' groups
-SimpleCov.minimum_coverage_by_group 'Models' => { line: 90, branch: 80 }, 'Controllers' => { line: 60, branch: 50 }
-```
-
-### Maximum coverage
-
-The mirror of `minimum_coverage`: SimpleCov returns non-zero if actual coverage *exceeds* the maximum. By itself this
-is rarely useful — but paired with `minimum_coverage` (or set via `expected_coverage`, below) it pins the suite to a
-single value, so a coverage *increase* is reported instead of silently absorbed.
-
-```ruby
-SimpleCov.maximum_coverage 90
-# same as above (the default is to check line coverage)
 SimpleCov.maximum_coverage line: 90
-# check for a maximum line coverage of 90% and maximum 80% branch coverage
-SimpleCov.maximum_coverage line: 90, branch: 80
-```
-
-### Expected coverage
-
-`expected_coverage` sets both `minimum_coverage` and `maximum_coverage` to the same value, pinning coverage to an exact
-figure. If coverage drops, the build fails (per minimum); if it improves, the build also fails — your cue to bump the
-threshold up. This produces small, steady improvements over time without letting things slide.
-
-```ruby
-SimpleCov.expected_coverage 95.42
-# same as above (the default is to check line coverage)
-SimpleCov.expected_coverage line: 95.42
-# pin line at 100% and branch at 95%
-SimpleCov.expected_coverage line: 100, branch: 95
-```
-
-The comparison floors the actual percentage to two decimal places, so an actual of 95.4287 is treated as 95.42 — both
-the minimum and maximum checks still pass at `expected_coverage 95.42`.
-
-### Maximum coverage drop
-
-Define the maximum allowed drop between test runs; SimpleCov returns non-zero if exceeded.
-
-```ruby
-SimpleCov.maximum_coverage_drop 5
-# same as above (the default is to check line drop)
-SimpleCov.maximum_coverage_drop line: 5
-# check for a maximum line drop of 5% and maximum 10% branch drop
 SimpleCov.maximum_coverage_drop line: 5, branch: 10
+SimpleCov.expected_coverage 95.42                  # pins minimum == maximum
+SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
 ```
 
-### Refuse dropping coverage
+`expected_coverage` floors the actual percentage to two decimal places, so an actual of 95.4287 still passes at
+`expected_coverage 95.42`.
 
-Refuse any coverage drop between runs at all:
-
-```ruby
-SimpleCov.refuse_coverage_drop
-# same as above (the default is to only refuse line drop)
-SimpleCov.refuse_coverage_drop :line
-# refuse drop for line and branch
-SimpleCov.refuse_coverage_drop :line, :branch
-```
+> [!NOTE]
+> `minimum_coverage_by_file` and `minimum_coverage_by_group` are **deprecated** in favor of the `coverage` block's
+> `minimum_per_file` / `minimum_per_group`. They still work but emit a deprecation warning. For example, replace
+> `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` with:
+>
+> ```ruby
+> coverage :line do
+>   minimum_per_file 70
+>   minimum_per_file 100, only: "app/x.rb"
+> end
+> ```
 
 ## Formatters
 
@@ -1194,11 +1149,12 @@ $ simplecov uncovered
  80.00%  8/10    lib/bar.rb
 
 $ simplecov uncovered --threshold 90 --top 5
+$ simplecov uncovered --criterion branch
 ```
 
-`--threshold N` filters to files below N% line coverage (default `100`); `--top N` caps the list at N entries (default
-`10`). `--json` emits the rows as a JSON array (empty when nothing is below the threshold), useful for piping into a CI
-gate.
+`--threshold N` filters to files below N% coverage (default `100`); `--top N` caps the list at N entries (default
+`10`); `--criterion line|branch|method` chooses which coverage to rank by (default `line`). `--json` emits the rows as
+a JSON array (empty when nothing is below the threshold), useful for piping into a CI gate.
 
 ### `merge` — combine resultsets from parallel CI workers
 
