@@ -2,12 +2,15 @@
 
 require "helper"
 require "fileutils"
+require "open3"
 
 STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
 
 STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
 
 STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
+
+STUB_COMMIT = "1234567890abcdef1234567890abcdef12345678"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter do
   subject(:formatter) { described_class.new(silent: true) }
@@ -29,6 +32,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
   before do
     FileUtils.rm_f("tmp/coverage/coverage.json")
     SimpleCov.process_start_time = Time.now
+    allow(Open3).to receive(:capture2e)
+      .and_return(["#{STUB_COMMIT}\n", instance_double(Process::Status, success?: true)])
   end
 
   # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
@@ -578,6 +583,26 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
   end
 
+  describe "meta.commit" do
+    it "records the git commit SHA of the project HEAD" do
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to eq(STUB_COMMIT)
+    end
+
+    it "is null when the project is not a git checkout" do
+      allow(Open3).to receive(:capture2e)
+        .and_return(["fatal: not a git repository", instance_double(Process::Status, success?: false)])
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to be_nil
+    end
+
+    it "is null when git is not available" do
+      allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT)
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to be_nil
+    end
+  end
+
   def enable_branch_coverage
     allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
   end
@@ -607,5 +632,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")
       .gsub("\"#{STUB_COMMAND_NAME}\"", "\"#{SimpleCov.command_name}\"")
       .gsub("\"#{STUB_PROJECT_NAME}\"", "\"#{SimpleCov.project_name}\"")
+      .gsub("\"STUB_COMMIT_SHA\"", "\"#{STUB_COMMIT}\"")
   end
 end
