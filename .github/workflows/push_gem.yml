@@ -1,7 +1,9 @@
 name: Push Gem
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -33,20 +35,31 @@ jobs:
           bundler-cache: true
           ruby-version: ruby
 
-      # Release
-      - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1
+      # Publish. `rake release` already built and pushed the vX.Y.Z tag that
+      # triggered this run, so here we only build, sign, and push the gem, then
+      # open the matching GitHub Release.
+      - uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
+      - name: Update RubyGems
+        run: gem update --system
+      - name: Build gem
+        run: bundle exec rake build
+      - name: Sign gem with Sigstore
+        run: gem exec sigstore-cli sign pkg/*.gem --bundle pkg/simplecov.gem.sigstore.json
+      - name: Push gem
+        run: gem push pkg/*.gem --attestation pkg/simplecov.gem.sigstore.json
+      - name: Wait for release to propagate
+        run: gem exec rubygems-await pkg/*.gem
 
-      # release-gem pushes the vX.Y.Z tag but does not open a GitHub Release,
-      # so create one for the tag it just pushed. Mark it as a pre-release when
-      # the gem version is a prerelease (e.g. 1.0.0.rc1) so it does not show as
-      # "Latest" or nudge `gem install` users toward it.
+      # release-gem used to open the GitHub Release; do it explicitly now. Mark
+      # it as a pre-release when the gem version is a prerelease (e.g. 1.0.0.rc1)
+      # so it does not show as "Latest" or nudge `gem install` users toward it.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="$(ruby -Ilib -rsimplecov/version -e 'print SimpleCov::VERSION')"
+          tag="${{ github.ref_name }}"
           flags=(--generate-notes --verify-tag)
           if [ "$(ruby -Ilib -rsimplecov/version -e 'print Gem::Version.new(SimpleCov::VERSION).prerelease?')" = "true" ]; then
             flags+=(--prerelease)
           fi
-          gh release create "v${version}" --title "v${version}" "${flags[@]}"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "$tag" "${flags[@]}"

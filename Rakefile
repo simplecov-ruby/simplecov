@@ -4,30 +4,14 @@ require "rubygems"
 require "bundler/setup"
 Bundler::GemHelper.install_tasks
 
-# SimpleCov is published by the "Push Gem" GitHub Actions workflow
-# (.github/workflows/push_gem.yml) using RubyGems trusted publishing: CI runs
-# `rake release` with a short-lived OIDC token, so there is no API key and no
-# OTP prompt. Running `rake release` from a developer machine would instead tag,
-# push, and upload the gem from here (hence the OTP prompt), so outside CI we
-# replace the task with a pointer to the workflow. GitHub Actions sets CI=true,
-# so the real release task still runs there untouched.
-unless ENV["CI"]
-  Rake::Task["release"].clear
-  desc "Publish a release (handled by the Push Gem workflow in CI)"
-  task :release do
-    abort <<~MESSAGE
-      SimpleCov releases are published by the "Push Gem" GitHub Actions
-      workflow, not from a local machine, so there is no OTP prompt.
-
-      To cut a release:
-        1. Bump SimpleCov::VERSION and update CHANGELOG.md, then merge to main.
-        2. Run the "Push Gem" workflow from the Actions tab. CI tags the
-           version and publishes to RubyGems.org via trusted publishing.
-
-      To build the gem locally without publishing, run `rake build`.
-    MESSAGE
-  end
-end
+# `rake release` builds the gem and pushes the version tag, but it does not
+# push the gem itself. Pushing the tag triggers the "Push Gem" GitHub Actions
+# workflow (.github/workflows/push_gem.yml), which publishes to RubyGems via
+# trusted publishing (no API key, no OTP) and opens the GitHub Release. Dropping
+# the local `release:rubygem_push` step is what keeps the OTP prompt away.
+Rake::Task["release"].clear
+desc "Build the gem and push the version tag (CI publishes on the tag push)"
+task release: %w[build release:guard_clean release:source_control_push]
 
 # See https://github.com/simplecov-ruby/simplecov/issues/171
 desc "Set permissions on all files so they are compatible with both user-local and system-wide installs"
