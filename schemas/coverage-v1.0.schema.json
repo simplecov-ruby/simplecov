@@ -195,7 +195,7 @@
         },
         "start_line": {"type": "integer", "minimum": 1},
         "end_line": {"type": "integer", "minimum": 1},
-        "coverage": {"$ref": "#/definitions/line_coverage"},
+        "coverage": {"$ref": "#/definitions/branch_method_coverage"},
         "inline": {"type": "boolean"},
         "report_line": {"type": "integer", "minimum": 1, "description": "Line of the conditional that owns this branch (the `if`, `case`, or `&&` line), not the start of the branch body. Useful for rendering annotations at the decision point."}
       }
@@ -211,7 +211,7 @@
         },
         "start_line": {"type": "integer", "minimum": 1},
         "end_line": {"type": "integer", "minimum": 1},
-        "coverage": {"$ref": "#/definitions/line_coverage"}
+        "coverage": {"$ref": "#/definitions/branch_method_coverage"}
       }
     },
     "group": {
@@ -264,10 +264,17 @@
       }
     },
     "line_coverage": {
-      "description": "Coverage value for an executable line, branch, or method. Integer is the hit count, `null` marks a non-executable line (blank or comment, only meaningful inside the per-file `lines` array), and the literal string `\"ignored\"` marks code inside a simplecov:disable / :nocov: region. The same three-way shape is reused for branch and method `coverage` fields, where `null` does not occur but `\"ignored\"` does.",
+      "description": "Coverage value for a source line in the per-file `lines` array. Integer hit count, `null` for a non-executable line (blank or comment), or the literal string `\"ignored\"` for a line inside a simplecov:disable / :nocov: region.",
       "oneOf": [
         {"type": "integer", "minimum": 0},
         {"type": "null"},
+        {"type": "string", "const": "ignored"}
+      ]
+    },
+    "branch_method_coverage": {
+      "description": "Coverage value for a branch or method `coverage` field. Integer hit count, or the literal string `\"ignored\"` for code inside a simplecov:disable / :nocov: region. Unlike line coverage, `null` never occurs: every branch and method maps to an executable construct.",
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
         {"type": "string", "const": "ignored"}
       ]
     },
