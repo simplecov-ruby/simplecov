@@ -4,6 +4,31 @@ require "rubygems"
 require "bundler/setup"
 Bundler::GemHelper.install_tasks
 
+# SimpleCov is published by the "Push Gem" GitHub Actions workflow
+# (.github/workflows/push_gem.yml) using RubyGems trusted publishing: CI runs
+# `rake release` with a short-lived OIDC token, so there is no API key and no
+# OTP prompt. Running `rake release` from a developer machine would instead tag,
+# push, and upload the gem from here (hence the OTP prompt), so outside CI we
+# replace the task with a pointer to the workflow. GitHub Actions sets CI=true,
+# so the real release task still runs there untouched.
+unless ENV["CI"]
+  Rake::Task["release"].clear
+  desc "Publish a release (handled by the Push Gem workflow in CI)"
+  task :release do
+    abort <<~MESSAGE
+      SimpleCov releases are published by the "Push Gem" GitHub Actions
+      workflow, not from a local machine, so there is no OTP prompt.
+
+      To cut a release:
+        1. Bump SimpleCov::VERSION and update CHANGELOG.md, then merge to main.
+        2. Run the "Push Gem" workflow from the Actions tab. CI tags the
+           version and publishes to RubyGems.org via trusted publishing.
+
+      To build the gem locally without publishing, run `rake build`.
+    MESSAGE
+  end
+end
+
 # See https://github.com/simplecov-ruby/simplecov/issues/171
 desc "Set permissions on all files so they are compatible with both user-local and system-wide installs"
 task :fix_permissions do
