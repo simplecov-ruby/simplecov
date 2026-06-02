@@ -35,3 +35,18 @@ jobs:
 
       # Release
       - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1
+
+      # release-gem pushes the vX.Y.Z tag but does not open a GitHub Release,
+      # so create one for the tag it just pushed. Mark it as a pre-release when
+      # the gem version is a prerelease (e.g. 1.0.0.rc1) so it does not show as
+      # "Latest" or nudge `gem install` users toward it.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(ruby -Ilib -rsimplecov/version -e 'print SimpleCov::VERSION')"
+          flags=(--generate-notes --verify-tag)
+          if [ "$(ruby -Ilib -rsimplecov/version -e 'print Gem::Version.new(SimpleCov::VERSION).prerelease?')" = "true" ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "v${version}" --title "v${version}" "${flags[@]}"
