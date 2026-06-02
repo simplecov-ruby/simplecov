@@ -632,6 +632,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")
       .gsub("\"#{STUB_COMMAND_NAME}\"", "\"#{SimpleCov.command_name}\"")
       .gsub("\"#{STUB_PROJECT_NAME}\"", "\"#{SimpleCov.project_name}\"")
+      .gsub("\"STUB_SIMPLECOV_VERSION\"", "\"#{SimpleCov::VERSION}\"")
       .gsub("\"STUB_COMMIT_SHA\"", "\"#{STUB_COMMIT}\"")
   end
 end

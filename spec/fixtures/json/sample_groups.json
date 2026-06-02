@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
   "meta": {
     "schema_version": "1.0",
-    "simplecov_version": "0.22.0",
+    "simplecov_version": "STUB_SIMPLECOV_VERSION",
     "command_name": "STUB_COMMAND_NAME",
     "project_name": "STUB_PROJECT_NAME",
     "timestamp": "2024-01-01T00:00:00.000+00:00",
