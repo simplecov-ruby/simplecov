@@ -1025,7 +1025,8 @@ end
 ```
 
 The HTML report's `coverage_data.js` always retains the source array — the client-side viewer renders source from
-there. The setting only affects the side-file `coverage.json`.
+there. The setting only affects the side-file `coverage.json`. When the source is omitted, `meta.commit` (the git
+commit SHA the report was generated against) lets tools recover the exact source lines from repository history.
 
 > The JSON formatter was originally a separate gem,
 > [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and
@@ -1056,7 +1057,7 @@ The current version is **1.0**. Top-level structure:
 ```jsonc
 {
   "$schema":  "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
-  "meta":     { /* schema_version, simplecov_version, command_name, project_name, timestamp, root, line_coverage, branch_coverage, method_coverage */ },
+  "meta":     { /* schema_version, simplecov_version, command_name, project_name, timestamp, root, commit, line_coverage, branch_coverage, method_coverage */ },
   "total":    { /* aggregate stats for lines (and branches / methods when enabled) */ },
   "coverage": { "<project-relative path>": { /* per-file lines, source, branches, methods, etc. */ } },
   "groups":   { "<group name>": { /* per-group stats + files */ } },

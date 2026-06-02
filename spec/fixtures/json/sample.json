@@ -7,6 +7,7 @@
     "project_name": "STUB_PROJECT_NAME",
     "timestamp": "2024-01-01T00:00:00.000+00:00",
     "root": "/STUB_WORKING_DIRECTORY",
+    "commit": "STUB_COMMIT_SHA",
     "line_coverage": true,
     "branch_coverage": false,
     "method_coverage": false

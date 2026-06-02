@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "open3"
 require "time"
 require_relative "errors_formatter"
 require_relative "source_file_formatter"
@@ -59,8 +60,22 @@ module SimpleCov
             command_name: @result.command_name,
             project_name: SimpleCov.project_name,
             timestamp: @result.created_at.iso8601(3),
-            root: SimpleCov.root
+            root: SimpleCov.root,
+            commit: git_commit
           }.merge!(coverage_flags)
+        end
+
+        # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
+        # project isn't a git checkout or git isn't on PATH. Recorded so tools
+        # can recover the exact source a report was generated against, which
+        # matters most when `source_in_json false` drops the source text from
+        # coverage.json. stderr is captured (not forwarded) so a non-git project
+        # doesn't print git's diagnostics to the build.
+        def git_commit
+          output, status = Open3.capture2e("git", "-C", SimpleCov.root.to_s, "rev-parse", "HEAD")
+          status.success? ? output.strip : nil
+        rescue StandardError
+          nil
         end
 
         def coverage_flags

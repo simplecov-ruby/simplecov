@@ -21,6 +21,7 @@
         "project_name",
         "timestamp",
         "root",
+        "commit",
         "line_coverage",
         "branch_coverage",
         "method_coverage"
@@ -46,6 +47,10 @@
         "root": {
           "type": "string",
           "description": "Absolute path to SimpleCov.root at the time of write."
+        },
+        "commit": {
+          "type": ["string", "null"],
+          "description": "Full git commit SHA of `root`'s HEAD when the report was generated, or null when the project isn't a git checkout (or git isn't available). Lets tools recover the exact source a report reflects, which matters most when `source_in_json` is false and the per-file `source` arrays are omitted."
         },
         "line_coverage": {"type": "boolean"},
         "branch_coverage": {"type": "boolean"},
