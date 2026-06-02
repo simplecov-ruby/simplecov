@@ -156,7 +156,7 @@
         },
         "source": {
           "type": "array",
-          "description": "Source lines, in order. Same length as the lines array. Present only when SimpleCov.source_in_json is true (the default); omitted when downstream tools opt out via `source_in_json false` to keep coverage.json smaller.",
+          "description": "Source lines of the file, in order (one entry per physical line). When the per-file `lines` array is present it has the same length, but `source` is emitted independently of line coverage. Present only when SimpleCov.source_in_json is true (the default); omitted when downstream tools opt out via `source_in_json false` to keep coverage.json smaller.",
           "items": {"type": "string"}
         },
         "lines_covered_percent": {"type": "number"},
