@@ -1,5 +1,5 @@
-Unreleased
-==========
+1.0.0.rc1 (2026-06-02)
+======================
 
 ## Breaking Changes
 * JSON formatter: group stats changed from `{ "covered_percent": 80.0 }` to full stats shape `{ "covered": 8, "missed": 2, "total": 10, "percent": 80.0, "strength": 0.0 }`. The key `covered_percent` is renamed to `percent`.
