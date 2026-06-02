@@ -194,6 +194,14 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
         expect(errors).to be_empty, errors.join("\n")
       end
 
+      it "validates a maximum_coverage violation" do
+        allow(SimpleCov).to receive(:maximum_coverage).and_return(line: 50)
+        document = emit(result)
+        expect(document.dig("errors", "maximum_coverage")).not_to be_nil
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
+
       it "validates a maximum_coverage_drop violation" do
         allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
         allow(SimpleCov::LastRun).to receive(:read).and_return({result: {line: 95.0}})
