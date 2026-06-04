@@ -38,7 +38,7 @@ jobs:
       # Publish. `rake release` already built and pushed the vX.Y.Z tag that
       # triggered this run, so here we only build, sign, and push the gem, then
       # open the matching GitHub Release.
-      - uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
+      - uses: rubygems/configure-rubygems-credentials@762a4b77c3300434bb57c7ce80b20e36231927aa # v2.0.0
       - name: Update RubyGems
         run: gem update --system
       - name: Build gem
