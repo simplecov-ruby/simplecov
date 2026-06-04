@@ -37,7 +37,7 @@ jobs:
         run: rm Gemfile.lock
         shell: bash
 
-      - uses: ruby/setup-ruby@v1.308.0
+      - uses: ruby/setup-ruby@v1.310.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
           rubygems: default
