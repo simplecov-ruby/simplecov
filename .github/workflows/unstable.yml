@@ -27,7 +27,7 @@ jobs:
             ruby-version: ruby-head
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - uses: ruby/setup-ruby@v1.310.0
         with:

@@ -31,7 +31,7 @@ jobs:
             ruby-version: ruby
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - name: Remove Gemfile.lock
         run: rm Gemfile.lock
