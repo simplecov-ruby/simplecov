@@ -155,7 +155,7 @@ RSpec.describe SimpleCov::CLI do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
         expect(run("coverage", "--input", json_path, "--no-color", abs_filename)).to eq(0)
         expect(stdout.string).not_to include("\e[")
-        expect(stdout.string).to match(/66\.67%/)
+        expect(stdout.string).to include("66.67%")
       end
     end
   end

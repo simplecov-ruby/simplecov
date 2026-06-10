@@ -95,6 +95,12 @@ RSpec/SpecFilePathFormat:
   # SimpleCov module to an empty path segment so the cop accepts that.
   CustomTransform:
     SimpleCov: ''
+  # Mapping SimpleCov to an empty segment leaves the top-level
+  # `describe SimpleCov` spec (the SimpleCov module itself, mirroring
+  # lib/simplecov.rb) with an empty expected path, so there's nothing for
+  # the cop to match a filename against. Exempt it.
+  Exclude:
+    - spec/simplecov_spec.rb
 RSpec/NestedGroups:
   Max: 5 # TODO: Lower to 3
 RSpec/MultipleMemoizedHelpers:
