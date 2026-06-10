@@ -157,6 +157,19 @@ RSpec.describe SimpleCov::ResultMerger do
           expect(stderr).to include("result1")
         end
 
+        it "stays silent when print_errors is disabled" do
+          # Forked workers set `print_errors false` and merge the resultset
+          # too; without this the expired-results warning is emitted once per
+          # worker. See parallel (subprocess) merging.
+          allow(SimpleCov).to receive(:print_errors).and_return(false)
+
+          stderr = capture_stderr do
+            described_class.merge_and_store(resultset1_path, resultset2_path)
+          end
+
+          expect(stderr).to be_empty
+        end
+
         it "includes it when we say ignore_timeout: true" do
           stderr = capture_stderr do
             result_hash = described_class.merge_and_store(
