@@ -123,8 +123,8 @@ module SimpleCov
 
     # DEPRECATED: use `covered_percent(:branch)`.
     def branches_coverage_percent
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
-           "Use `covered_percent(:branch)`."
+      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
+                                  "Use `covered_percent(:branch)`.")
       covered_percent(:branch)
     end
 
@@ -176,8 +176,8 @@ module SimpleCov
 
     # DEPRECATED: use `covered_percent(:method)`.
     def methods_coverage_percent
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
-           "Use `covered_percent(:method)`."
+      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
+                                  "Use `covered_percent(:method)`.")
       covered_percent(:method)
     end
 

@@ -89,8 +89,8 @@ module SimpleCov
 
     # DEPRECATED: alias for `print_errors`. Same value, same behavior.
     def print_error_status
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.print_error_status` is deprecated. " \
-           "Replace with `SimpleCov.print_errors` (same value)."
+      SimpleCov::Deprecation.warn("`SimpleCov.print_error_status` is deprecated. " \
+                                  "Replace with `SimpleCov.print_errors` (same value).")
       defined?(@print_error_status) ? @print_error_status : true
     end
 
@@ -101,8 +101,8 @@ module SimpleCov
     # be removed in a future release.
     #
     def nocov_token(nocov_token = nil)
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
-           "Replace with `# simplecov:disable` / `# simplecov:enable` block comments."
+      SimpleCov::Deprecation.warn("`SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
+                                  "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.")
       current_nocov_token(nocov_token)
     end
     alias skip_token nocov_token

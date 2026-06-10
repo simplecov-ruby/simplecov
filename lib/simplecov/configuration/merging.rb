@@ -36,8 +36,8 @@ module SimpleCov
 
     # DEPRECATED: alias for `merge_subprocesses`. Same value/behavior.
     def enable_for_subprocesses(value = nil)
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.enable_for_subprocesses` is deprecated. " \
-           "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior)."
+      SimpleCov::Deprecation.warn("`SimpleCov.enable_for_subprocesses` is deprecated. " \
+                                  "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior).")
       return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
 
       @enable_for_subprocesses = value || false
@@ -56,8 +56,8 @@ module SimpleCov
 
     # DEPRECATED: alias for `merging`. Same value, same behavior.
     def use_merging(use = nil)
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.use_merging` is deprecated. " \
-           "Replace with `SimpleCov.merging` (same value, same behavior)."
+      SimpleCov::Deprecation.warn("`SimpleCov.use_merging` is deprecated. " \
+                                  "Replace with `SimpleCov.merging` (same value, same behavior).")
       @use_merging = use unless use.nil?
       @use_merging = true unless defined?(@use_merging) && @use_merging == false
     end

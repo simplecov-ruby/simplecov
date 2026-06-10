@@ -732,17 +732,17 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_file" do
-      # Deprecated: every call warns. Silence it here (the dedicated example
-      # below asserts the warning) so it doesn't trip the suite's app-warning
-      # guard. The methods are still exercised, so they stay covered.
-      before { allow(config).to receive(:warn) }
+      # Deprecated: every call warns via SimpleCov::Deprecation. Silence it
+      # here (the dedicated example below asserts the warning) so it doesn't
+      # trip the suite's app-warning guard. The methods are still exercised,
+      # so they stay covered.
+      before { allow(SimpleCov::Deprecation).to receive(:warn) }
 
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
 
       it "warns with the equivalent `coverage` configuration built from the real arguments" do
-        allow(config).to receive(:warn)
         config.minimum_coverage_by_file line: 70, "app/x.rb" => 100
-        expect(config).to have_received(:warn).with(
+        expect(SimpleCov::Deprecation).to have_received(:warn).with(
           a_string_including(
             "`SimpleCov.minimum_coverage_by_file` is deprecated",
             'coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: "app/x.rb" }'
@@ -813,10 +813,14 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_group" do
-      # Deprecated: every call warns. Silence it here (the dedicated example
-      # below asserts the warning) so it doesn't trip the suite's app-warning
-      # guard. The method is still exercised, so it stays covered.
-      before { allow(config).to receive(:warn) }
+      # Deprecated: every call warns via SimpleCov::Deprecation, and an
+      # over-100% value warns via the config itself. Silence both here (the
+      # dedicated examples below assert each) so they don't trip the suite's
+      # app-warning guard. The method is still exercised, so it stays covered.
+      before do
+        allow(config).to receive(:warn)
+        allow(SimpleCov::Deprecation).to receive(:warn)
+      end
 
       after do
         config.clear_coverage_criteria
@@ -836,9 +840,8 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "warns with the equivalent `coverage` configuration built from the real arguments" do
-        allow(config).to receive(:warn)
         config.minimum_coverage_by_group({"Models" => 80})
-        expect(config).to have_received(:warn).with(
+        expect(SimpleCov::Deprecation).to have_received(:warn).with(
           a_string_including(
             "`SimpleCov.minimum_coverage_by_group` is deprecated",
             'coverage(:line) { minimum_per_group 80, only: "Models" }'

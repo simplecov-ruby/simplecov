@@ -76,8 +76,8 @@ module SimpleCov
       coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
       defaults, overrides = partition_per_file_thresholds(coverage)
 
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.minimum_coverage_by_file` is deprecated. " \
-           "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}"
+      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_file` is deprecated. " \
+                                  "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}")
 
       raise_on_invalid_coverage(defaults, "minimum_coverage_by_file")
       overrides.each_value { |criteria| raise_on_invalid_coverage(criteria, "minimum_coverage_by_file") }
@@ -98,8 +98,8 @@ module SimpleCov
     def minimum_coverage_by_group(coverage = nil)
       return @minimum_coverage_by_group ||= {} unless coverage
 
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.minimum_coverage_by_group` is deprecated. " \
-           "Replace it with:\n#{per_group_coverage_replacement(coverage)}"
+      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
+                                  "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
       @minimum_coverage_by_group = coverage.dup.transform_values do |group_coverage|
         group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
         raise_on_invalid_coverage(group_coverage, "minimum_coverage_by_group")

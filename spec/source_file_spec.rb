@@ -1290,18 +1290,19 @@ RSpec.describe SimpleCov::SourceFile do
   describe "deprecated percent accessors" do
     let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
 
-    before { allow(source_file).to receive(:warn) }
+    before { allow(SimpleCov::Deprecation).to receive(:warn) }
 
     it "warns and delegates branches_coverage_percent to covered_percent(:branch)" do
       allow(source_file).to receive(:covered_percent).with(:branch).and_return(42.0)
       expect(source_file.branches_coverage_percent).to eq(42.0)
-      expect(source_file).to have_received(:warn).with(/branches_coverage_percent` is deprecated/)
+      expect(SimpleCov::Deprecation).to have_received(:warn).with(/branches_coverage_percent` is deprecated/)
     end
 
     it "warns and delegates methods_coverage_percent to covered_percent(:method)" do
       allow(source_file).to receive(:covered_percent).with(:method).and_return(50.0)
       expect(source_file.methods_coverage_percent).to eq(50.0)
-      expect(source_file).to have_received(:warn).with(/`SimpleCov::SourceFile#methods_coverage_percent` is deprecated/)
+      expect(SimpleCov::Deprecation).to have_received(:warn)
+        .with(/`SimpleCov::SourceFile#methods_coverage_percent` is deprecated/)
     end
   end
 

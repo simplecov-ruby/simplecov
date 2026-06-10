@@ -186,6 +186,7 @@ end
 require "set"
 require "forwardable"
 require_relative "simplecov/color"
+require_relative "simplecov/deprecation"
 require_relative "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration
 require_relative "simplecov/coverage_statistics"

@@ -35,6 +35,14 @@ require "support/fail_rspec_on_ruby_warning"
 require "support/with_env"
 require "simplecov"
 
+# Deprecation warnings are deduplicated per source location for the life
+# of the process. Reset that state between examples so an earlier example
+# warning from a shared location can't suppress a later example that
+# asserts the same warning (the suite runs in random order).
+RSpec.configure do |config|
+  config.before { SimpleCov::Deprecation.reset! }
+end
+
 # The default profile chain now includes `test_frameworks`, which
 # filters paths under `spec/` — but our unit tests build synthetic
 # Results from fixtures under `spec/fixtures/` and assume the filter

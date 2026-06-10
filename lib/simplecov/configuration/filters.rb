@@ -58,8 +58,8 @@ module SimpleCov
     # historical `track_files` behavior) and restricts the report to the
     # matching set.
     def track_files(glob)
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.track_files` is deprecated. " \
-           "#{track_files_replacement_hint(glob)}"
+      SimpleCov::Deprecation.warn("`SimpleCov.track_files` is deprecated. " \
+                                  "#{track_files_replacement_hint(glob)}")
       @tracked_files = glob
     end
 
@@ -102,8 +102,8 @@ module SimpleCov
     # DEPRECATED: alias for `skip`. Same matcher grammar, identical behavior.
     def add_filter(filter_argument = nil, &block)
       example = block ? "`SimpleCov.skip { ... }`" : "`SimpleCov.skip #{filter_argument.inspect}`"
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_filter` is deprecated. " \
-           "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}."
+      SimpleCov::Deprecation.warn("`SimpleCov.add_filter` is deprecated. " \
+                                  "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}.")
       skip(filter_argument, &block)
     end
 
@@ -141,8 +141,10 @@ module SimpleCov
                 else
                   "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`"
                 end
-      warn "#{Kernel.caller.first}: [DEPRECATION] `SimpleCov.add_group` is deprecated. " \
-           "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
+      SimpleCov::Deprecation.warn(
+        "`SimpleCov.add_group` is deprecated. " \
+        "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
+      )
       group(group_name, filter_argument, &block)
     end
 
