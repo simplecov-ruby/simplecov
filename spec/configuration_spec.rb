@@ -1286,14 +1286,35 @@ RSpec.describe SimpleCov::Configuration do
         allow(SimpleCov).to receive(:formatter)
         allow(SimpleCov).to receive(:minimum_coverage)
         allow(SimpleCov).to receive(:start)
+        # Names the subprocess from the stable fork serial, not the pid
+        # argument (which varies run to run). See #1171.
+        allow(SimpleCov).to receive(:subprocess_serial).and_return(3)
 
         SimpleCov.at_fork.call(12_345)
 
-        expect(SimpleCov).to have_received(:command_name).with(/subprocess: 12345/)
+        expect(SimpleCov).to have_received(:command_name).with(/subprocess: 3/)
         expect(SimpleCov).to have_received(:print_errors).with(false)
         expect(SimpleCov).to have_received(:formatter).with(SimpleCov::Formatter::SimpleFormatter)
         expect(SimpleCov).to have_received(:minimum_coverage).with(0)
         expect(SimpleCov).to have_received(:start)
+      end
+    end
+
+    describe "#subprocess_serial" do
+      around do |example|
+        previous = SimpleCov.instance_variable_get(:@subprocess_serial)
+        example.run
+      ensure
+        SimpleCov.instance_variable_set(:@subprocess_serial, previous)
+      end
+
+      it "defaults to 0 and increments monotonically" do
+        SimpleCov.instance_variable_set(:@subprocess_serial, nil)
+
+        expect(SimpleCov.subprocess_serial).to eq(0)
+        SimpleCov.next_subprocess_serial!
+        SimpleCov.next_subprocess_serial!
+        expect(SimpleCov.subprocess_serial).to eq(2)
       end
     end
 

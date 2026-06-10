@@ -15,8 +15,14 @@ module SimpleCov
   # the child.
   module ProcessForkHook
     def _fork
+      active = defined?(SimpleCov) && Coverage.running?
+      # Assign the next serial in the PARENT, before the fork, so the child
+      # inherits its own stable ordinal via copy-on-write. The default
+      # at_fork uses it (instead of the child pid) to name the subprocess's
+      # result, keeping that name identical across runs. See issue #1171.
+      SimpleCov.next_subprocess_serial! if active
       pid = super
-      SimpleCov.at_fork.call(::Process.pid) if pid.zero? && defined?(SimpleCov) && Coverage.running?
+      SimpleCov.at_fork.call(::Process.pid) if pid.zero? && active
       pid
     end
   end

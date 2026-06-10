@@ -113,14 +113,19 @@ module SimpleCov
 
     #
     # Gets or sets the behavior to start a new forked Process.
-    # Defaults to adding " (subprocess: #{pid})" to command_name and
+    # Defaults to adding " (subprocess: #{serial})" to command_name and
     # starting SimpleCov in quiet mode.
     #
     def at_fork(&block)
       @at_fork = block if block
-      @at_fork ||= lambda { |pid|
-        # This needs a unique name so it won't be overwritten
-        SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{pid})"
+      @at_fork ||= lambda { |_pid|
+        # Needs a name that's unique per worker within a run yet identical
+        # across runs. Build it from SimpleCov's stable fork serial rather
+        # than the OS pid: with the pid, every run produced uniquely-named
+        # results that never overwrote the previous run's, so they piled up
+        # in .resultset.json until merge_timeout and the merged report's
+        # file set drifted from run to run. See issue #1171.
+        SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{SimpleCov.subprocess_serial})"
         # be quiet, the parent process will use the regular formatter
         SimpleCov.print_errors false
         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter

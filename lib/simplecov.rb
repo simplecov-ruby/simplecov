@@ -21,6 +21,22 @@ module SimpleCov
     # so JSONFormatter can detect when an existing coverage.json was written
     # by a sibling process running concurrently.
     attr_accessor :process_start_time
+
+    # A monotonically increasing serial the parent assigns to each forked
+    # subprocess (see SimpleCov::ProcessForkHook). The default `at_fork`
+    # builds the worker's command_name from this rather than the OS pid:
+    # the serial sequence is the same from one run to the next, so a re-run
+    # overwrites the previous run's resultset entries instead of writing
+    # uniquely-named ones that pile up until merge_timeout. See issue #1171.
+    def subprocess_serial
+      @subprocess_serial ||= 0
+    end
+
+    # @api private — bump the serial in the parent before a fork so the
+    # child inherits its own ordinal via copy-on-write.
+    def next_subprocess_serial!
+      @subprocess_serial = subprocess_serial + 1
+    end
     # Should we take care of at_exit behavior or something else? Used by the
     # minitest plugin. See lib/minitest/simplecov_plugin.rb.
     attr_accessor :external_at_exit
