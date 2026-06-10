@@ -1,3 +1,11 @@
+1.0.0.rc2 (2026-06-10)
+======================
+
+## Bugfixes
+* Forked subprocesses (for example Rails' `parallelize`) are now named by a stable per-run serial rather than the child's OS process id. Because the pid changed every run, a re-run's worker results were never named the same as the previous run's and so never overwrote them. They accumulated in `.resultset.json` until `merge_timeout` dropped them, and while several runs sat inside that window together SimpleCov merged them all. When the set of files had drifted between those runs (a deleted file, a changed filter) the stale results leaked into the report, inflating the denominator and changing the coverage percentage from one run to the next. The serial sequence is identical from one run to the next, so a re-run's workers now overwrite the previous run's entries and the resultset stays bounded. See #1171.
+* The "Excluded N result(s) older than `merge_timeout`" warning is now emitted at most once, from the reporting process, instead of once per forked worker. Every worker merges the resultset too, and the default `at_fork` sets `print_errors false` for them, but this one warning did not honor the flag, so an eight-worker run printed eight copies. See #1171.
+* Legacy-API deprecation warnings (`track_files`, `add_filter`, `add_group`, and the rest) are now deduplicated by call site and emitted at most once per source location. A deprecated method called in a loop, or a configuration block re-evaluated once per parallel worker or spec file, previously repeated the same notice until the surrounding output was unreadable. See #1204.
+
 1.0.0.rc1 (2026-06-02)
 ======================
 
