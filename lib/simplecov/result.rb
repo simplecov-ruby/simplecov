@@ -55,14 +55,14 @@ module SimpleCov
     # FilterConfig to opt out — useful for tests that build synthetic Results
     # and don't want the project's filters or groups applied.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   filter_config: FilterConfig.new)
+                   report: false, filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
-      warn_about_missing_source_files(builder.missing_source_files, original_result.size)
+      warn_about_missing_source_files(builder.missing_source_files, original_result.size) if report
       apply_cover_filters!(filter_config.cover_filters)
       apply_filters!(filter_config.filters)
     end
@@ -137,6 +137,17 @@ module SimpleCov
 
     def warn_about_missing_source_files(missing, input_size)
       return if missing.empty?
+
+      # Emit only from the process that writes the final report. The merged
+      # result is rebuilt in every parallel worker (each one stores its own
+      # slice), so without this gate the warning prints once per worker — this
+      # is the same signal SimpleCov uses to pick the process that runs the
+      # report and threshold checks. It's intentionally not gated on
+      # print_errors: the default at_fork sets print_errors false on workers,
+      # and in many parallel runners the final-report process is itself a
+      # worker, so a print_errors gate would suppress the one warning we want.
+      # See issues #980 and #1171.
+      return unless SimpleCov.final_result_process?
 
       MissingSourceFilesReporter.new(
         missing,

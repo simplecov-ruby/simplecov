@@ -31,12 +31,16 @@ module SimpleCov
     def result
       return @result if result?
 
-      # Collect our coverage result
-      process_coverage_result if defined?(Coverage) && Coverage.running?
+      use_merging = merging
+
+      # Collect our coverage result. When merging is off there is no merge
+      # step, so this per-process result is the final one and reports any
+      # dropped source files; otherwise the merged result does the reporting.
+      process_coverage_result(report: !use_merging) if defined?(Coverage) && Coverage.running?
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
-      if merging
+      if use_merging
         wait_for_other_processes
         SimpleCov::ResultMerger.store_result(@result) if result?
         @result = SimpleCov::ResultMerger.merged_result
@@ -152,11 +156,14 @@ module SimpleCov
     end
 
     # Run all the steps that handle processing the raw coverage result.
-    def process_coverage_result
+    # `report:` is true only when this slice is the final result (merging
+    # off); with merging on the merged result reports dropped source files,
+    # so the per-process slice stays quiet to avoid one warning per worker.
+    def process_coverage_result(report:)
       @result = SimpleCov::UselessResultsRemover.call(Coverage.result)
       @result = SimpleCov::ResultAdapter.call(@result)
       result, not_loaded_files = add_not_loaded_files(@result)
-      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files)
+      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files, report: report)
     end
   end
 end
