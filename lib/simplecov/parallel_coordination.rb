@@ -22,7 +22,13 @@ module SimpleCov
     # @api private
     def final_result_process?
       adapter = SimpleCov::ParallelAdapters.current
-      return true unless adapter
+      # No recognized parallel-test adapter. A subprocess forked while
+      # coverage was running is never the final reporter — the process that
+      # spawned it merges every slice and produces the report. Without this,
+      # fork-based runners that don't set TEST_ENV_NUMBER (e.g. Minitest's
+      # `parallelize`) have every worker produce the final report and its
+      # warnings. See issue #1171.
+      return !forked_subprocess? unless adapter
 
       adapter.first_worker?
     end

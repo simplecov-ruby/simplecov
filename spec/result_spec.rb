@@ -310,7 +310,7 @@ RSpec.describe SimpleCov::Result do
       end
 
       it "emits a louder warning when every source file is missing (the collate-across-machines case)" do
-        stderr = capture_stderr { described_class.new(missing_only) }
+        stderr = capture_stderr { described_class.new(missing_only, report: true) }
         expect(stderr).to include("dropped all 2 source file(s)")
         expect(stderr).to include("/does/not/exist/foo.rb")
         expect(stderr).to include("/also/missing/bar.rb")
@@ -319,20 +319,36 @@ RSpec.describe SimpleCov::Result do
 
       it "emits a quieter warning when some-but-not-all source files are missing" do
         partial = original_result.merge("/does/not/exist/foo.rb" => {"lines" => [1, nil]})
-        stderr = capture_stderr { described_class.new(partial) }
+        stderr = capture_stderr { described_class.new(partial, report: true) }
         expect(stderr).to include("dropped 1 source file(s)")
         expect(stderr).to include("/does/not/exist/foo.rb")
         expect(stderr).not_to include("SimpleCov.collate")
       end
 
       it "doesn't warn when every source file is present" do
-        stderr = capture_stderr { described_class.new(original_result) }
+        stderr = capture_stderr { described_class.new(original_result, report: true) }
+        expect(stderr).to be_empty
+      end
+
+      # Per-process slices (process_coverage_result) build with report: false
+      # so the warning isn't emitted once per parallel worker; only the merged
+      # result reports. See issue #1171.
+      it "stays silent for a non-reporting result (report: false)" do
+        stderr = capture_stderr { described_class.new(missing_only) }
+        expect(stderr).to be_empty
+      end
+
+      # In a parallel run only the final-result process reports, so the warning
+      # is emitted once rather than once per worker. See issue #1171.
+      it "stays silent when this isn't the final-result process" do
+        allow(SimpleCov).to receive(:final_result_process?).and_return(false)
+        stderr = capture_stderr { described_class.new(missing_only, report: true) }
         expect(stderr).to be_empty
       end
 
       it "caps the listed paths at five with a `+N more` suffix" do
         many_missing = (1..8).to_h { |n| ["/missing/file#{n}.rb", {"lines" => [1]}] }
-        stderr = capture_stderr { described_class.new(many_missing) }
+        stderr = capture_stderr { described_class.new(many_missing, report: true) }
         expect(stderr).to include("(+3 more)")
       end
     end

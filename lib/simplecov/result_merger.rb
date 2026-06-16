@@ -86,7 +86,11 @@ module SimpleCov
         return nil unless coverage
 
         command_name = command_names.reject(&:empty?).sort.join(", ")
-        SimpleCov::Result.new(coverage, command_name: command_name)
+        # The merged result is the authoritative one users actually see, so
+        # it's the one that warns about source files dropped because they no
+        # longer exist on disk (issue #980). The per-process slices built in
+        # `process_coverage_result` stay quiet to avoid one warning per worker.
+        SimpleCov::Result.new(coverage, command_name: command_name, report: true)
       end
 
       def merge_coverage(*results)

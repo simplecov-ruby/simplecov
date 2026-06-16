@@ -25,7 +25,7 @@ module SimpleCov
       def format(result)
         FileUtils.mkdir_p(output_path)
         path = File.join(output_path, FILENAME)
-        warn_if_concurrent_overwrite(path)
+        warn_if_concurrent_overwrite(path, result)
         File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
         # stderr, not stdout: this is a status message, not the program's
         # output. Keeps the line out of pipelines like `rspec -f json`.
@@ -46,23 +46,33 @@ module SimpleCov
       # process's start time — a strong signal that a sibling test process
       # (e.g., parallel_tests) wrote it while we were running, and that our
       # write is about to clobber their data.
-      def warn_if_concurrent_overwrite(path)
+      def warn_if_concurrent_overwrite(path, result)
         start_time = SimpleCov.process_start_time or return
-        existing_ts = existing_timestamp(path) or return
-        return unless existing_ts > start_time
+        existing = existing_meta(path) or return
+        return unless existing[:timestamp] > start_time
 
-        warn "simplecov: #{path} was written at #{existing_ts.iso8601} — after " \
+        # The HTML formatter also writes coverage.json (it shares the file as
+        # a side artifact), so when both formatters are configured the file we
+        # find was just written by our own run, not a concurrent one. A
+        # matching command_name means the same merged result, so there's
+        # nothing to lose by overwriting. See issue #1171.
+        return if existing[:command_name] == result.command_name
+
+        warn "simplecov: #{path} was written at #{existing[:timestamp].iso8601} — after " \
              "this process started at #{start_time.iso8601}. Overwriting " \
              "likely loses coverage data from a concurrent test run. For " \
              "parallel test setups, use SimpleCov::ResultMerger or run a single " \
              "collation step after all workers finish."
       end
 
-      def existing_timestamp(path)
+      def existing_meta(path)
         return nil unless File.exist?(path)
 
-        timestamp = JSON.parse(File.read(path), symbolize_names: true).dig(:meta, :timestamp)
-        timestamp && Time.iso8601(timestamp)
+        meta = JSON.parse(File.read(path), symbolize_names: true)
+        timestamp = meta.dig(:meta, :timestamp)
+        return nil unless timestamp
+
+        {timestamp: Time.iso8601(timestamp), command_name: meta.dig(:meta, :command_name)}
       rescue JSON::ParserError, ArgumentError
         nil
       end
