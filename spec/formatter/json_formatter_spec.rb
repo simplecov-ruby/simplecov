@@ -527,6 +527,27 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    # The HTML formatter writes coverage.json too, so running
+    # [HTMLFormatter, JSONFormatter] together would otherwise make the JSON
+    # formatter warn about the file its own run just wrote. A matching
+    # command_name marks it as the same merged result, not a concurrent one.
+    # See issue #1171.
+    context "when an existing coverage.json is from the same run (matching command_name)" do
+      let(:future_timestamp) { (Time.now + 3600).iso8601 }
+
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write(
+          "tmp/coverage/coverage.json",
+          JSON.generate(meta: {timestamp: future_timestamp, command_name: result.command_name})
+        )
+      end
+
+      it "does not warn" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
     context "when an existing coverage.json predates this process" do
       before do
         FileUtils.mkdir_p("tmp/coverage")
@@ -546,6 +567,17 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "does not warn or raise" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
+    context "when the existing coverage.json has no meta timestamp" do
+      before do
+        FileUtils.mkdir_p("tmp/coverage")
+        File.write("tmp/coverage/coverage.json", JSON.generate(meta: {command_name: "Other"}))
+      end
+
+      it "does not warn" do
         expect { formatter.format(result) }.not_to output.to_stderr
       end
     end
