@@ -37,6 +37,21 @@ module SimpleCov
     def next_subprocess_serial!
       @subprocess_serial = subprocess_serial + 1
     end
+
+    # @api private — true in a process that was forked while coverage was
+    # running (set by SimpleCov::ProcessForkHook in the child). Such a child
+    # stores its own slice but must not act as the final-result process: the
+    # process that forked it merges every slice and produces the report. Only
+    # consulted when no parallel-test adapter is active, since adapters answer
+    # `first_worker?` themselves. See issue #1171.
+    def forked_subprocess?
+      !!(defined?(@forked_subprocess) && @forked_subprocess)
+    end
+
+    # @api private — marked in the child immediately after a fork.
+    def mark_forked_subprocess!
+      @forked_subprocess = true
+    end
     # Should we take care of at_exit behavior or something else? Used by the
     # minitest plugin. See lib/minitest/simplecov_plugin.rb.
     attr_accessor :external_at_exit

@@ -22,7 +22,13 @@ module SimpleCov
       # result, keeping that name identical across runs. See issue #1171.
       SimpleCov.next_subprocess_serial! if active
       pid = super
-      SimpleCov.at_fork.call(::Process.pid) if pid.zero? && active
+      if pid.zero? && active
+        # Mark the child here, independent of whatever custom at_fork block
+        # the user installed, so `final_result_process?` can keep forked
+        # workers from each producing the final report. See issue #1171.
+        SimpleCov.mark_forked_subprocess!
+        SimpleCov.at_fork.call(::Process.pid)
+      end
       pid
     end
   end

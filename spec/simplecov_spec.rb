@@ -283,9 +283,44 @@ RSpec.describe SimpleCov do
     end
   end
 
+  describe ".forked_subprocess?" do
+    around do |example|
+      defined = described_class.instance_variable_defined?(:@forked_subprocess)
+      previous = described_class.instance_variable_get(:@forked_subprocess)
+      described_class.remove_instance_variable(:@forked_subprocess) if defined
+      example.run
+    ensure
+      if described_class.instance_variable_defined?(:@forked_subprocess)
+        described_class.remove_instance_variable(:@forked_subprocess)
+      end
+      described_class.instance_variable_set(:@forked_subprocess, previous) if defined
+    end
+
+    it "is false until the process is marked as a forked subprocess" do
+      expect(described_class.forked_subprocess?).to be false
+    end
+
+    it "is true once mark_forked_subprocess! runs" do
+      described_class.mark_forked_subprocess!
+      expect(described_class.forked_subprocess?).to be true
+    end
+  end
+
   describe ".final_result_process?" do
     it "is true when ParallelTests isn't loaded" do
       expect(described_class.send(:final_result_process?)).to be_truthy
+    end
+
+    context "with no adapter and a forked subprocess" do
+      it "is false in a forked worker so it doesn't produce the final report" do
+        allow(described_class).to receive(:forked_subprocess?).and_return(true)
+        expect(described_class.send(:final_result_process?)).to be false
+      end
+
+      it "is true in the process that did the forking" do
+        allow(described_class).to receive(:forked_subprocess?).and_return(false)
+        expect(described_class.send(:final_result_process?)).to be true
+      end
     end
 
     context "when running under a faked parallel_tests setup" do
