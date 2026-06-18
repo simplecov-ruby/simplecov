@@ -116,12 +116,11 @@ unless DOGFOOD_DISABLED
         # end users see when minimum_coverage trips: per-criterion violation
         # lines, lowest-coverage files, and the "SimpleCov failed with exit"
         # summary. ExitCodeHandling.call just needs an object that responds
-        # to the four limit readers — building a local Struct keeps this
+        # to the four limit readers — building a local Data keeps this
         # helper's coupling to internal API minimal.
-        limits = Struct.new(
+        limits = Data.define(
           :minimum_coverage, :minimum_coverage_by_file, :minimum_coverage_by_file_overrides,
-          :minimum_coverage_by_group, :maximum_coverage, :maximum_coverage_drop,
-          keyword_init: true
+          :minimum_coverage_by_group, :maximum_coverage, :maximum_coverage_drop
         ).new(
           minimum_coverage: DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {},
           minimum_coverage_by_file: {},

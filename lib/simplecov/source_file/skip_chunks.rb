@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module SimpleCov
   class SourceFile
     # Computes the set of line ranges that should be excluded from a

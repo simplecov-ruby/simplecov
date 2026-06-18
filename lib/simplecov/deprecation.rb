@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module SimpleCov
   # Emits legacy-API deprecation warnings, deduplicated by the source
   # location that triggered them. A deprecated method called in a loop —

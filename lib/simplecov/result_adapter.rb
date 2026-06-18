@@ -11,8 +11,8 @@ module SimpleCov
       @result = result
     end
 
-    def self.call(*args)
-      new(*args).adapt
+    def self.call(*)
+      new(*).adapt
     end
 
     def adapt

@@ -163,7 +163,7 @@ module SimpleCov
 
     #
     # Trigger Coverage.start with the configured criteria. Every supported
-    # runtime (CRuby >= 3.1, JRuby >= 9.4, TruffleRuby >= 22) accepts the
+    # runtime (CRuby >= 3.2, JRuby >= 10, TruffleRuby >= 22) accepts the
     # criteria-hash form, so no compatibility fallback is needed.
     #
     def start_coverage_measurement
@@ -214,7 +214,6 @@ module SimpleCov
 end
 
 # requires are down here for a load order reason I'm not sure what it is about
-require "set"
 require "forwardable"
 require_relative "simplecov/color"
 require_relative "simplecov/deprecation"

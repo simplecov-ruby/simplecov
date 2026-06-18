@@ -1268,7 +1268,7 @@ anything; `-q` / `--quiet` suppresses status lines.
 
 ### Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 3.1+ and JRuby 9.4+. On CRuby, every coverage criterion
+SimpleCov is built in [Continuous Integration] on Ruby 3.2+ and JRuby 10+. On CRuby, every coverage criterion
 described above is available on the supported versions, with one exception: [eval coverage](#eval-coverage) requires
 CRuby 3.2+.
 

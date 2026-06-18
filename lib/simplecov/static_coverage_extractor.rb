@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 begin
   require "prism"
 rescue LoadError

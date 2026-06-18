@@ -8,14 +8,13 @@ require "English"
 module SimpleCov
   class << self
     # @api private
-    CoverageLimits = Struct.new(
+    CoverageLimits = Data.define(
       :minimum_coverage,
       :minimum_coverage_by_file,
       :minimum_coverage_by_file_overrides,
       :minimum_coverage_by_group,
       :maximum_coverage,
-      :maximum_coverage_drop,
-      keyword_init: true
+      :maximum_coverage_drop
     )
 
     def at_exit_behavior

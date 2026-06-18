@@ -50,7 +50,7 @@ Gem::Specification.new do |gem|
     "rubygems_mfa_required" => "true"
   }
 
-  gem.required_ruby_version = ">= 3.1"
+  gem.required_ruby_version = ">= 3.2"
 
   gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
   gem.bindir        = "exe"
