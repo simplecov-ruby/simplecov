@@ -1,3 +1,16 @@
+1.0.0.rc3 (2026-06-18)
+======================
+
+## Breaking Changes
+* Dropped support for Ruby 3.1 and JRuby 9.4. The minimum is now Ruby 3.2 (and JRuby 10, which reports `RUBY_VERSION` 3.4). Ruby 3.1 reached end of life in March 2025, and a recent `i18n` release calls `Fiber[]`, a Ruby 3.2 API, at load time, so suites that load Rails no longer run on 3.1. Raising `required_ruby_version` to `>= 3.2` also excludes JRuby 9.4, which reports `RUBY_VERSION` 3.1.x. See #1171.
+
+## Enhancements
+* Added `SimpleCov.parallel_wait_timeout` (default 60 seconds), which controls how long the process that writes the final report waits for the other parallel-test workers to finish writing their resultsets before it merges. Raise it when one worker runs much heavier test files and routinely finishes well after the others, so its coverage is included in the merge and the minimum and maximum coverage checks run against the full total instead of being skipped against a partial one. See #1171.
+
+## Bugfixes
+* The "SimpleCov dropped N source file(s)" warning is now emitted at most once, from the process that writes the final report, instead of once per parallel worker. It was previously raised every time a result was built, so an eight-worker run produced eight copies. Fork-based runners that do not set `TEST_ENV_NUMBER`, such as Minitest's `parallelize`, match no parallel-test adapter, so SimpleCov now marks forked children (it already hooks `Process._fork`) and treats them as non-reporters when no adapter is active, leaving the process that did the forking to merge every slice and report once. See #1171.
+* Using `[SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::JSONFormatter]` together no longer prints a false "coverage.json was written after this process started" warning. As of 1.0 the HTML formatter writes `coverage.json` itself, so the JSON formatter found a file its own run had just written and mistook it for a concurrent worker about to lose data. The warning is now skipped when the existing file belongs to the same merged result. Because the HTML formatter already writes `coverage.json`, listing `JSONFormatter` alongside it is redundant and can be removed. See #1171.
+
 1.0.0.rc2 (2026-06-10)
 ======================
 

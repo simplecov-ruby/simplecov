@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    simplecov (1.0.0.rc2)
+    simplecov (1.0.0.rc3)
 
 GEM
   remote: https://rubygems.org/
