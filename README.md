@@ -742,6 +742,12 @@ Cached coverage data eventually goes stale, so result sets older than `SimpleCov
 merge. The default is 600 seconds (10 minutes); raise or lower it with `SimpleCov.merge_timeout 3600` (1 hour), or
 `merge_timeout 3600` inside a configure/start block. Deactivate automatic merging entirely with `SimpleCov.merging false`.
 
+In a parallel run, the process that writes the final report waits for the other workers to finish and write their
+result sets before merging. It gives up after `SimpleCov.parallel_wait_timeout` seconds (default 60) and reports
+whatever has arrived, skipping the minimum / maximum coverage checks against that partial total. If one worker runs
+much heavier test files and routinely finishes a minute or more after the others, raise it with
+`SimpleCov.parallel_wait_timeout 180` so its coverage is included.
+
 ### Merging across execution environments
 
 If your tests run in parallel across multiple build machines, download each run's `.resultset.json` and merge them into

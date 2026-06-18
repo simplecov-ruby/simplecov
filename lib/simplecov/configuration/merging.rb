@@ -70,5 +70,18 @@ module SimpleCov
       @merge_timeout = seconds if seconds.is_a?(Integer)
       @merge_timeout ||= 600
     end
+
+    #
+    # Defines how long (in seconds) the reporting process waits for the
+    # remaining parallel-test workers to write their resultsets before it
+    # proceeds with a partial merge. Default is 60 seconds. Raise it when a
+    # slow worker routinely finishes well after the others, so its coverage
+    # is still included and the minimum / maximum coverage checks aren't
+    # skipped against a partial total.
+    #
+    def parallel_wait_timeout(seconds = nil)
+      @parallel_wait_timeout = seconds if seconds.is_a?(Integer)
+      @parallel_wait_timeout ||= 60
+    end
   end
 end

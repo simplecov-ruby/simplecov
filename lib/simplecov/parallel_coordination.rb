@@ -9,17 +9,6 @@
 module SimpleCov
   class << self
     # @api private
-    # How long the first worker is willing to wait for all sibling
-    # workers' resultsets to appear in the cache before proceeding
-    # with whatever it has. Tuned generously enough that slow CI
-    # runners with one straggler don't trip the "incomplete results"
-    # path on a routine basis. See #1065 for the parallel_rspec /
-    # GenericAdapter case where there is no native wait primitive
-    # and this poll is the only synchronization available.
-    PARALLEL_RESULTS_WAIT_TIMEOUT = 60
-    private_constant :PARALLEL_RESULTS_WAIT_TIMEOUT
-
-    # @api private
     def final_result_process?
       adapter = SimpleCov::ParallelAdapters.current
       # No recognized parallel-test adapter. A subprocess forked while
@@ -62,11 +51,13 @@ module SimpleCov
 
     # @api private — returns true when every expected worker reported
     # before the deadline, false on timeout. Single-process runs
-    # (expected <= 1) short-circuit to true with no waiting.
+    # (expected <= 1) short-circuit to true with no waiting. The deadline
+    # is `SimpleCov.parallel_wait_timeout` seconds out; raise that setting
+    # when a slow worker routinely finishes well after the others.
     def wait_for_parallel_results(expected)
       return true unless expected > 1 # simplecov:disable branch — only false in real parallel runs
 
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + PARALLEL_RESULTS_WAIT_TIMEOUT
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + parallel_wait_timeout
       loop do
         seen = SimpleCov::ResultMerger.read_resultset.size
         return true if seen >= expected
@@ -91,8 +82,9 @@ module SimpleCov
 
       warn SimpleCov::Color.colorize(
         "Only #{seen} of #{expected} parallel-test workers reported within " \
-        "#{PARALLEL_RESULTS_WAIT_TIMEOUT}s. Coverage totals are partial; " \
-        "minimum / maximum coverage checks are skipped for this run.",
+        "#{parallel_wait_timeout}s, so coverage totals are partial and minimum / " \
+        "maximum coverage checks are skipped for this run. Increase " \
+        "SimpleCov.parallel_wait_timeout if a worker routinely needs longer.",
         :yellow
       )
     end

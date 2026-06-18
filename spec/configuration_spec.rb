@@ -1345,6 +1345,24 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#parallel_wait_timeout" do
+      after { config.instance_variable_set(:@parallel_wait_timeout, nil) }
+
+      it "defaults to 60 seconds" do
+        expect(config.parallel_wait_timeout).to eq(60)
+      end
+
+      it "stores an explicit integer value" do
+        config.parallel_wait_timeout(180)
+        expect(config.parallel_wait_timeout).to eq(180)
+      end
+
+      it "ignores a non-integer value" do
+        config.parallel_wait_timeout("soon")
+        expect(config.parallel_wait_timeout).to eq(60)
+      end
+    end
+
     describe "#parse_filter" do
       it "raises when given neither a filter argument nor a block" do
         expect { config.send(:parse_filter) }.to raise_error(ArgumentError, /filter or a block/)
