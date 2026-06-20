@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../source_file/ruby_data_parser"
+
 module SimpleCov
   module Combine
     #
@@ -22,14 +24,16 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        [coverage_a, coverage_b].each_with_object({}) do |coverage, combined|
+        combined = [coverage_a, coverage_b].each_with_object({}) do |coverage, memo|
           coverage.each do |condition, branches_inside|
             condition_key = tuple_identity(condition)
-            condition_tuple, merged_branches = combined[condition_key] ||= [condition, {}]
+            condition_tuple, merged_branches = memo[condition_key] ||= [condition, {}]
             merge_branches(merged_branches, branches_inside)
-            combined[condition_key] = [condition_tuple, merged_branches]
+            memo[condition_key] = [condition_tuple, merged_branches]
           end
-        end.values.to_h { |condition, branches| [condition, branches.values.to_h] }
+        end
+
+        combined.values.to_h { |condition, branches| [condition, branches.values.to_h] }
       end
 
       def merge_branches(target, source)
@@ -41,6 +45,7 @@ module SimpleCov
       end
 
       def tuple_identity(tuple)
+        tuple = SourceFile::RubyDataParser.call(tuple)
         type, _id, start_line, start_column, end_line, end_column = tuple
         [type, start_line, start_column, end_line, end_column]
       end

@@ -33,5 +33,24 @@ RSpec.describe SimpleCov::Combine::BranchesCombiner do
         }
       )
     end
+
+    it "does not double-count equivalent serialized branch keys from JSON resultsets" do
+      serialized_static = static_branch_coverage.to_h do |condition, branches|
+        [condition.inspect, branches.transform_keys(&:inspect)]
+      end
+      serialized_shifted = shifted_branch_coverage.to_h do |condition, branches|
+        [condition.inspect, branches.transform_keys(&:inspect)]
+      end
+
+      merged = described_class.combine(serialized_static, serialized_shifted)
+
+      expect(merged.size).to eq(1)
+      expect(merged).to eq(
+        "[:if, 9, 110, 12, 110, 34]" => {
+          "[:then, 10, 110, 12, 110, 16]" => 2,
+          "[:else, 11, 110, 12, 110, 34]" => 3
+        }
+      )
+    end
   end
 end
