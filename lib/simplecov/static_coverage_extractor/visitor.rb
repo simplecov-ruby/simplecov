@@ -23,7 +23,7 @@ module SimpleCov
     # the file — `Coverage` uses sequential ids too, so this matches the
     # conventional shape. Only defined when Prism is loadable;
     # `StaticCoverageExtractor.available?` is the runtime gate.
-    class Visitor < ::Prism::Visitor
+    class Visitor < ::Prism::Visitor # rubocop:disable Metrics/ClassLength
       attr_reader :branches, :methods
 
       def initialize
