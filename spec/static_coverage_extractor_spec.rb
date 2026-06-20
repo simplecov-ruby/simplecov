@@ -95,7 +95,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         it "matches Coverage for `unless` block form" do
           src = "x = 1\nunless x > 0\n  :a\nelse\n  :b\nend\n"
           static = static_branches(src)
-          expect(static.keys.first.first).to eq(:if) # unless is normalized to :if in tuple type
+          expect(static.keys.first.first).to eq(:unless)
           arms = static.values.first
           expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
         end
