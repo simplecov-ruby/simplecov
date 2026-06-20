@@ -124,6 +124,14 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
         end
 
+        it "matches Coverage for safe navigation" do
+          src = "x = Object.new\nx&.to_s\n"
+          static = static_branches(src)
+          expect(static.keys.first.first).to eq(:"&.")
+          arms = static.values.first
+          expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
+        end
+
         it "does NOT track `||=` (mirrors Coverage's documented behavior)" do
           src = "@x ||= 1\n"
           # Coverage doesn't emit a branch entry for `||=`, neither do we.
