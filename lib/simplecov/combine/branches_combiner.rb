@@ -22,11 +22,27 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        coverage_a.merge(coverage_b) do |_condition, branches_inside_a, branches_inside_b|
-          branches_inside_a.merge(branches_inside_b) do |_branch, a_count, b_count|
-            a_count + b_count
+        [coverage_a, coverage_b].each_with_object({}) do |coverage, combined|
+          coverage.each do |condition, branches_inside|
+            condition_key = tuple_identity(condition)
+            condition_tuple, merged_branches = combined[condition_key] ||= [condition, {}]
+            merge_branches(merged_branches, branches_inside)
+            combined[condition_key] = [condition_tuple, merged_branches]
           end
+        end.values.to_h { |condition, branches| [condition, branches.values.to_h] }
+      end
+
+      def merge_branches(target, source)
+        source.each do |branch, count|
+          branch_key = tuple_identity(branch)
+          branch_tuple, existing_count = target[branch_key]
+          target[branch_key] = [branch_tuple || branch, existing_count ? existing_count + count : count]
         end
+      end
+
+      def tuple_identity(tuple)
+        type, _id, start_line, start_column, end_line, end_column = tuple
+        [type, start_line, start_column, end_line, end_column]
       end
     end
   end

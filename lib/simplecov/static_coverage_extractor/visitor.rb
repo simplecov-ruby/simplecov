@@ -41,12 +41,17 @@ module SimpleCov
       # missing, Coverage synthesizes a `:else` arm attributed to the
       # whole condition's range — we do the same.
       def visit_if_node(node)
-        emit_if_like(node)
+        emit_if_like(node, :if)
         super
       end
 
       def visit_unless_node(node)
-        emit_if_like(node)
+        emit_if_like(node, :unless)
+        super
+      end
+
+      def visit_call_node(node)
+        emit_safe_navigation(node) if node.respond_to?(:safe_navigation?) && node.safe_navigation?
         super
       end
 
@@ -102,12 +107,20 @@ module SimpleCov
       # IfNode and UnlessNode share a shape (predicate + then body +
       # optional else/elsif) but expose the trailing arm under different
       # accessors. `if_like_else_location` hides that split.
-      def emit_if_like(node)
+      def emit_if_like(node, type)
         then_loc = arm_location(node.statements, node.location)
         else_loc = if_like_else_location(node)
-        @branches[build_tuple(:if, node.location)] = {
+        @branches[build_tuple(type, node.location)] = {
           build_tuple(:then, then_loc) => 0,
           build_tuple(:else, else_loc) => 0
+        }
+      end
+
+      def emit_safe_navigation(node)
+        loc = node.location
+        @branches[build_tuple(:"&.", loc)] = {
+          build_tuple(:then, loc) => 0,
+          build_tuple(:else, loc) => 0
         }
       end
 
