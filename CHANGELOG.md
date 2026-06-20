@@ -1,3 +1,13 @@
+main
+====
+
+## Bugfixes
+* Static branch coverage now matches Ruby's runtime branch tuple identities for
+  `unless` and safe-navigation calls, and resultset merges now combine
+  serialized branch tuples by source location instead of by their local
+  sequential ids. This prevents equivalent branches from being duplicated when
+  static and runtime branch extraction assign different ids.
+
 1.0.0.rc3 (2026-06-18)
 ======================
 
