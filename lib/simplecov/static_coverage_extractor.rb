@@ -79,13 +79,14 @@ module SimpleCov
     #     methods:  Set[[name, start_line], ...]  # e.g., [[:foo, 7], [:bar, 13]]
     #   }
     #
-    # Branch matching is start_line-only because Coverage's condition type
-    # vocabulary (`:if`, `:unless`, `:case`, `:while`, `:until`) does not
-    # always match Prism's emitted type (the existing visitor reports
-    # `:if` for `unless` and ternary). Coincidental line-sharing between
-    # a real branch and an eval-generated one will keep both, which is
-    # an acceptable false-negative for an opt-in filter. Method matching
-    # uses (name, start_line) since a method name is unique at any line.
+    # Branch matching is start_line-only rather than by the full tuple.
+    # Static extraction and Coverage can still disagree on a branch's exact
+    # column positions (and, for some constructs, its type), so matching on
+    # start_line alone is the conservative choice that tolerates those
+    # differences. Coincidental line-sharing between a real branch and an
+    # eval-generated one will keep both, which is an acceptable
+    # false-negative for an opt-in filter. Method matching uses
+    # (name, start_line) since a method name is unique at any line.
     #
     # Returns nil when Prism is unavailable or parsing fails, signaling
     # callers to keep every Coverage entry (no false drops).
