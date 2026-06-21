@@ -753,6 +753,20 @@ RSpec.describe SimpleCov do
           expect(SimpleCov::ResultMerger).to have_received(:store_result).once
         end
 
+        it "stores the current coverage before waiting for sibling processes" do
+          calls = []
+          allow(SimpleCov::ResultMerger).to receive(:store_result) { calls << :store }
+          allow(described_class).to receive(:wait_for_other_processes) { calls << :wait }
+          allow(SimpleCov::ResultMerger).to receive(:merged_result) do
+            calls << :merge
+            the_merged_result
+          end
+
+          described_class.result
+
+          expect(calls).to eq(%i[store wait merge])
+        end
+
         it "merges the result" do
           expect(described_class.result).to be(the_merged_result)
         end

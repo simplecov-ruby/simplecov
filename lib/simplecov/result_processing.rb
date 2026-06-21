@@ -41,8 +41,8 @@ module SimpleCov
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
       if use_merging
-        wait_for_other_processes
         SimpleCov::ResultMerger.store_result(@result) if result?
+        wait_for_other_processes
         @result = SimpleCov::ResultMerger.merged_result
       end
 
