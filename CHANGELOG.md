@@ -2,6 +2,7 @@ main
 ====
 
 ## Bugfixes
+* The default `at_exit` formatter now writes reports only from the final parallel-test worker while still storing each worker's resultset for the final merge, so JSON/XML/HTML formatters no longer clobber canonical coverage files from non-final workers. See #1210.
 * `SimpleCov.parallel_tests false` now disables the generic `TEST_ENV_NUMBER` adapter as well as the `parallel_tests` gem adapter, so projects that use those environment variables for a different coverage collation flow can opt out consistently. See #1208.
 * Parallel result coordination now stores the final worker's own resultset before waiting for sibling resultsets, preventing an off-by-one timeout where the final worker reported `N-1` of `N` workers and skipped threshold checks immediately before producing a complete merged report. See #1208.
 * Static branch coverage now matches Ruby's runtime branch tuple identities for `unless` and safe-navigation calls, and resultset merges now combine serialized branch tuples by source location instead of by their local sequential ids. This prevents equivalent branches from being duplicated when static and runtime branch extraction assign different ids. See #1206.

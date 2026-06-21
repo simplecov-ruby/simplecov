@@ -94,14 +94,18 @@ module SimpleCov
 
     #
     # Gets or sets the behavior to process coverage results.
-    # By default, it calls SimpleCov.result.format!
+    # By default, it stores/merges the current result and formats only
+    # from the final reporting process.
     #
     def at_exit(&block)
       @at_exit = block if block
       return @at_exit if @at_exit
       return proc {} unless active_session?
 
-      @at_exit = proc { SimpleCov.result.format! }
+      @at_exit = proc do
+        result = SimpleCov.result
+        result.format! if result && SimpleCov.ready_to_process_results?
+      end
     end
 
     # Whether SimpleCov has anything to do at exit: the Coverage module
