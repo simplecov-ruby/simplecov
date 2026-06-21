@@ -2,14 +2,8 @@ main
 ====
 
 ## Bugfixes
-* `SimpleCov.parallel_tests false` now disables the generic
-  `TEST_ENV_NUMBER` adapter as well as the `parallel_tests` gem adapter, so
-  projects that use those environment variables for a different coverage
-  collation flow can opt out consistently.
-* Parallel result coordination now stores the final worker's own resultset
-  before waiting for sibling resultsets, preventing an off-by-one timeout where
-  the final worker reported `N-1` of `N` workers and skipped threshold checks
-  immediately before producing a complete merged report.
+* `SimpleCov.parallel_tests false` now disables the generic `TEST_ENV_NUMBER` adapter as well as the `parallel_tests` gem adapter, so projects that use those environment variables for a different coverage collation flow can opt out consistently. #1209
+* Parallel result coordination now stores the final worker's own resultset before waiting for sibling resultsets, preventing an off-by-one timeout where the final worker reported `N-1` of `N` workers and skipped threshold checks immediately before producing a complete merged report. #1209
 * Static branch coverage now matches Ruby's runtime branch tuple identities for
   `unless` and safe-navigation calls, and resultset merges now combine
   serialized branch tuples by source location instead of by their local
