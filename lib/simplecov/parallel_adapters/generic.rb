@@ -23,6 +23,8 @@ module SimpleCov
     class GenericAdapter < Base
       class << self
         def active?
+          return false if SimpleCov.parallel_tests == false
+
           ENV.key?("TEST_ENV_NUMBER")
         end
 

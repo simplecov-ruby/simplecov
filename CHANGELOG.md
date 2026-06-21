@@ -2,6 +2,10 @@ main
 ====
 
 ## Bugfixes
+* `SimpleCov.parallel_tests false` now disables the generic
+  `TEST_ENV_NUMBER` adapter as well as the `parallel_tests` gem adapter, so
+  projects that use those environment variables for a different coverage
+  collation flow can opt out consistently.
 * Static branch coverage now matches Ruby's runtime branch tuple identities for
   `unless` and safe-navigation calls, and resultset merges now combine
   serialized branch tuples by source location instead of by their local

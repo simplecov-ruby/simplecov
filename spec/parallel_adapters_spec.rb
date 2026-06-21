@@ -137,6 +137,16 @@ RSpec.describe SimpleCov::ParallelAdapters do
         ENV["TEST_ENV_NUMBER"] = ""
         expect(described_class.active?).to be true
       end
+
+      it "is false when SimpleCov.parallel_tests is false" do
+        previous = SimpleCov.parallel_tests
+        SimpleCov.parallel_tests false
+        ENV["TEST_ENV_NUMBER"] = "1"
+
+        expect(described_class.active?).to be false
+      ensure
+        SimpleCov.parallel_tests previous
+      end
     end
 
     describe ".first_worker?" do
