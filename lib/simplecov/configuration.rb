@@ -104,7 +104,7 @@ module SimpleCov
 
       @at_exit = proc do
         result = SimpleCov.result
-        result.format! if result && SimpleCov.ready_to_process_results?
+        result.format! if result && SimpleCov.final_result_process?
       end
     end
 

@@ -1254,7 +1254,7 @@ RSpec.describe SimpleCov::Configuration do
         result = instance_double(SimpleCov::Result)
         allow(result).to receive(:format!)
         allow(Coverage).to receive(:running?).and_return(true)
-        allow(SimpleCov).to receive_messages(result: result, ready_to_process_results?: true)
+        allow(SimpleCov).to receive_messages(result: result, final_result_process?: true)
 
         config.at_exit.call
 
@@ -1262,11 +1262,26 @@ RSpec.describe SimpleCov::Configuration do
         expect(result).to have_received(:format!)
       end
 
+      it "still formats from the final process when parallel results are incomplete" do
+        result = instance_double(SimpleCov::Result)
+        allow(result).to receive(:format!)
+        allow(Coverage).to receive(:running?).and_return(true)
+        allow(SimpleCov).to receive_messages(
+          result: result,
+          final_result_process?: true,
+          ready_to_process_results?: false
+        )
+
+        config.at_exit.call
+
+        expect(result).to have_received(:format!)
+      end
+
       it "stores and merges the result but does not format from non-final parallel workers" do
         result = instance_double(SimpleCov::Result)
         allow(result).to receive(:format!)
         allow(Coverage).to receive(:running?).and_return(true)
-        allow(SimpleCov).to receive_messages(result: result, ready_to_process_results?: false)
+        allow(SimpleCov).to receive_messages(result: result, final_result_process?: false)
 
         config.at_exit.call
 
