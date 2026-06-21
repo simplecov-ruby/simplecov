@@ -14,6 +14,8 @@ module SimpleCov
     class ParallelTestsAdapter < Base
       class << self
         def active?
+          return false if SimpleCov.parallel_tests == false
+
           ensure_loaded
           # !! to coerce `defined?` (returns nil or "constant") to a proper bool.
           !!(defined?(::ParallelTests) && ENV.key?("TEST_ENV_NUMBER"))

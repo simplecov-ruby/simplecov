@@ -214,6 +214,17 @@ RSpec.describe SimpleCov::ParallelAdapters do
         allow(described_class).to receive(:ensure_loaded)
         expect(described_class.active?).to be false
       end
+
+      it "is false when SimpleCov.parallel_tests is false even if ParallelTests is already loaded" do
+        stub_const("ParallelTests", Class.new)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        previous = SimpleCov.parallel_tests
+        SimpleCov.parallel_tests false
+
+        expect(described_class.active?).to be false
+      ensure
+        SimpleCov.parallel_tests previous
+      end
     end
 
     describe ".first_worker?" do
