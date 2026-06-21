@@ -1244,10 +1244,34 @@ RSpec.describe SimpleCov::Configuration do
         config.instance_variable_set(:@at_exit, previous)
       end
 
-      it "returns a default proc (formats the result) when called with no block while Coverage is running" do
+      it "returns a default proc when called with no block while Coverage is running" do
         allow(Coverage).to receive(:running?).and_return(true)
         proc_returned = config.at_exit
         expect(proc_returned).to be_a(Proc)
+      end
+
+      it "formats from the default proc when this process owns the final report" do
+        result = instance_double(SimpleCov::Result)
+        allow(result).to receive(:format!)
+        allow(Coverage).to receive(:running?).and_return(true)
+        allow(SimpleCov).to receive_messages(result: result, ready_to_process_results?: true)
+
+        config.at_exit.call
+
+        expect(SimpleCov).to have_received(:result)
+        expect(result).to have_received(:format!)
+      end
+
+      it "stores and merges the result but does not format from non-final parallel workers" do
+        result = instance_double(SimpleCov::Result)
+        allow(result).to receive(:format!)
+        allow(Coverage).to receive(:running?).and_return(true)
+        allow(SimpleCov).to receive_messages(result: result, ready_to_process_results?: false)
+
+        config.at_exit.call
+
+        expect(SimpleCov).to have_received(:result)
+        expect(result).not_to have_received(:format!)
       end
 
       it "remembers an explicit block across calls" do
