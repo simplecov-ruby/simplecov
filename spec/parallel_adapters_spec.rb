@@ -268,7 +268,18 @@ RSpec.describe SimpleCov::ParallelAdapters do
       it "delegates to ParallelTests.wait_for_other_processes_to_finish" do
         fake = Class.new { def self.wait_for_other_processes_to_finish = :sentinel }
         stub_const("ParallelTests", fake)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
         expect(described_class.wait_for_siblings).to eq(:sentinel)
+      end
+
+      it "does not call the native wait API after the pid-file contract has been removed" do
+        fake = Class.new { def self.wait_for_other_processes_to_finish = raise "should not wait natively" }
+        stub_const("ParallelTests", fake)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV.delete("PARALLEL_PID_FILE")
+
+        expect(described_class.wait_for_siblings).to be_nil
       end
     end
 
