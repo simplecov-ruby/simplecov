@@ -2,6 +2,7 @@ main
 ====
 
 ## Bugfixes
+* The `parallel_tests` adapter now only activates when the native pid-file synchronization contract is present. Processes that inherit `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` without `PARALLEL_PID_FILE` now use the generic env-var adapter instead of calling `ParallelTests.wait_for_other_processes_to_finish` and failing when `parallel_tests` fetches the missing pid-file path.
 * The default `at_exit` formatter now writes reports only from the final parallel-test worker while still storing each worker's resultset for the final merge, so JSON/XML/HTML formatters no longer clobber canonical coverage files from non-final workers. See #1210.
 * `SimpleCov.parallel_tests false` now disables the generic `TEST_ENV_NUMBER` adapter as well as the `parallel_tests` gem adapter, so projects that use those environment variables for a different coverage collation flow can opt out consistently. See #1208.
 * Parallel result coordination now stores the final worker's own resultset before waiting for sibling resultsets, preventing an off-by-one timeout where the final worker reported `N-1` of `N` workers and skipped threshold checks immediately before producing a complete merged report. See #1208.

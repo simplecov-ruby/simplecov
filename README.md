@@ -866,7 +866,7 @@ SimpleCov coordinates with parallel test runners through a small pluggable adapt
 
 - **`ParallelTestsAdapter`** — wraps the [grosser/parallel_tests](https://github.com/grosser/parallel_tests) gem and
   uses its `ParallelTests.first_process?` / `ParallelTests.wait_for_other_processes_to_finish` APIs for precise worker
-  coordination.
+  coordination. Activates only when the native `parallel_tests` pid-file contract is present.
 - **`GenericAdapter`** — catch-all for any runner that follows the `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` env-var
   convention but doesn't ship a Ruby API (parallel_rspec, knapsack-style splitters, custom CI sharding scripts).
   Activates when `TEST_ENV_NUMBER` is set and no more-specific adapter is.
