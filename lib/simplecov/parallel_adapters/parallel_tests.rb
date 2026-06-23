@@ -38,6 +38,8 @@ module SimpleCov
         end
 
         def wait_for_siblings
+          return unless native_parallel_tests_environment?
+
           ::ParallelTests.wait_for_other_processes_to_finish
         end
 
