@@ -13,6 +13,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
     prev_adapters = SimpleCov::ParallelAdapters.instance_variable_get(:@adapters)&.dup
     prev_test_env_number = ENV.fetch("TEST_ENV_NUMBER", nil)
     prev_parallel_test_groups = ENV.fetch("PARALLEL_TEST_GROUPS", nil)
+    prev_parallel_pid_file = ENV.fetch("PARALLEL_PID_FILE", nil)
 
     SimpleCov::ParallelAdapters.instance_variable_set(:@adapters, nil)
     SimpleCov::ParallelAdapters.reset_current!
@@ -22,6 +23,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
     SimpleCov::ParallelAdapters.reset_current!
     ENV["TEST_ENV_NUMBER"] = prev_test_env_number
     ENV["PARALLEL_TEST_GROUPS"] = prev_parallel_test_groups
+    ENV["PARALLEL_PID_FILE"] = prev_parallel_pid_file
   end
   # rubocop:enable RSpec/DescribedClass
 
@@ -70,10 +72,20 @@ RSpec.describe SimpleCov::ParallelAdapters do
       expect(described_class.current).to be_nil
     end
 
-    it "returns ParallelTestsAdapter when parallel_tests gem is loaded + TEST_ENV_NUMBER set" do
+    it "returns ParallelTestsAdapter when parallel_tests gem is loaded and native env is set" do
       stub_const("ParallelTests", Class.new)
       ENV["TEST_ENV_NUMBER"] = "1"
+      ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
       expect(described_class.current).to eq(SimpleCov::ParallelAdapters::ParallelTestsAdapter)
+    end
+
+    it "returns GenericAdapter when parallel_tests gem is loaded but the pid-file contract is absent" do
+      stub_const("ParallelTests", Class.new)
+      ENV["TEST_ENV_NUMBER"] = "1"
+      ENV["PARALLEL_TEST_GROUPS"] = "2"
+      ENV.delete("PARALLEL_PID_FILE")
+
+      expect(described_class.current).to eq(SimpleCov::ParallelAdapters::GenericAdapter)
     end
 
     it "returns GenericAdapter when TEST_ENV_NUMBER is set but parallel_tests isn't loaded" do
@@ -187,16 +199,19 @@ RSpec.describe SimpleCov::ParallelAdapters do
     around do |example|
       prev = ENV.fetch("TEST_ENV_NUMBER", nil)
       prev_groups = ENV.fetch("PARALLEL_TEST_GROUPS", nil)
+      prev_pid_file = ENV.fetch("PARALLEL_PID_FILE", nil)
       example.run
     ensure
       ENV["TEST_ENV_NUMBER"] = prev
       ENV["PARALLEL_TEST_GROUPS"] = prev_groups
+      ENV["PARALLEL_PID_FILE"] = prev_pid_file
     end
 
     describe ".active?" do
-      it "is true when ParallelTests is loaded AND TEST_ENV_NUMBER is set" do
+      it "is true when ParallelTests is loaded and the native env contract is set" do
         stub_const("ParallelTests", Class.new)
         ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
         allow(described_class).to receive(:ensure_loaded)
         expect(described_class.active?).to be true
       end
@@ -208,9 +223,18 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class.active?).to be false
       end
 
+      it "is false when PARALLEL_PID_FILE is unset" do
+        stub_const("ParallelTests", Class.new)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV.delete("PARALLEL_PID_FILE")
+        allow(described_class).to receive(:ensure_loaded)
+        expect(described_class.active?).to be false
+      end
+
       it "is false when TEST_ENV_NUMBER is unset" do
         stub_const("ParallelTests", Class.new)
         ENV.delete("TEST_ENV_NUMBER")
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
         allow(described_class).to receive(:ensure_loaded)
         expect(described_class.active?).to be false
       end
@@ -218,6 +242,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
       it "is false when SimpleCov.parallel_tests is false even if ParallelTests is already loaded" do
         stub_const("ParallelTests", Class.new)
         ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
         previous = SimpleCov.parallel_tests
         SimpleCov.parallel_tests false
 

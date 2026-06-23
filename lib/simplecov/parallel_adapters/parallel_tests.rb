@@ -7,10 +7,12 @@ module SimpleCov
     # Adapter for [grosser/parallel_tests](https://github.com/grosser/parallel_tests).
     # This is the historical default — SimpleCov has special-cased
     # parallel_tests since 0.18 — and remains the most precise option for
-    # projects on it. Detection is the standard pair: the `ParallelTests`
-    # constant has been loaded AND `TEST_ENV_NUMBER` is set. The gem itself
-    # is autoloaded lazily on first `active?` check so users who don't have
-    # it installed see no warnings (see #1018).
+    # projects on it. Detection requires the full native coordination
+    # contract: the `ParallelTests` constant has been loaded,
+    # `TEST_ENV_NUMBER` is set, and `PARALLEL_PID_FILE` is set. The pid-file
+    # path is required because the native wait API reads it with `ENV.fetch`.
+    # When a runner only provides the env-var convention, GenericAdapter is
+    # the correct coordination path.
     class ParallelTestsAdapter < Base
       class << self
         def active?
@@ -18,7 +20,7 @@ module SimpleCov
 
           ensure_loaded
           # !! to coerce `defined?` (returns nil or "constant") to a proper bool.
-          !!(defined?(::ParallelTests) && ENV.key?("TEST_ENV_NUMBER"))
+          !!(defined?(::ParallelTests) && native_parallel_tests_environment?)
         end
 
         # Pick the *first* started process to do the final-result work,
@@ -72,6 +74,10 @@ module SimpleCov
 
         def env_suggests_parallel_tests?
           ENV.key?("TEST_ENV_NUMBER") && ENV.key?("PARALLEL_TEST_GROUPS")
+        end
+
+        def native_parallel_tests_environment?
+          ENV.key?("TEST_ENV_NUMBER") && ENV.key?("PARALLEL_PID_FILE")
         end
       end
     end
