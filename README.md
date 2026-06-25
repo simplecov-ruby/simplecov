@@ -160,7 +160,8 @@ This is recommended whenever you merge frameworks that rely on each other, like 
 > Calling `SimpleCov.start` directly from `.simplecov` is deprecated. Tracking still begins for backward
 > compatibility, but a one-time deprecation warning fires; a future release will require the explicit `SimpleCov.start`
 > from a test helper. Migrating prevents a long-standing bug where `.simplecov` auto-loaded in a Rakefile or Rails'
-> `Bundler.require` would leave an empty parent-process report that overwrites the test subprocess's good one. See #581.
+> `Bundler.require` would leave an empty parent-process report that overwrites the test subprocess's good one. See
+> [#581](https://github.com/simplecov-ruby/simplecov/issues/581).
 
 ### Changing the report location
 
@@ -217,8 +218,8 @@ Brand-new in the redesigned API (no legacy method to migrate from):
 |-------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | `cover "lib/**/*.rb"`               | Positive scope (allowlist). Multiple calls union; strings are globs. See above for the relationship with `track_files`.  |
 | `no_default_skips`                  | Clear every previously-installed filter — defaults and anything earlier in the block — so subsequent `skip`s start clean.|
-| `formatter false` / `formatters []` | Opt out of formatting entirely. Workers in big parallel CI runs only need their `.resultset.json` for a final `SimpleCov.collate` step; skipping the formatter saves the per-job HTML / multi-formatter overhead. See #964. |
-| `parallel_tests true` / `false`     | Force on / off the auto-require of the `parallel_tests` gem. Default (unset) auto-detects from `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` and silently skips if the gem isn't installed. Set explicitly when you use those env vars for unrelated subprocess coordination. See #1018. |
+| `formatter false` / `formatters []` | Opt out of formatting entirely. Workers in big parallel CI runs only need their `.resultset.json` for a final `SimpleCov.collate` step; skipping the formatter saves the per-job HTML / multi-formatter overhead. See [#964](https://github.com/simplecov-ruby/simplecov/issues/964). |
+| `parallel_tests true` / `false`     | Force on / off the auto-require of the `parallel_tests` gem. Default (unset) auto-detects from `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` and silently skips if the gem isn't installed. Set explicitly when you use those env vars for unrelated subprocess coordination. See [#1018](https://github.com/simplecov-ruby/simplecov/issues/1018). |
 
 Example before/after:
 
@@ -873,7 +874,7 @@ SimpleCov coordinates with parallel test runners through a small pluggable adapt
 
 Adapters are tried in registration order; the first whose `active?` returns `true` is chosen. With both built-ins, this
 means parallel_tests users get the precise gem-based path and parallel_rspec (or any env-var-only runner) gets the
-polling-based fallback without any configuration change. See #1065.
+polling-based fallback without any configuration change. See [#1065](https://github.com/simplecov-ruby/simplecov/issues/1065).
 
 #### Registering a custom adapter
 
