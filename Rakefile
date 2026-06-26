@@ -33,9 +33,16 @@ rescue LoadError
   end
 end
 
-require "cucumber/rake/task"
-Cucumber::Rake::Task.new do |t|
-  t.cucumber_opts = %w[--retry 3 --no-strict-flaky]
+begin
+  require "cucumber/rake/task"
+  Cucumber::Rake::Task.new do |t|
+    t.cucumber_opts = %w[--retry 3 --no-strict-flaky]
+  end
+rescue LoadError
+  # Cucumber isn't installed (e.g. on JRuby, which only runs `rake spec`).
+  task :cucumber do
+    warn "Cucumber is disabled"
+  end
 end
 
 task test: %i[spec cucumber]
