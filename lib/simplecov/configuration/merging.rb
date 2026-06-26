@@ -119,7 +119,7 @@ module SimpleCov
   private
 
     def inferred_finalize_merge?
-      return true unless merging_enabled_for_inference?
+      return true unless merging
 
       adapter = SimpleCov::ParallelAdapters.current
       return true unless adapter
@@ -132,11 +132,6 @@ module SimpleCov
 
     def parallel_worker_environment?
       ENV.key?("TEST_ENV_NUMBER") || ENV.key?("PARALLEL_TEST_GROUPS")
-    end
-
-    def merging_enabled_for_inference?
-      @use_merging = true unless defined?(@use_merging) && @use_merging == false
-      @use_merging
     end
 
     def explicit_custom_coverage_destination?

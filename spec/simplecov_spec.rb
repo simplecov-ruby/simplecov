@@ -754,7 +754,7 @@ RSpec.describe SimpleCov do
       let(:the_merged_result) { double }
 
       before do
-        allow(described_class).to receive(:merging).once.and_return(true)
+        allow(described_class).to receive(:merging).twice.and_return(true)
         allow(SimpleCov::ResultMerger).to receive(:store_result).once
         allow(SimpleCov::ResultMerger).to receive(:merged_result).once.and_return(the_merged_result)
         allow(described_class).to receive(:wait_for_other_processes)
