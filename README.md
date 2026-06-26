@@ -749,6 +749,51 @@ whatever has arrived, skipping the minimum / maximum coverage checks against tha
 much heavier test files and routinely finishes a minute or more after the others, raise it with
 `SimpleCov.parallel_wait_timeout 180` so its coverage is included.
 
+### Merge finalization ownership
+
+`SimpleCov.merging true` stores each process' resultset so it can be merged with other suites or workers. By default,
+SimpleCov also owns **finalizing** that merge: waiting for sibling workers, building the merged result, formatting the
+report, enforcing minimum / maximum coverage, and writing `.last_run.json`.
+
+Some parallel runners intentionally write each worker's resultset to a separate coverage directory and then run an
+explicit cleanup step with `SimpleCov.collate`. In that setup, workers should still store their resultsets, but the
+cleanup task owns finalization:
+
+```ruby
+# spec/spec_helper.rb
+SimpleCov.start do
+  if ENV["TEST_ENV_NUMBER"]
+    merging true
+    coverage_dir "coverage/turbo_tests/#{ENV["TEST_ENV_NUMBER"]}"
+    command_name "rspec-#{ENV["TEST_ENV_NUMBER"]}"
+    finalize_merge false
+  end
+end
+```
+
+```ruby
+# Rakefile
+task "coverage:collate" do
+  require "simplecov"
+
+  SimpleCov.collate Dir["coverage/turbo_tests/*/.resultset.json"] do
+    enable_coverage :branch
+    minimum_coverage line: 100, branch: 100
+  end
+end
+```
+
+When `finalize_merge false`, the worker writes its `.resultset.json` and exits without waiting for siblings, formatting,
+checking thresholds, or writing `.last_run.json`. The `SimpleCov.collate` process is the finalizer and performs those
+steps for the merged result.
+
+For compatibility, SimpleCov infers `finalize_merge false` and prints a configuration warning only when all of these are
+true: a recognized parallel adapter is active, more than one worker is expected, merging is enabled, the coverage
+destination was explicitly changed from the default, and the process has parallel-worker environment variables. Set
+`SimpleCov.finalize_merge false` to keep external collation ownership without the warning, or
+`SimpleCov.finalize_merge true` if the selected worker should own the built-in wait / merge / report flow even with a
+custom coverage destination.
+
 ### Merging across execution environments
 
 If your tests run in parallel across multiple build machines, download each run's `.resultset.json` and merge them into

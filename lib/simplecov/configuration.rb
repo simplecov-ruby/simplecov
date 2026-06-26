@@ -31,6 +31,7 @@ module SimpleCov
       return @coverage_dir if defined?(@coverage_dir) && dir.nil?
 
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
+      @coverage_dir_explicit = true unless dir.nil?
       @coverage_dir = dir || "coverage"
     end
 
@@ -104,7 +105,7 @@ module SimpleCov
 
       @at_exit = proc do
         result = SimpleCov.result
-        result.format! if result && SimpleCov.final_result_process?
+        result.format! if result && SimpleCov.merge_finalization_owner? && SimpleCov.final_result_process?
       end
     end
 

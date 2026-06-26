@@ -105,15 +105,16 @@ module SimpleCov
       Kernel.exit(exit_status)
     end
 
-    # @api private — the first worker in a parallel run is the only
-    # one that reports against thresholds, and only when its
+    # @api private — the process that owns final merge processing is the
+    # only one that reports against thresholds, and only when its
     # `wait_for_other_processes` confirmed every sibling reported.
     # When the wait times out, the merged total is partial and
     # comparing it against `minimum_coverage` / `maximum_coverage`
     # would surface a spurious "below minimum" violation about the
     # missing slice rather than a real shortfall.
     def ready_to_process_results?
-      final_result_process? && result? && parallel_results_complete?
+      merge_finalization_owner? && final_result_process? && result? &&
+        (collating_result? || parallel_results_complete?)
     end
 
     def process_results_and_report_error
