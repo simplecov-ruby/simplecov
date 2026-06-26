@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  VERSION = "1.0.0.rc3"
+  VERSION = "1.0.0.rc4"
 end
