@@ -777,8 +777,8 @@ task "coverage:collate" do
   require "simplecov"
 
   SimpleCov.collate Dir["coverage/turbo_tests/*/.resultset.json"] do
-    enable_coverage :branch
-    minimum_coverage line: 100, branch: 100
+    coverage(:line) { minimum 100 }
+    coverage(:branch) { minimum 100 }
   end
 end
 ```
