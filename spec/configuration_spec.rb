@@ -552,6 +552,151 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#finalize_merge" do
+      let(:adapter) do
+        Class.new(SimpleCov::ParallelAdapters::Base) do
+          def self.expected_worker_count
+            3
+          end
+        end
+      end
+
+      around do |example|
+        previous_env = ENV.values_at("TEST_ENV_NUMBER", "PARALLEL_TEST_GROUPS")
+        previous_ivars = %i[
+          @finalize_merge @finalize_merge_explicit @finalize_merge_inference_warned
+        ].filter_map do |ivar|
+          [ivar, config.instance_variable_get(ivar)] if config.instance_variable_defined?(ivar)
+        end
+
+        %w[TEST_ENV_NUMBER PARALLEL_TEST_GROUPS].each { |key| ENV.delete(key) }
+        %i[@finalize_merge @finalize_merge_explicit @finalize_merge_inference_warned].each do |ivar|
+          config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+        end
+
+        example.run
+      ensure
+        ENV["TEST_ENV_NUMBER"], ENV["PARALLEL_TEST_GROUPS"] = previous_env
+        %i[@finalize_merge @finalize_merge_explicit @finalize_merge_inference_warned].each do |ivar|
+          config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+        end
+        previous_ivars.each { |ivar, value| config.instance_variable_set(ivar, value) }
+      end
+
+      it "defaults to true" do
+        expect(config.finalize_merge).to be true
+      end
+
+      it "stores an explicit false" do
+        config.finalize_merge false
+        expect(config.finalize_merge).to be false
+      end
+
+      it "stores an explicit true" do
+        config.finalize_merge true
+        expect(config.finalize_merge).to be true
+      end
+
+      it "does not warn when the explicit value is false" do
+        stderr = capture_stderr { config.finalize_merge false }
+        expect(stderr).to be_empty
+      end
+
+      it "infers false and warns for externally finalized parallel resultsets" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        stderr = capture_stderr do
+          expect(config.finalize_merge).to be false
+        end
+
+        expect(stderr).to include("SimpleCov inferred `finalize_merge false`")
+        expect(stderr).to include("`SimpleCov.finalize_merge false`")
+        expect(stderr).to include("`SimpleCov.finalize_merge true`")
+        expect(stderr).to include("#merge-finalization-ownership")
+      end
+
+      it "keeps the inferred warning to one emission" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        stderr = capture_stderr do
+          2.times { config.finalize_merge }
+        end
+
+        expect(stderr.scan("SimpleCov inferred").size).to eq(1)
+      end
+
+      it "stays silent when print_errors is false" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        config.print_errors false
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        stderr = capture_stderr do
+          expect(config.finalize_merge).to be false
+        end
+
+        expect(stderr).to be_empty
+      end
+
+      it "does not infer false without an active parallel adapter" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(nil)
+
+        expect(config.finalize_merge).to be true
+      end
+
+      it "does not infer false for a single-worker parallel run" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "1"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current)
+          .and_return(Class.new(SimpleCov::ParallelAdapters::Base))
+
+        expect(config.finalize_merge).to be true
+      end
+
+      it "does not infer false when merging is disabled" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging false
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        expect(config.finalize_merge).to be true
+      end
+
+      it "does not infer false without an explicitly custom coverage destination" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        expect(config.finalize_merge).to be true
+      end
+
+      it "does not infer false outside a parallel worker environment" do
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        expect(config.finalize_merge).to be true
+      end
+    end
+
     describe "#use_merging (deprecated)" do
       around do |example|
         previous = config.instance_variable_get(:@use_merging)

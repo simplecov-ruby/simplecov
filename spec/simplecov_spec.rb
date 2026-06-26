@@ -272,14 +272,40 @@ RSpec.describe SimpleCov do
   end
 
   describe ".ready_to_process_results?" do
+    around do |example|
+      previous_defined = described_class.instance_variable_defined?(:@collating_result)
+      previous = described_class.instance_variable_get(:@collating_result) if previous_defined
+      example.run
+    ensure
+      if previous_defined
+        described_class.instance_variable_set(:@collating_result, previous)
+      elsif described_class.instance_variable_defined?(:@collating_result)
+        described_class.remove_instance_variable(:@collating_result)
+      end
+    end
+
     it "is true when both final_result_process? and result? are truthy" do
       allow(described_class).to receive_messages(final_result_process?: true, result?: true)
       expect(described_class.ready_to_process_results?).to be true
     end
 
+    it "is false when this process does not own merge finalization" do
+      allow(described_class).to receive_messages(merge_finalization_owner?: false, final_result_process?: true,
+                                                 result?: true)
+      expect(described_class.ready_to_process_results?).to be false
+    end
+
     it "is false when final_result_process? is false" do
       allow(described_class).to receive(:final_result_process?).and_return(false)
       expect(described_class.ready_to_process_results?).to be false
+    end
+
+    it "is true for a collated result even when worker parallel results are incomplete" do
+      described_class.instance_variable_set(:@collating_result, true)
+      allow(described_class).to receive_messages(final_result_process?: true, result?: true,
+                                                 parallel_results_complete?: false)
+
+      expect(described_class.ready_to_process_results?).to be true
     end
   end
 
@@ -545,6 +571,25 @@ RSpec.describe SimpleCov do
     end
   end
 
+  describe ".collate finalization" do
+    after { described_class.clear_result }
+
+    it "finalizes and writes last_run even when ordinary worker finalization is disabled" do
+      result = instance_double(SimpleCov::Result)
+      allow(SimpleCov::ResultMerger).to receive(:merge_and_store).and_return(result)
+      allow(described_class).to receive_messages(at_exit: proc {}, finalize_merge?: false,
+                                                 final_result_process?: true,
+                                                 result_exit_status: SimpleCov::ExitCodes::SUCCESS)
+      allow(described_class).to receive(:write_last_run)
+
+      described_class.collate(["coverage/worker/.resultset.json"])
+
+      expect(SimpleCov::ResultMerger).to have_received(:merge_and_store)
+        .with("coverage/worker/.resultset.json", ignore_timeout: true)
+      expect(described_class).to have_received(:write_last_run).with(result)
+    end
+  end
+
   describe ".previous_error?" do
     it "is truthy for a non-success exit status" do
       expect(described_class).to be_previous_error(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
@@ -780,6 +825,25 @@ RSpec.describe SimpleCov do
           described_class.result
           expect(described_class).to have_received(:wait_for_other_processes)
         end
+      end
+    end
+
+    context "with merging enabled and merge finalization disabled" do
+      before do
+        allow(described_class).to receive_messages(merging: true, finalize_merge?: false)
+        allow(Coverage).to receive(:running?).and_return(true)
+        allow(SimpleCov::ResultMerger).to receive(:store_result)
+        allow(SimpleCov::ResultMerger).to receive(:merged_result)
+        allow(described_class).to receive(:wait_for_other_processes)
+      end
+
+      it "stores the worker resultset without waiting or merging" do
+        result = described_class.result
+
+        expect(result).to be_a(SimpleCov::Result)
+        expect(SimpleCov::ResultMerger).to have_received(:store_result).with(result)
+        expect(described_class).not_to have_received(:wait_for_other_processes)
+        expect(SimpleCov::ResultMerger).not_to have_received(:merged_result)
       end
     end
 

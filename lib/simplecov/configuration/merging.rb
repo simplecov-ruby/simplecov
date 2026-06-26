@@ -54,6 +54,38 @@ module SimpleCov
       @use_merging
     end
 
+    #
+    # Get or set whether this process owns final merge processing:
+    # waiting for sibling workers, building the merged result, formatting,
+    # enforcing thresholds, and writing `.last_run.json`.
+    #
+    # Defaults to true, except for recognized multi-worker parallel runs
+    # that explicitly write to a custom coverage destination while merging
+    # is enabled. Those runs are likely using an external `SimpleCov.collate`
+    # step to finalize the merge.
+    #
+    def finalize_merge(value = :__no_arg__)
+      unless value == :__no_arg__
+        @finalize_merge = value
+        @finalize_merge_explicit = true
+      end
+
+      return @finalize_merge if defined?(@finalize_merge_explicit) && @finalize_merge_explicit
+
+      inferred = inferred_finalize_merge?
+      warn_about_inferred_finalize_merge unless inferred
+      inferred
+    end
+
+    def finalize_merge?
+      finalize_merge
+    end
+
+    # @api private
+    def merge_finalization_owner?
+      collating_result? || finalize_merge?
+    end
+
     # DEPRECATED: alias for `merging`. Same value, same behavior.
     def use_merging(use = nil)
       SimpleCov::Deprecation.warn("`SimpleCov.use_merging` is deprecated. " \
@@ -82,6 +114,56 @@ module SimpleCov
     def parallel_wait_timeout(seconds = nil)
       @parallel_wait_timeout = seconds if seconds.is_a?(Integer)
       @parallel_wait_timeout ||= 60
+    end
+
+  private
+
+    def inferred_finalize_merge?
+      return true unless merging_enabled_for_inference?
+
+      adapter = SimpleCov::ParallelAdapters.current
+      return true unless adapter
+      return true unless adapter.expected_worker_count > 1
+      return true unless parallel_worker_environment?
+      return true unless explicit_custom_coverage_destination?
+
+      false
+    end
+
+    def parallel_worker_environment?
+      ENV.key?("TEST_ENV_NUMBER") || ENV.key?("PARALLEL_TEST_GROUPS")
+    end
+
+    def merging_enabled_for_inference?
+      @use_merging = true unless defined?(@use_merging) && @use_merging == false
+      @use_merging
+    end
+
+    def explicit_custom_coverage_destination?
+      return false unless explicit_coverage_destination?
+
+      coverage_path != File.expand_path("coverage", root)
+    end
+
+    def explicit_coverage_destination?
+      (defined?(@coverage_path_explicit) && @coverage_path_explicit) ||
+        (defined?(@coverage_dir_explicit) && @coverage_dir_explicit)
+    end
+
+    def warn_about_inferred_finalize_merge
+      return if defined?(@finalize_merge_inference_warned) && @finalize_merge_inference_warned
+      return unless print_errors
+
+      @finalize_merge_inference_warned = true
+      warn SimpleCov::Color.colorize(inferred_finalize_merge_warning, :yellow)
+    end
+
+    def inferred_finalize_merge_warning
+      "SimpleCov inferred `finalize_merge false` because this parallel worker is merging " \
+        "into a custom coverage destination. Set `SimpleCov.finalize_merge false` to keep " \
+        "external collation ownership, or `SimpleCov.finalize_merge true` if this worker " \
+        "should wait, merge, format, enforce thresholds, and write `.last_run.json`. " \
+        "See https://github.com/simplecov-ruby/simplecov#merge-finalization-ownership."
     end
   end
 end

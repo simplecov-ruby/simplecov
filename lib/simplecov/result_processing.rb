@@ -21,7 +21,10 @@ module SimpleCov
       # Use the ResultMerger to produce a single, merged result, ready to use.
       @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout)
 
+      @collating_result = true
       run_exit_tasks!
+    ensure
+      @collating_result = false
     end
 
     #
@@ -42,6 +45,8 @@ module SimpleCov
       # first (if there is one), then merge the results and return those
       if use_merging
         SimpleCov::ResultMerger.store_result(@result) if result?
+        return @result unless finalize_merge?
+
         wait_for_other_processes
         @result = SimpleCov::ResultMerger.merged_result
       end
@@ -52,6 +57,11 @@ module SimpleCov
     # Returns nil if the result has not been computed, otherwise the result.
     def result?
       defined?(@result) && @result
+    end
+
+    # @api private — true while `SimpleCov.collate` is running its finalizer.
+    def collating_result?
+      defined?(@collating_result) && @collating_result
     end
 
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
