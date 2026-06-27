@@ -52,7 +52,10 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = ">= 3.2"
 
-  gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "CHANGELOG.md", "README.md", "doc/*"]
+  # CHANGELOG.md is intentionally not packaged — it grows every release and is
+  # the gem's largest avoidable payload. The `changelog_uri` metadata above
+  # points readers at the GitHub copy instead.
+  gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "README.md", "doc/*"]
   gem.bindir        = "exe"
   gem.executables   = ["simplecov"]
   gem.require_paths = ["lib"]
