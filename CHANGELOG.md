@@ -1,3 +1,12 @@
+main
+====
+
+## Enhancements
+* The gem no longer packages `CHANGELOG.md`, trimming the largest avoidable part of the payload (the changelog grew with every release). The `changelog_uri` gem metadata already links the copy on GitHub.
+
+## Bugfixes
+* HTML report file lists again default to least-covered-first. The 1.0 client-side rewrite wired up click-to-sort but applied no initial sort, so the long-standing default of leading with the least-covered file was lost across the release candidates. Each list now sorts on load by the primary coverage criterion (`SimpleCov.primary_coverage`, line by default), ascending. To carry the primary criterion to the report, `coverage.json` gains a `primary_coverage` field in `meta`, also documented in the coverage schema. See #1171.
+
 1.0.0.rc4 (2026-06-26)
 ======================
 

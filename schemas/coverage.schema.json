@@ -22,6 +22,7 @@
         "timestamp",
         "root",
         "commit",
+        "primary_coverage",
         "line_coverage",
         "branch_coverage",
         "method_coverage"
@@ -51,6 +52,11 @@
         "commit": {
           "type": ["string", "null"],
           "description": "Full git commit SHA of `root`'s HEAD when the report was generated, or null when the project isn't a git checkout (or git isn't available). Lets tools recover the exact source a report reflects, which matters most when `source_in_json` is false and the per-file `source` arrays are omitted."
+        },
+        "primary_coverage": {
+          "type": "string",
+          "enum": ["line", "branch", "method"],
+          "description": "The coverage criterion `SimpleCov.primary_coverage` names as primary. The HTML report sorts file lists by this criterion's coverage by default."
         },
         "line_coverage": {"type": "boolean"},
         "branch_coverage": {"type": "boolean"},

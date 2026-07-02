@@ -80,7 +80,7 @@ async function init(): Promise<void> {
 
   scheduleTimeago();
   initDarkMode();
-  setupTableSorting();
+  setupTableSorting(data.meta.primary_coverage);
   setupColumnFilters();
   document.addEventListener('keydown', handleKeydown);
   setupSourceDialog();

@@ -8,6 +8,7 @@ export interface CoverageData {
     project_name: string;
     timestamp: string;
     root: string;
+    primary_coverage?: string;
     branch_coverage: boolean;
     method_coverage: boolean;
   };

@@ -61,7 +61,8 @@ module SimpleCov
             project_name: SimpleCov.project_name,
             timestamp: @result.created_at.iso8601(3),
             root: SimpleCov.root,
-            commit: git_commit
+            commit: git_commit,
+            primary_coverage: SimpleCov.primary_coverage.to_s
           }.merge!(coverage_flags)
         end
 
