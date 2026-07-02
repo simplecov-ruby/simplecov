@@ -100,12 +100,24 @@ When "I pry" do
 end
 
 Given "I'm working on the project {string}" do |project_name|
-  this_dir = File.dirname(__FILE__)
+  source = File.expand_path("../../test_projects/#{project_name}", __dir__)
 
   # Clean up and create blank state for project
   cd(".") do
     FileUtils.rm_rf "project"
-    FileUtils.cp_r File.join(this_dir, "../../test_projects/#{project_name}/"), "project"
+    FileUtils.cp_r "#{source}/", "project"
+
+    # Coverage output is gitignored, so an ad-hoc local run can leave a stray
+    # `coverage/` dir in the source that cp_r then drags into the fresh sandbox,
+    # breaking "no coverage report" assertions (a local-only flake — CI checks
+    # out clean). Drop copied coverage dirs the source doesn't track. The
+    # old_coverage_json project ships a tracked `coverage/` fixture, which stays.
+    Dir.glob("project/**/coverage").each do |copied|
+      relative = copied.delete_prefix("project/")
+      tracked = system("git", "-C", source, "ls-files", "--error-unmatch", relative,
+                       out: File::NULL, err: File::NULL)
+      FileUtils.rm_rf(copied) unless tracked
+    end
   end
 
   step 'I cd to "project"'
