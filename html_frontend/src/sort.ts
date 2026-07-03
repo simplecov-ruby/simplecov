@@ -10,9 +10,19 @@ interface SortEntry {
 
 const sortState: Record<string, SortEntry> = {};
 
-function getVisibleChild(row: Element, index: number): Element | null {
-  const visible = Array.from(row.children).filter((c) => (c as HTMLElement).style.display !== 'none');
-  return visible[index] ?? null;
+// Actual child index of the `index`-th visible cell in a row. The coverage
+// filter hides whole columns, so this mapping is uniform across rows and is
+// computed once per sort from the first row, rather than allocating a filtered
+// array for every row.
+function visibleChildIndex(row: Element, index: number): number | null {
+  let visible = 0;
+  const children = row.children;
+  for (let i = 0; i < children.length; i++) {
+    if ((children[i] as HTMLElement).style.display === 'none') continue;
+    if (visible === index) return i;
+    visible += 1;
+  }
+  return null;
 }
 
 function getSortValue(td: Element | null): number | string {
@@ -24,11 +34,16 @@ function getSortValue(td: Element | null): number | string {
   return Number.isNaN(num) ? text.toLowerCase() : num;
 }
 
+// A cached collator compares markedly faster than calling `String.localeCompare`
+// per comparison, which matters when sorting thousands of rows by file name.
+// Left with default options so the ordering matches the previous behavior.
+const collator = new Intl.Collator();
+
 // Compare two cell values numerically when both are numbers, otherwise
 // as case-insensitive strings.
 function compareValues(a: number | string, b: number | string): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
-  return String(a).localeCompare(String(b));
+  return collator.compare(String(a), String(b));
 }
 
 function tableId(table: Element): string {
@@ -55,22 +70,85 @@ function reorderRows(tbody: Element, rows: Element[]): void {
   tbody.appendChild(fragment);
 }
 
-function sortTable(table: Element, colIndex: number): void {
+function performSort(table: Element, colIndex: number): void {
   const state = sortState[tableId(table)];
 
   const dir: 'asc' | 'desc' =
     state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
 
   const tbody = table.querySelector('tbody')!;
-  const rows = Array.from(tbody.querySelectorAll('tr.t-file')).map((row) => ({
+  const rows = Array.from(tbody.querySelectorAll('tr.t-file'));
+  if (rows.length === 0) {
+    markSorted(table, colIndex, dir);
+    return;
+  }
+
+  const childIndex = visibleChildIndex(rows[0], colIndex);
+  const decorated = rows.map((row) => ({
     row,
-    value: getSortValue(getVisibleChild(row, colIndex))
+    value: getSortValue(childIndex === null ? null : (row.children[childIndex] ?? null))
   }));
 
-  rows.sort((a, b) => (dir === 'asc' ? 1 : -1) * compareValues(a.value, b.value));
+  const factor = dir === 'asc' ? 1 : -1;
+  decorated.sort((a, b) => factor * compareValues(a.value, b.value));
 
-  reorderRows(tbody, rows.map(({ row }) => row));
+  reorderRows(tbody, decorated.map(({ row }) => row));
   markSorted(table, colIndex, dir);
+}
+
+// Above this row count a click-to-sort is slow enough (the browser re-lays-out
+// the whole table) to be worth surfacing. Below it the sort is imperceptible
+// and runs inline so small reports stay instant.
+const SORT_OVERLAY_THRESHOLD = 500;
+
+// A dim overlay that signals a slow re-sort. It leaves the table visible but
+// dimmed and covers the page so stray clicks land on it rather than on rows
+// that are about to move. Created lazily and reused across sorts.
+let sortOverlay: HTMLElement | null = null;
+
+function ensureSortOverlay(): HTMLElement {
+  if (sortOverlay) return sortOverlay;
+  const el = document.createElement('div');
+  el.id = 'sort-overlay';
+  el.innerHTML = '<span id="sort-overlay-label">Sorting…</span>';
+  el.style.display = 'none';
+  document.body.appendChild(el);
+  sortOverlay = el;
+  return el;
+}
+
+function showSortOverlay(): void {
+  const el = ensureSortOverlay();
+  el.style.transition = 'none';
+  el.style.opacity = '1';
+  el.style.display = 'flex';
+}
+
+function hideSortOverlay(): void {
+  if (!sortOverlay) return;
+  const el = sortOverlay;
+  el.style.transition = 'opacity 0.15s';
+  el.style.opacity = '0';
+  setTimeout(() => { el.style.display = 'none'; }, 150);
+}
+
+// Sort on a header click. Small tables sort synchronously (instant); large ones
+// show the overlay first and defer the work two frames, so the overlay is
+// painted and absorbs stray clicks while the main thread blocks on the sort.
+function sortTable(table: Element, colIndex: number): void {
+  const rowCount = table.querySelectorAll('tbody tr.t-file').length;
+  if (rowCount < SORT_OVERLAY_THRESHOLD) {
+    performSort(table, colIndex);
+    return;
+  }
+
+  showSortOverlay();
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      performSort(table, colIndex);
+      hideSortOverlay();
+    })
+  );
 }
 
 // Map a clicked <th> to the index of the (rightmost) <td> it spans, so that

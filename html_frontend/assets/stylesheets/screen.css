@@ -233,6 +233,29 @@ strong, b { font-weight: 600; }
   color: var(--text-tertiary);
 }
 
+/* --- Re-sort overlay --------------------------------------- */
+
+/* Dims the report (keeping it visible) and swallows clicks while a large
+   file list re-sorts. Shown only above the row threshold in sort.ts. */
+#sort-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+}
+
+#sort-overlay-label {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 16px;
+  color: var(--text-tertiary);
+}
+
 /* --- Layout ------------------------------------------------ */
 
 #wrapper {
