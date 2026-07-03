@@ -43,6 +43,12 @@ module SimpleCov
           ::ParallelTests.wait_for_other_processes_to_finish
         end
 
+        # The native wait blocks until every sibling process exits, but only
+        # when the pid-file contract is present (see `wait_for_siblings`).
+        def native_wait?
+          native_parallel_tests_environment?
+        end
+
         def expected_worker_count
           ENV["PARALLEL_TEST_GROUPS"]&.to_i || 1
         end

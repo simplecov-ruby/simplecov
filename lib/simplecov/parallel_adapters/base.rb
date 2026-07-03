@@ -39,6 +39,16 @@ module SimpleCov
           # No-op default; polling fallback handles correctness.
         end
 
+        # Does `wait_for_siblings` block until every sibling PROCESS has
+        # exited (so no further resultset can appear)? When true, the
+        # reporting worker can accept a settled resultset count below
+        # `expected_worker_count` as final instead of waiting out the whole
+        # `parallel_wait_timeout` for workers that produced no coverage.
+        # Defaults to false (no native wait; the poll is the only signal).
+        def native_wait?
+          false
+        end
+
         # How many parallel workers are participating in this run. Used
         # by the polling fallback to know how many resultset entries to
         # expect. Defaults to 1 (single-process).

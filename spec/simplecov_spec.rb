@@ -413,6 +413,33 @@ RSpec.describe SimpleCov do
     it "returns true immediately when expected worker count is 0" do
       expect(described_class.send(:wait_for_parallel_results, 0)).to be(true)
     end
+
+    it "returns true once every expected worker has reported" do
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1, "b" => 2})
+      expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
+    end
+
+    # A native wait already confirmed all sibling processes exited, so a count
+    # that holds below `expected` means the extra workers produced nothing
+    # (idle parallel_test groups) — accept it as final instead of blocking for
+    # the whole timeout.
+    it "accepts a settled count below expected as complete when a native wait ran" do
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1})
+      allow(described_class).to receive(:sleep)
+      allow(described_class).to receive(:parallel_wait_timeout).and_return(60)
+
+      expect(described_class.send(:wait_for_parallel_results, 4, native_wait: true)).to be(true)
+    end
+
+    # Without a native wait an idle worker is indistinguishable from a slow
+    # one, so keep waiting the full timeout and report the partial result.
+    it "times out (partial) on a short count without a native wait" do
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1})
+      allow(described_class).to receive(:sleep)
+      allow(described_class).to receive_messages(parallel_wait_timeout: 0, print_errors: false)
+
+      expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
+    end
   end
 
   describe ".parallel_results_complete?" do

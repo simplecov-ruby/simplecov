@@ -119,6 +119,10 @@ RSpec.describe SimpleCov::ParallelAdapters do
       expect(described_class.wait_for_siblings).to be_nil
     end
 
+    it "native_wait? is false (no native synchronization primitive)" do
+      expect(described_class.native_wait?).to be false
+    end
+
     it "expected_worker_count defaults to 1 (single-process)" do
       expect(described_class.expected_worker_count).to eq(1)
     end
@@ -192,6 +196,10 @@ RSpec.describe SimpleCov::ParallelAdapters do
 
     it "wait_for_siblings is a no-op (no native runner API)" do
       expect(described_class.wait_for_siblings).to be_nil
+    end
+
+    it "native_wait? is false (relies on resultset polling)" do
+      expect(described_class.native_wait?).to be false
     end
   end
 
@@ -280,6 +288,20 @@ RSpec.describe SimpleCov::ParallelAdapters do
         ENV.delete("PARALLEL_PID_FILE")
 
         expect(described_class.wait_for_siblings).to be_nil
+      end
+    end
+
+    describe ".native_wait?" do
+      it "is true when the pid-file contract is present" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
+        expect(described_class.native_wait?).to be true
+      end
+
+      it "is false without the pid-file contract" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV.delete("PARALLEL_PID_FILE")
+        expect(described_class.native_wait?).to be false
       end
     end
 
