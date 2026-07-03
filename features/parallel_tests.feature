@@ -5,6 +5,12 @@ Feature:
   Parallel tests and its corresponding test project work together with Simplecov
   just fine and they produce the same output like a normal rspec run.
 
+  # `-n 2` pins the worker count so it matches the number of spec files. Left
+  # to default, parallel_rspec spawns one worker per core, and on a machine
+  # with more cores than files the extra workers get nothing and write no
+  # resultset. SimpleCov copes with that now, but pinning keeps the run fast
+  # and deterministic across machines.
+
   Background:
     Given I'm working on the project "parallel_tests"
 
@@ -15,7 +21,7 @@ Feature:
       require 'simplecov'
       SimpleCov.start
       """
-    When I open the coverage report generated with `bundle exec parallel_rspec spec`
+    When I open the coverage report generated with `bundle exec parallel_rspec -n 2 spec`
     Then I should see the line coverage results for the parallel tests project
 
   # Note it's better not to test this in the same scenario as before.
@@ -53,7 +59,7 @@ Feature:
         enable_coverage :branch
       end
       """
-    When I open the coverage report generated with `bundle exec parallel_rspec spec`
+    When I open the coverage report generated with `bundle exec parallel_rspec -n 2 spec`
     Then I should see the branch coverage results for the parallel tests project
 
   Scenario: Coverage violations aren't printed until the end
@@ -65,5 +71,5 @@ Feature:
         minimum_coverage 81.48
       end
       """
-    When I successfully run `bundle exec parallel_rspec spec`
+    When I successfully run `bundle exec parallel_rspec -n 2 spec`
     Then the output should not match /.*cover.+below.+minimum/
