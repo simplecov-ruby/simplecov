@@ -544,6 +544,18 @@ table.file_list td.cell--coverage {
   font-variant-numeric: tabular-nums;
 }
 
+/* Rows beyond the window in a large file list (see row_window.ts). */
+tr.t-window-hidden {
+  display: none;
+}
+
+tr.t-show-all td {
+  padding: var(--sp-3);
+  text-align: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
 /* The width is uniform per table, so bar_width.ts equalizes it through one
    custom property on the table instead of inline styles on every sizer. */
 .coverage-cell .bar-sizer {
@@ -1001,11 +1013,13 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
 
   /* Hide interactive/non-printable elements */
   #loading,
+  #sort-overlay,
   #dark-mode-toggle,
   .tab-bar,
   .source_files,
   .col-filter--name,
   .col-filter__coverage,
+  tr.t-show-all,
   table.file_list thead th.sorting::after,
   table.file_list thead th.sorting_asc::after,
   table.file_list thead th.sorting_desc::after {

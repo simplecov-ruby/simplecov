@@ -4,6 +4,7 @@
 import { $, $$, on } from './dom';
 import { invalidateFileRowCache } from './file_rows';
 import { scheduleEqualizeBarWidths } from './bar_width';
+import { applyRowWindow } from './row_window';
 import { dataAttrMap, updateTotalsRow, DataAttrPair } from './totals';
 
 interface ActiveFilter {
@@ -78,6 +79,7 @@ function filterTable(container: Element): void {
     if (htmlRow.style.display !== display) htmlRow.style.display = display;
   });
 
+  applyRowWindow(table);
   invalidateFileRowCache();
   updateTotalsRow(container);
   scheduleEqualizeBarWidths();

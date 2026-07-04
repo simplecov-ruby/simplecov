@@ -2,6 +2,7 @@
 // the per-table sort-direction state.
 
 import { $$ } from './dom';
+import { applyRowWindow } from './row_window';
 
 interface SortEntry {
   colIndex: number;
@@ -120,6 +121,7 @@ function performSort(table: Element, colIndex: number): void {
   }
 
   reorderRows(tbody, rows);
+  applyRowWindow(table);
   markSorted(table, colIndex, dir);
 }
 
@@ -238,5 +240,7 @@ export function setupTableSorting(primaryCoverage?: string): void {
     });
 
     applyDefaultSort(table, primaryCoverage);
+    // Window before the first paint so huge reports never lay out in full.
+    applyRowWindow(table);
   });
 }
