@@ -43,6 +43,19 @@ function parseFilters(container: Element): ActiveFilter[] {
   return filters;
 }
 
+// File names never change after render, so cache the lowercased name per row
+// instead of re-reading textContent on every filter keystroke.
+const rowNameCache = new WeakMap<Element, string>();
+
+function rowName(row: Element): string {
+  let name = rowNameCache.get(row);
+  if (name === undefined) {
+    name = (row.children[0].textContent || '').toLowerCase();
+    rowNameCache.set(row, name);
+  }
+  return name;
+}
+
 function filterTable(container: Element): void {
   const table = $('table.file_list', container) as HTMLTableElement | null;
   if (!table) return;
@@ -53,14 +66,16 @@ function filterTable(container: Element): void {
 
   $$('tbody tr.t-file', table).forEach(row => {
     const htmlRow = row as HTMLElement;
-    const name = (row.children[0].textContent || '').toLowerCase();
-    const visible = (!nameQuery || name.includes(nameQuery)) && filters.every((f) => {
+    const visible = (!nameQuery || rowName(row).includes(nameQuery)) && filters.every((f) => {
       const covered = Number.parseInt(htmlRow.dataset[f.attrs.covered] || '0', 10) || 0;
       const total = Number.parseInt(htmlRow.dataset[f.attrs.total] || '0', 10) || 0;
       const pct = total > 0 ? (covered * 100.0) / total : 100;
       return compare(f.op, pct, f.threshold);
     });
-    htmlRow.style.display = visible ? '' : 'none';
+    // Only touch rows whose visibility actually changes; a same-value style
+    // write on thousands of rows is not free.
+    const display = visible ? '' : 'none';
+    if (htmlRow.style.display !== display) htmlRow.style.display = display;
   });
 
   invalidateFileRowCache();

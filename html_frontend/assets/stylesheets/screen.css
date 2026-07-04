@@ -544,9 +544,11 @@ table.file_list td.cell--coverage {
   font-variant-numeric: tabular-nums;
 }
 
+/* The width is uniform per table, so bar_width.ts equalizes it through one
+   custom property on the table instead of inline styles on every sizer. */
 .coverage-cell .bar-sizer {
   flex: 0 0 auto;
-  width: 240px;
+  width: var(--bar-sizer-width, 240px);
   min-width: 160px;
   max-width: 240px;
 }

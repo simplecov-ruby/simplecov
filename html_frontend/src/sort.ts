@@ -34,6 +34,26 @@ function getSortValue(td: Element | null): number | string {
   return Number.isNaN(num) ? text.toLowerCase() : num;
 }
 
+// Cell contents never change after render (filters only toggle row
+// visibility), so sort values are cached per row for the life of the page.
+// Keyed by the row's actual child index, which is stable however the sort
+// column was resolved.
+const rowValueCache = new WeakMap<Element, Map<number, number | string>>();
+
+function cachedSortValue(row: Element, childIndex: number | null): number | string {
+  if (childIndex === null) return '';
+  let cache = rowValueCache.get(row);
+  if (!cache) {
+    cache = new Map();
+    rowValueCache.set(row, cache);
+  }
+  const hit = cache.get(childIndex);
+  if (hit !== undefined) return hit;
+  const value = getSortValue(row.children[childIndex] ?? null);
+  cache.set(childIndex, value);
+  return value;
+}
+
 // A cached collator compares markedly faster than calling `String.localeCompare`
 // per comparison, which matters when sorting thousands of rows by file name.
 // Left with default options so the ordering matches the previous behavior.
@@ -77,22 +97,29 @@ function performSort(table: Element, colIndex: number): void {
     state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
 
   const tbody = table.querySelector('tbody')!;
-  const rows = Array.from(tbody.querySelectorAll('tr.t-file'));
+  let rows = Array.from(tbody.querySelectorAll('tr.t-file'));
   if (rows.length === 0) {
     markSorted(table, colIndex, dir);
     return;
   }
 
-  const childIndex = visibleChildIndex(rows[0], colIndex);
-  const decorated = rows.map((row) => ({
-    row,
-    value: getSortValue(childIndex === null ? null : (row.children[childIndex] ?? null))
-  }));
+  if (state && state.colIndex === colIndex) {
+    // Same column: the rows are already ordered by it, so flipping the
+    // direction is a pure reversal — no value extraction, no comparisons.
+    rows.reverse();
+  } else {
+    const childIndex = visibleChildIndex(rows[0], colIndex);
+    const decorated = rows.map((row) => ({
+      row,
+      value: cachedSortValue(row, childIndex)
+    }));
 
-  const factor = dir === 'asc' ? 1 : -1;
-  decorated.sort((a, b) => factor * compareValues(a.value, b.value));
+    const factor = dir === 'asc' ? 1 : -1;
+    decorated.sort((a, b) => factor * compareValues(a.value, b.value));
+    rows = decorated.map(({ row }) => row);
+  }
 
-  reorderRows(tbody, decorated.map(({ row }) => row));
+  reorderRows(tbody, rows);
   markSorted(table, colIndex, dir);
 }
 
@@ -194,7 +221,7 @@ function applyDefaultSort(table: Element, primaryCoverage?: string): void {
 
   const decorated = rows.map((row) => ({
     row,
-    value: getSortValue(row.children[colIndex] ?? null)
+    value: cachedSortValue(row, colIndex)
   }));
   decorated.sort((a, b) => compareValues(a.value, b.value));
 
