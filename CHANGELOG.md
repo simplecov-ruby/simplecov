@@ -1,5 +1,5 @@
-main
-====
+1.0.0.rc5 (2026-07-04)
+======================
 
 ## Enhancements
 * The gem no longer packages `CHANGELOG.md`, trimming the largest avoidable part of the payload (the changelog grew with every release). The `changelog_uri` gem metadata already links the copy on GitHub.
