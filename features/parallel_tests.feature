@@ -86,6 +86,7 @@ Feature:
         minimum_coverage 81.48
         coverage_dir File.join("coverage", "turbo_tests", ENV.fetch("TEST_ENV_NUMBER"))
         command_name "rspec-#{ENV.fetch("TEST_ENV_NUMBER")}"
+        finalize_merge false
       end
       """
     When I successfully run `env TEST_ENV_NUMBER=1 PARALLEL_TEST_GROUPS=2 bundle exec rspec spec/a_spec.rb spec/b_spec.rb`
