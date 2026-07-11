@@ -73,3 +73,27 @@ Feature:
       """
     When I successfully run `bundle exec parallel_rspec -n 2 spec`
     Then the output should not match /.*cover.+below.+minimum/
+
+  # Reproduces galtzo-floss/turbo_tests2#15: worker output should not include
+  # partial-result threshold failures when an explicit collate step owns the
+  # final coverage report.
+  Scenario: Turbo-style external collation does not print worker coverage violations
+    Given I install dependencies
+    And SimpleCov for RSpec is configured with:
+      """
+      require 'simplecov'
+      SimpleCov.start do
+        minimum_coverage 81.48
+        coverage_dir File.join("coverage", "turbo_tests", ENV.fetch("TEST_ENV_NUMBER"))
+        command_name "rspec-#{ENV.fetch("TEST_ENV_NUMBER")}"
+      end
+      """
+    When I successfully run `env TEST_ENV_NUMBER=1 PARALLEL_TEST_GROUPS=2 bundle exec rspec spec/a_spec.rb spec/b_spec.rb`
+    Then the output should not contain "SimpleCov failed with exit 2"
+    And the output should not match /.*cover.+below.+minimum/
+    When I successfully run `env TEST_ENV_NUMBER=2 PARALLEL_TEST_GROUPS=2 bundle exec rspec spec/c_spec.rb spec/d_spec.rb`
+    Then the output should not contain "SimpleCov failed with exit 2"
+    And the output should not match /.*cover.+below.+minimum/
+    When I successfully run `bundle exec ruby -rsimplecov -e 'SimpleCov.collate(Dir["coverage/turbo_tests/*/.resultset.json"]) { minimum_coverage 81.48 }'`
+    Then the output should contain "Coverage report generated"
+    And the output should not contain "SimpleCov failed with exit 2"
