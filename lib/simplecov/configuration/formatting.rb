@@ -32,7 +32,10 @@ module SimpleCov
     end
 
     # Sets the configured formatters. Equivalent to `formatters [...]`.
+    # Accepts a single formatter as well as an Array, matching the pre-1.0 behavior
+    # where `MultiFormatter.new` normalized its input.
     def formatters=(formatters)
+      formatters = Array(formatters)
       @formatter = formatters.empty? ? nil : SimpleCov::Formatter::MultiFormatter.new(formatters)
     end
 

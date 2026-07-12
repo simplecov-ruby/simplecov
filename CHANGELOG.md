@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Bugfixes
+* Fixed `SimpleCov.formatters=` raising `NoMethodError` when given a single formatter instead of an Array — a regression from 0.22.x, where `MultiFormatter.new` normalized the value internally. This restores the long-documented `SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([...])` pattern, in which `MultiFormatter.new` returns a Class rather than an Array.
+
 1.0.0 (2026-07-12)
 ==================
 
