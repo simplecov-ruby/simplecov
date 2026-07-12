@@ -1379,6 +1379,29 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.formatter).to be_nil
         expect(config.formatters).to eq([])
       end
+
+      it "accepts a single formatter that is not wrapped in an Array" do
+        config.formatters = SimpleCov::Formatter::SimpleFormatter
+        expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
+      end
+
+      # `SimpleCov.formatters = MultiFormatter.new([...])` is the pattern
+      # the README documented for years (and net-imap still uses).
+      # `MultiFormatter.new` returns a Class, not an Array, so the setter
+      # must normalize its input like the pre-1.0 implementation did.
+      it "accepts a MultiFormatter (a Class) and keeps its format chain working" do
+        formatter = Class.new { def format(_) = "ok" }
+        config.formatters = SimpleCov::Formatter::MultiFormatter.new([formatter])
+
+        result = instance_double(SimpleCov::Result)
+        expect(config.formatter.new.format(result).flatten).to eq(["ok"])
+      end
+
+      it "treats nil as an explicit opt-out" do
+        config.formatters = nil
+        expect(config.formatter).to be_nil
+        expect(config.formatters).to eq([])
+      end
     end
 
     describe "#at_exit" do
