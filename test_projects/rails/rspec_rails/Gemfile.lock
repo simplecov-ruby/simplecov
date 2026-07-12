@@ -1,7 +1,7 @@
 PATH
   remote: ../../..
   specs:
-    simplecov (1.0.0.rc5)
+    simplecov (1.0.0)
 
 GEM
   remote: https://rubygems.org/
@@ -354,7 +354,7 @@ CHECKSUMS
   rspec-rails (8.0.4) sha256=06235692fc0892683d3d34977e081db867434b3a24ae0dd0c6f3516bad4e22df
   rspec-support (3.13.7) sha256=0640e5570872aafefd79867901deeeeb40b0c9875a36b983d85f54fb7381c47c
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
-  simplecov (1.0.0.rc5)
+  simplecov (1.0.0)
   spring (4.7.0) sha256=f81bf6d41f05518ed5d0128ce5c75fb6dd9c6153f158129c8b85c4461ca0b72c
   sqlite3 (1.7.3) sha256=fa77f63c709548f46d4e9b6bb45cda52aa3881aa12cc85991132758e8968701c
   sqlite3 (1.7.3-arm64-darwin) sha256=b956160cc882d2568f332f915c9fe27cae9a4521b202d6e7ea540171c88e4600
