@@ -32,7 +32,7 @@ module SimpleCov
         copy_static_assets
         # stderr, not stdout: this is a status message, not the program's
         # output. Keeps the line out of pipelines like `rspec -f json`.
-        warn output_message(result) unless @silent
+        $stderr.puts output_message(result) unless @silent # rubocop:disable Style/StderrPuts
       end
 
       # Generate HTML from a pre-existing coverage.json file without
