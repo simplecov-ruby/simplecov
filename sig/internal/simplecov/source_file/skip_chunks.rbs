@@ -1,0 +1,47 @@
+module SimpleCov
+  class SourceFile
+    # Computes the set of line ranges that should be excluded from a
+    # SourceFile's coverage for each criterion. Two sources contribute:
+    #
+    # * The deprecated `# :nocov:` block toggle (lines wrapped between
+    #   even-numbered pairs of nocov markers are excluded from line and
+    #   branch coverage).
+    # * `# simplecov:disable` / `# simplecov:enable` block directives,
+    #   which can be scoped per-criterion (`# simplecov:disable branch`,
+    #   etc.) — see `SimpleCov::Directive`.
+    class SkipChunks
+      self.@nocov_warned: untyped
+
+      @filename: untyped
+
+      @src: untyped
+
+      @nocov_chunks: untyped
+
+      @directive_chunks: untyped
+
+      attr_reader self.nocov_warned: untyped
+
+      def initialize: (untyped filename, untyped src) -> void
+
+      # `:method` ignores nocov chunks (Ruby's Coverage doesn't tie
+      # method entries to line ranges); `:line` / `:branch` honor both
+      # the nocov chunks and the per-criterion directive ranges.
+      def for: (untyped criterion) -> untyped
+
+      # no_cov_chunks is zero indexed to work directly with the array
+      # holding the lines.
+      def nocov_chunks: () -> untyped
+
+      def directive_chunks: () -> untyped
+
+      private
+
+      def build_nocov_chunks: () -> untyped
+
+      # Emit a one-time-per-file deprecation warning pointing the user
+      # at the `# simplecov:disable` / `# simplecov:enable` replacement.
+      def warn_nocov_deprecation: (untyped first_line_number) -> (nil | untyped)
+    end
+  end
+end

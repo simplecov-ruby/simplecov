@@ -1,0 +1,27 @@
+module SimpleCov
+  module ExitCodes
+    # Fails when any individual file falls below the configured minimum
+    # coverage for any criterion.
+    class MinimumCoverageByFileCheck
+      @result: untyped
+
+      @minimum_coverage_by_file: untyped
+
+      @overrides: untyped
+
+      @violations: untyped
+
+      def initialize: (untyped result, untyped minimum_coverage_by_file, ?::Hash[untyped, untyped] overrides) -> void
+
+      def failing?: () -> untyped
+
+      def report: () -> untyped
+
+      def exit_code: () -> untyped
+
+      private
+
+      def violations: () -> untyped
+    end
+  end
+end

@@ -24,6 +24,11 @@ Layout/AccessModifierIndentation:
     or as deep as the class/module keyword, depending on configuration.
   EnforcedStyle: outdent
 
+Layout/LeadingCommentSpace:
+  # `#:` comments are RBS inline type annotations consumed by Steep;
+  # inserting a space after # would break them.
+  AllowRBSInlineAnnotation: true
+
 Layout/LineLength:
   AllowURI: true
 

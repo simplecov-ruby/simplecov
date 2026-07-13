@@ -1,0 +1,32 @@
+module SimpleCov
+  class Result
+    # Constructs `SimpleCov::SourceFile` instances from a raw coverage
+    # hash, sorts them by filename, and surfaces filenames whose source
+    # is no longer present on disk so the caller can warn about the
+    # silent drop (see #980).
+    class SourceFileBuilder
+      @original_result: untyped
+
+      @not_loaded_files: untyped
+
+      @missing_source_files: untyped
+
+      attr_reader missing_source_files: untyped
+
+      def initialize: (untyped original_result, not_loaded_files: untyped) -> void
+
+      def call: () -> untyped
+
+      private
+
+      def build_source_file: (untyped filename, untyped coverage) -> (nil | untyped)
+
+      # `Coverage.result` returns symbol keys (`:lines`, `:branches`,
+      # `:methods`); resultsets loaded from disk are already string-keyed.
+      # SourceFile reads with strings, and handles both Array and
+      # stringified-Array branch/method keys via `restore_ruby_data_structure`,
+      # so only the outer hash needs normalizing.
+      def stringify_outer_keys: (untyped coverage) -> untyped
+    end
+  end
+end

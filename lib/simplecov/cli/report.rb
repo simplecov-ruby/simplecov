@@ -45,8 +45,9 @@ module SimpleCov
       end
 
       def emit_text(stdout, data, color)
-        emit_totals(stdout, "All Files", data.fetch("total", {}), color)
-        data.fetch("groups", {}).each { |name, group| emit_totals(stdout, name, group, color) }
+        none = {} #: Hash[String, untyped]
+        emit_totals(stdout, "All Files", data.fetch("total", none), color)
+        data.fetch("groups", none).each { |name, group| emit_totals(stdout, name, group, color) }
       end
 
       def emit_totals(stdout, label, totals, color)
@@ -66,17 +67,21 @@ module SimpleCov
       end
 
       def emit_json(stdout, data)
-        payload = {"All Files" => collect_section(data.fetch("total", {}))}
-        data.fetch("groups", {}).each { |name, group| payload[name] = collect_section(group) }
+        none = {} #: Hash[String, untyped]
+        payload = {"All Files" => collect_section(data.fetch("total", none))}
+        data.fetch("groups", none).each { |name, group| payload[name] = collect_section(group) }
         stdout.puts(JSON.pretty_generate(payload))
       end
 
       def collect_section(totals)
-        SECTIONS.each_with_object({}) do |(_, key), out|
+        sections = {} #: Hash[String, untyped]
+        SECTIONS.each_with_object(sections) do |(_, key), out|
           section = totals[key]
           next unless section.is_a?(Hash) && section["total"].to_i.positive?
 
-          out[key] = {"percent" => section["percent"], "covered" => section["covered"], "total" => section["total"]}
+          out[key.to_s] = {
+            "percent" => section["percent"], "covered" => section["covered"], "total" => section["total"]
+          }
         end
       end
     end

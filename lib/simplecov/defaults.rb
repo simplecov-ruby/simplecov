@@ -41,12 +41,12 @@ loop do
     # it are intercepted and converted to configuration, with a deprecation
     # warning. See `SimpleCov.with_dot_simplecov_autoload` and issue #581.
     SimpleCov.with_dot_simplecov_autoload do
-      load filename
-    rescue LoadError, StandardError
+      load filename.to_s
+    rescue LoadError, StandardError => e
       # simplecov:disable — only fires when .simplecov is unreadable
       # or raises during load
       warn "Warning: Error occurred while trying to load #{filename}. " \
-           "Error message: #{$ERROR_INFO.message}"
+           "Error message: #{e.message}"
       # simplecov:enable
     end
     break

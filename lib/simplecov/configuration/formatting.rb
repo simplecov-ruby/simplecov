@@ -17,18 +17,25 @@ module SimpleCov
     # overhead.
     #
     def formatter(formatter = :__no_arg__)
-      return @formatter if formatter == :__no_arg__
-
-      @formatter = formatter || nil # normalize `false` to `nil`
+      case formatter
+      when :__no_arg__
+        @formatter
+      else
+        @formatter = formatter || nil # normalize `false` to `nil`
+      end
     end
 
     # Sets the configured formatters. Pass `[]` to opt out of
     # formatting entirely; see `formatter` for the rationale.
     def formatters(formatters = :__no_arg__)
-      return Array(formatter) if formatters == :__no_arg__
-
-      self.formatters = formatters
-      formatters
+      case formatters
+      when :__no_arg__
+        configured = formatter
+        configured ? [configured] : []
+      else
+        self.formatters = formatters
+        formatters
+      end
     end
 
     # Sets the configured formatters. Equivalent to `formatters [...]`.

@@ -1,0 +1,6 @@
+# Minimal declarations for the Minitest API SimpleCov calls at runtime
+# when Minitest is loaded (see SimpleCov.install_at_exit_hook). Internal
+# type-checking only; not shipped with the gem.
+module Minitest
+  def self.after_run: () { () -> void } -> void
+end

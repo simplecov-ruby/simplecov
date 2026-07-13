@@ -1,0 +1,33 @@
+module SimpleCov
+  #
+  # Helper that tries to find out what test suite is running (for SimpleCov.command_name)
+  #
+  module CommandGuesser
+    # Storage for the original command line call that invoked the test suite.
+    # This has got to be stored as early as possible because i.e. rake and test/unit 2
+    # have a habit of tampering with ARGV, which makes i.e. the automatic distinction
+    # between rails unit/functional/integration tests impossible without this cached
+    # item.
+    attr_accessor self.original_run_command: untyped
+
+    def self.guess: () -> ::String
+
+    private
+
+    # When parallel_tests (or a compatible runner) is driving the suite,
+    # tag the command name with this worker's position in the pool.
+    def self.parallel_data: () -> (nil | ::String)
+
+    COMMAND_LINE_FRAMEWORKS: ::Hash[::Regexp, ::String]
+
+    def self.from_command_line_options: () -> untyped
+
+    # Inner array literals after the first are flagged uncovered by Ruby's
+    # Coverage module even though the constant evaluates as a whole — known
+    # quirk with multi-line array literals.
+    DEFINED_CONSTANT_FRAMEWORKS: ::Array[::Array["RSpec" | untyped] | ::Array["Unit Tests" | untyped] | ::Array["Minitest" | untyped] | ::Array["MiniTest" | untyped]]
+
+    # If the command regexps fail, let's try checking defined constants.
+    def self.from_defined_constants: () -> (untyped | "Unknown Test Framework")
+  end
+end

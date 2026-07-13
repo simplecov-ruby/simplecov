@@ -68,7 +68,8 @@ module SimpleCov
       end
 
       def load_coverage(path, stderr)
-        return normalize_keys(JSON.parse(File.read(path)).fetch("coverage", {})) if File.exist?(path)
+        no_coverage = {} #: Hash[String, untyped]
+        return normalize_keys(JSON.parse(File.read(path)).fetch("coverage", no_coverage)) if File.exist?(path)
 
         stderr.puts("simplecov diff: #{path} not found")
         nil

@@ -1,0 +1,1628 @@
+# Code coverage for Ruby. See the README for a full introduction.
+module SimpleCov
+  # A coverage criterion that can be enabled, measured, and reported.
+  type criterion = :line | :branch | :method
+
+  # Anything accepted by `skip` / `group` (and the deprecated
+  # `add_filter` / `add_group`): a path-segment substring, a Regexp, a
+  # prebuilt Filter, a predicate on the SourceFile, or an Array of those.
+  type filter_arg = String | Regexp | Filter[untyped] | ^(SourceFile source_file) -> boolish | Array[filter_arg]
+
+  # Anything accepted by `cover`: a shell-glob String, Regexp, Proc,
+  # prebuilt Filter, or an Array of those.
+  type cover_arg = String | Regexp | ^(SourceFile source_file) -> boolish | Filter[untyped] | Array[cover_arg]
+
+  # Raised when a user's configuration is internally inconsistent — e.g.
+  # every coverage criterion has been disabled.
+  class ConfigurationError < StandardError
+  end
+
+  # Maps SimpleCov's criterion names to the keys `Coverage.start` expects.
+  CRITERION_TO_RUBY_COVERAGE: Hash[Symbol, Symbol]
+
+  extend Configuration
+
+  self.@subprocess_serial: Integer?
+  self.@forked_subprocess: bool?
+  self.@autoloading_dot_simplecov: bool?
+  self.@dot_simplecov_start_warned: bool?
+  self.@at_exit_hook_installed: bool?
+
+  attr_accessor self.pid: Integer?
+
+  # When this process started tracking coverage.
+  attr_accessor self.process_start_time: Time?
+
+  # Should something external (e.g. the Minitest plugin) own the
+  # at_exit behavior instead of SimpleCov's own hook?
+  attr_accessor self.external_at_exit: bool?
+
+  def self.external_at_exit?: () -> bool
+
+  # A monotonically increasing serial assigned to each forked
+  # subprocess; the default `at_fork` builds worker command names from it.
+  def self.subprocess_serial: () -> Integer
+
+  def self.next_subprocess_serial!: () -> Integer
+
+  def self.forked_subprocess?: () -> bool
+
+  def self.mark_forked_subprocess!: () -> void
+
+  # `:oneshot_line` stats are folded into the `:line` bucket, so use
+  # the returned criterion to look up `coverage_statistics`.
+  def self.coverage_statistics_key: ((criterion | :oneshot_line) criterion) -> criterion
+
+  # Sets up SimpleCov to run against your project:
+  #
+  #     SimpleCov.start
+  #     SimpleCov.start 'rails'           # using a profile
+  #     SimpleCov.start { skip 'test' }   # with a config block
+  #
+  def self.start: (?(String | Symbol)? profile) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+
+  def self.with_dot_simplecov_autoload: [T] () { () -> T } -> T
+
+  def self.warn_about_start_in_dot_simplecov: () -> void
+
+  # Install the at_exit hook that formats results and runs exit-code
+  # checks. Idempotent; `SimpleCov.start` calls this automatically.
+  def self.install_at_exit_hook: () -> void
+
+  # Begin coverage tracking without applying configuration. Pairs with
+  # `SimpleCov.configure { ... }`.
+  def self.start_tracking: () -> void
+
+  # Implementation details of `start` / `start_tracking` (private in Ruby;
+  # RBS cannot mark singleton methods private).
+  def self.start_coverage_measurement: () -> void
+
+  def self.minitest_autorun_pending?: () -> bool
+
+  def self.defer_to_minitest_after_run: () -> void
+
+  def self.warn_if_jruby_full_trace_disabled: () -> void
+end
+
+# ----- version -----
+
+module SimpleCov
+  VERSION: "1.0.0"
+end
+
+# ----- result_processing -----
+
+# Result-building façade: turns the raw `Coverage.result` hash into a
+# `SimpleCov::Result`, applies filters and groups, drives merging, and
+# exposes the `collate` entry point.
+module SimpleCov
+  self.@result: Result?
+  self.@collating_result: bool?
+
+  # Collate a series of resultset files into a single merged report. By
+  # default ignores `merge_timeout` so every listed resultset merges;
+  # pass `ignore_timeout: false` to honor it.
+  def self.collate: (Array[String] result_filenames, ?(String | Symbol)? profile, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+
+  # The result for the current coverage run, merged across test suites
+  # when merging is active. nil when no coverage was tracked.
+  def self.result: () -> Result?
+
+  # The memoized result, or false/nil when it has not been computed yet.
+  def self.result?: () -> (Result | false | nil)
+
+  def self.collating_result?: () -> boolish
+
+  # Applies the configured filters to the given source files.
+  def self.filtered: ((Array[SourceFile] | FileList) files) -> FileList
+
+  # Bin the given source files by group filter. Files matched by no
+  # group fall into the implicit "Ungrouped" bucket.
+  def self.grouped: ((Array[SourceFile] | FileList) files, ?groups: Hash[String, Filter[untyped]]) -> Hash[String, FileList]
+
+  # Applies the profile of the given name to the configuration.
+  def self.load_profile: ((String | Symbol) name) -> void
+
+  # Clear the cached result. Primarily useful in testing.
+  def self.clear_result: () -> void
+
+  def self.write_last_run: (Result result) -> void
+
+  # Round coverage down to two decimals.
+  def self.round_coverage: (Numeric coverage) -> Numeric
+
+  # Implementation details of `collate` / `result` (private in Ruby;
+  # RBS cannot mark singleton methods private).
+  def self.initial_setup: ((String | Symbol)? profile) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+
+  def self.grouped_file_set: (Hash[String, FileList] grouped) -> Set[SourceFile]
+
+  def self.add_not_loaded_files: (Hash[String, untyped] result) -> [Hash[String, untyped], Set[String]]
+
+  def self.unloaded_file_discovery_globs: () -> Array[String]
+
+  def self.discover_unloaded_paths: (Array[String] globs) -> Array[String]
+
+  def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths) -> [Hash[String, untyped], Set[String]]
+
+  def self.process_coverage_result: (report: bool) -> void
+end
+
+# ----- configuration -----
+
+# Bundles the configuration options used for SimpleCov. All methods
+# defined here are usable from SimpleCov directly.
+module SimpleCov
+  module Configuration
+    @root: String
+    @coverage_dir: String
+    @coverage_dir_explicit: bool?
+    @coverage_path: String?
+    @coverage_path_explicit: bool?
+    @command_name: String?
+    @profiles: Profiles?
+    @at_exit: Proc?
+    @at_fork: Proc?
+    @project_name: String?
+
+    # The root for the project, defaulting to the current working
+    # directory. Get, or set with `SimpleCov.root('/my/project/path')`.
+    def root: (?String? root) -> String
+
+    # The name of the output and cache directory. Defaults to "coverage".
+    def coverage_dir: (?String? dir) -> String
+
+    # The full path to the output directory. By default `root` +
+    # `coverage_dir`; assign an absolute path to pin the destination
+    # regardless of later `root` / `coverage_dir` changes (see #716).
+    def coverage_path: (?String? path) -> String
+
+    # The name of the command (a.k.a. test suite) currently running.
+    # Auto-detected when not set explicitly.
+    def command_name: (?String? name) -> String
+
+    # The hash of available profiles.
+    def profiles: () -> Profiles
+
+    # Configure SimpleCov in a block, evaluated with `self` bound to
+    # the configuration target (usually the SimpleCov module itself):
+    #
+    #     SimpleCov.configure { skip "test" }
+    #
+    def configure: () { () [self: self] -> void } -> void
+
+    # Gets or sets the behavior that processes coverage results at
+    # process exit. The default stores/merges the current result and
+    # formats only from the final reporting process.
+    def at_exit: () ?{ () -> void } -> Proc
+
+    # Whether SimpleCov has anything to do at exit: coverage is being
+    # tracked, or a result has already been assembled (e.g. by collate).
+    def active_session?: () -> boolish
+
+    # Gets or sets the behavior run in a newly forked process. The
+    # block receives the child pid. The default renames the command
+    # from the fork serial, silences errors, and restarts SimpleCov.
+    def at_fork: () ?{ (Integer pid) -> void } -> Proc
+
+    # The project name — defaults to the last dirname in `root`,
+    # capitalized, with underscores replaced by spaces.
+    def project_name: (?String? new_name) -> String
+
+    private
+
+    # Copy instance variables from block_context into self, saving any
+    # of ours that would be clobbered.
+    def swap_ivars_from: (untyped block_context) -> Hash[Symbol, untyped]
+
+    # Copy instance variables back to block_context and restore ours.
+    def restore_ivars: (untyped block_context, Hash[Symbol, untyped] saved) -> void
+  end
+end
+
+# ----- configuration/coverage_criteria -----
+
+# Selection and validation of the coverage criteria Ruby's `Coverage`
+# library should track: `:line` (default), `:branch`, `:method`, and
+# `:oneshot_line`, plus the standalone `:eval` toggle.
+module SimpleCov
+  module Configuration
+    # Members are line, branch, method, and oneshot_line (%i[] literals
+    # infer as Array[Symbol]).
+    SUPPORTED_COVERAGE_CRITERIA: Array[Symbol]
+
+    DEFAULT_COVERAGE_CRITERION: :line
+
+    ONESHOT_LINE_COVERAGE_CRITERION: :oneshot_line
+
+    @primary_coverage: (criterion | :oneshot_line)?
+    @coverage_criteria: Set[criterion | :oneshot_line]?
+    @coverage_for_eval_enabled: bool?
+
+    # Enable one or more coverage criteria. `:eval` is accepted as a
+    # shorthand for the standalone eval-coverage toggle;
+    # `:oneshot_line` replaces `:line`.
+    def enable_coverage: (*(criterion | :oneshot_line | :eval) criteria) -> void
+
+    # Remove `criterion` from the set of enabled coverage criteria.
+    # Disabling every criterion raises at `start_tracking`, not here.
+    def disable_coverage: ((criterion | :oneshot_line) criterion) -> void
+
+    # Gets the report's leading criterion, or sets it. The setter
+    # validates at runtime that the criterion is enabled; the parameter
+    # type also rejects unknown criteria statically.
+    def primary_coverage: (?(criterion | :oneshot_line)? criterion) -> (criterion | :oneshot_line)
+
+    # The currently enabled criteria. Defaults to `Set[:line]`.
+    def coverage_criteria: () -> Set[criterion | :oneshot_line]
+
+    # Any Symbol is accepted: asking whether an unknown criterion is
+    # enabled is a legitimate question (the answer is false), and the
+    # private validators rely on it.
+    def coverage_criterion_enabled?: (Symbol criterion) -> bool
+
+    # Reset the criteria back to the lazy default (`Set[:line]`).
+    def clear_coverage_criteria: () -> void
+
+    def validate_coverage_criteria!: () -> void
+
+    def branch_coverage?: () -> bool
+
+    def branch_coverage_supported?: () -> bool
+
+    def method_coverage?: () -> bool
+
+    def method_coverage_supported?: () -> bool
+
+    def coverage_for_eval_supported?: () -> bool
+
+    # Whether the running Ruby's Coverage library supports the given
+    # criterion, named in Coverage's own plural vocabulary
+    # (`:lines`, `:branches`, `:methods`, `:oneshot_lines`, `:eval`).
+    def coverage_criterion_supported?: (Symbol criterion) -> bool
+
+    def coverage_for_eval_enabled?: () -> bool
+
+    # DEPRECATED: use `enable_coverage :eval` instead.
+    def enable_coverage_for_eval: () -> void
+
+    private
+
+    def enable_eval_coverage: () -> void
+
+    def default_primary_coverage: () -> (criterion | :oneshot_line)
+
+    # Validators: any Symbol is accepted at the type level; the whole
+    # point of these is raising ConfigurationError on bad input.
+    def raise_if_criterion_disabled: (Symbol criterion) -> void
+
+    def raise_if_criterion_unsupported: (Symbol criterion) -> void
+  end
+end
+
+# ----- configuration/coverage -----
+
+# The criterion-first `coverage` configuration method: naming a
+# criterion enables it, and every threshold is declared with the same
+# syntax regardless of criterion.
+#
+#   SimpleCov.start do
+#     coverage :line do
+#       minimum          90
+#       minimum_per_file 80
+#       minimum_per_file 100, only: "app/mailers/request_mailer.rb"
+#       maximum_drop     5
+#     end
+#
+#     coverage :branch, minimum: 80
+#   end
+module SimpleCov
+  module Configuration
+    # Members are minimum, maximum, exact, maximum_drop, and
+    # minimum_per_file (%i[] literals infer as Array[Symbol]).
+    COVERAGE_THRESHOLD_OPTIONS: Array[Symbol]
+
+    # Configure (and, unless `enabled: false`, enable) a coverage
+    # criterion. `primary: true` makes it the report's leading
+    # criterion; `oneshot: true` (only for `:line`) selects
+    # oneshot-lines mode; `:eval` is enable-only. Threshold keywords
+    # mirror the block verbs for one-liner use. Returns the criterion
+    # symbol the thresholds were stored under.
+    # The threshold keywords (minimum:, maximum:, exact:, maximum_drop:,
+    # minimum_per_file:) arrive via **thresholds in the implementation, so
+    # they are typed as a Numeric kwarg splat. The block runs under
+    # instance_eval, which also yields the receiver as an optional argument.
+    def coverage: ((criterion | :eval) criterion, ?primary: bool, ?enabled: bool, ?oneshot: bool, **Numeric thresholds) ?{ (?CoverageCriterion) [self: CoverageCriterion] -> void } -> (criterion | :oneshot_line | :eval)
+
+    private
+
+    def apply_threshold_options: (CoverageCriterion configurator, Hash[Symbol, Numeric] options) -> void
+
+    def enable_coverage_criterion: ((criterion | :eval) criterion, enabled: bool, oneshot: bool) -> (criterion | :oneshot_line | :eval)
+
+    def enable_oneshot_line: ((criterion | :eval) criterion) -> :oneshot_line
+
+    def enable_eval_coverage_criterion: () -> :eval
+
+    # Threshold-store writers used by CoverageCriterion via `send`.
+    # They accept any criterion Symbol; `raise_on_invalid_coverage`
+    # rejects invalid ones (including `:eval`) at runtime.
+    def store_overall_threshold: (Symbol setting, Symbol criterion, Numeric percent) -> void
+
+    def store_minimum_per_file: (Symbol criterion, Numeric percent, (String | Regexp)? target) -> void
+
+    def store_minimum_per_group: (Symbol criterion, Numeric percent, String group_name) -> void
+
+    public
+
+    # Receiver for a `coverage <criterion> do ... end` block. Each verb
+    # writes a threshold for the single criterion the block configures,
+    # so values are always plain percentages.
+    class CoverageCriterion
+      @config: Configuration
+      @criterion: Symbol
+
+      def initialize: (Configuration config, Symbol criterion) -> void
+
+      # Overall (suite-wide) minimum for this criterion.
+      def minimum: (Numeric percent) -> void
+
+      # Overall maximum: fails the build if coverage rises above it.
+      def maximum: (Numeric percent) -> void
+
+      # Pin coverage to an exact figure (sets both minimum and maximum).
+      def exact: (Numeric percent) -> void
+
+      # Maximum allowed drop between runs (0 refuses any drop).
+      def maximum_drop: (Numeric percent) -> void
+
+      # Per-file minimum. With no `only:`, the default for every file;
+      # with `only:` (String path or Regexp), an override for matches.
+      def minimum_per_file: (Numeric percent, ?only: (String | Regexp)?) -> void
+
+      # Per-group minimum for the named group (defined via `group`).
+      def minimum_per_group: (Numeric percent, only: String) -> void
+
+      # Make this criterion the report's primary (leading) criterion.
+      def primary: () -> void
+    end
+  end
+end
+
+# ----- configuration/filters -----
+
+# Inclusion / exclusion / grouping methods: `cover`, `skip`, `group`,
+# plus the deprecated `track_files` / `add_filter` / `add_group` aliases.
+module SimpleCov
+  module Configuration
+    attr_writer filters: Array[Filter[untyped]]
+
+    attr_writer groups: Hash[String, Filter[untyped]]
+
+    @cover_filters: Array[Filter[untyped]]?
+    @tracked_files: String?
+
+    # Restrict the report to files matching one or more shell globs,
+    # regexps, or block predicates. Multiple calls union. String globs
+    # are also expanded on disk so unloaded files appear at 0% coverage.
+    def cover: (*cover_arg args) ?{ (SourceFile source_file) -> boolish } -> Array[Filter[untyped]]
+
+    # The configured inclusion filters added via `cover`.
+    def cover_filters: () -> Array[Filter[untyped]]
+
+    # The string globs passed to `cover`, driving unloaded-file discovery.
+    def cover_globs: () -> Array[String]
+
+    # DEPRECATED: use `cover` instead.
+    def track_files: (String? glob) -> String?
+
+    def track_files_replacement_hint: (String? glob) -> String
+
+    # The glob used to include files that were not explicitly required.
+    def tracked_files: () -> String?
+
+    # The configured exclusion filters added via `skip` (or the
+    # deprecated `add_filter`).
+    def filters: () -> Array[Filter[untyped]]
+
+    # Drop matching files from the coverage report. The inverse of
+    # `cover`. Strings match at path-segment boundaries.
+    def skip: (?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Array[Filter[untyped]]
+
+    # DEPRECATED: use `skip` instead (same arguments, same behavior).
+    def add_filter: (?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Array[Filter[untyped]]
+
+    # Remove any filters whose `filter_argument` equals the given
+    # value. Returns true when at least one filter was removed.
+    def remove_filter: (untyped filter_argument) -> bool
+
+    # Remove every filter from the chain, including the defaults
+    # installed by `SimpleCov.start`.
+    def clear_filters: () -> Array[Filter[untyped]]
+
+    # The configured groups. Add groups using `group`.
+    def groups: () -> Hash[String, Filter[untyped]]
+
+    # Define a display group for files. Same matcher grammar as `skip`,
+    # but bins matches under `group_name` instead of dropping them.
+    def group: (String group_name, ?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
+
+    # DEPRECATED: use `group` instead (same arguments, same behavior).
+    def add_group: (String group_name, ?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
+
+    # Drop every previously installed filter (defaults included) so
+    # subsequent `skip` calls start from a clean slate.
+    def no_default_skips: () -> Array[Filter[untyped]]
+
+    private
+
+    def parse_filter: (?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
+
+    def build_cover_filter: (cover_arg arg) -> Filter[untyped]
+
+    def collect_cover_globs: (Array[Filter[untyped]] filter_list) -> Array[String]
+  end
+end
+
+# ----- configuration/formatting -----
+
+# Formatter selection (`formatter` / `formatters`), reporting toggles
+# (`print_errors`, `color`, `source_in_json`), and the deprecated
+# `# :nocov:` token hook.
+module SimpleCov
+  module Configuration
+    # A formatter is a Class whose instances respond to `format(result)`
+    # (including the anonymous Class built by `MultiFormatter.new`).
+    attr_writer formatter: Class?
+
+    attr_writer print_error_status: bool
+
+    @color: bool | :auto
+    @source_in_json: bool
+    @nocov_token: String
+
+    # Gets or sets the configured formatter. Pass `false` (or `nil`) to
+    # opt out of formatting entirely (see #964).
+    def formatter: (?(Class | false | :__no_arg__)? formatter) -> Class?
+
+    # Gets the formatter chain, or sets it. Accepts an Array, a single
+    # formatter, or nil / `[]` to opt out of formatting entirely.
+    # Returns the passed value when setting.
+    def formatters: (?(Array[Class] | Class | :__no_arg__)? formatters) -> (Array[Class] | Class | nil)
+
+    # Sets the configured formatters (single formatters are wrapped;
+    # nil / `[]` opts out of formatting entirely).
+    def formatters=: ((Array[Class] | Class)? formatters) -> void
+
+    # Whether stderr diagnostics are colorized: `true`, `false`, or
+    # `:auto` (default — respects TTY, NO_COLOR, and FORCE_COLOR).
+    def color: (?(bool | :auto | :__no_arg__) value) -> (bool | :auto)
+
+    # Whether SimpleCov prints its own diagnostic warnings to stderr.
+    # Defaults to true.
+    def print_errors: (?(bool | :__no_arg__) value) -> bool
+
+    # Whether `coverage.json` embeds the full source text of every
+    # file. Defaults to true.
+    def source_in_json: (?(bool | :__no_arg__) value) -> bool
+
+    # DEPRECATED: use `print_errors` instead (same value).
+    def print_error_status: () -> bool
+
+    # DEPRECATED: use `# simplecov:disable` / `# simplecov:enable`
+    # directive comments instead of `# :nocov:` toggles.
+    def nocov_token: (?String? nocov_token) -> String
+
+    # DEPRECATED: alias for `nocov_token`.
+    alias skip_token nocov_token
+
+    def current_nocov_token: (?String? value) -> String
+  end
+end
+
+# ----- configuration/ignored_entries -----
+
+# Coverage-entry filters scoped to branch / method criteria. See
+# `ignore_branches` / `ignore_methods` and #1033 / #1046.
+module SimpleCov
+  module Configuration
+    # Branch types accepted by `ignore_branches`: implicit_else and
+    # eval_generated (%i[] literals infer as Array[Symbol]).
+    IGNORABLE_BRANCH_TYPES: Array[Symbol]
+
+    # Method types accepted by `ignore_methods`: eval_generated (%i[]
+    # literals infer as Array[Symbol]).
+    IGNORABLE_METHOD_TYPES: Array[Symbol]
+
+    @ignored_branches: Array[Symbol]?
+    @ignored_methods: Array[Symbol]?
+
+    # Opt out of synthetic branch entries. Variadic; multiple calls
+    # union. Recorded even when branch coverage is not (yet) enabled.
+    def ignore_branches: (*(:implicit_else | :eval_generated) types) -> Array[Symbol]
+
+    def ignored_branches: () -> Array[Symbol]
+
+    def ignored_branch?: (Symbol type) -> bool
+
+    # Opt out of synthetic method entries (currently `:eval_generated` only).
+    def ignore_methods: (*:eval_generated types) -> Array[Symbol]
+
+    def ignored_methods: () -> Array[Symbol]
+
+    def ignored_method?: (Symbol type) -> bool
+
+    private
+
+    def raise_if_branch_type_unsupported: (Symbol type) -> void
+
+    def raise_if_method_type_unsupported: (Symbol type) -> void
+  end
+end
+
+# ----- configuration/merging -----
+
+# Result merging and subprocess / parallel-test coordination:
+# `merging`, `merge_subprocesses`, `merge_timeout`, `finalize_merge`,
+# `parallel_tests`, `parallel_wait_timeout`.
+module SimpleCov
+  module Configuration
+    # `defined?`-guarded module state. Declared non-nil where every
+    # read is guarded, so readers don't have to refute a nil that
+    # cannot be observed.
+    @enable_for_subprocesses: bool
+    @parallel_tests: bool?
+    @use_merging: bool
+    @finalize_merge: bool
+    @finalize_merge_explicit: bool
+    @finalize_merge_inference_warned: bool
+    @merge_timeout: Integer?
+    @parallel_wait_timeout: Integer?
+
+    # Get or set whether SimpleCov hooks `Process._fork` to attach
+    # itself to subprocesses (e.g. Rails' `parallelize(workers:)`).
+    # Defaults to false.
+    def merge_subprocesses: (?bool? value) -> bool
+
+    def enabled_for_subprocesses?: () -> bool
+
+    # Get or set whether SimpleCov auto-requires the `parallel_tests`
+    # gem when it sees its environment variables. nil (the default)
+    # means auto-detect. See #1018.
+    def parallel_tests: (?(:__no_arg__ | bool)? value) -> bool?
+
+    # DEPRECATED: use `merge_subprocesses` instead (same value).
+    def enable_for_subprocesses: (?bool? value) -> bool
+
+    # Get or set whether to merge results from multiple test suites
+    # into a single coverage report. Defaults to true.
+    def merging: (?bool? use) -> bool
+
+    # Get or set whether this process owns final merge processing:
+    # waiting for sibling workers, merging, formatting, enforcing
+    # thresholds, and writing `.last_run.json`. Defaults to true except
+    # for recognized multi-worker parallel runs writing to a custom
+    # coverage destination (those likely finalize via an external
+    # `SimpleCov.collate` step). See #1215.
+    def finalize_merge: (?(:__no_arg__ | bool) value) -> bool
+
+    def finalize_merge?: () -> bool
+
+    def merge_finalization_owner?: () -> boolish
+
+    # DEPRECATED: use `merging` instead (same value, same behavior).
+    # Returns nil when merging had already been disabled.
+    def use_merging: (?bool? use) -> bool?
+
+    # The maximum age (in seconds) of a resultset to still be included
+    # in merged results. Defaults to 600.
+    def merge_timeout: (?Integer? seconds) -> Integer
+
+    # How long (in seconds) the reporting process waits for remaining
+    # parallel-test workers to write their resultsets before it
+    # proceeds with a partial merge. Defaults to 60. See #1171.
+    def parallel_wait_timeout: (?Integer? seconds) -> Integer
+
+    private
+
+    def inferred_finalize_merge?: () -> bool
+
+    def parallel_worker_environment?: () -> bool
+
+    def explicit_custom_coverage_destination?: () -> bool
+
+    def explicit_coverage_destination?: () -> boolish
+
+    def warn_about_inferred_finalize_merge: () -> void
+
+    def inferred_finalize_merge_warning: () -> String
+
+    # Host contract: defined on SimpleCov itself (result_processing.rb).
+    # This module is only ever extended onto SimpleCov, where the
+    # method is available to `merge_finalization_owner?`.
+    def collating_result?: () -> boolish
+  end
+end
+
+# ----- configuration/thresholds -----
+
+# Coverage threshold configuration: `minimum_coverage`,
+# `maximum_coverage`, `expected_coverage`, `maximum_coverage_drop`,
+# `refuse_coverage_drop`, and the deprecated by-file / by-group forms.
+module SimpleCov
+  module Configuration
+    # Thresholds are stored per criterion; a bare Numeric argument is
+    # normalized to `{primary_coverage => value}`. Keys are criterion
+    # symbols — Symbol rather than the `criterion` alias because the
+    # stores also carry `:oneshot_line`, and the validating setters are
+    # the layer that rejects unknown symbols (with ConfigurationError).
+    type coverage_thresholds = Hash[Symbol, Numeric]
+
+    @minimum_coverage: coverage_thresholds?
+    @maximum_coverage: coverage_thresholds?
+    @maximum_coverage_drop: coverage_thresholds?
+    @minimum_coverage_by_file: coverage_thresholds?
+    @minimum_coverage_by_file_overrides: Hash[String | Regexp, coverage_thresholds]?
+    @minimum_coverage_by_group: Hash[String, coverage_thresholds]?
+
+    # The minimum overall coverage required for the suite to pass.
+    # Default: none (0%, disabled).
+    def minimum_coverage: (?(Numeric | coverage_thresholds)? coverage) -> coverage_thresholds
+
+    def raise_on_invalid_coverage: (coverage_thresholds coverage, String coverage_setting) -> void
+
+    # The maximum overall coverage allowed — an unexpected jump above
+    # it fails the build. Pair with `minimum_coverage` (or use
+    # `expected_coverage`) to pin coverage. See #187.
+    def maximum_coverage: (?(Numeric | coverage_thresholds)? coverage) -> coverage_thresholds
+
+    # Pin the suite to an exact figure: sets both `minimum_coverage`
+    # and `maximum_coverage`. See #187.
+    def expected_coverage: (?(Numeric | coverage_thresholds)? coverage) -> coverage_thresholds
+
+    # The maximum coverage drop between runs allowed for the suite to
+    # pass. Default: none (100%, disabled).
+    def maximum_coverage_drop: (?(Numeric | coverage_thresholds)? coverage_drop) -> coverage_thresholds
+
+    # DEPRECATED: use `coverage(criterion) { minimum_per_file ... }`.
+    # Symbol keys declare per-criterion defaults; String / Regexp keys
+    # declare per-path overrides.
+    def minimum_coverage_by_file: () -> coverage_thresholds
+                                | ((Numeric | Hash[Symbol | String | Regexp, Numeric | coverage_thresholds]) coverage) -> Hash[String | Regexp, coverage_thresholds]
+
+    # The per-path overrides set via `minimum_coverage_by_file` (or
+    # `coverage(criterion) { minimum_per_file N, only: ... }`).
+    def minimum_coverage_by_file_overrides: () -> Hash[String | Regexp, coverage_thresholds]
+
+    # DEPRECATED: use `coverage(criterion) { minimum_per_group ... }`.
+    def minimum_coverage_by_group: () -> Hash[String, coverage_thresholds]
+                                 | (Hash[String, Numeric | coverage_thresholds] coverage) -> Hash[String, coverage_thresholds]
+
+    # Refuse any coverage drop for the given criteria (all enabled
+    # criteria when none are given). Coverage may only increase.
+    def refuse_coverage_drop: (*(criterion | :oneshot_line) criteria) -> coverage_thresholds
+
+    private
+
+    def partition_per_file_thresholds: (Hash[Symbol | String | Regexp, Numeric | coverage_thresholds] coverage) -> [coverage_thresholds, Hash[String | Regexp, coverage_thresholds]]
+
+    def validate_per_file_key: ((Symbol | String | Regexp) key) -> void
+
+    def minimum_possible_coverage_exceeded: (String coverage_option) -> void
+
+    def per_file_coverage_replacement: (coverage_thresholds defaults, Hash[String | Regexp, coverage_thresholds] overrides) -> String
+
+    def per_group_coverage_replacement: (Hash[String, Numeric | coverage_thresholds] coverage) -> String
+
+    def render_coverage_blocks: (Hash[Symbol, Array[String]] by_criterion) -> String
+  end
+end
+
+# ----- result -----
+
+module SimpleCov
+  # A coverage result built from the Hash Ruby's Coverage library
+  # produces: filename => per-criterion coverage data.
+  class Result
+    extend Forwardable
+
+    attr_reader original_result: Hash[String, untyped]
+    attr_reader files: FileList
+    alias source_files files
+    # The writers accept the strict types; the ivars stay nilable because
+    # both default to nil and are lazily backfilled by the readers.
+    attr_writer created_at (): Time
+    attr_writer command_name (): String
+
+    @created_at: Time?
+    @command_name: String?
+    @groups_config: Hash[String, Filter[untyped]]
+    @groups: Hash[String, FileList]?
+
+    # Bundles filter and grouping configuration. Every field defaults to
+    # the SimpleCov singleton's configuration; tests pass a custom
+    # instance (e.g. `filters: []`) to opt out.
+    class FilterConfig
+      attr_reader filters: Array[Filter[untyped]]
+      attr_reader cover_filters: Array[Filter[untyped]]
+      attr_reader groups: Hash[String, Filter[untyped]]
+
+      def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
+    end
+
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?report: bool, ?filter_config: FilterConfig) -> void
+
+    def filenames: () -> Array[String]
+    # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
+    def source_file_for: (String path) -> SourceFile?
+    def coverage_for: (String path) -> Hash[criterion, CoverageStatistics]?
+    def groups: () -> Hash[String, FileList]
+    # Returns nil when formatting is opted out of (`formatter false` /
+    # `formatters []`); otherwise whatever the configured formatter returns.
+    def format!: () -> untyped
+    def created_at: () -> Time
+    def command_name: () -> String
+    def to_hash: () -> Hash[String, { "coverage" => Hash[String, untyped], "timestamp" => Integer }]
+    def self.from_hash: (Hash[String, untyped] hash) -> Array[Result]
+
+    # Delegated to #files (see FileList).
+    def covered_percent: (?criterion) -> Float?
+    def covered_percentages: () -> Array[Float?]
+    def least_covered_file: () -> String
+    def covered_strength: (?criterion) -> Float?
+    def covered_lines: () -> Integer?
+    def missed_lines: () -> Integer?
+    def total_branches: () -> Integer?
+    def covered_branches: () -> Integer?
+    def missed_branches: () -> Integer?
+    def total_methods: () -> Integer?
+    def covered_methods: () -> Integer?
+    def missed_methods: () -> Integer?
+    def coverage_statistics: () -> Hash[criterion, CoverageStatistics]
+                           | (criterion) -> CoverageStatistics?
+    def coverage_statistics_by_file: () -> Hash[criterion, Array[CoverageStatistics]]
+    def total_lines: () -> Integer?
+
+    private
+
+    def warn_about_missing_source_files: (Array[String] missing, Integer input_size) -> void
+    def coverage: () -> Hash[String, untyped]
+    def apply_filters!: (Array[Filter[untyped]] filters) -> void
+    def apply_cover_filters!: (Array[Filter[untyped]] cover_filters) -> void
+  end
+end
+
+# ----- file_list -----
+
+module SimpleCov
+  # An Enumerable of SourceFile instances with aggregate coverage
+  # helpers. Aggregate readers return nil when the corresponding
+  # criterion was not enabled for the run.
+  class FileList
+    include Enumerable[SimpleCov::SourceFile]
+    extend Forwardable
+
+    def initialize: (Array[SourceFile] files) -> void
+
+    @files: Array[SourceFile]
+    @coverage_statistics: Hash[criterion, CoverageStatistics]?
+    @coverage_statistics_by_file: Hash[criterion, Array[CoverageStatistics]]?
+
+    # Delegated to the underlying Array.
+    def each: () { (SourceFile) -> void } -> void
+            | () -> Enumerator[SourceFile, untyped]
+    def size: () -> Integer
+    def length: () -> Integer
+    def map: [U] () { (SourceFile) -> U } -> Array[U]
+    def count: () -> Integer
+             | (untyped) -> Integer
+             | () { (SourceFile) -> boolish } -> Integer
+    def empty?: () -> bool
+    def to_a: () -> Array[SourceFile]
+    def to_ary: () -> Array[SourceFile]
+
+    def coverage_statistics: () -> Hash[criterion, CoverageStatistics]
+                           | (criterion) -> CoverageStatistics?
+    def coverage_statistics_by_file: () -> Hash[criterion, Array[CoverageStatistics]]
+
+    def covered_lines: () -> Integer?
+    def missed_lines: () -> Integer?
+    # 0.0 when the list is empty, an Integer sum otherwise.
+    def never_lines: () -> (Integer | Float)
+    def skipped_lines: () -> (Integer | Float)
+    def covered_percentages: () -> Array[Float?]
+    def least_covered_file: () -> String
+    def lines_of_code: () -> Integer?
+    def covered_percent: (?criterion) -> Float?
+    def covered_strength: (?criterion) -> Float?
+
+    def total_branches: () -> Integer?
+    def covered_branches: () -> Integer?
+    def missed_branches: () -> Integer?
+    def branch_covered_percent: () -> Float?
+
+    def total_methods: () -> Integer?
+    def covered_methods: () -> Integer?
+    def missed_methods: () -> Integer?
+    def method_covered_percent: () -> Float?
+
+    private
+
+    def compute_coverage_statistics_by_file: () -> Hash[criterion, Array[CoverageStatistics]]
+    def compute_coverage_statistics: () -> Hash[criterion, CoverageStatistics]
+    def enabled_criteria_for_reporting: () -> Array[criterion]
+  end
+end
+
+# ----- source_file -----
+
+module SimpleCov
+  # A source file with its coverage data, source lines, and helpers to
+  # interpret that data.
+  class SourceFile
+    include BuilderContext
+
+    # Full absolute path to the file.
+    attr_reader filename: String
+    # Coverage.result-shaped data for this file, e.g.
+    # {"lines" => [...], "branches" => {...}, "methods" => {...}}.
+    attr_reader coverage_data: Hash[String, untyped]
+
+    def initialize: (String filename, Hash[String, untyped] coverage_data, ?loaded: bool) -> void
+
+    # Memoization backing for the lazy readers below.
+    @loaded: bool
+    @src: Array[String]?
+    @coverage_statistics: Hash[criterion, CoverageStatistics]?
+    @lines: Array[Line]?
+    @covered_lines: Array[Line]?
+    @missed_lines: Array[Line]?
+    @never_lines: Array[Line]?
+    @skipped_lines: Array[Line]?
+    @branches: Array[Branch]?
+    @total_branches: Array[Branch]?
+    @branches_report: Hash[Integer, Array[[ Symbol, Integer ]]]?
+    @covered_branches: Array[Branch]?
+    @missed_branches: Array[Branch]?
+    @methods: Array[Method]?
+    @covered_methods: Array[Method]?
+    @missed_methods: Array[Method]?
+
+    # Project-relative path with no leading separator (e.g. "lib/foo.rb").
+    def project_filename: () -> String
+    # Source lines, read lazily.
+    def src: () -> Array[String]
+    alias source src
+
+    # With no argument returns a Hash keyed by every supported criterion
+    # (disabled criteria collapse to 0/0/0); pass a criterion to get that
+    # one CoverageStatistics.
+    def coverage_statistics: () -> Hash[criterion, CoverageStatistics]
+                           | (criterion) -> CoverageStatistics?
+
+    def lines: () -> Array[Line]
+    alias source_lines lines
+    def covered_lines: () -> Array[Line]
+    def missed_lines: () -> Array[Line]
+    def never_lines: () -> Array[Line]
+    def skipped_lines: () -> Array[Line]
+    def lines_of_code: () -> Integer
+    # 1-based line lookup.
+    def line: (Integer number) -> Line?
+    def covered_percent: (?criterion) -> Float?
+    def covered_strength: (?criterion) -> Float?
+    def no_lines?: () -> bool
+    def relevant_lines: () -> Integer
+
+    def branches: () -> Array[Branch]
+    def no_branches?: () -> bool
+    # DEPRECATED: use `covered_percent(:branch)`.
+    def branches_coverage_percent: () -> Float?
+    # All relevant (covered + missed) branches, not a count.
+    def total_branches: () -> Array[Branch]
+    # line number => Array of [branch type, hit count] pairs.
+    def branches_report: () -> Hash[Integer, Array[[ Symbol, Integer ]]]
+    def covered_branches: () -> Array[Branch]
+    def missed_branches: () -> Array[Branch]
+    def branches_for_line: (Integer line_number) -> Array[[ Symbol, Integer ]]
+    def line_with_missed_branch?: (Integer line_number) -> bool
+
+    def methods: () -> Array[Method]
+    def covered_methods: () -> Array[Method]
+    def missed_methods: () -> Array[Method]
+    # DEPRECATED: use `covered_percent(:method)`.
+    def methods_coverage_percent: () -> Float?
+
+    # Whether this file was added via `cover` / `track_files` but never
+    # loaded during the run.
+    def not_loaded?: () -> bool
+  end
+end
+
+# ----- source_file/line -----
+
+module SimpleCov
+  class SourceFile
+    # A single source line with its coverage: nil (not relevant, e.g. a
+    # comment), 0 (missed), or >= 1 (times executed).
+    class Line
+      attr_reader src: String
+      attr_reader line_number: Integer
+      attr_reader coverage: Integer?
+      attr_reader skipped: bool
+
+      alias source src
+      alias line line_number
+      alias number line_number
+
+      # Raises ArgumentError unless src is a String, line_number an
+      # Integer, and coverage an Integer or nil.
+      def initialize: (String src, Integer line_number, Integer? coverage) -> void
+
+      def missed?: () -> bool
+      def covered?: () -> bool
+      def never?: () -> bool
+      def skipped!: () -> void
+      def skipped?: () -> bool
+      # "covered", "missed", "skipped", or "never" — useful e.g. as a css class.
+      def status: () -> String?
+    end
+  end
+end
+
+# ----- source_file/branch -----
+
+module SimpleCov
+  class SourceFile
+    # A single branch detected in the coverage data.
+    class Branch
+      attr_reader start_line: Integer
+      attr_reader end_line: Integer
+      attr_reader coverage: Integer
+      # Branch arm type as reported by Coverage (:then, :else, :when, ...).
+      attr_reader type: Symbol
+
+      @inline: bool
+      @skipped: bool
+
+      def initialize: (start_line: Integer, end_line: Integer, coverage: Integer, inline: bool, type: Symbol) -> void
+
+      def inline?: () -> bool
+      def covered?: () -> bool
+      def missed?: () -> bool
+      # The line the branch is reported on: its own start line when
+      # inline, otherwise the line above (the if/else itself).
+      def report_line: () -> Integer
+      def skipped!: () -> void
+      def skipped?: () -> bool
+      def overlaps_with?: (Range[Integer] line_range) -> bool
+      # [branch type, hit count]
+      def report: () -> [ Symbol, Integer ]
+    end
+  end
+end
+
+# ----- source_file/method -----
+
+module SimpleCov
+  class SourceFile
+    # A single method detected in the coverage data.
+    class Method
+      attr_reader source_file: SourceFile
+      attr_reader coverage: Integer
+      # A Module when the data comes straight from Coverage, a String
+      # after a JSON round-trip through a resultset.
+      attr_reader class_name: Module | String
+      attr_reader method_name: Symbol | String
+      attr_reader start_line: Integer?
+      attr_reader start_col: Integer?
+      attr_reader end_line: Integer?
+      attr_reader end_col: Integer?
+
+      @skipped: bool
+      @lines: Array[Line]?
+
+      # info is the Coverage method key minus its class entry:
+      # [class_name, method_name, start_line, start_col, end_line, end_col].
+      def initialize: (SourceFile source_file, [ Module | String, Symbol | String, Integer?, Integer?, Integer?, Integer? ] info, Integer coverage) -> void
+
+      def covered?: () -> bool
+      def skipped?: () -> bool
+      def skipped!: () -> void
+      def missed?: () -> bool
+      # The source lines spanned by this method ([] when the location is unknown).
+      def lines: () -> Array[Line]
+      def overlaps_with?: (Range[Integer] line_range) -> bool
+      def to_s: () -> String
+    end
+  end
+end
+
+# ----- source_file/statistics -----
+
+module SimpleCov
+  class SourceFile
+    # Builds the CoverageStatistics triple (:line/:branch/:method) for a
+    # SourceFile; disabled or empty criteria collapse to 0/0/0.
+    class Statistics
+      @source_file: SourceFile
+
+      def initialize: (SourceFile source_file) -> void
+
+      def call: () -> Hash[criterion, CoverageStatistics]
+
+      private
+
+      def line_statistics: () -> Hash[criterion, CoverageStatistics]
+
+      def branch_statistics: () -> Hash[criterion, CoverageStatistics]
+
+      def method_statistics: () -> Hash[criterion, CoverageStatistics]
+    end
+  end
+end
+
+# ----- source_file/builder_context -----
+
+module SimpleCov
+  class SourceFile
+    # Helpers shared by the per-criterion builders (LineBuilder /
+    # BranchBuilder / MethodBuilder). Mixed into SourceFile so each
+    # builder can ask the file for its skip-chunk ranges and Prism-derived
+    # real source positions without duplicating the memoization.
+    module BuilderContext
+      # Positions extracted from the parsed source: branch start lines,
+      # and [method name, line] pairs. Method names are Symbols from
+      # runtime data and Strings after a JSON round-trip.
+      type real_positions = { branches: Set[Integer], methods: Set[[untyped, Integer]] }
+
+      @skip_chunks: SkipChunks?
+      @real_source_positions: real_positions?
+
+      # Skip-chunk lookup for the named criterion (`:line`, `:branch`,
+      # `:method`).
+      def skip_chunks_for: (criterion) -> Array[Range[Integer]]
+
+      # Memoized set of real source positions extracted via Prism. Returns
+      # nil when Prism is unavailable or parsing fails, signaling callers
+      # to keep every Coverage entry (no false drops). The `defined?`
+      # guard preserves a nil memoization across calls.
+      def real_source_positions: () -> real_positions?
+
+      # Provided by the including class (SourceFile).
+      def filename: () -> String
+      def src: () -> Array[String]
+    end
+  end
+end
+
+# ----- coverage_statistics -----
+
+module SimpleCov
+  # Uniform per-criterion coverage statistics. Counts are Integers;
+  # percent and strength are Floats. `percent` is 100.0 whenever nothing
+  # was missed, including the 0-of-0 case; `strength` is 0.0 when there
+  # is nothing to cover.
+  class CoverageStatistics
+    # Seed for the reduce in .from: covered, missed, omitted, strength.
+    ZERO_STATS: [Integer, Integer, Integer, Float]
+
+    attr_reader total: Integer
+    attr_reader covered: Integer
+    attr_reader missed: Integer
+    attr_reader omitted: Integer
+    attr_reader strength: Float
+    attr_reader percent: Float
+
+    def self.from: (Array[CoverageStatistics] coverage_statistics) -> CoverageStatistics
+
+    # `percent:` overrides the computed percentage (used to report 0%
+    # for tracked-but-never-loaded files).
+    def initialize: (covered: Integer, missed: Integer, ?omitted: Integer, ?total_strength: Integer | Float, ?percent: Float?) -> void
+
+    private
+
+    def compute_percent: (Integer covered, Integer missed, Integer total) -> Float
+    def compute_strength: (Integer | Float total_strength, Integer total) -> Float
+  end
+end
+
+# ----- last_run -----
+
+module SimpleCov
+  # Reads and writes coverage/.last_run.json — the previous run's
+  # coverage percentages used by MaximumCoverageDropCheck.
+  module LastRun
+    def self.last_run_path: () -> String
+
+    # nil when the file does not exist or is blank. Keys are symbolized.
+    def self.read: () -> Hash[Symbol, untyped]?
+
+    def self.write: (Hash[Symbol, untyped] json) -> void
+  end
+end
+
+# ----- filter -----
+
+module SimpleCov
+  # Base filter class. Inherit and override `matches?` to create custom
+  # filters. `T` is the type of the configured filter argument.
+  class Filter[T]
+    attr_reader filter_argument: T
+
+    def initialize: (T filter_argument) -> void
+
+    # The base implementation raises NotImplementedError.
+    def matches?: (SourceFile source_file) -> boolish
+
+    def self.build_filter: (filter_arg filter_argument) -> Filter[untyped]
+
+    def self.class_for_argument: (filter_arg filter_argument) -> singleton(Filter)
+
+    # Maps raw filter-argument classes (String, Regexp, Array, Proc) to
+    # the Filter subclass that handles them. Private class method.
+    self.@filter_classes_by_argument_type: Hash[Class, singleton(Filter)]?
+
+    def self.filter_classes_by_argument_type: () -> Hash[Class, singleton(Filter)]
+  end
+
+  # Matches when the project path contains the configured string at a
+  # path-segment boundary ("lib" matches "lib/foo.rb" but not "library/").
+  class StringFilter < Filter[String]
+    def matches?: (SourceFile source_file) -> bool
+
+    private
+
+    @segment_pattern: Regexp?
+
+    def segment_pattern: () -> Regexp
+
+    def compute_segment_pattern: () -> Regexp
+  end
+
+  # Matches when the project path matches the configured Regexp.
+  class RegexFilter < Filter[Regexp]
+    def matches?: (SourceFile source_file) -> bool
+  end
+
+  # Matches when the configured block returns truthy for the source file.
+  class BlockFilter < Filter[^(SourceFile) -> boolish]
+    def matches?: (SourceFile source_file) -> boolish
+  end
+
+  # Matches when the project path matches the configured shell glob
+  # (e.g. "lib/**/*.rb").
+  class GlobFilter < Filter[String]
+    def matches?: (SourceFile source_file) -> bool
+  end
+
+  # Matches when any of the component filters built from the array's
+  # elements match. Note: `filter_argument` holds the built Filter
+  # objects, not the raw array passed to `new`.
+  class ArrayFilter < Filter[Array[Filter[untyped]]]
+    def initialize: (Array[filter_arg] filter_argument) -> void
+
+    def matches?: (SourceFile source_file) -> boolish
+  end
+end
+
+# ----- formatter -----
+
+module SimpleCov
+  # Namespace for result formatters. A formatter is any class whose
+  # instances respond to `#format(result)` and that can be instantiated
+  # with no arguments; wire one up via `SimpleCov.formatter=` or
+  # `SimpleCov.formatters=`.
+  module Formatter
+    # Structural interface for custom formatter instances.
+    interface _Formatter
+      def format: (SimpleCov::Result result) -> untyped
+    end
+  end
+end
+
+# ----- formatter/base -----
+
+module SimpleCov
+  module Formatter
+    # @api private — shared scaffolding for formatters that write a
+    # report to an output directory and emit the "Coverage report
+    # generated for X to Y" status line on stderr. Subclasses implement
+    # `format`.
+    class Base
+      @silent: bool
+      @output_dir: String?
+
+      # `output_dir` defaults to `SimpleCov.coverage_path` when nil.
+      def initialize: (?silent: bool, ?output_dir: String?) -> void
+
+      private
+
+      # Subclasses prepend a marker (e.g. "JSON ") to the summary line.
+      def message_prefix: () -> String
+
+      def output_path: () -> String
+
+      # Directory (relative to cwd when inside it) plus the subclass's
+      # `entry_point_filename`, for the status line. See issue #197.
+      def displayable_output_path: () -> String
+
+      def relative_or_absolute_output_path: () -> String
+
+      # Subclasses name the report's entry-point file (`index.html`,
+      # `coverage.json`); nil leaves the bare directory in the status line.
+      def entry_point_filename: () -> String?
+
+      def output_message: (SimpleCov::Result result) -> String
+
+      # nil for branch/method criteria with nothing to measure, so the
+      # summary doesn't print "Branch coverage: 0 / 0 (100.00%)" noise.
+      def stats_line: (Symbol criterion, SimpleCov::CoverageStatistics stat) -> String?
+    end
+  end
+end
+
+# ----- formatter/simple_formatter -----
+
+module SimpleCov
+  module Formatter
+    # Renders the result as a plain-text string, one section per group.
+    # Returns the string; does not write anything to disk.
+    class SimpleFormatter
+      def format: (SimpleCov::Result result) -> String
+
+      private
+
+      def format_group: (String name, SimpleCov::FileList files) -> String
+    end
+  end
+end
+
+# ----- formatter/multi_formatter -----
+
+module SimpleCov
+  module Formatter
+    # Wraps multiple formatters so one configured formatter can drive
+    # several output formats (HTML + JSON, etc.) in a single run.
+    class MultiFormatter
+      # Shared `#format` implementation, included into the anonymous
+      # classes that `MultiFormatter.new` builds. Formatter errors are
+      # rescued and mapped to nil, so the result array can hold nils.
+      module InstanceMethods
+        def format: (SimpleCov::Result result) -> Array[untyped]
+
+        # Defined via `define_method` on each class `MultiFormatter.new`
+        # builds; declared here so users of those classes type-check.
+        def formatters: () -> Array[untyped]
+      end
+
+      # Returns a newly built Class (not a MultiFormatter instance) whose
+      # instances respond to `#format` and `#formatters`. The argument is
+      # normalized with `Array()`: a single formatter, an array of
+      # formatters, or nil are all accepted.
+      def self.new: (?untyped formatters) -> Class
+    end
+  end
+end
+
+# ----- formatter/html_formatter -----
+
+module SimpleCov
+  module Formatter
+    # Writes the HTML report: coverage_data.js plus pre-compiled static
+    # assets, and coverage.json as a side artifact (shared serialization
+    # via JSONFormatter.build_hash).
+    class HTMLFormatter < Base
+      DATA_FILENAME: "coverage_data.js"
+
+      def format: (SimpleCov::Result result) -> void
+
+      # Generate HTML from a pre-existing coverage.json file without a
+      # live SimpleCov::Result or a running test suite.
+      def format_from_json: (String json_path, String output_dir) -> void
+
+      private
+
+      def entry_point_filename: () -> String
+
+      def copy_static_assets: (?String dest_dir) -> void
+
+      # Write via temp file + File.rename so parallel writers can't race
+      # and read-only existing assets are replaced without EACCES.
+      def atomic_write: (String dest, String content) -> void
+
+      def public_dir: () -> String
+    end
+  end
+end
+
+# ----- formatter/json_formatter -----
+
+module SimpleCov
+  module Formatter
+    # Writes coverage results as JSON to coverage/coverage.json.
+    class JSONFormatter < Base
+      FILENAME: "coverage.json"
+
+      # The hash serialized to coverage.json ($schema, meta, total,
+      # coverage, groups, errors). `include_source:` defaults to
+      # `SimpleCov.source_in_json`; pass true to force the per-file
+      # source arrays regardless of the global setting.
+      def self.build_hash: (SimpleCov::Result result, ?include_source: bool) -> Hash[Symbol, untyped]
+
+      def format: (SimpleCov::Result result) -> void
+
+      private
+
+      def message_prefix: () -> String
+
+      def entry_point_filename: () -> String
+
+      # Warns when an existing coverage.json is newer than this process's
+      # start time (a concurrent sibling writer). See issue #1171.
+      def warn_if_concurrent_overwrite: (String path, SimpleCov::Result result) -> void
+
+      # timestamp stays untyped (not Time) so the comparison sites don't
+      # require the stdlib `time` extension sigs; the value is produced by
+      # Time.iso8601 at runtime.
+      def existing_meta: (String path) -> ({ timestamp: untyped, command_name: untyped })?
+    end
+  end
+end
+
+# ----- exit_codes -----
+
+module SimpleCov
+  # Exit codes SimpleCov uses when a coverage check fails.
+  module ExitCodes
+    SUCCESS: 0
+
+    EXCEPTION: 1
+
+    MINIMUM_COVERAGE: 2
+
+    MAXIMUM_COVERAGE_DROP: 3
+
+    MAXIMUM_COVERAGE: 4
+  end
+end
+
+# ----- exit_codes/exit_code_handling -----
+
+module SimpleCov
+  module ExitCodes
+    # The threshold-limit readers ExitCodeHandling consults. Satisfied by
+    # SimpleCov's own configuration, or by any object exposing the same
+    # readers (see the dogfood check in spec/helper.rb for an example
+    # built from a plain Data class).
+    interface _CoverageLimits
+      def minimum_coverage: () -> Hash[Symbol, Numeric]
+
+      def minimum_coverage_by_file: () -> Hash[Symbol, Numeric]
+
+      def minimum_coverage_by_file_overrides: () -> untyped
+
+      def minimum_coverage_by_group: () -> untyped
+
+      def maximum_coverage: () -> Hash[Symbol, Numeric]
+
+      def maximum_coverage_drop: () -> Hash[Symbol, Numeric]
+    end
+
+    # Runs every coverage check against the result and returns the exit
+    # code of the first failing one, or SUCCESS when all pass.
+    module ExitCodeHandling
+      def self?.call: (SimpleCov::Result result, coverage_limits: _CoverageLimits) -> Integer
+
+      def self?.coverage_checks: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> Array[untyped]
+    end
+  end
+end
+
+# ----- profiles -----
+
+module SimpleCov
+  # Registry of named configuration procs, loadable via
+  # `SimpleCov.start :rails` and definable via
+  # `SimpleCov.profiles.define(:foo) { ... }`. The stored blocks are
+  # evaluated through `SimpleCov.configure`, so they self-bind to the
+  # configuration DSL.
+  # A stored profile block. The self-type is untyped because the block
+  # is written against the configuration DSL but stored as a plain Proc;
+  # it self-binds when SimpleCov.configure evaluates it.
+  type profile_proc = ^() [self: untyped] -> void
+
+  class Profiles < Hash[Symbol, profile_proc]
+    # Raises SimpleCov::ConfigurationError when the name is taken.
+    # The block runs via instance_exec against the SimpleCov module itself
+    # (which extends Configuration), not a Configuration instance.
+    def define: (Symbol | String name) { () [self: singleton(SimpleCov)] -> void } -> profile_proc
+
+    # Applies the named profile via SimpleCov.configure.
+    def load: (Symbol | String name) -> void
+
+    # Returns the proc for the given profile name, autoloading bundled
+    # ("simplecov/profiles/<name>") or plugin-gem
+    # ("simplecov-profile-<name>") profiles on first lookup. Raises
+    # SimpleCov::ConfigurationError when none is found.
+    def fetch_proc: (Symbol | String name) -> profile_proc
+
+    private
+
+    # Tries `require "simplecov/profiles/<name>"`, then
+    # `require "simplecov-profile-<name>"`; swallows LoadError so
+    # fetch_proc raises the user-facing error.
+    def autoload_profile: (Symbol name) -> void
+  end
+end
+
+# ----- parallel_adapters -----
+
+module SimpleCov
+  # Registry + selection for parallel-test-runner adapters. An adapter is
+  # a class (used as a singleton, never instantiated) answering the
+  # `_Adapter` contract; subclass `ParallelAdapters::Base` to inherit
+  # no-op defaults. Register custom adapters via
+  # `SimpleCov::ParallelAdapters.register MyRunnerAdapter`.
+  module ParallelAdapters
+    # The class-level contract an adapter must answer. `singleton(Base)`
+    # and its subclasses satisfy this structurally.
+    interface _Adapter
+      def active?: () -> boolish
+
+      def first_worker?: () -> bool
+
+      def wait_for_siblings: () -> void
+
+      def native_wait?: () -> boolish
+
+      def expected_worker_count: () -> Integer
+    end
+
+    # Registry state. Declared on both the instance and singleton sides
+    # because `module_function` bodies type-check as instance methods
+    # while runtime state lives on the module itself.
+    @adapters: Array[_Adapter]?
+
+    self.@adapters: Array[_Adapter]?
+
+    # Memoized current adapter. Distinguishes "not yet computed" (ivar
+    # undefined) from "computed, no adapter active" (nil), hence the
+    # `defined?` guard in the implementation.
+    @current: _Adapter?
+
+    self.@current: _Adapter?
+
+    # Adapters in selection order: user-registered adapters first, then
+    # ParallelTestsAdapter, then GenericAdapter.
+    def self?.adapters: () -> Array[_Adapter]
+
+    # Registers a custom adapter at the front of the selection list and
+    # returns it. Clears the memoized `current` selection.
+    def self?.register: (_Adapter adapter) -> _Adapter
+
+    # The first registered adapter whose `active?` returns true, or nil
+    # when no recognized parallel runner is active (single-worker run).
+    def self?.current: () -> _Adapter?
+
+    # Clears the memoized `current` selection (primarily for tests that
+    # mutate env vars between examples).
+    def self?.reset_current!: () -> void
+  end
+end
+
+# ----- parallel_adapters/base -----
+
+module SimpleCov
+  module ParallelAdapters
+    # No-op defaults for a parallel-test-runner adapter: behave like a
+    # single-process run. Real adapters subclass and override what they
+    # need. The contract methods are class methods; adapters are never
+    # instantiated.
+    class Base
+      # Should this adapter be selected for the current process? The
+      # first registered adapter whose `active?` returns truthy wins.
+      def self.active?: () -> boolish
+
+      # Should THIS worker do the final-result work (wait for siblings,
+      # merge resultsets, run threshold checks, format the report)?
+      # Defaults to true for the single-process case.
+      def self.first_worker?: () -> bool
+
+      # Optional: block until sibling workers have finished writing
+      # their resultsets. The no-op default leaves synchronization to
+      # SimpleCov's resultset polling fallback.
+      def self.wait_for_siblings: () -> void
+
+      # Does `wait_for_siblings` block until every sibling process has
+      # exited? When true, a settled resultset count below
+      # `expected_worker_count` is accepted as final.
+      def self.native_wait?: () -> boolish
+
+      # How many parallel workers participate in this run. Defaults to 1.
+      def self.expected_worker_count: () -> Integer
+    end
+  end
+end
+
+# ----- parallel_adapters/generic -----
+
+module SimpleCov
+  module ParallelAdapters
+    # Catch-all adapter for runners that follow the `TEST_ENV_NUMBER` /
+    # `PARALLEL_TEST_GROUPS` env-var convention without shipping a Ruby
+    # API (parallel_rspec, knapsack-style splitters, custom CI sharding).
+    # Activates when `TEST_ENV_NUMBER` is set, unless
+    # `SimpleCov.parallel_tests false` opted out.
+    class GenericAdapter < Base
+      def self.active?: () -> bool
+
+      # First worker is TEST_ENV_NUMBER "" (parallel_tests convention)
+      # or "1" (runners that number from 1).
+      def self.first_worker?: () -> bool
+
+      def self.expected_worker_count: () -> Integer
+    end
+  end
+end
+
+# ----- parallel_adapters/parallel_tests -----
+
+module SimpleCov
+  module ParallelAdapters
+    # Adapter for grosser/parallel_tests. Requires the full native
+    # coordination contract (ParallelTests constant loaded,
+    # TEST_ENV_NUMBER and PARALLEL_PID_FILE set); env-var-only setups
+    # fall through to GenericAdapter.
+    class ParallelTestsAdapter < Base
+      def self.active?: () -> bool
+
+      # Delegates to ParallelTests.first_process? (the first started
+      # process does the final-result work; see issue #922).
+      def self.first_worker?: () -> bool
+
+      # Uses ParallelTests.wait_for_other_processes_to_finish when the
+      # pid-file contract is present.
+      def self.wait_for_siblings: () -> void
+
+      def self.native_wait?: () -> bool
+
+      def self.expected_worker_count: () -> Integer
+
+      # Auto-requires parallel_tests when installed and the env vars it
+      # sets are present; a missing gem is treated as "not using
+      # parallel_tests" (see issue #1018).
+      def self.ensure_loaded: () -> void
+
+      def self.env_suggests_parallel_tests?: () -> bool
+
+      def self.native_parallel_tests_environment?: () -> bool
+    end
+  end
+end
+
+# ----- deprecation -----
+
+module SimpleCov
+  # Emits legacy-API deprecation warnings, deduplicated by the source
+  # location that triggered them (see issue #1204).
+  module Deprecation
+    # Warns about a deprecated API at most once per call-site location.
+    # `message` is the notice without the `[DEPRECATION]` tag or location
+    # prefix; `location` defaults to the caller of the deprecated method.
+    def self?.warn: (String message, ?location: String?) -> void
+
+    # Dedup keys (locations, or messages when no backtrace is available)
+    # already emitted by this process. Declared on both the instance and
+    # singleton sides because `module_function` bodies type-check as
+    # instance methods while runtime state lives on the module itself.
+    @emitted: Set[String]?
+
+    self.@emitted: Set[String]?
+
+    def self?.emitted: () -> Set[String]
+
+    # @api private — reset emitted state between tests.
+    def self?.reset!: () -> void
+  end
+end

@@ -1,0 +1,31 @@
+module SimpleCov
+  class Result
+    # When a resultset references source files that don't exist on the local
+    # filesystem they're silently dropped — which produces an empty `0 / 0
+    # (100.00%)` report that looks like success but isn't. Emit a single
+    # warning summarizing the drop and, when every entry was lost, point at
+    # the typical cause (`SimpleCov.collate` invoked from a machine or path
+    # different from where the resultsets were generated). See #980.
+    class MissingSourceFilesReporter
+      @missing_paths: untyped
+
+      @input_size: untyped
+
+      @every_entry_dropped: untyped
+
+      def initialize: (untyped missing_paths, input_size: untyped, every_entry_dropped: untyped) -> void
+
+      def warn!: () -> untyped
+
+      def message: () -> untyped
+
+      private
+
+      def all_missing_warning: () -> ::String
+
+      def partial_missing_warning: () -> ::String
+
+      def summary: () -> untyped
+    end
+  end
+end

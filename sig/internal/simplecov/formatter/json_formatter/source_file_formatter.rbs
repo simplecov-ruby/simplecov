@@ -1,0 +1,41 @@
+module SimpleCov
+  module Formatter
+    class JSONFormatter
+      # Renders a single `SimpleCov::SourceFile` as the per-file payload
+      # in coverage.json: source code plus per-enabled-criterion arrays
+      # and totals.
+      class SourceFileFormatter
+        @source_file: untyped
+
+        @include_source: untyped
+
+        def initialize: (untyped source_file, ?include_source: bool) -> void
+
+        def call: () -> untyped
+
+        private
+
+        # `:oneshot_line` is a synonym for `:line` for stats purposes
+        # (see `SimpleCov.coverage_statistics_key`), so treat either as
+        # "line coverage is on" for the line-block emit decisions.
+        def line_coverage_enabled?: () -> untyped
+
+        def format_source_code: () -> { source: untyped }
+
+        def ensure_utf8: (untyped str) -> untyped
+
+        def line_coverage_section: () -> { lines: untyped, lines_covered_percent: untyped, covered_lines: untyped, missed_lines: untyped, omitted_lines: untyped, total_lines: untyped }
+
+        def branch_coverage_section: () -> { branches: untyped, branches_covered_percent: untyped, covered_branches: untyped, missed_branches: untyped, total_branches: untyped }
+
+        def method_coverage_section: () -> { methods: untyped, methods_covered_percent: untyped, covered_methods: untyped, missed_methods: untyped, total_methods: untyped }
+
+        def format_line: (untyped line) -> ("ignored" | untyped)
+
+        def format_branch: (untyped branch) -> { type: untyped, start_line: untyped, end_line: untyped, coverage: untyped, inline: untyped, report_line: untyped }
+
+        def format_method: (untyped method) -> { name: untyped, start_line: untyped, end_line: untyped, coverage: untyped }
+      end
+    end
+  end
+end

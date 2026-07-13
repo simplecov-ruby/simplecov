@@ -1,0 +1,69 @@
+module SimpleCov
+  # Computes coverage threshold violations for a given result. Shared by
+  # the exit-code checks and the JSON formatter's `errors` section.
+  #
+  # Each method returns an array of violation hashes. All percents are
+  # rounded via `SimpleCov.round_coverage` so downstream consumers don't
+  # need to round again.
+  module CoverageViolations
+    # @return [Array<Hash>] {:criterion, :expected, :actual}
+    def self.minimum_overall: (untyped result, untyped thresholds) -> untyped
+
+    # @return [Array<Hash>] {:criterion, :expected, :actual}
+    # Tolerance: `percent_for` floors the actual percent to two decimal
+    # places (matching the existing minimum-coverage behavior), so an
+    # actual of e.g. 95.4287 is treated as 95.42 — meaning a maximum of
+    # 95.42 still passes. See issue #187 for the rationale.
+    def self.maximum_overall: (untyped result, untyped thresholds) -> untyped
+
+    # @return [Array<Hash>] {:criterion, :expected, :actual, :filename, :project_filename}
+    #
+    # `defaults` is the criterion-keyed Hash applied to every file.
+    # `overrides` is an ordered Hash<pattern, criterion_thresholds> of per-path
+    # overrides; for each file, defaults are merged with every matching override
+    # (later wins per criterion, overrides win over defaults).
+    def self.minimum_by_file: (untyped result, untyped defaults, ?::Hash[untyped, untyped] overrides) -> untyped
+
+    # @return [Array<Hash>] {:group_name, :criterion, :expected, :actual}
+    def self.minimum_by_group: (untyped result, untyped thresholds) -> ::Array[::Hash[::Symbol, untyped]]
+
+    # @return [Array<Hash>] {:criterion, :maximum, :actual} where `actual`
+    #   is the observed drop (in percentage points) vs. the last run.
+    def self.maximum_drop: (untyped result, untyped thresholds, ?last_run: untyped) -> (::Array[untyped] | untyped)
+
+    private
+
+    # Look up a criterion's percent on any coverage_statistics-bearing
+    # object (Result, SourceFile, FileList). Returns nil — and the
+    # caller silently skips — when the criterion was configured but not
+    # actually measured by the runtime (e.g. `minimum_coverage branch:
+    # 100` under the "strict" profile on JRuby, where the Coverage
+    # module doesn't emit branch data). The config-time
+    # `raise_if_criterion_disabled` check still catches the genuine
+    # "forgot to enable the criterion" mistake before we ever get here.
+    def self.percent_for: (untyped stats_source, untyped criterion) -> untyped
+
+    # Walk the overrides in declaration order, merging each one that matches
+    # the file's project path into the running effective threshold (so the
+    # most-specific or latest-declared override wins per criterion). Returns
+    # the defaults Hash unchanged when nothing matches.
+    def self.effective_per_file_thresholds: (untyped file, untyped defaults, untyped overrides) -> untyped
+
+    # Per-path matching for `minimum_coverage_by_file` overrides. Strings
+    # ending in `/` are treated as directory prefixes; otherwise they must
+    # match `project_filename` exactly. Regexps are tested via `match?`.
+    # The configuration setter rejects anything other than String/Regexp,
+    # so no dead `else` branch is needed here.
+    def self.path_matches?: (untyped project_filename, untyped pattern) -> untyped
+
+    def self.file_minimum_violation: (untyped file, untyped criterion, untyped expected) -> (nil | { criterion: untyped, expected: untyped, actual: untyped, filename: untyped, project_filename: untyped })
+
+    def self.group_minimum_violations: (untyped group_name, untyped group, untyped minimums) -> ::Array[::Hash[::Symbol, untyped]]
+
+    def self.lookup_group: (untyped result, untyped group_name) -> untyped
+
+    def self.compute_drop: (untyped criterion, untyped result, untyped last_run) -> (nil | untyped)
+
+    def self.round: (untyped percent) -> untyped
+  end
+end

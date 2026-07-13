@@ -1,0 +1,94 @@
+module SimpleCov
+  # Parses `# simplecov:disable` / `# simplecov:enable` directive comments.
+  #
+  # Two forms are supported:
+  #
+  # Block form (the directive is the entire comment on its own line) opens a
+  # region that runs until the matching `# simplecov:enable`:
+  #
+  #   # simplecov:disable line
+  #   ...
+  #   # simplecov:enable line
+  #
+  # Inline form (the directive trails real code on the same line) only affects
+  # that single line and does not need to be re-enabled:
+  #
+  #   raise "absurd" # simplecov:disable
+  #
+  # Categories are `:line`, `:branch`, and `:method`. They may be combined
+  # with commas. Omitting categories targets all three.
+  #
+  # Any text after the directive (and the optional category list) is treated
+  # as a free-form reason and discarded:
+  #
+  #   # simplecov:disable line not worth testing this glue
+  #
+  # As a consequence, an unrecognised category name silently falls into the
+  # reason bucket. `# simplecov:disable cyclomatic` is parsed as the bare
+  # form (disable everything) with reason "cyclomatic" — a deliberate
+  # over-disable so the typo is visible in the report rather than silently
+  # disabling nothing.
+  #
+  # Comment extraction goes through `Ripper.lex` so directive markers inside
+  # string literals or heredocs are correctly ignored.
+  class Directive
+    @line_number: untyped
+
+    @mode: untyped
+
+    @categories: untyped
+
+    @inline: untyped
+
+    CATEGORIES: ::Array[::Symbol]
+
+    CATEGORY_PATTERN: ::String
+
+    CATEGORIES_PATTERN: ::String
+
+    PATTERN: ::Regexp
+
+    attr_reader line_number: untyped
+
+    attr_reader mode: untyped
+
+    attr_reader categories: untyped
+
+    # Walk an array of source lines and return the disabled line ranges per
+    # category as `{ line: [Range, ...], branch: [...], method: [...] }`.
+    # An unclosed `disable` block extends to the end of the file.
+    def self.disabled_ranges: (untyped src_lines) -> untyped
+
+    # Extract every directive in the file, in source order. Comments inside
+    # string literals or heredocs are skipped because Ripper.lex doesn't tag
+    # them as :on_comment tokens.
+    def self.directives_in: (untyped lines) -> (::Array[untyped] | untyped)
+
+    # Cheap pre-check so we don't tokenize files that obviously can't contain
+    # a directive.
+    def self.source_might_contain_directive?: (untyped lines) -> untyped
+
+    def self.parse_comment: (untyped lines, untyped line_number, untyped column, untyped text) -> untyped
+
+    def self.parse_categories: (untyped text) -> untyped
+
+    # Whether the directive sits after non-whitespace content on its line.
+    # `column` is the byte column of the directive's `#` in the source line,
+    # adjusted for any prefix that may precede it within the comment token
+    # (e.g., `# prefix # simplecov:disable line`).
+    def self.inline?: (untyped lines, untyped line_number, untyped column) -> untyped
+
+    def self.comments_in: (untyped lines) -> untyped
+
+    def initialize: (line_number: untyped, mode: untyped, categories: untyped, inline: untyped) -> void
+
+    def disabled?: () -> untyped
+
+    def inline?: () -> untyped
+
+    # Apply this directive's effect to the in-flight per-category state.
+    # Inline directives mark just their line; block disables open a region;
+    # block enables close one. Re-opening an already-open block is a no-op.
+    def apply: (untyped ranges, untyped open_starts) -> untyped
+  end
+end

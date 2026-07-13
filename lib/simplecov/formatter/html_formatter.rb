@@ -65,14 +65,18 @@ module SimpleCov
       #   from opening the existing path for writing.
       def atomic_write(dest, content)
         temp = "#{dest}.#{Process.pid}.#{rand(2**32).to_s(36)}"
-        File.binwrite(temp, content)
-        File.rename(temp, dest)
-      ensure
-        FileUtils.rm_f(temp)
+        begin
+          File.binwrite(temp, content)
+          File.rename(temp, dest)
+        ensure
+          FileUtils.rm_f(temp)
+        end
       end
 
       def public_dir
-        File.join(__dir__, "html_formatter/public/")
+        # `.to_s` collapses `__dir__`'s nil arm (only possible under eval,
+        # which can't happen for a file on disk) so the path is a String.
+        File.join(__dir__.to_s, "html_formatter/public/")
       end
     end
   end

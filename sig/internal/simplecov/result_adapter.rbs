@@ -1,0 +1,49 @@
+module SimpleCov
+  #
+  # Responsible for adapting the format of the coverage result whether it's default or with statistics
+  #
+  class ResultAdapter
+    @result: untyped
+
+    attr_reader result: untyped
+
+    def initialize: (untyped result) -> void
+
+    def self.call: (*untyped) -> untyped
+
+    def adapt: () -> (nil | untyped)
+
+    private
+
+    # Pre-0.18 resultsets pointed each filename straight at a line-coverage
+    # array; everything since uses the `{lines:, branches:, methods:}`
+    # shape. Newer entries also need their methods table massaged before
+    # downstream code merges across processes.
+    def adapt_one: (untyped file_name, untyped cover_statistic) -> ({ "lines" => untyped } | untyped)
+
+    # Normalize memory addresses in method coverage keys so that results
+    # from different processes can be merged. Anonymous class names like
+    # "#<Class:0x00007ff19ab24790>" get inconsistent addresses across runs.
+    # Address widths vary by runtime (32-bit hosts: 8 hex chars; 64-bit
+    # CRuby: 16; some JVM/TruffleRuby formats may differ), so match any
+    # length of hex digits and collapse to a single placeholder.
+    ADDRESS_PATTERN: ::Regexp
+
+    ADDRESS_PLACEHOLDER: "0x0"
+
+    # Strip the `#<Class:Foo>` wrapper Ruby's Coverage adds to singleton-class
+    # method keys. `module_function` and class methods get recorded both as
+    # singleton (`[#<Class:Foo>, :m, …]`) and instance/module (`[Foo, :m, …]`)
+    # entries pointing at the same source location; only one of the two is
+    # ever reachable at runtime, so we merge them. Only applies to named
+    # constants — anonymous-class addresses like `#<Class:0x0>` are left
+    # alone (handled by ADDRESS_PATTERN above).
+    SINGLETON_WRAPPER_PATTERN: ::Regexp
+
+    def normalize_method_keys: (untyped cover_statistic) -> (nil | untyped)
+
+    def adapt_oneshot_lines_if_needed: (untyped file_name, untyped cover_statistic) -> (nil | untyped)
+
+    def build_line_stub: (untyped file_name, untyped oneshot_lines) -> untyped
+  end
+end

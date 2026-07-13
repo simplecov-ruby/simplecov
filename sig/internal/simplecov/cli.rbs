@@ -1,0 +1,48 @@
+module SimpleCov
+  # Lightweight command-line front-end. `run` dispatches a subcommand
+  # (`coverage`, `report`, `uncovered`, `merge`, `diff`, `open`, etc.) —
+  # see the `usage` text below for the full list, or run `simplecov help`.
+  #
+  # Read-only subcommands consume JSONFormatter output (`coverage.json`),
+  # which the bundled HTMLFormatter already drops alongside the HTML, so
+  # no runtime hooking is needed for those. Default paths follow the
+  # project's `.simplecov` `SimpleCov.coverage_dir` setting when one is
+  # present, so a project that writes its report somewhere other than
+  # `coverage/` doesn't have to pass `--input` / `--report` every
+  # invocation.
+  module CLI
+    @coverage_dir: untyped
+
+    # The contract `run` dispatches through: every subcommand module
+    # accepts the full argv tail plus both output streams (directly or
+    # via `**`) and returns a process exit status.
+    interface _Command
+      def run: (Array[String] args, stdout: IO, stderr: IO) -> Integer
+    end
+
+    COMMANDS: Hash[String, _Command]
+
+    # Resolved once per process. Walks up from cwd looking for a
+    # `.simplecov`; if present, the file is loaded with
+    # `SimpleCov.start` neutered so it can't trigger coverage tracking
+    # or an at_exit hook just because we asked it for a config value.
+    def self?.coverage_dir: () -> untyped
+
+    def self?.default_input: () -> untyped
+
+    # Resolve "should this subcommand colorize?" once per invocation.
+    # `--no-color` (opts[:no_color]) is the per-invocation kill-switch;
+    # otherwise we defer to `SimpleCov::Color.enabled?`, which honors
+    # `NO_COLOR` / `FORCE_COLOR` and falls back to `stream.tty?`.
+    def self?.color_enabled?: (untyped opts, untyped stream) -> (false | untyped)
+
+    def self?.default_report: () -> untyped
+
+    def self?.default_resultset: () -> untyped
+
+    # Returns a process exit status (0 on success, non-zero on error).
+    def self?.run: (untyped argv, ?stdout: untyped, ?stderr: untyped) -> (untyped | 1)
+
+    def self?.usage: () -> ::String
+  end
+end

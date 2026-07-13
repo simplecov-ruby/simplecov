@@ -33,7 +33,8 @@ module SimpleCov
       def report(opts, keys, stdout, stderr)
         return 1 unless (data = Report.load_data(opts[:input], stderr))
 
-        files = rank(data.fetch("coverage", {}), opts[:threshold], keys).first(opts[:top])
+        none = {} #: Hash[String, untyped]
+        files = rank(data.fetch("coverage", none), opts[:threshold], keys).first(opts[:top])
         return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
 
         emit(stdout, files, opts)

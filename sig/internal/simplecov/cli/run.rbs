@@ -1,0 +1,16 @@
+module SimpleCov
+  module CLI
+    # `simplecov run <command...>` — exec the given command with
+    # simplecov auto-loaded so a coverage report drops into the
+    # project's coverage/ directory at the end. Useful for projects
+    # without a test_helper that already calls SimpleCov.start (e.g.
+    # plain `bundle exec rake test` on an unconfigured library).
+    module Run
+      AUTOSTART: untyped
+
+      def self?.run: (untyped args, stderr: untyped, **untyped) -> untyped
+
+      def self?.rubyopt_env: () -> untyped
+    end
+  end
+end

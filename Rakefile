@@ -45,8 +45,26 @@ rescue LoadError
   end
 end
 
+desc "Validate the RBS type signatures in sig/"
+task :rbs do
+  require "rbs"
+  sh "rbs", "-r", "forwardable", "-r", "prism", "-r", "socket", "-I", "sig", "validate"
+rescue LoadError
+  # RBS's native extension doesn't build on JRuby; see the Gemfile.
+  warn "RBS is disabled"
+end
+
+desc "Type-check lib/ against sig/ with Steep (strict mode)"
+task :steep do
+  require "rbs"
+  sh "steep", "check"
+rescue LoadError
+  # Steep depends on RBS, which doesn't build on JRuby; see the Gemfile.
+  warn "Steep is disabled"
+end
+
 task test: %i[spec cucumber]
-task default: %i[rubocop spec cucumber]
+task default: %i[rubocop rbs steep spec cucumber]
 
 namespace :assets do
   desc "Compile frontend assets (HTML, JS, CSS) using esbuild"

@@ -1,0 +1,33 @@
+module SimpleCov
+  module ExitCodes
+    # Fails when the overall (project-wide) coverage for any criterion is
+    # below the configured minimum.
+    class MinimumOverallCoverageCheck
+      @result: untyped
+
+      @minimum_coverage: untyped
+
+      @violations: untyped
+
+      def initialize: (untyped result, untyped minimum_coverage) -> void
+
+      def failing?: () -> untyped
+
+      def report: () -> untyped
+
+      def exit_code: () -> untyped
+
+      private
+
+      WORST_FILES_LIMIT: 5
+
+      def violations: () -> untyped
+
+      def report_violation: (untyped violation) -> untyped
+
+      def report_worst_files: (untyped criterion) -> (nil | untyped)
+
+      def worst_files_for: (untyped criterion) -> untyped
+    end
+  end
+end

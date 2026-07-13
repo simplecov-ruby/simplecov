@@ -1,0 +1,38 @@
+module SimpleCov
+  module CLI
+    # Loads a project's `.simplecov` config file purely to read
+    # `coverage_dir` from it, with `SimpleCov.start` and the at_exit
+    # hook installer neutered so the load doesn't trigger coverage
+    # tracking. Used by the CLI to default `--input` / `--report`
+    # paths to whatever the project's dotfile declares, without making
+    # every read-only subcommand pay for actually starting Coverage.
+    module Dotfile
+      def self?.coverage_dir: () -> untyped
+
+      # Load the dotfile, snapshot+restore `SimpleCov.coverage_dir` so we
+      # don't quietly clobber it in a host process that's already
+      # configured (e.g. when the CLI is exercised inline by simplecov's
+      # own spec suite). The snapshot is intentionally narrow: a dotfile
+      # can still mutate other SimpleCov configuration (filters, groups,
+      # formatters, command_name, ...) via `SimpleCov.configure` or
+      # `SimpleCov.start { ... }` blocks. The CLI normally runs as a
+      # top-level process where that's harmless; callers driving it from
+      # inside a Ruby host that cares about isolation should arrange that
+      # themselves.
+      def self?.read_from: (untyped dotfile) -> untyped
+
+      def self?.find: () -> (untyped | nil)
+
+      def self?.with_simplecov_loaded: () { () -> untyped } -> untyped
+
+      # Load `path` with `SimpleCov.start` and the at_exit installer
+      # turned into no-ops, so a project whose dotfile calls
+      # `SimpleCov.start` doesn't trigger Coverage just because we asked
+      # for `coverage_dir`. Config inside any `SimpleCov.start { ... }`
+      # block still runs.
+      def self?.load_with_start_neutered: (untyped path) -> untyped
+
+      def self?.silence_verbose: () { () -> untyped } -> untyped
+    end
+  end
+end

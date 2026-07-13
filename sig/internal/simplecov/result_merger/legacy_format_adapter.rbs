@@ -1,0 +1,17 @@
+module SimpleCov
+  module ResultMerger
+    # We changed the format of the raw result data in simplecov, as people
+    # are likely to have "old" resultsets lying around (but not too old so
+    # that they're still considered we can adapt them). See
+    # https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
+    module LegacyFormatAdapter
+      def self?.call: (untyped result) -> untyped
+
+      # Pre-0.18 coverage data pointed from file directly to an array of
+      # line coverage rather than a `{"lines" => [...]}` hash.
+      def self?.pre_0_18?: (untyped result) -> untyped
+
+      def self?.upgrade: (untyped result) -> untyped
+    end
+  end
+end

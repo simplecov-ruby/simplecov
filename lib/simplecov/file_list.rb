@@ -27,8 +27,8 @@ module SimpleCov
     # returns the `{line:, branch:, method:}` Hash; pass a criterion symbol
     # (`:line` / `:branch` / `:method`) to get that one CoverageStatistics.
     def coverage_statistics(criterion = nil)
-      @coverage_statistics ||= compute_coverage_statistics
-      criterion ? @coverage_statistics[criterion] : @coverage_statistics
+      stats = (@coverage_statistics ||= compute_coverage_statistics)
+      criterion ? stats[criterion] : stats
     end
 
     def coverage_statistics_by_file
@@ -67,7 +67,11 @@ module SimpleCov
 
     # Finds the least covered file and returns that file's name
     def least_covered_file
-      min_by(&:covered_percent).filename
+      # `covered_percent` is nil only for an unmeasured criterion, and :line
+      # is always measured, so the `|| 0.0` arm never fires at runtime; it
+      # (and the cast) exist to satisfy min_by's Comparable requirement.
+      least_covered = min_by { |file| file.covered_percent || 0.0 }
+      (_ = least_covered).filename
     end
 
     # Returns the overall amount of relevant lines of code across all files in this list
@@ -137,7 +141,10 @@ module SimpleCov
     # enabled set so disabled criteria don't surface in totals, JSON,
     # or the HTML report.
     def compute_coverage_statistics_by_file
-      seed = enabled_criteria_for_reporting.to_h { |criterion| [criterion, []] }
+      seed = enabled_criteria_for_reporting.to_h do |criterion|
+        bucket = [] #: Array[CoverageStatistics]
+        [criterion, bucket]
+      end
       @files.each_with_object(seed) do |file, together|
         file.coverage_statistics.each do |criterion, stats|
           together[criterion] << stats if together.key?(criterion)
@@ -153,7 +160,7 @@ module SimpleCov
     # criterion is enabled; the JRuby-gated branch/method criteria are
     # reported when they pass their own engine-support check.
     def enabled_criteria_for_reporting
-      criteria = []
+      criteria = [] #: Array[SimpleCov::criterion]
       criteria << :line   if SimpleCov.coverage_criterion_enabled?(:line) ||
                              SimpleCov.coverage_criterion_enabled?(:oneshot_line)
       criteria << :branch if SimpleCov.branch_coverage?

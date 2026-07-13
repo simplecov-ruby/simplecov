@@ -14,12 +14,12 @@ module SimpleCov
     module_function
 
       def call(filename)
-        lines = []
+        lines = [] #: Array[String]
         # The default encoding is UTF-8
         File.open(filename, "rb:UTF-8") do |file|
           current_line = file.gets
 
-          if shebang?(current_line)
+          if current_line && shebang?(current_line)
             lines << current_line
             current_line = file.gets
           end

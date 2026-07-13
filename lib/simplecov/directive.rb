@@ -55,8 +55,11 @@ module SimpleCov
     # An unclosed `disable` block extends to the end of the file.
     def self.disabled_ranges(src_lines)
       lines = src_lines.to_a
-      ranges = CATEGORIES.to_h { |category| [category, []] }
-      open_starts = {}
+      ranges = CATEGORIES.to_h do |category|
+        empty = [] # : Array[Range[Integer]]
+        [category, empty]
+      end
+      open_starts = {} # : Hash[Symbol, Integer]
 
       directives_in(lines).each { |directive| directive.apply(ranges, open_starts) }
       open_starts.each { |category, start| ranges[category] << (start..lines.size) }
@@ -91,7 +94,9 @@ module SimpleCov
 
       new(
         line_number: line_number,
-        mode: match[:mode].to_sym,
+        # `to_s` is a no-op: the pattern requires the `mode` group, so it
+        # is present whenever `match` is; it also satisfies the type checker.
+        mode: match[:mode].to_s.to_sym,
         categories: parse_categories(match[:categories]),
         inline: inline?(lines, line_number, column + match.begin(0))
       )

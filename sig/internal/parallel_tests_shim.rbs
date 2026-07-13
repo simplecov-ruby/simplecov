@@ -1,0 +1,9 @@
+# Minimal declarations for the optional parallel_tests gem, which ships
+# no RBS of its own. Covers only the API surface SimpleCov's adapter
+# calls. Repository-only (sig/internal is excluded from the gem), so
+# consumers who type parallel_tests themselves see no conflict.
+module ParallelTests
+  def self.first_process?: () -> bool
+
+  def self.wait_for_other_processes_to_finish: () -> void
+end

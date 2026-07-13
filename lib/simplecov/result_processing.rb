@@ -66,7 +66,7 @@ module SimpleCov
 
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
     def filtered(files)
-      result = files.clone
+      result = files.to_a.dup
       filters.each do |filter|
         result = result.reject { |source_file| filter.matches?(source_file) }
       end
@@ -170,9 +170,9 @@ module SimpleCov
     # off); with merging on the merged result reports dropped source files,
     # so the per-process slice stays quiet to avoid one warning per worker.
     def process_coverage_result(report:)
-      @result = SimpleCov::UselessResultsRemover.call(Coverage.result)
-      @result = SimpleCov::ResultAdapter.call(@result)
-      result, not_loaded_files = add_not_loaded_files(@result)
+      raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
+      adapted = SimpleCov::ResultAdapter.call(raw)
+      result, not_loaded_files = add_not_loaded_files(adapted)
       @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files, report: report)
     end
   end

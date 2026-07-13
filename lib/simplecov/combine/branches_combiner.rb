@@ -24,7 +24,8 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        combined = [coverage_a, coverage_b].each_with_object({}) do |coverage, memo|
+        merged = {} #: Hash[untyped, [untyped, Hash[untyped, untyped]]]
+        combined = [coverage_a, coverage_b].each_with_object(merged) do |coverage, memo|
           coverage.each do |condition, branches_inside|
             condition_key = tuple_identity(condition)
             condition_tuple, merged_branches = memo[condition_key] ||= [condition, {}]

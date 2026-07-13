@@ -1,6 +1,9 @@
 Unreleased
 ==========
 
+## Enhancements
+* The gem now ships type signatures under `sig/`, covering the public API: the configuration DSL (including the criterion-scoped `coverage` block and the legacy deprecated verbs), the `Result` / `FileList` / `SourceFile` / `CoverageStatistics` read API that formatter authors consume, the formatter and filter class hierarchies, exit codes, and the `ParallelAdapters::Base` contract. Internal classes carry repository-only skeleton signatures (`sig/internal/`, excluded from the gem package) so the entire codebase type-checks under Steep in strict mode, while the shipped signature payload stays small. Signatures are checked with `rbs validate` and `steep check` as part of the default rake task. RBS and Steep users no longer need the third-party signatures from `ruby/gem_rbs_collection`, which cover the 0.22 API and predate 1.0's configuration redesign.
+
 ## Bugfixes
 * Fixed `SimpleCov.formatters=` raising `NoMethodError` when given a single formatter instead of an Array — a regression from 0.22.x, where `MultiFormatter.new` normalized the value internally. This restores the long-documented `SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([...])` pattern, in which `MultiFormatter.new` returns a Class rather than an Array.
 

@@ -1,0 +1,51 @@
+module SimpleCov
+  class SourceFile
+    # Builds the `SourceFile::Branch` objects for a source file from
+    # the raw branch data Ruby's Coverage library reports. Applies the
+    # `ignore_branches :eval_generated` / `:implicit_else` filters and
+    # marks branches inside `# simplecov:disable` / `# :nocov:` chunks
+    # as skipped.
+    class BranchBuilder
+      @source_file: untyped
+
+      def initialize: (untyped source_file) -> void
+
+      def call: () -> untyped
+
+      private
+
+      # Detect a Coverage-reported branch condition that originates from
+      # `eval`/`module_eval`/`class_eval`/`instance_eval` rather than from
+      # the file's literal source. Coverage attributes such branches to the
+      # caller's `__FILE__`/`__LINE__`, so a Rails `delegate :foo, to: :bar`
+      # call surfaces inside the source file as if there were branches at
+      # the `delegate` line. Prism never sees those branches in the static
+      # source, so a condition whose start_line isn't in the real-source
+      # branch set must be eval-generated. Only consulted when the user has
+      # opted in via `SimpleCov.ignore_branches :eval_generated`. See #1046.
+      def eval_generated_condition_to_ignore?: (untyped condition) -> (false | untyped)
+
+      def build_branches_from: (untyped condition, untyped branches) -> untyped
+
+      def build_branch: (untyped branch_data, untyped hit_count, untyped condition_range) -> (nil | untyped)
+
+      # Detect synthetic `:else` branches that Ruby's Coverage library reports
+      # for constructs with no literal `else` keyword in source (`case/in` /
+      # `case/when` without else, `||=`, `&&=`, `if`/`unless` without else,
+      # and the postfix `return if cond` shape). The signal is structural:
+      # a synthetic else reuses its parent condition's *full source range*
+      # (start_line, start_col, end_line, end_col all identical), while an
+      # explicit `else` arm carries a narrower range — its own keyword/body
+      # position rather than the whole conditional. Comparing the full range
+      # (not just `start_line`) is what distinguishes a ternary's explicit
+      # else on the same line as the condition — `arg == 42 ? :yes : :no`,
+      # where the else's columns differ from the parent's — from a postfix
+      # `return if cond` where the synthetic else inherits the full range.
+      # Only consulted when the user has opted in via
+      # `SimpleCov.ignore_branches :implicit_else`. See #1033.
+      def implicit_else_to_ignore?: (untyped type, untyped branch_range, untyped condition_range) -> (false | untyped)
+
+      def process_skipped: (untyped branches) -> untyped
+    end
+  end
+end

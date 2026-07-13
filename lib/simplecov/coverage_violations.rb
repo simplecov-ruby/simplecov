@@ -46,7 +46,8 @@ module SimpleCov
       def minimum_by_group(result, thresholds)
         thresholds.flat_map do |group_name, minimums|
           group = lookup_group(result, group_name)
-          group ? group_minimum_violations(group_name, group, minimums) : []
+          none = [] # : Array[Hash[Symbol, untyped]]
+          group ? group_minimum_violations(group_name, group, minimums) : none
         end
       end
 

@@ -14,9 +14,12 @@ module SimpleCov
   class CoverageStatistics
     attr_reader :total, :covered, :missed, :omitted, :strength, :percent
 
+    # Seed for the reduce in `.from`: covered, missed, omitted, strength.
+    ZERO_STATS = [0, 0, 0, 0.0].freeze #: [Integer, Integer, Integer, Float]
+
     def self.from(coverage_statistics)
       sum_covered, sum_missed, sum_omitted, sum_total_strength =
-        coverage_statistics.reduce([0, 0, 0, 0.0]) do |(covered, missed, omitted, total_strength), stats|
+        coverage_statistics.reduce(ZERO_STATS) do |(covered, missed, omitted, total_strength), stats|
           [
             covered + stats.covered,
             missed + stats.missed,

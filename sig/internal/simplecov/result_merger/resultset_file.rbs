@@ -1,0 +1,15 @@
+module SimpleCov
+  module ResultMerger
+    # Read + parse a `.resultset.json` file with the same tolerance the
+    # historical `ResultMerger` had: missing file returns `{}`, an empty
+    # or unparseable file warns and returns `{}`, parse success returns
+    # the decoded Hash.
+    module ResultsetFile
+      def self?.parse: (untyped path) -> untyped
+
+      def self?.read: (untyped path) -> (nil | untyped)
+
+      def self?.decode: (untyped content) -> untyped
+    end
+  end
+end

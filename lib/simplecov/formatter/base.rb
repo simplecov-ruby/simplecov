@@ -45,7 +45,8 @@ module SimpleCov
       # confusing than the absolute form. See issue #197.
       def displayable_output_path
         directory = relative_or_absolute_output_path
-        entry_point_filename ? File.join(directory, entry_point_filename) : directory
+        entry_point = entry_point_filename
+        entry_point ? File.join(directory, entry_point) : directory
       end
 
       def relative_or_absolute_output_path

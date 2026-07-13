@@ -21,6 +21,8 @@ group :development do
     gem "cuprite"
     gem "nokogiri"
     gem "rackup"
+    gem "rbs", ">= 4.0"
+    gem "steep", ">= 1.10", require: false
     # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
     gem "webrick"
   end

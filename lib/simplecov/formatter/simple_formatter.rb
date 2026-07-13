@@ -15,7 +15,9 @@ module SimpleCov
 
       def format_group(name, files)
         header = "Group: #{name}\n#{'=' * 40}\n"
-        body   = files.map { |file| "#{file.filename} (coverage: #{file.covered_percent.floor(2)}%)\n" }.join
+        # `covered_percent` is nilable across criteria, but line stats are
+        # always measured, so the no-argument call can't return nil here.
+        body   = files.map { |file| "#{file.filename} (coverage: #{(_ = file.covered_percent).floor(2)}%)\n" }.join
         "#{header}#{body}\n"
       end
     end

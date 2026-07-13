@@ -63,7 +63,8 @@ module SimpleCov
       methods = cover_statistic[:methods]
       return unless methods
 
-      cover_statistic[:methods] = methods.each_with_object({}) do |(key, count), normalized|
+      normalized_methods = {} #: Hash[untyped, untyped]
+      cover_statistic[:methods] = methods.each_with_object(normalized_methods) do |(key, count), normalized|
         normalized_key = key.dup
         normalized_key[0] = key[0].to_s
                                   .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)

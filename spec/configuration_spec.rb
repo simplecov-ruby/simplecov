@@ -1526,7 +1526,7 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#command_name" do
-      after { config.instance_variable_set(:@name, nil) }
+      after { config.instance_variable_set(:@command_name, nil) }
 
       it "stores an explicit name" do
         config.command_name("My Suite")

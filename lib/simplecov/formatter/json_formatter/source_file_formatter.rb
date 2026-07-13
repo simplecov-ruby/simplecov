@@ -13,7 +13,7 @@ module SimpleCov
         end
 
         def call
-          result = @include_source ? format_source_code : {}
+          result = @include_source ? format_source_code : {} #: Hash[Symbol, untyped]
           result.merge!(line_coverage_section) if line_coverage_enabled?
           result.merge!(branch_coverage_section) if SimpleCov.branch_coverage?
           result.merge!(method_coverage_section) if SimpleCov.method_coverage?

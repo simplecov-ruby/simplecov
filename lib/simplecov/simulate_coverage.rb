@@ -39,8 +39,8 @@ module SimpleCov
       source_lines = read_lines(absolute_path)
       lines = coverage_stub(absolute_path, source_lines) ||
               LinesClassifier.new.classify(source_lines)
-      synthesized = StaticCoverageExtractor.call(source_lines.join) ||
-                    {"branches" => {}, "methods" => {}}
+      empty = {"branches" => {}, "methods" => {}} #: Hash[String, Hash[untyped, untyped]]
+      synthesized = StaticCoverageExtractor.call(source_lines.join) || empty
 
       {
         "lines" => lines,

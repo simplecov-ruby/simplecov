@@ -1,0 +1,27 @@
+module SimpleCov
+  module CLI
+    # `simplecov coverage <path>` — print per-criterion stats for one
+    # file from a JSONFormatter coverage.json.
+    module Coverage
+      CRITERIA: ::Array[::Hash[::Symbol, ::String]]
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> (1 | 0)
+
+      def self?.parse: (untyped args, stderr: untyped) -> untyped
+
+      def self?.locate_match: (untyped opts, untyped stderr) -> (untyped | nil)
+
+      # Match either the absolute path, the literal string passed, or
+      # any coverage entry whose absolute filename ends with "/<path>".
+      # That covers the three natural ways a user types a path: relative
+      # to project root ("app/foo.rb"), absolute, or basename-only.
+      def self?.lookup: (untyped coverage_hash, untyped path) -> untyped
+
+      def self?.emit: (untyped match, untyped opts, untyped stdout) -> untyped
+
+      def self?.print_human: (untyped filename, untyped payload, untyped stdout, untyped color) -> untyped
+
+      def self?.emit_criterion: (untyped stdout, untyped payload, untyped criterion, untyped color) -> (nil | untyped)
+    end
+  end
+end

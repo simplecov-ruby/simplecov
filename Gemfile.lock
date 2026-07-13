@@ -32,6 +32,7 @@ GEM
       xpath (~> 3.2)
     concurrent-ruby (1.3.7)
     contracts (0.17.3)
+    csv (3.3.5)
     cucumber (11.1.1)
       base64 (~> 0.2)
       builder (~> 3.2)
@@ -71,6 +72,7 @@ GEM
       websocket-driver (~> 0.7)
     ffi (1.17.4)
     ffi (1.17.4-java)
+    fileutils (1.8.0)
     hana (1.3.7)
     io-console (0.8.2)
     io-console (0.8.2-java)
@@ -88,6 +90,10 @@ GEM
       simpleidn (~> 0.2)
     language_server-protocol (3.17.0.6)
     lint_roller (1.1.0)
+    listen (3.10.0)
+      logger
+      rb-fsevent (~> 0.10, >= 0.10.3)
+      rb-inotify (~> 0.9, >= 0.9.10)
     logger (1.7.0)
     matrix (0.4.3)
     memoist3 (1.0.0)
@@ -118,6 +124,9 @@ GEM
       rack (>= 3)
     rainbow (3.1.1)
     rake (13.4.2)
+    rb-fsevent (0.11.2)
+    rb-inotify (0.11.1)
+      ffi (~> 1.0)
     rbs (4.0.3)
       logger
       prism (>= 1.6.0)
@@ -172,10 +181,30 @@ GEM
       regexp_parser (>= 2.0)
       rubocop (~> 1.86, >= 1.86.2)
     ruby-progressbar (1.13.0)
+    securerandom (0.4.1)
     simpleidn (0.2.3)
+    steep (2.0.0)
+      concurrent-ruby (>= 1.1.10)
+      csv (>= 3.0.9)
+      fileutils (>= 1.1.0)
+      json (>= 2.1.0)
+      language_server-protocol (>= 3.17.0.4, < 4.0)
+      listen (~> 3.0)
+      logger (>= 1.3.0)
+      parser (>= 3.2)
+      prism (>= 0.25.0)
+      rainbow (>= 2.2.2, < 4.0)
+      rbs (~> 4.0)
+      securerandom (>= 0.1)
+      strscan (>= 1.0.0)
+      terminal-table (>= 2, < 5)
+      uri (>= 0.12.0)
+    strscan (3.1.8)
     sys-uname (1.5.1)
       ffi (~> 1.1)
       memoist3 (~> 1.0.0)
+    terminal-table (4.0.0)
+      unicode-display_width (>= 1.1.1, < 4)
     test-unit (3.7.8)
       power_assert
     thor (1.5.0)
@@ -183,6 +212,7 @@ GEM
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
+    uri (1.1.1)
     webrick (1.9.2)
     websocket-driver (0.8.2)
       base64
@@ -210,6 +240,7 @@ DEPENDENCIES
   nokogiri
   rackup
   rake
+  rbs (>= 4.0)
   rspec
   rubocop
   rubocop-capybara
@@ -217,6 +248,7 @@ DEPENDENCIES
   rubocop-rake
   rubocop-rspec
   simplecov!
+  steep (>= 1.10)
   test-unit
   webrick
 

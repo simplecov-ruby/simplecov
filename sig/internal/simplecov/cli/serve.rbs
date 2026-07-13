@@ -1,0 +1,41 @@
+module SimpleCov
+  module CLI
+    # `simplecov serve [--port N] [--host HOST]` — serve the coverage
+    # report over HTTP. A 30-line static file server backed by stdlib
+    # `socket`, so there's no extra dependency just for "view a local
+    # report on a CI box where `file://` doesn't work."
+    module Serve
+      MIME: ::Hash[::String, ::String]
+
+      STATUS_TEXT: ::Hash[::Integer, ::String]
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> untyped
+
+      def self?.parse: (untyped args) -> untyped
+
+      def self?.announce: (untyped stdout, untyped server, untyped dir) -> untyped
+
+      def self?.with_server: (untyped opts) { (TCPServer) -> untyped } -> untyped
+
+      def self?.serve_loop: (untyped server, untyped dir, untyped stdout) -> untyped
+
+      # Reads one HTTP request line, drains headers, serves the file or
+      # writes a status response. Wide rescue so a misbehaving client
+      # can't crash the server.
+      def self?.handle_connection: (untyped client, untyped root) -> untyped
+
+      def self?.drain_headers: (untyped client) -> untyped
+
+      # Returns the absolute path of the file to serve, :forbidden for
+      # a traversal attempt (including symlinks that escape root), or
+      # nil for "not found".
+      def self?.resolve: (untyped request_path, untyped root) -> untyped
+
+      def self?.inside?: (untyped path, untyped root) -> untyped
+
+      def self?.respond: (untyped client, untyped status, ?::String body, ?::String content_type) -> untyped
+
+      def self?.error: (untyped stderr, untyped message) -> 1
+    end
+  end
+end

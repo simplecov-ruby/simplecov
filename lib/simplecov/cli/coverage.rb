@@ -28,7 +28,7 @@ module SimpleCov
       end
 
       def parse(args, stderr:)
-        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false}
+        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
         rest =
           OptionParser.new do |o|
             o.on("--input PATH") { |v| opts[:input] = v }
@@ -45,7 +45,8 @@ module SimpleCov
         return stderr.puts("simplecov coverage: #{opts[:input]} not found") && nil unless File.exist?(opts[:input])
 
         data = JSON.parse(File.read(opts[:input]))
-        match = lookup(data.fetch("coverage", {}), opts[:path])
+        none = {} #: Hash[String, untyped]
+        match = lookup(data.fetch("coverage", none), opts[:path])
         return match if match
 
         stderr.puts("simplecov coverage: no entry for #{opts[:path]} in #{opts[:input]}")
@@ -65,7 +66,8 @@ module SimpleCov
       def emit(match, opts, stdout)
         filename, payload = match
         if opts[:json]
-          stdout.puts(JSON.pretty_generate(filename => payload))
+          entry = {filename => payload} #: Hash[untyped, untyped]
+          stdout.puts(JSON.pretty_generate(entry))
         else
           print_human(filename, payload, stdout, SimpleCov::CLI.color_enabled?(opts, stdout))
         end

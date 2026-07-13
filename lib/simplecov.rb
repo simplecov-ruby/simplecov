@@ -8,14 +8,18 @@ module SimpleCov
   # every coverage criterion has been disabled.
   class ConfigurationError < StandardError; end
 
-  class << self
-    CRITERION_TO_RUBY_COVERAGE = {
-      branch: :branches,
-      line: :lines,
-      method: :methods,
-      oneshot_line: :oneshot_lines
-    }.freeze
+  # Maps SimpleCov's criterion names to the keys `Coverage.start` expects.
+  # Lives at module scope (not inside `class << self`) so it can be
+  # declared in the RBS signatures; lexical scoping keeps every existing
+  # reference inside the singleton class working.
+  CRITERION_TO_RUBY_COVERAGE = {
+    branch: :branches,
+    line: :lines,
+    method: :methods,
+    oneshot_line: :oneshot_lines
+  }.freeze
 
+  class << self
     attr_accessor :pid
     # When this process started tracking coverage. Captured by SimpleCov.start
     # so JSONFormatter can detect when an existing coverage.json was written
@@ -93,10 +97,13 @@ module SimpleCov
     # the warning is the cue to move `SimpleCov.start` into a test helper.
     # See #581.
     def with_dot_simplecov_autoload
-      previous = @autoloading_dot_simplecov
+      # Read in the ensure clause, where flow analysis cannot see the
+      # assignment above; anchor the type here.
+      previous = @autoloading_dot_simplecov # : bool?
       @autoloading_dot_simplecov = true
       yield
     ensure
+      # @type var previous: bool?
       @autoloading_dot_simplecov = previous
     end
 
@@ -173,7 +180,7 @@ module SimpleCov
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
-      Coverage.start(start_arguments) unless Coverage.running?
+      Coverage.start(**start_arguments) unless Coverage.running?
     end
 
     # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`,
@@ -203,7 +210,9 @@ module SimpleCov
       return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
 
       # simplecov:disable — JRuby-only branches; unreachable from CRuby
-      return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED
+      # `org` is JRuby's Java-package entry point; it does not exist on
+      # CRuby, so no RBS declaration can be truthful here.
+      return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED # steep:ignore NoMethod
 
       warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
            'or do JRUBY_OPTS="--debug" ' \

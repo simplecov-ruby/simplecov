@@ -1,0 +1,42 @@
+module SimpleCov
+  module Formatter
+    class JSONFormatter
+      # Translates the threshold violations reported by
+      # `SimpleCov::CoverageViolations` into the `:errors` section of
+      # coverage.json. Each violation is keyed by criterion
+      # (`:lines` / `:branches` / `:methods`) so consumers can render
+      # per-criterion messages without re-deriving them.
+      class ErrorsFormatter
+        @result: untyped
+
+        @errors: Hash[Symbol, Hash[untyped, untyped]]
+
+        CRITERION_KEYS: Hash[Symbol, Symbol]
+
+        def initialize: (untyped result) -> void
+
+        def call: () -> Hash[Symbol, Hash[untyped, untyped]]
+
+        private
+
+        def format_minimum_overall: () -> untyped
+
+        def format_minimum_by_file: () -> untyped
+
+        def record_by_file: (untyped violation) -> untyped
+
+        def format_minimum_by_group: () -> untyped
+
+        def format_maximum_overall: () -> untyped
+
+        def format_maximum_drop: () -> untyped
+
+        def bucket: (Symbol name) -> Hash[untyped, untyped]
+
+        def key_for: (untyped violation) -> Symbol
+
+        def expected_actual: (untyped violation) -> { expected: untyped, actual: untyped }
+      end
+    end
+  end
+end

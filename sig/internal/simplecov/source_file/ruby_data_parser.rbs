@@ -1,0 +1,40 @@
+module SimpleCov
+  class SourceFile
+    # `Coverage.result` reports condition and method keys as Ruby
+    # arrays. When the resultset is round-tripped through JSON those
+    # array keys become their stringified inspect form, so this parser
+    # walks the literal back into a real Array without using `eval` (see
+    # #801). The grammar covers symbols, strings, integers, unary minus,
+    # and constant paths — every shape Coverage ever emits.
+    module RubyDataParser
+      # Tests use the real data structures (except for integration tests)
+      # so no need to put them through here.
+      def self?.call: (untyped structure) -> untyped
+
+      # Parse a string like '[:if, 0, 3, 4, 3, 21]' or
+      # '["ClassName", :method1, 2, 2, 5, 5]' back into a Ruby array.
+      def self?.parse_array_string: (untyped str) -> untyped
+
+      def self?.parse_element: (untyped node) -> untyped
+
+      def self?.parse_integer_node: (untyped node) -> untyped
+
+      def self?.parse_symbol_node: (untyped node) -> untyped
+
+      # Concatenate the text fragments of a `:string_content` node. Ripper
+      # may emit zero, one, or many `:@tstring_content` children depending
+      # on the literal.
+      def self?.string_literal_text: (Array[untyped] string_content) -> String
+
+      # Undo the same backslash-prefix escapes the previous hand-rolled
+      # parser undid: `\X` → `X` for any X.
+      def self?.unescape_ruby: (untyped raw) -> untyped
+
+      # Method coverage keys can contain inspect-format class references
+      # like `#<Class:Foo>` or `#<Class:0x...>`, which aren't valid Ruby
+      # syntax. Wrap them in quotes so Ripper can parse the surrounding
+      # array literal; downstream we treat them as opaque strings.
+      def self?.quote_inspected_class_segments: (untyped str) -> untyped
+    end
+  end
+end

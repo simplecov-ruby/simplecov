@@ -12,16 +12,21 @@ module SimpleCov
           formatters.map do |formatter|
             formatter.new.format(result)
           rescue StandardError => e
-            warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{e.backtrace.first})")
+            warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{(_ = e.backtrace).first})")
             nil
           end
         end
       end
 
       def self.new(formatters = nil)
+        # Normalize eagerly and capture the list in the closure. Array()
+        # is pure for every accepted input shape (nil, single formatter,
+        # array, or another MultiFormatter class), so this is equivalent
+        # to the historical lazy per-instance memoization.
+        formatter_list = Array(formatters)
         Class.new do
           define_method :formatters do
-            @formatters ||= Array(formatters)
+            formatter_list
           end
           include InstanceMethods
         end

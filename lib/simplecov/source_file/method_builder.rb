@@ -12,7 +12,9 @@ module SimpleCov
       end
 
       def call
-        methods = @source_file.coverage_data.fetch("methods", {}).filter_map do |info, hit_count|
+        none = {} #: Hash[untyped, Integer]
+        raw_methods = @source_file.coverage_data.fetch("methods", none)
+        methods = raw_methods.filter_map do |info, hit_count|
           info = RubyDataParser.call(info)
           next if eval_generated_to_ignore?(info)
 

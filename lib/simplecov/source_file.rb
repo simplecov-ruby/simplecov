@@ -51,8 +51,8 @@ module SimpleCov
     # returns the `{line:, branch:, method:}` Hash; pass a criterion symbol
     # (`:line` / `:branch` / `:method`) to get that one CoverageStatistics.
     def coverage_statistics(criterion = nil)
-      @coverage_statistics ||= Statistics.new(self).call
-      criterion ? @coverage_statistics[criterion] : @coverage_statistics
+      stats = (@coverage_statistics ||= Statistics.new(self).call)
+      criterion ? stats[criterion] : stats
     end
 
     # Returns all source lines for this file as instances of SimpleCov::SourceFile::Line,

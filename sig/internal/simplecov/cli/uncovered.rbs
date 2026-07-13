@@ -1,0 +1,40 @@
+module SimpleCov
+  module CLI
+    # `simplecov uncovered [--threshold N] [--top N] [--criterion C]` — list
+    # the lowest-coverage files (by the chosen criterion, ascending), so a
+    # developer can answer "where should I add tests next?" without
+    # opening a browser. Reads coverage.json directly.
+    module Uncovered
+      DEFAULT_TOP: 10
+
+      # The coverage.json fields backing each criterion.
+      CRITERION_KEYS: ::Hash[::Symbol, ::Hash[::Symbol, ::String]]
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> untyped
+
+      def self?.report: (untyped opts, untyped keys, untyped stdout, untyped stderr) -> (1 | untyped | 0)
+
+      def self?.unknown_criterion: (untyped criterion, untyped stderr) -> 1
+
+      def self?.emit: (untyped stdout, untyped files, untyped opts) -> untyped
+
+      def self?.parse: (untyped args) -> untyped
+
+      # Option parsing with per-flag coercions is inherently ABC-heavy; the
+      # metric is noise here.
+      def self?.build_parser: (untyped opts) -> untyped
+
+      def self?.emit_text: (untyped stdout, untyped files, untyped color) -> untyped
+
+      def self?.emit_json: (untyped stdout, untyped files) -> untyped
+
+      def self?.empty_message: (untyped json) -> ("[]" | "simplecov uncovered: nothing to report")
+
+      def self?.rank: (untyped coverage_hash, untyped threshold, untyped keys) -> untyped
+
+      def self?.row_for: (untyped fname, untyped payload, untyped threshold, untyped keys) -> (nil | ::Array[untyped])
+
+      def self?.format_row: (untyped fname, untyped pct, untyped covered, untyped total, untyped color) -> untyped
+    end
+  end
+end

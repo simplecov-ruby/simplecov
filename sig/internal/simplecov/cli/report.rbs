@@ -1,0 +1,28 @@
+module SimpleCov
+  module CLI
+    # `simplecov report [--input PATH]` — pretty-print the overall
+    # totals row plus per-group totals from a JSONFormatter
+    # coverage.json. Same numbers as the HTML report's totals row, for
+    # contexts where opening a browser isn't an option (CI logs, ssh
+    # sessions, terminal-only workflows).
+    module Report
+      SECTIONS: ::Array[::Array[::String]]
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> (1 | 0)
+
+      def self?.parse: (untyped args) -> untyped
+
+      def self?.load_data: (untyped input, untyped stderr) -> (untyped | nil)
+
+      def self?.emit_text: (untyped stdout, untyped data, untyped color) -> untyped
+
+      def self?.emit_totals: (untyped stdout, untyped label, untyped totals, untyped color) -> untyped
+
+      def self?.emit_section: (untyped stdout, untyped display, untyped section, untyped color) -> (nil | untyped)
+
+      def self?.emit_json: (untyped stdout, untyped data) -> untyped
+
+      def self?.collect_section: (untyped totals) -> untyped
+    end
+  end
+end

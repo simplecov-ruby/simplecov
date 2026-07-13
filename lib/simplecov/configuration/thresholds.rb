@@ -123,7 +123,11 @@ module SimpleCov
     # so downstream code only has one shape to handle.
     def partition_per_file_thresholds(coverage)
       coverage.each_key { |key| validate_per_file_key(key) }
-      defaults, raw = coverage.partition { |key, _| key.is_a?(Symbol) }.map(&:to_h)
+      pairs = coverage.partition { |key, _| key.is_a?(Symbol) }
+      # The assertions restate what the partition predicate guarantees:
+      # Symbol keys carry per-criterion Numeric defaults, the rest are paths.
+      defaults = pairs[0].to_h #: coverage_thresholds
+      raw = pairs[1].to_h #: Hash[String | Regexp, Numeric | coverage_thresholds]
       overrides = raw.transform_values { |value| value.is_a?(Numeric) ? {primary_coverage => value} : value }
       [defaults, overrides]
     end
@@ -143,11 +147,11 @@ module SimpleCov
     # `minimum_coverage_by_file` argument so the deprecation warning can be
     # copy-pasted verbatim into the user's config.
     def per_file_coverage_replacement(defaults, overrides)
-      by_criterion = Hash.new { |hash, criterion| hash[criterion] = [] }
-      defaults.each { |criterion, percent| by_criterion[criterion] << "minimum_per_file #{percent}" }
+      by_criterion = {} #: Hash[Symbol, Array[String]]
+      defaults.each { |criterion, percent| (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}" }
       overrides.each do |target, criteria|
         criteria.each do |criterion, percent|
-          by_criterion[criterion] << "minimum_per_file #{percent}, only: #{target.inspect}"
+          (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}, only: #{target.inspect}"
         end
       end
       render_coverage_blocks(by_criterion)
@@ -155,11 +159,11 @@ module SimpleCov
 
     # Same, for a (deprecated) `minimum_coverage_by_group` argument.
     def per_group_coverage_replacement(coverage)
-      by_criterion = Hash.new { |hash, criterion| hash[criterion] = [] }
-      coverage.each do |group_name, group_coverage|
-        group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
-        group_coverage.each do |criterion, percent|
-          by_criterion[criterion] << "minimum_per_group #{percent}, only: #{group_name.inspect}"
+      by_criterion = {} #: Hash[Symbol, Array[String]]
+      coverage.each do |group_name, thresholds|
+        normalized = (thresholds.is_a?(Numeric) ? {primary_coverage => thresholds} : thresholds) #: coverage_thresholds
+        normalized.each do |criterion, percent|
+          (by_criterion[criterion] ||= []) << "minimum_per_group #{percent}, only: #{group_name.inspect}"
         end
       end
       render_coverage_blocks(by_criterion)

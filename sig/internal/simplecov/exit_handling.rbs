@@ -1,0 +1,61 @@
+# `at_exit` orchestration: post-suite report generation, threshold
+# checks, deferral when a sibling subprocess already wrote a fresher
+# report, and exit-status propagation.
+
+# `English`-library alias for `$!`; used by defaults.rb and
+# exit_handling.rb. Declared once for the whole signature tree.
+$ERROR_INFO: Exception?
+
+module SimpleCov
+  self.@exit_exception: untyped
+
+  # @api private
+  CoverageLimits: untyped
+
+  def self.at_exit_behavior: () -> (nil | untyped)
+
+  # Returns true when our process has no coverage data to contribute
+  # (after the resultset merge) and a newer report already exists on
+  # disk. Typically fires when `SimpleCov.start` ran in a parent
+  # process — e.g. a Rakefile or Rails' `Bundler.require` — that
+  # shelled out to the test runner. See issue #581.
+  def self.defer_to_existing_report?: () -> (false | untyped)
+
+  def self.existing_report_newer_than_us?: () -> (false | untyped)
+
+  def self.warn_about_deferred_report: () -> (nil | untyped)
+
+  # @api private — called from the at_exit block.
+  def self.run_exit_tasks!: () -> untyped
+
+  # @api private — returns the exit status from the exit exception.
+  def self.exit_status_from_exception: () -> (nil | untyped)
+
+  # @api private — strict boolean so rspec-mocks 4's predicate matcher
+  # accepts it. test_unit sets status 0 on success, so SUCCESS must
+  # also be treated as "not a previous error".
+  def self.previous_error?: (untyped error_exit_status) -> untyped
+
+  # @api private
+  def self.exit_and_report_previous_error: (untyped exit_status) -> untyped
+
+  # @api private — the process that owns final merge processing is the
+  # only one that reports against thresholds, and only when its
+  # `wait_for_other_processes` confirmed every sibling reported.
+  # When the wait times out, the merged total is partial and
+  # comparing it against `minimum_coverage` / `maximum_coverage`
+  # would surface a spurious "below minimum" violation about the
+  # missing slice rather than a real shortfall.
+  def self.ready_to_process_results?: () -> untyped
+
+  def self.process_results_and_report_error: () -> (nil | untyped)
+
+  # @api private — `exit_status = SimpleCov.process_result(SimpleCov.result)`.
+  def self.process_result: (untyped result) -> untyped
+
+  def self.result_exit_status: (untyped result) -> untyped
+
+  private
+
+  def self.build_coverage_limits: () -> untyped
+end

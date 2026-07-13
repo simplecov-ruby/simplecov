@@ -1,0 +1,18 @@
+module SimpleCov
+  # Functionally for combining coverage results
+  #
+  module Combine
+    #
+    # Combine two coverage based on the given combiner_module.
+    #
+    # Combiners should always be called through this interface,
+    # as it takes care of short-circuiting of one of the coverages is nil.
+    #
+    # @return [Hash]
+    def self?.combine: (untyped combiner_module, untyped coverage_a, untyped coverage_b) -> untyped
+
+    def self?.empty_coverage?: (untyped coverage_a, untyped coverage_b) -> untyped
+
+    def self?.existing_coverage: (untyped coverage_a, untyped coverage_b) -> untyped
+  end
+end

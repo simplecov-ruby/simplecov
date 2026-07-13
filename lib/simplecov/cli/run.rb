@@ -8,7 +8,7 @@ module SimpleCov
     # without a test_helper that already calls SimpleCov.start (e.g.
     # plain `bundle exec rake test` on an unconfigured library).
     module Run
-      AUTOSTART = File.expand_path("../autostart", __dir__)
+      AUTOSTART = File.expand_path("../autostart", __dir__.to_s)
 
     module_function
 

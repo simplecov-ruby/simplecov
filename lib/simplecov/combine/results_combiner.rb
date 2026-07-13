@@ -21,7 +21,8 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(*results)
-        results.reduce({}) do |combined_results, next_result|
+        initial = {} #: Hash[untyped, untyped]
+        results.reduce(initial) do |combined_results, next_result|
           combine_result_sets(combined_results, next_result)
         end
       end

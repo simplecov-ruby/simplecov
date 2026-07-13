@@ -95,7 +95,7 @@ module SimpleCov
         end
 
         def format_coverage_statistics(statistics)
-          result = {}
+          result = {} #: Hash[Symbol, untyped]
           result[:lines]    = format_line_statistic(statistics[:line])      if statistics[:line]
           result[:branches] = format_single_statistic(statistics[:branch])  if statistics[:branch]
           result[:methods]  = format_single_statistic(statistics[:method])  if statistics[:method]

@@ -42,7 +42,9 @@ module SimpleCov
     #
     def coverage(criterion, primary: false, enabled: true, oneshot: false, **thresholds, &block)
       criterion = enable_coverage_criterion(criterion, enabled: enabled, oneshot: oneshot)
-      primary_coverage(criterion) if primary
+      # The cast admits :eval, which primary_coverage rejects at runtime
+      # (it is enable-only and never in the enabled-criteria set).
+      primary_coverage(_ = criterion) if primary
 
       configurator = CoverageCriterion.new(self, criterion)
       apply_threshold_options(configurator, thresholds)
@@ -164,7 +166,9 @@ module SimpleCov
 
       # Make this criterion the report's primary (leading) criterion.
       def primary
-        @config.primary_coverage(@criterion)
+        # @criterion is Symbol-wide because this receiver is also built for
+        # :eval; primary_coverage validates at runtime.
+        @config.primary_coverage(_ = @criterion)
       end
     end
   end

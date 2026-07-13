@@ -1,0 +1,62 @@
+# simplecov:disable
+# Methods below only fire under a parallel test runner; not reachable
+# from a single-process rspec run. Cucumber's test_projects exercise
+# the parallel_tests integration end-to-end in subprocesses, but
+# those subprocesses don't merge their Coverage data back into the
+# parent this dogfood report measures.
+module SimpleCov
+  # The native wait can return before sibling at_exit handlers finish
+  # writing resultsets, and adapters without a native wait have
+  # nothing else. Either way, poll the resultset cache until all
+  # expected workers have reported or a timeout is reached. Capture
+  # the outcome so `ready_to_process_results?` can suppress min/max
+  # threshold checks against a partial total.
+  self.@parallel_results_complete: untyped
+
+  # @api private
+  def self.final_result_process?: () -> untyped
+
+  # @api private
+  def self.wait_for_other_processes: () -> (nil | untyped)
+
+  # @api private — true when every sibling reported its resultset
+  # before the wait deadline. Defaults to true outside a parallel
+  # run (when `wait_for_other_processes` is a no-op).
+  def self.parallel_results_complete?: () -> (untyped | true)
+
+  # @api private — seconds the resultset count must hold steady, after a
+  # native wait, before we accept fewer than `expected` workers as final.
+  PARALLEL_RESULTS_SETTLE: ::Float
+
+  # @api private — returns true when the reporting worker has every
+  # resultset it's going to get, false on timeout. Single-process runs
+  # (expected <= 1) short-circuit to true with no waiting.
+  #
+  # Normally we poll until `expected` (= PARALLEL_TEST_GROUPS) workers have
+  # reported or `SimpleCov.parallel_wait_timeout` elapses; raise that setting
+  # when a slow worker routinely finishes well after the others.
+  #
+  # When a native wait already confirmed every sibling PROCESS exited
+  # (`native_wait`), no further resultset will appear, so a count below
+  # `expected` just means some workers produced none — e.g. parallel_test
+  # groups that got no spec file on a machine with more cores than files.
+  # Once the count then holds steady for `PARALLEL_RESULTS_SETTLE` we accept
+  # it as final rather than blocking for the whole timeout. Without a native
+  # wait (GenericAdapter) we can't tell an idle worker from a slow one, so we
+  # keep waiting the full timeout.
+  def self.wait_for_parallel_results: (untyped expected, ?native_wait: boolish) -> (true | false | untyped)
+
+  # Track whether the resultset count has held steady (and positive) for
+  # `PARALLEL_RESULTS_SETTLE` seconds. `tracker` carries the last count and
+  # the time it last changed across poll iterations.
+  def self.resultset_count_settled?: (untyped tracker, untyped count) -> (false | untyped)
+
+  def self.monotonic_time: () -> untyped
+
+  # @api private — true once the wait deadline has passed; warns on
+  # the first timeout so the user knows the merged total is partial.
+  def self.parallel_wait_timed_out?: (untyped deadline, untyped expected, untyped seen) -> (false | true)
+
+  # @api private
+  def self.warn_about_incomplete_parallel_results: (untyped expected, untyped seen) -> (nil | untyped)
+end

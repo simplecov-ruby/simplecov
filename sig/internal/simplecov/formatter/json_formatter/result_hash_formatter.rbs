@@ -1,0 +1,57 @@
+module SimpleCov
+  module Formatter
+    class JSONFormatter
+      # Builds the hash that JSONFormatter serializes to coverage.json:
+      # meta, per-file coverage data, group totals, and aggregate stats.
+      class ResultHashFormatter
+        @result: untyped
+
+        @include_source: untyped
+
+        # Bump SCHEMA_VERSION (and SCHEMA_URL) when the JSON shape
+        # changes. Additive changes bump the minor segment, removals or
+        # shape changes bump the major segment. The versioned file at
+        # schemas/coverage-vX.Y.schema.json is the canonical artifact
+        # consumers should pin to, schemas/coverage.schema.json is a
+        # convenience alias that always tracks the latest. See the
+        # `coverage.json` schema section of the README for the rationale.
+        SCHEMA_VERSION: "1.0"
+
+        SCHEMA_URL: ::String
+
+        def initialize: (untyped result, ?include_source: bool) -> void
+
+        def format: () -> { :$schema => untyped, meta: untyped, total: untyped, coverage: untyped, groups: untyped, errors: untyped }
+
+        private
+
+        def format_files: () -> untyped
+
+        def format_groups: () -> untyped
+
+        def format_meta: () -> untyped
+
+        # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
+        # project isn't a git checkout or git isn't on PATH. Recorded so tools
+        # can recover the exact source a report was generated against, which
+        # matters most when `source_in_json false` drops the source text from
+        # coverage.json. stderr is captured (not forwarded) so a non-git project
+        # doesn't print git's diagnostics to the build.
+        def git_commit: () -> untyped
+
+        def coverage_flags: () -> { line_coverage: untyped, branch_coverage: untyped, method_coverage: untyped }
+
+        # Mirrors SourceFileFormatter's predicate so meta.line_coverage
+        # tracks exactly which configurations cause the formatter to
+        # emit line stats.
+        def line_coverage_enabled?: () -> untyped
+
+        def format_coverage_statistics: (untyped statistics) -> Hash[Symbol, untyped]
+
+        def format_line_statistic: (untyped stat) -> { covered: untyped, missed: untyped, omitted: untyped, total: untyped, percent: untyped, strength: untyped }
+
+        def format_single_statistic: (untyped stat) -> { covered: untyped, missed: untyped, total: untyped, percent: untyped, strength: untyped }
+      end
+    end
+  end
+end

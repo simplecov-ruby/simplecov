@@ -1,0 +1,50 @@
+module SimpleCov
+  #
+  # Singleton that is responsible for caching, loading and merging
+  # SimpleCov::Results into a single result for coverage analysis based
+  # upon multiple test suites.
+  #
+  module ResultMerger
+    def self.resultset_path: () -> untyped
+
+    def self.merge_and_store: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
+
+    def self.merge_results: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
+
+    def self.valid_results: (untyped file_path, ?ignore_timeout: bool) -> untyped
+
+    def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) -> untyped
+
+    def self.drop_expired_results: (untyped results) -> untyped
+
+    def self.within_merge_timeout?: (untyped data) -> untyped
+
+    def self.warn_about_expired_results: (untyped expired_command_names) -> (nil | untyped)
+
+    def self.create_result: (untyped command_names, untyped coverage) -> (nil | untyped)
+
+    def self.merge_coverage: (*untyped results) -> (::Array[::Array[""] | nil] | untyped)
+
+    #
+    # Gets all SimpleCov::Results stored in resultset, merges them and produces a new
+    # SimpleCov::Result with merged coverage data and the command_name
+    # for the result consisting of a join on all source result's names
+    def self.merged_result: () -> untyped
+
+    def self.read_resultset: () -> untyped
+
+    # Saves the given SimpleCov::Result in the resultset cache
+    def self.store_result: (untyped result) -> true
+
+    # If an entry with the same command_name was written AFTER our process
+    # started, a sibling test runner (typically a subprocess our parent
+    # process shelled out to) wrote it. Combine coverage data rather than
+    # overwriting, so an empty parent-process result doesn't clobber the
+    # subprocess's real data. See https://github.com/simplecov-ruby/simplecov/issues/581.
+    def self.merged_entry: (untyped existing, untyped incoming) -> untyped
+
+    def self.concurrent_runner_entry?: (untyped entry) -> (false | untyped)
+
+    def self.synchronize_resultset: () { (?) -> untyped } -> untyped
+  end
+end

@@ -51,9 +51,10 @@ module SimpleCov
     #
     def coverage_path(path = nil)
       if path
-        @coverage_path = File.expand_path(path)
+        expanded = File.expand_path(path)
+        @coverage_path = expanded
         @coverage_path_explicit = true
-        FileUtils.mkdir_p @coverage_path
+        FileUtils.mkdir_p expanded
       end
 
       @coverage_path ||= File.expand_path(coverage_dir, root)
@@ -65,9 +66,8 @@ module SimpleCov
     # with SimpleCov.command_name("test:units").
     #
     def command_name(name = nil)
-      @name = name unless name.nil?
-      @name ||= SimpleCov::CommandGuesser.guess
-      @name
+      @command_name = name unless name.nil?
+      @command_name ||= SimpleCov::CommandGuesser.guess
     end
 
     # Returns the hash of available profiles
@@ -80,17 +80,24 @@ module SimpleCov
     # prepending SimpleCov to each config method.
     #
     def configure(&block)
-      block_context = block.binding.receiver
+      # Both locals are read in the ensure clause, where flow analysis
+      # cannot see the assignments below; anchor their types up front.
+      saved = nil # : Hash[Symbol, untyped]?
+      block_context = block.binding.receiver # : untyped
 
-      # If the block was defined in our own context, instance_exec is sufficient
-      return instance_exec(&block) if equal?(block_context)
+      # If the block was defined in our own context, instance_exec is
+      # sufficient. The `_ =` erases the block's self-binding, which RBS
+      # can express but `instance_exec`'s core signature cannot accept.
+      return instance_exec(&(_ = block)) if equal?(block_context)
 
       # Copy the caller's instance variables in so that references like @filter
       # inside the block resolve to the caller's values, not ours.
       saved = swap_ivars_from(block_context)
-      instance_exec(&block)
+      instance_exec(&(_ = block))
     ensure
-      restore_ivars(block_context, saved) if defined?(saved) && saved
+      # @type var block_context: untyped
+      # @type var saved: Hash[Symbol, untyped]?
+      restore_ivars(block_context, saved) if saved
     end
 
     #
@@ -100,7 +107,8 @@ module SimpleCov
     #
     def at_exit(&block)
       @at_exit = block if block
-      return @at_exit if @at_exit
+      configured = @at_exit
+      return configured if configured
       return proc {} unless active_session?
 
       @at_exit = proc do
@@ -144,7 +152,8 @@ module SimpleCov
     # SimpleCov.root, capitalized with underscores → spaces.
     #
     def project_name(new_name = nil)
-      return @project_name if defined?(@project_name) && @project_name && new_name.nil?
+      current = defined?(@project_name) ? @project_name : nil
+      return current if current && new_name.nil?
 
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root).capitalize.tr("_", " ")
@@ -156,7 +165,7 @@ module SimpleCov
     # of ours that would be clobbered. Returns the saved values for
     # later restoration.
     def swap_ivars_from(block_context)
-      saved = {}
+      saved = {} # : Hash[Symbol, untyped]
       our_ivars = instance_variables
       block_context.instance_variables.each do |ivar|
         saved[ivar] = instance_variable_get(ivar) if our_ivars.include?(ivar)

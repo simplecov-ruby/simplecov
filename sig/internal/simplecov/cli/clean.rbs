@@ -1,0 +1,17 @@
+module SimpleCov
+  module CLI
+    # `simplecov clean [--dry-run]` — remove the coverage report
+    # directory (or whatever `SimpleCov.coverage_dir` resolves to). The
+    # `--dry-run` flag prints what would be deleted without touching
+    # disk, for when you're not sure what's in there.
+    module Clean
+      def self?.run: (untyped args, stdout: untyped, **untyped) -> (untyped | 0)
+
+      def self?.sweep: (untyped dir, untyped opts, untyped stdout) -> untyped
+
+      def self?.announce: (untyped stdout, untyped opts, untyped message) -> (untyped | nil)
+
+      def self?.parse: (untyped args) -> untyped
+    end
+  end
+end

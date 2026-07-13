@@ -57,7 +57,8 @@ module SimpleCov
       # generic "no mergeable results" into a message that points at
       # the specific input causing the failure.
       def parse_inputs(files, stderr)
-        files.each_with_object({}) do |path, memo|
+        parsed = {} #: Hash[String, Hash[String, untyped]]
+        files.each_with_object(parsed) do |path, memo|
           data = parse_input(path, stderr) or return nil
 
           memo[path] = data
@@ -85,8 +86,9 @@ module SimpleCov
       # mistake for "no merge happened." Surface the overlap so the
       # operator can rename the workers or accept the merge knowingly.
       def warn_about_duplicate_command_names(parsed, stderr)
-        files_per_command = parsed.each_with_object({}) do |(path, data), memo|
-          data.each_key { |command_name| (memo[command_name] ||= []) << path }
+        files_per_command = {} #: Hash[String, Array[String]]
+        parsed.each do |path, data|
+          data.each_key { |command_name| (files_per_command[command_name] ||= []) << path }
         end
         files_per_command.each do |command_name, paths|
           next if paths.size < 2

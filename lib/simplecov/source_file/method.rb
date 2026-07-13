@@ -34,7 +34,7 @@ module SimpleCov
       end
 
       def lines
-        @lines ||= start_line && end_line ? source_file.lines[(start_line - 1)..(end_line - 1)] : []
+        @lines ||= start_line && end_line ? source_file.lines[(start_line - 1)..(end_line - 1)] || [] : []
       end
 
       # Whether this method's source range intersects the given inclusive line range.

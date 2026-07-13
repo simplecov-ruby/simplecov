@@ -134,7 +134,9 @@ module SimpleCov
     def default_primary_coverage
       return DEFAULT_COVERAGE_CRITERION if coverage_criterion_enabled?(DEFAULT_COVERAGE_CRITERION)
 
-      coverage_criteria.first
+      # Set#first types as nilable, but an empty criteria set is rejected at
+      # start_tracking before any caller can observe a nil here.
+      _ = coverage_criteria.first
     end
 
     def raise_if_criterion_disabled(criterion)

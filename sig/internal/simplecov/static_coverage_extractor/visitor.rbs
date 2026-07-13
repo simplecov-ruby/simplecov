@@ -1,0 +1,99 @@
+module SimpleCov
+  module StaticCoverageExtractor
+    # `Prism::IfNode#subsequent` was renamed from `consequent` in Prism
+    # 1.3 (Dec 2024). Ruby 3.3's stdlib still ships an older Prism that
+    # only exposes `consequent`; 3.4+ and any project that's done
+    # `gem install prism` exposes `subsequent`. Resolve the method name
+    # ONCE here so the per-node hot path stays branch-free. The
+    # not-taken arm on whichever Prism version we're on can't be
+    # exercised by our own dogfood (we only run on one Prism at a time).
+    # simplecov:disable
+    IF_NODE_SUBSEQUENT_METHOD: untyped
+
+    # Prism visitor that accumulates branch and method tuples in the
+    # shape Ruby's `Coverage` reports. Tuple ids are sequential across
+    # the file — `Coverage` uses sequential ids too, so this matches the
+    # conventional shape. Only defined when Prism is loadable;
+    # `StaticCoverageExtractor.available?` is the runtime gate.
+    class Visitor < ::Prism::Visitor
+      @branches: untyped
+
+      @next_id: untyped
+
+      # Method tuples and the class/module nesting that names them are
+      # collected by this mixin; this class focuses on branch extraction.
+      # (@methods / @class_stack are declared on the mixin, which owns them.)
+      include MethodCollector
+
+      attr_reader branches: untyped
+
+      attr_reader methods: untyped
+
+      def initialize: () -> void
+
+      # `if` / `unless` / postfix-if / postfix-unless / ternary all parse
+      # as IfNode (or UnlessNode). Both carry a `then` arm (the
+      # statements body) and an optional `subsequent` (an ElseNode for
+      # `else`, another IfNode for `elsif`). When the subsequent is
+      # missing, Coverage synthesizes a `:else` arm attributed to the
+      # whole condition's range — we do the same.
+      def visit_if_node: (untyped node) -> untyped
+
+      def visit_unless_node: (untyped node) -> untyped
+
+      def visit_call_node: (untyped node) -> untyped
+
+      # `case`/`when` and `case`/`in` (pattern matching) parse as CaseNode
+      # and CaseMatchNode respectively. When there's no explicit `else`,
+      # Coverage synthesizes one at the case's range.
+      def visit_case_node: (untyped node) -> untyped
+
+      def visit_case_match_node: (untyped node) -> untyped
+
+      # `while` / `until` loops get a single `:body` arm. No synthetic
+      # else (the loop either runs the body or doesn't).
+      def visit_while_node: (untyped node) -> untyped
+
+      def visit_until_node: (untyped node) -> untyped
+
+      private
+
+      # IfNode and UnlessNode share a shape (predicate + then body +
+      # optional else/elsif) but expose the trailing arm under different
+      # accessors. `if_like_else_location` hides that split.
+      def emit_if_like: (untyped node, untyped type) -> untyped
+
+      def emit_safe_navigation: (untyped node) -> untyped
+
+      # Resolve the source range Coverage attributes to a real-or-synthetic
+      # `:else` arm of an if-like construct. IfNode uses
+      # `subsequent` / `consequent` depending on Prism version (resolved
+      # to `IF_NODE_SUBSEQUENT_METHOD` at load time); UnlessNode uses
+      # `else_clause`. When neither is present, the synthesized else
+      # inherits the whole condition's range (matches Coverage's
+      # convention).
+      def if_like_else_location: (untyped node) -> untyped
+
+      def emit_case_like: (untyped node, untyped when_type) -> untyped
+
+      # Resolve the source range Coverage attributes to a synthetic-or-real
+      # `:else` arm of a case construct: the body of an explicit else,
+      # or the case's full range when no else is present.
+      def else_arm_location: (untyped node) -> untyped
+
+      def emit_loop: (untyped node, untyped type) -> untyped
+
+      # Body location for an arm. Prism's `statements` is a StatementsNode
+      # whose span covers the contained expressions; fall back to the
+      # parent when the arm body is empty (e.g., `if cond then end`).
+      def arm_location: (untyped statements, untyped fallback_location) -> untyped
+
+      # simplecov:disable branch
+      # The `else_node` fallback is defensive: every Prism node passed
+      # in here in practice responds to `:statements`.
+      def else_body_of: (untyped else_node) -> untyped
+
+      def build_tuple: (untyped type, untyped location) -> ::Array[untyped]
+    end
+  end
+end

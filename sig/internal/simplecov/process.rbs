@@ -1,0 +1,14 @@
+module SimpleCov
+  # The host's `_fork` contract this hook chains onto via `super` once
+  # prepended onto Process's singleton class.
+  interface _ForkHost
+    def _fork: () -> Integer
+  end
+
+  # Prepended onto Process's singleton class so every fork — direct or
+  # via Kernel#fork / IO.popen — re-runs SimpleCov's at_fork callback in
+  # the child.
+  module ProcessForkHook : _ForkHost
+    def _fork: () -> Integer
+  end
+end

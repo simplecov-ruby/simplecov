@@ -57,8 +57,8 @@ module SimpleCov
       end
 
       def with_simplecov_loaded
-        previous_no_defaults = ENV.fetch("SIMPLECOV_NO_DEFAULTS", nil)
-        previous_cli         = ENV.fetch("SIMPLECOV_CLI", nil)
+        previous_no_defaults = ENV.fetch("SIMPLECOV_NO_DEFAULTS", nil) #: String?
+        previous_cli         = ENV.fetch("SIMPLECOV_CLI", nil) #: String?
         ENV["SIMPLECOV_NO_DEFAULTS"] = "1"
         # SIMPLECOV_CLI lets a project's `.simplecov` opt some config into
         # CLI-only behavior — e.g. simplecov itself sets `coverage_dir`
@@ -67,6 +67,8 @@ module SimpleCov
         require "simplecov"
         yield
       ensure
+        # @type var previous_no_defaults: String?
+        # @type var previous_cli: String?
         ENV["SIMPLECOV_NO_DEFAULTS"] = previous_no_defaults
         ENV["SIMPLECOV_CLI"]         = previous_cli
       end
@@ -79,20 +81,23 @@ module SimpleCov
       def load_with_start_neutered(path)
         klass = SimpleCov.singleton_class
         names = %i[start_tracking install_at_exit_hook]
-        stash = names.to_h { |name| [name, klass.instance_method(name)] }
+        stash = names.to_h { |name| [name, klass.instance_method(name)] } #: Hash[Symbol, UnboundMethod]
         # define_method over an existing method emits a "method redefined"
         # warning under $VERBOSE; the override and restore are intentional.
         silence_verbose { names.each { |name| klass.define_method(name) { nil } } }
         load path
       ensure
+        # @type var stash: Hash[Symbol, UnboundMethod]
+        # @type var klass: Class
         silence_verbose { stash.each { |name, method| klass.define_method(name, method) } }
       end
 
       def silence_verbose
-        previous = $VERBOSE
+        previous = $VERBOSE #: bool?
         $VERBOSE = nil
         yield
       ensure
+        # @type var previous: bool?
         $VERBOSE = previous
       end
     end

@@ -36,16 +36,26 @@ module SimpleCov
         return error(stderr, "#{dir} doesn't exist; run your test suite first") unless File.directory?(dir)
 
         require "socket"
-        server = TCPServer.new(opts[:host], opts[:port])
-        announce(stdout, server, dir)
-        serve_loop(server, dir, stdout)
-        0
-      ensure
-        server&.close
+        with_server(opts) do |server|
+          announce(stdout, server, dir)
+          serve_loop(server, dir, stdout)
+          0
+        end
+      end
+
+      def with_server(opts)
+        # The receiver cast works around an rbs stdlib gap: TCPSocket's
+        # explicit `self.new` shadows TCPServer#initialize's (host, port) form.
+        server = (_ = TCPServer).new(opts[:host], opts[:port]) #: TCPServer
+        begin
+          yield server
+        ensure
+          server.close
+        end
       end
 
       def parse(args)
-        opts = {port: 0, host: "127.0.0.1"}
+        opts = {port: 0, host: "127.0.0.1"} #: Hash[Symbol, untyped]
         OptionParser.new do |o|
           o.on("--port N", Integer) { |v| opts[:port] = v }
           o.on("--host HOST")       { |v| opts[:host] = v }

@@ -42,14 +42,20 @@ module SimpleCov
         end
 
         def record_by_file(violation)
-          file_bucket = bucket(:minimum_coverage_by_file)[violation.fetch(:project_filename)] ||= {}
+          by_file = bucket(:minimum_coverage_by_file)
+          file_bucket = by_file[violation.fetch(:project_filename)] ||= {} #: Hash[untyped, untyped]
           file_bucket[key_for(violation)] = expected_actual(violation)
         end
 
         def format_minimum_by_group
           violations = SimpleCov::CoverageViolations.minimum_by_group(@result, SimpleCov.minimum_coverage_by_group)
+          return if violations.empty?
+
+          # `bucket` lazily creates the errors key, so only touch it when
+          # there is a violation to record.
+          by_group = bucket(:minimum_coverage_by_group)
           violations.each do |violation|
-            group_bucket = bucket(:minimum_coverage_by_group)[violation.fetch(:group_name)] ||= {}
+            group_bucket = by_group[violation.fetch(:group_name)] ||= {} #: Hash[untyped, untyped]
             group_bucket[key_for(violation)] = expected_actual(violation)
           end
         end
@@ -68,7 +74,7 @@ module SimpleCov
         end
 
         def bucket(name)
-          @errors[name] ||= {}
+          @errors[name] ||= {} #: Hash[untyped, untyped]
         end
 
         def key_for(violation)

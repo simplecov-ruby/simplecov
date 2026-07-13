@@ -1,0 +1,16 @@
+module SimpleCov
+  module Combine
+    #
+    # Handle combining two coverage results for same file
+    #
+    # Should be called through `SimpleCov.combine`.
+    module FilesCombiner
+      #
+      # Combines the results for 2 coverages of a file.
+      #
+      # @return [Hash]
+      #
+      def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+    end
+  end
+end
