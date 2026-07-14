@@ -28,7 +28,9 @@ module SimpleCov
         warn_if_concurrent_overwrite(path, result)
         File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
         # stderr, not stdout: this is a status message, not the program's
-        # output. Keeps the line out of pipelines like `rspec -f json`.
+        # output. Keeps the line out of pipelines like `rspec -f json`. And
+        # $stderr.puts, not `warn`: a status line should not reach
+        # `Warning.warn` hooks or vanish under `-W0` (see #1225).
         $stderr.puts output_message(result) unless @silent # rubocop:disable Style/StderrPuts
       end
 

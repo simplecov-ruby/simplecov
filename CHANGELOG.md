@@ -6,6 +6,7 @@ Unreleased
 
 ## Bugfixes
 * Fixed `SimpleCov.formatters=` raising `NoMethodError` when given a single formatter instead of an Array — a regression from 0.22.x, where `MultiFormatter.new` normalized the value internally. This restores the long-documented `SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([...])` pattern, in which `MultiFormatter.new` returns a Class rather than an Array.
+* Formatter status lines ("Coverage report generated for X") and threshold-enforcement output (violation reports, "SimpleCov failed with exit N") no longer route through `Kernel#warn`. They still print to stderr, but they are program output rather than Ruby warnings, so `Warning.warn` hooks — warning trackers and raise-on-warning test setups — no longer intercept them as unaddressable noise, and threshold failure explanations now survive `ruby -W0`, which previously reduced a failing check to a bare exit code with no explanation. Genuine warnings (deprecations, dropped-file notices, parse failures) still use `warn`. Suppression remains explicit: `silent: true` for formatter status lines, `print_errors false` for enforcement output. Thanks @viralpraxis. See #1225.
 
 1.0.0 (2026-07-12)
 ==================

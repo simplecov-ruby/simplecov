@@ -15,7 +15,7 @@ module SimpleCov
       end
 
       def report
-        violations.each { |violation| warn SimpleCov::Color.colorize(message_for(violation), :red) }
+        violations.each { |violation| ExitCodes.print_error SimpleCov::Color.colorize(message_for(violation), :red) }
       end
 
       def exit_code

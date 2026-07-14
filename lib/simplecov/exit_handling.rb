@@ -56,7 +56,7 @@ module SimpleCov
     def warn_about_deferred_report
       return unless print_errors
 
-      warn SimpleCov::Color.colorize(
+      ExitCodes.print_error SimpleCov::Color.colorize(
         "Skipping SimpleCov report — this process tracked no application code and a newer " \
         "report already exists at #{coverage_path}. This usually means SimpleCov.start ran in a " \
         "parent process (e.g. a Rakefile or Rails' Bundler.require) that shelled out to the test " \
@@ -97,7 +97,7 @@ module SimpleCov
     # @api private
     def exit_and_report_previous_error(exit_status)
       if print_errors
-        warn SimpleCov::Color.colorize(
+        ExitCodes.print_error SimpleCov::Color.colorize(
           "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
           :yellow
         )
@@ -124,7 +124,7 @@ module SimpleCov
       return unless exit_status.positive?
 
       if print_errors
-        warn SimpleCov::Color.colorize(
+        ExitCodes.print_error SimpleCov::Color.colorize(
           "SimpleCov failed with exit #{exit_status} due to a coverage related error", :red
         )
       end

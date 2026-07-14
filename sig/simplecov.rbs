@@ -1384,6 +1384,10 @@ module SimpleCov
     MAXIMUM_COVERAGE_DROP: 3
 
     MAXIMUM_COVERAGE: 4
+
+    # Threshold-violation reports and exit-status notices: enforcement
+    # output on stderr, deliberately not routed through Kernel#warn.
+    def self.print_error: (String message) -> void
   end
 end
 

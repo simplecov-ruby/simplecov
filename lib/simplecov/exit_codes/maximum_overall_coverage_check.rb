@@ -32,7 +32,7 @@ module SimpleCov
       end
 
       def report_violation(violation)
-        warn format(
+        ExitCodes.print_error format(
           "%<criterion>s coverage (%<actual>s) is above the expected maximum coverage (%<expected>.2f%%). " \
           "Time to bump the threshold!",
           criterion: violation.fetch(:criterion).capitalize,

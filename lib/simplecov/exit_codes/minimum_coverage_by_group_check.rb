@@ -16,7 +16,7 @@ module SimpleCov
 
       def report
         violations.each do |violation|
-          warn format(
+          ExitCodes.print_error format(
             "%<criterion>s coverage by group (%<actual>s) is below the expected minimum coverage " \
             "(%<expected>.2f%%) in %<group_name>s.",
             criterion: violation.fetch(:criterion).capitalize,
