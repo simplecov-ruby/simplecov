@@ -24,18 +24,7 @@ module SimpleCov
       # collected by this mixin; this class focuses on branch extraction.
       # (@methods / @class_stack are declared on the mixin, which owns them.)
       include MethodCollector
-
-      # Zero-width stand-in for Prism locations (empty `if` then arms are
-      # anchored to a point at the predicate's end). Quacks like the
-      # subset of Prism::Location that build_tuple reads.
-      class PointLocation
-        attr_reader start_line: Integer
-        attr_reader start_column: Integer
-        attr_reader end_line: Integer
-        attr_reader end_column: Integer
-
-        def initialize: (start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer) -> void
-      end
+      include LocationConventions
 
       attr_reader branches: untyped
 
@@ -77,35 +66,9 @@ module SimpleCov
 
       def emit_safe_navigation: (untyped node) -> untyped
 
-      # Resolve the source range Coverage attributes to a real-or-synthetic
-      # `:else` arm of an if-like construct. IfNode uses
-      # `subsequent` / `consequent` depending on Prism version (resolved
-      # to `IF_NODE_SUBSEQUENT_METHOD` at load time); UnlessNode uses
-      # `else_clause`. When neither is present, the synthesized else
-      # inherits the whole condition's range (matches Coverage's
-      # convention).
-      def if_like_then_location: (untyped node, untyped type) -> untyped
-
-      def if_like_else_location: (untyped node) -> untyped
-
       def emit_case_like: (untyped node, untyped when_type) -> untyped
 
-      # Resolve the source range Coverage attributes to a synthetic-or-real
-      # `:else` arm of a case construct: the body of an explicit else,
-      # or the case's full range when no else is present.
-      def else_arm_location: (untyped node) -> untyped
-
       def emit_loop: (untyped node, untyped type) -> untyped
-
-      # Body location for an arm. Prism's `statements` is a StatementsNode
-      # whose span covers the contained expressions; fall back to the
-      # parent when the arm body is empty (e.g., `if cond then end`).
-      def arm_location: (untyped statements, untyped fallback_location) -> untyped
-
-      # simplecov:disable branch
-      # The `else_node` fallback is defensive: every Prism node passed
-      # in here in practice responds to `:statements`.
-      def else_body_of: (untyped else_node) -> untyped
 
       def build_tuple: (untyped type, untyped location) -> ::Array[untyped]
     end

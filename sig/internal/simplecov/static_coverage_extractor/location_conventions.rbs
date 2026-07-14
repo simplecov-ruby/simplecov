@@ -1,0 +1,45 @@
+module SimpleCov
+  module StaticCoverageExtractor
+    # Source-range resolution matching the running Ruby's Coverage
+    # conventions (CRuby 3.4 changed several of them). See issue #1226.
+    module LocationConventions
+      LEGACY_COVERAGE_LOCATIONS: bool
+
+      # Zero-width stand-in for Prism locations, for arms Coverage
+      # anchors to a point rather than a range. Quacks like the subset
+      # of Prism::Location that build_tuple reads.
+      class PointLocation
+        attr_reader start_line: Integer
+        attr_reader start_column: Integer
+        attr_reader end_line: Integer
+        attr_reader end_column: Integer
+
+        def initialize: (start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer) -> void
+      end
+
+      private
+
+      def if_like_location: (untyped node, untyped type) -> untyped
+
+      def elsif_node?: (untyped node) -> bool
+
+      def legacy_content_end: (untyped node) -> untyped
+
+      def if_like_then_location: (untyped node, untyped type) -> untyped
+
+      def if_like_else_location: (untyped node, untyped type) -> untyped
+
+      def case_arm_location: (untyped case_node, untyped when_node, untyped when_type) -> untyped
+
+      def legacy_case_tail_end: (untyped case_node, untyped when_node) -> untyped
+
+      def following_case_content: (untyped case_node, untyped when_node) -> Array[untyped]
+
+      def else_arm_location: (untyped node) -> untyped
+
+      def loop_body_location: (untyped node) -> untyped
+
+      def point_at_end: (untyped location) -> untyped
+    end
+  end
+end
