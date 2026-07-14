@@ -2,6 +2,10 @@
 
 require "helper"
 require "coverage"
+require "json"
+require "open3"
+require "rbconfig"
+require "tmpdir"
 
 RSpec.describe SimpleCov::StaticCoverageExtractor do
   describe ".available?" do
@@ -136,6 +140,116 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           src = "@x ||= 1\n"
           # Coverage doesn't emit a branch entry for `||=`, neither do we.
           expect(static_branches(src)).to be_empty
+        end
+      end
+
+      describe "runtime tuple equivalence" do
+        # BranchesCombiner merges arms across resultsets by their
+        # [type, location] identity, so any location drift between what
+        # this extractor synthesizes and what Ruby's Coverage reports for
+        # the same source creates phantom, permanently-missed arms when a
+        # simulated entry merges with a real one (issue #1226; previously
+        # issue #1206 for `unless` and safe navigation). This is the
+        # differential harness that pins them tuple-for-tuple: every
+        # construct below runs through real Coverage in a subprocess and
+        # the extractor in-process, and the id-stripped tuples must be
+        # identical.
+        let(:branch_fixtures) do
+          {
+            "if_else" => "def fx(a)\n  if a\n    :a\n  else\n    :b\n  end\nend\n",
+            "if_no_else" => "def fx(a)\n  if a\n    :a\n  end\nend\n",
+            "if_elsif" => "def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  end\nend\n",
+            "if_elsif_else" => "def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  else\n    :c\n  end\nend\n",
+            "if_elsif_elsif_else" =>
+            "def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n    :c\n  " \
+            "else\n    :d\n  end\nend\n",
+            "elsif_chain_no_else" =>
+            "def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n    :c\n  end\nend\n",
+            "elsif_empty_body" => "def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n  end\nend\n",
+            "empty_then" => "def fx(a)\n  if a\n  end\nend\n",
+            "empty_then_with_else" => "def fx(a)\n  if a\n  else\n    :b\n  end\nend\n",
+            "empty_else" => "def fx(a)\n  if a\n    :a\n  else\n  end\nend\n",
+            "empty_both" => "def fx(a)\n  if a\n  else\n  end\nend\n",
+            "if_then_end" => "def fx(a)\n  if a then end\nend\n",
+            "nested_if_in_else" => "def fx(a, b)\n  if a\n    :a\n  else\n    if b\n      :b\n    end\n  end\nend\n",
+            "unless_no_else" => "def fx(a)\n  unless a\n    :a\n  end\nend\n",
+            "unless_else" => "def fx(a)\n  unless a\n    :a\n  else\n    :b\n  end\nend\n",
+            "unless_empty" => "def fx(a)\n  unless a\n  end\nend\n",
+            "modifier_if" => "def fx(a)\n  :a if a\nend\n",
+            "modifier_unless" => "def fx(a)\n  :a unless a\nend\n",
+            "ternary" => "def fx(a)\n  a ? :a : :b\nend\n",
+            "case_when" => "def fx(a)\n  case a\n  when 1 then :a\n  when 2 then :b\n  end\nend\n",
+            "case_when_else" => "def fx(a)\n  case a\n  when 1 then :a\n  else :b\n  end\nend\n",
+            "case_when_empty_body" => "def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  end\nend\n",
+            "case_empty_else" => "def fx(a)\n  case a\n  when 1 then :a\n  else\n  end\nend\n",
+            "case_in" => "def fx(a)\n  case a\n  in Integer then :i\n  in String then :s\n  end\nend\n",
+            "case_in_else" => "def fx(a)\n  case a\n  in Integer then :i\n  else :o\n  end\nend\n",
+            "case_in_empty_body" => "def fx(a)\n  case a\n  in Integer\n  in String then :s\n  end\nend\n",
+            "while_block" => "def fx\n  i = 0\n  while i < 3\n    i += 1\n  end\nend\n",
+            "while_modifier" => "def fx\n  i = 0\n  i += 1 while i < 3\nend\n",
+            "while_empty" => "def fx(a)\n  while a\n  end\nend\n",
+            "until_block" => "def fx\n  i = 0\n  until i >= 3\n    i += 1\n  end\nend\n",
+            "safe_navigation" => "def fx(a)\n  a&.to_s\nend\n"
+          }.freeze
+        end
+
+        def strip_ids(branches)
+          branches.to_h do |condition, arms|
+            [tuple_identity(condition), arms.keys.map { |arm| tuple_identity(arm) }.sort_by(&:to_s)]
+          end
+        end
+
+        # [type, id, sl, sc, el, ec] -> [type, sl, sc, el, ec]: ids are
+        # process-local counters on both sides and immaterial to merging.
+        def tuple_identity(tuple)
+          [tuple[0].to_s, *tuple.values_at(2, 3, 4, 5)]
+        end
+
+        # One subprocess for all fixtures: writes each as its own file,
+        # loads them under Coverage(branches: true), dumps tuples as JSON.
+        def runtime_branches
+          Dir.mktmpdir do |dir|
+            branch_fixtures.each { |name, src| File.write(File.join(dir, "#{name}.rb"), src) }
+            runner = File.join(dir, "runner.rb")
+            File.write(runner, runner_script(dir))
+            parse_runtime_payload(*Open3.capture2(RbConfig.ruby, runner))
+          end
+        end
+
+        def parse_runtime_payload(output, status)
+          raise "runtime coverage subprocess failed: #{output}" unless status.success?
+
+          JSON.parse(output).transform_values do |pairs|
+            pairs.to_h { |condition, arms| [condition, arms.to_h { |a| [a, 0] }] }
+          end
+        end
+
+        def runner_script(dir)
+          <<~RUBY
+            require "coverage"
+            require "json"
+            Coverage.start(branches: true)
+            names = #{branch_fixtures.keys.inspect}
+            names.each { |name| load File.join(#{dir.inspect}, "\#{name}.rb") }
+            result = Coverage.result
+            payload = names.to_h do |name|
+              branches = result[File.join(#{dir.inspect}, "\#{name}.rb")][:branches]
+              [name, branches.map { |condition, arms| [condition, arms.keys] }]
+            end
+            puts JSON.dump(payload)
+          RUBY
+        end
+
+        it "synthesizes tuples identical to Ruby's Coverage for every construct" do
+          skip "branch coverage unsupported on this Ruby" unless SimpleCov.branch_coverage_supported?
+
+          runtime = runtime_branches
+          aggregate_failures do
+            branch_fixtures.each do |name, source|
+              synthesized = described_class.call(source)["branches"]
+              expect(strip_ids(synthesized)).to eq(strip_ids(runtime.fetch(name))), "construct: #{name}"
+            end
+          end
         end
       end
 

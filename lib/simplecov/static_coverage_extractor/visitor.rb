@@ -32,6 +32,11 @@ module SimpleCov
 
       attr_reader :branches, :methods
 
+      # A zero-width stand-in for Prism locations, for the arms Coverage
+      # anchors to a point rather than a range (an `if` with an empty
+      # then body gets a collapsed range at the predicate's end).
+      PointLocation = Data.define(:start_line, :start_column, :end_line, :end_column)
+
       def initialize
         super
         @branches = {}
@@ -92,7 +97,7 @@ module SimpleCov
       # optional else/elsif) but expose the trailing arm under different
       # accessors. `if_like_else_location` hides that split.
       def emit_if_like(node, type)
-        then_loc = arm_location(node.statements, node.location)
+        then_loc = if_like_then_location(node, type)
         else_loc = if_like_else_location(node)
         @branches[build_tuple(type, node.location)] = {
           build_tuple(:then, then_loc) => 0,
@@ -108,6 +113,21 @@ module SimpleCov
         }
       end
 
+      # Location of the then arm. Coverage uses the body statements'
+      # range; when an `if` (but not an `unless`) has an empty then body,
+      # it collapses the arm to a zero-width point at the predicate's
+      # end. See issue #1226.
+      def if_like_then_location(node, type)
+        return node.statements.location if node.statements
+        return node.location unless type == :if
+
+        predicate_end = node.predicate.location
+        PointLocation.new(
+          start_line: predicate_end.end_line, start_column: predicate_end.end_column,
+          end_line: predicate_end.end_line, end_column: predicate_end.end_column
+        )
+      end
+
       # Resolve the source range Coverage attributes to a real-or-synthetic
       # `:else` arm of an if-like construct. IfNode uses
       # `subsequent` / `consequent` depending on Prism version (resolved
@@ -118,6 +138,13 @@ module SimpleCov
       def if_like_else_location(node)
         sub = node.is_a?(::Prism::IfNode) ? node.public_send(IF_NODE_SUBSEQUENT_METHOD) : node.else_clause
         return node.location unless sub
+        # An `elsif` arrives as a nested IfNode. Coverage attributes the
+        # outer else arm to the whole clause (from the `elsif` keyword
+        # through the shared `end`), which is the nested node's own
+        # location — not its then body, which is what `else_body_of`
+        # would yield and what created phantom unmergeable arms. See
+        # issue #1226.
+        return sub.location if sub.is_a?(::Prism::IfNode)
 
         arm_location(else_body_of(sub), sub.location)
       end

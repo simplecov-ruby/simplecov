@@ -25,6 +25,18 @@ module SimpleCov
       # (@methods / @class_stack are declared on the mixin, which owns them.)
       include MethodCollector
 
+      # Zero-width stand-in for Prism locations (empty `if` then arms are
+      # anchored to a point at the predicate's end). Quacks like the
+      # subset of Prism::Location that build_tuple reads.
+      class PointLocation
+        attr_reader start_line: Integer
+        attr_reader start_column: Integer
+        attr_reader end_line: Integer
+        attr_reader end_column: Integer
+
+        def initialize: (start_line: Integer, start_column: Integer, end_line: Integer, end_column: Integer) -> void
+      end
+
       attr_reader branches: untyped
 
       attr_reader methods: untyped
@@ -72,6 +84,8 @@ module SimpleCov
       # `else_clause`. When neither is present, the synthesized else
       # inherits the whole condition's range (matches Coverage's
       # convention).
+      def if_like_then_location: (untyped node, untyped type) -> untyped
+
       def if_like_else_location: (untyped node) -> untyped
 
       def emit_case_like: (untyped node, untyped when_type) -> untyped
