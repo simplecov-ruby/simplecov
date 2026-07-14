@@ -69,6 +69,12 @@ module SimpleCov
   # checks. Idempotent; `SimpleCov.start` calls this automatically.
   def self.install_at_exit_hook: () -> void
 
+  # Reset at_exit state a forked child inherits from its parent (a
+  # possibly consumed hook and a Minitest deferral pid-pinned to the
+  # parent), so the child re-arms a hook that fires at its own exit.
+  # Called by the fork hook; see issue #1227.
+  def self.reset_inherited_at_exit_state!: () -> void
+
   # Begin coverage tracking without applying configuration. Pairs with
   # `SimpleCov.configure { ... }`.
   def self.start_tracking: () -> void

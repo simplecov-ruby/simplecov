@@ -130,7 +130,11 @@ module SimpleCov
       return if @at_exit_hook_installed
 
       @at_exit_hook_installed = true
-      defer_to_minitest_after_run if minitest_autorun_pending?
+      # Never defer in a forked child: Minitest pins its after_run at_exit
+      # to the pid that armed autorun, so the deferral target can't fire
+      # there and the child's resultset would be silently dropped. See
+      # issue #1227.
+      defer_to_minitest_after_run if minitest_autorun_pending? && !forked_subprocess?
       Kernel.at_exit do
         next if SimpleCov.external_at_exit?
 
