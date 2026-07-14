@@ -93,7 +93,7 @@ end
 # ----- version -----
 
 module SimpleCov
-  VERSION: "1.0.0"
+  VERSION: String
 end
 
 # ----- result_processing -----
