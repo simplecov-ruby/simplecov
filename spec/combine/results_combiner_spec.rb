@@ -158,4 +158,36 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
     expect(merged_result[source_fixture("sample.rb")]["lines"]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
     expect(merged_result[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
   end
+
+  # End-to-end analogue of the #1233 collate scenario: one worker executed
+  # the file (real branches), another only tracked it (simulated branches
+  # whose tuple has drifted). The merge must keep the executed worker's
+  # tuple and drop the simulated one rather than carry a phantom miss.
+  describe "reconciling a simulated file against an executed one",
+           if: SimpleCov.branch_coverage_supported? do
+    around do |example|
+      SimpleCov.enable_coverage(:branch)
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "keeps only the executed worker's branch tuple" do
+      executed_worker = {
+        source_fixture("sample.rb") => {
+          "lines" => [nil, 1, 1, 0, nil],
+          "branches" => {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 1, [:else, 2, 4, 4, 4, 10] => 0}}
+        }
+      }
+      tracking_worker = {
+        source_fixture("sample.rb") => {
+          "lines" => [nil, 0, 0, 0, nil],
+          "branches" => {[:if, 0, 2, 2, 4, 12] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 12] => 0}}
+        }
+      }
+
+      combined = described_class.combine(executed_worker, tracking_worker)
+
+      expect(combined[source_fixture("sample.rb")]["branches"].keys).to eq([[:if, 0, 2, 2, 4, 10]])
+    end
+  end
 end
