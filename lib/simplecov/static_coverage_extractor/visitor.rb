@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+require_relative "condition_folding"
 require_relative "location_conventions"
 require_relative "method_collector"
+require_relative "value_position"
 
 module SimpleCov
   module StaticCoverageExtractor
@@ -19,6 +21,22 @@ module SimpleCov
       else
         :consequent
       end
+
+    # The same Prism 1.3 rename hit the `else` accessor on `UnlessNode`,
+    # `CaseNode`, and `CaseMatchNode` (all three: `consequent` ->
+    # `else_clause`). Ruby 3.3's stdlib Prism (0.19) only exposes
+    # `consequent`, so reaching for `else_clause` there raised
+    # NoMethodError inside the extractor — `call` swallowed it and the
+    # whole file silently fell back to no simulated data for any
+    # `unless`/`else` or empty-arm `case`. Resolve the name once, like
+    # IF_NODE_SUBSEQUENT_METHOD. All three nodes renamed together, so one
+    # constant (probed off CaseNode) covers them.
+    ELSE_CLAUSE_METHOD =
+      if ::Prism::CaseNode.method_defined?(:else_clause)
+        :else_clause
+      else
+        :consequent
+      end
     # simplecov:enable
 
     # Prism visitor that accumulates branch and method tuples in the
@@ -33,22 +51,9 @@ module SimpleCov
       # Source-range resolution, including the per-Ruby-version Coverage
       # conventions. See issue #1226.
       include LocationConventions
-
-      # Prism node types for the literals CRuby folds when they appear
-      # directly as an `if` / `unless` / ternary condition. The compiler
-      # treats a statically-known-truthy/falsy condition as dead-code
-      # elimination and emits NO branch, so neither do we (otherwise the
-      # synthesized arm is a phantom that no loaded run can ever hit —
-      # same unmergeable-tuple failure mode as #1226 / #1233). `while` /
-      # `until` do NOT fold (`while true` is a real branch), so this only
-      # gates the if-like visitors. Regexp and Range literals are
-      # excluded on purpose: as conditions they mean `=~ $_` / flip-flop,
-      # so Coverage does emit branches for them.
-      STATIC_CONDITION_TYPES = [
-        ::Prism::IntegerNode, ::Prism::FloatNode, ::Prism::RationalNode,
-        ::Prism::ImaginaryNode, ::Prism::SymbolNode, ::Prism::StringNode,
-        ::Prism::TrueNode, ::Prism::FalseNode, ::Prism::NilNode
-      ].freeze
+      # Which literal `if`/`unless`/ternary conditions the compiler folds
+      # away (so we emit no branch for them).
+      include ConditionFolding
 
       attr_reader :branches, :methods
 
@@ -58,6 +63,19 @@ module SimpleCov
         @methods = {}
         @next_id = 0
         @class_stack = []
+        @value_positions = nil
+      end
+
+      # Entry point for a parsed file. On legacy Rubies the location of an
+      # empty branch arm depends on whether its construct is in value
+      # (tail) position, so precompute that once for the whole tree before
+      # emitting anything. Modern Rubies don't need it (see
+      # LocationConventions), so the pass is skipped there.
+      def visit_program_node(node)
+        # simplecov:disable branch — legacy-only arm; unreachable on the modern dogfood Ruby
+        @value_positions = ValuePositions.call(node) if LEGACY_COVERAGE_LOCATIONS
+        # simplecov:enable branch
+        super
       end
 
       # `if` / `unless` / postfix-if / postfix-unless / ternary all parse
@@ -94,6 +112,24 @@ module SimpleCov
         super
       end
 
+      # One-line pattern matching: `x => pattern` (MatchRequiredNode) and
+      # `x in pattern` (MatchPredicateNode). Ruby 3.3's Coverage reports
+      # these as a `:case` with an `:in` and an `:else` arm; 3.4 dropped
+      # them entirely (no branch), so this is legacy-only. The two forms
+      # differ only in where Coverage anchors the synthesized `:else`:
+      # `=>` uses the whole expression, `in` uses just the pattern.
+      # simplecov:disable branch — legacy-only arms; unreachable on the modern dogfood Ruby
+      def visit_match_required_node(node)
+        emit_oneline_pattern(node, node.location) if LEGACY_COVERAGE_LOCATIONS
+        super
+      end
+
+      def visit_match_predicate_node(node)
+        emit_oneline_pattern(node, node.pattern.location) if LEGACY_COVERAGE_LOCATIONS
+        super
+      end
+      # simplecov:enable branch
+
       # `while` / `until` loops get a single `:body` arm. No synthetic
       # else (the loop either runs the body or doesn't).
       def visit_while_node(node)
@@ -120,28 +156,6 @@ module SimpleCov
         }
       end
 
-      # Whether `node` (an if-like predicate) is a compile-time literal
-      # Coverage folds away. Parentheses are transparent to the fold
-      # (`if (1)` folds just like `if 1`), so see through a single
-      # parenthesized expression. Compound forms (`!true`, `true || x`)
-      # are deliberately not folded here: `!` never folds, and `||` / `&&`
-      # constant-propagation diverges across Ruby versions, so matching it
-      # would trade a rare, version-specific gain for real risk.
-      def static_condition?(node)
-        node = unwrap_parentheses(node)
-        STATIC_CONDITION_TYPES.any? { |type| node.is_a?(type) }
-      end
-
-      def unwrap_parentheses(node)
-        while node.is_a?(::Prism::ParenthesesNode)
-          body = node.body
-          break unless body.is_a?(::Prism::StatementsNode) && body.body.size == 1
-
-          node = body.body.first
-        end
-        node
-      end
-
       def emit_safe_navigation(node)
         loc = safe_navigation_location(node)
         @branches[build_tuple(:"&.", loc)] = {
@@ -149,6 +163,15 @@ module SimpleCov
           build_tuple(:else, loc) => 0
         }
       end
+
+      # simplecov:disable — legacy-only (3.4 emits no branch for one-line patterns)
+      def emit_oneline_pattern(node, else_location)
+        @branches[build_tuple(:case, node.location)] = {
+          build_tuple(:in, node.pattern.location) => 0,
+          build_tuple(:else, else_location) => 0
+        }
+      end
+      # simplecov:enable
 
       def emit_case_like(node, when_type)
         arms = node.conditions.to_h do |when_node|

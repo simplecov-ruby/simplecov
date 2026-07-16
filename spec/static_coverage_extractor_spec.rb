@@ -144,6 +144,27 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(static_branches(src)).to be_empty
         end
 
+        it "emits a loop body arm for a do-while (`begin ... end while`)" do
+          src = "begin\n  x\nend while y\n"
+          arms = static_branches(src).values.first
+          expect(arms.keys.map(&:first)).to contain_exactly(:body)
+        end
+
+        # `CaseNode`/`UnlessNode` expose their `else` clause under an
+        # accessor Prism renamed (`consequent` -> `else_clause`); reaching
+        # for the wrong one on Ruby 3.3's stdlib Prism used to raise inside
+        # the extractor and silently drop the whole file's data. Exercising
+        # these paths guards the accessor resolution regardless of Prism.
+        it "extracts a case/when with an empty arm without crashing" do
+          arms = static_branches("case x\nwhen 1\nwhen 2 then :b\nend\n").values.first
+          expect(arms.keys.map(&:first)).to contain_exactly(:when, :when, :else)
+        end
+
+        it "extracts an unless/else without crashing" do
+          arms = static_branches("unless x\n  :a\nelse\n  :b\nend\n").values.first
+          expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
+        end
+
         # A statically-truthy/falsy literal as an `if`/`unless`/ternary
         # condition is folded by the compiler, so Coverage emits no branch
         # for it. Emitting one anyway creates a tuple that no loaded run
@@ -252,7 +273,35 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "folded_if_int" => "def fx(a)\n  if 1\n    :a\n  end\nend\n",
             "folded_unless_false" => "def fx(a)\n  unless false\n    :a\n  end\nend\n",
             "folded_ternary" => "def fx(a)\n  1 ? :a : :b\nend\n",
-            "folded_if_void" => "def fx(a)\n  if true\n    :a\n  end\n  a\nend\n"
+            "folded_if_void" => "def fx(a)\n  if true\n    :a\n  end\n  a\nend\n",
+            # do-while (`begin ... end while/until`): 3.3 attributes the
+            # body to the begin's inner statements, 3.4 to the whole span.
+            "do_while" => "def fx(a)\n  begin\n    a\n  end while a\nend\n",
+            "do_until" => "def fx(a)\n  begin\n    a\n  end until a\nend\n",
+            "do_while_multi" => "def fx(a)\n  begin\n    a\n    b\n  end while a\nend\n",
+            # One-line pattern matching: a `:case` branch on 3.3, nothing
+            # on 3.4. `=>` and `in` anchor the synthesized `:else`
+            # differently (whole expression vs pattern).
+            "oneline_match_required" => "def fx(a)\n  a => Integer\nend\n",
+            "oneline_match_predicate" => "def fx(a)\n  a in Integer\nend\n",
+            "oneline_match_void" => "def fx(a)\n  a => Integer\n  b\nend\n",
+            # Empty arms in VOID position (a statement follows): 3.3
+            # collapses them to a point at the arm header's end, unlike the
+            # value-position (last-statement) fixtures above.
+            "empty_then_void" => "def fx(a)\n  if a\n  end\n  b\nend\n",
+            "empty_then_else_void" => "def fx(a)\n  if a\n  else\n    :b\n  end\n  b\nend\n",
+            "empty_else_void" => "def fx(a)\n  if a\n    :a\n  else\n  end\n  b\nend\n",
+            "empty_unless_then_void" => "def fx(a)\n  unless a\n  end\n  b\nend\n",
+            "empty_when_void" => "def fx(a)\n  case a\n  when 1\n  end\n  b\nend\n",
+            "empty_when_mixed" => "def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  when 3\n  end\nend\n",
+            "empty_case_else_void" => "def fx(a)\n  case a\n  when 1 then :a\n  else\n  end\n  b\nend\n",
+            # Value position propagates through when-arms but NOT through
+            # case/in arms, blocks, or assignments (nested empty arm stays
+            # a point there on 3.3).
+            "empty_if_in_when" => "def fx(a)\n  case a\n  when 1\n    if b\n    end\n  end\nend\n",
+            "empty_if_in_in_arm" => "def fx(a)\n  case a\n  in Integer\n    if b\n    end\n  end\nend\n",
+            "empty_if_in_block" => "def fx(a)\n  foo do\n    if b\n    end\n  end\nend\n",
+            "empty_if_rhs" => "def fx(a)\n  x = if b\n  end\nend\n"
           }.freeze
         end
 
