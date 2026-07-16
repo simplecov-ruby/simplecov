@@ -34,7 +34,12 @@ module SimpleCov
     # doesn't get ANSI sequences. See the module-level comment for
     # precedence.
     def enabled?(stream = $stderr)
-      config = SimpleCov.color
+      # `SimpleCov.color` only exists once the full library is loaded.
+      # The standalone CLI (`exe/simplecov`) loads `simplecov/color`
+      # without `simplecov` itself to stay lightweight, so treat a
+      # missing config the same as its `:auto` default: fall through to
+      # the env vars and tty check below.
+      config = SimpleCov.color if SimpleCov.respond_to?(:color)
       return config if [true, false].include?(config)
       return false if env_set?("NO_COLOR")
       return true  if env_set?("FORCE_COLOR")

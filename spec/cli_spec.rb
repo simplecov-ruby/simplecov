@@ -984,4 +984,45 @@ RSpec.describe SimpleCov::CLI do
       end
     end
   end
+
+  # These have to shell out to the real `exe/simplecov`. The bug they
+  # guard (SimpleCov.color undefined) only exists in a process that
+  # loaded `simplecov/cli` *without* `simplecov` — the in-process specs
+  # above always have the full library loaded via spec/helper, so they
+  # can't see it. The reproduction also needs a directory with no
+  # `.simplecov` above it, since finding one lazily requires the full
+  # library and incidentally defines `SimpleCov.color`.
+  describe "colorizing subcommands in the standalone CLI process" do
+    let(:exe) { File.expand_path("../exe/simplecov", __dir__) }
+    let(:lib) { File.expand_path("../lib", __dir__) }
+    let(:filename) { "/project/app.rb" }
+
+    around do |example|
+      Dir.mktmpdir("simplecov-cli-standalone-spec-") do |dir|
+        FileUtils.mkdir_p(File.join(dir, "coverage"))
+        payload = {
+          "total" => {"lines" => {"covered" => 8, "total" => 10, "percent" => 80.0}},
+          "coverage" => {filename => {"total_lines" => 10, "covered_lines" => 5, "lines_covered_percent" => 50.0}},
+          "groups" => {}
+        }
+        File.write(File.join(dir, "coverage", "coverage.json"), JSON.dump(payload))
+        Dir.chdir(dir) { example.run }
+      end
+    end
+
+    # `coverage` needs a file path present in the JSON; `diff` needs a
+    # baseline (the same coverage.json is a fine zero-delta baseline).
+    {
+      "report" => [],
+      "uncovered" => [],
+      "coverage" => ["/project/app.rb"],
+      "diff" => ["coverage/coverage.json"]
+    }.each do |subcommand, extra_args|
+      it "runs `#{subcommand}` without SimpleCov.color being loaded" do
+        _stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-I", lib, exe, subcommand, *extra_args)
+        expect(stderr).not_to include("NoMethodError")
+        expect(status).to be_success
+      end
+    end
+  end
 end

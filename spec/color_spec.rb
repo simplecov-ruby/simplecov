@@ -84,6 +84,22 @@ RSpec.describe SimpleCov::Color do
       expect(described_class.enabled?(stdout_not_tty)).to be false
     end
 
+    it "falls through when SimpleCov has no color config (standalone CLI)" do
+      # In the standalone `exe/simplecov` process, `simplecov/color` is
+      # loaded without `simplecov/configuration`, so `SimpleCov` doesn't
+      # respond to `color`. `enabled?` must fall through to the env / TTY
+      # checks rather than raise (see #1231).
+      allow(SimpleCov).to receive(:respond_to?).and_call_original
+      allow(SimpleCov).to receive(:respond_to?).with(:color).and_return(false)
+
+      stream_tty = StringIO.new
+      allow(stream_tty).to receive(:tty?).and_return(true)
+      expect(described_class.enabled?(stream_tty)).to be true
+
+      ENV["NO_COLOR"] = "1"
+      expect(described_class.enabled?(stream_tty)).to be false
+    end
+
     context "when SimpleCov.color is set explicitly" do
       it "returns true when set to true, overriding a non-TTY stream" do
         SimpleCov.color true
