@@ -106,8 +106,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
         it "handles empty arm bodies (e.g., `if cond then end`)" do
           # Triggers the `arm_location` fallback branch when StatementsNode
-          # is nil — the parent's location stands in.
-          src = "if true then end\n"
+          # is nil — the parent's location stands in. The condition must
+          # be non-literal: Coverage folds a literal condition away (see
+          # the constant-folding specs below), and so does the extractor.
+          src = "if x then end\n"
           static = static_branches(src)
           arms = static.values.first
           # :else is synthesized (no else clause) — both arms must have positions
@@ -140,6 +142,47 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           src = "@x ||= 1\n"
           # Coverage doesn't emit a branch entry for `||=`, neither do we.
           expect(static_branches(src)).to be_empty
+        end
+
+        # A statically-truthy/falsy literal as an `if`/`unless`/ternary
+        # condition is folded by the compiler, so Coverage emits no branch
+        # for it. Emitting one anyway creates a tuple that no loaded run
+        # can produce — a phantom unhittable branch after merge, the same
+        # failure mode as #1226 / #1233. `while`/`until` do not fold.
+        context "with a constant-folded condition" do
+          [
+            ["if 1\n  x\nend\n", "integer"],
+            ["if true\n  x\nend\n", "true"],
+            ["if false\n  x\nelse\n  y\nend\n", "false"],
+            ["if nil\n  x\nend\n", "nil"],
+            ["if :z\n  x\nend\n", "symbol"],
+            ["if 1.5\n  x\nend\n", "float"],
+            ["unless true\n  x\nend\n", "unless with literal"],
+            ["1 ? x : y\n", "ternary"],
+            ["if (1)\n  x\nend\n", "parenthesized literal"]
+          ].each do |src, label|
+            it "emits no branch for a #{label} condition" do
+              expect(static_branches(src)).to be_empty
+            end
+          end
+
+          it "still tracks a non-literal condition" do
+            expect(static_branches("if a\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "still tracks `while true` (loops are not folded)" do
+            expect(static_branches("while true\n  x\nend\n").keys.first.first).to eq(:while)
+          end
+
+          it "still tracks `!true` (negation is not folded)" do
+            expect(static_branches("if !true\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "does not fold a parenthesized multi-statement condition" do
+            # `(a; b)` isn't a single wrapped expression, so the paren
+            # unwrapping stops and the whole thing is treated as non-literal.
+            expect(static_branches("if (a; b)\n  x\nend\n").keys.first.first).to eq(:if)
+          end
         end
       end
 
@@ -200,7 +243,16 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "safe_navigation_block" => "def fx(a)\n  a&.foo { 1 }\nend\n",
             "safe_navigation_args_block" => "def fx(a)\n  a&.foo(1) { 1 }\nend\n",
             "safe_navigation_chain_block" => "def fx(a)\n  a&.foo&.bar { 1 }\nend\n",
-            "safe_navigation_chain_args_block" => "def fx(a)\n  a&.foo(1)&.bar(2) { 1 }\nend\n"
+            "safe_navigation_chain_args_block" => "def fx(a)\n  a&.foo(1)&.bar(2) { 1 }\nend\n",
+            # Constant-folded conditions: Coverage emits no branch, so
+            # neither should the extractor. In value position (the if is
+            # the def's last statement) and void position (a statement
+            # follows) alike, on every supported Ruby.
+            "folded_if_true" => "def fx(a)\n  if true\n    :a\n  else\n    :b\n  end\nend\n",
+            "folded_if_int" => "def fx(a)\n  if 1\n    :a\n  end\nend\n",
+            "folded_unless_false" => "def fx(a)\n  unless false\n    :a\n  end\nend\n",
+            "folded_ternary" => "def fx(a)\n  1 ? :a : :b\nend\n",
+            "folded_if_void" => "def fx(a)\n  if true\n    :a\n  end\n  a\nend\n"
           }.freeze
         end
 

@@ -34,6 +34,22 @@ module SimpleCov
       # conventions. See issue #1226.
       include LocationConventions
 
+      # Prism node types for the literals CRuby folds when they appear
+      # directly as an `if` / `unless` / ternary condition. The compiler
+      # treats a statically-known-truthy/falsy condition as dead-code
+      # elimination and emits NO branch, so neither do we (otherwise the
+      # synthesized arm is a phantom that no loaded run can ever hit —
+      # same unmergeable-tuple failure mode as #1226 / #1233). `while` /
+      # `until` do NOT fold (`while true` is a real branch), so this only
+      # gates the if-like visitors. Regexp and Range literals are
+      # excluded on purpose: as conditions they mean `=~ $_` / flip-flop,
+      # so Coverage does emit branches for them.
+      STATIC_CONDITION_TYPES = [
+        ::Prism::IntegerNode, ::Prism::FloatNode, ::Prism::RationalNode,
+        ::Prism::ImaginaryNode, ::Prism::SymbolNode, ::Prism::StringNode,
+        ::Prism::TrueNode, ::Prism::FalseNode, ::Prism::NilNode
+      ].freeze
+
       attr_reader :branches, :methods
 
       def initialize
@@ -51,12 +67,12 @@ module SimpleCov
       # missing, Coverage synthesizes a `:else` arm attributed to the
       # whole condition's range — we do the same.
       def visit_if_node(node)
-        emit_if_like(node, :if)
+        emit_if_like(node, :if) unless static_condition?(node.predicate)
         super
       end
 
       def visit_unless_node(node)
-        emit_if_like(node, :unless)
+        emit_if_like(node, :unless) unless static_condition?(node.predicate)
         super
       end
 
@@ -102,6 +118,28 @@ module SimpleCov
           build_tuple(:then, then_loc) => 0,
           build_tuple(:else, else_loc) => 0
         }
+      end
+
+      # Whether `node` (an if-like predicate) is a compile-time literal
+      # Coverage folds away. Parentheses are transparent to the fold
+      # (`if (1)` folds just like `if 1`), so see through a single
+      # parenthesized expression. Compound forms (`!true`, `true || x`)
+      # are deliberately not folded here: `!` never folds, and `||` / `&&`
+      # constant-propagation diverges across Ruby versions, so matching it
+      # would trade a rare, version-specific gain for real risk.
+      def static_condition?(node)
+        node = unwrap_parentheses(node)
+        STATIC_CONDITION_TYPES.any? { |type| node.is_a?(type) }
+      end
+
+      def unwrap_parentheses(node)
+        while node.is_a?(::Prism::ParenthesesNode)
+          body = node.body
+          break unless body.is_a?(::Prism::StatementsNode) && body.body.size == 1
+
+          node = body.body.first
+        end
+        node
       end
 
       def emit_safe_navigation(node)
