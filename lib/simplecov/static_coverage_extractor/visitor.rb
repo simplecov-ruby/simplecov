@@ -105,7 +105,7 @@ module SimpleCov
       end
 
       def emit_safe_navigation(node)
-        loc = node.location
+        loc = safe_navigation_location(node)
         @branches[build_tuple(:"&.", loc)] = {
           build_tuple(:then, loc) => 0,
           build_tuple(:else, loc) => 0

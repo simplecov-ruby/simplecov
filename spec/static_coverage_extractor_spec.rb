@@ -194,7 +194,13 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "while_empty" => "def fx(a)\n  while a\n  end\nend\n",
             "until_empty" => "def fx(a)\n  until a\n  end\nend\n",
             "until_block" => "def fx\n  i = 0\n  until i >= 3\n    i += 1\n  end\nend\n",
-            "safe_navigation" => "def fx(a)\n  a&.to_s\nend\n"
+            "safe_navigation" => "def fx(a)\n  a&.to_s\nend\n",
+            "safe_navigation_args" => "def fx(a)\n  a&.foo(1)\nend\n",
+            "safe_navigation_parenless_args" => "def fx(a)\n  a&.foo 1\nend\n",
+            "safe_navigation_block" => "def fx(a)\n  a&.foo { 1 }\nend\n",
+            "safe_navigation_args_block" => "def fx(a)\n  a&.foo(1) { 1 }\nend\n",
+            "safe_navigation_chain_block" => "def fx(a)\n  a&.foo&.bar { 1 }\nend\n",
+            "safe_navigation_chain_args_block" => "def fx(a)\n  a&.foo(1)&.bar(2) { 1 }\nend\n"
           }.freeze
         end
 

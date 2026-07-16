@@ -146,6 +146,23 @@ module SimpleCov
         node.location
       end
 
+      # Coverage's safe-navigation branch spans the receiver through the
+      # end of the call's arguments (or just the message when there are
+      # none), but never includes a trailing block: `x&.foo { ... }` and
+      # `x&.foo(1) { ... }` both end exactly where `x&.foo` / `x&.foo(1)`
+      # would without the block. `node.location` includes an attached
+      # block, so build the end position from `closing_loc` (closing
+      # paren) / `arguments` (paren-less args) / `message_loc` instead.
+      # This convention is the same on legacy and modern Rubies. See
+      # issue #1233.
+      def safe_navigation_location(node)
+        end_loc = node.closing_loc || node.arguments&.location || node.message_loc
+        PointLocation.new(
+          start_line: node.location.start_line, start_column: node.location.start_column,
+          end_line: end_loc.end_line, end_column: end_loc.end_column
+        )
+      end
+
       def point_at_end(location)
         PointLocation.new(
           start_line: location.end_line, start_column: location.end_column,
