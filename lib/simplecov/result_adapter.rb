@@ -27,13 +27,14 @@ module SimpleCov
 
     # Pre-0.18 resultsets pointed each filename straight at a line-coverage
     # array; everything since uses the `{lines:, branches:, methods:}`
-    # shape. Newer entries also need their methods table massaged before
-    # downstream code merges across processes.
+    # shape. Newer entries also need their methods and branches tables
+    # massaged before downstream code reports or merges them.
     def adapt_one(file_name, cover_statistic)
       return {"lines" => cover_statistic} if cover_statistic.is_a?(Array)
 
       adapt_oneshot_lines_if_needed(file_name, cover_statistic)
       normalize_method_keys(cover_statistic)
+      aggregate_duplicated_branches(cover_statistic)
       cover_statistic
     end
 
@@ -59,20 +60,53 @@ module SimpleCov
     SINGLETON_WRAPPER_PATTERN = /\A#<Class:([A-Z_][\w:]*)>\z/
     private_constant :SINGLETON_WRAPPER_PATTERN
 
+    # Ruby's method coverage records one entry per RECEIVER, not per source
+    # location: a block handed to `define_method` / `define_singleton_method`
+    # from a shared code path (a module's `included` hook, a builder) yields
+    # a separate `[receiver, name, location]` entry for every class it's
+    # defined on, all pointing at the same source. A file-based report can
+    # only express "was the method at this location ever executed", so
+    # entries are aggregated by (name, location), summing hits — otherwise
+    # each receiver whose copy never ran shows as a phantom uncovered method
+    # on a line whose line coverage is 100% (issue #1234). The first entry's
+    # (normalized) receiver is kept for display.
     def normalize_method_keys(cover_statistic)
       methods = cover_statistic[:methods]
       return unless methods
 
-      normalized_methods = {} #: Hash[untyped, untyped]
-      cover_statistic[:methods] = methods.each_with_object(normalized_methods) do |(key, count), normalized|
-        normalized_key = key.dup
-        normalized_key[0] = key[0].to_s
-                                  .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
-                                  .sub(SINGLETON_WRAPPER_PATTERN, '\1')
-        # Keys may collide after normalization (anonymous classes sharing a
-        # method name, or singleton + instance forms of a module_function method).
-        normalized[normalized_key] = normalized.fetch(normalized_key, 0) + count
+      aggregated = {} #: Hash[untyped, [untyped, Integer]]
+      methods.each_with_object(aggregated) do |(key, count), memo|
+        identity = key[1..] #: Array[untyped]
+        retained_key, existing = memo[identity] || [normalize_method_key(key), 0]
+        memo[identity] = [retained_key, existing + count]
       end
+      cover_statistic[:methods] = aggregated.values.to_h
+    end
+
+    def normalize_method_key(key)
+      normalized_key = key.dup
+      normalized_key[0] = key[0].to_s
+                                .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
+                                .sub(SINGLETON_WRAPPER_PATTERN, '\1')
+      normalized_key
+    end
+
+    # Ruby's eval coverage records a fresh set of branch entries for every
+    # COMPILE of an eval'd string: a template rendered through multiple view
+    # classes (e.g. hanami-view compiles each template once per view) yields
+    # several `[:if, id, location]` conditions at identical coordinates in
+    # the same file, each counting only the renders that flowed through that
+    # compile. Reported as-is they inflate the branch denominator and turn a
+    # side covered under a different compile into a phantom miss (issue
+    # #1235). Aggregate them by (type, location) — combining a branches hash
+    # with an empty one dedups within it, since BranchesCombiner keys arms
+    # on location identity. Regular (non-eval) source can never produce two
+    # conditions at the same location, so this is a no-op outside eval.
+    def aggregate_duplicated_branches(cover_statistic)
+      branches = cover_statistic[:branches]
+      return unless branches
+
+      cover_statistic[:branches] = Combine::BranchesCombiner.combine(branches, {})
     end
 
     def adapt_oneshot_lines_if_needed(file_name, cover_statistic)

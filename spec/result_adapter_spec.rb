@@ -161,5 +161,103 @@ RSpec.describe SimpleCov::ResultAdapter do
         expect(methods.values.first).to eq(7)
       end
     end
+
+    context "with the same define_method block defined on differently-shaped receivers" do
+      # One `define_singleton_method :method_added` block, defined onto a
+      # Class descendant (called 6 times) and a Module descendant (never
+      # called — e.g. a spec exercising a type-check failure path). Ruby
+      # records one entry per receiver; the receiver shapes normalize
+      # differently, so without location aggregation the Module copy is a
+      # phantom uncovered method on a fully-covered line (issue #1234).
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["#<Class:#<Class:0x00007f0000000001>>", :method_added, 18, 55, 22, 9] => 6,
+              ["#<Class:#<Module:0x00007f0000000002>>", :method_added, 18, 55, 22, 9] => 0
+            }
+          }
+        }
+      end
+
+      it "aggregates per-receiver entries at the same source location" do
+        methods = adapter[existing_file][:methods]
+        expect(methods).to eq(["#<Class:#<Class:0x0>>", :method_added, 18, 55, 22, 9] => 6)
+      end
+    end
+
+    context "with a named and an anonymous receiver sharing a location" do
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["SomeNamedClass", :inspect, 3, 39, 3, 51] => 0,
+              ["#<Class:0x00007f0000000003>", :inspect, 3, 39, 3, 51] => 1
+            }
+          }
+        }
+      end
+
+      it "sums hits so the covered receiver wins" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.values).to eq([1])
+      end
+    end
+
+    context "with same-named methods at different locations" do
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["Foo", :call, 2, 2, 4, 5] => 1,
+              ["Bar", :call, 8, 2, 10, 5] => 0
+            }
+          }
+        }
+      end
+
+      it "keeps them separate (distinct source methods)" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.keys.size).to eq(2)
+        expect(methods.values).to contain_exactly(1, 0)
+      end
+    end
+  end
+
+  describe "eval-duplicated branch aggregation" do
+    # Ruby's eval coverage emits a fresh set of branch entries per COMPILE
+    # of a template (hanami-view compiles the same .erb once per view), so
+    # one source `if` shows up as several conditions at identical
+    # coordinates, each seeing only its own renders. Reported separately
+    # they inflate the denominator and turn a side covered under another
+    # compile into a phantom miss (issue #1235).
+    let(:result_set) do
+      {
+        existing_file => {
+          branches: {
+            [:if, 0, 3, 3, 19, 6] => {[:then, 1, 4, 4, 4, 10] => 1, [:else, 2, 3, 3, 19, 6] => 0},
+            [:if, 9, 3, 3, 19, 6] => {[:then, 10, 4, 4, 4, 10] => 0, [:else, 11, 3, 3, 19, 6] => 2},
+            [:if, 18, 30, 3, 32, 6] => {[:then, 19, 31, 4, 31, 10] => 4, [:else, 20, 30, 3, 32, 6] => 0}
+          }
+        }
+      }
+    end
+
+    it "aggregates duplicated conditions by location, summing arm hits" do
+      branches = adapter[existing_file][:branches]
+      expect(branches.keys.size).to eq(2)
+
+      duplicated = branches[[:if, 0, 3, 3, 19, 6]]
+      expect(duplicated.values).to contain_exactly(1, 2)
+    end
+
+    it "leaves distinct conditions untouched" do
+      branches = adapter[existing_file][:branches]
+      expect(branches[[:if, 18, 30, 3, 32, 6]].values).to eq([4, 0])
+    end
+
+    it "ignores entries without branch data" do
+      expect(described_class.call({existing_file => {lines: [nil, 1]}})[existing_file]).not_to have_key(:branches)
+    end
   end
 end
