@@ -286,6 +286,30 @@ RSpec.describe SimpleCov::ResultAdapter do
         expect(methods.values).to contain_exactly(1, 0)
       end
     end
+
+    context "with one define_method block generating many method names" do
+      # A builder looping `container.each_key { |key| define_method(key) { ... } }`
+      # produces one entry per generated name, all at the block's location.
+      # Only some generated wrappers get called, but the source location
+      # executed, which is all a file-based report can express (#1234).
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["#<Builder:0x00007f0000000001>", :echo, 38, 26, 41, 11] => 1,
+              ["#<Builder:0x00007f0000000001>", :bind, 38, 26, 41, 11] => 0,
+              ["#<Builder:0x00007f0000000001>", :check, 38, 26, 41, 11] => 0
+            }
+          }
+        }
+      end
+
+      it "aggregates all generated names at the block's location" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.keys.size).to eq(1)
+        expect(methods.values).to eq([1])
+      end
+    end
   end
 
   describe "eval-duplicated branch aggregation" do

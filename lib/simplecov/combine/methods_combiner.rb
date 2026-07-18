@@ -16,14 +16,15 @@ module SimpleCov
       #
       # Method coverage maps `[class, name, start_line, start_col, end_line,
       # end_col]` keys to hit counts. Keys are matched on their SOURCE
-      # identity — (name, location), ignoring the class element — because
-      # Ruby records one entry per receiver: the same `define_method` block
-      # defined onto different classes in different processes arrives with
-      # different (normalized) receivers for the same source method, and
-      # matching on the full key would keep both, letting a never-called
-      # receiver's 0 shadow a covered method after merge (issue #1234).
-      # Combining sums the hit counts for matching methods and preserves
-      # methods that only appear in one result.
+      # identity — the location, ignoring the class and name elements —
+      # because Ruby records one entry per defined method: the same
+      # `define_method` block defined onto different classes, or under
+      # different names, in different processes arrives with different
+      # receivers or names for the same source method, and matching on the
+      # full key would keep both, letting a never-called copy's 0 shadow a
+      # covered method after merge (issue #1234). Combining sums the hit
+      # counts for matching methods and preserves methods that only appear
+      # in one result.
       #
       # @return [Hash]
       #
@@ -41,8 +42,8 @@ module SimpleCov
       end
 
       def source_identity(key)
-        _class_name, *identity = SourceFile::RubyDataParser.call(key)
-        identity
+        _class_name, _method_name, *location = SourceFile::RubyDataParser.call(key)
+        location
       end
     end
   end

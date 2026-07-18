@@ -60,25 +60,29 @@ module SimpleCov
     SINGLETON_WRAPPER_PATTERN = /\A#<Class:([A-Z_][\w:]*)>\z/
     private_constant :SINGLETON_WRAPPER_PATTERN
 
-    # Ruby's method coverage records one entry per RECEIVER, not per source
-    # location: a block handed to `define_method` / `define_singleton_method`
-    # from a shared code path (a module's `included` hook, a builder) yields
-    # a separate `[receiver, name, location]` entry for every class it's
-    # defined on, all pointing at the same source. A file-based report can
-    # only express "was the method at this location ever executed", so
-    # entries are aggregated by (name, location), summing hits — otherwise
-    # each receiver whose copy never ran shows as a phantom uncovered method
-    # on a line whose line coverage is 100% (issue #1234). The first entry's
-    # (normalized) receiver is kept for display.
+    # Ruby's method coverage records one entry per DEFINED METHOD, not per
+    # source location: a block handed to `define_method` /
+    # `define_singleton_method` from a shared code path yields a separate
+    # `[receiver, name, location]` entry for every class it's defined on
+    # (a module's `included` hook defining onto each descendant) AND for
+    # every name it's defined under (a builder looping `define_method key`
+    # over a container), all pointing at the same source. A file-based
+    # report can only express "was the method at this location ever
+    # executed", so entries are aggregated by location alone, summing
+    # hits — otherwise each receiver or name whose generated copy never
+    # ran shows as a phantom uncovered method on a line whose line
+    # coverage is 100%. Regular `def`s map one location to one name, so
+    # they are unaffected. The first entry's (normalized) key is kept for
+    # display. See issue #1234.
     def normalize_method_keys(cover_statistic)
       methods = cover_statistic[:methods]
       return unless methods
 
       aggregated = {} #: Hash[untyped, [untyped, Integer]]
       methods.each_with_object(aggregated) do |(key, count), memo|
-        identity = key[1..] #: Array[untyped]
-        retained_key, existing = memo[identity] || [normalize_method_key(key), 0]
-        memo[identity] = [retained_key, existing + count]
+        location = key[2..] #: Array[untyped]
+        retained_key, existing = memo[location] || [normalize_method_key(key), 0]
+        memo[location] = [retained_key, existing + count]
       end
       cover_statistic[:methods] = aggregated.values.to_h
     end

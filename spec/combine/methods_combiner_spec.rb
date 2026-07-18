@@ -66,6 +66,17 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
       expect(result.values).to contain_exactly(1, 3)
     end
 
+    it "matches different generated names at the same location" do
+      # One define_method block generating several names (a builder looping
+      # over a container): same location = same source method (issue #1234).
+      coverage_a = {'["#<Builder:0x0>", :echo, 38, 26, 41, 11]' => 1}
+      coverage_b = {'["#<Builder:0x0>", :bind, 38, 26, 41, 11]' => 0}
+
+      result = described_class.combine(coverage_a, coverage_b)
+
+      expect(result).to eq('["#<Builder:0x0>", :echo, 38, 26, 41, 11]' => 1)
+    end
+
     it "sums duplicated identities arriving within one side" do
       # A resultset stored by an older SimpleCov can still carry
       # per-receiver duplicates; merging must collapse them too.
