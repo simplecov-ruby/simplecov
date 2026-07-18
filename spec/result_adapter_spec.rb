@@ -110,9 +110,18 @@ RSpec.describe SimpleCov::ResultAdapter do
       mod
     end
 
+    # Engines render singleton wrappers differently: CRuby routes a
+    # singleton class's `to_s` through the attached object's `#inspect`
+    # (which is what can crash), while JRuby and TruffleRuby render from
+    # the class name chain and never hit the rescue. The invariant on
+    # every engine is: adapting must not raise, and the rendered receiver
+    # must carry no unnormalized address. The exact strings are pinned on
+    # CRuby only, where the fallback path actually runs.
     it "recovers the named singleton wrapper via Module#name" do
       methods = adapter_for(named_shadowing_module.singleton_class)
-      expect(methods.keys.first[0]).to eq("FakeLiquidUtils")
+      rendered = methods.keys.first[0]
+      expect(rendered).not_to match(/0x\h{2,}/)
+      expect(rendered).to eq("FakeLiquidUtils") if RUBY_ENGINE == "ruby"
     end
 
     it "falls back to the address form for an anonymous shadowing module" do
@@ -123,7 +132,9 @@ RSpec.describe SimpleCov::ResultAdapter do
         module_function :inspect
       end
       methods = adapter_for(mod.singleton_class)
-      expect(methods.keys.first[0]).to eq("#<Class:0x0>")
+      rendered = methods.keys.first[0]
+      expect(rendered).not_to match(/0x\h{2,}/)
+      expect(rendered).to eq("#<Class:0x0>") if RUBY_ENGINE == "ruby"
     end
 
     it "falls back to the address form when to_s itself is shadowed" do
