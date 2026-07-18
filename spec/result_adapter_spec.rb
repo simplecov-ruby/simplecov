@@ -94,6 +94,70 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
   end
 
+  describe "receiver classes whose name rendering executes broken user code" do
+    # A singleton class's `to_s` renders its attached object via `#inspect`,
+    # which user code can shadow with an incompatible signature — Liquid's
+    # `Utils.inspect(value, max_depth = 2)` module_function is the wild
+    # example. The report must degrade, not crash the host suite (#1236).
+    def named_shadowing_module
+      mod = Module.new do
+        def inspect(value, max_depth = 2) # rubocop:disable Lint/UnusedMethodArgument
+          value.to_s
+        end
+        module_function :inspect
+      end
+      stub_const("FakeLiquidUtils", mod)
+      mod
+    end
+
+    it "recovers the named singleton wrapper via Module#name" do
+      methods = adapter_for(named_shadowing_module.singleton_class)
+      expect(methods.keys.first[0]).to eq("FakeLiquidUtils")
+    end
+
+    it "falls back to the address form for an anonymous shadowing module" do
+      mod = Module.new do
+        def inspect(value)
+          value
+        end
+        module_function :inspect
+      end
+      methods = adapter_for(mod.singleton_class)
+      expect(methods.keys.first[0]).to eq("#<Class:0x0>")
+    end
+
+    it "falls back to the address form when to_s itself is shadowed" do
+      mod = Module.new do
+        def self.to_s
+          raise ArgumentError, "broken to_s"
+        end
+      end
+      methods = adapter_for(mod)
+      expect(methods.keys.first[0]).to eq("#<Module:0x0>")
+    end
+
+    it "renders an instance's singleton class without invoking its inspect" do
+      # `def some_object.helper` records the object's singleton class. CRuby
+      # renders those from the class name chain without calling the object's
+      # #inspect, so even a broken inspect can't interfere; the nested
+      # addresses still normalize.
+      broken = Class.new do
+        def inspect(_depth)
+          "unreachable"
+        end
+      end.new
+      methods = adapter_for(broken.singleton_class)
+      expect(methods.keys.first[0]).to eq("#<Class:#<#<Class:0x0>:0x0>>")
+    end
+
+    def adapter_for(receiver)
+      result = described_class.call(
+        existing_file => {methods: {[receiver, :helper, 5, 2, 5, 12] => 1}}
+      )
+      result[existing_file][:methods]
+    end
+  end
+
   describe "method coverage key normalization" do
     let(:result_set) do
       {

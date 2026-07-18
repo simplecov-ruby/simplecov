@@ -44,6 +44,13 @@ module SimpleCov
 
     def normalize_method_key: (untyped key) -> untyped
 
+    # Rendering a class name can execute user code (a singleton class's
+    # to_s calls its attached object's #inspect); never let that crash
+    # the report. See issue #1236.
+    def class_display_name: (untyped klass) -> String
+
+    def singleton_wrapper_name: (untyped klass) -> String?
+
     # Aggregates eval-duplicated branch conditions by source location
     # (issue #1235).
     def aggregate_duplicated_branches: (untyped cover_statistic) -> (nil | untyped)

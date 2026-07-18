@@ -85,10 +85,38 @@ module SimpleCov
 
     def normalize_method_key(key)
       normalized_key = key.dup
-      normalized_key[0] = key[0].to_s
-                                .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
-                                .sub(SINGLETON_WRAPPER_PATTERN, '\1')
+      normalized_key[0] = class_display_name(key[0])
+                          .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
+                          .sub(SINGLETON_WRAPPER_PATTERN, '\1')
       normalized_key
+    end
+
+    # Rendering a class name can execute user code: a singleton class's
+    # `to_s` renders its attached object via `#inspect`, which a module can
+    # shadow with an incompatible signature (Liquid::Utils defines
+    # `inspect(value, max_depth = 2)` as a module_function, so rendering
+    # `#<Class:Liquid::Utils>` raises ArgumentError). A coverage report
+    # must never crash the host suite over that, so on failure rebuild the
+    # singleton wrapper from `Module#name` via bound methods (which cannot
+    # be shadowed), falling back to the address form, which
+    # ADDRESS_PATTERN then normalizes. See issue #1236.
+    def class_display_name(klass)
+      klass.to_s
+    rescue StandardError
+      singleton_wrapper_name(klass) || Object.instance_method(:to_s).bind_call(klass)
+    end
+
+    def singleton_wrapper_name(klass)
+      return nil unless klass.is_a?(Class) && klass.singleton_class?
+
+      attached = klass.attached_object
+      # simplecov:disable branch — CRuby only reaches the rescue via a
+      # Module/Class attached object (instance singletons render from the
+      # class name chain without calling user inspect), so the non-Module
+      # arm is defensive.
+      name = Module.instance_method(:name).bind_call(attached) if attached.is_a?(Module)
+      # simplecov:enable branch
+      name && "#<Class:#{name}>"
     end
 
     # Ruby's eval coverage records a fresh set of branch entries for every
