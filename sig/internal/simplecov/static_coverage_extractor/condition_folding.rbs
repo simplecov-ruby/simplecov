@@ -1,0 +1,16 @@
+module SimpleCov
+  module StaticCoverageExtractor
+    # Detects the `if` / `unless` / ternary conditions CRuby folds away
+    # (compile-time literals), for which Coverage emits no branch.
+    module ConditionFolding
+      # Prism node types for the literals that fold.
+      STATIC_CONDITION_TYPES: Array[untyped]
+
+      private
+
+      def static_condition?: (untyped node) -> bool
+
+      def unwrap_parentheses: (untyped node) -> untyped
+    end
+  end
+end

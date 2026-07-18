@@ -9,9 +9,13 @@ module SimpleCov
     module FilesCombiner
     module_function
 
+      empty_table = {} #: Hash[untyped, untyped]
+      EMPTY_TABLE = empty_table.freeze
+      private_constant :EMPTY_TABLE
+
       # Branch/method tuples drawn from a simulated (never-loaded) file
       # when the other side of the merge was actually executed.
-      NO_SYNTHESIZED = {"branches" => {}.freeze, "methods" => {}.freeze}.freeze
+      NO_SYNTHESIZED = {"branches" => EMPTY_TABLE, "methods" => EMPTY_TABLE}.freeze
 
       #
       # Combines the results for 2 coverages of a file.
@@ -58,7 +62,8 @@ module SimpleCov
       # A file some process actually loaded has at least one executed line;
       # a simulated (never-loaded) file's lines are all `nil` or `0`.
       def executed?(coverage)
-        Array(coverage["lines"]).any? { |count| count&.positive? }
+        lines = Array(coverage["lines"]) #: Array[Integer?]
+        lines.any? { |count| count&.positive? }
       end
     end
   end

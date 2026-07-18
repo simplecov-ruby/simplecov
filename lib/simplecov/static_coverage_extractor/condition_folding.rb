@@ -34,13 +34,15 @@ module SimpleCov
       end
 
       def unwrap_parentheses(node)
-        while node.is_a?(::Prism::ParenthesesNode)
-          body = node.body
+        # @type var current: untyped
+        current = node
+        while current.is_a?(::Prism::ParenthesesNode)
+          body = current.body
           break unless body.is_a?(::Prism::StatementsNode) && body.body.size == 1
 
-          node = body.body.first
+          current = body.body.first
         end
-        node
+        current
       end
     end
   end

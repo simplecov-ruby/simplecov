@@ -10,6 +10,10 @@ module SimpleCov
     # simplecov:disable
     IF_NODE_SUBSEQUENT_METHOD: untyped
 
+    # The same Prism 1.3 rename hit the `else` accessor on UnlessNode,
+    # CaseNode, and CaseMatchNode (`consequent` -> `else_clause`).
+    ELSE_CLAUSE_METHOD: untyped
+
     # Prism visitor that accumulates branch and method tuples in the
     # shape Ruby's `Coverage` reports. Tuple ids are sequential across
     # the file — `Coverage` uses sequential ids too, so this matches the
@@ -25,12 +29,16 @@ module SimpleCov
       # (@methods / @class_stack are declared on the mixin, which owns them.)
       include MethodCollector
       include LocationConventions
+      include ConditionFolding
 
       attr_reader branches: untyped
 
       attr_reader methods: untyped
 
       def initialize: () -> void
+
+      # Precomputes the legacy value-position set before emitting.
+      def visit_program_node: (untyped node) -> untyped
 
       # `if` / `unless` / postfix-if / postfix-unless / ternary all parse
       # as IfNode (or UnlessNode). Both carry a `then` arm (the
@@ -51,6 +59,11 @@ module SimpleCov
 
       def visit_case_match_node: (untyped node) -> untyped
 
+      # One-line pattern matching (`x => p` / `x in p`), legacy-only.
+      def visit_match_required_node: (untyped node) -> untyped
+
+      def visit_match_predicate_node: (untyped node) -> untyped
+
       # `while` / `until` loops get a single `:body` arm. No synthetic
       # else (the loop either runs the body or doesn't).
       def visit_while_node: (untyped node) -> untyped
@@ -65,6 +78,8 @@ module SimpleCov
       def emit_if_like: (untyped node, untyped type) -> untyped
 
       def emit_safe_navigation: (untyped node) -> untyped
+
+      def emit_oneline_pattern: (untyped node, untyped else_location) -> untyped
 
       def emit_case_like: (untyped node, untyped when_type) -> untyped
 

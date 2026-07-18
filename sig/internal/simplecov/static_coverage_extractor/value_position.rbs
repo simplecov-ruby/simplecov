@@ -1,0 +1,22 @@
+module SimpleCov
+  module StaticCoverageExtractor
+    # Ruby 3.3 value-position analysis: on legacy Rubies the location of
+    # an empty branch arm depends on whether its construct is in value
+    # (method-return) or void position. Computed once per parse.
+    module ValuePositions
+      # An identity set (a `compare_by_identity` Hash used as a set) of
+      # the Prism nodes Coverage treats as being in value position.
+      def self?.call: (untyped root) -> untyped
+
+      def self?.mark: (untyped node, untyped in_value, untyped positions) -> untyped
+
+      # The children of `node` that inherit its tail position; empty for
+      # the void default.
+      def self?.tail_children: (untyped node, untyped in_value) -> Array[untyped]
+
+      def self?.subsequent: (untyped node) -> untyped
+
+      def self?.else_clause: (untyped node) -> untyped
+    end
+  end
+end

@@ -10,7 +10,19 @@ module SimpleCov
       #
       # @return [Hash]
       #
+      EMPTY_TABLE: Hash[untyped, untyped]
+
+      # Branch/method tuples drawn from a simulated (never-loaded) file
+      # when the other side of the merge was actually executed.
+      NO_SYNTHESIZED: Hash[String, Hash[untyped, untyped]]
+
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+
+      # When exactly one side was executed, its branch/method tuples are
+      # authoritative and the simulated side's are dropped (issue #1233).
+      def self?.reconcile_synthesized: (untyped coverage_a, untyped coverage_b) -> [untyped, untyped]
+
+      def self?.executed?: (untyped coverage) -> bool
     end
   end
 end

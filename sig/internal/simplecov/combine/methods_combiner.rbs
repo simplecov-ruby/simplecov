@@ -8,13 +8,17 @@ module SimpleCov
       #
       # Return merged methods or the existing methods if other is missing.
       #
-      # Method coverage is a flat hash mapping method identifiers to hit counts.
-      # Combining sums the hit counts for matching methods and preserves methods
-      # that only appear in one result.
+      # Method coverage maps `[class, name, location]` keys to hit counts.
+      # Keys are matched on their SOURCE identity (name, location),
+      # ignoring the class element (issue #1234). Combining sums the hit
+      # counts for matching methods and preserves methods that only
+      # appear in one result.
       #
       # @return [Hash]
       #
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+
+      def self?.source_identity: (untyped key) -> Array[untyped]
     end
   end
 end

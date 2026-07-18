@@ -1,9 +1,14 @@
 module SimpleCov
   module StaticCoverageExtractor
     # Source-range resolution matching the running Ruby's Coverage
-    # conventions (CRuby 3.4 changed several of them). See issue #1226.
+    # conventions (CRuby 3.4 changed several of them). See issues
+    # #1226 / #1233.
     module LocationConventions
       LEGACY_COVERAGE_LOCATIONS: bool
+
+      # Owned by this mixin: set by Visitor#visit_program_node (legacy
+      # Rubies only), read by value_position?.
+      @value_positions: untyped
 
       # Zero-width stand-in for Prism locations, for arms Coverage
       # anchors to a point rather than a range. Quacks like the subset
@@ -29,7 +34,11 @@ module SimpleCov
 
       def if_like_else_location: (untyped node, untyped type) -> untyped
 
+      def empty_else_location: (untyped node, untyped sub, untyped type) -> untyped
+
       def case_arm_location: (untyped case_node, untyped when_node, untyped when_type) -> untyped
+
+      def legacy_when_value_location: (untyped case_node, untyped when_node) -> untyped
 
       def legacy_case_tail_end: (untyped case_node, untyped when_node) -> untyped
 
@@ -39,7 +48,24 @@ module SimpleCov
 
       def loop_body_location: (untyped node) -> untyped
 
+      # `begin ... end while/until cond` (the do-while form).
+      def begin_modifier_loop?: (untyped node) -> bool
+
+      def legacy_do_while_body_location: (untyped node) -> untyped
+
+      # Coverage's safe-navigation branch never includes a trailing
+      # block. See issue #1233.
+      def safe_navigation_location: (untyped node) -> untyped
+
       def point_at_end: (untyped location) -> untyped
+
+      # The `else`/`elsif` clause of an if-like node, under whichever
+      # accessor this Prism version exposes.
+      def if_like_subsequent: (untyped node) -> untyped
+
+      def empty_arm_collapses?: (untyped node, untyped type) -> bool
+
+      def value_position?: (untyped node) -> bool
     end
   end
 end

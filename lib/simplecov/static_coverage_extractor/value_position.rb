@@ -31,7 +31,8 @@ module SimpleCov
       # An identity set (a `compare_by_identity` Hash used as a set) of the
       # Prism nodes Coverage treats as being in value position.
       def call(root)
-        positions = {}.compare_by_identity #: Hash[Prism::Node, bool]
+        positions = {} #: Hash[untyped, bool]
+        positions.compare_by_identity
         mark(root, true, positions)
         positions
       end

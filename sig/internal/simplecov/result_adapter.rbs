@@ -42,6 +42,12 @@ module SimpleCov
 
     def normalize_method_keys: (untyped cover_statistic) -> (nil | untyped)
 
+    def normalize_method_key: (untyped key) -> untyped
+
+    # Aggregates eval-duplicated branch conditions by source location
+    # (issue #1235).
+    def aggregate_duplicated_branches: (untyped cover_statistic) -> (nil | untyped)
+
     def adapt_oneshot_lines_if_needed: (untyped file_name, untyped cover_statistic) -> (nil | untyped)
 
     def build_line_stub: (untyped file_name, untyped oneshot_lines) -> untyped
