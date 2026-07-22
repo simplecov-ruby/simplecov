@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Performance
+* Fix 5x performance regression on report combining (introduced in `1.0.0` as a result of using `Ripper#parse` in a hot path) by adding parsed key memoisation to `RubyDataParser.call`.
+
 1.0.2 (2026-07-18)
 ==================
 

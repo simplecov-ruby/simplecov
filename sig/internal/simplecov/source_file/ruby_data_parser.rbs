@@ -7,9 +7,15 @@ module SimpleCov
     # #801). The grammar covers symbols, strings, integers, unary minus,
     # and constant paths — every shape Coverage ever emits.
     module RubyDataParser
+      # Memoizes string parses; see the implementation comment on `call`.
+      self.@parse_cache: Hash[String, untyped]?
+      @parse_cache: Hash[String, untyped]?
+
       # Tests use the real data structures (except for integration tests)
       # so no need to put them through here.
       def self?.call: (untyped structure) -> untyped
+
+      def self?.parse_cache: () -> Hash[String, untyped]
 
       # Parse a string like '[:if, 0, 3, 4, 3, 21]' or
       # '["ClassName", :method1, 2, 2, 5, 5]' back into a Ruby array.
