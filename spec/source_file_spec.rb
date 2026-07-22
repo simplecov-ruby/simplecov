@@ -1316,6 +1316,27 @@ RSpec.describe SimpleCov::SourceFile do
         expect { described_class.parse_array_string("42") }.to raise_error(ArgumentError, /array literal/)
       end
     end
+
+    describe ".call" do
+      it "parses a stringified tuple into its array form" do
+        expect(described_class.call("[:if, 0, 3, 4, 3, 21]")).to eq([:if, 0, 3, 4, 3, 21])
+      end
+
+      it "returns arrays untouched and unfrozen" do
+        tuple = [:then, 4, 8, 6, 8, 12]
+
+        expect(described_class.call(tuple)).to be(tuple)
+        expect(tuple).not_to be_frozen
+      end
+
+      it "memoizes string parses, returning one frozen array for equal keys" do
+        first = described_class.call("[:while, 1, 5, 2, 7, 5]")
+        second = described_class.call(+"[:while, 1, 5, 2, 7, 5]")
+
+        expect(second).to be(first)
+        expect(first).to be_frozen
+      end
+    end
   end
 
   describe "method-coverage round-trip with a dynamic-symbol method name" do

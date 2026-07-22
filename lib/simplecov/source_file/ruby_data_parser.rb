@@ -15,10 +15,26 @@ module SimpleCov
 
       # Tests use the real data structures (except for integration tests)
       # so no need to put them through here.
+      #
+      # String parses are memoized: `Combine::BranchesCombiner` and
+      # `Combine::MethodsCombiner` derive a merge identity from every key of
+      # both sides on every pairwise merge, so collating N resultsets parses
+      # each key string N-1 times — and Ripper dominates the wall time of a
+      # large collate.
+      # Key strings repeat across folds and within report building, while the
+      # set of unique keys is bounded by the project's branch and method
+      # count, so a permanent cache stays small. Cached arrays are frozen:
+      # every caller destructures without mutating, and sharing one array
+      # across callers must stay that way.
       def call(structure)
         return structure if structure.is_a?(Array)
 
-        parse_array_string(structure.to_s)
+        string = structure.to_s
+        parse_cache[string] ||= parse_array_string(string).freeze
+      end
+
+      def parse_cache
+        @parse_cache ||= {} #: Hash[String, untyped]
       end
 
       # Parse a string like '[:if, 0, 3, 4, 3, 21]' or
