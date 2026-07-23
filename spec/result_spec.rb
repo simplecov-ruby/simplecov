@@ -200,6 +200,34 @@ RSpec.describe SimpleCov::Result do
         end
       end
 
+      # Formatter instances (rather than classes) are how constructor
+      # options like `silent: true` reach the built-in formatters; see
+      # #1240.
+      context "when a formatter instance is configured" do
+        before do
+          SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter.new
+        end
+
+        it "formats with the instance instead of trying to instantiate it" do
+          expect(result.format!).to be_a String
+        end
+      end
+
+      context "when formatters mixes classes and instances" do
+        before do
+          SimpleCov.formatters = [
+            SimpleCov::Formatter::SimpleFormatter,
+            SimpleCov::Formatter::SimpleFormatter.new
+          ]
+        end
+
+        it "formats with each of them" do
+          formatted = result.format!
+          expect(formatted.count).to eq(2)
+          expect(formatted).to all(be_a(String))
+        end
+      end
+
       # `formatter false` / `formatters []` opts out of formatting; see #964.
       context "when no formatter is configured (opted out)" do
         before { SimpleCov.formatter(false) }

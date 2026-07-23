@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Bugfixes
+* `SimpleCov.formatter` and `SimpleCov.formatters` now accept formatter instances in addition to formatter classes, so constructor options can actually be passed — most notably `SimpleCov::Formatter::HTMLFormatter.new(silent: true)` to suppress the "Coverage report generated" status line. Previously SimpleCov unconditionally called `.new` on whatever was configured, so passing an instance crashed with `NoMethodError` at report time. See #1240.
+
 1.0.2 (2026-07-18)
 ==================
 

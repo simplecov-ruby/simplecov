@@ -6,6 +6,13 @@ module SimpleCov
   # and can be wired up via `SimpleCov.formatter=`.
   # TODO: Documentation on how to build your own formatters
   module Formatter
+    # Formatters can be configured either as classes (instantiated
+    # fresh for every report) or as ready-built instances — the only
+    # way to reach constructor options like
+    # `HTMLFormatter.new(silent: true)`. See #1240.
+    def self.instance_for(formatter)
+      formatter.is_a?(Class) ? formatter.new : formatter
+    end
   end
 end
 

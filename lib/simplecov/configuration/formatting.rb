@@ -9,11 +9,16 @@ module SimpleCov
     attr_writer :formatter, :print_error_status
 
     #
-    # Gets or sets the configured formatter. Pass `false` (or `nil`) to
-    # opt out of formatting entirely — worker processes in big parallel
-    # CI setups (see #964) only need their `.resultset.json` on disk so
-    # a final `SimpleCov.collate` job can produce the report; running
-    # them without a formatter saves the per-job HTML/multi-formatter
+    # Gets or sets the configured formatter. Accepts a formatter class
+    # (instantiated fresh for every report) or a ready-built instance,
+    # which is how constructor options are passed — e.g.
+    # `formatter SimpleCov::Formatter::HTMLFormatter.new(silent: true)`
+    # to suppress the "Coverage report generated" status line (see
+    # #1240). Pass `false` (or `nil`) to opt out of formatting
+    # entirely — worker processes in big parallel CI setups (see #964)
+    # only need their `.resultset.json` on disk so a final
+    # `SimpleCov.collate` job can produce the report; running them
+    # without a formatter saves the per-job HTML/multi-formatter
     # overhead.
     #
     def formatter(formatter = :__no_arg__)
@@ -40,7 +45,8 @@ module SimpleCov
 
     # Sets the configured formatters. Equivalent to `formatters [...]`.
     # Accepts a single formatter as well as an Array, matching the pre-1.0 behavior
-    # where `MultiFormatter.new` normalized its input.
+    # where `MultiFormatter.new` normalized its input. Elements may be
+    # formatter classes or ready-built instances; see `formatter`.
     def formatters=(formatters)
       formatters = Array(formatters)
       @formatter = formatters.empty? ? nil : SimpleCov::Formatter::MultiFormatter.new(formatters)

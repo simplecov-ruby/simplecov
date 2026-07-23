@@ -1217,13 +1217,18 @@ end
 module SimpleCov
   # Namespace for result formatters. A formatter is any class whose
   # instances respond to `#format(result)` and that can be instantiated
-  # with no arguments; wire one up via `SimpleCov.formatter=` or
+  # with no arguments, or a ready-built instance responding to
+  # `#format(result)`; wire one up via `SimpleCov.formatter=` or
   # `SimpleCov.formatters=`.
   module Formatter
     # Structural interface for custom formatter instances.
     interface _Formatter
       def format: (SimpleCov::Result result) -> untyped
     end
+
+    # Normalizes a configured formatter — class or ready-built
+    # instance — into an instance. See #1240.
+    def self.instance_for: (untyped formatter) -> untyped
   end
 end
 

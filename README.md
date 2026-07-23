@@ -1042,6 +1042,20 @@ SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 `SimpleCov.result.format!` then invokes `SimpleCov::Formatter::YourFormatter.new.format(result)`, where `result` is a
 `SimpleCov::Result`. Do whatever you wish with it.
 
+### Passing options to formatters
+
+Anywhere a formatter class is accepted, a ready-built instance works too — that's how you reach constructor options.
+The built-in HTML and JSON formatters take `silent: true` to suppress the "Coverage report generated" status line on
+stderr, and `output_dir:` to write the report somewhere other than `SimpleCov.coverage_path`:
+
+```ruby
+SimpleCov.start do
+  formatter SimpleCov::Formatter::HTMLFormatter.new(silent: true)
+end
+```
+
+Instances mix freely with classes in `formatters` lists as well.
+
 ### Using multiple formatters
 
 As of SimpleCov 0.9 you can specify multiple result formats. The HTML and JSON formatters are built in; other
