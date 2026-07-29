@@ -25,30 +25,43 @@ module SimpleCov
       #
       def combine(coverage_a, coverage_b)
         merged = {} #: Hash[untyped, [untyped, Hash[untyped, untyped]]]
-        combined = [coverage_a, coverage_b].each_with_object(merged) do |coverage, memo|
+        [coverage_a, coverage_b].each do |coverage|
           coverage.each do |condition, branches_inside|
-            condition_key = tuple_identity(condition)
-            condition_tuple, merged_branches = memo[condition_key] ||= [condition, {}]
-            merge_branches(merged_branches, branches_inside)
-            memo[condition_key] = [condition_tuple, merged_branches]
+            entry = merged[identities[condition]] ||= [condition, {}]
+            merge_branches(entry[1], branches_inside)
           end
         end
 
-        combined.values.to_h { |condition, branches| [condition, branches.values.to_h] }
+        merged.values.to_h { |condition, branches| [condition, branches.values.to_h] }
       end
 
+      # `target` and its pairs are always built by `combine` above, so updating
+      # them in place can't reach data a caller still holds.
       def merge_branches(target, source)
         source.each do |branch, count|
-          branch_key = tuple_identity(branch)
-          branch_tuple, existing_count = target[branch_key]
-          target[branch_key] = [branch_tuple || branch, existing_count ? existing_count + count : count]
+          branch_key = identities[branch]
+          existing = target[branch_key]
+          if existing
+            existing[1] += count
+          else
+            target[branch_key] = [branch, count]
+          end
         end
       end
 
+      # Derives an identity on first sight of a key and keeps it: the pairwise
+      # fold would otherwise re-derive the accumulator's identities on every one
+      # of its merges, always to the same answer. Bounded by the project's
+      # branch count, like `RubyDataParser`'s parse cache.
+      def identities
+        @identities ||= Hash.new { |cache, tuple| cache[tuple] = tuple_identity(tuple) }
+      end
+
+      # Branches match on source span, whatever ids the recording processes
+      # handed them (issue #1233).
       def tuple_identity(tuple)
-        tuple = SourceFile::RubyDataParser.call(tuple)
-        type, _id, start_line, start_column, end_line, end_column = tuple
-        [type, start_line, start_column, end_line, end_column]
+        type, _id, start_line, start_column, end_line, end_column = SourceFile::RubyDataParser.call(tuple)
+        [type, start_line, start_column, end_line, end_column].freeze
       end
     end
   end
