@@ -49,12 +49,24 @@ module SimpleCov
         end
       end
 
-      # Derives an identity on first sight of a key and keeps it: the pairwise
-      # fold would otherwise re-derive the accumulator's identities on every one
-      # of its merges, always to the same answer. Bounded by the project's
-      # branch count, like `RubyDataParser`'s parse cache.
+      # Maps a raw key to its interned identity on first sight and keeps it: the
+      # pairwise fold would otherwise re-derive the accumulator's identities on
+      # every one of its merges, always to the same answer. Bounded by the
+      # project's branch count, like `RubyDataParser`'s parse cache.
       def identities
-        @identities ||= Hash.new { |cache, tuple| cache[tuple] = tuple_identity(tuple) }
+        @identities ||= Hash.new do |cache, tuple|
+          identity = tuple_identity(tuple)
+          cache[tuple] = identity_ids[identity] ||= identity_ids.size
+        end
+      end
+
+      # Identities exist only to be `combine`'s hash keys, and `Array#hash` is
+      # not memoized, so keying on the tuple itself rehashed five elements for
+      # every key of both sides of every merge. An Integer hashes as an
+      # immediate. Two keys share an id exactly when their identities are equal,
+      # so the string and array forms of one key still merge together.
+      def identity_ids
+        @identity_ids ||= {} #: Hash[::Array[untyped], Integer]
       end
 
       # Branches match on source span, whatever ids the recording processes
