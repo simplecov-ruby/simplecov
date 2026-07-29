@@ -49,9 +49,16 @@ module SimpleCov
         end
       end
 
-      # Memoized like `BranchesCombiner.identities`.
+      # Memoized and interned like `BranchesCombiner.identities`.
       def identities
-        @identities ||= Hash.new { |cache, key| cache[key] = source_identity(key) }
+        @identities ||= Hash.new do |cache, key|
+          identity = source_identity(key)
+          cache[key] = identity_ids[identity] ||= identity_ids.size
+        end
+      end
+
+      def identity_ids
+        @identity_ids ||= {} #: Hash[::Array[untyped], Integer]
       end
 
       def source_identity(key)
