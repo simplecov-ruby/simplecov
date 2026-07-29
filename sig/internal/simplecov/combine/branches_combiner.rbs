@@ -5,6 +5,11 @@ module SimpleCov
     #
     # Should be called through `SimpleCov.combine`.
     module BranchesCombiner
+      # Memoizes branch identities. Declared in both contexts for the same
+      # reason as `RubyDataParser`'s parse cache.
+      self.@identities: Hash[untyped, ::Array[untyped]]?
+      @identities: Hash[untyped, ::Array[untyped]]?
+
       #
       # Return merged branches or the existed branch if other is missing.
       #
@@ -20,6 +25,8 @@ module SimpleCov
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
 
       def self?.merge_branches: (untyped target, untyped source) -> untyped
+
+      def self?.identities: () -> Hash[untyped, ::Array[untyped]]
 
       def self?.tuple_identity: (untyped tuple) -> ::Array[untyped]
     end
