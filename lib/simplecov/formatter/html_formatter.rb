@@ -7,29 +7,33 @@ require_relative "json_formatter"
 
 module SimpleCov
   module Formatter
-    # Generates an HTML coverage report by writing a coverage_data.js file
-    # alongside pre-compiled static assets (index.html, application.js/css).
-    # Uses JSONFormatter.build_hash to serialize the result, then writes both
-    # coverage.json and coverage_data.js from the same in-memory hash.
+    # Generates a single self-contained HTML coverage report. The compiled
+    # template (public/index.html) already carries the viewer app's JS and
+    # CSS inline; format substitutes the coverage JSON at the data marker
+    # and writes one index.html, so the report can be mailed, uploaded as
+    # a single CI artifact, or opened from anywhere without sibling files.
+    # A coverage.json is written alongside from the same in-memory hash.
     class HTMLFormatter < Base
-      DATA_FILENAME = "coverage_data.js"
+      # Placeholder in the compiled template where the report's data goes.
+      DATA_MARKER = "<!-- SIMPLECOV_COVERAGE_DATA -->"
 
       def format(result)
-        # `coverage_data.js` feeds the client-side viewer, which renders
-        # source from the embedded array — it always needs `source`,
-        # regardless of `SimpleCov.source_in_json`. The side-file
-        # `coverage.json` honors the setting so downstream tools that
-        # read source from disk can opt into a smaller payload. When
-        # the setting is at its default (true), the two files share a
-        # single serialization.
+        # The inlined report data feeds the client-side viewer, which
+        # renders source from the embedded array — it always needs
+        # `source`, regardless of `SimpleCov.source_in_json`. The
+        # side-file `coverage.json` honors the setting so downstream
+        # tools that read source from disk can opt into a smaller
+        # payload. The embedded copy is serialized compactly (pretty
+        # printing puts every element of every per-line coverage array
+        # on its own indented line, roughly doubling the payload);
+        # coverage.json stays pretty-printed for human readers.
         FileUtils.mkdir_p(output_path)
-        viewer_json = JSON.pretty_generate(JSONFormatter.build_hash(result, include_source: true))
-        coverage_json = SimpleCov.source_in_json ? viewer_json : JSON.pretty_generate(JSONFormatter.build_hash(result))
+        viewer_hash = JSONFormatter.build_hash(result, include_source: true)
+        json_hash = SimpleCov.source_in_json ? viewer_hash : JSONFormatter.build_hash(result)
 
-        atomic_write(File.join(output_path, JSONFormatter::FILENAME), coverage_json)
-        atomic_write(File.join(output_path, DATA_FILENAME), "window.SIMPLECOV_DATA = #{viewer_json};\n")
+        atomic_write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash))
+        atomic_write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)))
 
-        copy_static_assets
         # stderr, not stdout: this is a status message, not the program's
         # output. Keeps the line out of pipelines like `rspec -f json`. And
         # $stderr.puts, not `warn`: a status line should not reach
@@ -39,11 +43,13 @@ module SimpleCov
 
       # Generate HTML from a pre-existing coverage.json file without
       # needing a live SimpleCov::Result or even a running test suite.
+      # The round-trip through parse/generate compacts the (typically
+      # pretty-printed) input and rejects invalid JSON here rather than
+      # embedding it and failing at view time.
       def format_from_json(json_path, output_dir)
         FileUtils.mkdir_p(output_dir)
-        json = File.read(json_path)
-        atomic_write(File.join(output_dir, DATA_FILENAME), "window.SIMPLECOV_DATA = #{json};\n")
-        copy_static_assets(output_dir)
+        json = JSON.generate(JSON.parse(File.read(json_path)))
+        atomic_write(File.join(output_dir, "index.html"), render_report(json))
       end
 
     private
@@ -52,10 +58,20 @@ module SimpleCov
         "index.html"
       end
 
-      def copy_static_assets(dest_dir = output_path)
-        Dir[File.join(public_dir, "*")].each do |src|
-          atomic_write(File.join(dest_dir, File.basename(src)), File.binread(src))
+      # Substitute the coverage JSON into the compiled template. `<` is
+      # escaped as \u003c — valid JSON, since `<` can only occur inside
+      # strings — so embedded source text containing "</script>" or
+      # "<!--" cannot terminate the surrounding <script> element. Block
+      # forms keep gsub/sub from interpreting backslashes in the JSON as
+      # replacement-string back-references.
+      def render_report(json)
+        template = File.read(File.join(public_dir, "index.html"))
+        unless template.include?(DATA_MARKER)
+          raise "SimpleCov's HTML template is missing its #{DATA_MARKER.inspect} marker"
         end
+
+        data_script = "<script>window.SIMPLECOV_DATA = #{json.gsub('<') { '\u003c' }};</script>"
+        template.sub(DATA_MARKER) { data_script }
       end
 
       # Write `content` at `dest` via a uniquely-named temp file in the

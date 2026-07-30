@@ -24,7 +24,7 @@ end
 # Rack app for Capybara which returns the latest coverage report from Aruba temp project dir
 coverage_dir = File.expand_path("../../tmp/aruba/project/coverage/", __dir__)
 
-# Prevent the browser from caching coverage_data.js between scenario visits
+# Prevent the browser from caching the report between scenario visits
 class NoCacheMiddleware
   def initialize(app)
     @app = app

@@ -26,15 +26,22 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     SimpleCov::Result.new(coverage.transform_keys { |name| fixture_path(name) })
   end
 
-  def coverage_data(dir = coverage_dir)
-    content = File.read(File.join(dir, "coverage_data.js"))
-    json_str = content.sub("window.SIMPLECOV_DATA = ", "").chomp(";\n")
-    JSON.parse(json_str)
+  # Extract the embedded coverage JSON back out of the single-file
+  # report. The payload's `<` characters are escaped, so the first
+  # "</script>" after the assignment is reliably the element's close.
+  def embedded_json(dir = coverage_dir)
+    html = File.read(File.join(dir, "index.html"))
+    html[%r{window\.SIMPLECOV_DATA = (.*?);</script>}m, 1]
   end
 
-  describe "DATA_FILENAME" do
-    it "is the conventional coverage_data.js" do
-      expect(described_class::DATA_FILENAME).to eq "coverage_data.js"
+  def coverage_data(dir = coverage_dir)
+    JSON.parse(embedded_json(dir))
+  end
+
+  describe "DATA_MARKER" do
+    it "is present exactly once in the compiled template" do
+      template = File.read(File.join(formatter.send(:public_dir), "index.html"))
+      expect(template.scan(described_class::DATA_MARKER).count).to eq 1
     end
   end
 
@@ -59,11 +66,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   end
 
   describe "#format with output_dir" do
-    it "writes coverage_data.js into the explicit directory, not SimpleCov.coverage_path" do
+    it "writes index.html into the explicit directory, not SimpleCov.coverage_path" do
       Dir.mktmpdir do |dir|
         described_class.new(silent: true, output_dir: dir).format(make_result)
-        expect(File.exist?(File.join(dir, described_class::DATA_FILENAME))).to be true
-        expect(File.exist?(File.join(coverage_dir, described_class::DATA_FILENAME))).to be false
+        expect(File.exist?(File.join(dir, "index.html"))).to be true
+        expect(File.exist?(File.join(coverage_dir, "index.html"))).to be false
       end
     end
   end
@@ -71,40 +78,38 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   describe "#format" do
     before { formatter.format(make_result) }
 
-    it "writes coverage_data.js into the coverage dir" do
-      expect(File).to exist(File.join(coverage_dir, "coverage_data.js"))
+    it "writes index.html into the coverage dir" do
+      expect(File).to exist(File.join(coverage_dir, "index.html"))
     end
 
-    it "writes coverage_data.js as a `window.SIMPLECOV_DATA = ...;` assignment" do
-      content = File.read(File.join(coverage_dir, "coverage_data.js"))
-
-      expect(content).to start_with("window.SIMPLECOV_DATA = ")
-      expect(content).to end_with(";\n")
+    it "writes no files besides index.html and coverage.json" do
+      expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html]
     end
 
-    it "embeds parseable JSON in coverage_data.js" do
+    it "embeds the coverage data as a `window.SIMPLECOV_DATA = ...` script" do
+      html = File.read(File.join(coverage_dir, "index.html"))
+
+      expect(html).to include("window.SIMPLECOV_DATA = ")
+    end
+
+    it "embeds parseable JSON in the report" do
       data = coverage_data
 
       expect(data).to be_a(Hash)
       expect(data).to include("meta", "coverage", "total")
     end
 
-    it "copies the static index.html alongside the data file" do
-      expect(File).to exist(File.join(coverage_dir, "index.html"))
+    it "inlines the viewer's JS and CSS rather than referencing sibling files" do
+      html = File.read(File.join(coverage_dir, "index.html"))
+
+      expect(html).to include("<style>", "<script>")
+      expect(html).not_to include("src=\"application.js\"", "href=\"application.css\"")
     end
 
-    it "copies the static application.js" do
-      expect(File).to exist(File.join(coverage_dir, "application.js"))
-    end
+    it "ships no favicon images (the viewer draws one from the live palette)" do
+      html = File.read(File.join(coverage_dir, "index.html"))
 
-    it "copies the static application.css" do
-      expect(File).to exist(File.join(coverage_dir, "application.css"))
-    end
-
-    it "copies all three favicon variants" do
-      %w[favicon_green.png favicon_red.png favicon_yellow.png].each do |name|
-        expect(File).to exist(File.join(coverage_dir, name))
-      end
+      expect(html).not_to include("data:image/png", "favicon")
     end
 
     it "also writes coverage.json next to the HTML report" do
@@ -120,11 +125,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     # The client-side viewer renders source from the embedded array,
-    # so coverage_data.js must keep `source` regardless of the
+    # so the report must keep `source` regardless of the
     # `source_in_json` setting. The setting only controls the side-file
     # coverage.json, which downstream tools that read source from disk
     # can opt into shrinking.
-    it "keeps source in coverage_data.js even when SimpleCov.source_in_json is false" do
+    it "keeps source in the report even when SimpleCov.source_in_json is false" do
       allow(SimpleCov).to receive(:source_in_json).and_return(false)
       formatter.format(make_result)
       expect(coverage_data["coverage"].values.first).to include("source")
@@ -154,6 +159,27 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       formatter.format(make_result)
       Dir[File.join(coverage_dir, "*")].each { |f| File.chmod(0o444, f) }
       expect { formatter.format(make_result) }.not_to raise_error
+    end
+  end
+
+  describe "#render_report escaping" do
+    # The coverage JSON lands inside a <script> element, where a raw
+    # "</script>" (or "<!--" + "<script") in embedded source text would
+    # terminate or destabilize the element. render_report escapes every
+    # `<` in the payload, so none of these sequences can occur raw.
+    it "keeps embedded </script> and <!-- sequences from breaking the data script element" do
+      hostile = {"source" => ["</script><script>alert(1)</script>", "<!-- <script> -->"]}
+      html = formatter.send(:render_report, JSON.generate(hostile))
+      captured = html[%r{window\.SIMPLECOV_DATA = (.*?);</script>}m, 1]
+
+      expect(captured).not_to include("<")
+      expect(JSON.parse(captured)).to eq hostile
+    end
+
+    it "raises a clear error when the template is missing the data marker" do
+      allow(File).to receive(:read).and_return("<html></html>")
+
+      expect { formatter.send(:render_report, "{}") }.to raise_error(/marker/)
     end
   end
 
@@ -315,13 +341,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       described_class.new.format_from_json(File.join(coverage_dir, "coverage.json"), standalone_dir)
     end
 
-    it "writes the data file and copies the static assets into the target dir" do
-      %w[coverage_data.js index.html application.js].each do |name|
-        expect(File).to exist(File.join(standalone_dir, name))
-      end
+    it "writes a single index.html into the target dir" do
+      expect(Dir.children(standalone_dir)).to eq %w[index.html]
     end
 
-    it "produces a coverage_data.js with the same shape as the in-process format run" do
+    it "embeds data with the same shape as the in-process format run" do
       data = coverage_data(standalone_dir)
 
       expect(data).to include("meta", "coverage")
@@ -395,11 +419,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       end
     end
 
-    it "writes the static index.html with the expected DOCTYPE and data-file reference" do
+    it "writes a self-contained index.html with the expected DOCTYPE and no sibling-file references" do
       html = File.read(File.join(coverage_dir, "index.html"))
 
       expect(html).to include("<!DOCTYPE html>")
-      expect(html).to include("coverage_data.js")
+      expect(html).not_to include("coverage_data.js")
     end
   end
 

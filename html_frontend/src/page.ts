@@ -11,6 +11,34 @@ import type { CoverageData, FileCoverage } from './types';
 
 hljs.registerLanguage('ruby', ruby);
 
+// The favicon is a solid square in the coverage band's colour, drawn at
+// render time from the live palette so it matches the active theme.
+// Reading the band's custom property (--green/--red/--yellow, which the
+// asset build exempts from mangling) keeps it in lockstep with the
+// stylesheet in both themes; controls.ts calls updateFavicon() again
+// whenever the theme changes.
+let faviconBand: string | null = null;
+
+export function updateFavicon(): void {
+  if (!faviconBand) return;
+  const color = getComputedStyle(document.documentElement).getPropertyValue(`--${faviconBand}`).trim();
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 16;
+  const ctx = canvas.getContext('2d');
+  if (!color || !ctx) return;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 16, 16);
+
+  let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    document.head.appendChild(link);
+  }
+  link.href = canvas.toDataURL('image/png');
+}
+
 // Module-level state populated by renderPage() and consumed by the
 // on-demand source-file materializer. Holding it here (typed) avoids
 // hanging caches off the global Window object.
@@ -31,11 +59,8 @@ export function renderPage(data: CoverageData): void {
   document.title = `Code coverage for ${meta.project_name}`;
   const allFiles = Object.keys(data.coverage);
   const overallPct = data.total.lines.total > 0 ? data.total.lines.percent : 100.0;
-  const faviconLink = document.createElement('link');
-  faviconLink.rel = 'icon';
-  faviconLink.type = 'image/png';
-  faviconLink.href = `favicon_${pctClass(overallPct)}.png`;
-  document.head.appendChild(faviconLink);
+  faviconBand = pctClass(overallPct);
+  updateFavicon();
 
   if (branchCoverage) document.body.setAttribute('data-branch-coverage', 'true');
 

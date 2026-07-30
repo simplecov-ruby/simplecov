@@ -1320,11 +1320,12 @@ end
 
 module SimpleCov
   module Formatter
-    # Writes the HTML report: coverage_data.js plus pre-compiled static
-    # assets, and coverage.json as a side artifact (shared serialization
+    # Writes the HTML report as a single self-contained index.html (the
+    # compiled template with the coverage JSON substituted at the data
+    # marker), and coverage.json as a side artifact (shared serialization
     # via JSONFormatter.build_hash).
     class HTMLFormatter < Base
-      DATA_FILENAME: "coverage_data.js"
+      DATA_MARKER: "<!-- SIMPLECOV_COVERAGE_DATA -->"
 
       def format: (SimpleCov::Result result) -> void
 
@@ -1336,7 +1337,8 @@ module SimpleCov
 
       def entry_point_filename: () -> String
 
-      def copy_static_assets: (?String dest_dir) -> void
+      # Substitute the coverage JSON into the compiled template.
+      def render_report: (String json) -> String
 
       # Write via temp file + File.rename so parallel writers can't race
       # and read-only existing assets are replaced without EACCES.

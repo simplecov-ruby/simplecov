@@ -89,8 +89,8 @@ module SimpleCov
     # a copy of the source tree (which dominates the payload on larger
     # projects).
     #
-    # The HTML viewer's `coverage_data.js` always includes source —
-    # the client-side renderer needs it. Only `coverage.json` honors
+    # The HTML report's embedded data always includes source — the
+    # client-side renderer needs it. Only `coverage.json` honors
     # this setting.
     #
     #     SimpleCov.start do
