@@ -43,6 +43,17 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
       expect(result).to eq(["A", :method1, 2, 2, 5, 5] => 5)
     end
 
+    it "sums an array key with its JSON-stringified form" do
+      # An in-process result merging with a resultset read back from JSON
+      # (`ResultMerger.merge_and_store`) sees the same method in both forms.
+      coverage_a = {["A", :method1, 2, 2, 5, 5] => 1}
+      coverage_b = {'["A", :method1, 2, 2, 5, 5]' => 4}
+
+      result = described_class.combine(coverage_a, coverage_b)
+
+      expect(result).to eq(["A", :method1, 2, 2, 5, 5] => 5)
+    end
+
     it "matches methods on source identity, ignoring the receiver class" do
       # The same define_method block lands on different receivers in
       # different processes (one worker's specs define it on a Class, the
