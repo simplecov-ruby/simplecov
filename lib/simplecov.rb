@@ -262,7 +262,6 @@ require_relative "simplecov/combine/results_combiner"
 require_relative "simplecov/useless_results_remover"
 require_relative "simplecov/simulate_coverage"
 require_relative "simplecov/result_processing"
-require_relative "simplecov/collation"
 require_relative "simplecov/exit_handling"
 require_relative "simplecov/parallel_coordination"
 

@@ -858,9 +858,7 @@ end
 Collating a handful of resultsets is quick. Collating a few hundred is not: the collating process reads, parses and
 folds every one of them in sequence, and on a large CI matrix that fold is where nearly all the wall clock goes.
 
-`SimpleCov.parallel_collate` is `SimpleCov.collate` with that fold spread across forked worker processes. It takes the
-same arguments — result filenames, an optional profile, an optional configuration block, `ignore_timeout:` — plus a
-required `processes:`:
+Pass `processes:` to spread that fold across forked worker processes:
 
 ```ruby
 # lib/tasks/coverage_report.rake
@@ -869,19 +867,19 @@ namespace :coverage do
   task :report do
     require 'simplecov'
 
-    SimpleCov.parallel_collate Dir["simplecov-resultset-*/.resultset.json"], processes: 8
+    SimpleCov.collate Dir["simplecov-resultset-*/.resultset.json"], processes: 8
   end
 end
 ```
 
-The report is identical to the one `collate` produces for the same inputs, not merely equivalent: each worker folds a
-contiguous slice of the file list and the collating process folds the slices back in order, so the resultsets are
-visited in the same order the serial merge visits them.
+The report is identical to the one a single-process collate produces for the same inputs, not merely equivalent: each
+worker folds a contiguous slice of the file list and the collating process folds the slices back in order, so the
+resultsets are visited in the same order they would be otherwise.
 
-`processes` is required and is deliberately not clamped to your core count, nor gated on some minimum number of
-resultsets — how many processes a collate job can afford is something only you know. Asking for more processes than
-there are result files simply gives one file per process. A `processes` below 1 raises `ArgumentError`, so use
-`[n, 1].max` if the count comes from arithmetic that can reach zero.
+`processes` defaults to 1, which never forks — existing `collate` calls behave exactly as before. It is deliberately
+not clamped to your core count, nor gated on some minimum number of resultsets: how many processes a collate job can
+afford is something only you know. Asking for more processes than there are result files simply gives one file per
+process, and anything below 1 is taken as 1, so a count computed from arithmetic that can reach zero needs no guarding.
 
 It falls back to merging in the collating process — same report, no error — when the runtime cannot fork (JRuby,
 TruffleRuby, Windows), when there is only one resultset to fold, or when a worker dies.
@@ -889,11 +887,11 @@ TruffleRuby, Windows), when there is only one resultset to fold, or when a worke
 Merging 160 resultsets covering 1,836 files on a 14-core machine (`benchmarks/collate.rb`, so reproduce it on your own
 hardware before budgeting for it):
 
-| `processes:`          | merge phase |
-| --------------------- | ----------- |
-| serial (`collate`)    | 8.53s       |
-| 4                     | 2.65s       |
-| 8                     | 2.04s       |
+| `processes:` | merge phase |
+| ------------ | ----------- |
+| 1 (default)  | 8.53s       |
+| 4            | 2.65s       |
+| 8            | 2.04s       |
 
 Memory scales with the worker count rather than the resultset count: each worker folds its slice one file at a time, so
 it holds one resultset plus its own running total, and the collating process holds one folded total per worker.

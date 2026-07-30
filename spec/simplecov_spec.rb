@@ -612,7 +612,7 @@ RSpec.describe SimpleCov do
       described_class.collate(["coverage/worker/.resultset.json"])
 
       expect(SimpleCov::ResultMerger).to have_received(:merge_and_store)
-        .with("coverage/worker/.resultset.json", ignore_timeout: true)
+        .with("coverage/worker/.resultset.json", processes: 1, ignore_timeout: true)
       expect(described_class).to have_received(:write_last_run).with(result)
     end
   end
@@ -1100,7 +1100,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".parallel_collate" do
+  describe ".collate across processes" do
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
 
     let(:resultset_folder) { File.dirname(resultset_path) }
@@ -1111,15 +1111,8 @@ RSpec.describe SimpleCov do
 
     context "when no files to be merged" do
       it "shows an error message" do
-        expect { described_class.parallel_collate([], processes: 2) }
+        expect { described_class.collate([], processes: 2) }
           .to raise_error("There are no reports to be merged")
-      end
-    end
-
-    context "when fewer than one process is requested" do
-      it "shows an error message rather than quietly merging in this process" do
-        expect { described_class.parallel_collate(["#{resultset_folder}/.resultset.json"], processes: 0) }
-          .to raise_error(ArgumentError, "processes must be at least 1, got 0")
       end
     end
 
@@ -1134,25 +1127,30 @@ RSpec.describe SimpleCov do
         FileUtils.rm Dir.glob("#{resultset_path}*")
       end
 
-      it "produces the report .collate produces for the same inputs" do
-        expect(collate_with { |paths| described_class.parallel_collate paths, processes: 3 })
+      it "produces the report a single-process collate produces" do
+        expect(collate_with { |paths| described_class.collate paths, processes: 3 })
           .to eq(collate_with { |paths| described_class.collate paths })
         expect(described_class).to have_received(:run_exit_tasks!).twice
       end
 
       it "produces that report however many processes it is given" do
         reports = [1, 2, 4, 9].map do |processes|
-          collate_with { |paths| described_class.parallel_collate paths, processes: processes }
+          collate_with { |paths| described_class.collate paths, processes: processes }
         end
 
         expect(reports.uniq.size).to eq(1)
       end
 
-      it "falls back to merging in this process when the fan-out fails" do
+      it "takes a process count below 1 as 1 rather than raising" do
+        expect(collate_with { |paths| described_class.collate paths, processes: 0 })
+          .to eq(collate_with { |paths| described_class.collate paths })
+      end
+
+      it "merges in this process when the fan-out cannot run" do
         serial = collate_with { |paths| described_class.collate paths }
         allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_return(nil)
 
-        expect(collate_with { |paths| described_class.parallel_collate paths, processes: 3 }).to eq(serial)
+        expect(collate_with { |paths| described_class.collate paths, processes: 3 }).to eq(serial)
       end
 
     private

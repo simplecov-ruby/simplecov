@@ -7,9 +7,11 @@ module SimpleCov
   module ResultMerger
     def self.resultset_path: () -> untyped
 
-    def self.merge_and_store: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
+    def self.merge_and_store: (*untyped file_paths, ?processes: Integer, ?ignore_timeout: bool) -> untyped
 
-    def self.merge_results: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
+    # `processes:` above 1 fans the read-and-combine out across that many
+    # forked workers, merging here when the fan-out could not run.
+    def self.merge_results: (*untyped file_paths, ?processes: Integer, ?ignore_timeout: bool) -> untyped
 
     # Read the given resultset files and combine them into a single
     # `[command_names, coverage]` pair, one file at a time.

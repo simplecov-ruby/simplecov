@@ -1,12 +1,44 @@
 # frozen_string_literal: true
 
 # Result-building façade: turns the raw `Coverage.result` hash into a
-# `SimpleCov::Result`, applies filters and groups, and drives merging
-# across test suites via `SimpleCov::ResultMerger`. The `collate` entry
-# points for stitching disparate resultsets together live alongside it
-# in `simplecov/collation`.
+# `SimpleCov::Result`, applies filters and groups, drives merging
+# across test suites via `SimpleCov::ResultMerger`, and exposes the
+# `collate` entry point for stitching disparate resultsets together.
 module SimpleCov
   class << self
+    #
+    # Collate a series of SimpleCov result files into a single SimpleCov output.
+    #
+    # See README for usage. By default `collate` ignores the merge_timeout
+    # so all results in all files specified will be merged. Pass
+    # `ignore_timeout: false` to honor it.
+    #
+    # `processes:` above 1 fans the merge out across that many forked worker
+    # processes, for a collate big enough that reading and parsing the
+    # resultsets dominates it. The report is identical either way, not merely
+    # equivalent — the workers visit the resultsets in the order the
+    # single-process merge visits them — and one process never forks at all.
+    # The count is deliberately not clamped to the machine's core count nor
+    # gated on some minimum number of resultsets: how many processes a collate
+    # job can afford is the caller's call, not SimpleCov's. Anything below 1 is
+    # taken as 1, so a count computed from arithmetic that can reach zero needs
+    # no guarding. See `SimpleCov::ParallelResultMerger`.
+    #
+    def collate(result_filenames, profile = nil, processes: 1, ignore_timeout: true, &)
+      raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
+
+      initial_setup(profile, &)
+
+      # Use the ResultMerger to produce a single, merged result, ready to use.
+      @result = ResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
+                                                                ignore_timeout: ignore_timeout)
+
+      @collating_result = true
+      run_exit_tasks!
+    ensure
+      @collating_result = false
+    end
+
     #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)

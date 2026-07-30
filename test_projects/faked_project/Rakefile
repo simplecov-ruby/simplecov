@@ -28,7 +28,7 @@ end
 
 task :parallel_collate do
   require "simplecov"
-  SimpleCov.parallel_collate Dir["coverage/resultset*.json"], processes: 2
+  SimpleCov.collate Dir["coverage/resultset*.json"], processes: 2
 end
 
 Rake::TestTask.new(:minitest) do |test|

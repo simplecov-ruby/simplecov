@@ -1,8 +1,9 @@
 @test_unit
 Feature:
 
-  Using SimpleCov.parallel_collate should get the user the same coverage report
-  SimpleCov.collate does, with the merge fanned out across forked workers.
+  Using SimpleCov.collate with processes: > 1 should get the user the same
+  coverage report a single-process collate does, with the merge fanned out
+  across forked workers.
 
   Background:
     Given I'm working on the project "faked_project"

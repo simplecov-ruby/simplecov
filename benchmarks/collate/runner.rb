@@ -95,10 +95,10 @@ module CollateBenchmark
       @files_reported = result&.files&.size
     end
 
-    # With PROCESSES > 1, the fan-out `SimpleCov.parallel_collate` performs —
+    # With PROCESSES > 1, the fan-out `SimpleCov.collate processes: N` performs —
     # same merge, same visiting order, spread over forked workers. Falls
-    # through to the in-process loop if the fan-out bails, which is what the
-    # real `parallel_collate` does too.
+    # through to the in-process loop if the fan-out bails, which is what
+    # `ResultMerger.merge_results` does too.
     def merge_coverage(paths)
       return serial_merge_coverage(paths) if processes < 2
 
