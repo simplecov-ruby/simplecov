@@ -9,8 +9,10 @@ module CollateBenchmark
   module CLI
     DEFAULT_SCALE = 4
 
+    DEFAULT_PROCESSES = 1
+
     # `resultsets` rather than `count`, which would shadow `Struct#count`.
-    Options = Struct.new(:label, :resultsets, :scale, :skip, :rebuild, :baseline, :breakdown,
+    Options = Struct.new(:label, :resultsets, :scale, :skip, :rebuild, :baseline, :breakdown, :processes,
                          keyword_init: true)
 
     class << self
@@ -21,14 +23,22 @@ module CollateBenchmark
       def options(argv)
         argv = argv.dup
         Options.new(
-          label: label(argv),
-          baseline: flag_value(argv, "--baseline"),
+          label: label(argv), baseline: flag_value(argv, "--baseline"),
           resultsets: ENV.fetch("COUNT", Shape::RESULTSETS).to_i,
           scale: ENV.fetch("SCALE", DEFAULT_SCALE).to_i,
-          skip: skip,
-          rebuild: ENV["REBUILD"] == "1",
-          breakdown: ENV["BREAKDOWN"] == "1"
+          skip: skip, rebuild: ENV["REBUILD"] == "1",
+          breakdown: ENV["BREAKDOWN"] == "1", processes: processes
         )
+      end
+
+      # Above 1, the merge phase runs the fan-out `SimpleCov.parallel_collate`
+      # runs instead of the serial fold. Every later phase is unchanged, so a
+      # PROCESSES run is directly comparable to a serial baseline.
+      def processes
+        count = ENV.fetch("PROCESSES", DEFAULT_PROCESSES).to_i
+        return count if count >= 1
+
+        raise ArgumentError, "PROCESSES must be at least 1 (got #{count})"
       end
 
       def label(argv)

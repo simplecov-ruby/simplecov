@@ -1,32 +1,12 @@
 # frozen_string_literal: true
 
 # Result-building façade: turns the raw `Coverage.result` hash into a
-# `SimpleCov::Result`, applies filters and groups, drives merging
-# across test suites via `SimpleCov::ResultMerger`, and exposes the
-# `collate` entry point for stitching disparate resultsets together.
+# `SimpleCov::Result`, applies filters and groups, and drives merging
+# across test suites via `SimpleCov::ResultMerger`. The `collate` entry
+# points for stitching disparate resultsets together live alongside it
+# in `simplecov/collation`.
 module SimpleCov
   class << self
-    #
-    # Collate a series of SimpleCov result files into a single SimpleCov output.
-    #
-    # See README for usage. By default `collate` ignores the merge_timeout
-    # so all results in all files specified will be merged. Pass
-    # `ignore_timeout: false` to honor it.
-    #
-    def collate(result_filenames, profile = nil, ignore_timeout: true, &)
-      raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
-
-      initial_setup(profile, &)
-
-      # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout)
-
-      @collating_result = true
-      run_exit_tasks!
-    ensure
-      @collating_result = false
-    end
-
     #
     # Returns the result for the current coverage run, merging it across test suites
     # from cache using SimpleCov::ResultMerger if use_merging is activated (default)

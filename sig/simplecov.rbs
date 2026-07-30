@@ -96,19 +96,33 @@ module SimpleCov
   VERSION: String
 end
 
-# ----- result_processing -----
+# ----- collation -----
 
-# Result-building façade: turns the raw `Coverage.result` hash into a
-# `SimpleCov::Result`, applies filters and groups, drives merging, and
-# exposes the `collate` entry point.
+# The `collate` entry points: stitch the resultsets written by separate
+# test runs into one report, in this process or across forked workers.
 module SimpleCov
-  self.@result: Result?
-  self.@collating_result: bool?
-
   # Collate a series of resultset files into a single merged report. By
   # default ignores `merge_timeout` so every listed resultset merges;
   # pass `ignore_timeout: false` to honor it.
   def self.collate: (Array[String] result_filenames, ?(String | Symbol)? profile, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+
+  # `collate`, with the merge fanned out across `processes` forked worker
+  # processes. Same arguments, same report. `processes` is required and is
+  # not clamped; below 1 it raises.
+  def self.parallel_collate: (Array[String] result_filenames, ?(String | Symbol)? profile, processes: Integer, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+
+  # Implementation detail of the two entry points above (private in Ruby;
+  # RBS cannot mark singleton methods private).
+  def self.collating: (Array[String] result_filenames, (String | Symbol)? profile, (^() [self: singleton(SimpleCov)] -> void)? config) { () -> Result? } -> void
+end
+
+# ----- result_processing -----
+
+# Result-building façade: turns the raw `Coverage.result` hash into a
+# `SimpleCov::Result`, applies filters and groups, and drives merging.
+module SimpleCov
+  self.@result: Result?
+  self.@collating_result: bool?
 
   # The result for the current coverage run, merged across test suites
   # when merging is active. nil when no coverage was tracked.

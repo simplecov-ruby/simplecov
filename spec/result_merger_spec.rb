@@ -276,6 +276,33 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
+  describe ".merge_resultsets" do
+    let(:resultset_prefix) { "fold_test_resultset" }
+    let(:paths) { [1, 2].map { |index| "#{resultset_prefix}#{index}.json" } }
+
+    before do
+      store_result(first_result, path: paths.first)
+      store_result(second_result, path: paths.last)
+    end
+
+    after do
+      FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
+    end
+
+    it "combines the resultsets into a command_names / coverage pair" do
+      command_names, coverage = described_class.merge_resultsets(paths, ignore_timeout: true)
+
+      expect(command_names).to eq(%w[result1 result2])
+      expect(coverage).to eq(merged_resultsets)
+    end
+
+    it "leaves the caller's list of paths alone" do
+      described_class.merge_resultsets(paths, ignore_timeout: true)
+
+      expect(paths).to eq(["#{resultset_prefix}1.json", "#{resultset_prefix}2.json"])
+    end
+  end
+
   describe ".store_result" do
     it "refreshes the resultset" do
       set = described_class.read_resultset

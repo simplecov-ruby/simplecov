@@ -20,10 +20,13 @@
 #
 #   ruby benchmarks/collate.rb baseline
 #   COUNT=8 ruby benchmarks/collate.rb faster --baseline baseline
+#   PROCESSES=8 ruby benchmarks/collate.rb parallel --baseline baseline
 #
 # Environment:
 #   COUNT      merge only the first N resultsets — the knob for a fast
 #              iteration loop; merge cost grows with N (default: 160)
+#   PROCESSES  fan the merge phase out across N forked workers, as
+#              `SimpleCov.parallel_collate` does; 1 merges serially (default: 1)
 #   SCALE      divide `Shape::FILES` by this (default: 4, giving ~1,836 files;
 #              SCALE=1 generates the full 7,345)
 #   SKIP       comma-separated trailing phases to skip, e.g. SKIP=format,store

@@ -23,21 +23,30 @@ module SimpleCov
       end
 
       def merge_results(*file_paths, ignore_timeout: false)
-        # It is intentional here that files are only read in and parsed one at a time.
-        #
-        # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
-        # of data. Reading them all in easily produces Gigabytes of memory consumption which
-        # we want to avoid.
-        #
-        # For similar reasons a SimpleCov::Result is only created in the end as that'd create
-        # even more data especially when it also reads in all source files.
-        initial_memo = valid_results(file_paths.shift, ignore_timeout: ignore_timeout)
-
-        command_names, coverage = file_paths.reduce(initial_memo) do |memo, file_path|
-          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
-        end
+        command_names, coverage = merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
 
         create_result(command_names, coverage)
+      end
+
+      #
+      # Read the given resultset files and combine them into a single
+      # `[command_names, coverage]` pair.
+      #
+      # It is intentional here that files are only read in and parsed one at a time.
+      #
+      # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
+      # of data. Reading them all in easily produces Gigabytes of memory consumption which
+      # we want to avoid.
+      #
+      # For similar reasons a SimpleCov::Result is only created in the end as that'd create
+      # even more data especially when it also reads in all source files.
+      #
+      def merge_resultsets(file_paths, ignore_timeout: false)
+        initial_memo = valid_results(file_paths.first, ignore_timeout: ignore_timeout)
+
+        file_paths.drop(1).reduce(initial_memo) do |memo, file_path|
+          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
+        end
       end
 
       def valid_results(file_path, ignore_timeout: false)

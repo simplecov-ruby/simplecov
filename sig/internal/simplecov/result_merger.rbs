@@ -11,6 +11,10 @@ module SimpleCov
 
     def self.merge_results: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
 
+    # Read the given resultset files and combine them into a single
+    # `[command_names, coverage]` pair, one file at a time.
+    def self.merge_resultsets: (Array[String] file_paths, ?ignore_timeout: bool) -> untyped
+
     def self.valid_results: (untyped file_path, ?ignore_timeout: bool) -> untyped
 
     def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) -> untyped
