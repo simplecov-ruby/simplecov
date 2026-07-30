@@ -1090,7 +1090,7 @@ SimpleCov.start do
 end
 ```
 
-The HTML report's `coverage_data.js` always retains the source array — the client-side viewer renders source from
+The HTML report always retains the source array in its embedded data — the client-side viewer renders source from
 there. The setting only affects the side-file `coverage.json`. When the source is omitted, `meta.commit` (the git
 commit SHA the report was generated against) lets tools recover the exact source lines from repository history.
 

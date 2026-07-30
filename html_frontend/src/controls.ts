@@ -5,6 +5,7 @@ import { $, $$ } from './dom';
 import { hasFocusedRow, setFocusedRow, moveFocus, openFocusedRow } from './navigation';
 import { dialogIsOpen, navigateToActiveTab } from './dialog';
 import { jumpToMissedLine } from './events';
+import { updateFavicon } from './page';
 
 // --- Dark mode ------------------------------------------------
 
@@ -54,10 +55,12 @@ export function initDarkMode(): void {
     root.classList.toggle('dark-mode', !switchToLight);
     setThemePreference(switchToLight ? 'light' : 'dark');
     updateLabel();
+    updateFavicon();
   });
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if (!getThemePreference()) updateLabel();
+    updateFavicon();
   });
 }
 

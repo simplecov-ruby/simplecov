@@ -1,3 +1,12 @@
+Unreleased
+==========
+
+## Breaking Changes
+* The HTML report is now a single self-contained `index.html`. The viewer's JavaScript and CSS are inlined into the compiled template at build time, and the coverage data is embedded at report time (with `<` escaped in the payload so embedded source text cannot terminate the surrounding `<script>` element), so `coverage/` contains just `index.html` and `coverage.json`. A single file can be mailed, uploaded as a non-zipped GitHub Actions run artifact (`actions/upload-artifact` with `archive: false`, viewable directly from the run page), or copied anywhere without sibling files, and the report can no longer be read mid-write in a torn state where `index.html`, `coverage_data.js`, and `application.js` come from different runs — the whole report updates in one atomic rename. The sibling files the formatter previously wrote (`coverage_data.js`, `application.js`, `application.css`, and the three favicon PNGs) are gone; anything scripted against that layout should read `coverage.json` (the sanctioned data artifact, unchanged) instead of `coverage_data.js`. This restores single-file reports to the 1.0 line — the pre-1.0 `simplecov-html` formatter offered them via the `SIMPLECOV_INLINE_ASSETS` environment variable, which the 1.0 client-side rendering rewrite dropped — and makes them the default and only mode, with no environment variable or configuration flag. See #1241.
+
+## Enhancements
+* The favicon (a solid square in the overall coverage band's colour) is now drawn by the viewer from the report's own palette instead of shipping as fixed PNGs, so it matches the report's green/yellow/red exactly and follows the light/dark theme, including the in-page toggle.
+
 1.0.3 (2026-07-26)
 ==================
 

@@ -61,9 +61,9 @@ function finishLoading(loadingEl: HTMLElement | null): void {
   equalizeBarWidths();
 }
 
-// Render the coverage page. Both `application.js` and `coverage_data.js`
-// use `defer`, so `coverage_data.js` is guaranteed to have populated
-// `window.SIMPLECOV_DATA` by the time `DOMContentLoaded` fires.
+// Render the coverage page. Both this bundle and the coverage-data
+// script are inline in the document, so `window.SIMPLECOV_DATA` is
+// populated by the time `DOMContentLoaded` fires.
 async function init(): Promise<void> {
   const data = window.SIMPLECOV_DATA;
 
