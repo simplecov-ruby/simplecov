@@ -9,8 +9,6 @@ module SimpleCov
       # reason as `RubyDataParser`'s parse cache.
       self.@identities: Hash[untyped, Integer]?
       @identities: Hash[untyped, Integer]?
-      self.@identity_ids: Hash[::Array[untyped], Integer]?
-      @identity_ids: Hash[::Array[untyped], Integer]?
 
       #
       # Return merged branches or the existed branch if other is missing.
@@ -29,8 +27,6 @@ module SimpleCov
       def self?.merge_branches: (untyped target, untyped source) -> untyped
 
       def self?.identities: () -> Hash[untyped, Integer]
-
-      def self?.identity_ids: () -> Hash[::Array[untyped], Integer]
 
       def self?.tuple_identity: (untyped tuple) -> ::Array[untyped]
     end

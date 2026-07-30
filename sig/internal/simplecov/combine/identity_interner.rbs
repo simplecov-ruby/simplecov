@@ -1,0 +1,8 @@
+module SimpleCov
+  module Combine
+    # Builds the raw-key => interned-identity caches the tuple combiners keep.
+    module IdentityInterner
+      def self?.build: () { (untyped) -> ::Array[untyped] } -> Hash[untyped, Integer]
+    end
+  end
+end

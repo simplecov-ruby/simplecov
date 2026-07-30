@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../source_file/ruby_data_parser"
+require_relative "identity_interner"
 
 module SimpleCov
   module Combine
@@ -49,16 +50,10 @@ module SimpleCov
         end
       end
 
-      # Memoized and interned like `BranchesCombiner.identities`.
+      # Bounded by the project's method count, like `RubyDataParser`'s parse
+      # cache.
       def identities
-        @identities ||= Hash.new do |cache, key|
-          identity = source_identity(key)
-          cache[key] = identity_ids[identity] ||= identity_ids.size
-        end
-      end
-
-      def identity_ids
-        @identity_ids ||= {} #: Hash[::Array[untyped], Integer]
+        @identities ||= IdentityInterner.build { |key| source_identity(key) }
       end
 
       def source_identity(key)
