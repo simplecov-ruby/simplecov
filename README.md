@@ -889,9 +889,9 @@ hardware before budgeting for it):
 
 | `processes:` | merge phase |
 | ------------ | ----------- |
-| 1 (default)  | 8.53s       |
-| 4            | 2.65s       |
-| 8            | 2.04s       |
+| 1 (default)  | 4.53s       |
+| 4            | 1.70s       |
+| 8            | 1.35s       |
 
 Memory scales with the worker count rather than the resultset count: each worker folds its slice one file at a time, so
 it holds one resultset plus its own running total, and the collating process holds one folded total per worker.

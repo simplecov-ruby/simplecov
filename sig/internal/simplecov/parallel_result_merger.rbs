@@ -12,6 +12,13 @@ module SimpleCov
   # can redo the merge in this process.
   #
   module ParallelResultMerger
+    # `ResultMerger.merge_and_store` across `processes` forked workers.
+    def self?.merge_and_store: (*untyped file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
+
+    # `ResultMerger.merge_results` across `processes` forked workers, merging
+    # in this process when the fan-out did not produce a complete merge.
+    def self?.merge_results: (*untyped file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
+
     #
     # `ResultMerger.merge_resultsets` across at most `processes` forked
     # workers: same arguments, same `[command_names, coverage]` return, or

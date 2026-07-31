@@ -612,7 +612,7 @@ RSpec.describe SimpleCov do
       described_class.collate(["coverage/worker/.resultset.json"])
 
       expect(SimpleCov::ResultMerger).to have_received(:merge_and_store)
-        .with("coverage/worker/.resultset.json", processes: 1, ignore_timeout: true)
+        .with("coverage/worker/.resultset.json", ignore_timeout: true)
       expect(described_class).to have_received(:write_last_run).with(result)
     end
   end

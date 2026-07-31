@@ -25,6 +25,30 @@ module SimpleCov
   module_function
 
     #
+    # `ResultMerger.merge_and_store` across `processes` forked workers.
+    #
+    def merge_and_store(*file_paths, processes:, ignore_timeout: false)
+      result = merge_results(*file_paths, processes: processes, ignore_timeout: ignore_timeout)
+      ResultMerger.store_result(result) if result
+      result
+    end
+
+    #
+    # `ResultMerger.merge_results` across `processes` forked workers, merging
+    # in this process instead whenever the fan-out did not produce a complete
+    # merge — a runtime that cannot fork, nothing worth splitting, or a worker
+    # that died. The result is the same either way; only the time it took to
+    # get there differs.
+    #
+    def merge_results(*file_paths, processes:, ignore_timeout: false)
+      command_names, coverage =
+        merge_resultsets(file_paths, processes: processes, ignore_timeout: ignore_timeout) ||
+        ResultMerger.merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
+
+      ResultMerger.create_result(command_names, coverage)
+    end
+
+    #
     # `ResultMerger.merge_resultsets` across at most `processes` forked
     # workers: same arguments, same `[command_names, coverage]` return.
     #

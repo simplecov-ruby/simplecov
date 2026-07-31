@@ -30,8 +30,7 @@ module SimpleCov
       initial_setup(profile, &)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
-                                                                ignore_timeout: ignore_timeout)
+      @result = merge_collated(result_filenames, [1, processes].max, ignore_timeout)
 
       @collating_result = true
       run_exit_tasks!
@@ -128,6 +127,14 @@ module SimpleCov
     end
 
   private
+
+    # A single worker would merge the whole list in this process anyway, so the
+    # default takes exactly the path `collate` has always taken and never forks.
+    def merge_collated(result_filenames, processes, ignore_timeout)
+      return ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout) if processes < 2
+
+      ParallelResultMerger.merge_and_store(*result_filenames, processes: processes, ignore_timeout: ignore_timeout)
+    end
 
     def initial_setup(profile, &block)
       load_profile(profile) if profile

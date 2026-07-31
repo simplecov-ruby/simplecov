@@ -36,6 +36,56 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
   after { FileUtils.remove_entry(resultset_dir) }
 
+  describe ".merge_and_store" do
+    before { FileUtils.mkdir_p(File.dirname(SimpleCov::ResultMerger.resultset_path)) }
+
+    after { FileUtils.rm_f(SimpleCov::ResultMerger.resultset_path) }
+
+    it "produces the result ResultMerger.merge_and_store produces" do
+      result = described_class.merge_and_store(*paths, processes: 3, ignore_timeout: true)
+
+      expect(result.original_result)
+        .to eq(SimpleCov::ResultMerger.merge_results(*paths, ignore_timeout: true).original_result)
+    end
+
+    it "has the result stored" do
+      described_class.merge_and_store(*paths, processes: 3, ignore_timeout: true)
+
+      expect(SimpleCov::ResultMerger.read_resultset.keys).to eq([serial.first.sort.join(", ")])
+    end
+
+    # The workers do the dropping, so the "older than merge_timeout" warning
+    # comes from them and reaches the inherited stderr rather than anything
+    # this process can capture.
+    it "stores nothing when every resultset is outdated" do
+      allow(SimpleCov::ResultMerger).to receive(:store_result)
+      stale = Array.new(3) do |index|
+        write_resultset("old#{index}", {source_fixture("sample.rb") => {"lines" => [1]}}, outdated: true)
+      end
+
+      expect(described_class.merge_and_store(*stale, processes: 2)).to be_nil
+      expect(SimpleCov::ResultMerger).not_to have_received(:store_result)
+    end
+  end
+
+  describe ".merge_results" do
+    it "produces the result ResultMerger.merge_results produces" do
+      result = described_class.merge_results(*paths, processes: 3, ignore_timeout: true)
+
+      expect(result.original_result)
+        .to eq(SimpleCov::ResultMerger.merge_results(*paths, ignore_timeout: true).original_result)
+    end
+
+    it "merges in this process when the fan-out cannot run" do
+      allow(described_class).to receive(:fork_supported?).and_return(false)
+
+      result = described_class.merge_results(*paths, processes: 3, ignore_timeout: true)
+
+      expect(result.original_result)
+        .to eq(SimpleCov::ResultMerger.merge_results(*paths, ignore_timeout: true).original_result)
+    end
+  end
+
   describe ".merge_resultsets" do
     it "produces the pair ResultMerger.merge_resultsets produces" do
       expect(described_class.merge_resultsets(paths, processes: 3, ignore_timeout: true)).to eq(serial)

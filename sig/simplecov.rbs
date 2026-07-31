@@ -112,6 +112,10 @@ module SimpleCov
   # anything below 1 is taken as 1.
   def self.collate: (Array[String] result_filenames, ?(String | Symbol)? profile, ?processes: Integer, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
 
+  # Implementation detail of `collate` (private in Ruby; RBS cannot mark
+  # singleton methods private).
+  def self.merge_collated: (Array[String] result_filenames, Integer processes, bool ignore_timeout) -> Result?
+
   # The result for the current coverage run, merged across test suites
   # when merging is active. nil when no coverage was tracked.
   def self.result: () -> Result?

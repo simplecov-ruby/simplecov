@@ -138,13 +138,6 @@ RSpec.describe SimpleCov::ResultMerger do
 
           expect_resultset_1_and_2_merged(described_class.read_resultset)
         end
-
-        it "merges to the same result across forked workers" do
-          result = described_class.merge_and_store(resultset1_path, resultset2_path, processes: 2)
-
-          expect_resultset_1_and_2_merged(result.to_hash)
-          expect_resultset_1_and_2_merged(described_class.read_resultset)
-        end
       end
 
       context "when 1 resultset is outdated" do

@@ -16,21 +16,14 @@ module SimpleCov
         ResultsetStore.resultset_path
       end
 
-      def merge_and_store(*file_paths, processes: 1, ignore_timeout: false)
-        result = merge_results(*file_paths, processes: processes, ignore_timeout: ignore_timeout)
+      def merge_and_store(*file_paths, ignore_timeout: false)
+        result = merge_results(*file_paths, ignore_timeout: ignore_timeout)
         store_result(result) if result
         result
       end
 
-      # `processes:` above 1 asks `ParallelResultMerger` to fan the read-and-
-      # combine out across that many forked workers. It answers nil — and we
-      # merge here instead — when it could not: a runtime that cannot fork,
-      # nothing worth splitting, or a worker that died. The result is the same
-      # either way; only the time it took to get there differs.
-      def merge_results(*file_paths, processes: 1, ignore_timeout: false)
-        command_names, coverage =
-          ParallelResultMerger.merge_resultsets(file_paths, processes: processes, ignore_timeout: ignore_timeout) ||
-          merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
+      def merge_results(*file_paths, ignore_timeout: false)
+        command_names, coverage = merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
 
         create_result(command_names, coverage)
       end
