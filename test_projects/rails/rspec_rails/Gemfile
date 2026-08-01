@@ -11,11 +11,11 @@ gem "simplecov", path: "../../.."
 if defined?(JRUBY_VERSION)
   gem "activerecord-jdbcsqlite3-adapter", "~> 61.0", platform: :jruby
 else
-  gem "sqlite3", "~> 1.4"
+  gem "sqlite3"
 end
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem "rails", "= 7.2.3.1"
+gem "rails", "~> 7.2.3.1"
 # Use Puma as the app server
 gem "puma", "~> 7.0"
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
