@@ -12,3 +12,9 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+  - package-ecosystem: bun
+    directory: "/html_frontend"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
