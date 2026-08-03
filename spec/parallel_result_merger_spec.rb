@@ -77,7 +77,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
 
     it "merges in this process when the fan-out cannot run" do
-      allow(described_class).to receive(:fork_supported?).and_return(false)
+      without_fork
 
       result = described_class.merge_results(*paths, processes: 3, ignore_timeout: true)
 
@@ -87,19 +87,19 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".merge_resultsets" do
-    it "produces the pair ResultMerger.merge_resultsets produces" do
+    it "produces the pair ResultMerger.merge_resultsets produces", if: FORK_SUPPORTED do
       expect(described_class.merge_resultsets(paths, processes: 3, ignore_timeout: true)).to eq(serial)
     end
 
-    it "produces the same pair however many processes it is given" do
+    it "produces the same pair however many processes it is given", if: FORK_SUPPORTED do
       merges = [2, 3, 4, 5, 12].map do |processes|
         described_class.merge_resultsets(paths, processes: processes, ignore_timeout: true)
       end
 
-      expect(merges.uniq.size).to eq(1)
+      expect(merges).to all(eq(serial))
     end
 
-    it "honours ignore_timeout: false by dropping expired resultsets" do
+    it "honours ignore_timeout: false by dropping expired resultsets", if: FORK_SUPPORTED do
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9, 9, 9, 9]}}, outdated: true)
       fresh = paths.first(2)
 
@@ -117,16 +117,10 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
 
     it "returns nil when the runtime cannot fork" do
-      allow(described_class).to receive(:fork_supported?).and_return(false)
+      without_fork
 
       expect(described_class.merge_resultsets(paths, processes: 4)).to be_nil
     end
-  end
-
-  describe ".fork_supported?" do
-    # False on JRuby, TruffleRuby and Windows, where `fork` is defined but
-    # raises; there is no CRuby-side way to reach the false case.
-    it { expect(described_class.fork_supported?).to eq(Process.respond_to?(:fork)) }
   end
 
   describe ".chunk" do
@@ -188,7 +182,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   describe ".fan_out" do
     let(:chunks) { described_class.chunk(paths, 3) }
 
-    it "returns nil and warns when a worker dies without shipping its slice" do
+    it "returns nil and warns when a worker dies without shipping its slice", if: FORK_SUPPORTED do
       allow(described_class).to receive(:run_worker).and_return(1)
 
       output = capture_stderr do
@@ -198,13 +192,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(output).to include("parallel merge did not complete (3 of 3 workers failed)")
     end
 
-    it "returns nil when the workers could not be spawned at all" do
-      allow(described_class).to receive(:spawn_workers).and_return(nil)
-
-      expect(described_class.fan_out(chunks, ignore_timeout: true)).to be_nil
-    end
-
-    it "stays quiet about a failed fan-out when print_errors is off" do
+    it "stays quiet about a failed fan-out when print_errors is off", if: FORK_SUPPORTED do
       allow(described_class).to receive(:run_worker).and_return(1)
 
       output = capture_stderr do
@@ -215,17 +203,34 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-  describe ".spawn_workers" do
-    it "tears down the workers it did spawn and returns nil when a fork is refused" do
-      spawned = []
-      allow(described_class).to receive(:spawn_worker).and_wrap_original do |original, *args, **options|
-        raise NotImplementedError, "fork is not available on this platform" if spawned.any?
+  describe ".run_in_child" do
+    # Driven directly, with `exit!` stubbed, because a child's own coverage
+    # dies with it: it exits without reporting, so nothing it executes ever
+    # merges back into this process's result.
+    it "closes the read end and exits with the status the worker reports" do
+      reader, writer = IO.pipe
+      allow(described_class).to receive(:exit!)
+      allow(described_class).to receive(:run_worker).and_return(1)
 
-        original.call(*args, **options).tap { |worker| spawned << worker }
-      end
+      described_class.run_in_child(reader, writer, paths, true)
 
-      expect(described_class.spawn_workers(described_class.chunk(paths, 3), ignore_timeout: true)).to be_nil
-      expect(spawned.first[:reader]).to be_closed
+      expect(reader).to be_closed
+      expect(described_class).to have_received(:exit!).with(1)
+      expect(described_class).to have_received(:run_worker).with(paths, writer, ignore_timeout: true)
+    ensure
+      writer.close
+    end
+  end
+
+  describe ".fan_out when the OS refuses a fork" do
+    # A machine out of process slots is not something to paper over: the merge
+    # is fine, the box is not, and swallowing it would turn that into a
+    # mysteriously slow collate.
+    it "lets the error through rather than merging in this process", if: FORK_SUPPORTED do
+      allow(described_class).to receive(:fork).and_raise(Errno::EAGAIN)
+
+      expect { described_class.merge_results(*paths, processes: 3, ignore_timeout: true) }
+        .to raise_error(Errno::EAGAIN)
     end
   end
 
@@ -254,6 +259,13 @@ private
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
     File.write(path, JSON.generate(command_name => {"coverage" => coverage, "timestamp" => timestamp}))
     path
+  end
+
+  # What CRuby on Windows, JRuby and TruffleRuby report. Every other
+  # `respond_to?` has to keep working, hence the `and_call_original` first.
+  def without_fork
+    allow(Process).to receive(:respond_to?).and_call_original
+    allow(Process).to receive(:respond_to?).with(:fork).and_return(false)
   end
 
   def with_print_errors(value)

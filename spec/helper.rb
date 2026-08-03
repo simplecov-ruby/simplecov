@@ -71,6 +71,8 @@ unless DOGFOOD_DISABLED
   # doesn't support, so the lib/ lines those specs would have hit stay
   # uncovered there — set the line threshold a hair below today's
   # actual to act as a regression guard rather than a strict ceiling.
+  # (Files that are wholly unreachable on an engine are filtered out
+  # below instead, so they don't drag this number down.)
   # Engines absent from this hash get an informational report only,
   # no threshold enforcement.
   DOGFOOD_THRESHOLDS = {
@@ -82,6 +84,11 @@ unless DOGFOOD_DISABLED
   RSpec.configure do |config|
     config.after(:suite) do
       extra_filters = %w[/spec/ /features/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
+      # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
+      # (JRuby, TruffleRuby, CRuby on Windows) its worker lines are unreachable
+      # rather than untested. Drop the file on those engines instead of
+      # lowering the bar for every other file; CRuby still holds it to 100%.
+      extra_filters << SimpleCov::StringFilter.new("parallel_result_merger.rb") unless FORK_SUPPORTED
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
 
@@ -140,6 +147,12 @@ unless DOGFOOD_DISABLED
     end
   end
 end
+
+# Specs that need real worker processes (see
+# spec/parallel_result_merger_spec.rb) are skipped where this is false: CRuby
+# on Windows, and JRuby / TruffleRuby, which cannot fork on the JVM. The
+# in-process merge those runtimes fall back to is covered on every engine.
+FORK_SUPPORTED = Process.respond_to?(:fork)
 
 def source_fixture(filename)
   File.join(source_fixture_base_directory, "fixtures", filename)

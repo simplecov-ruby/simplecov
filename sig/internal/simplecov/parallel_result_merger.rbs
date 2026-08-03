@@ -26,18 +26,17 @@ module SimpleCov
     #
     def self?.merge_resultsets: (Array[String] file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
 
-    def self?.fork_supported?: () -> bool
-
     # Contiguous slices whose sizes differ by at most one. There are never
     # more slices than files.
     def self?.chunk: (Array[String] file_paths, Integer processes) -> Array[Array[String]]
 
+    # Raises if the OS refuses a fork; see the method comment.
     def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool) -> untyped
 
-    # nil when this runtime turns out not to support forking after all.
-    def self?.spawn_workers: (Array[Array[String]] chunks, ignore_timeout: bool) -> Array[Hash[Symbol, untyped]]?
-
     def self?.spawn_worker: (Array[String] chunk, ignore_timeout: bool) -> Hash[Symbol, untyped]
+
+    # Everything the child does; ends the process with `exit!`.
+    def self?.run_in_child: (IO reader, IO writer, Array[String] chunk, bool ignore_timeout) -> bot
 
     # The body of a worker: merge the slice, ship it back, and report the exit
     # status the child should terminate with.
@@ -54,8 +53,5 @@ module SimpleCov
     def self?.succeeded?: (Integer pid) -> bool
 
     def self?.warn_about_failed_workers: (Integer failed, Integer total) -> void
-
-    # Best-effort teardown for workers spawned before a fork failed.
-    def self?.shut_down: (Array[Hash[Symbol, untyped]] workers) -> void
   end
 end

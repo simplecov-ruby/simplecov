@@ -60,13 +60,16 @@ module SimpleCov
       # One worker folds the whole list anyway, and one file is a fold of
       # one — in both cases the fork and the round trip are pure overhead.
       return nil if processes < 2 || file_paths.size < 2
-      return nil unless fork_supported?
+      # The portable feature test, and the one the rest of the ecosystem uses.
+      # CRuby leaves `fork` undefined on Windows; JRuby and TruffleRuby cannot
+      # fork on the JVM and deliberately answer false here so libraries can
+      # detect that without rescuing an exception — TruffleRuby's compatibility
+      # guide names this as the correct check. They do still define
+      # `Kernel#fork` and raise `NotImplementedError` from it, so probing that
+      # instead would answer true and send them down the fan-out.
+      return nil unless Process.respond_to?(:fork)
 
       fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout)
-    end
-
-    def fork_supported?
-      Process.respond_to?(:fork)
     end
 
     # Contiguous slices whose sizes differ by at most one, so no worker is
@@ -81,53 +84,37 @@ module SimpleCov
       Array.new(groups) { |index| remaining.shift(base + (index < remainder ? 1 : 0)) }
     end
 
+    # A `fork` that fails here raises, and is left to. `merge_resultsets` has
+    # already excluded the runtimes that never fork, so what remains is the OS
+    # refusing a process we expected to get — EAGAIN at RLIMIT_NPROC, ENOMEM
+    # under memory pressure. That says something is wrong with the machine
+    # rather than with the merge, and quietly absorbing it would hide it.
     def fan_out(chunks, ignore_timeout:)
-      workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
-      return nil unless workers
-
+      workers = chunks.map { |chunk| spawn_worker(chunk, ignore_timeout: ignore_timeout) }
       payloads = collect(workers)
-      payloads && ResultMerger.merge_coverage(*payloads)
-    end
 
-    # nil when this runtime turns out not to support forking after all.
-    # JRuby, TruffleRuby and Windows define `Process.fork` and raise only
-    # when it is called, so this — rather than the `respond_to?` probe — is
-    # what actually detects them. Anything already spawned is torn down.
-    def spawn_workers(chunks, ignore_timeout:)
-      workers = [] #: Array[Hash[Symbol, untyped]]
-      # Accumulated rather than mapped so the rescue below can still see the
-      # workers spawned before the failing fork.
-      chunks.each { |chunk| workers << spawn_worker(chunk, ignore_timeout: ignore_timeout) } # rubocop:disable Style/MapIntoArray
-      workers
-    rescue NotImplementedError
-      # @type var workers: Array[Hash[Symbol, untyped]]
-      shut_down(workers)
-      nil
+      payloads && ResultMerger.merge_coverage(*payloads)
     end
 
     def spawn_worker(chunk, ignore_timeout:)
       reader, writer = IO.pipe
-
-      pid = fork do
-        # simplecov:disable — the child's lines are measured in the child,
-        # which exits via `exit!` without reporting; `run_worker` itself is
-        # covered by calling it directly.
-        reader.close
-        exit!(run_worker(chunk, writer, ignore_timeout: ignore_timeout))
-        # simplecov:enable
-      end
-
+      pid = fork { run_in_child(reader, writer, chunk, ignore_timeout) }
       writer.close
+
       {pid: pid, reader: reader}
     end
 
-    # The body of a worker: fold the slice, ship it back, and report the exit
+    # Everything the child does. `exit!` rather than `exit` because it must
+    # never fall through to the collating process's inherited `at_exit`
+    # handlers — SimpleCov's own report generation included.
+    def run_in_child(reader, writer, chunk, ignore_timeout)
+      reader.close
+      exit!(run_worker(chunk, writer, ignore_timeout: ignore_timeout))
+    end
+
+    # The body of a worker: merge the slice, ship it back, and report the exit
     # status the child should terminate with. Kept free of the exit itself so
     # it can be exercised in-process.
-    #
-    # A child must never fall through to the collating process's `at_exit`
-    # handlers — SimpleCov's own report generation included — which is why
-    # `spawn_worker` ends it with `exit!` rather than `exit`.
     def run_worker(chunk, writer, ignore_timeout:)
       Marshal.dump(ResultMerger.merge_resultsets(chunk, ignore_timeout: ignore_timeout), writer)
       writer.close
@@ -186,16 +173,7 @@ module SimpleCov
       return unless SimpleCov.print_errors
 
       warn "[SimpleCov]: parallel merge did not complete (#{failed} of #{total} workers failed); " \
-           "falling back to merging the resultsets in this process."
-    end
-
-    # Best-effort teardown for workers spawned before a fork failed. Closing
-    # the read end makes a worker still writing die of EPIPE.
-    def shut_down(workers)
-      workers.each do |worker|
-        worker[:reader].close
-        succeeded?(worker[:pid])
-      end
+           "merging the resultsets in this process instead."
     end
   end
 end
