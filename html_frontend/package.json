@@ -1,7 +1,7 @@
 {
   "private": true,
   "devDependencies": {
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "highlight.js": "^11.11.1",
     "typescript": "^6.0.3"
   },
