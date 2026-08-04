@@ -1146,6 +1146,26 @@ RSpec.describe SimpleCov do
           .to eq(collate_with { |paths| described_class.collate paths })
       end
 
+      it "defaults the process count to SIMPLECOV_CONCURRENCY" do
+        allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_call_original
+
+        with_env("SIMPLECOV_CONCURRENCY" => "3") { collate_with { |paths| described_class.collate paths } }
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_resultsets)
+          .with(anything, hash_including(processes: 3))
+      end
+
+      it "prefers an explicit process count over SIMPLECOV_CONCURRENCY" do
+        allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_call_original
+
+        with_env("SIMPLECOV_CONCURRENCY" => "3") do
+          collate_with { |paths| described_class.collate paths, processes: 2 }
+        end
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_resultsets)
+          .with(anything, hash_including(processes: 2))
+      end
+
       it "merges in this process when the fan-out cannot run" do
         serial = collate_with { |paths| described_class.collate paths }
         allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_return(nil)

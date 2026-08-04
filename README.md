@@ -876,10 +876,18 @@ The report is identical to the one a single-process collate produces for the sam
 worker folds a contiguous slice of the file list and the collating process folds the slices back in order, so the
 resultsets are visited in the same order they would be otherwise.
 
-`processes` defaults to 1, which never forks — existing `collate` calls behave exactly as before. It is deliberately
-not clamped to your core count, nor gated on some minimum number of resultsets: how many processes a collate job can
-afford is something only you know. Asking for more processes than there are result files simply gives one file per
-process, and anything below 1 is taken as 1, so a count computed from arithmetic that can reach zero needs no guarding.
+`processes` defaults to the `SIMPLECOV_CONCURRENCY` environment variable, or 1 when that is unset — and 1 never forks,
+so existing `collate` calls behave exactly as before. Setting it in the environment lets one rake task serve runners of
+different sizes without editing the task:
+
+```sh
+SIMPLECOV_CONCURRENCY=8 bundle exec rake coverage:report
+```
+
+An explicit `processes:` argument wins over the environment variable. The count is deliberately not clamped to your core
+count, nor gated on some minimum number of resultsets: how many processes a collate job can afford is something only you
+know. Asking for more processes than there are result files simply gives one file per process, and anything below 1 is
+taken as 1, so a count computed from arithmetic that can reach zero needs no guarding.
 
 It falls back to merging in the collating process — same report, no error — when the runtime cannot fork (JRuby,
 TruffleRuby, Windows), when there is only one resultset to fold, or when a worker dies.

@@ -22,9 +22,11 @@ module SimpleCov
     # gated on some minimum number of resultsets: how many processes a collate
     # job can afford is the caller's call, not SimpleCov's. Anything below 1 is
     # taken as 1, so a count computed from arithmetic that can reach zero needs
-    # no guarding. See `SimpleCov::ParallelResultMerger`.
+    # no guarding. Defaults to `SIMPLECOV_CONCURRENCY`, or 1 when that is
+    # unset. See `SimpleCov::ParallelResultMerger`.
     #
-    def collate(result_filenames, profile = nil, processes: 1, ignore_timeout: true, &)
+    def collate(result_filenames, profile = nil, processes: ENV.fetch("SIMPLECOV_CONCURRENCY", 1).to_i,
+                ignore_timeout: true, &)
       raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &)
