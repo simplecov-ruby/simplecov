@@ -219,6 +219,72 @@ RSpec.describe SimpleCov do
     end
   end
 
+  # `Result#to_hash` serializes coverage after filtering, so a file this process
+  # loaded and then filtered out would be absent from the stored coverage while
+  # still listed as tracked, and a merge elsewhere would simulate it back in as
+  # never-loaded. Recording only what was tracked and not loaded avoids that.
+  # See #1250.
+  describe "the tracked paths recorded on a result" do
+    around do |example|
+      previous_cover = described_class.cover_filters.dup
+      previous_filters = described_class.filters.dup
+      example.run
+    ensure
+      described_class.instance_variable_set(:@cover_filters, previous_cover)
+      described_class.instance_variable_set(:@filters, previous_filters)
+    end
+
+    it "excludes files this process loaded" do
+      described_class.cover "spec/fixtures/*.rb"
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {sample => {"lines" => [1, 1]}})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).not_to include(sample)
+    end
+
+    # Before injection moved to the merge, the producer filtered these out of
+    # its own result and they never reached a resultset. Recording them would
+    # let a merge that does not share the filter report them at 0%.
+    it "excludes files its own path filters keep out of its report" do
+      described_class.cover "spec/fixtures/**/*.rb"
+      described_class.skip "app/models"
+      excluded = File.expand_path("spec/fixtures/app/models/user.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).not_to include(excluded)
+    end
+
+    # A block filter is handed the source file and may consult coverage that
+    # does not exist yet, so it is left to the merging process's filter chain.
+    it "keeps files only a block filter would exclude" do
+      described_class.cover "spec/fixtures/*.rb"
+      described_class.filters << SimpleCov::BlockFilter.new(
+        ->(source_file) { source_file.filename.include?("sample") }
+      )
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).to include(sample)
+    end
+
+    it "still records the ones it did not load" do
+      described_class.cover "spec/fixtures/*.rb"
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      other = File.expand_path("spec/fixtures/resultset1.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {sample => {"lines" => [1, 1]}})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).to include(other)
+    end
+  end
+
   describe ".inject_unloaded_files" do
     # Discovery and injection are separate now, so exercise them as the pair
     # `process_coverage_result` uses.

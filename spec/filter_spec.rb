@@ -289,6 +289,33 @@ RSpec.describe SimpleCov::Filter do
     end
   end
 
+  # Recording which tracked files a process did not load happens before those
+  # files have any coverage, so only filters that decide from the path alone can
+  # be applied there. Anything else is left to the merging process. See #1250.
+  describe "#path_only?" do
+    it "is true for filters that only look at the path" do
+      expect(SimpleCov::StringFilter.new("foo")).to be_path_only
+      expect(SimpleCov::RegexFilter.new(/foo/)).to be_path_only
+      expect(SimpleCov::GlobFilter.new("**/foo.rb")).to be_path_only
+    end
+
+    it "is false for a block filter, which is handed the source file" do
+      expect(SimpleCov::BlockFilter.new(->(_source_file) { true })).not_to be_path_only
+    end
+
+    # The default is false so a custom filter is never guessed at.
+    it "is false for a filter that does not say" do
+      custom = Class.new(SimpleCov::Filter) { def matches?(_source_file) = true }
+
+      expect(custom.new("anything")).not_to be_path_only
+    end
+
+    it "is true for an array filter only when every component is" do
+      expect(SimpleCov::ArrayFilter.new(["foo", /bar/])).to be_path_only
+      expect(SimpleCov::ArrayFilter.new(["foo", ->(_source_file) { true }])).not_to be_path_only
+    end
+  end
+
   describe ".class_for_argument with an unknown filter argument type" do
     it "raises a ConfigurationError when the argument doesn't match any registered filter type" do
       expect { described_class.class_for_argument(Object.new) }

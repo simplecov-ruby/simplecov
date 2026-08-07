@@ -64,6 +64,74 @@ RSpec.describe SimpleCov::ResultMerger do
   # it per process meant N workers simulated the same file up to N times. The
   # paths come from the resultsets, so a `collate` that never ran
   # `SimpleCov.start` still injects correctly. See #1250.
+  # A simulated file has to have the same shape as the files it is merged
+  # alongside. Taking the criteria from this process's configuration gets that
+  # wrong when the merge did not measure anything itself, which is exactly the
+  # `simplecov merge` case. Fewer tables than its neighbours is what inflates
+  # the percentage #1059 fixed. See #1250.
+  describe "the shape of an injected file" do
+    # sample.rb has methods to synthesize; resultset1.rb is four `puts` lines.
+    let(:loaded) { source_fixture("resultset1.rb") }
+    let(:never_loaded) { source_fixture("sample.rb") }
+
+    def injected(coverage)
+      result = described_class.send(:create_result, ["merged"], coverage, tracked_files: Set[never_loaded])
+      result.original_result.fetch(never_loaded)
+    end
+
+    it "synthesizes tuples when the merged files carry them, whatever this process measures",
+       if: SimpleCov::StaticCoverageExtractor.available? do
+      allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
+
+      entry = injected(loaded => {"lines" => [1, 1], "methods" => {}})
+
+      expect(entry["methods"]).not_to be_empty
+    end
+
+    it "leaves them empty when the merged files carry none",
+       if: SimpleCov::StaticCoverageExtractor.available? do
+      allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: true)
+
+      entry = injected(loaded => {"lines" => [1, 1]})
+
+      expect(entry["methods"]).to be_empty
+    end
+
+    # Nothing to be consistent with, so the configuration is all there is.
+    it "falls back to this process's criteria when the merge carried no files" do
+      allow(SimpleCov).to receive_messages(line_coverage?: false, branch_coverage?: true, method_coverage?: false)
+
+      result = described_class.send(:create_result, ["merged"], {}, tracked_files: Set[never_loaded])
+
+      expect(result.original_result.fetch(never_loaded)).not_to have_key("lines")
+    end
+  end
+
+  # An expired entry's coverage is dropped, so its tracked paths have to go
+  # with it. Otherwise a file only a stale run ever tracked is simulated into
+  # the merged report at 0% while the run that tracked it contributes nothing.
+  # See #1250.
+  describe "tracked paths from an expired resultset" do
+    let(:never_loaded) { source_fixture("resultset1.rb") }
+
+    before do
+      FileUtils.rm_f(described_class.resultset_path)
+      stale = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+                                    command_name: "stale", tracked_files: [never_loaded])
+      described_class.store_result(outdated(stale))
+      fresh = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+                                    command_name: "fresh")
+      described_class.store_result(fresh)
+    end
+
+    it "does not simulate a file only the expired run tracked" do
+      merged = nil
+      capture_stderr { merged = described_class.merged_result }
+
+      expect(merged.original_result.keys).not_to include(never_loaded)
+    end
+  end
+
   describe "injecting unloaded files at the merge point" do
     let(:loaded) { source_fixture("sample.rb") }
     let(:never_loaded) { source_fixture("resultset1.rb") }

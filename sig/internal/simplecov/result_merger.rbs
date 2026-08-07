@@ -19,7 +19,7 @@ module SimpleCov
     # Yields the parsed resultset before it is reduced.
     def self.valid_results: (untyped file_path, ?ignore_timeout: bool) ?{ (untyped parsed) -> void } -> untyped
 
-    def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) -> untyped
+    def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) ?{ (untyped surviving) -> void } -> untyped
 
     def self.drop_expired_results: (untyped results) -> untyped
 
