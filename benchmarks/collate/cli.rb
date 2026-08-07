@@ -31,9 +31,10 @@ module CollateBenchmark
         )
       end
 
-      # Above 1, the merge phase runs the fan-out `SimpleCov.parallel_collate`
-      # runs instead of the serial fold. Every later phase is unchanged, so a
-      # PROCESSES run is directly comparable to a serial baseline.
+      # Above 1, the merge phase runs the fan-out
+      # `SimpleCov.collate(..., processes: N)` runs instead of the serial fold.
+      # Every later phase is unchanged, so a PROCESSES run is directly
+      # comparable to a serial baseline.
       def processes
         count = ENV.fetch("PROCESSES", DEFAULT_PROCESSES).to_i
         return count if count >= 1

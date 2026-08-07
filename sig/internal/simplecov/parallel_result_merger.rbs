@@ -1,7 +1,7 @@
 module SimpleCov
   #
   # Merges a list of resultset files into one coverage table across forked
-  # worker processes. Drives `SimpleCov.parallel_collate`.
+  # worker processes. Drives `SimpleCov.collate(..., processes: N)`.
   #
   # `ResultMerger.merge_resultsets` is a fold over N independent
   # read-parse-combine steps, so it splits cleanly: each worker runs that
