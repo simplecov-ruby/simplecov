@@ -11,6 +11,11 @@ module SimpleCov
 
     def self.merge_results: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
 
+    # Reads every resultset and folds it into one merged coverage, stopping
+    # short of building a `SimpleCov::Result`. `file_paths` is only iterated,
+    # so any Enumerable will do.
+    def self.absorb_results: (untyped file_paths, ?ignore_timeout: bool) -> [untyped, untyped]
+
     def self.valid_results: (untyped file_path, ?ignore_timeout: bool) -> untyped
 
     def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) -> untyped
@@ -26,7 +31,8 @@ module SimpleCov
     # Which files no contributing process ever loaded. The loaded/not-loaded
     # distinction isn't serialized — `Result#to_hash` writes only coverage and
     # a timestamp — so it has to be re-derived here from the merged line
-    # counts, using the same signal `Combine::FilesCombiner` reconciles on.
+    # counts, using the same signal `Combine::CoverageAccumulator` reconciles
+    # synthesized tuples on.
     # Without it every file in a merged report is `loaded: true`, and the #902
     # rule that reports 0% rather than a misleading 100% for a never-loaded
     # file with no branch or method data can never fire on a merged result.

@@ -8,7 +8,7 @@ module SimpleCov
     #
     # Combine different branch coverage results on single file.
     #
-    # Should be called through `SimpleCov.combine`.
+    # Should be called through `CoverageAccumulator`.
     module BranchesCombiner
     module_function
 
@@ -25,15 +25,40 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        merged = {} #: Hash[untyped, [untyped, Hash[untyped, untyped]]]
-        [coverage_a, coverage_b].each do |coverage|
-          coverage.each do |condition, branches_inside|
-            entry = merged[identities[condition]] ||= [condition, {}]
-            merge_branches(entry[1], branches_inside)
-          end
+        merged = absorb({}, coverage_a) #: Hash[untyped, [untyped, Hash[untyped, untyped]]]
+        materialize(absorb(merged, coverage_b))
+      end
+
+      # Folds `coverage` into `target`, an interned table keyed by condition
+      # identity. Kept interned (rather than turned back into tuple keys per
+      # merge) so a fold over N resultsets interns each condition once
+      # instead of re-interning the whole accumulated table N times.
+      #
+      # @return [Hash] `target`
+      def absorb(target, coverage)
+        return target unless coverage
+
+        coverage.each do |condition, branches_inside|
+          entry = target[identities[condition]] ||= new_condition(condition)
+          merge_branches(entry[1], branches_inside)
         end
 
-        merged.values.to_h { |condition, branches| [condition, branches.values.to_h] }
+        target
+      end
+
+      # Split out so the empty arm table has somewhere to carry its type
+      # annotation. Only allocated the first time a condition is seen.
+      def new_condition(condition)
+        arms = {} #: Hash[untyped, untyped]
+        [condition, arms]
+      end
+
+      # Turns an interned table back into the tuple-keyed hash the rest of
+      # SimpleCov reads. Done once, at the end of a fold.
+      #
+      # @return [Hash]
+      def materialize(target)
+        target.values.to_h { |condition, branches| [condition, branches.values.to_h] }
       end
 
       # `target` and its pairs are always built by `combine` above, so updating

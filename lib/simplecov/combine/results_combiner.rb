@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "coverage_accumulator"
+
 module SimpleCov
   module Combine
     # There might be reports from different kinds of tests,
@@ -12,50 +14,23 @@ module SimpleCov
 
       #
       # Combine process explanation
-      # => ResultCombiner: define all present files between results and start combine on file level.
-      # ==> FileCombiner: collect result of next combine levels lines, branches, and methods.
+      # => ResultsCombiner: hand every result to one accumulator.
+      # ==> CoverageAccumulator::MergedFile: hold one file's merged coverage.
       # ===> LinesCombiner: combine lines results.
       # ===> BranchesCombiner: combine branches results.
       # ===> MethodsCombiner: combine methods results.
       #
+      # Callers that read their results one at a time (`ResultMerger`, to
+      # keep a big CI run's resultsets out of memory all at once) should
+      # drive a `CoverageAccumulator` directly instead of collecting the
+      # results to pass here.
+      #
       # @return [Hash]
       #
       def combine(*results)
-        initial = {} #: Hash[untyped, untyped]
-        results.reduce(initial) do |combined_results, next_result|
-          combine_result_sets(combined_results, next_result)
-        end
-      end
-
-      #
-      # Manage combining results on files level
-      #
-      # @param [Hash] combined_results
-      # @param [Hash] result
-      #
-      # @return [Hash]
-      #
-      def combine_result_sets(combined_results, result)
-        results_files = combined_results.keys | result.keys
-
-        results_files.to_h do |file_name|
-          [file_name, combine_file_coverage(
-            combined_results[file_name],
-            result[file_name]
-          )]
-        end
-      end
-
-      #
-      # Combine two files coverage results
-      #
-      # @param [Hash] coverage_a
-      # @param [Hash] coverage_b
-      #
-      # @return [Hash]
-      #
-      def combine_file_coverage(coverage_a, coverage_b)
-        Combine.combine(Combine::FilesCombiner, coverage_a, coverage_b)
+        accumulator = CoverageAccumulator.new
+        results.each { |result| accumulator.absorb(result) }
+        accumulator.result || {}
       end
     end
   end

@@ -1,0 +1,228 @@
+# frozen_string_literal: true
+
+require "helper"
+
+RSpec.describe SimpleCov::Combine::CoverageAccumulator do
+  # A real, executed file: some line ran, and its branch tuples come from
+  # Coverage, so they sit at the exact positions Coverage reports.
+  let(:executed) do
+    {
+      "lines" => [nil, 1, 1, 0, nil],
+      "branches" => {
+        [:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 1, [:else, 2, 4, 4, 4, 10] => 0}
+      }
+    }
+  end
+
+  # A simulated (tracked-but-never-loaded) file: every line is nil / 0, and
+  # its branch tuples are synthesized. Here the `if` condition's end column
+  # has drifted (…4, 12] vs …4, 10]), the exact failure mode of #1233.
+  let(:simulated_drifted) do
+    {
+      "lines" => [nil, 0, 0, 0, nil],
+      "branches" => {
+        [:if, 0, 2, 2, 4, 12] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 12] => 0}
+      }
+    }
+  end
+
+  def merge(*coverages)
+    accumulator = described_class.new
+    coverages.each { |coverage| accumulator.absorb("file.rb" => coverage) }
+    accumulator.result.fetch("file.rb")
+  end
+
+  describe "#result" do
+    it "is nil when nothing was absorbed, so 'no results' is distinguishable" do
+      expect(described_class.new.result).to be_nil
+    end
+
+    it "is an empty hash once an empty resultset was absorbed" do
+      expect(described_class.new.absorb({}).result).to eq({})
+    end
+
+    it "ignores a nil coverage the way a missing merge side is ignored" do
+      expect(described_class.new.absorb(nil).result).to be_nil
+    end
+
+    it "returns a file only one resultset carried untouched" do
+      only = {"lines" => [nil, 1]}
+      accumulator = described_class.new.absorb("file.rb" => only)
+
+      expect(accumulator.result.fetch("file.rb")).to be(only)
+    end
+
+    it "keeps files in first-seen order across resultsets" do
+      accumulator = described_class.new
+      accumulator.absorb("b.rb" => {"lines" => [1]}, "a.rb" => {"lines" => [1]})
+      accumulator.absorb("a.rb" => {"lines" => [1]}, "c.rb" => {"lines" => [1]})
+
+      expect(accumulator.result.keys).to eq(%w[b.rb a.rb c.rb])
+    end
+  end
+
+  describe "line merging" do
+    it "sums counts and treats a line relevant on either side as relevant" do
+      merged = merge({"lines" => [nil, 0, nil, 0]}, {"lines" => [nil, nil, 0, 0]})
+
+      expect(merged["lines"]).to eq([nil, 0, 0, 0])
+    end
+
+    it "grows to the longest side" do
+      merged = merge({"lines" => [1, 1]}, {"lines" => [1, 1, nil, 2]})
+
+      expect(merged["lines"]).to eq([2, 2, nil, 2])
+    end
+
+    it "does not mutate the absorbed resultsets" do
+      first = {"lines" => [1, 1]}
+      second = {"lines" => [1, 1]}
+
+      merge(first, second)
+
+      expect(first["lines"]).to eq([1, 1])
+      expect(second["lines"]).to eq([1, 1])
+    end
+
+    it "sums across more than two resultsets" do
+      merged = merge({"lines" => [nil, 1]}, {"lines" => [nil, 4]}, {"lines" => [nil, 2]})
+
+      expect(merged["lines"]).to eq([nil, 7])
+    end
+  end
+
+  # Every resultset SimpleCov itself writes carries a lines table, but the
+  # merge has to stay total: a hand-written or third-party resultset need
+  # not include one, and a half-merged file must not raise.
+  describe "coverage entries without a lines table" do
+    it "takes the lines from whichever side has them" do
+      expect(merge({}, {"lines" => [nil, 1]})["lines"]).to eq([nil, 1])
+      expect(merge({"lines" => [nil, 1]}, {})["lines"]).to eq([nil, 1])
+    end
+
+    it "reports no lines when neither side has them" do
+      expect(merge({}, {})["lines"]).to be_nil
+    end
+  end
+
+  describe "branch merging", if: SimpleCov.branch_coverage_supported? do
+    around do |example|
+      SimpleCov.enable_coverage(:branch)
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "drops a simulated file's branches when the other side was executed" do
+      # Only the executed side's real tuple survives — the drifted one would
+      # otherwise be a phantom, permanently-missed branch after merge.
+      expect(merge(executed, simulated_drifted)["branches"].keys).to eq([[:if, 0, 2, 2, 4, 10]])
+    end
+
+    it "is order-independent (simulated first)" do
+      expect(merge(simulated_drifted, executed)["branches"].keys).to eq([[:if, 0, 2, 2, 4, 10]])
+    end
+
+    it "still merges the lines from the simulated side" do
+      # Line shape is authoritative on both sides, so lines combine as usual
+      # (the simulated side contributes its zeros / relevance).
+      expect(merge(executed, simulated_drifted)["lines"]).to eq([nil, 1, 1, 0, nil])
+    end
+
+    it "drops a simulated file absorbed after an executed one and a peer" do
+      # The accumulated side only becomes executed part-way through, which is
+      # the case a pairwise fold got right by re-reading it every step.
+      merged = merge(simulated_drifted, executed, simulated_drifted)
+
+      expect(merged["branches"].keys).to eq([[:if, 0, 2, 2, 4, 10]])
+    end
+
+    it "keeps both branch sets when neither side was executed" do
+      # Two simulated copies of a never-loaded file: no real data exists, so
+      # its branches still count toward the denominator (#1059). If their
+      # tuples happen to disagree, both survive — denominator inflation, the
+      # acceptable fallback, rather than a false miss on a covered file.
+      other = {
+        "lines" => [nil, 0, 0, 0, nil],
+        "branches" => {[:if, 0, 2, 2, 4, 20] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 20] => 0}}
+      }
+
+      expect(merge(simulated_drifted, other)["branches"].keys)
+        .to contain_exactly([:if, 0, 2, 2, 4, 12], [:if, 0, 2, 2, 4, 20])
+    end
+
+    it "unions two executed runs of the same file normally" do
+      other_run = {
+        "lines" => [nil, 1, 1, 1, nil],
+        "branches" => {
+          [:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 4, [:else, 2, 4, 4, 4, 10] => 5}
+        }
+      }
+
+      arms = merge(executed, other_run)["branches"][[:if, 0, 2, 2, 4, 10]]
+
+      expect(arms[[:then, 1, 3, 4, 3, 10]]).to eq(5)
+      expect(arms[[:else, 2, 4, 4, 4, 10]]).to eq(5)
+    end
+
+    it "reports an empty table for a file with no branches" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})["branches"]).to eq({})
+    end
+  end
+
+  describe "method merging", if: SimpleCov.method_coverage_supported? do
+    around do |example|
+      SimpleCov.enable_coverage(:method)
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "drops a simulated file's methods when the other side was executed" do
+      executed_methods = {"lines" => [nil, 1, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 1}}
+      # Drifted end column, the method-coverage analogue of #1233.
+      simulated_methods = {"lines" => [nil, 0, 0], "methods" => {["Foo", :bar, 2, 2, 3, 7] => 0}}
+
+      expect(merge(executed_methods, simulated_methods)["methods"].keys).to eq([["Foo", :bar, 2, 2, 3, 5]])
+    end
+
+    it "takes the executed side's methods when it is absorbed second" do
+      # The mirror of the case above: what is accumulated so far is the
+      # simulated side, and the executed side has to replace it.
+      simulated_methods = {"lines" => [nil, 0, 0], "methods" => {["Foo", :bar, 2, 2, 3, 7] => 0}}
+      executed_methods = {"lines" => [nil, 1, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 1}}
+
+      expect(merge(simulated_methods, executed_methods)["methods"].keys).to eq([["Foo", :bar, 2, 2, 3, 5]])
+    end
+
+    it "sums hit counts for the same method across resultsets" do
+      merged = merge(
+        {"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 1}},
+        {"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 4}}
+      )
+
+      expect(merged["methods"]).to eq({["Foo", :bar, 2, 2, 3, 5] => 5})
+    end
+
+    it "reports an empty table when a reconciled file never carried methods" do
+      # The executed side wins, and it has no methods to contribute.
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 0]})["methods"]).to eq({})
+    end
+
+    it "reports nil when no resultset carried methods at all" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})["methods"]).to be_nil
+    end
+  end
+
+  describe "when a criterion is disabled" do
+    around do |example|
+      SimpleCov.clear_coverage_criteria
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "omits the branches and methods keys entirely" do
+      merged = merge(executed, executed)
+
+      expect(merged.keys).to eq(["lines"])
+    end
+  end
+end

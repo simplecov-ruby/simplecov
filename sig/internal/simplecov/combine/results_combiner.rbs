@@ -8,8 +8,8 @@ module SimpleCov
     module ResultsCombiner
       #
       # Combine process explanation
-      # => ResultCombiner: define all present files between results and start combine on file level.
-      # ==> FileCombiner: collect result of next combine levels lines, branches, and methods.
+      # => ResultsCombiner: hand every result to one accumulator.
+      # ==> CoverageAccumulator::MergedFile: hold one file's merged coverage.
       # ===> LinesCombiner: combine lines results.
       # ===> BranchesCombiner: combine branches results.
       # ===> MethodsCombiner: combine methods results.
@@ -17,26 +17,6 @@ module SimpleCov
       # @return [Hash]
       #
       def self?.combine: (*untyped results) -> untyped
-
-      #
-      # Manage combining results on files level
-      #
-      # @param [Hash] combined_results
-      # @param [Hash] result
-      #
-      # @return [Hash]
-      #
-      def self?.combine_result_sets: (untyped combined_results, untyped result) -> untyped
-
-      #
-      # Combine two files coverage results
-      #
-      # @param [Hash] coverage_a
-      # @param [Hash] coverage_b
-      #
-      # @return [Hash]
-      #
-      def self?.combine_file_coverage: (untyped coverage_a, untyped coverage_b) -> untyped
     end
   end
 end

@@ -83,20 +83,23 @@ module CollateBenchmark
       @files_reported = result&.files&.size
     end
 
-    # The read-and-fold loop out of `ResultMerger.merge_results`, stopping short
-    # of `create_result` so source-file building is timed separately.
+    # The real merge — `ResultMerger.absorb_results` is what `merge_results`
+    # itself runs, so this times what ships rather than a copy of it. It stops
+    # short of `create_result`, which is why the benchmark can call it instead
+    # of `merge_results` and still time source-file building separately.
     def merge_coverage(paths)
-      remaining = paths.dup
-      initial = valid_results(remaining.shift)
-
-      remaining.each_with_index.reduce(initial) do |memo, (path, index)|
-        progress(index + 2, paths.size)
-        SimpleCov::ResultMerger.merge_coverage(memo, valid_results(path))
-      end
+      SimpleCov::ResultMerger.absorb_results(with_progress(paths), ignore_timeout: true)
     end
 
-    def valid_results(path)
-      SimpleCov::ResultMerger.valid_results(path, ignore_timeout: true)
+    # `absorb_results` only iterates its paths, so progress reporting rides
+    # along on the enumerator instead of needing a hook inside the merge.
+    def with_progress(paths)
+      Enumerator.new do |yielder|
+        paths.each_with_index do |path, index|
+          progress(index + 1, paths.size)
+          yielder << path
+        end
+      end
     end
 
     def phase(name)
