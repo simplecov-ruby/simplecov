@@ -7,6 +7,9 @@ Unreleased
 ## Enhancements
 * The favicon (a solid square in the overall coverage band's colour) is now drawn by the viewer from the report's own palette instead of shipping as fixed PNGs, so it matches the report's green/yellow/red exactly and follows the light/dark theme, including the in-page toggle.
 
+## Performance
+* Simulating a tracked-but-unloaded file no longer parses it to synthesize branch and method tuples when neither branch nor method coverage is enabled. Nothing reads those tuples in that case, and the Prism parse that produces them is over half the cost of simulating a file, paid once per tracked file in every process. On a 400 file synthetic project the injection pass drops from 0.526 to 0.222 ms per file for the default line-coverage-only configuration. Suites with branch or method coverage on are unaffected, and the line classification is identical either way. Reported with measurements by @andriytyurnikov. See #1250.
+
 1.0.3 (2026-07-26)
 ==================
 

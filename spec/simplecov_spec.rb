@@ -269,6 +269,39 @@ RSpec.describe SimpleCov do
       _result, not_loaded = described_class.send(:add_not_loaded_files, {})
       expect(not_loaded).to include(sample)
     end
+
+    # Synthesizing branch and method tuples for an unloaded file means parsing
+    # it, which is about half the cost of simulating one and is paid per
+    # tracked file per process. Nothing reads the tuples unless the matching
+    # criterion is enabled. See #1250.
+    context "when neither branch nor method coverage is enabled" do
+      it "skips synthesizing branch and method tuples" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = described_class.send(:add_not_loaded_files, {})
+        expect(result[sample]["branches"]).to be_empty
+        expect(result[sample]["methods"]).to be_empty
+      end
+
+      it "still classifies the file's lines" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = described_class.send(:add_not_loaded_files, {})
+        expect(result[sample]["lines"]).to be_an(Array).and(be_any { |count| !count.nil? })
+      end
+    end
+
+    context "when a criterion that reads the tuples is enabled" do
+      it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = described_class.send(:add_not_loaded_files, {})
+        expect(result[sample]["methods"]).not_to be_empty
+      end
+    end
   end
 
   describe ".ready_to_process_results?" do
