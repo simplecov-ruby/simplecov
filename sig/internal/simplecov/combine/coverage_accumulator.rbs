@@ -20,6 +20,9 @@ module SimpleCov
       # holding more than one resultset in memory.
       def self.fold: (untyped pairs) -> [Array[String], untyped]
 
+      @branch_coverage: bool
+      @method_coverage: bool
+
       def initialize: () -> void
 
       # Folds one resultset's coverage (filename => per-file coverage) in.
@@ -43,7 +46,7 @@ module SimpleCov
         @branches: Hash[untyped, untyped]?
         @methods: Hash[untyped, untyped]?
 
-        def initialize: (untyped coverage) -> void
+        def initialize: (untyped coverage, branches: bool, methods: bool) -> void
 
         def absorb: (untyped coverage) -> MergedFile
 

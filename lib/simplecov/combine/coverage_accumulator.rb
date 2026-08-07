@@ -67,6 +67,12 @@ module SimpleCov
       def initialize
         @files = {} #: Hash[String, untyped]
         @absorbed = false
+        # Whether a criterion is enabled can't change mid-fold, so read it once
+        # here rather than once per file. `branch_coverage?` reaches
+        # `Coverage.supported?`, and a large parallel run merges thousands of
+        # files.
+        @branch_coverage = SimpleCov.branch_coverage?
+        @method_coverage = SimpleCov.method_coverage?
       end
 
       #
@@ -115,7 +121,7 @@ module SimpleCov
         case existing
         when nil then file_coverage
         when MergedFile then existing.absorb(file_coverage)
-        else MergedFile.new(existing).absorb(file_coverage)
+        else MergedFile.new(existing, branches: @branch_coverage, methods: @method_coverage).absorb(file_coverage)
         end
       end
 
@@ -124,11 +130,9 @@ module SimpleCov
       # outright rather than rebuilt for each merged pair.
       #
       class MergedFile
-        def initialize(coverage)
-          # Whether a criterion is enabled can't change mid-merge, so it is
-          # read once per file here rather than once per merged pair.
-          @branch_coverage = SimpleCov.branch_coverage?
-          @method_coverage = SimpleCov.method_coverage?
+        def initialize(coverage, branches:, methods:)
+          @branch_coverage = branches
+          @method_coverage = methods
 
           @lines = coverage["lines"]&.dup
           # Branch coverage always reports a table, even an empty one, so
