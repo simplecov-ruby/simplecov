@@ -179,6 +179,20 @@ RSpec.describe SimpleCov::SimulateCoverage do
             .to eq(described_class.call(path)["lines"])
         end
       end
+
+      # Empty tuples alone would also be satisfied by parsing and discarding
+      # the result. The point of the flag is that the Prism parse — over half
+      # the cost of simulating a file — never happens.
+      it "does not parse the file at all",
+         if: SimpleCov::StaticCoverageExtractor.available? do
+        with_tmp_source(source) do |path|
+          allow(SimpleCov::StaticCoverageExtractor).to receive(:call).and_call_original
+
+          described_class.call(path, synthesize: false)
+
+          expect(SimpleCov::StaticCoverageExtractor).not_to have_received(:call)
+        end
+      end
     end
 
     # `Coverage.result` reports no lines for a file loaded under a branch-only
