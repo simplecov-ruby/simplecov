@@ -272,6 +272,12 @@ module SimpleCov
 
     def validate_coverage_criteria!: () -> void
 
+    # Whether this run produces line data at all. The oneshot variant counts:
+    # `ResultAdapter` turns its executed-line list back into a line array. A
+    # branch-only or method-only run produces none, and `Coverage.result`
+    # entries for the files it loaded carry no `"lines"` key.
+    def line_coverage?: () -> bool
+
     def branch_coverage?: () -> bool
 
     def branch_coverage_supported?: () -> bool

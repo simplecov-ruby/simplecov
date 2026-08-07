@@ -90,7 +90,34 @@ module SimpleCov
         # it's the one that warns about source files dropped because they no
         # longer exist on disk (issue #980). The per-process slices built in
         # `process_coverage_result` stay quiet to avoid one warning per worker.
-        SimpleCov::Result.new(coverage, command_name: command_name, report: true)
+        SimpleCov::Result.new(
+          coverage,
+          command_name: command_name,
+          not_loaded_files: never_executed_files(coverage),
+          report: true
+        )
+      end
+
+      # Which files no contributing process ever loaded. The loaded/not-loaded
+      # distinction isn't serialized — `Result#to_hash` writes only coverage and
+      # a timestamp — so it has to be re-derived here from the merged line
+      # counts, using the same signal `Combine::FilesCombiner` reconciles on.
+      # Without it every file in a merged report is `loaded: true`, and the #902
+      # rule that reports 0% rather than a misleading 100% for a never-loaded
+      # file with no branch or method data can never fire on a merged result.
+      # See #1250.
+      #
+      # Line counts are the only signal available, so a file is judged only when
+      # it has some. A branch-only or method-only run reports no line data for
+      # the files it loaded, which would otherwise read as "never executed" and
+      # mark every file in the report not loaded; `SimulateCoverage` omits lines
+      # under those criteria too, so nothing is judged rather than misjudged.
+      def never_executed_files(coverage)
+        coverage.each_with_object(Set.new) do |(filename, file_coverage), set|
+          next if Array(file_coverage["lines"]).empty?
+
+          set << filename unless Combine::FilesCombiner.executed?(file_coverage)
+        end
       end
 
       def merge_coverage(*results)

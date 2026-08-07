@@ -293,6 +293,19 @@ RSpec.describe SimpleCov do
       end
     end
 
+    # A branch-only or method-only run gets no line data from `Coverage` for
+    # the files it loaded, so simulating lines for the files it didn't would
+    # make the two indistinguishable after merging. See #1250.
+    context "when line coverage is disabled" do
+      it "omits line data from simulated files" do
+        allow(described_class).to receive(:line_coverage?).and_return(false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = described_class.send(:add_not_loaded_files, {})
+        expect(result[sample]).not_to have_key("lines")
+      end
+    end
+
     context "when a criterion that reads the tuples is enabled" do
       it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)

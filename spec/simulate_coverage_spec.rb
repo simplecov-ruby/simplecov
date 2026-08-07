@@ -181,6 +181,27 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
     end
 
+    # `Coverage.result` reports no lines for a file loaded under a branch-only
+    # or method-only run, so a simulated file must not report them either.
+    # Zeroed lines would make it indistinguishable from a file a sibling
+    # process actually loaded once the two are merged. See #1250.
+    context "with lines: false" do
+      it "omits the lines key entirely" do
+        with_tmp_source("def f(x)\n  x\nend\n") do |path|
+          result = described_class.call(path, lines: false)
+          expect(result).not_to have_key("lines")
+          expect(result.keys).to contain_exactly("branches", "methods")
+        end
+      end
+
+      it "still synthesizes branches and methods",
+         if: SimpleCov::StaticCoverageExtractor.available? do
+        with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
+          expect(described_class.call(path, lines: false)["branches"]).not_to be_empty
+        end
+      end
+    end
+
     def with_tmp_source(content)
       Tempfile.create(["sc654", ".rb"]) do |f|
         f.write(content)
