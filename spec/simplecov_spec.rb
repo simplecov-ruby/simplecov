@@ -865,10 +865,15 @@ RSpec.describe SimpleCov do
           expect(Coverage).to have_received(:result).once
         end
 
-        it "injects not-loaded files" do
+        # With a merge step to follow, only the union of every process's loaded
+        # files says what was never loaded, so injection is deferred to
+        # `ResultMerger.create_result` (stubbed out in this context). Injecting
+        # per process would simulate nearly the whole project in every worker
+        # and merge all but one of those passes away. See #1250.
+        it "leaves not-loaded-file injection to the merge step" do
           allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
-          expect(described_class).to have_received(:inject_unloaded_files).once
+          expect(described_class).not_to have_received(:inject_unloaded_files)
         end
 
         it "stores the current coverage" do

@@ -157,7 +157,13 @@ module SimpleCov
   # @api private — the seam `SimpleCov::ResultMerger` injects through.
   def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths) -> [Hash[String, untyped], Set[String]]
 
-  def self.process_coverage_result: (report: bool) -> void
+  # Build this process's slice of the coverage result. `standalone` is true
+  # when no merge step follows, which makes this the final result: it is the
+  # one that reports dropped source files, and the one that injects unloaded
+  # files. When a merge does follow, both jobs belong to the merged result.
+  def self.collect_own_coverage: (standalone: bool) -> void
+
+  def self.process_coverage_result: (report: bool, ?inject_unloaded: bool) -> void
 end
 
 # ----- configuration -----
@@ -745,6 +751,9 @@ module SimpleCov
     extend Forwardable
 
     attr_reader original_result: Hash[String, untyped]
+
+    # Every path the producing process was told to track, loaded or not.
+    attr_reader tracked_files: Array[String]
     attr_reader files: FileList
     alias source_files files
     # The writers accept the strict types; the ivars stay nilable because
@@ -768,7 +777,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?report: bool, ?filter_config: FilterConfig) -> void
 
     def filenames: () -> Array[String]
     # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
@@ -780,7 +789,7 @@ module SimpleCov
     def format!: () -> untyped
     def created_at: () -> Time
     def command_name: () -> String
-    def to_hash: () -> Hash[String, { "coverage" => Hash[String, untyped], "timestamp" => Integer }]
+    def to_hash: () -> Hash[String, Hash[String, untyped]]
     def self.from_hash: (Hash[String, untyped] hash) -> Array[Result]
 
     # Delegated to #files (see FileList).

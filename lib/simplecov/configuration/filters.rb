@@ -43,7 +43,7 @@ module SimpleCov
     end
 
     # Returns the list of string globs passed to `cover` — used by the
-    # disk-discovery pass in `SimpleCov.add_not_loaded_files` so files
+    # disk-discovery pass in `SimpleCov.tracked_file_paths` so files
     # matching a `cover` glob appear in the report even when they were
     # never required during the suite.
     #
