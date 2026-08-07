@@ -33,6 +33,20 @@ RSpec.describe SimpleCov::LinesClassifier do
       end
     end
 
+    # `classify` reaches `no_cov_line?` only for lines that already passed
+    # the whitespace-or-comment test, so an invalid byte sequence is caught
+    # there first. `SourceFile::SkipChunks` calls this directly on raw
+    # source, though, where it can still meet one.
+    describe ".no_cov_line?" do
+      it "is false for a line with an invalid UTF-8 byte sequence" do
+        expect(described_class.no_cov_line?("# :nocov: \xF1\xEB\xE2")).to be(false)
+      end
+
+      it "is true for a well-formed marker" do
+        expect(described_class.no_cov_line?("# :nocov:")).to be(true)
+      end
+    end
+
     describe "not-relevant lines" do
       it "determines whitespace is not-relevant" do
         classified_lines = classifier.classify [
