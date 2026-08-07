@@ -32,10 +32,15 @@ module SimpleCov
       # the signal the merge reconciles synthesized tuples on, and the one
       # `ResultMerger` re-derives a merged result's not-loaded set from, so it
       # lives here rather than being spelled out at each site.
+      #
+      # `Array()` rather than a bare `any?` because this reads straight off a
+      # parsed resultset, which is external input: a file written by another
+      # SimpleCov version, or hand-edited, can carry anything under "lines".
+      # Coercing keeps a malformed entry to a wrong answer instead of a
+      # NoMethodError out of the middle of a merge.
       def self.executed?(lines)
-        return false unless lines
-
-        lines.any? { |count| count&.positive? }
+        counts = Array(lines) #: Array[Integer?]
+        counts.any? { |count| count&.positive? }
       end
 
       #

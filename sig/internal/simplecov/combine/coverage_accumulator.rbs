@@ -13,7 +13,7 @@ module SimpleCov
       # a simulated (never-loaded) file's lines are all `nil` or `0`. Shared
       # with `ResultMerger`, which re-derives a merged result's not-loaded set
       # from the same signal.
-      def self.executed?: (Array[Integer?]? lines) -> bool
+      def self.executed?: (untyped lines) -> bool
 
       # Folds `[command_names, coverage]` pairs into one merged coverage.
       # `pairs` is only iterated, so a lazy enumerable keeps the caller from

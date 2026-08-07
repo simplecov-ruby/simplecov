@@ -32,6 +32,29 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     accumulator.result.fetch("file.rb")
   end
 
+  # This reads straight off a parsed resultset, which is external input: a file
+  # written by another SimpleCov version, or hand-edited, can carry anything
+  # under "lines". Reconciliation calls it on raw resultset data, so a bare
+  # `any?` would raise NoMethodError out of the middle of a merge.
+  describe ".executed?" do
+    it "is true when any line ran" do
+      expect(described_class.executed?([nil, 0, 2])).to be(true)
+    end
+
+    it "is false for a simulated file's all-nil-or-zero lines" do
+      expect(described_class.executed?([nil, 0, 0])).to be(false)
+    end
+
+    it "is false when there is no lines table at all" do
+      expect(described_class.executed?(nil)).to be(false)
+    end
+
+    it "coerces a malformed scalar rather than raising" do
+      expect(described_class.executed?(3)).to be(true)
+      expect(described_class.executed?(0)).to be(false)
+    end
+  end
+
   describe "#result" do
     it "is nil when nothing was absorbed, so 'no results' is distinguishable" do
       expect(described_class.new.result).to be_nil
