@@ -156,6 +156,31 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
     end
 
+    # The caller passes `synthesize: false` when neither branch nor method
+    # coverage is enabled, since nothing reads the tuples and the Prism parse
+    # that produces them is about half the cost of simulating a file. See #1250.
+    context "with synthesize: false" do
+      let(:source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
+
+      it "returns empty branches and methods",
+         if: SimpleCov::StaticCoverageExtractor.available? do
+        with_tmp_source(source) do |path|
+          expect(described_class.call(path)["branches"]).not_to be_empty
+
+          skipped = described_class.call(path, synthesize: false)
+          expect(skipped["branches"]).to be_empty
+          expect(skipped["methods"]).to be_empty
+        end
+      end
+
+      it "classifies lines exactly as it does with synthesis on" do
+        with_tmp_source(source) do |path|
+          expect(described_class.call(path, synthesize: false)["lines"])
+            .to eq(described_class.call(path)["lines"])
+        end
+      end
+    end
+
     def with_tmp_source(content)
       Tempfile.create(["sc654", ".rb"]) do |f|
         f.write(content)

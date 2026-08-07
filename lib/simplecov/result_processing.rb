@@ -154,11 +154,17 @@ module SimpleCov
     end
 
     def inject_unloaded_files(result, candidate_paths)
+      # Synthesizing branch and method tuples means parsing every tracked file
+      # that this process didn't load, which is about half the cost of
+      # simulating one. Nothing reads those tuples when neither criterion is
+      # enabled — `Combine::FilesCombiner` only combines them per criterion,
+      # and the statistics drop them the same way — so skip the parse. See #1250.
+      synthesize = branch_coverage? || method_coverage?
       not_loaded_files = candidate_paths.each_with_object(Set.new) do |file, set|
         absolute_path = File.expand_path(file, root)
         next if result.key?(absolute_path)
 
-        result[absolute_path] = SimulateCoverage.call(absolute_path)
+        result[absolute_path] = SimulateCoverage.call(absolute_path, synthesize: synthesize)
         set << absolute_path
       end
 

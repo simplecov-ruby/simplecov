@@ -33,14 +33,19 @@ module SimpleCov
     # can't be parsed, fall back to the old empty hashes — old behavior,
     # old tradeoff.
     #
+    # Pass `synthesize: false` to skip the static analysis and return the
+    # empty hashes directly. Callers use it when neither branch nor method
+    # coverage is enabled, since nothing will read the tuples and the Prism
+    # parse is about half the cost of simulating a file. See #1250.
+    #
     # @return [Hash]
     #
-    def call(absolute_path)
+    def call(absolute_path, synthesize: true)
       source_lines = read_lines(absolute_path)
       lines = coverage_stub(absolute_path, source_lines) ||
               LinesClassifier.new.classify(source_lines)
       empty = {"branches" => {}, "methods" => {}} #: Hash[String, Hash[untyped, untyped]]
-      synthesized = StaticCoverageExtractor.call(source_lines.join) || empty
+      synthesized = (StaticCoverageExtractor.call(source_lines.join) if synthesize) || empty
 
       {
         "lines" => lines,
