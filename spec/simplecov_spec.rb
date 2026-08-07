@@ -219,7 +219,13 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".add_not_loaded_files" do
+  describe ".inject_unloaded_files" do
+    # Discovery and injection are separate now, so exercise them as the pair
+    # `process_coverage_result` uses.
+    def inject_tracked(result)
+      SimpleCov.inject_unloaded_files(result, SimpleCov.send(:tracked_file_paths))
+    end
+
     around do |example|
       previous_tracked = described_class.tracked_files
       previous_cover = described_class.cover_filters.dup
@@ -231,13 +237,13 @@ RSpec.describe SimpleCov do
 
     it "returns the input unchanged when no discovery glob is configured" do
       result = {"/abs/foo.rb" => {"lines" => [1]}}
-      expect(described_class.send(:add_not_loaded_files, result)).to eq([result, Set.new])
+      expect(inject_tracked(result)).to eq([result, Set.new])
     end
 
     it "augments the result with files matched by a cover glob that weren't loaded" do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-      result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      result, not_loaded = inject_tracked({})
       expect(not_loaded).to include(sample)
       expect(result).to have_key(sample)
     end
@@ -246,7 +252,7 @@ RSpec.describe SimpleCov do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       preloaded = {sample => {"lines" => [1]}}
-      result, not_loaded = described_class.send(:add_not_loaded_files, preloaded)
+      result, not_loaded = inject_tracked(preloaded)
       expect(not_loaded).not_to include(sample)
       expect(result[sample]).to eq("lines" => [1])
     end
@@ -258,7 +264,7 @@ RSpec.describe SimpleCov do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
       Dir.chdir(Dir.tmpdir) do
-        _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+        _result, not_loaded = inject_tracked({})
         expect(not_loaded).to include(sample)
       end
     end
@@ -266,7 +272,7 @@ RSpec.describe SimpleCov do
     it "still honors the legacy track_files glob" do
       capture_stderr { described_class.track_files("spec/fixtures/sample.rb") }
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-      _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      _result, not_loaded = inject_tracked({})
       expect(not_loaded).to include(sample)
     end
 
@@ -279,7 +285,7 @@ RSpec.describe SimpleCov do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
         described_class.cover "spec/fixtures/sample.rb"
         sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-        result, = described_class.send(:add_not_loaded_files, {})
+        result, = inject_tracked({})
         expect(result[sample]["branches"]).to be_empty
         expect(result[sample]["methods"]).to be_empty
       end
@@ -288,7 +294,7 @@ RSpec.describe SimpleCov do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
         described_class.cover "spec/fixtures/sample.rb"
         sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-        result, = described_class.send(:add_not_loaded_files, {})
+        result, = inject_tracked({})
         expect(result[sample]["lines"]).to be_an(Array).and(be_any { |count| !count.nil? })
       end
     end
@@ -301,7 +307,7 @@ RSpec.describe SimpleCov do
         allow(described_class).to receive(:line_coverage?).and_return(false)
         described_class.cover "spec/fixtures/sample.rb"
         sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-        result, = described_class.send(:add_not_loaded_files, {})
+        result, = inject_tracked({})
         expect(result[sample]).not_to have_key("lines")
       end
     end
@@ -311,7 +317,7 @@ RSpec.describe SimpleCov do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
         described_class.cover "spec/fixtures/sample.rb"
         sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-        result, = described_class.send(:add_not_loaded_files, {})
+        result, = inject_tracked({})
         expect(result[sample]["methods"]).not_to be_empty
       end
     end
@@ -794,9 +800,9 @@ RSpec.describe SimpleCov do
         end
 
         it "adds not-loaded-files" do
-          allow(described_class).to receive(:add_not_loaded_files).and_return([{}, Set.new])
+          allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
-          expect(described_class).to have_received(:add_not_loaded_files).once
+          expect(described_class).to have_received(:inject_unloaded_files).once
         end
 
         it "doesn't store the current coverage" do
@@ -859,10 +865,10 @@ RSpec.describe SimpleCov do
           expect(Coverage).to have_received(:result).once
         end
 
-        it "adds not-loaded-files" do
-          allow(described_class).to receive(:add_not_loaded_files).and_return([{}, Set.new])
+        it "injects not-loaded files" do
+          allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
-          expect(described_class).to have_received(:add_not_loaded_files).once
+          expect(described_class).to have_received(:inject_unloaded_files).once
         end
 
         it "stores the current coverage" do

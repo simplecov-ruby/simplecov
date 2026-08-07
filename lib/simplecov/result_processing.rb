@@ -115,6 +115,29 @@ module SimpleCov
       coverage.floor(2)
     end
 
+    # Add simulated coverage for each of `candidate_paths` the result doesn't
+    # already carry, and return it with the set of paths added.
+    #
+    # @api private — the seam `SimpleCov::ResultMerger` injects through. Public
+    # only because the merge runs in another object, on behalf of processes
+    # whose configuration it may not share, so it supplies the paths itself.
+    def inject_unloaded_files(result, candidate_paths)
+      return [result, Set.new] if candidate_paths.empty?
+
+      # Synthesizing branch and method tuples means parsing every tracked file
+      # that wasn't loaded, which is about half the cost of simulating one.
+      # Nothing reads those tuples when neither criterion is enabled —
+      # `Combine::CoverageAccumulator` only combines them per criterion, and the
+      # statistics drop them the same way — so skip the parse. The same goes
+      # for line data, which a branch-only or method-only run neither reports
+      # nor receives from `Coverage` for the files it loaded. See #1250.
+      UnloadedFileInjector.call(
+        result, candidate_paths,
+        synthesize: branch_coverage? || method_coverage?,
+        lines: line_coverage?
+      )
+    end
+
   private
 
     def initial_setup(profile, &block)
@@ -126,14 +149,13 @@ module SimpleCov
       grouped.values.each_with_object(Set.new) { |file_list, set| set.merge(file_list) }
     end
 
-    # Finds files that were to be tracked but were not loaded, and
-    # initializes their line-by-line coverage to zero (or nil for
-    # comments / whitespace).
-    def add_not_loaded_files(result)
-      globs = unloaded_file_discovery_globs
-      return [result, Set.new] if globs.empty?
-
-      inject_unloaded_files(result.dup, discover_unloaded_paths(globs))
+    # Every path this process was told to track, whether or not it loaded them.
+    # Recorded on the result (and from there into the resultset) so that a merge
+    # in another process can inject the ones nobody loaded without needing this
+    # process's `cover` / `track_files` configuration. A standalone `collate`
+    # never ran `SimpleCov.start` and so has none of its own. See #1250.
+    def tracked_file_paths
+      UnloadedFileInjector.discover(unloaded_file_discovery_globs, root: root)
     end
 
     # Globs to expand on disk when injecting unloaded files into the
@@ -144,37 +166,6 @@ module SimpleCov
       [tracked_files, *cover_globs].compact
     end
 
-    # Expand the given globs relative to SimpleCov.root, not Dir.pwd —
-    # test runners that chdir (or CI scripts that invoke the suite
-    # from a subdir) would otherwise silently miss the unloaded-file
-    # injection and produce a different file set per environment. See
-    # issue #1106.
-    def discover_unloaded_paths(globs)
-      globs.flat_map { |glob| Dir.glob(glob, base: root) }.uniq
-    end
-
-    def inject_unloaded_files(result, candidate_paths)
-      # Synthesizing branch and method tuples means parsing every tracked file
-      # that this process didn't load, which is about half the cost of
-      # simulating one. Nothing reads those tuples when neither criterion is
-      # enabled — `Combine::CoverageAccumulator` only combines them per
-      # criterion, and the statistics drop them the same way — so skip the
-      # parse. See #1250.
-      synthesize = branch_coverage? || method_coverage?
-      # Same reasoning for line data, which a branch-only or method-only run
-      # neither reports nor receives from `Coverage` for the files it loaded.
-      lines = line_coverage?
-      not_loaded_files = candidate_paths.each_with_object(Set.new) do |file, set|
-        absolute_path = File.expand_path(file, root)
-        next if result.key?(absolute_path)
-
-        result[absolute_path] = SimulateCoverage.call(absolute_path, synthesize: synthesize, lines: lines)
-        set << absolute_path
-      end
-
-      [result, not_loaded_files]
-    end
-
     # Run all the steps that handle processing the raw coverage result.
     # `report:` is true only when this slice is the final result (merging
     # off); with merging on the merged result reports dropped source files,
@@ -182,8 +173,8 @@ module SimpleCov
     def process_coverage_result(report:)
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
-      result, not_loaded_files = add_not_loaded_files(adapted)
-      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files, report: report)
+      result, not_loaded = inject_unloaded_files(adapted, tracked_file_paths)
+      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded, report: report)
     end
   end
 end

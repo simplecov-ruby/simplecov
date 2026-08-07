@@ -1,0 +1,19 @@
+module SimpleCov
+  # Fills in coverage for files that were tracked (via `cover` / `track_files`)
+  # but never loaded, so they count toward the denominators instead of being
+  # absent from the report entirely.
+  #
+  # Everything arrives as arguments rather than being read from the SimpleCov
+  # singleton. The merge step performs this injection on behalf of the processes
+  # that contributed to it, and it does not necessarily share their
+  # configuration. See #1250.
+  module UnloadedFileInjector
+    # Expand `globs` into absolute paths, relative to `root` rather than
+    # `Dir.pwd`. See #1106.
+    def self?.discover: (Array[String?] globs, root: String) -> Array[String]
+
+    # Add simulated coverage for every path `coverage` does not already carry.
+    # Returns the augmented coverage and the set of paths that were added.
+    def self?.call: (Hash[String, untyped] coverage, Array[String] paths, synthesize: bool, lines: bool) -> [Hash[String, untyped], Set[String]]
+  end
+end
