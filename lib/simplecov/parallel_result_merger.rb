@@ -90,10 +90,30 @@ module SimpleCov
     # under memory pressure. That says something is wrong with the machine
     # rather than with the merge, and quietly absorbing it would hide it.
     def fan_out(chunks, ignore_timeout:)
-      workers = chunks.map { |chunk| spawn_worker(chunk, ignore_timeout: ignore_timeout) }
+      workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
       payloads = collect(workers)
 
       payloads && ResultMerger.merge_coverage(*payloads)
+    end
+
+    def spawn_workers(chunks, ignore_timeout:)
+      workers = [] #: Array[Hash[Symbol, untyped]]
+
+      chunks.each do |chunk|
+        workers << spawn_worker(chunk, ignore_timeout: ignore_timeout)
+      rescue StandardError
+        abandon(workers)
+        raise
+      end
+
+      workers
+    end
+
+    def abandon(workers)
+      workers.each do |worker|
+        worker[:reader].close
+        succeeded?(worker[:pid])
+      end
     end
 
     def spawn_worker(chunk, ignore_timeout:)

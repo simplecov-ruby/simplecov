@@ -33,7 +33,11 @@ module SimpleCov
     # Raises if the OS refuses a fork; see the method comment.
     def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool) -> untyped
 
+    def self?.spawn_workers: (Array[Array[String]] chunks, ignore_timeout: bool) -> Array[Hash[Symbol, untyped]]
+
     def self?.spawn_worker: (Array[String] chunk, ignore_timeout: bool) -> Hash[Symbol, untyped]
+
+    def self?.abandon: (Array[Hash[Symbol, untyped]] workers) -> void
 
     # Everything the child does; ends the process with `exit!`.
     def self?.run_in_child: (IO reader, IO writer, Array[String] chunk, bool ignore_timeout) -> bot

@@ -223,6 +223,8 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".fan_out when the OS refuses a fork" do
+    let(:chunks) { described_class.chunk(paths, 3) }
+
     # A machine out of process slots is not something to paper over: the merge
     # is fine, the box is not, and swallowing it would turn that into a
     # mysteriously slow collate.
@@ -231,6 +233,17 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
       expect { described_class.merge_results(*paths, processes: 3, ignore_timeout: true) }
         .to raise_error(Errno::EAGAIN)
+    end
+
+    it "closes and reaps the workers it already spawned", if: FORK_SUPPORTED do
+      spawned = refuse_fork_after(1)
+
+      capture_stderr do
+        expect { described_class.fan_out(chunks, ignore_timeout: true) }.to raise_error(Errno::EAGAIN)
+      end
+
+      expect(spawned.map { |worker| worker[:reader] }).to all(be_closed)
+      expect { Process.wait2(spawned.first[:pid]) }.to raise_error(Errno::ECHILD)
     end
   end
 
@@ -247,8 +260,8 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".succeeded?" do
-    it "is false for a pid it cannot reap" do
-      expect(described_class.succeeded?(-1)).to be false
+    it "is false for a pid that is not one of our children" do
+      expect(described_class.succeeded?(Process.pid)).to be false
     end
   end
 
@@ -259,6 +272,17 @@ private
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
     File.write(path, JSON.generate(command_name => {"coverage" => coverage, "timestamp" => timestamp}))
     path
+  end
+
+  def refuse_fork_after(count)
+    spawned = []
+    allow(described_class).to receive(:spawn_worker).and_wrap_original do |original, *args, **options|
+      raise Errno::EAGAIN if spawned.size >= count
+
+      spawned << original.call(*args, **options)
+      spawned.last
+    end
+    spawned
   end
 
   # What CRuby on Windows, JRuby and TruffleRuby report. Every other
