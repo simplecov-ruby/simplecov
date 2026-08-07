@@ -59,6 +59,76 @@ RSpec.describe SimpleCov::ResultMerger do
   # it every file in a merged report is `loaded: true`, and the #902 rule that
   # reports 0% rather than a misleading 100% for a never-loaded file with no
   # branch or method data can never fire on the merge path. See #1250.
+  # Injection happens here rather than in each contributing process: only the
+  # union of what they all loaded says what was really never loaded, and doing
+  # it per process meant N workers simulated the same file up to N times. The
+  # paths come from the resultsets, so a `collate` that never ran
+  # `SimpleCov.start` still injects correctly. See #1250.
+  describe "injecting unloaded files at the merge point" do
+    let(:loaded) { source_fixture("sample.rb") }
+    let(:never_loaded) { source_fixture("resultset1.rb") }
+    let(:coverage) { {loaded => {"lines" => [nil, 1, 1, 0]}} }
+
+    it "simulates a tracked file no contributing process loaded" do
+      result = described_class.send(:create_result, ["merged"], coverage,
+                                    tracked_files: Set[loaded, never_loaded])
+
+      expect(result.original_result.keys).to include(never_loaded)
+      expect(result.files.find { |f| f.filename == never_loaded }).to be_not_loaded
+    end
+
+    it "leaves a file some process loaded alone" do
+      result = described_class.send(:create_result, ["merged"], coverage,
+                                    tracked_files: Set[loaded, never_loaded])
+
+      expect(result.original_result[loaded]).to eq(coverage[loaded])
+      expect(result.files.find { |f| f.filename == loaded }).not_to be_not_loaded
+    end
+
+    it "injects nothing when the resultsets recorded no tracked files" do
+      result = described_class.send(:create_result, ["merged"], coverage)
+
+      expect(result.original_result.keys).to contain_exactly(loaded)
+    end
+
+    it "carries the tracked paths onto the merged result for a later collate" do
+      result = described_class.send(:create_result, ["merged"], coverage,
+                                    tracked_files: Set[loaded, never_loaded])
+
+      expect(result.tracked_files).to contain_exactly(loaded, never_loaded)
+      expect(result.to_hash["merged"]["tracked_files"]).to contain_exactly(loaded, never_loaded)
+    end
+
+    # Resultsets written before tracked paths were recorded already carry the
+    # unloaded files their process injected, so re-injecting must not disturb
+    # them. Injection skips whatever is already present, whoever put it there.
+    it "leaves an already-simulated file from an older resultset untouched" do
+      already_simulated = {never_loaded => {"lines" => [0, 0, nil, 0]}}
+      result = described_class.send(:create_result, ["merged"], coverage.merge(already_simulated),
+                                    tracked_files: Set[never_loaded])
+
+      expect(result.original_result[never_loaded]).to eq(already_simulated[never_loaded])
+    end
+  end
+
+  describe ".tracked_files_in a resultset" do
+    it "unions what every contributing process was told to track" do
+      resultset = {
+        "a" => {"coverage" => {}, "tracked_files" => ["/x/one.rb", "/x/two.rb"]},
+        "b" => {"coverage" => {}, "tracked_files" => ["/x/two.rb", "/x/three.rb"]}
+      }
+
+      expect(SimpleCov::ResultMerger::UnloadedFiles.tracked_in(resultset))
+        .to eq(Set["/x/one.rb", "/x/two.rb", "/x/three.rb"])
+    end
+
+    it "is empty for resultsets written before tracked paths were recorded" do
+      resultset = {"a" => {"coverage" => {}, "timestamp" => 1}}
+
+      expect(SimpleCov::ResultMerger::UnloadedFiles.tracked_in(resultset)).to be_empty
+    end
+  end
+
   describe "not-loaded files in a merged result" do
     subject(:result) { described_class.send(:create_result, ["merged"], coverage) }
 
@@ -188,6 +258,18 @@ RSpec.describe SimpleCov::ResultMerger do
 
       after do
         FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
+      end
+
+      # `merge_results` passes a block to collect the tracked paths each
+      # resultset recorded, but `absorb_results` is public and the collate
+      # benchmark calls it without one. See #1250.
+      it "absorbs results without a block" do
+        command_names, coverage = described_class.absorb_results(
+          [resultset1_path, resultset2_path], ignore_timeout: true
+        )
+
+        expect(command_names).to contain_exactly("result1", "result2")
+        expect(coverage.keys).to include(source_fixture("sample.rb"))
       end
 
       context "when 2 normal results" do
@@ -388,6 +470,26 @@ RSpec.describe SimpleCov::ResultMerger do
 
         merged = described_class.read_resultset.fetch("RSpec").fetch("coverage")
         expect(merged.keys).to contain_exactly(source_fixture("sample.rb"))
+      end
+
+      # Concurrent workers sharing a command name may have been told to track
+      # different sets, so the merged entry keeps both rather than letting the
+      # later write win. See #1250.
+      it "unions the tracked paths both entries recorded" do
+        subprocess = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+          command_name: "RSpec", tracked_files: ["/x/one.rb", "/x/shared.rb"]
+        )
+        subprocess.created_at = process_start + 1
+        described_class.store_result(subprocess)
+
+        parent = SimpleCov::Result.new({}, command_name: "RSpec",
+                                           tracked_files: ["/x/shared.rb", "/x/two.rb"])
+        parent.created_at = process_start + 2
+        described_class.store_result(parent)
+
+        tracked = described_class.read_resultset.fetch("RSpec").fetch("tracked_files")
+        expect(tracked).to contain_exactly("/x/one.rb", "/x/shared.rb", "/x/two.rb")
       end
 
       it "still overwrites an older entry from a previous run (older than process_start)" do

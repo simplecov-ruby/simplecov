@@ -77,6 +77,22 @@ RSpec.describe SimpleCov::Result do
           expect(result.to_hash).to be_a Hash
         end
 
+        # Recorded so a merge in another process can inject the files nobody
+        # loaded without needing this process's `cover` / `track_files` config.
+        # Omitted when empty so a run that tracks nothing writes the shape it
+        # always has. See #1250.
+        it "omits tracked_files when nothing was tracked" do
+          expect(result.to_hash.values.first).not_to have_key("tracked_files")
+        end
+
+        it "round-trips tracked_files when they were recorded" do
+          tracked = ["/some/path/one.rb", "/some/path/two.rb"]
+          tracked_result = described_class.new(original_result, command_name: "t", tracked_files: tracked)
+
+          expect(tracked_result.to_hash["t"]["tracked_files"]).to eq(tracked)
+          expect(described_class.from_hash(tracked_result.to_hash).first.tracked_files).to eq(tracked)
+        end
+
         context "when loaded back with from_hash" do
           let(:dumped_result) do
             described_class.from_hash(result.to_hash).first

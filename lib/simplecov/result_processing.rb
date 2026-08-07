@@ -36,10 +36,7 @@ module SimpleCov
 
       use_merging = merging
 
-      # Collect our coverage result. When merging is off there is no merge
-      # step, so this per-process result is the final one and reports any
-      # dropped source files; otherwise the merged result does the reporting.
-      process_coverage_result(report: !use_merging) if defined?(Coverage) && Coverage.running?
+      collect_own_coverage(standalone: !use_merging)
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
@@ -52,6 +49,16 @@ module SimpleCov
       end
 
       @result
+    end
+
+    # Build this process's slice of the coverage result. `standalone` is true
+    # when no merge step follows, which makes this the final result: it is the
+    # one that reports dropped source files, and the one that injects unloaded
+    # files. When a merge does follow, both jobs belong to the merged result.
+    def collect_own_coverage(standalone:)
+      return unless defined?(Coverage) && Coverage.running?
+
+      process_coverage_result(report: standalone, inject_unloaded: standalone)
     end
 
     # Returns nil if the result has not been computed, otherwise the result.
@@ -170,11 +177,19 @@ module SimpleCov
     # `report:` is true only when this slice is the final result (merging
     # off); with merging on the merged result reports dropped source files,
     # so the per-process slice stays quiet to avoid one warning per worker.
-    def process_coverage_result(report:)
+    #
+    # `inject_unloaded:` is likewise false when a merge step follows. Only the
+    # union of every process's loaded files says what was really never loaded,
+    # so injecting here means each worker simulates nearly the whole project
+    # and all but one of those passes is merged away. See #1250.
+    def process_coverage_result(report:, inject_unloaded: true)
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
-      result, not_loaded = inject_unloaded_files(adapted, tracked_file_paths)
-      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded, report: report)
+      tracked = tracked_file_paths
+      result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
+      @result = SimpleCov::Result.new(
+        result, not_loaded_files: not_loaded, tracked_files: tracked, report: report
+      )
     end
   end
 end
