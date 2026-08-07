@@ -143,12 +143,18 @@ module SimpleCov
 
   def self.grouped_file_set: (Hash[String, FileList] grouped) -> Set[SourceFile]
 
-  def self.add_not_loaded_files: (Hash[String, untyped] result) -> [Hash[String, untyped], Set[String]]
-
   def self.unloaded_file_discovery_globs: () -> Array[String]
 
-  def self.discover_unloaded_paths: (Array[String] globs) -> Array[String]
+  # Every path this process was told to track, whether or not it loaded them.
+  # Recorded on the result (and from there into the resultset) so that a merge
+  # in another process can inject the ones nobody loaded without needing this
+  # process's `cover` / `track_files` configuration.
+  def self.tracked_file_paths: () -> Array[String]
 
+  # Add simulated coverage for each of `candidate_paths` the result doesn't
+  # already carry, and return it with the set of paths added.
+  #
+  # @api private — the seam `SimpleCov::ResultMerger` injects through.
   def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths) -> [Hash[String, untyped], Set[String]]
 
   def self.process_coverage_result: (report: bool) -> void
