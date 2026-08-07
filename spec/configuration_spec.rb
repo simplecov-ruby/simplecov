@@ -1282,6 +1282,25 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#line_coverage?" do
+      it "returns true when line coverage is being measured" do
+        expect(config).to be_line_coverage
+      end
+
+      it "returns true for oneshot lines, which still yield line data" do
+        config.enable_coverage :oneshot_line
+
+        expect(config).to be_line_coverage
+      end
+
+      it "returns false when line coverage has been disabled" do
+        config.enable_coverage :branch
+        config.disable_coverage :line
+
+        expect(config).not_to be_line_coverage
+      end
+    end
+
     describe "#branch_coverage?", if: SimpleCov.branch_coverage_supported? do
       it "returns true of branch coverage is being measured" do
         config.enable_coverage :branch

@@ -38,20 +38,32 @@ module SimpleCov
     # coverage is enabled, since nothing will read the tuples and the Prism
     # parse is about half the cost of simulating a file. See #1250.
     #
+    # Pass `lines: false` to omit the `"lines"` key entirely, mirroring what
+    # `Coverage.result` reports for a file loaded under a branch-only or
+    # method-only run. Emitting zeroed lines there would make a simulated
+    # file indistinguishable from one a sibling process actually loaded once
+    # the two are merged.
+    #
     # @return [Hash]
     #
-    def call(absolute_path, synthesize: true)
+    def call(absolute_path, synthesize: true, lines: true)
       source_lines = read_lines(absolute_path)
-      lines = coverage_stub(absolute_path, source_lines) ||
-              LinesClassifier.new.classify(source_lines)
+      simulated = synthesized_tuples(source_lines, synthesize)
+      return simulated unless lines
+
+      classified = coverage_stub(absolute_path, source_lines) ||
+                   LinesClassifier.new.classify(source_lines)
+      {"lines" => classified}.merge(simulated)
+    end
+
+    # The branch and method tuples for a file, or empty hashes when the static
+    # analysis is skipped (nothing enabled reads them) or unavailable (no Prism,
+    # or the file doesn't parse).
+    def synthesized_tuples(source_lines, synthesize)
       empty = {"branches" => {}, "methods" => {}} #: Hash[String, Hash[untyped, untyped]]
       synthesized = (StaticCoverageExtractor.call(source_lines.join) if synthesize) || empty
 
-      {
-        "lines" => lines,
-        "branches" => synthesized["branches"],
-        "methods" => synthesized["methods"]
-      }
+      {"branches" => synthesized["branches"], "methods" => synthesized["methods"]}
     end
 
     def read_lines(path)

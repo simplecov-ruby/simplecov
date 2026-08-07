@@ -68,6 +68,15 @@ module SimpleCov
             "Re-enable one with `enable_coverage :line`, `:branch`, or `:method`."
     end
 
+    # Whether this run produces line data at all. The oneshot variant counts:
+    # `ResultAdapter` turns its executed-line list back into a line array. A
+    # branch-only or method-only run produces none, and `Coverage.result`
+    # entries for the files it loaded carry no `"lines"` key.
+    def line_coverage?
+      coverage_criterion_enabled?(DEFAULT_COVERAGE_CRITERION) ||
+        coverage_criterion_enabled?(ONESHOT_LINE_COVERAGE_CRITERION)
+    end
+
     def branch_coverage?
       branch_coverage_supported? && coverage_criterion_enabled?(:branch)
     end

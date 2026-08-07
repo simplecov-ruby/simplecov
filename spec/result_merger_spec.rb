@@ -54,6 +54,69 @@ RSpec.describe SimpleCov::ResultMerger do
   let(:first_result) { SimpleCov::Result.new(first_resultset, command_name: "result1") }
   let(:second_result) { SimpleCov::Result.new(second_resultset, command_name: "result2") }
 
+  # The loaded/not-loaded distinction isn't serialized into `.resultset.json`,
+  # so a merged result has to re-derive it from the merged line counts. Without
+  # it every file in a merged report is `loaded: true`, and the #902 rule that
+  # reports 0% rather than a misleading 100% for a never-loaded file with no
+  # branch or method data can never fire on the merge path. See #1250.
+  describe "not-loaded files in a merged result" do
+    subject(:result) { described_class.send(:create_result, ["merged"], coverage) }
+
+    let(:executed) { source_fixture("sample.rb") }
+    let(:never_executed) { source_fixture("resultset1.rb") }
+    let(:coverage) do
+      {
+        executed => {"lines" => [nil, 1, 1, 0]},
+        never_executed => {"lines" => [0, 0, nil, 0]}
+      }
+    end
+
+    def file(path)
+      result.files.find { |source_file| source_file.filename == path }
+    end
+
+    it "flags a file no contributing process executed" do
+      expect(file(never_executed)).to be_not_loaded
+    end
+
+    it "leaves a file some process executed alone" do
+      expect(file(executed)).not_to be_not_loaded
+    end
+
+    # A file whose lines are all zero but which has synthesized branch data
+    # still reports through the normal statistics path; the #902 rule only
+    # covers the case where there is no branch or method data at all.
+    it "reports 0% rather than 100% for a never-loaded file with no branch data" do
+      expect(file(never_executed).coverage_statistics[:branch]&.percent).to eq(0.0)
+    end
+
+    # A branch-only or method-only run reports no line data at all, so line
+    # counts cannot say what was loaded. Judging on them anyway would mark
+    # every file in the report not loaded and report 0% for branchless ones.
+    context "when the results carry no line data" do
+      let(:coverage) do
+        {
+          executed => {"branches" => {}, "methods" => {}},
+          never_executed => {"branches" => {}, "methods" => {}}
+        }
+      end
+
+      it "flags nothing rather than mistaking loaded files for unloaded ones" do
+        expect(result.files).to all(satisfy { |source_file| !source_file.not_loaded? })
+      end
+    end
+
+    # `Combine` short-circuits to the non-nil side, so a file present in one
+    # result without lines and absent from another merges to a nil lines value.
+    context "when a merged entry has a nil lines value" do
+      let(:coverage) { {executed => {"lines" => nil, "branches" => {}, "methods" => {}}} }
+
+      it "does not flag it" do
+        expect(file(executed)).not_to be_not_loaded
+      end
+    end
+  end
+
   describe "resultset handling" do
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is empty" do

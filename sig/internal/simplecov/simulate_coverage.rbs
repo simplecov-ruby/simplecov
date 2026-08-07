@@ -32,9 +32,20 @@ module SimpleCov
     # coverage is enabled, since nothing will read the tuples and the Prism
     # parse is about half the cost of simulating a file. See #1250.
     #
+    # Pass `lines: false` to omit the `"lines"` key entirely, mirroring what
+    # `Coverage.result` reports for a file loaded under a branch-only or
+    # method-only run. Emitting zeroed lines there would make a simulated
+    # file indistinguishable from one a sibling process actually loaded once
+    # the two are merged.
+    #
     # @return [Hash]
     #
-    def self?.call: (untyped absolute_path, ?synthesize: bool) -> { "lines" => untyped, "branches" => untyped, "methods" => untyped }
+    def self?.call: (untyped absolute_path, ?synthesize: bool, ?lines: bool) -> Hash[String, untyped]
+
+    # The branch and method tuples for a file, or empty hashes when the static
+    # analysis is skipped (nothing enabled reads them) or unavailable (no Prism,
+    # or the file doesn't parse).
+    def self?.synthesized_tuples: (untyped source_lines, bool synthesize) -> { "branches" => untyped, "methods" => untyped }
 
     def self?.read_lines: (untyped path) -> untyped
 

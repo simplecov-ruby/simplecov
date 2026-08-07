@@ -23,6 +23,16 @@ module SimpleCov
 
     def self.create_result: (untyped command_names, untyped coverage) -> (nil | untyped)
 
+    # Which files no contributing process ever loaded. The loaded/not-loaded
+    # distinction isn't serialized — `Result#to_hash` writes only coverage and
+    # a timestamp — so it has to be re-derived here from the merged line
+    # counts, using the same signal `Combine::FilesCombiner` reconciles on.
+    # Without it every file in a merged report is `loaded: true`, and the #902
+    # rule that reports 0% rather than a misleading 100% for a never-loaded
+    # file with no branch or method data can never fire on a merged result.
+    # See #1250.
+    def self.never_executed_files: (untyped coverage) -> ::Set[untyped]
+
     def self.merge_coverage: (*untyped results) -> (::Array[::Array[""] | nil] | untyped)
 
     #

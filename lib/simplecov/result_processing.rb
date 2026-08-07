@@ -160,11 +160,14 @@ module SimpleCov
       # enabled — `Combine::FilesCombiner` only combines them per criterion,
       # and the statistics drop them the same way — so skip the parse. See #1250.
       synthesize = branch_coverage? || method_coverage?
+      # Same reasoning for line data, which a branch-only or method-only run
+      # neither reports nor receives from `Coverage` for the files it loaded.
+      lines = line_coverage?
       not_loaded_files = candidate_paths.each_with_object(Set.new) do |file, set|
         absolute_path = File.expand_path(file, root)
         next if result.key?(absolute_path)
 
-        result[absolute_path] = SimulateCoverage.call(absolute_path, synthesize: synthesize)
+        result[absolute_path] = SimulateCoverage.call(absolute_path, synthesize: synthesize, lines: lines)
         set << absolute_path
       end
 
