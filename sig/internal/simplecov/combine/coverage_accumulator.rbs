@@ -1,4 +1,4 @@
-module SimpleCov
+        module SimpleCov
   module Combine
     #
     # Folds any number of resultsets' coverage into one, absorbing them one
@@ -48,6 +48,12 @@ module SimpleCov
 
         def initialize: (untyped coverage, branches: bool, methods: bool) -> void
 
+        def new_table: () -> Hash[untyped, untyped]
+
+        # The executed side's tuples when it has them, otherwise a table only
+        # when this process measures the criterion itself.
+        def authoritative_table: (untyped combiner, untyped table, bool measured) -> Hash[untyped, untyped]?
+
         def absorb: (untyped coverage) -> MergedFile
 
         def to_h: () -> Hash[String, untyped]
@@ -63,8 +69,13 @@ module SimpleCov
 
         private def drop_incoming_tuples: () -> void
 
+        # Whether a side can be judged at all. Absent lines mean unknown, not
+        # never ran: a branch-only or method-only run omits them for the files
+        # it loaded.
+        private def judgeable?: (Array[Integer?]? lines) -> bool
+
         private def executed?: (Array[Integer?]? lines) -> bool
       end
     end
   end
-end
+        end
