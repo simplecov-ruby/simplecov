@@ -130,17 +130,23 @@ module SimpleCov
       # outright rather than rebuilt for each merged pair.
       #
       class MergedFile
+        # A criterion is carried for this file when the data carries it, not
+        # when this process happens to measure it. A merge runs on behalf of
+        # the processes that produced the resultsets and does not necessarily
+        # share their configuration: `simplecov merge` never ran SimpleCov.start
+        # at all, and dropping a table it did not ask for would lose branch data
+        # the producers did measure. A nil table means nobody measured that
+        # criterion; an empty one means it was measured and the file has none.
         def initialize(coverage, branches:, methods:)
           @branch_coverage = branches
           @method_coverage = methods
-
           @lines = coverage["lines"]&.dup
           # Branch coverage always reports a table, even an empty one, so
           # `SourceFile` can tell "no branches in this file" from "branch
-          # coverage was off". Method coverage stays `nil` until some
-          # resultset actually carries methods.
-          @branches = @branch_coverage ? BranchesCombiner.absorb({}, coverage["branches"]) : nil
-          @methods = @method_coverage ? MethodsCombiner.absorb(nil, coverage["methods"]) : nil
+          # coverage was off". Method coverage stays `nil` until some resultset
+          # actually carries methods.
+          @branches = BranchesCombiner.absorb({}, coverage["branches"]) if branches || coverage["branches"]
+          @methods = MethodsCombiner.absorb(nil, coverage["methods"]) if methods || coverage["methods"]
         end
 
         #
@@ -154,10 +160,14 @@ module SimpleCov
           self
         end
 
+        def new_table
+          {} #: Hash[untyped, untyped]
+        end
+
         def to_h
           merged = {"lines" => @lines} #: Hash[String, untyped]
-          merged["branches"] = BranchesCombiner.materialize(@branches) if @branch_coverage
-          merged["methods"] = @methods && MethodsCombiner.materialize(@methods) if @method_coverage
+          merged["branches"] = BranchesCombiner.materialize(@branches) if @branches
+          merged["methods"] = MethodsCombiner.materialize(@methods) if @methods
           merged
         end
 
@@ -178,6 +188,8 @@ module SimpleCov
         # because folding in an executed resultset can flip it, exactly as it
         # would have flipped between two steps of the pairwise fold.
         def reconcile_synthesized(coverage)
+          return absorb_tuples(coverage) unless judgeable?(@lines) && judgeable?(coverage["lines"])
+
           accumulated_executed = executed?(@lines)
           incoming_executed = executed?(coverage["lines"])
 
@@ -190,25 +202,53 @@ module SimpleCov
           end
         end
 
-        # Both sides agree on whether they ran: union their tuples.
+        # Both sides agree on whether they ran: union their tuples. A criterion
+        # only the incoming side carries comes into play here, because its
+        # tuples survive. It deliberately does not come into play on the path
+        # that drops them: promoting there would advertise an empty table
+        # sourced from data this merge just discarded, which claims the file
+        # has no branches when what is true is that nobody measured them.
         def absorb_tuples(coverage)
-          BranchesCombiner.absorb(@branches, coverage["branches"]) if @branch_coverage
-          @methods = MethodsCombiner.absorb(@methods, coverage["methods"]) if @method_coverage
+          @branches = BranchesCombiner.absorb(@branches || new_table, coverage["branches"]) if
+            @branches || coverage["branches"]
+          @methods = MethodsCombiner.absorb(@methods, coverage["methods"]) if @methods || coverage["methods"]
         end
 
         # Only the incoming side ran, so what's accumulated is synthesized:
         # start its tuples over from the executed side's.
-        def replace_tuples(coverage)
-          @branches = BranchesCombiner.absorb({}, coverage["branches"]) if @branch_coverage
-          @methods = MethodsCombiner.absorb({}, coverage["methods"]) if @method_coverage
-        end
-
-        # Only the accumulated side ran, so the incoming tuples are
-        # synthesized and contribute nothing. The empty method table stands in
-        # for the blanked side, which is what a pair against `NO_SYNTHESIZED`
-        # used to produce for a file that has no methods yet.
+        # Only the accumulated side ran, so the incoming tuples are synthesized
+        # and contribute nothing. The empty method table stands in for the
+        # blanked side, which is what a pair against a blank one used to produce
+        # for a file that has no methods yet.
         def drop_incoming_tuples
           @methods ||= {} if @method_coverage #: Hash[untyped, untyped]
+        end
+
+        # The authoritative side decides which criteria the file carries, not
+        # just their tuples. Keeping a table in play that only the dropped side
+        # carried would make the answer depend on which side was seen first.
+        def replace_tuples(coverage)
+          @branches = authoritative_table(BranchesCombiner, coverage["branches"], @branch_coverage)
+          @methods = authoritative_table(MethodsCombiner, coverage["methods"], @method_coverage)
+        end
+
+        # The executed side's tuples when it has them. Otherwise the criterion
+        # survives only because this process measures it, which is what keeps
+        # `SourceFile` able to tell "no branches here" from "branches were not
+        # measured".
+        def authoritative_table(combiner, table, measured)
+          return combiner.absorb(new_table, table) if table
+
+          measured ? new_table : nil
+        end
+
+        # Whether a side can be judged at all. Absent lines do not mean the side
+        # never ran: a branch-only or method-only run omits them even for the
+        # files it loaded, so treating that as synthesized would discard real
+        # tuples. Unknown means union, which is already what happens when
+        # neither side carries lines.
+        def judgeable?(lines)
+          !Array(lines).empty?
         end
 
         def executed?(lines)

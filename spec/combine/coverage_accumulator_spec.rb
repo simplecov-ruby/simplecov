@@ -187,8 +187,37 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(arms[[:else, 2, 4, 4, 4, 10]]).to eq(5)
     end
 
-    it "reports an empty table for a file with no branches" do
-      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})["branches"]).to eq({})
+    # Absent lines do not mean a side never ran: a branch-only or method-only
+    # run omits them even for the files it loaded. Judging that side as
+    # synthesized discarded the real tuples it carried, which is the opposite
+    # of what this change is for.
+    context "when one side carries no lines table" do
+      let(:line_only) { {"lines" => [nil, 1, 1]} }
+      let(:branch_only) do
+        {"branches" => {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 7, [:else, 2, 4, 4, 4, 10] => 3}}}
+      end
+
+      it "keeps the tuples it carried rather than judging it simulated" do
+        arms = merge(line_only, branch_only)["branches"][[:if, 0, 2, 2, 4, 10]]
+
+        expect(arms.values.sum).to eq(10)
+      end
+
+      it "answers the same whichever side is absorbed first" do
+        expect(merge(line_only, branch_only)).to eq(merge(branch_only, line_only))
+      end
+    end
+
+    # Branch coverage is on in this process, so the criterion survives the
+    # reconciliation even though the side that ran carried no table for it.
+    it "reports an empty table when the executed side measured no branches" do
+      expect(merge(simulated_drifted, {"lines" => [nil, 1, 1]})["branches"]).to eq({})
+    end
+
+    it "reports an empty table when the sides carried one and it was empty" do
+      empty = {"lines" => [nil, 1], "branches" => {}}
+
+      expect(merge(empty, empty)["branches"]).to eq({})
     end
   end
 
@@ -225,9 +254,12 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(merged["methods"]).to eq({["Foo", :bar, 2, 2, 3, 5] => 5})
     end
 
-    it "reports an empty table when a reconciled file never carried methods" do
-      # The executed side wins, and it has no methods to contribute.
-      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 0]})["methods"]).to eq({})
+    it "keeps an empty table when only the dropped side carried methods" do
+      # The executed side wins and has no methods, but methods were measured,
+      # so the criterion stays in play rather than vanishing from the file.
+      merged = merge({"lines" => [nil, 1]}, {"lines" => [nil, 0], "methods" => {}})
+
+      expect(merged["methods"]).to eq({})
     end
 
     it "reports nil when no resultset carried methods at all" do
@@ -235,17 +267,51 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     end
   end
 
-  describe "when a criterion is disabled" do
+  # A merge runs on behalf of the processes that produced the resultsets and
+  # does not necessarily share their configuration: `simplecov merge` never ran
+  # SimpleCov.start at all. Dropping a table this process did not ask for loses
+  # branch data the producers measured, and loses it asymmetrically, since a
+  # file only one resultset carried is passed through untouched.
+  describe "when this process does not measure a criterion the data carries" do
     around do |example|
       SimpleCov.clear_coverage_criteria
       example.run
       SimpleCov.clear_coverage_criteria
     end
 
-    it "omits the branches and methods keys entirely" do
-      merged = merge(executed, executed)
+    it "keeps the branch table the resultsets carried" do
+      expect(merge(executed, executed)["branches"]).not_to be_empty
+    end
 
-      expect(merged.keys).to eq(["lines"])
+    it "omits the table when neither this process nor the data has one" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})).not_to have_key("branches")
+    end
+
+    # The side that ran decides which criteria the file carries, not just
+    # their tuples. A simulated side's synthesized branches are dropped as
+    # usual, and the criterion goes with them: keeping an empty table would
+    # claim the file has no branches when the truth is nobody measured them
+    # in the run that executed it.
+    it "does not keep a criterion only the dropped side carried" do
+      executed_line_only = {"lines" => [nil, 1, 1]}
+
+      expect(merge(executed_line_only, simulated_drifted)).not_to have_key("branches")
+    end
+
+    it "answers the same whichever side is absorbed first" do
+      executed_line_only = {"lines" => [nil, 1, 1]}
+
+      expect(merge(executed_line_only, simulated_drifted))
+        .to eq(merge(simulated_drifted, executed_line_only))
+    end
+
+    it "gives a merged file the same shape as one a single resultset carried" do
+      accumulator = described_class.new
+      accumulator.absorb("merged.rb" => executed, "alone.rb" => executed)
+      accumulator.absorb("merged.rb" => executed)
+      result = accumulator.result
+
+      expect(result.fetch("merged.rb").keys).to eq(result.fetch("alone.rb").keys)
     end
   end
 end
