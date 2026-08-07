@@ -7,6 +7,15 @@ module SimpleCov
     module UnloadedFiles
       # The union of what every contributing process was told to track. Absent
       # from resultsets written before this was recorded.
+      # A collector for the merge to hand `merge_valid_results`.
+      def self?.collector: (Set[String] into) -> ^(Hash[String, untyped] surviving) -> void
+
+      # Whether the merged data carries a criterion, so an injected file gets
+      # the same shape as the files it sits alongside.
+      def self?.carries?: (Hash[String, untyped] coverage, String criterion) -> bool
+
+      CRITERION_PREDICATES: Hash[String, Symbol]
+
       def self?.tracked_in: (Hash[String, untyped] resultset) -> Set[String]
 
       # Concurrent workers sharing a command name may have been told to track

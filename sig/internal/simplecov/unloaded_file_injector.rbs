@@ -10,7 +10,12 @@ module SimpleCov
   module UnloadedFileInjector
     # Expand `globs` into absolute paths, relative to `root` rather than
     # `Dir.pwd`. See #1106.
-    def self?.discover: (Array[String?] globs, root: String) -> Array[String]
+    def self?.discover: (Array[String?] globs, root: String, ?reject: Array[Filter[untyped]]) -> Array[String]
+
+    # Whether the producing process own path-decidable filters exclude a path.
+    def self?.rejected?: (String path, Array[Filter[untyped]] filters) -> bool
+
+    NO_COVERAGE_YET: Hash[String, Array[untyped]]
 
     # Add simulated coverage for every path `coverage` does not already carry.
     # Returns the augmented coverage and the set of paths that were added.

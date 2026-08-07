@@ -27,8 +27,8 @@ module SimpleCov
         # Tracked paths are collected as each resultset is parsed, so files are
         # still read and discarded one at a time. See #1250.
         tracked_files = Set.new
-        collect = ->(parsed) { tracked_files.merge(UnloadedFiles.tracked_in(parsed)) }
-        command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout, &collect)
+        command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
+                                                 &UnloadedFiles.collector(tracked_files))
         create_result(command_names, coverage, tracked_files: tracked_files)
       end
 
@@ -65,15 +65,17 @@ module SimpleCov
         )
       end
 
-      # Yields the parsed resultset before it is reduced.
-      def valid_results(file_path, ignore_timeout: false)
-        parsed = ResultsetFile.parse(file_path)
-        yield parsed if block_given?
-        merge_valid_results(parsed, ignore_timeout: ignore_timeout)
+      # Yields the surviving entries before they are reduced.
+      def valid_results(file_path, ignore_timeout: false, &on_parse)
+        merge_valid_results(ResultsetFile.parse(file_path), ignore_timeout: ignore_timeout, &on_parse)
       end
 
+      # Yields the entries that survived the merge timeout, so a caller that
+      # wants to observe what a resultset carried sees only what is being
+      # merged. An expired entry contributes nothing, tracked paths included.
       def merge_valid_results(results, ignore_timeout: false)
         results = drop_expired_results(results) unless ignore_timeout
+        yield results if block_given?
 
         command_plus_coverage = results.map do |command_name, data|
           [[command_name], LegacyFormatAdapter.call(data.fetch("coverage"))]
@@ -140,9 +142,9 @@ module SimpleCov
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
       def merged_result
-        resultset = read_resultset
-        command_names, coverage = merge_valid_results(resultset)
-        create_result(command_names, coverage, tracked_files: UnloadedFiles.tracked_in(resultset))
+        tracked_files = Set.new
+        command_names, coverage = merge_valid_results(read_resultset, &UnloadedFiles.collector(tracked_files))
+        create_result(command_names, coverage, tracked_files: tracked_files)
       end
 
       def read_resultset

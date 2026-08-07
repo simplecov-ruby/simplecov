@@ -155,7 +155,7 @@ module SimpleCov
   # already carry, and return it with the set of paths added.
   #
   # @api private — the seam `SimpleCov::ResultMerger` injects through.
-  def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths) -> [Hash[String, untyped], Set[String]]
+  def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths, ?synthesize: bool?, ?lines: bool?) -> [Hash[String, untyped], Set[String]]
 
   # Build this process's slice of the coverage result. `standalone` is true
   # when no merge step follows, which makes this the final result: it is the
@@ -1182,6 +1182,10 @@ module SimpleCov
     # The base implementation raises NotImplementedError.
     def matches?: (SourceFile source_file) -> boolish
 
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
+
     def self.build_filter: (filter_arg filter_argument) -> Filter[untyped]
 
     def self.class_for_argument: (filter_arg filter_argument) -> singleton(Filter)
@@ -1198,6 +1202,10 @@ module SimpleCov
   class StringFilter < Filter[String]
     def matches?: (SourceFile source_file) -> bool
 
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
+
     private
 
     @segment_pattern: Regexp?
@@ -1210,17 +1218,29 @@ module SimpleCov
   # Matches when the project path matches the configured Regexp.
   class RegexFilter < Filter[Regexp]
     def matches?: (SourceFile source_file) -> bool
+
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
   end
 
   # Matches when the configured block returns truthy for the source file.
   class BlockFilter < Filter[^(SourceFile) -> boolish]
     def matches?: (SourceFile source_file) -> boolish
+
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
   end
 
   # Matches when the project path matches the configured shell glob
   # (e.g. "lib/**/*.rb").
   class GlobFilter < Filter[String]
     def matches?: (SourceFile source_file) -> bool
+
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
   end
 
   # Matches when any of the component filters built from the array's
@@ -1230,6 +1250,10 @@ module SimpleCov
     def initialize: (Array[filter_arg] filter_argument) -> void
 
     def matches?: (SourceFile source_file) -> boolish
+
+    # Whether the verdict depends only on the path, so it can be decided
+    # before the file has any coverage.
+    def path_only?: () -> bool
   end
 end
 

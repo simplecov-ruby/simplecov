@@ -15,6 +15,12 @@ module SimpleCov
       # from resultsets written before this was recorded, in which case those
       # processes injected their own unloaded files and the data is already in
       # the coverage hash.
+      # A collector for the merge to hand `merge_valid_results`, gathering the
+      # tracked paths of every resultset that survives the merge timeout.
+      def collector(into)
+        ->(surviving) { into.merge(tracked_in(surviving)) }
+      end
+
       def tracked_in(resultset)
         resultset.each_with_object(Set.new) do |(_command_name, data), set|
           set.merge(Array(data["tracked_files"]))
@@ -35,8 +41,34 @@ module SimpleCov
       # resultsets from an older SimpleCov (or from a `merging false` process)
       # that already carry their unloaded files pass through untouched.
       def inject(coverage, tracked_files)
-        SimpleCov.inject_unloaded_files(coverage, tracked_files.to_a)
+        SimpleCov.inject_unloaded_files(
+          coverage, tracked_files.to_a,
+          synthesize: carries?(coverage, "branches") || carries?(coverage, "methods"),
+          lines: carries?(coverage, "lines")
+        )
       end
+
+      # A simulated file should have the same shape as the files it is being
+      # merged alongside, so the criteria come from the merged data rather than
+      # from this process's configuration, which is not necessarily the
+      # configuration any contributing process measured under: `simplecov merge`
+      # never ran `SimpleCov.start` at all. Giving injected files fewer tables
+      # than their neighbours is what inflates the percentage #1059 fixed.
+      #
+      # Falls back to the configuration when there is nothing to be consistent
+      # with, which is a merge of resultsets that carried no files.
+      def carries?(coverage, criterion)
+        return SimpleCov.public_send(CRITERION_PREDICATES.fetch(criterion)) if coverage.empty?
+
+        coverage.any? { |_filename, file_coverage| file_coverage[criterion] }
+      end
+
+      CRITERION_PREDICATES = {
+        "lines" => :line_coverage?,
+        "branches" => :branch_coverage?,
+        "methods" => :method_coverage?
+      }.freeze
+      private_constant :CRITERION_PREDICATES
 
       # Which files no contributing process ever loaded. Injection reports the
       # ones it added, but a file can also arrive already simulated from a

@@ -23,6 +23,14 @@ module SimpleCov
       raise NotImplementedError, "The base filter class is not intended for direct use"
     end
 
+    # Whether this filter's verdict depends only on the file's path, so it can
+    # be decided before that file has any coverage. Used when recording which
+    # tracked files a process did not load, where no coverage exists yet.
+    # Defaults to false so a custom filter is never guessed at. See #1250.
+    def path_only?
+      false
+    end
+
     def self.build_filter(filter_argument)
       return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
 
@@ -55,6 +63,10 @@ module SimpleCov
     # "/app/models/library.rb".
     def matches?(source_file)
       source_file.project_filename.match?(segment_pattern)
+    end
+
+    def path_only?
+      true
     end
 
   private
@@ -95,6 +107,10 @@ module SimpleCov
     def matches?(source_file)
       filter_argument.match?(source_file.project_filename)
     end
+
+    def path_only?
+      true
+    end
   end
 
   # Filter that matches when the configured block returns truthy for the
@@ -115,6 +131,10 @@ module SimpleCov
     def matches?(source_file)
       File.fnmatch?(filter_argument, source_file.project_filename, File::FNM_PATHNAME | File::FNM_EXTGLOB)
     end
+
+    def path_only?
+      true
+    end
   end
 
   # Filter that matches when any of its component filters (built from the
@@ -126,6 +146,11 @@ module SimpleCov
       end
 
       super(filter_objects)
+    end
+
+    # Path-decidable only when every component filter is.
+    def path_only?
+      filter_argument.all?(&:path_only?)
     end
 
     # Returns true if any of the filters in the array match the given source file.
