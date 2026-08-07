@@ -13,6 +13,11 @@ module SimpleCov
     COMMENT_LINE = /^\s*#/
     WHITESPACE_OR_COMMENT_LINE = Regexp.union(WHITESPACE_LINE, COMMENT_LINE)
 
+    # The leading `^(\s*)#` anchor is load-bearing beyond matching the marker:
+    # `classify_line` only reaches this for lines that already passed
+    # `whitespace_line?`, which is sound only while every marker is also a
+    # comment. Loosening this to match a trailing `x = 1 # :nocov:` would stop
+    # the toggle firing. `lines_classifier_spec.rb` pins the implication.
     def self.no_cov_line
       /^(\s*)#(\s*)(:#{SimpleCov.current_nocov_token}:)/o
     end
