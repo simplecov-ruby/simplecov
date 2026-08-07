@@ -157,8 +157,9 @@ module SimpleCov
       # Synthesizing branch and method tuples means parsing every tracked file
       # that this process didn't load, which is about half the cost of
       # simulating one. Nothing reads those tuples when neither criterion is
-      # enabled — `Combine::FilesCombiner` only combines them per criterion,
-      # and the statistics drop them the same way — so skip the parse. See #1250.
+      # enabled — `Combine::CoverageAccumulator` only combines them per
+      # criterion, and the statistics drop them the same way — so skip the
+      # parse. See #1250.
       synthesize = branch_coverage? || method_coverage?
       # Same reasoning for line data, which a branch-only or method-only run
       # neither reports nor receives from `Coverage` for the files it loaded.

@@ -3,7 +3,7 @@ module SimpleCov
     #
     # Combine two different lines coverage results on same file
     #
-    # Should be called through `SimpleCov.combine`.
+    # Should be called through `CoverageAccumulator`.
     module LinesCombiner
       # Build a fresh array sized to the longer input. The previous
       # implementation mutated whichever input was longer in place,
@@ -11,6 +11,13 @@ module SimpleCov
       # (e.g. the parsed `coverage` key of a resultset hash being
       # passed into a second merge).
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+
+      # Folds `source` into `target` rather than building a third array.
+      # Only for a `target` the caller owns outright.
+      def self?.merge_into: (untyped target, untyped source) -> untyped
+
+      # Split out only to keep `merge_into` short; it is the same loop.
+      def self?.sum_into: (untyped target, untyped source, Integer size) -> untyped
 
       # Two runs of the same source file should agree on which lines
       # are coverage-relevant (`nil` for comments / whitespace, `0`+

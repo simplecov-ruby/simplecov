@@ -3,7 +3,7 @@ module SimpleCov
     #
     # Combine different method coverage results on a single file.
     #
-    # Should be called through `SimpleCov.combine`.
+    # Should be called through `CoverageAccumulator`.
     module MethodsCombiner
       # Memoizes method identities. Declared in both contexts for the same
       # reason as `RubyDataParser`'s parse cache.
@@ -22,6 +22,15 @@ module SimpleCov
       # @return [Hash]
       #
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+
+      # Folds `coverage` into `target`, an interned table keyed by method
+      # source identity. A `nil` `target` stays `nil` until some resultset
+      # actually carries methods.
+      def self?.absorb: (untyped target, untyped coverage) -> untyped
+
+      # Turns an interned table back into the tuple-keyed hash the rest of
+      # SimpleCov reads.
+      def self?.materialize: (untyped target) -> untyped
 
       def self?.merge_methods: (untyped target, untyped source) -> untyped
 

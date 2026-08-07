@@ -1,0 +1,67 @@
+module SimpleCov
+  module Combine
+    #
+    # Folds any number of resultsets' coverage into one, absorbing them one
+    # at a time, updating state it owns instead of rebuilding the whole
+    # accumulated structure per resultset.
+    #
+    class CoverageAccumulator
+      @files: Hash[String, untyped]
+      @absorbed: bool
+
+      # A file some process actually loaded has at least one executed line;
+      # a simulated (never-loaded) file's lines are all `nil` or `0`. Shared
+      # with `ResultMerger`, which re-derives a merged result's not-loaded set
+      # from the same signal.
+      def self.executed?: (Array[Integer?]? lines) -> bool
+
+      # Folds `[command_names, coverage]` pairs into one merged coverage.
+      # `pairs` is only iterated, so a lazy enumerable keeps the caller from
+      # holding more than one resultset in memory.
+      def self.fold: (untyped pairs) -> [Array[String], untyped]
+
+      def initialize: () -> void
+
+      # Folds one resultset's coverage (filename => per-file coverage) in.
+      # A `nil` coverage is ignored.
+      def absorb: (untyped coverage) -> CoverageAccumulator
+
+      # The merged coverage, or `nil` when nothing was absorbed at all.
+      def result: () -> untyped
+
+      # The first sighting of a file is kept as-is; the second promotes it
+      # to a `MergedFile` that owns its state.
+      private def merge_file: (untyped existing, untyped file_coverage) -> untyped
+
+      #
+      # One file's accumulated coverage.
+      #
+      class MergedFile
+        @branch_coverage: bool
+        @method_coverage: bool
+        @lines: Array[Integer?]?
+        @branches: Hash[untyped, untyped]?
+        @methods: Hash[untyped, untyped]?
+
+        def initialize: (untyped coverage) -> void
+
+        def absorb: (untyped coverage) -> MergedFile
+
+        def to_h: () -> Hash[String, untyped]
+
+        # When exactly one side of the merge was actually executed, its
+        # branch and method tuples are authoritative and the other side's
+        # are dropped (issue #1233).
+        private def reconcile_synthesized: (untyped coverage) -> void
+
+        private def absorb_tuples: (untyped coverage) -> void
+
+        private def replace_tuples: (untyped coverage) -> void
+
+        private def drop_incoming_tuples: () -> void
+
+        private def executed?: (Array[Integer?]? lines) -> bool
+      end
+    end
+  end
+end

@@ -23,21 +23,41 @@ module SimpleCov
       end
 
       def merge_results(*file_paths, ignore_timeout: false)
-        # It is intentional here that files are only read in and parsed one at a time.
-        #
-        # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
-        # of data. Reading them all in easily produces Gigabytes of memory consumption which
-        # we want to avoid.
-        #
-        # For similar reasons a SimpleCov::Result is only created in the end as that'd create
-        # even more data especially when it also reads in all source files.
-        initial_memo = valid_results(file_paths.shift, ignore_timeout: ignore_timeout)
-
-        command_names, coverage = file_paths.reduce(initial_memo) do |memo, file_path|
-          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
-        end
-
+        command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout)
         create_result(command_names, coverage)
+      end
+
+      #
+      # Reads every resultset and folds it into one merged coverage, stopping
+      # short of building a `SimpleCov::Result`.
+      #
+      # It is intentional here that files are only read in and parsed one at a time.
+      #
+      # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
+      # of data. Reading them all in easily produces Gigabytes of memory consumption which
+      # we want to avoid.
+      #
+      # For similar reasons a SimpleCov::Result is only created in the end as that'd create
+      # even more data especially when it also reads in all source files.
+      #
+      # One accumulator absorbs the whole run, rather than folding each file
+      # into the merged-so-far pairwise: the pairwise form rebuilt every
+      # file's coverage once per resultset, which is what made merging a
+      # large parallel run's results the dominant cost of `collate`.
+      # Absorbing is still one resultset at a time, so the memory ceiling
+      # above is unchanged.
+      #
+      # `file_paths` is only ever iterated, so a caller that wants to observe
+      # the merge as it goes can hand in any Enumerable — `benchmarks/collate`
+      # passes an Enumerator that reports progress — rather than reimplement
+      # this loop and risk timing something other than what ships.
+      #
+      # @return [Array] the command names and the merged coverage
+      #
+      def absorb_results(file_paths, ignore_timeout: false)
+        Combine::CoverageAccumulator.fold(
+          file_paths.lazy.map { |file_path| valid_results(file_path, ignore_timeout: ignore_timeout) }
+        )
       end
 
       def valid_results(file_path, ignore_timeout: false)
@@ -101,7 +121,8 @@ module SimpleCov
       # Which files no contributing process ever loaded. The loaded/not-loaded
       # distinction isn't serialized — `Result#to_hash` writes only coverage and
       # a timestamp — so it has to be re-derived here from the merged line
-      # counts, using the same signal `Combine::FilesCombiner` reconciles on.
+      # counts, using the same signal `Combine::CoverageAccumulator` reconciles
+      # synthesized tuples on.
       # Without it every file in a merged report is `loaded: true`, and the #902
       # rule that reports 0% rather than a misleading 100% for a never-loaded
       # file with no branch or method data can never fire on a merged result.
@@ -116,19 +137,17 @@ module SimpleCov
         coverage.each_with_object(Set.new) do |(filename, file_coverage), set|
           next if Array(file_coverage["lines"]).empty?
 
-          set << filename unless Combine::FilesCombiner.executed?(file_coverage)
+          set << filename unless Combine::CoverageAccumulator.executed?(file_coverage["lines"])
         end
       end
 
+      # timestamps are dropped here, which is intentional (we merge them, the
+      # merged result gets a new time stamp as of now)
       def merge_coverage(*results)
         return [[""], nil] if results.empty?
         return results.first if results.size == 1
 
-        results.reduce do |(memo_command, memo_coverage), (command, coverage)|
-          # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
-          merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
-          [memo_command + command, merged_coverage]
-        end
+        Combine::CoverageAccumulator.fold(results)
       end
 
       #
@@ -169,7 +188,7 @@ module SimpleCov
         return incoming unless concurrent_runner_entry?(existing)
 
         incoming.merge(
-          "coverage" => Combine.combine(Combine::ResultsCombiner, existing["coverage"], incoming["coverage"])
+          "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
         )
       end
 

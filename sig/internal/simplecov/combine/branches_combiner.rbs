@@ -3,7 +3,7 @@ module SimpleCov
     #
     # Combine different branch coverage results on single file.
     #
-    # Should be called through `SimpleCov.combine`.
+    # Should be called through `CoverageAccumulator`.
     module BranchesCombiner
       # Memoizes branch identities. Declared in both contexts for the same
       # reason as `RubyDataParser`'s parse cache.
@@ -23,6 +23,18 @@ module SimpleCov
       # @return [Hash]
       #
       def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
+
+      # Folds `coverage` into `target`, an interned table keyed by condition
+      # identity, kept interned across a whole fold.
+      def self?.absorb: (untyped target, untyped coverage) -> untyped
+
+      # Turns an interned table back into the tuple-keyed hash the rest of
+      # SimpleCov reads.
+      def self?.materialize: (untyped target) -> untyped
+
+      # Split out so the empty arm table has somewhere to carry its type
+      # annotation. Only allocated the first time a condition is seen.
+      def self?.new_condition: (untyped condition) -> [untyped, Hash[untyped, untyped]]
 
       def self?.merge_branches: (untyped target, untyped source) -> untyped
 
