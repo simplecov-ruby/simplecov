@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # An independent statement of what merging N resultsets should produce, used as
-# the oracle for spec/merge_differential_spec.rb.
+# the oracle for spec/combine_differential_spec.rb.
 #
 # `ResultsCombiner` folds resultsets pairwise, which makes the rules it applies
 # hard to read off the code. `reconcile_synthesized` especially: it is defined

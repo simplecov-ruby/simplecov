@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Deterministic generator of small, adversarial resultset shard sets for
-# spec/merge_differential_spec.rb. Each seed reproduces exactly, so a mismatch
+# spec/combine_differential_spec.rb. Each seed reproduces exactly, so a mismatch
 # can be replayed and shrunk by hand.
 #
 # The cases it deliberately produces, since these are the ones the merge rules
