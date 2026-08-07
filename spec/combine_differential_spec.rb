@@ -37,6 +37,14 @@ RSpec.describe SimpleCov::Combine do
       expect(mismatches).to be_empty, -> { describe_mismatches(mismatches) }
     end
 
+    it "agrees with the reference merge however the fan-out groups the shards" do
+      mismatches = seeds.flat_map do |seed|
+        groupings.filter_map { |groups| mismatch_for(seed, groups, saturate: true) }
+      end
+
+      expect(mismatches).to be_empty, -> { describe_mismatches(mismatches) }
+    end
+
     # Identity collapse only happens inside a combiner, and `Combine.combine`
     # short-circuits before reaching one when either side is nil - handing the
     # other side back verbatim. So a file whose coverage never meets a non-nil
@@ -63,16 +71,26 @@ RSpec.describe SimpleCov::Combine do
     1..Integer(ENV.fetch("SIMPLECOV_MERGE_SEEDS", "300"))
   end
 
-  # Returns nil when the fold and the reference agree, otherwise the detail
+  def groupings
+    2..5
+  end
+
+  # Returns nil when the merge and the reference agree, otherwise the detail
   # needed to reproduce and read the disagreement.
   def mismatch_for(seed, strategy, saturate:)
     shards = MergeFuzzer.shards(seed, saturate: saturate)
-    actual = normalize(send(strategy, shards))
+    actual = normalize(merge(shards, strategy))
     expected = normalize(MergeReference.call(shards, branches: true, methods: true))
     return nil if actual == expected
 
     files = expected.keys.union(actual.keys).reject { |file| actual[file] == expected[file] }
     {seed: seed, strategy: strategy, shards: shards, files: files, actual: actual, expected: expected}
+  end
+
+  def merge(shards, strategy)
+    return fold(shards) if strategy == :fold
+
+    fold(SimpleCov::ParallelResultMerger.chunk(shards, strategy).map { |slice| fold(slice) })
   end
 
   def fold(shards)
@@ -97,7 +115,11 @@ RSpec.describe SimpleCov::Combine do
   def describe_mismatch(mismatch)
     seed, strategy, files = mismatch.values_at(:seed, :strategy, :files)
     detail = files.flat_map { |file| describe_file(file, mismatch) }
-    ["seed #{seed} (#{strategy}) — files: #{files.join(', ')}", *detail].join("\n")
+    ["seed #{seed} (#{strategy_label(strategy)}) — files: #{files.join(', ')}", *detail].join("\n")
+  end
+
+  def strategy_label(strategy)
+    strategy == :fold ? "serial fold" : "fan-out over #{strategy} slices"
   end
 
   def describe_file(file, mismatch)
