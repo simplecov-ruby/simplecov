@@ -11,10 +11,30 @@ module SimpleCov
       # have a habit of tampering with ARGV, which makes i.e. the automatic distinction
       # between rails unit/functional/integration tests impossible without this cached
       # item.
-      attr_accessor :original_run_command
+      attr_reader :original_run_command
+
+      # Assigning the flattened command clears any separately recorded program
+      # name so the two can never describe different runs. Callers that know the
+      # real one assign it immediately afterwards, as `defaults.rb` does.
+      def original_run_command=(command)
+        @original_program_name = nil
+        @original_run_command = command
+      end
+
+      # The invoked program on its own. `original_run_command` joins
+      # `$PROGRAM_NAME` and `ARGV` with a space, so a program path containing
+      # one (`/opt/My Ruby/bin/rspec`) cannot be recovered from it afterwards.
+      # Falls back to the first token for callers that set only the flattened
+      # command, which is every caller outside `defaults.rb`.
+      attr_writer :original_program_name
+
+      def original_program_name
+        @original_program_name || original_run_command.to_s[/\A\s*(\S+)/, 1]
+      end
 
       def guess
-        [from_command_line_options || from_defined_constants, parallel_data].compact.join(" ")
+        framework = from_executable_name || from_command_line_options || from_defined_constants
+        [framework, parallel_data].compact.join(" ")
       end
 
     private
@@ -31,19 +51,56 @@ module SimpleCov
         "(#{number}/#{groups})"
       end
 
+      # The command is `"#{$PROGRAM_NAME} #{ARGV.join(' ')}"`, so a keyword only
+      # carries meaning when it begins a path segment or an argument. Matching it
+      # as a bare substring lets any part of the *interpreter* path decide the
+      # suite name: a Ruby installed under `latest/bin` (as mise does) contains
+      # "test/", so every run through it was labelled "Unit Tests". The same
+      # applies within ARGV, where `spec/greatest/` used to match just as wrongly.
+      #
+      # A backslash bounds a segment too, or a Windows `spec\foo_spec.rb` would
+      # lose a match the bare substrings used to make. The `test/` patterns below
+      # still spell their separator as `/` only, so a backslash `test\functional\`
+      # goes unrecognised there, but that is how it has always been rather than
+      # something the anchoring took away.
+      SEGMENT_START = %r{(?<![^\s/\\])}
+      private_constant :SEGMENT_START
+      SEGMENT_END = %r{(?=[\s/\\]|\z)}
+      private_constant :SEGMENT_END
+
       COMMAND_LINE_FRAMEWORKS = {
-        %r{test/functional/} => "Functional Tests",
-        %r{test/\{.*functional.*\}/} => "Functional Tests",
-        %r{test/integration/} => "Integration Tests",
-        %r{test/} => "Unit Tests",
-        /spec/ => "RSpec",
-        /cucumber/ => "Cucumber Features",
-        /features/ => "Cucumber Features"
+        %r{#{SEGMENT_START}test/functional/} => "Functional Tests",
+        %r{#{SEGMENT_START}test/\{.*functional.*\}/} => "Functional Tests",
+        %r{#{SEGMENT_START}test/integration/} => "Integration Tests",
+        %r{#{SEGMENT_START}test/} => "Unit Tests",
+        /#{SEGMENT_START}spec#{SEGMENT_END}/ => "RSpec",
+        /#{SEGMENT_START}cucumber#{SEGMENT_END}/ => "Cucumber Features",
+        /#{SEGMENT_START}features#{SEGMENT_END}/ => "Cucumber Features"
       }.freeze
       private_constant :COMMAND_LINE_FRAMEWORKS
 
       def from_command_line_options
         COMMAND_LINE_FRAMEWORKS.find { |pattern, _| pattern.match?(original_run_command.to_s) }&.last
+      end
+
+      # Which binary was invoked outranks everything else on the command line.
+      # `rspec features` is an RSpec suite whose examples live in features/, not
+      # a Cucumber run, and only the executable name says so. Generic runners
+      # (`ruby`, `rake`, a bare `*_test.rb` script) are absent on purpose: they
+      # name no framework, so those runs fall through to the path patterns, which
+      # is what keeps the test/functional vs test/integration split working.
+      EXECUTABLE_FRAMEWORKS = {
+        "rspec" => "RSpec",
+        "cucumber" => "Cucumber Features"
+      }.freeze
+      private_constant :EXECUTABLE_FRAMEWORKS
+
+      def from_executable_name
+        program = original_program_name
+        return unless program
+
+        # Trim any extension so Windows' rspec.bat is recognized too.
+        EXECUTABLE_FRAMEWORKS[File.basename(program, ".*")]
       end
 
       # Inner array literals after the first are flagged uncovered by Ruby's
