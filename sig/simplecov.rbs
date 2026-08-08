@@ -210,12 +210,15 @@ module SimpleCov
     # The hash of available profiles.
     def profiles: () -> Profiles
 
-    # Configure SimpleCov in a block, evaluated with `self` bound to
-    # the configuration target (usually the SimpleCov module itself):
+    # Configure SimpleCov in a block. A zero-argument block runs with the
+    # configuration target as `self`; a parameterized block keeps its lexical
+    # `self` and receives the target explicitly:
     #
     #     SimpleCov.configure { skip "test" }
+    #     SimpleCov.configure { |config| config.skip caller_filter }
     #
-    def configure: () { () [self: self] -> void } -> void
+    def configure: () { () [self: self] -> untyped } -> self
+                 | () { (self config) -> untyped } -> self
 
     # Gets or sets the behavior that processes coverage results at
     # process exit. The default stores/merges the current result and
@@ -235,14 +238,6 @@ module SimpleCov
     # capitalized, with underscores replaced by spaces.
     def project_name: (?String? new_name) -> String
 
-    private
-
-    # Copy instance variables from block_context into self, saving any
-    # of ours that would be clobbered.
-    def swap_ivars_from: (untyped block_context) -> Hash[Symbol, untyped]
-
-    # Copy instance variables back to block_context and restore ours.
-    def restore_ivars: (untyped block_context, Hash[Symbol, untyped] saved) -> void
   end
 end
 

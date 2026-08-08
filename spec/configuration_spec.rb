@@ -1604,12 +1604,215 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#configure" do
-      it "uses instance_exec directly when the block is in our own context" do
-        # Stub equal? so the "block defined in our own context" branch fires
-        # without contorting the test to share a binding with the config.
-        allow(config).to receive(:equal?).and_return(true)
-        config.configure { @configured = true }
+      it "requires a configuration block" do
+        expect { config.configure }.to raise_error(ArgumentError, /configuration block required/)
+      end
+
+      it "evaluates a zero-parameter block on the real configuration target" do
+        observed = nil
+
+        configured = config.configure do
+          @configured = true
+          observed = [self, binding.receiver, object_id, singleton_class]
+        end
+
         expect(config.instance_variable_get(:@configured)).to be true
+        expect(observed).to eq([config, config, config.object_id, config.singleton_class])
+        expect(configured).to be(config)
+      end
+
+      it "keeps caller context in a parameterized block and passes the target explicitly" do
+        owner_class = Class.new do
+          attr_reader :configured_self
+
+          def initialize
+            @threshold = 92
+          end
+
+          def apply_threshold(target)
+            @configured_self = self
+            target.minimum_coverage @threshold
+          end
+        end
+        owner = owner_class.new
+
+        configured = owner.instance_exec(config) do |target|
+          target.configure { |dsl| apply_threshold(dsl) }
+        end
+
+        expect(config.minimum_coverage).to eq(line: 92)
+        expect(owner.configured_self).to be(owner)
+        expect(configured).to be(config)
+      end
+
+      it "treats direct instance variable assignments as configuration state" do
+        config.configure { @tracked_files = "{app,lib}/**/*.rb" }
+
+        expect(config.tracked_files).to eq("{app,lib}/**/*.rb")
+      end
+
+      it "evaluates __dir__ from the configuration block's source file" do
+        expected_root = __dir__
+
+        config.configure { root __dir__ }
+
+        expect(config.root).to eq(expected_root)
+      end
+
+      it "reads existing configuration state instead of colliding caller variables" do
+        owner = Object.new
+        owner.instance_variable_set(:@root, "/caller/project")
+        config.root("/real/project")
+        observed_root = nil
+
+        owner.instance_exec(config) do |target|
+          # Direct ivar access is the behavior under test here.
+          target.configure { observed_root = @root } # rubocop:disable RSpec/InstanceVariable
+        end
+
+        expect(observed_root).to eq("/real/project")
+        expect(owner.instance_variable_get(:@root)).to eq("/caller/project")
+      end
+
+      it "derives cached configuration from the real configuration state" do
+        owner = Object.new
+        owner.instance_variable_set(:@root, "/wrong/project")
+        config.root("/real/project")
+
+        path = owner.instance_exec(config) do |target|
+          target.configure do
+            coverage_dir "cov"
+            coverage_path
+          end
+          target.coverage_path
+        end
+
+        expect(path).to eq("/real/project/cov")
+      end
+
+      it "preserves block locals and block_given?" do
+        owner_class = Class.new do
+          def evaluate(target)
+            local = :present
+            variables = nil
+            outer_result = yield
+            target.configure { variables = [binding.local_variables, block_given?, local, outer_result] }
+            variables
+          end
+        end
+
+        variables, block_given, local, outer_result = owner_class.new.evaluate(config) { :outer }
+
+        expect(variables).to include(:local, :variables)
+        expect(block_given).to be true
+        expect(local).to eq(:present)
+        expect(outer_result).to eq(:outer)
+      end
+
+      it "resolves require_relative from the configuration source" do
+        source_path = File.join(SimpleCov.root, "lib/configuration_probe.rb")
+        # A synthetic filename is required to verify require_relative's base.
+        # rubocop:disable Style/EvalWithLocation
+        configuration = eval(<<~RUBY, binding, source_path, 1)
+          proc { require_relative "simplecov/version" }
+        RUBY
+        # rubocop:enable Style/EvalWithLocation
+
+        expect { config.configure(&configuration) }.not_to raise_error
+      end
+
+      it "keeps configuration exceptions anchored to their source" do
+        source_path = File.join(SimpleCov.root, "lib/configuration_probe.rb")
+        # rubocop:disable Style/EvalWithLocation
+        configuration = eval(<<~RUBY, binding, source_path, 37)
+          proc { raise "from config" }
+        RUBY
+        # rubocop:enable Style/EvalWithLocation
+
+        expect { config.configure(&configuration) }.to raise_error("from config") do |error|
+          expect(error.backtrace.first).to start_with("#{source_path}:37:")
+        end
+      end
+
+      it "composes nested configuration blocks on the same target" do
+        observed = nil
+
+        config.configure do
+          configure { @nested_state = :inner }
+          observed = @nested_state # rubocop:disable RSpec/InstanceVariable
+        end
+
+        expect(observed).to eq(:inner)
+        expect(config.instance_variable_get(:@nested_state)).to eq(:inner)
+      end
+
+      it "keeps nested configuration targets distinct" do
+        other = config_class.new
+
+        config.configure do
+          @nested_state = :outer
+          other.configure { @nested_state = :inner }
+        end
+
+        expect(config.instance_variable_get(:@nested_state)).to eq(:outer)
+        expect(other.instance_variable_get(:@nested_state)).to eq(:inner)
+      end
+
+      it "works from frozen and immediate-value owners" do
+        frozen_owner = Object.new.freeze
+        frozen_self = nil
+        immediate_self = nil
+
+        frozen_owner.instance_exec(config) do |target|
+          target.configure { |dsl| frozen_self = [self, dsl] }
+        end
+        1.instance_exec(config) do |target|
+          target.configure { |dsl| immediate_self = [self, dsl] }
+        end
+
+        expect(frozen_self).to eq([frozen_owner, config])
+        expect(immediate_self).to eq([1, config])
+      end
+
+      it "does not leak configuration commands onto the caller during evaluation" do
+        owner = Object.new
+        entered = Queue.new
+        release = Queue.new
+        worker = Thread.new do
+          owner.instance_exec(config) do |target|
+            target.configure do
+              entered << true
+              release.pop
+            end
+          end
+        end
+
+        entered.pop
+        expect { owner.command_name("outside-thread") }.to raise_error(NoMethodError)
+      ensure
+        release << true if worker&.alive?
+        worker&.join(2)
+      end
+
+      it "preserves the block error even when the target freezes itself" do
+        disposable = config_class.new
+
+        expect do
+          disposable.configure do
+            @new_configuration_state = :set
+            freeze
+            raise "original failure"
+          end
+        end.to raise_error("original failure")
+      end
+
+      it "preserves normal unknown-command behavior" do
+        source_line = __LINE__ + 2
+
+        expect { config.configure { unknown_configuration_command } }
+          .to raise_error(NameError, /unknown_configuration_command/) do |error|
+            expect(error.backtrace.first).to include("configuration_spec.rb:#{source_line}")
+          end
       end
     end
 

@@ -131,6 +131,16 @@ SimpleCov.start 'rails'
     end
     ```
 
+Zero-parameter configuration blocks run with `self` set to the SimpleCov configuration target. To call helpers or use
+instance variables from the surrounding object, accept the target explicitly; parameterized blocks keep their normal
+`self`:
+
+```ruby
+SimpleCov.configure do |config|
+  config.minimum_coverage coverage_threshold
+end
+```
+
 See the [Configuration] API documentation for the full list of options.
 
 ### Using `.simplecov` for centralized config

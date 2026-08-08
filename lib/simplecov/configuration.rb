@@ -77,27 +77,18 @@ module SimpleCov
 
     #
     # Allows you to configure simplecov in a block instead of
-    # prepending SimpleCov to each config method.
+    # prepending SimpleCov to each config method. Parameterized blocks retain
+    # their caller context and receive this configuration target explicitly.
     #
     def configure(&block)
-      # Both locals are read in the ensure clause, where flow analysis
-      # cannot see the assignments below; anchor their types up front.
-      saved = nil # : Hash[Symbol, untyped]?
-      block_context = block.binding.receiver # : untyped
+      raise ArgumentError, "configuration block required" unless block
 
-      # If the block was defined in our own context, instance_exec is
-      # sufficient. The `_ =` erases the block's self-binding, which RBS
-      # can express but `instance_exec`'s core signature cannot accept.
-      return instance_exec(&(_ = block)) if equal?(block_context)
-
-      # Copy the caller's instance variables in so that references like @filter
-      # inside the block resolve to the caller's values, not ours.
-      saved = swap_ivars_from(block_context)
-      instance_exec(&(_ = block))
-    ensure
-      # @type var block_context: untyped
-      # @type var saved: Hash[Symbol, untyped]?
-      restore_ivars(block_context, saved) if saved
+      if block.parameters.empty?
+        instance_exec(&(_ = block))
+      else
+        yield self
+      end
+      self
     end
 
     #
@@ -157,29 +148,6 @@ module SimpleCov
 
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root).capitalize.tr("_", " ")
-    end
-
-  private
-
-    # Copy instance variables from block_context into self, saving any
-    # of ours that would be clobbered. Returns the saved values for
-    # later restoration.
-    def swap_ivars_from(block_context)
-      saved = {} # : Hash[Symbol, untyped]
-      our_ivars = instance_variables
-      block_context.instance_variables.each do |ivar|
-        saved[ivar] = instance_variable_get(ivar) if our_ivars.include?(ivar)
-        instance_variable_set(ivar, block_context.instance_variable_get(ivar))
-      end
-      saved
-    end
-
-    # Copy instance variables back to block_context and restore our saved values.
-    def restore_ivars(block_context, saved)
-      block_context.instance_variables.each do |ivar|
-        block_context.instance_variable_set(ivar, instance_variable_get(ivar))
-      end
-      saved.each { |ivar, value| instance_variable_set(ivar, value) }
     end
   end
 end

@@ -25,13 +25,13 @@ Feature:
     Then I should see "4 files"
     And I should see "using Config Test Runner" within "#footer"
 
-  Scenario: Inside start block, using instance var from outside
+  Scenario: Parameterized start block, using instance var from outside
     Given a file named ".simplecov" with:
       """
       @filter = 'test'
-      SimpleCov.start do
-        add_filter @filter
-        command_name 'Config Test Runner'
+      SimpleCov.start do |config|
+        config.add_filter @filter
+        config.command_name 'Config Test Runner'
       end
       """
 
