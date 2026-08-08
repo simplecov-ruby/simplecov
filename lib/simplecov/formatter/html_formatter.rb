@@ -39,7 +39,7 @@ module SimpleCov
         # on its own indented line, roughly doubling the payload);
         # coverage.json stays pretty-printed for human readers.
         viewer_hash = JSONFormatter.build_hash(result, include_source: true)
-        json_hash = SimpleCov.source_in_json ? viewer_hash : JSONFormatter.build_hash(result)
+        json_hash = SimpleCov.source_in_json ? viewer_hash : source_less_hash(viewer_hash)
         write_report_files(json_hash, viewer_hash)
         emit_status(result)
       end
@@ -81,6 +81,11 @@ module SimpleCov
 
         raise SimpleCov::CoverageJSON::Error,
               "coverage entry #{filename.inspect} must include a source array; regenerate with source_in_json true"
+      end
+
+      def source_less_hash(hash)
+        coverage = hash.fetch(:coverage).transform_values { |file| file.except(:source) }
+        hash.merge(coverage: coverage)
       end
 
       def write_report_files(json_hash, viewer_hash)

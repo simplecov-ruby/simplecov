@@ -177,24 +177,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(file_data["source"]).not_to be_empty
     end
 
-    # The client-side viewer renders source from the embedded array,
-    # so the report must keep `source` regardless of the
-    # `source_in_json` setting. The setting only controls the side-file
-    # coverage.json, which downstream tools that read source from disk
-    # can opt into shrinking.
-    it "keeps source in the report even when SimpleCov.source_in_json is false" do
-      allow(SimpleCov).to receive(:source_in_json).and_return(false)
-      formatter.format(make_result)
-      expect(coverage_data["coverage"].values.first).to include("source")
-    end
-
-    it "drops source from coverage.json when SimpleCov.source_in_json is false" do
-      allow(SimpleCov).to receive(:source_in_json).and_return(false)
-      formatter.format(make_result)
-      external = JSON.parse(File.read(File.join(coverage_dir, "coverage.json")))
-      expect(external["coverage"].values.first).not_to include("source")
-    end
-
     it "embeds the metadata section in the coverage payload" do
       meta = coverage_data["meta"]
 
@@ -212,6 +194,25 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       formatter.format(make_result)
       Dir[File.join(coverage_dir, "*")].each { |f| File.chmod(0o444, f) }
       expect { formatter.format(make_result) }.not_to raise_error
+    end
+  end
+
+  describe "#format when source_in_json is false" do
+    it "derives coverage.json from one source-bearing payload without mutating it" do
+      allow(SimpleCov).to receive(:source_in_json).and_return(false)
+      result = make_result
+      allow(SimpleCov::Formatter::JSONFormatter).to receive(:build_hash).and_call_original
+
+      formatter.format(result)
+
+      embedded = coverage_data
+      external = JSON.parse(File.read(File.join(coverage_dir, "coverage.json")))
+      coverage = embedded.fetch("coverage").transform_values { |file| file.except("source") }
+      expected = embedded.merge("coverage" => coverage)
+      expect(SimpleCov::Formatter::JSONFormatter).to have_received(:build_hash)
+        .once.with(result, include_source: true)
+      expect(embedded.fetch("coverage").values.first.fetch("source")).not_to be_empty
+      expect(external).to eq(expected)
     end
   end
 

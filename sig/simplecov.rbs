@@ -1419,6 +1419,8 @@ module SimpleCov
 
       def validate_viewer_file!: (String filename, untyped file) -> void
 
+      def source_less_hash: (Hash[Symbol, untyped] hash) -> Hash[Symbol, untyped]
+
       # Write coverage.json and index.html, then clear any legacy
       # sibling files an earlier version left in the output directory.
       def write_report_files: (Hash[untyped, untyped] json_hash, Hash[untyped, untyped] viewer_hash) -> void
