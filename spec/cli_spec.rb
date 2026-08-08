@@ -805,6 +805,55 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("doesn't exist")
     end
 
+    it "errors before binding when the coverage dir has no report artifacts" do
+      FileUtils.mkdir_p(tmp)
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      allow(TCPServer).to receive(:new).and_call_original
+
+      expect(run("serve")).to eq(1)
+      expect(stderr.string).to include("no index.html or coverage.json")
+      expect(TCPServer).not_to have_received(:new)
+    end
+
+    it "serves an existing index without inspecting coverage.json" do
+      FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "existing report")
+      File.write(File.join(tmp, "coverage.json"), "{")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      allow(described_class::Serve).to receive(:with_server).and_return(0)
+
+      expect(run("serve")).to eq(0)
+      expect(File.read(File.join(tmp, "index.html"))).to eq("existing report")
+      expect(described_class::Serve).to have_received(:with_server)
+    end
+
+    it "builds a missing index from coverage.json before binding" do
+      FileUtils.mkdir_p(tmp)
+      data = {"meta" => {}, "total" => {}, "coverage" => {}, "groups" => {}}
+      File.write(File.join(tmp, "coverage.json"), JSON.dump(data))
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      allow(described_class::Serve).to receive(:with_server).and_return(0)
+
+      expect(run("serve")).to eq(0)
+      expect(File.read(File.join(tmp, "index.html"))).to include("window.SIMPLECOV_DATA")
+      expect(described_class::Serve).to have_received(:with_server)
+    end
+
+    it "reports invalid coverage.json before binding" do
+      FileUtils.mkdir_p(tmp)
+      json_path = File.join(tmp, "coverage.json")
+      File.write(json_path, "{")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      allow(TCPServer).to receive(:new).and_call_original
+
+      expect(run("serve")).to eq(1)
+      expect(stderr.string).to start_with("simplecov serve:")
+      expect(stderr.string).to include("cannot build index.html").and include(json_path)
+      expect(stderr.string.lines.size).to eq(1)
+      expect(File).not_to exist(File.join(tmp, "index.html"))
+      expect(TCPServer).not_to have_received(:new)
+    end
+
     describe ".resolve" do
       before do
         FileUtils.mkdir_p(File.join(tmp, "assets"))
@@ -895,6 +944,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "closes its TCPServer cleanly when an error bubbles out of run" do
       FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "report")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
       allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE, "addr in use")
       expect { run("serve") }.to raise_error(Errno::EADDRINUSE)

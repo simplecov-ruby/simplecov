@@ -1395,7 +1395,8 @@ are normalized, so a baseline from an older SimpleCov still diffs cleanly agains
 
 `simplecov serve` serves the coverage report over HTTP — handy on a remote box where you can't open files directly.
 `--port N` binds to a specific port (default: a random open port) and `--host HOST` to a specific host (default
-`127.0.0.1`).
+`127.0.0.1`). If `index.html` is missing but `coverage.json` is present, `serve` builds the self-contained HTML report
+before binding. It exits with an error when neither artifact exists or the JSON cannot produce a usable report.
 
 `simplecov clean` removes the coverage report directory. `--dry-run` prints what would be removed without deleting
 anything; `-q` / `--quiet` suppresses status lines. For safety, `clean` refuses to remove the current directory, the

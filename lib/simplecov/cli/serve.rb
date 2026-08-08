@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "serve/report_preparer"
 
 module SimpleCov
   module CLI
@@ -10,8 +11,7 @@ module SimpleCov
     # report on a CI box where `file://` doesn't work."
     module Serve
       MIME = {
-        ".html" => "text/html; charset=utf-8",
-        ".htm" => "text/html; charset=utf-8",
+        ".html" => "text/html; charset=utf-8", ".htm" => "text/html; charset=utf-8",
         ".css" => "text/css",
         ".js" => "application/javascript",
         ".json" => "application/json",
@@ -23,17 +23,16 @@ module SimpleCov
         ".ico" => "image/x-icon",
         ".txt" => "text/plain; charset=utf-8"
       }.freeze
-      STATUS_TEXT = {
-        200 => "OK", 400 => "Bad Request", 403 => "Forbidden",
-        404 => "Not Found", 405 => "Method Not Allowed"
-      }.freeze
+      STATUS_TEXT = {200 => "OK", 400 => "Bad Request", 403 => "Forbidden",
+                     404 => "Not Found", 405 => "Method Not Allowed"}.freeze
 
     module_function
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
         dir = SimpleCov::CLI.coverage_dir
-        return error(stderr, "#{dir} doesn't exist; run your test suite first") unless File.directory?(dir)
+        message = ReportPreparer.call(dir)
+        return error(stderr, message) if message
 
         require "socket"
         with_server(opts) do |server|

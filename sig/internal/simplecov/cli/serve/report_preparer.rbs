@@ -1,0 +1,9 @@
+module SimpleCov
+  module CLI
+    module Serve
+      module ReportPreparer
+        def self.call: (String dir) -> String?
+      end
+    end
+  end
+end
