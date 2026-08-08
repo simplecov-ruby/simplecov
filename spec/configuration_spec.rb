@@ -1421,6 +1421,14 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.formatter).to be_nil
         expect(config.formatters).to eq([])
       end
+
+      it "treats false as an explicit opt-out, like `formatter false`" do
+        # `Array(false)` is `[false]`, so without normalization this would
+        # configure a MultiFormatter over `false` that fails every report.
+        config.formatters = false
+        expect(config.formatter).to be_nil
+        expect(config.formatters).to eq([])
+      end
     end
 
     describe "#at_exit" do

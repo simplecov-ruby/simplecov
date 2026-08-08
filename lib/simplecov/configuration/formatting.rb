@@ -47,8 +47,11 @@ module SimpleCov
     # Accepts a single formatter as well as an Array, matching the pre-1.0 behavior
     # where `MultiFormatter.new` normalized its input. Elements may be
     # formatter classes or ready-built instances; see `formatter`.
+    # `nil`, `false`, and `[]` all opt out of formatting entirely —
+    # `false` normalized like `formatter false` does, since `Array(false)`
+    # would otherwise smuggle it in as a "formatter" that can only fail.
     def formatters=(formatters)
-      formatters = Array(formatters)
+      formatters = Array(formatters || nil)
       @formatter = formatters.empty? ? nil : SimpleCov::Formatter::MultiFormatter.new(formatters)
     end
 
