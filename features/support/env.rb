@@ -70,6 +70,10 @@ Before("@branch_coverage") do
   skip_this_scenario unless SimpleCov.branch_coverage_supported?
 end
 
+Before("@method_coverage") do
+  skip_this_scenario unless SimpleCov.method_coverage_supported?
+end
+
 Before("@process_fork") do
   # Process.fork is NotImplementedError in jruby
   skip_this_scenario if jruby?

@@ -82,6 +82,7 @@ interface CoverageSummaryArgs {
   totalBranches: number;
   coveredMethods: number;
   totalMethods: number;
+  lineCoverage: boolean;
   branchCoverage: boolean;
   methodCoverage: boolean;
   showMethodToggle: boolean;
@@ -89,7 +90,7 @@ interface CoverageSummaryArgs {
 
 export function renderCoverageSummary(args: CoverageSummaryArgs): string {
   return '<div class="summary-stats">' +
-    renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: true, suffix: 'relevant lines covered' }) +
+    renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, suffix: 'relevant lines covered' }) +
     renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, missedClass: 'missed-branch-text' }) +
     renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
     '</div>';

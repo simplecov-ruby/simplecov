@@ -5,6 +5,7 @@ import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
 import { $$, escapeHTML } from './dom';
 import { pctClass, fileId, toHtmlId } from './format';
+import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
 import type { CoverageData, FileCoverage } from './types';
@@ -45,6 +46,7 @@ export function updateFavicon(): void {
 interface RenderState {
   idToFilename: Record<string, string>;
   coverage: Record<string, FileCoverage>;
+  lineCoverage: boolean;
   branchCoverage: boolean;
   methodCoverage: boolean;
 }
@@ -52,13 +54,16 @@ let renderState: RenderState | null = null;
 
 export function renderPage(data: CoverageData): void {
   const meta = data.meta;
+  const lineCoverage = meta.line_coverage;
   const branchCoverage = meta.branch_coverage;
   const methodCoverage = meta.method_coverage;
+  const primaryCoverage = activeCoverageType(meta);
 
   // Page title and favicon
   document.title = `Code coverage for ${meta.project_name}`;
   const allFiles = Object.keys(data.coverage);
-  const overallPct = data.total.lines.total > 0 ? data.total.lines.percent : 100.0;
+  const overall = primaryCoverageStat(data.total, primaryCoverage);
+  const overallPct = overall && overall.total > 0 ? overall.percent : 100.0;
   faviconBand = pctClass(overallPct);
   updateFavicon();
 
@@ -75,8 +80,10 @@ export function renderPage(data: CoverageData): void {
       filenames: allFiles,
       stats: data.total,
       allCoverage: data.coverage,
+      lineCoverage,
       branchCoverage,
-      methodCoverage
+      methodCoverage,
+      primaryCoverage
     }),
   ];
   for (const groupName of Object.keys(data.groups)) {
@@ -88,8 +95,10 @@ export function renderPage(data: CoverageData): void {
         filenames: group.files || [],
         stats: group,
         allCoverage: data.coverage,
+        lineCoverage,
         branchCoverage,
-        methodCoverage
+        methodCoverage,
+        primaryCoverage
       })
     );
   }
@@ -99,7 +108,7 @@ export function renderPage(data: CoverageData): void {
   // materializer can resolve an id back to its FileCoverage in O(1).
   const idToFilename: Record<string, string> = {};
   for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
-  renderState = { idToFilename, coverage: data.coverage, branchCoverage, methodCoverage };
+  renderState = { idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage };
 
   // Footer
   const timestamp = new Date(meta.timestamp);
@@ -110,9 +119,12 @@ export function renderPage(data: CoverageData): void {
 
   // Source legend
   const legend = document.getElementById('source-legend')!;
-  let legendHtml = '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
-    '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
-    '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>';
+  let legendHtml = '';
+  if (lineCoverage) {
+    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>';
+  }
   if (branchCoverage) {
     legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-branch"></span>Missed branch</span>';
   }
@@ -133,6 +145,7 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
   const html = renderSourceFile(
     targetFilename,
     renderState.coverage[targetFilename],
+    renderState.lineCoverage,
     renderState.branchCoverage,
     renderState.methodCoverage,
   );

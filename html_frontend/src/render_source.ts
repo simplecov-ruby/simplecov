@@ -8,7 +8,7 @@ import type { FileCoverage, BranchEntry, MethodEntry } from './types';
 
 interface LineStatusArgs {
   lineIndex: number;
-  lineCov: number | null | 'ignored';
+  lineCov: number | null | 'ignored' | undefined;
   branchesReport: Record<number, [string, number][]>;
   missedMethodLines: Set<number>;
   branchCoverage: boolean;
@@ -31,7 +31,7 @@ function lineStatus(args: LineStatusArgs): string {
   // Method miss
   if (methodCoverage && missedMethodLines.has(lineNum)) return 'missed-method';
 
-  return lineCov === null ? 'never' : lineCov === 0 ? 'missed' : 'covered';
+  return lineCov === null || lineCov === undefined ? 'never' : lineCov === 0 ? 'missed' : 'covered';
 }
 
 function buildBranchesReport(branches: BranchEntry[] | undefined): Record<number, [string, number][]> {
@@ -59,7 +59,7 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
 interface SourceLineArgs {
   index: number;
   source: string;
-  lineCov: number | null | 'ignored';
+  lineCov: number | null | 'ignored' | undefined;
   status: string;
   branchCoverage: boolean;
   lineBranches?: [string, number][];
@@ -68,10 +68,10 @@ interface SourceLineArgs {
 function renderSourceLine(args: SourceLineArgs): string {
   const { index, source, lineCov, status, branchCoverage, lineBranches } = args;
   const lineNum = index + 1;
-  const hitsAttr = lineCov !== null && lineCov !== 'ignored' ? ` data-hits="${lineCov}"` : '';
+  const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
   const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
 
-  if (status === 'covered' || (lineCov !== null && lineCov !== 'ignored' && lineCov !== 0)) {
+  if (typeof lineCov === 'number' && lineCov > 0) {
     lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
   } else if (lineCov === 'ignored') {
     lineHtml.push('<span class="hits" data-content="skipped"></span>');
@@ -88,10 +88,16 @@ function renderSourceLine(args: SourceLineArgs): string {
   return lineHtml.join('');
 }
 
-export function renderSourceFile(filename: string, data: FileCoverage, branchCoverage: boolean, methodCoverage: boolean): string {
+export function renderSourceFile(
+  filename: string,
+  data: FileCoverage,
+  lineCoverage: boolean,
+  branchCoverage: boolean,
+  methodCoverage: boolean
+): string {
   const id = fileId(filename);
-  const coveredLines = data.covered_lines;
-  const totalLines = data.total_lines;
+  const coveredLines = lineCoverage ? (data.covered_lines || 0) : 0;
+  const totalLines = lineCoverage ? (data.total_lines || 0) : 0;
   const coveredBranches = branchCoverage ? (data.covered_branches || 0) : 0;
   const totalBranches = branchCoverage ? (data.total_branches || 0) : 0;
   const coveredMethods = methodCoverage ? (data.covered_methods || 0) : 0;
@@ -111,7 +117,7 @@ export function renderSourceFile(filename: string, data: FileCoverage, branchCov
       coveredLines, totalLines,
       coveredBranches, totalBranches,
       coveredMethods, totalMethods,
-      branchCoverage, methodCoverage, showMethodToggle
+      lineCoverage, branchCoverage, methodCoverage, showMethodToggle
     })
   ];
 
@@ -125,7 +131,7 @@ export function renderSourceFile(filename: string, data: FileCoverage, branchCov
   html.push('</div>', '<pre><ol>');
 
   for (let i = 0; i < data.source.length; i++) {
-    const lineCov = data.lines[i];
+    const lineCov = data.lines?.[i];
     const status = lineStatus({
       lineIndex: i, lineCov, branchesReport,
       missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage

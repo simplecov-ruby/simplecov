@@ -68,20 +68,24 @@ Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
   available_source_files = all(".t-file", visible: true, count: expected_files.count)
 
+  include_line_coverage = table.column_names.include?("coverage")
   include_branch_coverage = table.column_names.include?("branch coverage")
+  include_method_coverage = table.column_names.include?("method coverage")
 
   files = available_source_files.map do |file_row|
-    # Try selectors in order: newest → older → oldest simplecov-html
-    coverage_text =
-      if file_row.has_css?(".cell--line-pct", wait: 0)
-        file_row.find(".cell--line-pct").text
-      elsif file_row.has_css?(".t-file__coverage .coverage-cell__pct", wait: 0)
-        file_row.find(".t-file__coverage .coverage-cell__pct").text
-      else
-        file_row.find(".t-file__coverage").text
-      end
+    coverage_data = {"name" => file_row.find(".t-file__name").text}
 
-    coverage_data = {"name" => file_row.find(".t-file__name").text, "coverage" => coverage_text}
+    if include_line_coverage
+      # Try selectors in order: newest → older → oldest simplecov-html
+      coverage_data["coverage"] =
+        if file_row.has_css?(".cell--line-pct", wait: 0)
+          file_row.find(".cell--line-pct").text
+        elsif file_row.has_css?(".t-file__coverage .coverage-cell__pct", wait: 0)
+          file_row.find(".t-file__coverage .coverage-cell__pct").text
+        else
+          file_row.find(".t-file__coverage").text
+        end
+    end
 
     if include_branch_coverage
       coverage_data["branch coverage"] =
@@ -91,6 +95,17 @@ Then /^I should see the source files:$/ do |table|
           file_row.find(".t-file__branch-coverage .coverage-cell__pct").text
         else
           file_row.find(".t-file__branch-coverage").text
+        end
+    end
+
+    if include_method_coverage
+      coverage_data["method coverage"] =
+        if file_row.has_css?(".cell--method-pct", wait: 0)
+          file_row.find(".cell--method-pct").text
+        elsif file_row.has_css?(".t-file__method-coverage .coverage-cell__pct", wait: 0)
+          file_row.find(".t-file__method-coverage .coverage-cell__pct").text
+        else
+          file_row.find(".t-file__method-coverage").text
         end
     end
 
@@ -117,7 +132,9 @@ Then /^there should be (\d+) skipped lines in the source files$/ do |expected_co
         var count = 0;
         var coverage = window.SIMPLECOV_DATA.coverage;
         Object.keys(coverage).forEach(function(fn) {
-          var lines = coverage[fn].lines;
+          // `lines` is absent when line coverage is disabled (criterion-only
+          // reports) — see FileCoverage in html_frontend/src/types.ts.
+          var lines = coverage[fn].lines || [];
           lines.forEach(function(l) { if (l === 'ignored') count++; });
         });
         return count;
@@ -141,8 +158,14 @@ Then %r{^I should see a (.+) coverage summary of (\d+)/(\d+)( for the file)?$} d
       end
     summary_text = find(selector, visible: false).text
   else
-    # Try new format: sum data attributes from file rows
-    attr_map = {"line" => %w[covered-lines relevant-lines], "branch" => %w[covered-branches total-branches]}
+    # Try new format: sum data attributes from file rows. Keep this map in
+    # step with the per-criterion attributes renderFileRow emits in
+    # html_frontend/src/render_list.ts.
+    attr_map = {
+      "line" => %w[covered-lines relevant-lines],
+      "branch" => %w[covered-branches total-branches],
+      "method" => %w[covered-methods total-methods]
+    }
     covered_attr, total_attr = attr_map.fetch(coverage_type)
     actual_covered, actual_total = page.evaluate_script(<<~JS)
       (function() {

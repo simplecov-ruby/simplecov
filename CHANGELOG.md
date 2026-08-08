@@ -12,6 +12,7 @@ Unreleased
 
 ## Bugfixes
 * Configuration blocks no longer install temporary `method_missing` hooks on their caller or copy caller instance variables into SimpleCov. Those hooks leaked DSL commands across threads, broke overlapping and nested evaluations, rejected frozen or immediate-value owners, changed `require_relative` and binding behavior, and could mask an original exception during cleanup. See the parameterized-block migration under Breaking Changes.
+* HTML reports now render correctly when line coverage is disabled. Branch-only and method-only runs use their configured primary criterion for tabs, color bands, sorting, tables, filters, and source summaries instead of crashing while dereferencing absent line statistics.
 * HTML reports now disambiguate source files whose truncated SHA-1 identifiers collide. Existing fragments stay unchanged for non-colliding files, while colliding links receive deterministic suffixes and always open the intended source.
 * `SimpleFormatter` now prints each file's configured primary coverage percentage instead of always printing line coverage. Branch-, method-, and oneshot-primary reports now match the documented primary-criterion behavior; oneshot coverage correctly reads the normalized line statistics.
 * Frontend builds now use the esbuild binary installed from `html_frontend/bun.lock` instead of whichever global version happens to be on `PATH`. CI recompiles the self-contained HTML template and fails on a diff, preventing dependency updates or source changes from leaving the checked-in report asset stale.

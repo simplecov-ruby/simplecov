@@ -9,6 +9,7 @@ export interface CoverageData {
     timestamp: string;
     root: string;
     primary_coverage?: string;
+    line_coverage: boolean;
     branch_coverage: boolean;
     method_coverage: boolean;
   };
@@ -17,8 +18,10 @@ export interface CoverageData {
   groups: Record<string, GroupData>;
 }
 
+export type CoverageType = 'line' | 'branch' | 'method';
+
 export interface StatGroup {
-  lines: CoverageStat;
+  lines?: CoverageStat;
   branches?: CoverageStat;
   methods?: CoverageStat;
 }
@@ -32,12 +35,12 @@ export interface CoverageStat {
 }
 
 export interface FileCoverage {
-  lines: (number | null | 'ignored')[];
+  lines?: (number | null | 'ignored')[];
   source: string[];
-  lines_covered_percent: number;
-  covered_lines: number;
-  missed_lines: number;
-  total_lines: number;
+  lines_covered_percent?: number;
+  covered_lines?: number;
+  missed_lines?: number;
+  total_lines?: number;
   branches?: BranchEntry[];
   branches_covered_percent?: number;
   covered_branches?: number;
@@ -66,10 +69,7 @@ export interface MethodEntry {
   coverage: number | 'ignored';
 }
 
-export interface GroupData {
-  lines: CoverageStat;
-  branches?: CoverageStat;
-  methods?: CoverageStat;
+export interface GroupData extends StatGroup {
   files?: string[];
 }
 
