@@ -35,7 +35,7 @@ Feature:
     Then the report should be based upon:
       | Unit Tests |
 
-    When I wait for 5 seconds
+    When the stored resultset is 6 seconds older
     And I open the coverage report generated with `bundle exec rspec spec`
     Then the report should be based upon:
       | RSpec |

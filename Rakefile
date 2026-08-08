@@ -35,12 +35,22 @@ end
 
 begin
   require "cucumber/rake/task"
-  Cucumber::Rake::Task.new do |t|
-    t.cucumber_opts = %w[--retry 3 --no-strict-flaky]
-  end
+  # The serial task stays around for debugging a single flow without
+  # worker interleaving.
+  Cucumber::Rake::Task.new(:"cucumber:serial")
 rescue LoadError
   # Cucumber isn't installed (e.g. on JRuby, which only runs `rake spec`).
-  task :cucumber do
+end
+
+# The suite's cost is almost entirely subprocess and browser wall clock,
+# so it parallelizes nearly linearly: `parallel_cucumber` splits the
+# feature files across CPU-count workers, each in its own Aruba sandbox
+# (see features/support/env.rb).
+desc "Run Cucumber features across parallel workers"
+task :cucumber do
+  if Rake::Task.task_defined?(:"cucumber:serial")
+    sh "bundle exec parallel_cucumber --serialize-stdout features"
+  else
     warn "Cucumber is disabled"
   end
 end

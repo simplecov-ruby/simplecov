@@ -20,6 +20,8 @@ group :development do
     gem "cucumber"
     gem "cuprite"
     gem "nokogiri"
+    # Fans the cucumber suite out across worker processes (`rake cucumber`).
+    gem "parallel_tests"
     gem "rackup"
     gem "rbs", "~> 4.0.0"
     gem "steep", ">= 1.10", require: false

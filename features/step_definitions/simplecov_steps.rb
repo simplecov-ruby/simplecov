@@ -74,10 +74,17 @@ Then /^the report should be based upon:$/ do |table|
     )
 end
 
-# This is necessary to ensure timing-dependant tests like the merge timeout
-# do not fail on powerful machines.
-When /^I wait for (\d+) seconds$/ do |seconds|
-  sleep seconds.to_i
+# Ages what's already stored instead of really sleeping: the merge only
+# compares the recorded timestamps against merge_timeout, so backdating
+# the data is equivalent and keeps real wall-clock waits out of the
+# suite.
+When /^the stored resultset is (\d+) seconds older$/ do |seconds|
+  in_current_directory do
+    path = "coverage/.resultset.json"
+    data = JSON.parse(File.read(path))
+    data.each_value { |entry| entry["timestamp"] -= seconds.to_i }
+    File.write(path, JSON.dump(data))
+  end
 end
 
 Then "the overlay should be open" do
@@ -85,12 +92,42 @@ Then "the overlay should be open" do
 end
 
 When "I install dependencies" do
-  # Remove lock file to avoid bundler version conflicts across Ruby versions
-  in_current_directory { FileUtils.rm_f("Gemfile.lock") }
-  # bundle may take its time
-  steps %(
-    When I successfully run `bundle` for up to 120 seconds
-  )
+  # When the sandbox's shipped lockfile is already satisfied by the
+  # installed gems, `bundle check` answers in a fraction of a full
+  # resolve — and some features install the same project's dependencies
+  # once per scenario. Anything else (missing gems, or a lockfile
+  # written by a conflicting bundler on another Ruby version) falls back
+  # to the original path: drop the lock and resolve fresh.
+  run_command_and_stop("bundle check", fail_on_error: false)
+  next if last_command_started.exit_status.zero?
+
+  # Parallel workers resolve different sandboxes but install into the
+  # one shared gem home, and rubygems' native-extension builds are not
+  # concurrency-safe: two simultaneous installs of the same gem compile
+  # in the same ext directory and the loser dies mid-make with a
+  # Gem::Ext::BuildError ("can't create bigdecimal.o"). Serialize the
+  # install path across workers — the warm `bundle check` above stays
+  # parallel — and re-check once the lock is held, because the worker
+  # that held it first usually installed exactly what this one misses.
+  with_cross_worker_install_lock do
+    run_command_and_stop("bundle check", fail_on_error: false)
+    next if last_command_started.exit_status.zero?
+
+    in_current_directory { FileUtils.rm_f("Gemfile.lock") }
+    # bundle may take its time
+    steps %(
+      When I successfully run `bundle` for up to 120 seconds
+    )
+  end
+end
+
+def with_cross_worker_install_lock
+  path = File.expand_path("../../tmp/cucumber-bundle-install.lock", __dir__)
+  FileUtils.mkdir_p(File.dirname(path))
+  File.open(path, File::CREAT | File::RDWR) do |lock|
+    lock.flock(File::LOCK_EX)
+    yield
+  end
 end
 
 When "I pry" do
