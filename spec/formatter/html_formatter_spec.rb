@@ -132,6 +132,17 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html]
     end
 
+    it "removes the sibling files a pre-1.0.4 report left behind" do
+      # A stale coverage_data.js is worse than clutter: `simplecov serve`
+      # would keep serving the old data next to the new report.
+      described_class::LEGACY_REPORT_FILES.each { |name| FileUtils.touch(File.join(coverage_dir, name)) }
+      FileUtils.touch(File.join(coverage_dir, "unrelated.txt"))
+
+      formatter.format(make_result)
+
+      expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html unrelated.txt]
+    end
+
     it "embeds the coverage data as a `window.SIMPLECOV_DATA = ...` script" do
       html = File.read(File.join(coverage_dir, "index.html"))
 

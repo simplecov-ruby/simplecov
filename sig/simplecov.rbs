@@ -1374,6 +1374,10 @@ module SimpleCov
     class HTMLFormatter < Base
       DATA_MARKER: "<!-- SIMPLECOV_COVERAGE_DATA -->"
 
+      # The sibling files a 1.0.0 through 1.0.3 report wrote next to
+      # index.html, removed by format when an earlier version left them.
+      LEGACY_REPORT_FILES: Array[String]
+
       def format: (SimpleCov::Result result) -> void
 
       # Generate HTML from a pre-existing coverage.json file without a
@@ -1383,6 +1387,10 @@ module SimpleCov
       private
 
       def entry_point_filename: () -> String
+
+      # Write coverage.json and index.html, then clear any legacy
+      # sibling files an earlier version left in the output directory.
+      def write_report_files: (Hash[untyped, untyped] json_hash, Hash[untyped, untyped] viewer_hash) -> void
 
       # Substitute the coverage JSON into the compiled template.
       def render_report: (String json) -> String

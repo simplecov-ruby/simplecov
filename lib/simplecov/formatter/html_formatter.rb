@@ -17,6 +17,15 @@ module SimpleCov
       # Placeholder in the compiled template where the report's data goes.
       DATA_MARKER = "<!-- SIMPLECOV_COVERAGE_DATA -->"
 
+      # The sibling files a 1.0.0 through 1.0.3 report wrote next to
+      # index.html. They are stale the moment a single-file report lands
+      # on top of them — `simplecov serve` would happily keep serving the
+      # old coverage_data.js — so formatting removes the known names.
+      LEGACY_REPORT_FILES = %w[
+        coverage_data.js application.js application.css
+        favicon_green.png favicon_red.png favicon_yellow.png
+      ].freeze
+
       def format(result)
         # The inlined report data feeds the client-side viewer, which
         # renders source from the embedded array — it always needs
@@ -30,9 +39,7 @@ module SimpleCov
         FileUtils.mkdir_p(output_path)
         viewer_hash = JSONFormatter.build_hash(result, include_source: true)
         json_hash = SimpleCov.source_in_json ? viewer_hash : JSONFormatter.build_hash(result)
-
-        atomic_write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash))
-        atomic_write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)))
+        write_report_files(json_hash, viewer_hash)
 
         # stderr, not stdout: this is a status message, not the program's
         # output. Keeps the line out of pipelines like `rspec -f json`. And
@@ -61,6 +68,12 @@ module SimpleCov
 
       def entry_point_filename
         "index.html"
+      end
+
+      def write_report_files(json_hash, viewer_hash)
+        atomic_write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash))
+        atomic_write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)))
+        FileUtils.rm_f(LEGACY_REPORT_FILES.map { |name| File.join(output_path, name) })
       end
 
       # Substitute the coverage JSON into the compiled template. `<` is
