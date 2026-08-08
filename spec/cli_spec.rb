@@ -923,6 +923,8 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe ".resolve" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
       before do
         FileUtils.mkdir_p(File.join(tmp, "assets"))
         File.write(File.join(tmp, "index.html"), "<html></html>")
@@ -930,31 +932,31 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "maps `/` to index.html" do
-        expect(described_class::Serve.resolve("/", tmp)).to eq(File.realpath(File.join(tmp, "index.html")))
+        expect(handler.resolve("/", tmp)).to eq(File.realpath(File.join(tmp, "index.html")))
       end
 
       it "serves an explicit asset" do
-        expect(described_class::Serve.resolve("/assets/app.js", tmp))
+        expect(handler.resolve("/assets/app.js", tmp))
           .to eq(File.realpath(File.join(tmp, "assets/app.js")))
       end
 
       it "strips query strings" do
-        expect(described_class::Serve.resolve("/index.html?_=1", tmp))
+        expect(handler.resolve("/index.html?_=1", tmp))
           .to eq(File.realpath(File.join(tmp, "index.html")))
       end
 
       it "returns nil for a missing file" do
-        expect(described_class::Serve.resolve("/missing.html", tmp)).to be_nil
+        expect(handler.resolve("/missing.html", tmp)).to be_nil
       end
 
       it "blocks parent-directory traversal" do
-        expect(described_class::Serve.resolve("/../secret.txt", tmp)).to eq(:forbidden)
+        expect(handler.resolve("/../secret.txt", tmp)).to eq(:forbidden)
       end
 
       it "maps a directory request to its index.html" do
         FileUtils.mkdir_p(File.join(tmp, "assets", "nested"))
         File.write(File.join(tmp, "assets", "nested", "index.html"), "ok")
-        expect(described_class::Serve.resolve("/assets/nested", tmp))
+        expect(handler.resolve("/assets/nested", tmp))
           .to eq(File.realpath(File.join(tmp, "assets/nested/index.html")))
       end
 
@@ -962,7 +964,7 @@ RSpec.describe SimpleCov::CLI do
         Dir.mktmpdir("simplecov-cli-serve-escape-") do |outside|
           File.write(File.join(outside, "secret.txt"), "shhh")
           File.symlink(File.join(outside, "secret.txt"), File.join(tmp, "leak"))
-          expect(described_class::Serve.resolve("/leak", tmp)).to eq(:forbidden)
+          expect(handler.resolve("/leak", tmp)).to eq(:forbidden)
         end
       end
     end
@@ -970,7 +972,7 @@ RSpec.describe SimpleCov::CLI do
     it "returns 403 for a path-traversal attempt" do
       FileUtils.mkdir_p(tmp)
       server = TCPServer.new("127.0.0.1", 0)
-      thread = Thread.new { described_class::Serve.handle_connection(server.accept, tmp) }
+      thread = Thread.new { described_class::Serve::StaticFileHandler.handle_connection(server.accept, tmp) }
       sock = TCPSocket.new("127.0.0.1", server.addr[1])
       # Raw request so the path isn't normalized by Net::HTTP / URI.
       sock.write("GET /../secret.txt HTTP/1.1\r\nHost: x\r\n\r\n")
@@ -985,7 +987,7 @@ RSpec.describe SimpleCov::CLI do
       FileUtils.mkdir_p(tmp)
       server = TCPServer.new("127.0.0.1", 0)
       thread = Thread.new do
-        described_class::Serve.handle_connection(server.accept, tmp)
+        described_class::Serve::StaticFileHandler.handle_connection(server.accept, tmp)
       end
       sock = TCPSocket.new("127.0.0.1", server.addr[1])
       sock.write("POST / HTTP/1.1\r\nHost: x\r\n\r\n")
@@ -1005,7 +1007,7 @@ RSpec.describe SimpleCov::CLI do
         s.close
       end
       accepted = server.accept
-      expect { described_class::Serve.handle_connection(accepted, tmp) }.not_to raise_error
+      expect { described_class::Serve::StaticFileHandler.handle_connection(accepted, tmp) }.not_to raise_error
     ensure
       server&.close
     end
@@ -1043,6 +1045,32 @@ RSpec.describe SimpleCov::CLI do
         not_found = Net::HTTP.get_response(URI("#{url}missing.html"))
         expect(not_found.code).to eq("404")
       ensure
+        thread.raise(Interrupt) if thread.alive?
+        thread.join(2)
+      end
+    end
+
+    # Browsers open speculative connections that send no bytes; each
+    # connection gets its own thread so those can't stall real requests.
+    it "answers a request while another connection sits idle" do
+      File.write(File.join(tmp, "index.html"), "<html>concurrent</html>")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+
+      announced = Queue.new
+      allow(described_class::Serve).to receive(:announce) do |_stdout, server, _dir|
+        announced << "http://#{server.addr[3]}:#{server.addr[1]}/"
+      end
+
+      thread = Thread.new { described_class.run(["serve"], stdout: stdout, stderr: stderr) }
+      idle = nil
+      begin
+        uri = URI(announced.pop)
+        idle = TCPSocket.new(uri.host, uri.port) # never sends a request
+        response = Net::HTTP.get_response(uri)
+        expect(response.code).to eq("200")
+        expect(response.body).to include("concurrent")
+      ensure
+        idle&.close
         thread.raise(Interrupt) if thread.alive?
         thread.join(2)
       end

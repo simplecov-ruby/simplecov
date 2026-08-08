@@ -1,0 +1,34 @@
+module SimpleCov
+  module CLI
+    module Serve
+      # The HTTP mechanics behind `simplecov serve`: one request per
+      # connection, answered from the report directory with
+      # traversal-safe path resolution.
+      module StaticFileHandler
+        MIME: ::Hash[::String, ::String]
+
+        STATUS_TEXT: ::Hash[::Integer, ::String]
+
+        READ_TIMEOUT: ::Integer
+
+        # Reads one HTTP request line, drains headers, serves the file or
+        # writes a status response. Wide rescue so a misbehaving client
+        # can't crash the server.
+        def self?.handle_connection: (untyped client, untyped root) -> untyped
+
+        def self?.serve_file: (untyped client, untyped path, untyped root) -> untyped
+
+        def self?.drain_headers: (untyped client) -> untyped
+
+        # Returns the absolute path of the file to serve, :forbidden for
+        # a traversal attempt (including symlinks that escape root), or
+        # nil for "not found".
+        def self?.resolve: (untyped request_path, untyped root) -> untyped
+
+        def self?.inside?: (untyped path, untyped root) -> untyped
+
+        def self?.respond: (untyped client, untyped status, ?::String body, ?::String content_type) -> untyped
+      end
+    end
+  end
+end
