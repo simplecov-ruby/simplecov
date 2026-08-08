@@ -661,6 +661,20 @@ RSpec.describe SimpleCov::ResultMerger do
       end.not_to raise_error
     end
 
+    it "stays reentrant across sibling nested calls" do
+      # The first nested call must not reset the outer lock's flag on its
+      # way out: the second sibling call would then take the flock path
+      # and self-deadlock against the fd the outer call still holds.
+      expect do
+        Timeout.timeout(1) do
+          described_class.synchronize_resultset do
+            described_class.synchronize_resultset { :first }
+            described_class.synchronize_resultset { :second }
+          end
+        end
+      end.not_to raise_error
+    end
+
     it "blocks other processes" do # rubocop:disable RSpec/ExampleLength
       skip "POSIX shell redirection and cross-process flock semantics are Unix-only" if Gem.win_platform?
 

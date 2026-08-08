@@ -28,14 +28,19 @@ module SimpleCov
 
       # Ensure only one process is reading or writing the resultset at
       # any given time. Reentrant: the lock is acquired once per outer
-      # call no matter how deeply nested.
+      # call no matter how deeply nested. Only the acquiring call may
+      # reset the flag — a method-level ensure would run on the nested
+      # early-return path too, and the next sibling nested call would
+      # then flock a second fd against our own held lock and deadlock.
       def synchronize(&)
         return yield if @locked
 
         @locked = true
-        with_flock(&)
-      ensure
-        @locked = false
+        begin
+          with_flock(&)
+        ensure
+          @locked = false
+        end
       end
 
       def with_flock
