@@ -244,6 +244,29 @@ RSpec.describe SimpleCov::ResultMerger do
       end
     end
 
+    # A loaded file need not have executed anything: a file with no
+    # executable lines (comments and blanks throughout) reports every line
+    # as nil. Only a relevant line can say a file was never executed, so
+    # such a file must not be flagged — flagging it would turn its branch
+    # and method coverage into #902's 0% even though it was really loaded.
+    context "when a loaded file has no relevant lines" do
+      let(:comment_only) { source_fixture("never.rb") }
+      let(:coverage) do
+        {
+          executed => {"lines" => [nil, 1, 1, 0]},
+          comment_only => {"lines" => [nil, nil]}
+        }
+      end
+
+      it "does not flag it" do
+        expect(file(comment_only)).not_to be_not_loaded
+      end
+
+      it "keeps its statistics off the #902 not-loaded rule" do
+        expect(file(comment_only).coverage_statistics[:branch]&.percent).to eq(100.0)
+      end
+    end
+
     # `Combine` short-circuits to the non-nil side, so a file present in one
     # result without lines and absent from another merges to a nil lines value.
     context "when a merged entry has a nil lines value" do

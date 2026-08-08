@@ -76,14 +76,20 @@ module SimpleCov
       # still consulted, using the same signal
       # `Combine::CoverageAccumulator` reconciles synthesized tuples on.
       #
-      # A file is judged only when it has line data. A branch-only or
-      # method-only run reports none for the files it loaded, which would
-      # otherwise read as "never executed" and mark the whole report not loaded.
-      # `SimulateCoverage` omits lines under those criteria too, so nothing is
-      # judged rather than misjudged.
+      # A file is judged only when it has a relevant line. A branch-only or
+      # method-only run reports no line data at all for the files it loaded,
+      # and a loaded file with no executable lines (a comment-only constants
+      # stub, say) reports every line as `nil` — either would otherwise read
+      # as "never executed" and mark a genuinely loaded file not loaded,
+      # turning its branch and method coverage into #902's 0%.
+      # `SimulateCoverage` omits lines under those criteria too and gives a
+      # simulated file a `0` on every relevant line, so genuinely unloaded
+      # files still carry judgeable data, and a simulated file with none is
+      # already flagged by injection reporting it.
       def never_executed(coverage)
         coverage.each_with_object(Set.new) do |(filename, file_coverage), set|
-          next if Array(file_coverage["lines"]).empty?
+          counts = Array(file_coverage["lines"]) #: Array[Integer?]
+          next unless counts.any? { |count| !count.nil? }
 
           set << filename unless Combine::CoverageAccumulator.executed?(file_coverage["lines"])
         end
