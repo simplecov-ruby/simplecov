@@ -510,6 +510,53 @@ RSpec.describe SimpleCov::Configuration do
         expect(stderr).to be_empty
         expect(config.groups.keys).to eq ["Models"]
       end
+
+      it "reserves Ungrouped for files that match no configured group" do
+        config.group "Models", "app/models"
+
+        expect { config.group "Ungrouped", // }
+          .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+        expect(config.groups.keys).to eq ["Models"]
+      end
+
+      it "rejects the reserved name when replacing the groups hash" do
+        config.group "Models", "app/models"
+        replacement = {"Ungrouped" => SimpleCov::StringFilter.new("lib")}
+
+        expect { config.groups = replacement }
+          .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+        expect(config.groups.keys).to eq ["Models"]
+      end
+
+      it "normalizes a Symbol group name to its String spelling" do
+        config.group :Models, "app/models"
+
+        expect(config.groups.keys).to eq ["Models"]
+      end
+
+      it "keeps a Symbol spelling from bypassing the reserved name" do
+        expect { config.group :Ungrouped, // }
+          .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+        expect(config.groups).to be_empty
+      end
+
+      it "rejects group names that are neither String nor Symbol" do
+        expect { config.group 42, // }
+          .to raise_error(SimpleCov::ConfigurationError, /Group names must be Strings/)
+        expect(config.groups).to be_empty
+      end
+
+      it "normalizes Symbol keys when replacing the groups hash" do
+        config.groups = {Models: SimpleCov::StringFilter.new("app/models")}
+
+        expect(config.groups.keys).to eq ["Models"]
+      end
+
+      it "rejects a Symbol spelling of the reserved name in a replacement hash" do
+        expect { config.groups = {Ungrouped: SimpleCov::StringFilter.new("lib")} }
+          .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+        expect(config.groups).to be_empty
+      end
     end
 
     describe "#add_group (deprecated)" do
@@ -529,6 +576,13 @@ RSpec.describe SimpleCov::Configuration do
 
         expect(stderr).to include("`SimpleCov.group \"Other\" { ... }`")
         expect(stderr).not_to include('"Other", nil')
+      end
+
+      it "rejects the reserved Ungrouped name" do
+        expect do
+          capture_stderr { config.add_group "Ungrouped", // }
+        end.to raise_error(SimpleCov::ConfigurationError, /reserved/)
+        expect(config.groups).to be_empty
       end
     end
 

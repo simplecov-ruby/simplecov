@@ -155,6 +155,7 @@ end
 require_relative "configuration/coverage"
 require_relative "configuration/coverage_criteria"
 require_relative "configuration/filters"
+require_relative "configuration/groups"
 require_relative "configuration/formatting"
 require_relative "configuration/ignored_entries"
 require_relative "configuration/merging"

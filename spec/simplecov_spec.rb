@@ -857,6 +857,13 @@ RSpec.describe SimpleCov do
       result = described_class.grouped(files)
       expect(result.keys).to contain_exactly("All")
     end
+
+    it "rejects a reserved group inserted by direct hash mutation" do
+      described_class.groups["Ungrouped"] = SimpleCov::StringFilter.new("lib")
+
+      expect { described_class.grouped(files) }
+        .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+    end
   end
 
   describe ".result" do

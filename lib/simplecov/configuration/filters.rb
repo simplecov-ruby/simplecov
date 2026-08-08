@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # Inclusion / exclusion / grouping methods: `cover`, `skip`, `group`,
-  # plus the deprecated `track_files` / `add_filter` / `add_group`
-  # aliases. Mutates the same `filters`, `groups`, and `cover_filters`
-  # collections the main Configuration module exposes.
+  # Inclusion and exclusion methods: `cover` and `skip`, plus the deprecated
+  # `track_files` and `add_filter` aliases.
   module Configuration
-    attr_writer :filters, :groups
+    attr_writer :filters
 
     #
     # Restrict the universe of files in the coverage report to those matching
@@ -119,33 +117,6 @@ module SimpleCov
     # by `SimpleCov.start`.
     def clear_filters
       @filters = []
-    end
-
-    # Returns the configured groups. Add groups using SimpleCov.group.
-    def groups
-      @groups ||= {}
-    end
-
-    # Define a display group for files. Same matcher grammar as `skip`,
-    # but instead of dropping the matching files it bins them under
-    # `group_name` for the formatter. Files matched by no group fall
-    # into the implicit "Ungrouped" bucket.
-    def group(group_name, filter_argument = nil, &)
-      groups[group_name] = parse_filter(filter_argument, &)
-    end
-
-    # DEPRECATED: alias for `group`. Same arguments, same behavior.
-    def add_group(group_name, filter_argument = nil, &block)
-      example = if block
-                  "`SimpleCov.group #{group_name.inspect} { ... }`"
-                else
-                  "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`"
-                end
-      SimpleCov::Deprecation.warn(
-        "`SimpleCov.add_group` is deprecated. " \
-        "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
-      )
-      group(group_name, filter_argument, &block)
     end
 
     # Drop every filter previously installed (defaults plus anything

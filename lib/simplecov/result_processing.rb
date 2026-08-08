@@ -100,7 +100,7 @@ module SimpleCov
     # construction). Files matched by no group fall into the implicit
     # "Ungrouped" bucket.
     def grouped(files, groups: SimpleCov.groups)
-      return {} if groups.empty?
+      return {} if GroupNames.validate!(groups.keys).empty?
 
       grouped = groups.transform_values do |filter|
         SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
@@ -108,7 +108,7 @@ module SimpleCov
 
       in_group  = grouped_file_set(grouped)
       ungrouped = files.reject { |source_file| in_group.include?(source_file) }
-      grouped["Ungrouped"] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
+      grouped[GroupNames::UNGROUPED] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
 
       grouped
     end

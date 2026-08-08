@@ -600,6 +600,9 @@ SimpleCov.start do
 end
 ```
 
+Files that match no configured group appear in an implicit `Ungrouped` group. That name is reserved; use another name
+such as `Other` for an explicit group.
+
 ## Profiles
 
 By default, SimpleCov's only assumption is that you want coverage for files inside your project root. To avoid

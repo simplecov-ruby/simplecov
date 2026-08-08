@@ -18,6 +18,14 @@ module SimpleCov
   class ConfigurationError < StandardError
   end
 
+  module GroupNames
+    UNGROUPED: String
+
+    def self?.normalize: (untyped group_name) -> String
+
+    def self?.validate!: (Array[String] group_names) -> Array[String]
+  end
+
   # Maps SimpleCov's criterion names to the keys `Coverage.start` expects.
   CRITERION_TO_RUBY_COVERAGE: Hash[Symbol, Symbol]
 
