@@ -296,6 +296,22 @@ RSpec.describe SimpleCov::ResultMerger do
       stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
       expect(stderr).to include("Parsing JSON content of resultset file failed")
     end
+
+    # Valid JSON, wrong shape: everything downstream iterates
+    # command => data pairs, so a top-level array or string would crash
+    # out of the middle of a merge rather than being tolerated like the
+    # malformed input above.
+    it "warns and returns an empty hash when the resultset is valid JSON but not an object" do
+      File.write(described_class.resultset_path, "[1, 2]")
+      stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
+      expect(stderr).to include("Parsing JSON content of resultset file failed")
+    end
+
+    it "keeps treating a null resultset as empty, without a warning" do
+      File.write(described_class.resultset_path, "null")
+      stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
+      expect(stderr).to be_empty
+    end
   end
 
   describe "basic workings with 2 resultsets" do

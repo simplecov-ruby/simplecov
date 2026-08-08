@@ -10,6 +10,8 @@ module SimpleCov
       def self?.read: (untyped path) -> (nil | untyped)
 
       def self?.decode: (untyped content) -> untyped
+
+      def self?.invalid_resultset: () -> Hash[untyped, untyped]
     end
   end
 end

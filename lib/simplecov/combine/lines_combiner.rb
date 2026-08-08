@@ -40,17 +40,30 @@ module SimpleCov
       end
 
       # Split out only to keep `merge_into` short; it is the same loop.
+      #
+      # The `Integer` tests coerce malformed counts (a "3" written by a
+      # hand-edited or foreign resultset, a JSON float) like
+      # `merge_line_coverage`'s `to_i` path does, so the two entry points
+      # answer alike on external input. An `is_a?` per count is far
+      # cheaper than the block dispatch this loop exists to avoid, and
+      # the well-formed fast path stays branch-for-branch what it was.
       def sum_into(target, source, size)
         index = 0
         while index < size
-          value = source[index]
-          unless value.nil?
+          if (value = source[index])
+            value = value.to_i unless value.is_a?(Integer)
             existing = target[index]
-            target[index] = existing.nil? ? value : existing + value
+            target[index] = existing.is_a?(Integer) ? existing + value : coerce_add(existing, value)
           end
           index += 1
         end
         target
+      end
+
+      # The rare arm: `existing` is nil (line not yet relevant in the
+      # target) or malformed external input.
+      def coerce_add(existing, value)
+        existing.nil? ? value : existing.to_i + value
       end
 
       # Two runs of the same source file should agree on which lines

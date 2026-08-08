@@ -25,6 +25,31 @@ RSpec.describe SimpleCov::Combine::LinesCombiner do
     end
   end
 
+  describe ".merge_into" do
+    it "folds the source into the target, summing overlaps" do
+      expect(described_class.merge_into([1, nil, 0], [2, 1, nil, 3])).to eq([3, 1, 0, 3])
+    end
+
+    it "returns the target untouched when there is no source" do
+      target = [1, nil]
+      expect(described_class.merge_into(target, nil)).to be(target)
+    end
+
+    it "duplicates the source when there is no target yet" do
+      source = [1, nil]
+      expect(described_class.merge_into(nil, source)).to eq(source)
+      expect(described_class.merge_into(nil, source)).not_to be(source)
+    end
+
+    # Resultsets are external input, so the hot loop coerces malformed
+    # counts the same way `merge_line_coverage`'s to_i path does — the
+    # two entry points must answer alike.
+    it "coerces malformed counts like merge_line_coverage does" do
+      expect(described_class.merge_into(["2", nil], [1, "3", 1.0])).to eq([3, 3, 1])
+      expect(described_class.merge_line_coverage("2", 1)).to eq(3)
+    end
+  end
+
   describe ".merge_line_coverage" do
     it "returns nil only when both sides are nil" do
       expect(described_class.merge_line_coverage(nil, nil)).to be_nil

@@ -19,6 +19,9 @@ module SimpleCov
       # Split out only to keep `merge_into` short; it is the same loop.
       def self?.sum_into: (untyped target, untyped source, Integer size) -> untyped
 
+      # The rare arm: existing is nil or malformed external input.
+      def self?.coerce_add: (untyped existing, Integer value) -> Integer
+
       # Two runs of the same source file should agree on which lines
       # are coverage-relevant (`nil` for comments / whitespace, `0`+
       # for executable). When they don't, treat "relevant on either
