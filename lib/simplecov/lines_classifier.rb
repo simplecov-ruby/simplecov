@@ -13,6 +13,11 @@ module SimpleCov
     COMMENT_LINE = /^\s*#/
     WHITESPACE_OR_COMMENT_LINE = Regexp.union(WHITESPACE_LINE, COMMENT_LINE)
 
+    # The leading `^(\s*)#` anchor is load-bearing beyond matching the marker:
+    # `classify_line` only reaches this for lines that already passed
+    # `whitespace_line?`, which is sound only while every marker is also a
+    # comment. Loosening this to match a trailing `x = 1 # :nocov:` would stop
+    # the toggle firing. `lines_classifier_spec.rb` pins the implication.
     def self.no_cov_line
       /^(\s*)#(\s*)(:#{SimpleCov.current_nocov_token}:)/o
     end
@@ -34,21 +39,29 @@ module SimpleCov
     def classify(lines)
       lines = lines.to_a
       directive_disabled = directive_disabled_line_set(lines)
-      skipping = false
+      @skipping = false
 
       lines.map.with_index(1) do |line, line_number|
-        skipping = !skipping if self.class.no_cov_line?(line)
-        not_relevant_line?(line, line_number, skipping, directive_disabled) ? NOT_RELEVANT : RELEVANT
+        classify_line(line, line_number, directive_disabled)
       end
     end
 
   private
 
-    def not_relevant_line?(line, line_number, skipping, directive_disabled)
-      skipping ||
-        self.class.no_cov_line?(line) ||
-        directive_disabled.include?(line_number) ||
-        self.class.whitespace_line?(line)
+    # A `:nocov:` marker is itself a comment, so the cheap
+    # whitespace-or-comment test can gate the token match: a line of real
+    # code cannot be a marker, and no longer pays to be checked against
+    # one. That matters because this runs per line of every
+    # tracked-but-unloaded file, once in every process of a parallel run.
+    def classify_line(line, line_number, directive_disabled)
+      if self.class.whitespace_line?(line)
+        @skipping = !@skipping if self.class.no_cov_line?(line)
+        NOT_RELEVANT
+      elsif @skipping || directive_disabled.include?(line_number)
+        NOT_RELEVANT
+      else
+        RELEVANT
+      end
     end
 
     def directive_disabled_line_set(lines)

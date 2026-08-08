@@ -8,7 +8,7 @@
 # actually turn on and the ones a real-world fixture tends not to contain:
 #
 # - files missing from some shards entirely (the nil short-circuit in
-#   `Combine.combine`, which passes a coverage through verbatim)
+#   the accumulator, which passes a coverage through verbatim)
 # - entries with no positive line, i.e. simulated / never-loaded files, mixed
 #   with executed ones for the same file (`reconcile_synthesized`, #1233)
 # - the same source span carrying a different branch id in each shard (the
@@ -37,10 +37,10 @@ module_function
   # Returns an array of shards, each a `{file => entry}` coverage hash.
   #
   # `saturate` puts every file in every shard with both criterion keys always
-  # present, so `Combine.combine` never takes its nil short-circuit. That
-  # short-circuit hands a coverage back verbatim, skipping identity collapse
-  # entirely, which is a divergence in its own right rather than anything about
-  # how N results combine - see the characterization example in the spec.
+  # present, so no file is ever carried by one shard alone. The accumulator
+  # hands such a file back verbatim, skipping identity collapse entirely, which
+  # is a divergence in its own right rather than anything about how N results
+  # combine - see the characterization example in the spec.
   def shards(seed, saturate: false)
     rng = Random.new(seed)
     count = rng.rand(2..5)

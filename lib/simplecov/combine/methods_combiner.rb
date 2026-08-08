@@ -8,7 +8,7 @@ module SimpleCov
     #
     # Combine different method coverage results on a single file.
     #
-    # Should be called through `SimpleCov.combine`.
+    # Should be called through `CoverageAccumulator`.
     module MethodsCombiner
     module_function
 
@@ -30,10 +30,33 @@ module SimpleCov
       # @return [Hash]
       #
       def combine(coverage_a, coverage_b)
-        merged = {} #: Hash[untyped, [untyped, Integer]]
-        [coverage_a, coverage_b].each { |coverage| merge_methods(merged, coverage) }
+        merged = absorb({}, coverage_a) #: Hash[untyped, [untyped, Integer]]
+        materialize(absorb(merged, coverage_b))
+      end
 
-        merged.values.to_h
+      # Folds `coverage` into `target`, an interned table keyed by method
+      # source identity. See `BranchesCombiner.absorb` for why a fold keeps
+      # its accumulator interned.
+      #
+      # A `nil` `target` stays `nil` until some resultset actually carries
+      # methods, so a merge can tell "no method data anywhere" apart from
+      # "method data that covers nothing".
+      #
+      # @return [Hash, nil] `target`, created on the first coverage seen
+      def absorb(target, coverage)
+        return target unless coverage
+
+        target ||= {} #: Hash[untyped, [untyped, Integer]]
+        merge_methods(target, coverage)
+        target
+      end
+
+      # Turns an interned table back into the tuple-keyed hash the rest of
+      # SimpleCov reads. Done once, at the end of a fold.
+      #
+      # @return [Hash]
+      def materialize(target)
+        target.values.to_h
       end
 
       # `target` and its pairs are always built by `combine` above, so updating

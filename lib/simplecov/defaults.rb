@@ -24,8 +24,11 @@ SimpleCov.configure do
   load_profile "test_frameworks"
 end
 
-# Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info
+# Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info.
+# The program name is kept separately as well: the join below is lossy for a
+# path containing a space, and the guesser reads the executable from it.
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
+SimpleCov::CommandGuesser.original_program_name = $PROGRAM_NAME
 
 # Autoload config from ~/.simplecov if present
 require_relative "load_global_config"

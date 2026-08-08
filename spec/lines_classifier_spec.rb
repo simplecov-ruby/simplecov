@@ -33,6 +33,49 @@ RSpec.describe SimpleCov::LinesClassifier do
       end
     end
 
+    # `classify` reaches `no_cov_line?` only for lines that already passed
+    # the whitespace-or-comment test, so an invalid byte sequence is caught
+    # there first. `SourceFile::SkipChunks` calls this directly on raw
+    # source, though, where it can still meet one.
+    describe ".no_cov_line?" do
+      it "is false for a line with an invalid UTF-8 byte sequence" do
+        expect(described_class.no_cov_line?("# :nocov: \xF1\xEB\xE2")).to be(false)
+      end
+
+      it "is true for a well-formed marker" do
+        expect(described_class.no_cov_line?("# :nocov:")).to be(true)
+      end
+    end
+
+    # `classify_line` gates the marker match behind the whitespace-or-comment
+    # test, which is only sound while every marker is also a comment. That
+    # holds because `no_cov_line` is anchored `^(\s*)#`, strictly narrower than
+    # `COMMENT_LINE`'s `^\s*#`. Loosening the marker to match a trailing
+    # `x = 1 # :nocov:` would break the gate silently: the toggle would stop
+    # firing and `:nocov:` blocks would stop being skipped, with nothing else
+    # failing. This pins the implication so that change fails here instead.
+    describe "the marker/comment invariant classify_line relies on" do
+      markers = [
+        "# :nocov:",
+        "#:nocov:",
+        "    # :nocov:",
+        "\t#   :nocov:"
+      ]
+
+      markers.each do |line|
+        it "treats #{line.inspect} as both a marker and a comment" do
+          expect(described_class.no_cov_line?(line)).to be(true)
+          expect(described_class.whitespace_line?(line)).to be(true)
+        end
+      end
+
+      it "does not treat a trailing marker on a line of code as a marker" do
+        # If this ever becomes true, `classify_line` needs to stop gating on
+        # `whitespace_line?` before the change ships.
+        expect(described_class.no_cov_line?("x = 1 # :nocov:")).to be(false)
+      end
+    end
+
     describe "not-relevant lines" do
       it "determines whitespace is not-relevant" do
         classified_lines = classifier.classify [

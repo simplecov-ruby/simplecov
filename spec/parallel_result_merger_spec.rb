@@ -32,7 +32,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-  let(:serial) { SimpleCov::ResultMerger.merge_resultsets(paths, ignore_timeout: true) }
+  let(:serial) { SimpleCov::ResultMerger.absorb_results(paths, ignore_timeout: true) }
 
   after { FileUtils.remove_entry(resultset_dir) }
 
@@ -86,14 +86,14 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-  describe ".merge_resultsets" do
-    it "produces the pair ResultMerger.merge_resultsets produces", if: FORK_SUPPORTED do
-      expect(described_class.merge_resultsets(paths, processes: 3, ignore_timeout: true)).to eq(serial)
+  describe ".absorb_results" do
+    it "produces the pair ResultMerger.absorb_results produces", if: FORK_SUPPORTED do
+      expect(described_class.absorb_results(paths, processes: 3, ignore_timeout: true)).to eq(serial)
     end
 
     it "produces the same pair however many processes it is given", if: FORK_SUPPORTED do
       merges = [2, 3, 4, 5, 12].map do |processes|
-        described_class.merge_resultsets(paths, processes: processes, ignore_timeout: true)
+        described_class.absorb_results(paths, processes: processes, ignore_timeout: true)
       end
 
       expect(merges).to all(eq(serial))
@@ -103,23 +103,35 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9, 9, 9, 9]}}, outdated: true)
       fresh = paths.first(2)
 
-      command_names, = described_class.merge_resultsets([*fresh, expired], processes: 3, ignore_timeout: false)
+      command_names, = described_class.absorb_results([*fresh, expired], processes: 3, ignore_timeout: false)
 
       expect(command_names).to contain_exactly("shard0", "shard1", "")
     end
 
+    # The tracked paths a worker saw have to come back with its payload, since
+    # the collector a serial absorb takes would mutate a Set in the wrong
+    # process. Without them the merge cannot tell what nothing loaded.
+    it "unions the tracked files every worker saw", if: FORK_SUPPORTED do
+      tracked_files = Set.new
+      tracked = Array.new(3) { |index| write_resultset("t#{index}", {}, tracked_files: ["tracked#{index}.rb"]) }
+
+      described_class.absorb_results(tracked, processes: 3, ignore_timeout: true, tracked_files: tracked_files)
+
+      expect(tracked_files).to eq(Set["tracked0.rb", "tracked1.rb", "tracked2.rb"])
+    end
+
     it "returns nil when a single process was requested" do
-      expect(described_class.merge_resultsets(paths, processes: 1)).to be_nil
+      expect(described_class.absorb_results(paths, processes: 1)).to be_nil
     end
 
     it "returns nil when there is only one resultset to merge" do
-      expect(described_class.merge_resultsets(paths.first(1), processes: 4)).to be_nil
+      expect(described_class.absorb_results(paths.first(1), processes: 4)).to be_nil
     end
 
     it "returns nil when the runtime cannot fork" do
       without_fork
 
-      expect(described_class.merge_resultsets(paths, processes: 4)).to be_nil
+      expect(described_class.absorb_results(paths, processes: 4)).to be_nil
     end
   end
 
@@ -149,11 +161,11 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
     after { pipe.each { |io| io.close unless io.closed? } }
 
-    it "writes the merged pair and reports success" do
+    it "writes the merged pair with its tracked files and reports success" do
       reader, writer = pipe
 
       expect(described_class.run_worker(paths, writer, ignore_timeout: true)).to eq(0)
-      expect(Marshal.load(reader)).to eq(serial) # rubocop:disable Security/MarshalLoad
+      expect(Marshal.load(reader)).to eq([serial, []]) # rubocop:disable Security/MarshalLoad
     end
 
     it "reports failure and warns when the merged pair cannot be shipped back" do
@@ -267,10 +279,12 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
 private
 
-  def write_resultset(command_name, coverage, outdated: false)
+  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil)
     timestamp = Time.now.to_i - (outdated ? SimpleCov.merge_timeout * 2 : 0)
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
-    File.write(path, JSON.generate(command_name => {"coverage" => coverage, "timestamp" => timestamp}))
+    entry = {"coverage" => coverage, "timestamp" => timestamp}
+    entry["tracked_files"] = tracked_files if tracked_files
+    File.write(path, JSON.generate(command_name => entry))
     path
   end
 

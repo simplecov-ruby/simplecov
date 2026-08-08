@@ -11,13 +11,15 @@ module SimpleCov
 
     def self.merge_results: (*untyped file_paths, ?ignore_timeout: bool) -> untyped
 
-    # Read the given resultset files and combine them into a single
-    # `[command_names, coverage]` pair, one file at a time.
-    def self.merge_resultsets: (Array[String] file_paths, ?ignore_timeout: bool) -> untyped
+    # Reads every resultset and folds it into one merged coverage, stopping
+    # short of building a `SimpleCov::Result`. `file_paths` is only iterated,
+    # so any Enumerable will do.
+    def self.absorb_results: (untyped file_paths, ?ignore_timeout: bool) ?{ (untyped parsed) -> void } -> [untyped, untyped]
 
-    def self.valid_results: (untyped file_path, ?ignore_timeout: bool) -> untyped
+    # Yields the parsed resultset before it is reduced.
+    def self.valid_results: (untyped file_path, ?ignore_timeout: bool) ?{ (untyped parsed) -> void } -> untyped
 
-    def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) -> untyped
+    def self.merge_valid_results: (untyped results, ?ignore_timeout: bool) ?{ (untyped surviving) -> void } -> untyped
 
     def self.drop_expired_results: (untyped results) -> untyped
 
@@ -25,7 +27,7 @@ module SimpleCov
 
     def self.warn_about_expired_results: (untyped expired_command_names) -> (nil | untyped)
 
-    def self.create_result: (untyped command_names, untyped coverage) -> (nil | untyped)
+    def self.create_result: (untyped command_names, untyped coverage, ?tracked_files: _ToA[String]) -> (nil | untyped)
 
     def self.merge_coverage: (*untyped results) -> (::Array[::Array[""] | nil] | untyped)
 

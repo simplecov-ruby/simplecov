@@ -219,7 +219,79 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".add_not_loaded_files" do
+  # `Result#to_hash` serializes coverage after filtering, so a file this process
+  # loaded and then filtered out would be absent from the stored coverage while
+  # still listed as tracked, and a merge elsewhere would simulate it back in as
+  # never-loaded. Recording only what was tracked and not loaded avoids that.
+  # See #1250.
+  describe "the tracked paths recorded on a result" do
+    around do |example|
+      previous_cover = described_class.cover_filters.dup
+      previous_filters = described_class.filters.dup
+      example.run
+    ensure
+      described_class.instance_variable_set(:@cover_filters, previous_cover)
+      described_class.instance_variable_set(:@filters, previous_filters)
+    end
+
+    it "excludes files this process loaded" do
+      described_class.cover "spec/fixtures/*.rb"
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {sample => {"lines" => [1, 1]}})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).not_to include(sample)
+    end
+
+    # Before injection moved to the merge, the producer filtered these out of
+    # its own result and they never reached a resultset. Recording them would
+    # let a merge that does not share the filter report them at 0%.
+    it "excludes files its own path filters keep out of its report" do
+      described_class.cover "spec/fixtures/**/*.rb"
+      described_class.skip "app/models"
+      excluded = File.expand_path("spec/fixtures/app/models/user.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).not_to include(excluded)
+    end
+
+    # A block filter is handed the source file and may consult coverage that
+    # does not exist yet, so it is left to the merging process's filter chain.
+    it "keeps files only a block filter would exclude" do
+      described_class.cover "spec/fixtures/*.rb"
+      described_class.filters << SimpleCov::BlockFilter.new(
+        ->(source_file) { source_file.filename.include?("sample") }
+      )
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).to include(sample)
+    end
+
+    it "still records the ones it did not load" do
+      described_class.cover "spec/fixtures/*.rb"
+      sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+      other = File.expand_path("spec/fixtures/resultset1.rb", described_class.root)
+      allow(Coverage).to receive_messages(running?: true, result: {sample => {"lines" => [1, 1]}})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.tracked_files).to include(other)
+    end
+  end
+
+  describe ".inject_unloaded_files" do
+    # Discovery and injection are separate now, so exercise them as the pair
+    # `process_coverage_result` uses.
+    def inject_tracked(result)
+      SimpleCov.inject_unloaded_files(result, SimpleCov.send(:tracked_file_paths))
+    end
+
     around do |example|
       previous_tracked = described_class.tracked_files
       previous_cover = described_class.cover_filters.dup
@@ -231,13 +303,13 @@ RSpec.describe SimpleCov do
 
     it "returns the input unchanged when no discovery glob is configured" do
       result = {"/abs/foo.rb" => {"lines" => [1]}}
-      expect(described_class.send(:add_not_loaded_files, result)).to eq([result, Set.new])
+      expect(inject_tracked(result)).to eq([result, Set.new])
     end
 
     it "augments the result with files matched by a cover glob that weren't loaded" do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-      result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      result, not_loaded = inject_tracked({})
       expect(not_loaded).to include(sample)
       expect(result).to have_key(sample)
     end
@@ -246,7 +318,7 @@ RSpec.describe SimpleCov do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       preloaded = {sample => {"lines" => [1]}}
-      result, not_loaded = described_class.send(:add_not_loaded_files, preloaded)
+      result, not_loaded = inject_tracked(preloaded)
       expect(not_loaded).not_to include(sample)
       expect(result[sample]).to eq("lines" => [1])
     end
@@ -258,7 +330,7 @@ RSpec.describe SimpleCov do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
       Dir.chdir(Dir.tmpdir) do
-        _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+        _result, not_loaded = inject_tracked({})
         expect(not_loaded).to include(sample)
       end
     end
@@ -266,8 +338,54 @@ RSpec.describe SimpleCov do
     it "still honors the legacy track_files glob" do
       capture_stderr { described_class.track_files("spec/fixtures/sample.rb") }
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
-      _result, not_loaded = described_class.send(:add_not_loaded_files, {})
+      _result, not_loaded = inject_tracked({})
       expect(not_loaded).to include(sample)
+    end
+
+    # Synthesizing branch and method tuples for an unloaded file means parsing
+    # it, which is about half the cost of simulating one and is paid per
+    # tracked file per process. Nothing reads the tuples unless the matching
+    # criterion is enabled. See #1250.
+    context "when neither branch nor method coverage is enabled" do
+      it "skips synthesizing branch and method tuples" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = inject_tracked({})
+        expect(result[sample]["branches"]).to be_empty
+        expect(result[sample]["methods"]).to be_empty
+      end
+
+      it "still classifies the file's lines" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = inject_tracked({})
+        expect(result[sample]["lines"]).to be_an(Array).and(be_any { |count| !count.nil? })
+      end
+    end
+
+    # A branch-only or method-only run gets no line data from `Coverage` for
+    # the files it loaded, so simulating lines for the files it didn't would
+    # make the two indistinguishable after merging. See #1250.
+    context "when line coverage is disabled" do
+      it "omits line data from simulated files" do
+        allow(described_class).to receive(:line_coverage?).and_return(false)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = inject_tracked({})
+        expect(result[sample]).not_to have_key("lines")
+      end
+    end
+
+    context "when a criterion that reads the tuples is enabled" do
+      it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
+        described_class.cover "spec/fixtures/sample.rb"
+        sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+        result, = inject_tracked({})
+        expect(result[sample]["methods"]).not_to be_empty
+      end
     end
   end
 
@@ -748,9 +866,9 @@ RSpec.describe SimpleCov do
         end
 
         it "adds not-loaded-files" do
-          allow(described_class).to receive(:add_not_loaded_files).and_return([{}, Set.new])
+          allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
-          expect(described_class).to have_received(:add_not_loaded_files).once
+          expect(described_class).to have_received(:inject_unloaded_files).once
         end
 
         it "doesn't store the current coverage" do
@@ -813,10 +931,15 @@ RSpec.describe SimpleCov do
           expect(Coverage).to have_received(:result).once
         end
 
-        it "adds not-loaded-files" do
-          allow(described_class).to receive(:add_not_loaded_files).and_return([{}, Set.new])
+        # With a merge step to follow, only the union of every process's loaded
+        # files says what was never loaded, so injection is deferred to
+        # `ResultMerger.create_result` (stubbed out in this context). Injecting
+        # per process would simulate nearly the whole project in every worker
+        # and merge all but one of those passes away. See #1250.
+        it "leaves not-loaded-file injection to the merge step" do
+          allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
-          expect(described_class).to have_received(:add_not_loaded_files).once
+          expect(described_class).not_to have_received(:inject_unloaded_files)
         end
 
         it "stores the current coverage" do
@@ -1147,28 +1270,28 @@ RSpec.describe SimpleCov do
       end
 
       it "defaults the process count to SIMPLECOV_CONCURRENCY" do
-        allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_call_original
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_call_original
 
         with_env("SIMPLECOV_CONCURRENCY" => "3") { collate_with { |paths| described_class.collate paths } }
 
-        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_resultsets)
+        expect(SimpleCov::ParallelResultMerger).to have_received(:absorb_results)
           .with(anything, hash_including(processes: 3))
       end
 
       it "prefers an explicit process count over SIMPLECOV_CONCURRENCY" do
-        allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_call_original
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_call_original
 
         with_env("SIMPLECOV_CONCURRENCY" => "3") do
           collate_with { |paths| described_class.collate paths, processes: 2 }
         end
 
-        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_resultsets)
+        expect(SimpleCov::ParallelResultMerger).to have_received(:absorb_results)
           .with(anything, hash_including(processes: 2))
       end
 
       it "merges in this process when the fan-out cannot run" do
         serial = collate_with { |paths| described_class.collate paths }
-        allow(SimpleCov::ParallelResultMerger).to receive(:merge_resultsets).and_return(nil)
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_return(nil)
 
         expect(collate_with { |paths| described_class.collate paths, processes: 3 }).to eq(serial)
       end

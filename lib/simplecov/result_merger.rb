@@ -3,6 +3,7 @@
 require_relative "result_merger/legacy_format_adapter"
 require_relative "result_merger/resultset_file"
 require_relative "result_merger/resultset_store"
+require_relative "result_merger/unloaded_files"
 
 module SimpleCov
   #
@@ -23,14 +24,17 @@ module SimpleCov
       end
 
       def merge_results(*file_paths, ignore_timeout: false)
-        command_names, coverage = merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
-
-        create_result(command_names, coverage)
+        # Tracked paths are collected as each resultset is parsed, so files are
+        # still read and discarded one at a time. See #1250.
+        tracked_files = Set.new
+        command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
+                                                 &UnloadedFiles.collector(tracked_files))
+        create_result(command_names, coverage, tracked_files: tracked_files)
       end
 
       #
-      # Read the given resultset files and combine them into a single
-      # `[command_names, coverage]` pair.
+      # Reads every resultset and folds it into one merged coverage, stopping
+      # short of building a `SimpleCov::Result`.
       #
       # It is intentional here that files are only read in and parsed one at a time.
       #
@@ -41,20 +45,37 @@ module SimpleCov
       # For similar reasons a SimpleCov::Result is only created in the end as that'd create
       # even more data especially when it also reads in all source files.
       #
-      def merge_resultsets(file_paths, ignore_timeout: false)
-        initial_memo = valid_results(file_paths.first, ignore_timeout: ignore_timeout)
-
-        file_paths.drop(1).reduce(initial_memo) do |memo, file_path|
-          merge_coverage(memo, valid_results(file_path, ignore_timeout: ignore_timeout))
-        end
+      # One accumulator absorbs the whole run, rather than folding each file
+      # into the merged-so-far pairwise: the pairwise form rebuilt every
+      # file's coverage once per resultset, which is what made merging a
+      # large parallel run's results the dominant cost of `collate`.
+      # Absorbing is still one resultset at a time, so the memory ceiling
+      # above is unchanged.
+      #
+      # `file_paths` is only ever iterated, so a caller that wants to observe
+      # the merge as it goes can hand in any Enumerable — `benchmarks/collate`
+      # passes an Enumerator that reports progress — rather than reimplement
+      # this loop and risk timing something other than what ships.
+      #
+      # @return [Array] the command names and the merged coverage
+      #
+      def absorb_results(file_paths, ignore_timeout: false, &on_parse)
+        Combine::CoverageAccumulator.fold(
+          file_paths.lazy.map { |file_path| valid_results(file_path, ignore_timeout: ignore_timeout, &on_parse) }
+        )
       end
 
-      def valid_results(file_path, ignore_timeout: false)
-        merge_valid_results(ResultsetFile.parse(file_path), ignore_timeout: ignore_timeout)
+      # Yields the surviving entries before they are reduced.
+      def valid_results(file_path, ignore_timeout: false, &on_parse)
+        merge_valid_results(ResultsetFile.parse(file_path), ignore_timeout: ignore_timeout, &on_parse)
       end
 
+      # Yields the entries that survived the merge timeout, so a caller that
+      # wants to observe what a resultset carried sees only what is being
+      # merged. An expired entry contributes nothing, tracked paths included.
       def merge_valid_results(results, ignore_timeout: false)
         results = drop_expired_results(results) unless ignore_timeout
+        yield results if block_given?
 
         command_plus_coverage = results.map do |command_name, data|
           [[command_name], LegacyFormatAdapter.call(data.fetch("coverage"))]
@@ -91,26 +112,29 @@ module SimpleCov
              "Increase SimpleCov.merge_timeout to include them."
       end
 
-      def create_result(command_names, coverage)
+      def create_result(command_names, coverage, tracked_files: Set.new)
         return nil unless coverage
 
         command_name = command_names.reject(&:empty?).sort.join(", ")
+        coverage, injected = UnloadedFiles.inject(coverage, tracked_files)
         # The merged result is the authoritative one users actually see, so
         # it's the one that warns about source files dropped because they no
         # longer exist on disk (issue #980). The per-process slices built in
         # `process_coverage_result` stay quiet to avoid one warning per worker.
-        SimpleCov::Result.new(coverage, command_name: command_name, report: true)
+        SimpleCov::Result.new(
+          coverage,
+          command_name: command_name,
+          not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
+          tracked_files: tracked_files.to_a,
+          report: true
+        )
       end
 
       def merge_coverage(*results)
         return [[""], nil] if results.empty?
         return results.first if results.size == 1
 
-        results.reduce do |(memo_command, memo_coverage), (command, coverage)|
-          # timestamp is dropped here, which is intentional (we merge it, it gets a new time stamp as of now)
-          merged_coverage = Combine.combine(Combine::ResultsCombiner, memo_coverage, coverage)
-          [memo_command + command, merged_coverage]
-        end
+        Combine::CoverageAccumulator.fold(results)
       end
 
       #
@@ -118,8 +142,9 @@ module SimpleCov
       # SimpleCov::Result with merged coverage data and the command_name
       # for the result consisting of a join on all source result's names
       def merged_result
-        command_names, coverage = merge_valid_results(read_resultset)
-        create_result(command_names, coverage)
+        tracked_files = Set.new
+        command_names, coverage = merge_valid_results(read_resultset, &UnloadedFiles.collector(tracked_files))
+        create_result(command_names, coverage, tracked_files: tracked_files)
       end
 
       def read_resultset
@@ -150,9 +175,10 @@ module SimpleCov
       def merged_entry(existing, incoming)
         return incoming unless concurrent_runner_entry?(existing)
 
-        incoming.merge(
-          "coverage" => Combine.combine(Combine::ResultsCombiner, existing["coverage"], incoming["coverage"])
+        merged = incoming.merge(
+          "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
         )
+        UnloadedFiles.carry_tracked(merged, existing, incoming)
       end
 
       def concurrent_runner_entry?(entry)

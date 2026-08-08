@@ -47,8 +47,8 @@ module_function
     Array(entry["lines"]).any? { |count| count&.positive? }
   end
 
-  # Nil when no entry carried lines at all, matching the short-circuit in
-  # `Combine.combine` for two absent coverages.
+  # Nil when no entry carried lines at all, matching what the accumulator
+  # produces when no coverage was absorbed.
   def merge_lines(entries)
     arrays = entries.filter_map { |entry| entry["lines"] }
     return nil if arrays.empty?

@@ -3,7 +3,7 @@ module SimpleCov
   # Merges a list of resultset files into one coverage table across forked
   # worker processes. Drives `SimpleCov.collate(..., processes: N)`.
   #
-  # `ResultMerger.merge_resultsets` is a fold over N independent
+  # `ResultMerger.absorb_results` is a fold over N independent
   # read-parse-combine steps, so it splits cleanly: each worker runs that
   # same fold over a contiguous slice of the file list and ships the pair
   # back over a pipe, and the parent combines the per-worker pairs.
@@ -20,18 +20,20 @@ module SimpleCov
     def self?.merge_results: (*untyped file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
 
     #
-    # `ResultMerger.merge_resultsets` across at most `processes` forked
+    # `ResultMerger.absorb_results` across at most `processes` forked
     # workers: same arguments, same `[command_names, coverage]` return, or
-    # nil when the work could not be fanned out.
+    # nil when the work could not be fanned out. Tracked paths seen by the
+    # workers are merged into `tracked_files`.
     #
-    def self?.merge_resultsets: (Array[String] file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
+    def self?.absorb_results: (Array[String] file_paths, processes: Integer, ?ignore_timeout: bool,
+                               ?tracked_files: Set[String]) -> untyped
 
     # Contiguous slices whose sizes differ by at most one. There are never
     # more slices than files.
     def self?.chunk: (Array[String] file_paths, Integer processes) -> Array[Array[String]]
 
     # Raises if the OS refuses a fork; see the method comment.
-    def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool) -> untyped
+    def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool, ?tracked_files: Set[String]) -> untyped
 
     def self?.spawn_workers: (Array[Array[String]] chunks, ignore_timeout: bool) -> Array[Hash[Symbol, untyped]]
 

@@ -32,7 +32,8 @@ module SimpleCov
       initial_setup(profile, &)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = merge_collated(result_filenames, [1, processes].max, ignore_timeout)
+      @result = ParallelResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
+                                                                        ignore_timeout: ignore_timeout)
 
       @collating_result = true
       run_exit_tasks!
@@ -49,10 +50,7 @@ module SimpleCov
 
       use_merging = merging
 
-      # Collect our coverage result. When merging is off there is no merge
-      # step, so this per-process result is the final one and reports any
-      # dropped source files; otherwise the merged result does the reporting.
-      process_coverage_result(report: !use_merging) if defined?(Coverage) && Coverage.running?
+      collect_own_coverage(standalone: !use_merging)
 
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
@@ -65,6 +63,16 @@ module SimpleCov
       end
 
       @result
+    end
+
+    # Build this process's slice of the coverage result. `standalone` is true
+    # when no merge step follows, which makes this the final result: it is the
+    # one that reports dropped source files, and the one that injects unloaded
+    # files. When a merge does follow, both jobs belong to the merged result.
+    def collect_own_coverage(standalone:)
+      return unless defined?(Coverage) && Coverage.running?
+
+      process_coverage_result(report: standalone, inject_unloaded: standalone)
     end
 
     # Returns nil if the result has not been computed, otherwise the result.
@@ -128,15 +136,30 @@ module SimpleCov
       coverage.floor(2)
     end
 
-  private
+    # Add simulated coverage for each of `candidate_paths` the result doesn't
+    # already carry, and return it with the set of paths added.
+    #
+    # @api private — the seam `SimpleCov::ResultMerger` injects through. Public
+    # only because the merge runs in another object, on behalf of processes
+    # whose configuration it may not share, so it supplies the paths itself.
+    def inject_unloaded_files(result, candidate_paths, synthesize: nil, lines: nil)
+      return [result, Set.new] if candidate_paths.empty?
 
-    # A single worker would merge the whole list in this process anyway, so the
-    # default takes exactly the path `collate` has always taken and never forks.
-    def merge_collated(result_filenames, processes, ignore_timeout)
-      return ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout) if processes < 2
-
-      ParallelResultMerger.merge_and_store(*result_filenames, processes: processes, ignore_timeout: ignore_timeout)
+      # Synthesizing branch and method tuples means parsing every tracked file
+      # that wasn't loaded, which is about half the cost of simulating one.
+      # Nothing reads those tuples when neither criterion is enabled —
+      # `Combine::CoverageAccumulator` only combines them per criterion, and the
+      # statistics drop them the same way — so skip the parse. The same goes
+      # for line data, which a branch-only or method-only run neither reports
+      # nor receives from `Coverage` for the files it loaded. See #1250.
+      UnloadedFileInjector.call(
+        result, candidate_paths,
+        synthesize: synthesize.nil? ? branch_coverage? || method_coverage? : synthesize,
+        lines: lines.nil? ? line_coverage? : lines
+      )
     end
+
+  private
 
     def initial_setup(profile, &block)
       load_profile(profile) if profile
@@ -147,14 +170,15 @@ module SimpleCov
       grouped.values.each_with_object(Set.new) { |file_list, set| set.merge(file_list) }
     end
 
-    # Finds files that were to be tracked but were not loaded, and
-    # initializes their line-by-line coverage to zero (or nil for
-    # comments / whitespace).
-    def add_not_loaded_files(result)
-      globs = unloaded_file_discovery_globs
-      return [result, Set.new] if globs.empty?
-
-      inject_unloaded_files(result.dup, discover_unloaded_paths(globs))
+    # Every path this process was told to track, whether or not it loaded them.
+    # Recorded on the result (and from there into the resultset) so that a merge
+    # in another process can inject the ones nobody loaded without needing this
+    # process's `cover` / `track_files` configuration. A standalone `collate`
+    # never ran `SimpleCov.start` and so has none of its own. See #1250.
+    def tracked_file_paths
+      UnloadedFileInjector.discover(
+        unloaded_file_discovery_globs, root: root, reject: filters.select(&:path_only?)
+      )
     end
 
     # Globs to expand on disk when injecting unloaded files into the
@@ -165,36 +189,28 @@ module SimpleCov
       [tracked_files, *cover_globs].compact
     end
 
-    # Expand the given globs relative to SimpleCov.root, not Dir.pwd —
-    # test runners that chdir (or CI scripts that invoke the suite
-    # from a subdir) would otherwise silently miss the unloaded-file
-    # injection and produce a different file set per environment. See
-    # issue #1106.
-    def discover_unloaded_paths(globs)
-      globs.flat_map { |glob| Dir.glob(glob, base: root) }.uniq
-    end
-
-    def inject_unloaded_files(result, candidate_paths)
-      not_loaded_files = candidate_paths.each_with_object(Set.new) do |file, set|
-        absolute_path = File.expand_path(file, root)
-        next if result.key?(absolute_path)
-
-        result[absolute_path] = SimulateCoverage.call(absolute_path)
-        set << absolute_path
-      end
-
-      [result, not_loaded_files]
-    end
-
     # Run all the steps that handle processing the raw coverage result.
     # `report:` is true only when this slice is the final result (merging
     # off); with merging on the merged result reports dropped source files,
     # so the per-process slice stays quiet to avoid one warning per worker.
-    def process_coverage_result(report:)
+    #
+    # `inject_unloaded:` is likewise false when a merge step follows. Only the
+    # union of every process's loaded files says what was really never loaded,
+    # so injecting here means each worker simulates nearly the whole project
+    # and all but one of those passes is merged away. See #1250.
+    def process_coverage_result(report:, inject_unloaded: true)
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
-      result, not_loaded_files = add_not_loaded_files(adapted)
-      @result = SimpleCov::Result.new(result, not_loaded_files: not_loaded_files, report: report)
+      # What this process was told to track and did not load. Subtracting what
+      # it loaded matters because `Result#to_hash` serializes coverage after
+      # filtering: a file this process loaded and then filtered out would
+      # otherwise be recorded as tracked while absent from the stored coverage,
+      # and the merge would simulate it back in as never-loaded. See #1250.
+      tracked = tracked_file_paths - adapted.keys
+      result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
+      @result = SimpleCov::Result.new(
+        result, not_loaded_files: not_loaded, tracked_files: tracked, report: report
+      )
     end
   end
 end

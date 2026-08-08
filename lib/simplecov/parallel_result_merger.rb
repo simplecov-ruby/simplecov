@@ -5,7 +5,7 @@ module SimpleCov
   # Folds a list of resultset files into one merged coverage table across
   # forked worker processes. Drives `SimpleCov.collate(..., processes: N)`.
   #
-  # `ResultMerger.merge_resultsets` is a fold over N independent
+  # `ResultMerger.absorb_results` is a fold over N independent
   # read-parse-combine steps, so it splits cleanly: each worker runs that
   # same fold over a contiguous slice of the file list and ships the pair
   # back over a pipe, and the parent combines the handful of per-worker
@@ -25,9 +25,14 @@ module SimpleCov
   module_function
 
     #
-    # `ResultMerger.merge_and_store` across `processes` forked workers.
+    # `ResultMerger.merge_and_store` across `processes` forked workers. One
+    # worker hands straight back to `ResultMerger`, so the default `collate`
+    # takes exactly the path it always has and never reaches this module's
+    # machinery at all.
     #
     def merge_and_store(*file_paths, processes:, ignore_timeout: false)
+      return ResultMerger.merge_and_store(*file_paths, ignore_timeout: ignore_timeout) if processes < 2
+
       result = merge_results(*file_paths, processes: processes, ignore_timeout: ignore_timeout)
       ResultMerger.store_result(result) if result
       result
@@ -41,22 +46,29 @@ module SimpleCov
     # get there differs.
     #
     def merge_results(*file_paths, processes:, ignore_timeout: false)
+      tracked_files = Set.new
       command_names, coverage =
-        merge_resultsets(file_paths, processes: processes, ignore_timeout: ignore_timeout) ||
-        ResultMerger.merge_resultsets(file_paths, ignore_timeout: ignore_timeout)
+        absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
+                                   tracked_files: tracked_files) ||
+        ResultMerger.absorb_results(file_paths, ignore_timeout: ignore_timeout,
+                                    &ResultMerger::UnloadedFiles.collector(tracked_files))
 
-      ResultMerger.create_result(command_names, coverage)
+      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files)
     end
 
     #
-    # `ResultMerger.merge_resultsets` across at most `processes` forked
+    # `ResultMerger.absorb_results` across at most `processes` forked
     # workers: same arguments, same `[command_names, coverage]` return.
+    #
+    # The tracked paths a worker's slice carried come back with its payload
+    # rather than through a collector block, since the block a serial absorb
+    # takes would be mutating a Set in the wrong process.
     #
     # @return [Array(Array<String>, Hash), nil] the pair
     #   `ResultMerger.create_result` consumes, or nil when the work could not
     #   be fanned out and the caller should merge in this process instead.
     #
-    def merge_resultsets(file_paths, processes:, ignore_timeout: false)
+    def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new)
       # One worker folds the whole list anyway, and one file is a fold of
       # one — in both cases the fork and the round trip are pure overhead.
       return nil if processes < 2 || file_paths.size < 2
@@ -69,7 +81,7 @@ module SimpleCov
       # instead would answer true and send them down the fan-out.
       return nil unless Process.respond_to?(:fork)
 
-      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout)
+      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files)
     end
 
     # Contiguous slices whose sizes differ by at most one, so no worker is
@@ -84,16 +96,18 @@ module SimpleCov
       Array.new(groups) { |index| remaining.shift(base + (index < remainder ? 1 : 0)) }
     end
 
-    # A `fork` that fails here raises, and is left to. `merge_resultsets` has
+    # A `fork` that fails here raises, and is left to. `absorb_results` has
     # already excluded the runtimes that never fork, so what remains is the OS
     # refusing a process we expected to get — EAGAIN at RLIMIT_NPROC, ENOMEM
     # under memory pressure. That says something is wrong with the machine
     # rather than with the merge, and quietly absorbing it would hide it.
-    def fan_out(chunks, ignore_timeout:)
+    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new)
       workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
       payloads = collect(workers)
+      return nil unless payloads
 
-      payloads && ResultMerger.merge_coverage(*payloads)
+      payloads.each { |(_pair, tracked)| tracked_files.merge(tracked) }
+      ResultMerger.merge_coverage(*payloads.map(&:first))
     end
 
     def spawn_workers(chunks, ignore_timeout:)
@@ -135,8 +149,14 @@ module SimpleCov
     # The body of a worker: merge the slice, ship it back, and report the exit
     # status the child should terminate with. Kept free of the exit itself so
     # it can be exercised in-process.
+    #
+    # The slice's tracked paths travel with the pair because the parent needs
+    # the union across every worker to know what nothing loaded.
     def run_worker(chunk, writer, ignore_timeout:)
-      Marshal.dump(ResultMerger.merge_resultsets(chunk, ignore_timeout: ignore_timeout), writer)
+      tracked_files = Set.new
+      pair = ResultMerger.absorb_results(chunk, ignore_timeout: ignore_timeout,
+                                         &ResultMerger::UnloadedFiles.collector(tracked_files))
+      Marshal.dump([pair, tracked_files.to_a], writer)
       writer.close
       0
     rescue StandardError => e
