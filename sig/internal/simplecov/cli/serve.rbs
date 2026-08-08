@@ -15,7 +15,9 @@ module SimpleCov
 
       def self?.announce: (untyped stdout, untyped server, untyped dir) -> untyped
 
-      def self?.with_server: (untyped opts) { (TCPServer) -> untyped } -> untyped
+      # Returns the block's exit status, or 1 when the socket can't
+      # be bound.
+      def self?.with_server: (untyped opts, untyped stderr) { (TCPServer) -> untyped } -> untyped
 
       def self?.serve_loop: (untyped server, untyped dir, untyped stdout) -> untyped
 

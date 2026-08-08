@@ -31,6 +31,16 @@ RSpec.describe SimpleCov::CLI do
       expect(run("nope")).to eq(1)
       expect(stderr.string).to include('unknown command "nope"')
     end
+
+    it "reports an unknown option as a one-line error" do
+      expect(run("uncovered", "--bogus")).to eq(1)
+      expect(stderr.string).to eq("simplecov uncovered: invalid option: --bogus (run `simplecov help` for usage)\n")
+    end
+
+    it "reports a malformed typed argument as a one-line error" do
+      expect(run("serve", "--port", "foo")).to eq(1)
+      expect(stderr.string).to eq("simplecov serve: invalid argument: --port foo (run `simplecov help` for usage)\n")
+    end
   end
 
   describe ".coverage_dir" do
@@ -86,6 +96,31 @@ RSpec.describe SimpleCov::CLI do
             .to output(/simplecov: failed to read coverage_dir.*RuntimeError.*boom/).to_stderr
         end
       end
+    end
+
+    it "falls back to 'coverage' and warns when the dotfile has a syntax error" do
+      # `load` raises SyntaxError, which is a ScriptError, not a
+      # StandardError — a bare rescue would let it crash the CLI.
+      Dir.mktmpdir do |tmp|
+        File.write(File.join(tmp, ".simplecov"), "SimpleCov.start do\n")
+        Dir.chdir(tmp) do
+          expect { expect(described_class.coverage_dir).to eq("coverage") }
+            .to output(/simplecov: failed to read coverage_dir.*SyntaxError/).to_stderr
+        end
+      end
+    end
+
+    it "restores a host process's configured coverage_dir when the dotfile raises mid-config" do
+      configured = SimpleCov.instance_variable_get(:@coverage_dir)
+      Dir.mktmpdir do |tmp|
+        File.write(File.join(tmp, ".simplecov"), %(SimpleCov.coverage_dir "clobbered"\nraise "boom"\n))
+        Dir.chdir(tmp) do
+          expect { described_class.coverage_dir }
+            .to output(/failed to read coverage_dir/).to_stderr
+        end
+      end
+
+      expect(SimpleCov.instance_variable_get(:@coverage_dir)).to eq(configured)
     end
   end
 
@@ -428,6 +463,12 @@ RSpec.describe SimpleCov::CLI do
     it "honours --top to cap the list" do
       run("uncovered", "--input", json_path, "--top", "1")
       expect(stdout.string.lines.size).to eq(1)
+    end
+
+    it "rejects a negative --top instead of raising" do
+      expect(run("uncovered", "--input", json_path, "--top", "-1")).to eq(1)
+      expect(stderr.string).to include("invalid argument: --top must not be negative")
+      expect(stdout.string).to be_empty
     end
 
     it "reports nothing when every file is at 100%" do
@@ -816,6 +857,22 @@ RSpec.describe SimpleCov::CLI do
       expect(TCPServer).not_to have_received(:new)
     end
 
+    it "errors cleanly when the port is already taken" do
+      FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "report")
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+
+      blocker = TCPServer.new("127.0.0.1", 0)
+      port = blocker.addr[1]
+
+      begin
+        expect(run("serve", "--port", port.to_s)).to eq(1)
+        expect(stderr.string).to include("simplecov serve: cannot bind to 127.0.0.1:#{port}")
+      ensure
+        blocker.close
+      end
+    end
+
     it "serves an existing index without inspecting coverage.json" do
       FileUtils.mkdir_p(tmp)
       File.write(File.join(tmp, "index.html"), "existing report")
@@ -953,20 +1010,12 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
-    it "propagates an address-in-use error when the server cannot bind" do
-      FileUtils.mkdir_p(tmp)
-      File.write(File.join(tmp, "index.html"), "report")
-      allow(described_class).to receive(:coverage_dir).and_return(tmp)
-      allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE, "addr in use")
-      expect { run("serve") }.to raise_error(Errno::EADDRINUSE)
-    end
-
     it "closes a bound server when its block raises" do
       server = instance_double(TCPServer, close: nil)
       allow(TCPServer).to receive(:new).and_return(server)
 
       expect do
-        described_class::Serve.with_server(host: "127.0.0.1", port: 0) { raise "boom" }
+        described_class::Serve.with_server({host: "127.0.0.1", port: 0}, stderr) { raise "boom" }
       end.to raise_error(RuntimeError, "boom")
       expect(server).to have_received(:close)
     end

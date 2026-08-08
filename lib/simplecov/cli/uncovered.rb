@@ -61,11 +61,21 @@ module SimpleCov
         OptionParser.new do |o|
           o.on("--input PATH")         { |v| opts[:input] = v }
           o.on("--threshold N", Float) { |v| opts[:threshold] = v }
-          o.on("--top N", Integer)     { |v| opts[:top] = v }
+          o.on("--top N", Integer)     { |v| opts[:top] = validate_top(v) }
           o.on("--criterion C")        { |v| opts[:criterion] = v.to_sym }
           o.on("--json")               { opts[:json] = true }
           o.on("--no-color")           { opts[:no_color] = true }
         end
+      end
+
+      # A negative count would raise from `Array#first`; report it as
+      # the parse error it is (`--top 0` is allowed and shows nothing).
+      # OptionParser prepends the offending option's name, so the raise
+      # carries only the reason.
+      def validate_top(value)
+        raise OptionParser::InvalidArgument, "must not be negative" if value.negative?
+
+        value
       end
 
       def emit_text(stdout, files, color)

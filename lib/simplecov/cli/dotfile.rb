@@ -18,9 +18,12 @@ module SimpleCov
         return "coverage" unless dotfile
 
         with_simplecov_loaded { read_from(dotfile) }
-      rescue LoadError, StandardError => e
-        # simplecov:disable — defensive fallback for a bad dotfile (parse
-        # error, EACCES, etc.); never fires in the project's own dogfood run
+      rescue ScriptError, StandardError => e
+        # simplecov:disable — defensive fallback for a bad dotfile; never
+        # fires in the project's own dogfood run. ScriptError covers the
+        # SyntaxError a malformed dotfile raises from `load` (it is not a
+        # StandardError) along with LoadError; StandardError covers the
+        # rest (EACCES, errors raised by the dotfile's own code, etc.).
         warn "simplecov: failed to read coverage_dir from #{dotfile}: #{e.class}: #{e.message}"
         "coverage"
         # simplecov:enable
@@ -37,11 +40,14 @@ module SimpleCov
       # inside a Ruby host that cares about isolation should arrange that
       # themselves.
       def read_from(dotfile)
-        snapshot = SimpleCov.instance_variable_get(:@coverage_dir)
+        snapshot = SimpleCov.instance_variable_get(:@coverage_dir) #: String?
         load_with_start_neutered(dotfile)
-        dir = SimpleCov.coverage_dir
+        SimpleCov.coverage_dir
+      ensure
+        # Restore even when the load raises, so a bad dotfile doesn't
+        # leave a host process's configured dir clobbered.
+        # @type var snapshot: String?
         SimpleCov.instance_variable_set(:@coverage_dir, snapshot)
-        dir
       end
 
       def find

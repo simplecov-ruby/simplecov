@@ -24,6 +24,10 @@ module SimpleCov
       # metric is noise here.
       def self?.build_parser: (untyped opts) -> untyped
 
+      # A negative count would raise from `Array#first`; report it as
+      # the parse error it is.
+      def self?.validate_top: (::Integer value) -> ::Integer
+
       def self?.emit_text: (untyped stdout, untyped files, untyped color) -> untyped
 
       def self?.emit_json: (untyped stdout, untyped files) -> untyped

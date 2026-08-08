@@ -35,17 +35,22 @@ module SimpleCov
         return error(stderr, message) if message
 
         require "socket"
-        with_server(opts) do |server|
+        with_server(opts, stderr) do |server|
           announce(stdout, server, dir)
           serve_loop(server, dir, stdout)
           0
         end
       end
 
-      def with_server(opts)
+      # Returns the block's exit status, or 1 when the socket can't be
+      # bound (port already taken, privileged port, unresolvable host).
+      def with_server(opts, stderr)
         # The receiver cast works around an rbs stdlib gap: TCPSocket's
         # explicit `self.new` shadows TCPServer#initialize's (host, port) form.
         server = (_ = TCPServer).new(opts[:host], opts[:port]) #: TCPServer
+      rescue SystemCallError, SocketError => e
+        error(stderr, "cannot bind to #{opts[:host]}:#{opts[:port]} (#{e.message})")
+      else
         begin
           yield server
         ensure

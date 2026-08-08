@@ -43,6 +43,11 @@ module SimpleCov
     # Returns a process exit status (0 on success, non-zero on error).
     def self?.run: (untyped argv, ?stdout: untyped, ?stderr: untyped) -> (untyped | 1)
 
+    # One rescue covers every subcommand's OptionParser, so a typo'd
+    # flag or a malformed typed argument becomes a one-line error and
+    # exit status 1 instead of an unhandled-exception backtrace.
+    def self?.dispatch: (_Command handler, untyped command, untyped rest, stdout: untyped, stderr: untyped) -> (untyped | 1)
+
     def self?.usage: () -> ::String
   end
 end

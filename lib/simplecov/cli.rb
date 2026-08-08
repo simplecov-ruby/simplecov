@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "optparse"
 require_relative "color"
 require_relative "cli/dotfile"
 require_relative "cli/clean"
@@ -74,10 +75,20 @@ module SimpleCov
     def run(argv, stdout: $stdout, stderr: $stderr)
       command, *rest = argv
       handler = COMMANDS[command]
-      return handler.run(rest, stdout: stdout, stderr: stderr) if handler
+      return dispatch(handler, command, rest, stdout: stdout, stderr: stderr) if handler
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
+      1
+    end
+
+    # One rescue covers every subcommand's OptionParser, so a typo'd
+    # flag or a malformed typed argument becomes a one-line error and
+    # exit status 1 instead of an unhandled-exception backtrace.
+    def dispatch(handler, command, rest, stdout:, stderr:)
+      handler.run(rest, stdout: stdout, stderr: stderr)
+    rescue OptionParser::ParseError => e
+      stderr.puts("simplecov #{command}: #{e.message} (run `simplecov help` for usage)")
       1
     end
 
