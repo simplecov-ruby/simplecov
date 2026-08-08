@@ -814,6 +814,22 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("lib/a.rb")
     end
 
+    it "includes a file whose delta is exactly the threshold" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 70)
+
+      run("diff", "--input", current, "--threshold", "10", baseline)
+      expect(stdout.string).to include("lib/a.rb")
+    end
+
+    it "does not fail on a deleted file under --fail-on-drop" do
+      write_coverage(baseline, "lib/a.rb" => 80, "lib/gone.rb" => 100)
+      write_coverage(current,  "lib/a.rb" => 80)
+
+      expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(0)
+      expect(stdout.string).to include("(removed)")
+    end
+
     context "with colorization" do
       it "colorizes regressions red and improvements green when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)

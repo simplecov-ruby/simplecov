@@ -140,7 +140,8 @@ module SimpleCov
 
         diff options:
           --fail-on-drop            Exit non-zero when any file's coverage
-                                    dropped vs the baseline
+                                    dropped vs the baseline (deleted
+                                    files don't count as drops)
           --json                    Emit results as a JSON array (for CI)
           --threshold N             Only show files whose absolute delta
                                     in any criterion is at least N%

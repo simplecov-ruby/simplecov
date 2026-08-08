@@ -86,10 +86,14 @@ module SimpleCov
         files.filter_map { |fname| compute_row(fname, current[fname], baseline[fname], threshold) }
       end
 
+      # EPSILON keeps float noise out regardless of threshold; the
+      # threshold itself is inclusive, so a file that moved exactly N%
+      # is listed under `--threshold N`, matching the "at least N%" the
+      # usage text promises.
       def compute_row(fname, current_payload, baseline_payload, threshold)
         deltas = CRITERIA.to_h { |c| [c, pct_for(c, current_payload) - pct_for(c, baseline_payload)] }
-        floor = [threshold.abs, EPSILON].max
-        return nil unless deltas.values.any? { |delta| delta.abs > floor }
+        floor = threshold.abs
+        return nil unless deltas.values.any? { |delta| delta.abs > EPSILON && delta.abs >= floor }
 
         {
           file: fname,
@@ -134,8 +138,12 @@ module SimpleCov
         ].compact
       end
 
+      # A removed file's deltas are all -baseline%, but deleting a
+      # covered file (dead code cleanup) is not a coverage regression,
+      # so removed rows never trip the --fail-on-drop gate.
       def coverage_drop?(rows)
-        rows.any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min.negative? }
+        rows.reject { |row| row[:status] == "removed" }
+            .any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min.negative? }
       end
 
       # Deltas are sign-based, not threshold-based: a +5% bump is good
