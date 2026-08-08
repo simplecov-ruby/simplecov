@@ -9,7 +9,7 @@ interface SortEntry {
   direction: 'asc' | 'desc';
 }
 
-const sortState: Record<string, SortEntry> = {};
+const sortState = new WeakMap<Element, SortEntry>();
 
 // Actual child index of the `index`-th visible cell in a row. The coverage
 // filter hides whole columns, so this mapping is uniform across rows and is
@@ -67,13 +67,9 @@ function compareValues(a: number | string, b: number | string): number {
   return collator.compare(String(a), String(b));
 }
 
-function tableId(table: Element): string {
-  return table.id || table.getAttribute('data-sort-id') || 'default';
-}
-
 // Record the active sort in state and reflect it on the header indicators.
 function markSorted(table: Element, colIndex: number, dir: 'asc' | 'desc'): void {
-  sortState[tableId(table)] = { colIndex, direction: dir };
+  sortState.set(table, { colIndex, direction: dir });
 
   let tdPos = 0;
   $$('thead tr:first-child th', table).forEach((th) => {
@@ -92,7 +88,7 @@ function reorderRows(tbody: Element, rows: Element[]): void {
 }
 
 function performSort(table: Element, colIndex: number): void {
-  const state = sortState[tableId(table)];
+  const state = sortState.get(table);
 
   const dir: 'asc' | 'desc' =
     state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';

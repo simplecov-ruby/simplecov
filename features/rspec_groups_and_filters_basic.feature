@@ -30,3 +30,11 @@ Feature:
       | lib/faked_project/some_class.rb         | 80.00%   |
       | lib/faked_project/framework_specific.rb | 75.00%   |
       | lib/faked_project/meta_magic.rb         | 100.00%  |
+
+    When I sort the "All Files" group by "File Name" 2 times
+    And I sort the "Libs" group by "File Name" 1 time
+    Then the visible source files should be ordered:
+      | lib/faked_project/framework_specific.rb |
+      | lib/faked_project/meta_magic.rb         |
+      | lib/faked_project/some_class.rb         |
+    And the visible "File Name" header should be sorted ascending

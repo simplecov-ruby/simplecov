@@ -40,6 +40,30 @@ Then "each group tab should open its own file list" do
   end
 end
 
+When /^I sort the "(.+)" group by "(.+)" (\d+) times?$/ do |group_name, column_name, click_count|
+  tab = find(".group_tabs a", text: /\A#{Regexp.escape(group_name)} \(/)
+  container_id = tab[:href].split("#", 2).last
+  tab.click
+  expect(page).to have_css("##{container_id}", visible: :visible)
+
+  click_count.to_i.times do
+    find("##{container_id} thead tr:first-child th .th-label", text: column_name).click
+  end
+end
+
+Then "the visible source files should be ordered:" do |table|
+  container = find("#content .file_list_container", visible: :visible)
+  filenames = container.all("tbody tr.t-file", visible: :visible).map { |row| row.find(".t-file__name").text }
+  expect(filenames).to eq(table.raw.flatten)
+end
+
+Then /^the visible "(.+)" header should be sorted (ascending|descending)$/ do |column_name, direction|
+  container = find("#content .file_list_container", visible: :visible)
+  header = container.find("thead tr:first-child th", text: column_name)
+  expected_class = direction == "ascending" ? "sorting_asc" : "sorting_desc"
+  expect(header[:class].split).to include(expected_class)
+end
+
 Then /^I should see the source files:$/ do |table|
   expected_files = table.hashes
   available_source_files = all(".t-file", visible: true, count: expected_files.count)
