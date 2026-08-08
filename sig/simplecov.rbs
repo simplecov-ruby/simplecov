@@ -1354,7 +1354,7 @@ module SimpleCov
 
       private
 
-      def format_group: (String name, SimpleCov::FileList files) -> String
+      def format_group: (String name, SimpleCov::FileList files, SimpleCov::criterion criterion) -> String
     end
   end
 end

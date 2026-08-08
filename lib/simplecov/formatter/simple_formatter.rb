@@ -8,16 +8,19 @@ module SimpleCov
     class SimpleFormatter
       # Takes a SimpleCov::Result and generates a string out of it
       def format(result)
-        result.groups.map { |name, files| format_group(name, files) }.join
+        criterion = SimpleCov.coverage_statistics_key(SimpleCov.primary_coverage)
+        result.groups.map { |name, files| format_group(name, files, criterion) }.join
       end
 
     private
 
-      def format_group(name, files)
+      def format_group(name, files, criterion)
         header = "Group: #{name}\n#{'=' * 40}\n"
-        # `covered_percent` is nilable across criteria, but line stats are
-        # always measured, so the no-argument call can't return nil here.
-        body   = files.map { |file| "#{file.filename} (coverage: #{(_ = file.covered_percent).floor(2)}%)\n" }.join
+        # The configured primary criterion is enabled, so every result file
+        # carries its corresponding statistic despite the nilable public API.
+        body = files.map do |file|
+          "#{file.filename} (coverage: #{(_ = file.covered_percent(criterion)).floor(2)}%)\n"
+        end.join
         "#{header}#{body}\n"
       end
     end
