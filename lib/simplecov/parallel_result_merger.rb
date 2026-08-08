@@ -47,12 +47,14 @@ module SimpleCov
     #
     def merge_results(*file_paths, processes:, ignore_timeout: false)
       tracked_files = Set.new
-      command_names, coverage =
-        absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
-                                   tracked_files: tracked_files) ||
-        ResultMerger.absorb_results(file_paths, ignore_timeout: ignore_timeout,
-                                    &ResultMerger::UnloadedFiles.collector(tracked_files))
+      pair = absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
+                                        tracked_files: tracked_files)
+      # A nil pair means nothing was fanned out at all, so the serial path
+      # is exactly `ResultMerger.merge_results` — delegate rather than
+      # re-implement its collector wiring.
+      return ResultMerger.merge_results(*file_paths, ignore_timeout: ignore_timeout) unless pair
 
+      command_names, coverage = pair
       ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files)
     end
 
