@@ -52,7 +52,7 @@
 
         # The executed side's tuples when it has them, otherwise a table only
         # when this process measures the criterion itself.
-        def authoritative_table: (untyped combiner, untyped table, bool measured) -> Hash[untyped, untyped]?
+        def authoritative_table: (untyped combiner, untyped table, bool keep_empty) -> Hash[untyped, untyped]?
 
         def absorb: (untyped coverage) -> MergedFile
 
@@ -67,7 +67,7 @@
 
         private def replace_tuples: (untyped coverage) -> void
 
-        private def drop_incoming_tuples: () -> void
+        private def drop_incoming_tuples: (untyped coverage) -> void
 
         # Whether a side can be judged at all. Absent lines mean unknown, not
         # never ran: a branch-only or method-only run omits them for the files

@@ -33,14 +33,16 @@ module SimpleCov
       # `ResultMerger` re-derives a merged result's not-loaded set from, so it
       # lives here rather than being spelled out at each site.
       #
-      # `Array()` rather than a bare `any?` because this reads straight off a
-      # parsed resultset, which is external input: a file written by another
-      # SimpleCov version, or hand-edited, can carry anything under "lines".
-      # Coercing keeps a malformed entry to a wrong answer instead of a
-      # NoMethodError out of the middle of a merge.
+      # `Array()` plus the `Numeric` test rather than a bare
+      # `any?(&:positive?)` because this reads straight off a parsed
+      # resultset, which is external input: a file written by another
+      # SimpleCov version, or hand-edited, can carry anything under
+      # "lines" — a Hash coerces to pairs, a String to itself. Keeping a
+      # malformed entry to a wrong answer instead of a NoMethodError out
+      # of the middle of a merge is the point.
       def self.executed?(lines)
-        counts = Array(lines) #: Array[Integer?]
-        counts.any? { |count| count&.positive? }
+        counts = Array(lines) #: Array[untyped]
+        counts.any? { |count| count.is_a?(Numeric) && count.positive? }
       end
 
       #
@@ -198,7 +200,7 @@ module SimpleCov
           elsif incoming_executed
             replace_tuples(coverage)
           else
-            drop_incoming_tuples
+            drop_incoming_tuples(coverage)
           end
         end
 
@@ -214,32 +216,38 @@ module SimpleCov
           @methods = MethodsCombiner.absorb(@methods, coverage["methods"]) if @methods || coverage["methods"]
         end
 
-        # Only the incoming side ran, so what's accumulated is synthesized:
-        # start its tuples over from the executed side's.
         # Only the accumulated side ran, so the incoming tuples are synthesized
-        # and contribute nothing. The empty method table stands in for the
-        # blanked side, which is what a pair against a blank one used to produce
-        # for a file that has no methods yet.
-        def drop_incoming_tuples
-          @methods ||= {} if @method_coverage #: Hash[untyped, untyped]
+        # and contribute nothing. When the discarded side carried a methods
+        # table, a measuring process still gets one — the empty table stands in
+        # for the blanked side, which is what a pair against a blank one used
+        # to produce for a file that has no methods yet. When no side has
+        # carried methods at all, the table stays nil (the rule `initialize`
+        # documents), the same answer the union path gives.
+        def drop_incoming_tuples(coverage)
+          @methods ||= {} if @method_coverage && coverage["methods"] #: Hash[untyped, untyped]
         end
 
-        # The authoritative side decides which criteria the file carries, not
-        # just their tuples. Keeping a table in play that only the dropped side
-        # carried would make the answer depend on which side was seen first.
+        # Only the incoming side ran, so what's accumulated is synthesized:
+        # start its tuples over from the executed side's. The authoritative
+        # side decides which criteria the file carries, not just their tuples.
+        # Keeping a table in play that only the dropped side carried would make
+        # the answer depend on which side was seen first.
         def replace_tuples(coverage)
           @branches = authoritative_table(BranchesCombiner, coverage["branches"], @branch_coverage)
-          @methods = authoritative_table(MethodsCombiner, coverage["methods"], @method_coverage)
+          # Methods stay nil until some resultset carries them (see
+          # `initialize`), so a measuring process keeps an empty table only
+          # when one did.
+          @methods = authoritative_table(MethodsCombiner, coverage["methods"], @method_coverage && !@methods.nil?)
         end
 
-        # The executed side's tuples when it has them. Otherwise the criterion
-        # survives only because this process measures it, which is what keeps
-        # `SourceFile` able to tell "no branches here" from "branches were not
-        # measured".
-        def authoritative_table(combiner, table, measured)
+        # The executed side's tuples when it has them. Otherwise `keep_empty`
+        # decides whether the criterion survives as an empty table, which is
+        # what keeps `SourceFile` able to tell "no branches here" from
+        # "branches were not measured".
+        def authoritative_table(combiner, table, keep_empty)
           return combiner.absorb(new_table, table) if table
 
-          measured ? new_table : nil
+          keep_empty ? new_table : nil
         end
 
         # Whether a side can be judged at all. Absent lines do not mean the side

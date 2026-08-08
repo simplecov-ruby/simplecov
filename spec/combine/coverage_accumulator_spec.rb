@@ -53,6 +53,16 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(described_class.executed?(3)).to be(true)
       expect(described_class.executed?(0)).to be(false)
     end
+
+    it "answers false for non-numeric garbage rather than raising" do
+      expect(described_class.executed?("oops")).to be(false)
+      expect(described_class.executed?({"1" => 2})).to be(false)
+      expect(described_class.executed?([nil, "3", true])).to be(false)
+    end
+
+    it "counts a JSON float like an integer" do
+      expect(described_class.executed?([nil, 1.0])).to be(true)
+    end
   end
 
   describe "#result" do
@@ -264,6 +274,27 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
 
     it "reports nil when no resultset carried methods at all" do
       expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})["methods"]).to be_nil
+    end
+
+    # The nil-until-carried rule must not depend on which reconcile path
+    # ran: an executed-vs-simulated pair (either order) with no methods
+    # anywhere answers exactly like the all-executed union above. The
+    # persisted resultset shape feeds later merges, so nil-vs-empty is
+    # not cosmetic there.
+    it "reports nil on the drop path when no resultset carried methods" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 0]})["methods"]).to be_nil
+    end
+
+    it "reports nil on the replace path when no resultset carried methods" do
+      expect(merge({"lines" => [nil, 0]}, {"lines" => [nil, 1]})["methods"]).to be_nil
+    end
+
+    it "keeps an empty table when only the replaced side carried methods" do
+      # The mirror of the dropped-side case above, so the answer does not
+      # depend on absorption order.
+      merged = merge({"lines" => [nil, 0], "methods" => {}}, {"lines" => [nil, 1]})
+
+      expect(merged["methods"]).to eq({})
     end
   end
 
