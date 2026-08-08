@@ -48,6 +48,7 @@ module SimpleCov
 
       def self?.delta_parts: (untyped row, untyped color) -> untyped
 
+      # Removed rows never trip the --fail-on-drop gate.
       def self?.coverage_drop?: (untyped rows) -> bool
 
       # Deltas are sign-based, not threshold-based: a +5% bump is good
