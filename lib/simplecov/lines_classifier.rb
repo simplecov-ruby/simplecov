@@ -39,10 +39,13 @@ module SimpleCov
     def classify(lines)
       lines = lines.to_a
       directive_disabled = directive_disabled_line_set(lines)
-      @skipping = false
+      # The `:nocov:` skip state lives in a one-slot box owned by this
+      # call, not in an ivar, so one classifier instance can serve
+      # concurrent `classify` calls without the toggles interleaving.
+      skip_state = [false]
 
       lines.map.with_index(1) do |line, line_number|
-        classify_line(line, line_number, directive_disabled)
+        classify_line(line, line_number, directive_disabled, skip_state)
       end
     end
 
@@ -53,11 +56,11 @@ module SimpleCov
     # code cannot be a marker, and no longer pays to be checked against
     # one. That matters because this runs per line of every
     # tracked-but-unloaded file, once in every process of a parallel run.
-    def classify_line(line, line_number, directive_disabled)
+    def classify_line(line, line_number, directive_disabled, skip_state)
       if self.class.whitespace_line?(line)
-        @skipping = !@skipping if self.class.no_cov_line?(line)
+        skip_state[0] = !skip_state[0] if self.class.no_cov_line?(line)
         NOT_RELEVANT
-      elsif @skipping || directive_disabled.include?(line_number)
+      elsif skip_state[0] || directive_disabled.include?(line_number)
         NOT_RELEVANT
       else
         RELEVANT
