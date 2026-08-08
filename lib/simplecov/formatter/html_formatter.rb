@@ -48,7 +48,12 @@ module SimpleCov
       # embedding it and failing at view time.
       def format_from_json(json_path, output_dir)
         FileUtils.mkdir_p(output_dir)
-        json = JSON.generate(JSON.parse(File.read(json_path)))
+        # UTF-8 explicitly (JSON is UTF-8 by definition): `File.read`
+        # would tag the text with `Encoding.default_external`, and a
+        # non-UTF-8 locale (minimal CI containers resolve to US-ASCII,
+        # Windows to a code page) would make the substitution below raise
+        # Encoding::CompatibilityError.
+        json = JSON.generate(JSON.parse(File.read(json_path, encoding: Encoding::UTF_8)))
         atomic_write(File.join(output_dir, "index.html"), render_report(json))
       end
 
@@ -65,7 +70,12 @@ module SimpleCov
       # forms keep gsub/sub from interpreting backslashes in the JSON as
       # replacement-string back-references.
       def render_report(json)
-        template = File.read(File.join(public_dir, "index.html"))
+        # UTF-8 explicitly, not the locale's `Encoding.default_external`:
+        # the JSON payload is UTF-8, and substituting it into a template
+        # tagged US-ASCII (or a Windows code page) raises
+        # Encoding::CompatibilityError the moment either side carries a
+        # non-ASCII character.
+        template = File.read(File.join(public_dir, "index.html"), encoding: Encoding::UTF_8)
         unless template.include?(DATA_MARKER)
           raise "SimpleCov's HTML template is missing its #{DATA_MARKER.inspect} marker"
         end

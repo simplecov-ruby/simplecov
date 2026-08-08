@@ -65,6 +65,52 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
   end
 
+  describe "#format under a non-UTF-8 default external encoding" do
+    # A minimal CI container's locale resolves `Encoding.default_external`
+    # to US-ASCII (Windows to a code page). The template and payload are
+    # read and built as UTF-8 explicitly, so embedding non-ASCII source
+    # like utf-8.rb's "135°C" must not raise Encoding::CompatibilityError.
+    it "still renders the report" do
+      with_default_external(Encoding::US_ASCII) do
+        formatter.format(make_result({"utf-8.rb" => {"lines" => [1]}}))
+      end
+
+      expect(embedded_json).to include("135°C")
+    end
+
+    it "still renders from a coverage.json carrying non-ASCII source" do
+      # `File.read` without an explicit encoding tags the JSON with the
+      # locale's encoding, and parsing "135°C" as US-ASCII raises
+      # Encoding::InvalidByteSequenceError before the template is even
+      # touched.
+      formatter.format(make_result({"utf-8.rb" => {"lines" => [1]}}))
+
+      Dir.mktmpdir do |dir|
+        with_default_external(Encoding::US_ASCII) do
+          formatter.format_from_json(File.join(coverage_dir, "coverage.json"), dir)
+        end
+
+        expect(embedded_json(dir)).to include("135°C")
+      end
+    end
+
+    def with_default_external(encoding)
+      original = Encoding.default_external
+      assign_default_external(encoding)
+      yield
+    ensure
+      assign_default_external(original)
+    end
+
+    def assign_default_external(encoding)
+      verbose = $VERBOSE
+      $VERBOSE = nil # assigning default_external warns; that's the point here
+      Encoding.default_external = encoding
+    ensure
+      $VERBOSE = verbose
+    end
+  end
+
   describe "#format with output_dir" do
     it "writes index.html into the explicit directory, not SimpleCov.coverage_path" do
       Dir.mktmpdir do |dir|
