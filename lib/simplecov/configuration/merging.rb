@@ -55,7 +55,7 @@ module SimpleCov
     end
 
     #
-    # Get or set whether this process owns final merge processing:
+    # Get or set whether SimpleCov's selected final process owns merge processing:
     # waiting for sibling workers, building the merged result, formatting,
     # enforcing thresholds, and writing `.last_run.json`.
     #
@@ -83,7 +83,7 @@ module SimpleCov
 
     # @api private
     def merge_finalization_owner?
-      collating_result? || finalize_merge?
+      collating_result? || (finalize_merge? && final_result_process?)
     end
 
     # DEPRECATED: alias for `merging`. Same value, same behavior.

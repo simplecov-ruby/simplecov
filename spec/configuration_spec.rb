@@ -658,6 +658,23 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.finalize_merge).to be true
       end
 
+      it "selects only the final process as the merge finalization owner" do
+        config.finalize_merge true
+        allow(config).to receive_messages(collating_result?: false, final_result_process?: false)
+
+        expect(config.merge_finalization_owner?).to be false
+
+        allow(config).to receive(:final_result_process?).and_return(true)
+        expect(config.merge_finalization_owner?).to be true
+      end
+
+      it "always gives merge finalization ownership to collation" do
+        config.finalize_merge false
+        allow(config).to receive_messages(collating_result?: true, final_result_process?: false)
+
+        expect(config.merge_finalization_owner?).to be true
+      end
+
       it "does not warn when the explicit value is false" do
         stderr = capture_stderr { config.finalize_merge false }
         expect(stderr).to be_empty
@@ -1535,7 +1552,7 @@ RSpec.describe SimpleCov::Configuration do
         result = instance_double(SimpleCov::Result)
         allow(result).to receive(:format!)
         allow(Coverage).to receive(:running?).and_return(true)
-        allow(SimpleCov).to receive_messages(result: result, final_result_process?: true)
+        allow(SimpleCov).to receive_messages(result: result, merge_finalization_owner?: true)
 
         config.at_exit.call
 
@@ -1549,7 +1566,7 @@ RSpec.describe SimpleCov::Configuration do
         allow(Coverage).to receive(:running?).and_return(true)
         allow(SimpleCov).to receive_messages(
           result: result,
-          final_result_process?: true,
+          merge_finalization_owner?: true,
           ready_to_process_results?: false
         )
 
@@ -1558,11 +1575,11 @@ RSpec.describe SimpleCov::Configuration do
         expect(result).to have_received(:format!)
       end
 
-      it "stores and merges the result but does not format from non-final parallel workers" do
+      it "stores the result but does not format from non-final parallel workers" do
         result = instance_double(SimpleCov::Result)
         allow(result).to receive(:format!)
         allow(Coverage).to receive(:running?).and_return(true)
-        allow(SimpleCov).to receive_messages(result: result, final_result_process?: false)
+        allow(SimpleCov).to receive_messages(result: result, merge_finalization_owner?: false)
 
         config.at_exit.call
 

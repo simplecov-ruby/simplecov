@@ -113,7 +113,7 @@ module SimpleCov
     # would surface a spurious "below minimum" violation about the
     # missing slice rather than a real shortfall.
     def ready_to_process_results?
-      merge_finalization_owner? && final_result_process? && result? &&
+      merge_finalization_owner? && result? &&
         (collating_result? || parallel_results_complete?)
     end
 

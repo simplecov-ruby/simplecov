@@ -759,11 +759,11 @@ Cached coverage data eventually goes stale, so result sets older than `SimpleCov
 merge. The default is 600 seconds (10 minutes); raise or lower it with `SimpleCov.merge_timeout 3600` (1 hour), or
 `merge_timeout 3600` inside a configure/start block. Deactivate automatic merging entirely with `SimpleCov.merging false`.
 
-In a parallel run, the process that writes the final report waits for the other workers to finish and write their
-result sets before merging. It gives up after `SimpleCov.parallel_wait_timeout` seconds (default 60) and reports
-whatever has arrived, skipping the minimum / maximum coverage checks against that partial total. If one worker runs
-much heavier test files and routinely finishes a minute or more after the others, raise it with
-`SimpleCov.parallel_wait_timeout 180` so its coverage is included.
+In a parallel run, every worker stores only its own result. The adapter-selected final process then waits for the other
+workers to finish, reads the resultset, and builds the merged report. It gives up after
+`SimpleCov.parallel_wait_timeout` seconds (default 60) and reports whatever has arrived, skipping the minimum / maximum
+coverage checks against that partial total. If one worker runs much heavier test files and routinely finishes a minute
+or more after the others, raise it with `SimpleCov.parallel_wait_timeout 180` so its coverage is included.
 
 SimpleCov tags cached entries with a per-run identity so results left by an earlier invocation cannot satisfy that
 wait. The built-in adapters infer a shared identity for local workers. Distributed or custom runners whose workers do

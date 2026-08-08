@@ -638,7 +638,7 @@ module SimpleCov
     # into a single coverage report. Defaults to true.
     def merging: (?bool? use) -> bool
 
-    # Get or set whether this process owns final merge processing:
+    # Get or set whether SimpleCov's selected final process owns merge processing:
     # waiting for sibling workers, merging, formatting, enforcing
     # thresholds, and writing `.last_run.json`. Defaults to true except
     # for recognized multi-worker parallel runs writing to a custom
@@ -678,9 +678,11 @@ module SimpleCov
     def inferred_finalize_merge_warning: () -> String
 
     # Host contract: defined on SimpleCov itself (result_processing.rb).
-    # This module is only ever extended onto SimpleCov, where the
-    # method is available to `merge_finalization_owner?`.
+    # This module is only ever extended onto SimpleCov, where both methods
+    # are available to `merge_finalization_owner?`.
     def collating_result?: () -> boolish
+
+    def final_result_process?: () -> boolish
   end
 end
 

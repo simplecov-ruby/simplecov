@@ -104,7 +104,7 @@ module SimpleCov
 
       @at_exit = proc do
         result = SimpleCov.result
-        result.format! if result && SimpleCov.merge_finalization_owner? && SimpleCov.final_result_process?
+        result.format! if result && SimpleCov.merge_finalization_owner?
       end
     end
 

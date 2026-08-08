@@ -42,8 +42,9 @@ module SimpleCov
     end
 
     #
-    # Returns the result for the current coverage run, merging it across test suites
-    # from cache using SimpleCov::ResultMerger if use_merging is activated (default)
+    # Returns the result for the current coverage run. With merging enabled,
+    # every process stores its own slice, but only the finalization owner reads
+    # and caches the merged result.
     #
     def result
       return @result if result?
@@ -56,7 +57,7 @@ module SimpleCov
       # first (if there is one), then merge the results and return those
       if use_merging
         SimpleCov::ResultMerger.store_result(@result) if result?
-        return @result unless finalize_merge?
+        return @result unless merge_finalization_owner?
 
         wait_for_other_processes
         @result = SimpleCov::ResultMerger.merged_result

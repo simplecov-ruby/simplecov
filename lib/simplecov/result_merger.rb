@@ -101,12 +101,9 @@ module SimpleCov
       end
 
       def warn_about_expired_results(expired_command_names)
-        # Subprocesses merge the resultset too (each forked worker calls
-        # `SimpleCov.result` to store its slice), and the default `at_fork`
-        # sets `print_errors false` for them. Without this guard the warning
-        # is emitted once per worker — N copies of the same message for an
-        # N-worker run. Gate on `print_errors` like every other SimpleCov
-        # warning so only the reporting process speaks up.
+        # Respect quiet configurations and keep this consistent with every
+        # other SimpleCov diagnostic. Ordinary parallel workers only store
+        # their own slice; the selected final process performs this merge.
         return unless SimpleCov.print_errors
 
         warn "[SimpleCov]: Excluded #{expired_command_names.size} result(s) older than " \

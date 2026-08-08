@@ -402,25 +402,19 @@ RSpec.describe SimpleCov do
       end
     end
 
-    it "is true when both final_result_process? and result? are truthy" do
-      allow(described_class).to receive_messages(final_result_process?: true, result?: true)
+    it "is true when the finalization owner has a complete result" do
+      allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true)
       expect(described_class.ready_to_process_results?).to be true
     end
 
     it "is false when this process does not own merge finalization" do
-      allow(described_class).to receive_messages(merge_finalization_owner?: false, final_result_process?: true,
-                                                 result?: true)
-      expect(described_class.ready_to_process_results?).to be false
-    end
-
-    it "is false when final_result_process? is false" do
-      allow(described_class).to receive(:final_result_process?).and_return(false)
+      allow(described_class).to receive_messages(merge_finalization_owner?: false, result?: true)
       expect(described_class.ready_to_process_results?).to be false
     end
 
     it "is true for a collated result even when worker parallel results are incomplete" do
       described_class.instance_variable_set(:@collating_result, true)
-      allow(described_class).to receive_messages(final_result_process?: true, result?: true,
+      allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
                                                  parallel_results_complete?: false)
 
       expect(described_class.ready_to_process_results?).to be true
@@ -755,7 +749,7 @@ RSpec.describe SimpleCov do
       result = instance_double(SimpleCov::Result)
       allow(SimpleCov::ResultMerger).to receive(:merge_and_store).and_return(result)
       allow(described_class).to receive_messages(at_exit: proc {}, finalize_merge?: false,
-                                                 final_result_process?: true,
+                                                 final_result_process?: false,
                                                  result_exit_status: SimpleCov::ExitCodes::SUCCESS)
       allow(described_class).to receive(:write_last_run)
 
@@ -1017,16 +1011,16 @@ RSpec.describe SimpleCov do
       end
     end
 
-    context "with merging enabled and merge finalization disabled" do
+    context "with merging enabled in a process that does not own finalization" do
       before do
-        allow(described_class).to receive_messages(merging: true, finalize_merge?: false)
+        allow(described_class).to receive_messages(merging: true, merge_finalization_owner?: false)
         allow(Coverage).to receive(:running?).and_return(true)
         allow(SimpleCov::ResultMerger).to receive(:store_result)
         allow(SimpleCov::ResultMerger).to receive(:merged_result)
         allow(described_class).to receive(:wait_for_other_processes)
       end
 
-      it "stores the worker resultset without waiting or merging" do
+      it "stores and returns the worker result without waiting or merging" do
         result = described_class.result
 
         expect(result).to be_a(SimpleCov::Result)
