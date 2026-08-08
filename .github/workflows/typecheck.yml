@@ -13,6 +13,14 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - run: bun install
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+
+      - run: bun install --frozen-lockfile
 
       - run: bun run typecheck
+
+      - run: bundle exec rake assets:check
+        working-directory: ${{ github.workspace }}

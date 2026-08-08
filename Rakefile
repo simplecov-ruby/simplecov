@@ -2,6 +2,7 @@
 
 require "rubygems"
 require "bundler/setup"
+require "open3"
 Bundler::GemHelper.install_tasks
 
 # `rake release` builds the gem and pushes the version tag, but it does not
@@ -77,11 +78,19 @@ task test: %i[spec cucumber]
 task default: %i[rubocop rbs steep spec cucumber]
 
 # JS: esbuild bundles TypeScript + highlight.js and minifies
+def frontend_esbuild(frontend)
+  executable = Gem.win_platform? ? "esbuild.cmd" : "esbuild"
+  path = File.join(frontend, "node_modules", ".bin", executable)
+  return path if File.file?(path)
+
+  raise "Frontend esbuild not found at #{path}; run `bun install` in html_frontend"
+end
+
 def compile_frontend_js(frontend)
   require "tmpdir"
   Dir.mktmpdir do |tmp|
-    esbuild = "esbuild src/app.ts --bundle --minify --target=es2015"
-    sh "cd #{frontend} && #{esbuild} --outfile=#{tmp}/application.js"
+    args = ["src/app.ts", "--bundle", "--minify", "--target=es2015", "--outfile=#{tmp}/application.js"]
+    Dir.chdir(frontend) { sh frontend_esbuild(frontend), *args }
     File.read(File.join(tmp, "application.js"))
   end
 end
@@ -94,15 +103,14 @@ def compile_frontend_css(frontend)
     assets/stylesheets/screen.css
   ].map { |f| File.read(File.join(frontend, f)) }.join("\n")
 
-  mangle_css_custom_properties(minify_css(css))
+  mangle_css_custom_properties(minify_css(css, esbuild: frontend_esbuild(frontend)))
 end
 
-def minify_css(css)
-  IO.popen(%w[esbuild --minify --loader=css], "r+") do |io|
-    io.write(css)
-    io.close_write
-    io.read
-  end
+def minify_css(css, esbuild:)
+  output, error, status = Open3.capture3(esbuild, "--minify", "--loader=css", stdin_data: css)
+  return output if status.success?
+
+  raise "CSS compilation failed (exit #{status.exitstatus || 'unknown'}): #{error.strip}"
 end
 
 # Custom properties that JavaScript reads or writes by name and must
@@ -169,5 +177,11 @@ namespace :assets do
       html.sub!(marker) { replacement } || raise("Marker #{marker.inspect} not found in src/index.html")
     end
     File.write(File.join(outdir, "index.html"), html)
+  end
+
+  desc "Compile the frontend and fail when the checked-in template is stale"
+  task check: :compile do
+    template = "lib/simplecov/formatter/html_formatter/public/index.html"
+    Dir.chdir(__dir__) { sh "git", "diff", "--exit-code", "--", template }
   end
 end
