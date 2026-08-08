@@ -3,8 +3,8 @@
 module SimpleCov
   # Selection and validation of the coverage criteria Ruby's `Coverage`
   # library should track. Supports `:line` (the historical default),
-  # `:branch`, `:method`, and `:oneshot_line`, plus the standalone
-  # `:eval` toggle for instrumenting `eval`'d code.
+  # `:branch`, `:method`, and `:oneshot_line`. The standalone `:eval`
+  # toggle lives in `eval_coverage.rb`.
   module Configuration
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch method oneshot_line].freeze
     DEFAULT_COVERAGE_CRITERION = :line
@@ -19,10 +19,13 @@ module SimpleCov
     end
 
     # Remove `criterion` from the set of enabled coverage criteria.
-    # Disabling every criterion raises at `start_tracking` (not here),
-    # so config files that toggle criteria in arbitrary order don't
-    # have to worry about transient empty states.
+    # `:eval` turns the standalone eval-coverage toggle back off,
+    # mirroring `enable_coverage`. Disabling every criterion raises at
+    # `start_tracking` (not here), so config files that toggle criteria
+    # in arbitrary order don't have to worry about transient empty states.
     def disable_coverage(criterion)
+      return disable_eval_coverage if criterion == :eval
+
       raise_if_criterion_unsupported(criterion)
       coverage_criteria.delete(criterion)
       @primary_coverage = nil if @primary_coverage == criterion
@@ -86,10 +89,6 @@ module SimpleCov
       coverage_criterion_supported?(:methods)
     end
 
-    def coverage_for_eval_supported?
-      coverage_criterion_supported?(:eval)
-    end
-
     # Ask the Coverage runtime itself whether a criterion is supported
     # (Ruby >= 3.2). Older Rubies don't expose `Coverage.supported?`, so
     # fall back to the historical engine check that line/branch/method
@@ -106,17 +105,6 @@ module SimpleCov
     end
     # simplecov:enable
 
-    def coverage_for_eval_enabled?
-      @coverage_for_eval_enabled ||= false
-    end
-
-    # DEPRECATED: prefer `enable_coverage :eval`.
-    def enable_coverage_for_eval
-      SimpleCov::Deprecation.warn("`SimpleCov.enable_coverage_for_eval` is deprecated. " \
-                                  "Replace with `SimpleCov.enable_coverage :eval`.")
-      enable_eval_coverage
-    end
-
   private
 
     def add_coverage_criterion(criterion)
@@ -124,16 +112,6 @@ module SimpleCov
       incompatible = LINE_COVERAGE_ALTERNATIVES[criterion]
       disable_coverage(incompatible) if incompatible
       coverage_criteria << criterion
-    end
-
-    # Shared implementation backing both `enable_coverage :eval` and
-    # the deprecated `enable_coverage_for_eval`.
-    def enable_eval_coverage
-      if coverage_for_eval_supported?
-        @coverage_for_eval_enabled = true
-      else
-        warn "Coverage for eval is not available; Use Ruby 3.2.0 or later"
-      end
     end
 
     # If `:line` is enabled, it's the default primary; otherwise fall

@@ -254,7 +254,8 @@ end
 
 # Selection and validation of the coverage criteria Ruby's `Coverage`
 # library should track: `:line` (default), `:branch`, `:method`, and
-# `:oneshot_line`, plus the standalone `:eval` toggle.
+# `:oneshot_line`. The standalone `:eval` toggle lives in
+# `configuration/eval_coverage.rb`.
 module SimpleCov
   module Configuration
     # Members are line, branch, method, and oneshot_line (%i[] literals
@@ -277,8 +278,9 @@ module SimpleCov
     def enable_coverage: (*(criterion | :oneshot_line | :eval) criteria) -> void
 
     # Remove `criterion` from the set of enabled coverage criteria.
+    # `:eval` turns the standalone eval-coverage toggle back off.
     # Disabling every criterion raises at `start_tracking`, not here.
-    def disable_coverage: ((criterion | :oneshot_line) criterion) -> void
+    def disable_coverage: ((criterion | :oneshot_line | :eval) criterion) -> void
 
     # Gets the report's leading criterion, or sets it. The setter
     # validates at runtime that the criterion is enabled; the parameter
@@ -312,23 +314,14 @@ module SimpleCov
 
     def method_coverage_supported?: () -> bool
 
-    def coverage_for_eval_supported?: () -> bool
-
     # Whether the running Ruby's Coverage library supports the given
     # criterion, named in Coverage's own plural vocabulary
     # (`:lines`, `:branches`, `:methods`, `:oneshot_lines`, `:eval`).
     def coverage_criterion_supported?: (Symbol criterion) -> bool
 
-    def coverage_for_eval_enabled?: () -> bool
-
-    # DEPRECATED: use `enable_coverage :eval` instead.
-    def enable_coverage_for_eval: () -> void
-
     private
 
     def add_coverage_criterion: ((criterion | :oneshot_line) criterion) -> void
-
-    def enable_eval_coverage: () -> void
 
     def default_primary_coverage: () -> (criterion | :oneshot_line)
 
@@ -337,6 +330,28 @@ module SimpleCov
     def raise_if_criterion_disabled: (Symbol criterion) -> void
 
     def raise_if_criterion_unsupported: (Symbol criterion) -> void
+  end
+end
+
+# ----- configuration/eval_coverage -----
+
+# The standalone eval-coverage toggle (`enable_coverage :eval`),
+# instrumenting `eval`'d code on Rubies that support it. A boolean
+# toggle, never a member of the enabled-criteria set.
+module SimpleCov
+  module Configuration
+    def coverage_for_eval_supported?: () -> bool
+
+    def coverage_for_eval_enabled?: () -> bool
+
+    # DEPRECATED: use `enable_coverage :eval` instead.
+    def enable_coverage_for_eval: () -> void
+
+    private
+
+    def enable_eval_coverage: () -> void
+
+    def disable_eval_coverage: () -> void
   end
 end
 
@@ -365,9 +380,9 @@ module SimpleCov
     # Configure (and, unless `enabled: false`, enable) a coverage
     # criterion. `primary: true` makes it the report's leading
     # criterion; `oneshot: true` (only for `:line`) selects
-    # oneshot-lines mode; `:eval` is enable-only. Threshold keywords
-    # mirror the block verbs for one-liner use. Returns the criterion
-    # symbol the thresholds were stored under.
+    # oneshot-lines mode. Threshold keywords mirror the block verbs
+    # for one-liner use. Returns the criterion symbol the thresholds
+    # were stored under.
     # The threshold keywords (minimum:, maximum:, exact:, maximum_drop:,
     # minimum_per_file:) arrive via **thresholds in the implementation, so
     # they are typed as a Numeric kwarg splat. The block runs under
@@ -380,9 +395,7 @@ module SimpleCov
 
     def enable_coverage_criterion: ((criterion | :eval) criterion, enabled: bool, oneshot: bool) -> (criterion | :oneshot_line | :eval)
 
-    def enable_oneshot_line: ((criterion | :eval) criterion) -> :oneshot_line
-
-    def enable_eval_coverage_criterion: () -> :eval
+    def resolve_criterion_variant: ((criterion | :eval) criterion, bool oneshot) -> (criterion | :oneshot_line | :eval)
 
     # Threshold-store writers used by CoverageCriterion via `send`.
     # They accept any criterion Symbol; `raise_on_invalid_coverage`

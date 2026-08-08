@@ -45,6 +45,13 @@ RSpec.describe SimpleCov::Configuration do
           .to raise_error(SimpleCov::ConfigurationError, /only valid for/)
       end
 
+      it "disables oneshot line coverage with enabled: false" do
+        config.coverage :line, oneshot: true
+        config.coverage :line, oneshot: true, enabled: false
+
+        expect(config.coverage_criterion_enabled?(:oneshot_line)).to be false
+      end
+
       it "sets the primary criterion via a keyword" do
         config.coverage :branch, primary: true
         expect(config.primary_coverage).to eq(:branch)
@@ -60,6 +67,15 @@ RSpec.describe SimpleCov::Configuration do
 
         config.coverage :eval
         expect(config.coverage_for_eval_enabled?).to be true
+      end
+
+      it "disables eval coverage with enabled: false" do
+        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
+
+        config.coverage :eval
+        config.coverage :eval, enabled: false
+
+        expect(config.coverage_for_eval_enabled?).to be false
       end
     end
 
@@ -1359,6 +1375,15 @@ RSpec.describe SimpleCov::Configuration do
         config.disable_coverage :line
 
         expect(config.primary_coverage).to eq :branch
+      end
+
+      it "turns the eval toggle back off" do
+        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
+        config.enable_coverage :eval
+
+        config.disable_coverage :eval
+
+        expect(config.coverage_for_eval_enabled?).to be false
       end
     end
 

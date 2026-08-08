@@ -38,12 +38,12 @@ module SimpleCov
     #
     # `primary: true` makes this the report's leading criterion (and the one a
     # bare `minimum_coverage 90` targets). `oneshot: true` (valid only for
-    # `:line`) selects the faster oneshot-lines mode. `:eval` is enable-only.
+    # `:line`) selects the faster oneshot-lines mode.
     #
     def coverage(criterion, primary: false, enabled: true, oneshot: false, **thresholds, &block)
       criterion = enable_coverage_criterion(criterion, enabled: enabled, oneshot: oneshot)
       # The cast admits :eval, which primary_coverage rejects at runtime
-      # (it is enable-only and never in the enabled-criteria set).
+      # (it is a standalone toggle, never in the enabled-criteria set).
       primary_coverage(_ = criterion) if primary
 
       configurator = CoverageCriterion.new(self, criterion)
@@ -70,28 +70,22 @@ module SimpleCov
       end
     end
 
-    # Enable the criterion (or its oneshot / eval variant) and return the
-    # criterion symbol that thresholds should be stored under.
+    # Enable or disable the criterion (or its oneshot / eval variant) and
+    # return the criterion symbol that thresholds should be stored under.
     def enable_coverage_criterion(criterion, enabled:, oneshot:)
-      return enable_oneshot_line(criterion) if oneshot
-      return enable_eval_coverage_criterion if criterion == :eval
-
+      criterion = resolve_criterion_variant(criterion, oneshot)
       enabled ? enable_coverage(criterion) : disable_coverage(criterion)
       criterion
     end
 
-    def enable_oneshot_line(criterion)
+    def resolve_criterion_variant(criterion, oneshot)
+      return criterion unless oneshot
+
       unless criterion == :line
         raise SimpleCov::ConfigurationError, "`oneshot: true` is only valid for `coverage :line`"
       end
 
-      enable_coverage(ONESHOT_LINE_COVERAGE_CRITERION)
       ONESHOT_LINE_COVERAGE_CRITERION
-    end
-
-    def enable_eval_coverage_criterion
-      enable_coverage(:eval)
-      :eval
     end
 
     # @api private — threshold-store writers used by CoverageCriterion. They
