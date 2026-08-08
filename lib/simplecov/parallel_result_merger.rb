@@ -132,12 +132,21 @@ module SimpleCov
       end
     end
 
+    # `fork` itself can fail (EAGAIN under a process limit). The caller
+    # cleans up the workers it knows about, but this pipe is ours: the
+    # parent's writer end always closes, and the reader closes too when
+    # no child was spawned to feed it. Steep cannot type body locals
+    # inside an ensure, hence the ignore markers; the safe navigation
+    # keeps the cleanup well-defined when `IO.pipe` itself raised.
     def spawn_worker(chunk, ignore_timeout:)
       reader, writer = IO.pipe
       pid = fork { run_in_child(reader, writer, chunk, ignore_timeout) }
-      writer.close
-
       {pid: pid, reader: reader}
+    ensure
+      # steep:ignore:start
+      writer&.close
+      reader&.close unless pid
+      # steep:ignore:end
     end
 
     # Everything the child does. `exit!` rather than `exit` because it must

@@ -257,6 +257,27 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(spawned.map { |worker| worker[:reader] }).to all(be_closed)
       expect { Process.wait2(spawned.first[:pid]) }.to raise_error(Errno::ECHILD)
     end
+
+    it "closes the failing spawn's own pipe ends" do
+      # The abandon path above only knows about workers that spawned; the
+      # pipe belonging to the spawn that failed is spawn_worker's to close.
+      allow(described_class).to receive(:fork).and_raise(Errno::EAGAIN)
+      pipes = nil
+      allow(IO).to receive(:pipe).and_wrap_original do |original|
+        original.call.tap { |pair| pipes = pair }
+      end
+
+      expect { described_class.spawn_worker(paths, ignore_timeout: true) }.to raise_error(Errno::EAGAIN)
+      expect(pipes).to all(be_closed)
+    end
+
+    it "has nothing to close when the pipe itself cannot be created" do
+      # EMFILE before the pair exists: the cleanup's nil arms are what
+      # keep the ensure from raising NoMethodError over the real error.
+      allow(IO).to receive(:pipe).and_raise(Errno::EMFILE)
+
+      expect { described_class.spawn_worker(paths, ignore_timeout: true) }.to raise_error(Errno::EMFILE)
+    end
   end
 
   describe ".read_payload" do

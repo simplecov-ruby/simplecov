@@ -41,6 +41,8 @@ module SimpleCov
 
     def self?.abandon: (Array[Hash[Symbol, untyped]] workers) -> void
 
+    def self?.drain: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]
+
     # Everything the child does; ends the process with `exit!`.
     def self?.run_in_child: (IO reader, IO writer, Array[String] chunk, bool ignore_timeout) -> bot
 
@@ -52,7 +54,6 @@ module SimpleCov
     # in this process.
     def self?.collect: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]?
 
-    def self?.drain: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]
 
     def self?.read_payload: (IO reader) -> untyped
 
