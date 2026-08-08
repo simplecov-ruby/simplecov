@@ -45,6 +45,37 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
   end
 
+  describe "#format when an existing coverage.json was written after this process started" do
+    # Outside SimpleCov.start, process_start_time is nil (other examples
+    # may also have reset it). Anchor it so the concurrent-overwrite
+    # check has a reference point.
+    before { SimpleCov.process_start_time = Time.now }
+
+    after { SimpleCov.process_start_time = nil }
+
+    # The HTML formatter is the default formatter and writes coverage.json
+    # too, so it must carry the same issue-#1171 concurrent-overwrite
+    # warning as the JSON formatter.
+    it "warns that a concurrent process may have written it" do
+      future_timestamp = (Time.now + 3600).iso8601
+      File.write(File.join(coverage_dir, "coverage.json"),
+                 JSON.generate(meta: {timestamp: future_timestamp, command_name: "Other Suite"}))
+
+      stderr = capture_stderr { formatter.format(make_result) }
+
+      expect(stderr).to include("concurrent test run")
+      expect(stderr).to include(future_timestamp)
+    end
+
+    it "does not warn when the file carries this run's command_name" do
+      result = make_result
+      File.write(File.join(coverage_dir, "coverage.json"),
+                 JSON.generate(meta: {timestamp: (Time.now + 3600).iso8601, command_name: result.command_name}))
+
+      expect { formatter.format(result) }.not_to output.to_stderr
+    end
+  end
+
   describe "#format under a non-UTF-8 default external encoding" do
     # A minimal CI container's locale resolves `Encoding.default_external`
     # to US-ASCII (Windows to a code page). The template and payload are

@@ -40,7 +40,7 @@ module SimpleCov
         # coverage.json stays pretty-printed for human readers.
         viewer_hash = JSONFormatter.build_hash(result, include_source: true)
         json_hash = SimpleCov.source_in_json ? viewer_hash : source_less_hash(viewer_hash)
-        write_report_files(json_hash, viewer_hash)
+        write_report_files(json_hash, viewer_hash, result)
         emit_status(result)
       end
 
@@ -66,8 +66,8 @@ module SimpleCov
         hash.merge(coverage: coverage)
       end
 
-      def write_report_files(json_hash, viewer_hash)
-        AtomicFile.write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash), binary: true)
+      def write_report_files(json_hash, viewer_hash, result)
+        CoverageJSONWriter.write(output_path, json_hash, result)
         AtomicFile.write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)), binary: true)
         FileUtils.rm_f(LEGACY_REPORT_FILES.map { |name| File.join(output_path, name) })
       end

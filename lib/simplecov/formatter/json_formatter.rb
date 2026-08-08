@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "base"
-require_relative "../atomic_file"
+require_relative "coverage_json_writer"
 require "json"
-require "time"
 
 module SimpleCov
   module Formatter
@@ -11,7 +10,7 @@ module SimpleCov
     # standalone, alongside the HTML formatter, or by external tools that
     # consume SimpleCov output.
     class JSONFormatter < Base
-      FILENAME = "coverage.json"
+      FILENAME = CoverageJSONWriter::FILENAME
 
       # `include_source:` defaults to `SimpleCov.source_in_json` (true
       # by default) so the historical payload shape is unchanged.
@@ -23,9 +22,7 @@ module SimpleCov
       end
 
       def format(result)
-        path = File.join(output_path, FILENAME)
-        warn_if_concurrent_overwrite(path, result)
-        AtomicFile.write(path, JSON.pretty_generate(self.class.build_hash(result)))
+        CoverageJSONWriter.write(output_path, self.class.build_hash(result), result)
         emit_status(result)
       end
 
@@ -37,41 +34,6 @@ module SimpleCov
 
       def entry_point_filename
         FILENAME
-      end
-
-      # Warns when the existing coverage.json has a timestamp newer than this
-      # process's start time — a strong signal that a sibling test process
-      # (e.g., parallel_tests) wrote it while we were running, and that our
-      # write is about to clobber their data.
-      def warn_if_concurrent_overwrite(path, result)
-        start_time = SimpleCov.process_start_time or return
-        existing = existing_meta(path) or return
-        return unless existing[:timestamp] > start_time
-
-        # The HTML formatter also writes coverage.json (it shares the file as
-        # a side artifact), so when both formatters are configured the file we
-        # find was just written by our own run, not a concurrent one. A
-        # matching command_name means the same merged result, so there's
-        # nothing to lose by overwriting. See issue #1171.
-        return if existing[:command_name] == result.command_name
-
-        warn "simplecov: #{path} was written at #{existing[:timestamp].iso8601} — after " \
-             "this process started at #{start_time.iso8601}. Overwriting " \
-             "likely loses coverage data from a concurrent test run. For " \
-             "parallel test setups, use SimpleCov::ResultMerger or run a single " \
-             "collation step after all workers finish."
-      end
-
-      def existing_meta(path)
-        return nil unless File.exist?(path)
-
-        meta = JSON.parse(File.read(path), symbolize_names: true)
-        timestamp = meta.dig(:meta, :timestamp)
-        return nil unless timestamp
-
-        {timestamp: Time.iso8601(timestamp), command_name: meta.dig(:meta, :command_name)}
-      rescue JSON::ParserError, ArgumentError
-        nil
       end
     end
   end

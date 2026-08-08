@@ -1436,12 +1436,47 @@ module SimpleCov
 
       # Write coverage.json and index.html, then clear any legacy
       # sibling files an earlier version left in the output directory.
-      def write_report_files: (Hash[untyped, untyped] json_hash, Hash[untyped, untyped] viewer_hash) -> void
+      def write_report_files: (Hash[untyped, untyped] json_hash, Hash[untyped, untyped] viewer_hash, SimpleCov::Result result) -> void
 
       # Substitute the coverage JSON into the compiled template.
       def render_report: (String json) -> String
 
       def public_dir: () -> String
+    end
+  end
+end
+
+# ----- formatter/coverage_json_writer -----
+
+module SimpleCov
+  module Formatter
+    # Shared writer for the coverage.json artifact (JSONFormatter's
+    # report and HTMLFormatter's side file): one pretty-printed binary
+    # write plus the issue-#1171 concurrent-overwrite warning.
+    module CoverageJSONWriter
+      FILENAME: "coverage.json"
+
+      META_SCAN_BYTES: Integer
+
+      def self?.write: (untyped output_path, Hash[Symbol, untyped] hash, SimpleCov::Result result) -> String
+
+      # Warns when an existing coverage.json is newer than this process's
+      # start time (a concurrent sibling writer). See issue #1171.
+      def self?.warn_if_concurrent_overwrite: (String path, SimpleCov::Result result) -> void
+
+      # timestamp stays untyped (not Time) so the comparison sites don't
+      # require the stdlib `time` extension sigs; the value is produced by
+      # Time.iso8601 at runtime.
+      def self?.existing_meta: (String path) -> ({ timestamp: untyped, command_name: untyped })?
+
+      def self?.parse_meta: (String path) -> Hash[Symbol, untyped]?
+
+      # Bounded head read that parses just the flat meta object of files
+      # this module wrote; nil on any miss so parse_meta falls back to a
+      # full parse.
+      def self?.parse_meta_head: (String path) -> Hash[Symbol, untyped]?
+
+      def self?.parse_meta_full: (String path) -> Hash[Symbol, untyped]?
     end
   end
 end
@@ -1467,15 +1502,6 @@ module SimpleCov
       def message_prefix: () -> String
 
       def entry_point_filename: () -> String
-
-      # Warns when an existing coverage.json is newer than this process's
-      # start time (a concurrent sibling writer). See issue #1171.
-      def warn_if_concurrent_overwrite: (String path, SimpleCov::Result result) -> void
-
-      # timestamp stays untyped (not Time) so the comparison sites don't
-      # require the stdlib `time` extension sigs; the value is produced by
-      # Time.iso8601 at runtime.
-      def existing_meta: (String path) -> ({ timestamp: untyped, command_name: untyped })?
     end
   end
 end
