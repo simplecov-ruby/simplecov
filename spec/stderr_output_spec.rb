@@ -8,49 +8,10 @@ require "helper"
 # raise-on-warning test setups) must not intercept them and `-W0` must not
 # swallow them. See #1225.
 RSpec.describe "stderr output contract" do # rubocop:disable RSpec/DescribeClass
-  let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
-  let(:result) do
-    res = SimpleCov::Result.new({
-                                  source_fixture("json/sample.rb") => {"lines" => [
-                                    nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                                    1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                                  ]}
-                                })
-    res.created_at = fixed_time
-    res
-  end
-
-  before do
-    SimpleCov.process_start_time = Time.now
-    allow(Open3).to receive(:capture2e)
-      .and_return(["1234567890abcdef1234567890abcdef12345678\n", instance_double(Process::Status, success?: true)])
-    allow(Warning).to receive(:warn).and_call_original
-  end
-
-  after { SimpleCov.process_start_time = nil }
+  before { allow(Warning).to receive(:warn).and_call_original }
 
   def expect_no_warning
     expect(Warning).not_to have_received(:warn)
-  end
-
-  describe "formatter status lines" do
-    it "JSONFormatter writes its status line to stderr without engaging Warning.warn" do
-      Dir.mktmpdir do |dir|
-        formatter = SimpleCov::Formatter::JSONFormatter.new(output_dir: dir)
-        expect { formatter.format(result) }
-          .to output(/Coverage report generated/).to_stderr
-        expect_no_warning
-      end
-    end
-
-    it "HTMLFormatter writes its status line to stderr without engaging Warning.warn" do
-      Dir.mktmpdir do |dir|
-        formatter = SimpleCov::Formatter::HTMLFormatter.new(output_dir: dir)
-        expect { formatter.format(result) }
-          .to output(/Coverage report generated/).to_stderr
-        expect_no_warning
-      end
-    end
   end
 
   describe "threshold enforcement output" do

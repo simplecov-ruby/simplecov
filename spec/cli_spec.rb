@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "coverage"
 require "helper"
 require "net/http"
 require "simplecov/cli"
@@ -942,7 +943,7 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
-    it "closes its TCPServer cleanly when an error bubbles out of run" do
+    it "propagates an address-in-use error when the server cannot bind" do
       FileUtils.mkdir_p(tmp)
       File.write(File.join(tmp, "index.html"), "report")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
@@ -950,11 +951,20 @@ RSpec.describe SimpleCov::CLI do
       expect { run("serve") }.to raise_error(Errno::EADDRINUSE)
     end
 
+    it "closes a bound server when its block raises" do
+      server = instance_double(TCPServer, close: nil)
+      allow(TCPServer).to receive(:new).and_return(server)
+
+      expect do
+        described_class::Serve.with_server(host: "127.0.0.1", port: 0) { raise "boom" }
+      end.to raise_error(RuntimeError, "boom")
+      expect(server).to have_received(:close)
+    end
+
     # End-to-end through `run`: spin the full entry point in a thread,
     # hit it, then signal Ctrl-C to stop. Exercises `run`, `announce`,
     # the serve_loop exit path, and the ensure-time `server.close`.
     it "serves the report end-to-end through the run entry point" do
-      FileUtils.mkdir_p(tmp)
       File.write(File.join(tmp, "index.html"), "<html>via-run</html>")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
 
@@ -971,34 +981,11 @@ RSpec.describe SimpleCov::CLI do
         response = Net::HTTP.get_response(URI(url))
         expect(response.code).to eq("200")
         expect(response.body).to include("via-run")
-      ensure
-        thread.raise(Interrupt) if thread.alive?
-        thread.join(2)
-      end
-    end
-
-    # End-to-end: spin the real server on a random port, make a request,
-    # assert the body comes back.
-    it "actually serves the report over HTTP" do
-      FileUtils.mkdir_p(tmp)
-      File.write(File.join(tmp, "index.html"), "<html>hello</html>")
-      allow(described_class).to receive(:coverage_dir).and_return(tmp)
-
-      server = TCPServer.new("127.0.0.1", 0)
-      port = server.addr[1]
-      thread = Thread.new { described_class::Serve.serve_loop(server, tmp, StringIO.new) }
-      begin
-        require "net/http"
-        response = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/"))
-        expect(response.code).to eq("200")
-        expect(response.body).to include("<html>hello</html>")
-
-        not_found = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/missing.html"))
+        not_found = Net::HTTP.get_response(URI("#{url}missing.html"))
         expect(not_found.code).to eq("404")
       ensure
         thread.raise(Interrupt) if thread.alive?
         thread.join(2)
-        server.close unless server.closed?
       end
     end
   end

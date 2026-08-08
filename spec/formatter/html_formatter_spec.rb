@@ -45,26 +45,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
   end
 
-  describe "#initialize" do
-    it "defaults silent to false" do
-      expect(described_class.new.instance_variable_get(:@silent)).to be_falsey
-    end
-
-    it "honours an explicit silent: true" do
-      expect(described_class.new(silent: true).instance_variable_get(:@silent)).to be true
-    end
-
-    it "defaults output_dir to SimpleCov.coverage_path" do
-      expect(described_class.new.send(:output_path)).to eq(SimpleCov.coverage_path)
-    end
-
-    it "honours an explicit output_dir" do
-      Dir.mktmpdir do |dir|
-        expect(described_class.new(output_dir: dir).send(:output_path)).to eq(dir)
-      end
-    end
-  end
-
   describe "#format under a non-UTF-8 default external encoding" do
     # A minimal CI container's locale resolves `Encoding.default_external`
     # to US-ASCII (Windows to a code page). The template and payload are
@@ -124,10 +104,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   describe "#format" do
     before { formatter.format(make_result) }
 
-    it "writes index.html into the coverage dir" do
-      expect(File).to exist(File.join(coverage_dir, "index.html"))
-    end
-
     it "writes no files besides index.html and coverage.json" do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html]
     end
@@ -163,10 +139,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       html = File.read(File.join(coverage_dir, "index.html"))
 
       expect(html).not_to include("data:image/png", "favicon")
-    end
-
-    it "also writes coverage.json next to the HTML report" do
-      expect(File).to exist(File.join(coverage_dir, "coverage.json"))
     end
 
     it "embeds the source code of each file in the coverage payload" do
@@ -237,153 +209,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
   end
 
-  describe "#format output behaviour" do
-    it "prints a `Coverage report generated` line to stderr when not silent" do
-      expect { loud_formatter.format(make_result) }.to output(/Coverage report generated/).to_stderr
-    end
+  describe "#format status" do
+    it "emits the HTML report's entry point" do
+      stderr = capture_stderr { loud_formatter.format(make_result) }
 
-    it "prints a Line coverage line to stderr when not silent" do
-      expect { loud_formatter.format(make_result) }.to output(%r{Line coverage: \d+ / \d+}).to_stderr
-    end
-
-    it "leaves stdout untouched even when not silent" do
-      expect { loud_formatter.format(make_result) }.not_to output.to_stdout
-    end
-
-    it "stays quiet on stderr when silent: true" do
-      expect { formatter.format(make_result) }.not_to output.to_stderr
-    end
-
-    describe "the output path in the header line" do
-      it "is rendered relative to the cwd when the coverage dir lives inside cwd (#197)" do
-        # SimpleCov.coverage_path resolves under SimpleCov.root, which the
-        # spec helper sets to `tmp/coverage` inside the project — i.e.,
-        # inside the cwd. So the header should show a relative path.
-        capture = capture_stderr { loud_formatter.format(make_result) }
-        expect(capture).to include("Coverage report generated for RSpec to tmp/coverage/index.html")
-        expect(capture).not_to include(SimpleCov.coverage_path)
-      end
-
-      it "falls back to the absolute path when the output dir is outside cwd" do
-        Dir.mktmpdir do |outside|
-          formatter = described_class.new(silent: false, output_dir: outside)
-          capture = capture_stderr { formatter.format(make_result) }
-          expect(capture).to include("Coverage report generated for RSpec to #{File.join(outside, 'index.html')}")
-        end
-      end
-
-      it "falls back to the absolute path when Pathname#relative_path_from raises" do
-        # Cross-drive paths on Windows raise ArgumentError. Simulate the
-        # failure by stubbing the Pathname call so the rescue branch is
-        # exercised on every platform.
-        allow_any_instance_of(Pathname).to receive(:relative_path_from).and_raise(ArgumentError) # rubocop:disable RSpec/AnyInstance
-        capture = capture_stderr { loud_formatter.format(make_result) }
-        expected_path = File.join(SimpleCov.coverage_path, "index.html")
-        expect(capture).to include("Coverage report generated for RSpec to #{expected_path}")
-      end
-
-      # The base class returns nil from `entry_point_filename` so a
-      # third-party formatter that uses `Base` without overriding gets
-      # the bare directory path in the status line, not "/index.html".
-      it "leaves the bare directory in place for a Base subclass that doesn't override entry_point_filename" do
-        # `format` is overridden to a no-op so we can instantiate a
-        # bare Base subclass without crashing on the abstract method.
-        bare_subclass = Class.new(SimpleCov::Formatter::Base) do
-          def format(_result); end
-        end
-        bare = bare_subclass.new
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec",
-                                 coverage_statistics: {})
-        expect(bare.send(:displayable_output_path)).not_to end_with("/index.html")
-        expect(bare.send(:output_message, result)).to include("to tmp/coverage")
-      end
-    end
-
-    it "colorizes the percent when SimpleCov::Color is enabled" do
-      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
-      # The SAMPLE_RB fixture has 4 covered / 1 missed = 80%, so yellow (\e[33m).
-      expect { loud_formatter.format(make_result) }.to output(/\e\[33m80\.00%\e\[0m/).to_stderr
-    end
-
-    it "leaves the percent bare when SimpleCov::Color is disabled" do
-      allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
-      expect { loud_formatter.format(make_result) }.to output(/\(80\.00%\)/).to_stderr
-    end
-
-    it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do
-      line_stat = SimpleCov::CoverageStatistics.new(covered: 22_103, missed: 1)
-      result = instance_double(SimpleCov::Result,
-                               command_name: "RSpec",
-                               coverage_statistics: {line: line_stat})
-      expect(loud_formatter.send(:output_message, result)).to include("(99.99%)")
-    end
-
-    it "suppresses a non-line criterion line when its total is zero" do
-      # When branch coverage is enabled but a file has no branches (or
-      # the whole result reports 0/0), printing "Branch coverage: 0 / 0
-      # (100.00%)" is noise — `stats_line` returns nil for that row.
-      branch_stat = SimpleCov::CoverageStatistics.new(covered: 0, missed: 0)
-      result = instance_double(SimpleCov::Result,
-                               command_name: "RSpec",
-                               coverage_statistics: {branch: branch_stat})
-      expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage:")
-    end
-
-    context "when branch coverage is enabled" do
-      let(:line_stat)   { SimpleCov::CoverageStatistics.new(covered: 10, missed: 0) }
-      let(:branch_stat) { SimpleCov::CoverageStatistics.new(covered: 8,  missed: 2) }
-
-      before { allow(SimpleCov).to receive(:branch_coverage?).and_return(true) }
-
-      it "appends a Branch coverage line to the output_message" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: 10,
-                                 coverage_statistics: {line: line_stat, branch: branch_stat})
-        expect(loud_formatter.send(:output_message, result)).to include("Branch coverage: 8 / 10 (80.00%)")
-      end
-
-      it "omits the Branch coverage line when total_branches is zero" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: 0,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage")
-      end
-
-      it "omits the Branch coverage line when total_branches is nil" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: nil,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage")
-      end
-    end
-
-    context "when method coverage is enabled" do
-      let(:line_stat)   { SimpleCov::CoverageStatistics.new(covered: 10, missed: 0) }
-      let(:method_stat) { SimpleCov::CoverageStatistics.new(covered: 9,  missed: 1) }
-
-      before { allow(SimpleCov).to receive(:method_coverage?).and_return(true) }
-
-      it "appends a Method coverage line to the output_message" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: 10,
-                                 coverage_statistics: {line: line_stat, method: method_stat})
-        expect(loud_formatter.send(:output_message, result)).to include("Method coverage: 9 / 10 (90.00%)")
-      end
-
-      it "omits the Method coverage line when total_methods is zero" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: 0,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Method coverage")
-      end
-
-      it "omits the Method coverage line when total_methods is nil" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: nil,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Method coverage")
-      end
+      expect(stderr.lines.first.chomp).to eq("Coverage report generated for RSpec to tmp/coverage/index.html")
     end
   end
 

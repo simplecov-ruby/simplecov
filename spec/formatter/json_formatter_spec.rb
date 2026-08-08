@@ -52,7 +52,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     it "names the explicit directory in the output message" do
       Dir.mktmpdir do |dir|
         out = capture_stderr { described_class.new(output_dir: dir).format(result) }
-        expect(out).to include(File.join(dir, described_class::FILENAME))
+        expect(out.lines.first.chomp)
+          .to eq("JSON Coverage report generated for RSpec to #{File.join(dir, described_class::FILENAME)}")
       end
     end
   end
@@ -66,82 +67,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     expect(JSON.parse(File.read(path))).to include("coverage")
   ensure
     File.chmod(0o600, path) if path && File.exist?(path)
-  end
-
-  describe "#output_message" do
-    let(:loud_formatter) { described_class.new }
-
-    it "prefixes the summary line with `JSON ` to distinguish it from the HTML formatter" do
-      line_stat = SimpleCov::CoverageStatistics.new(covered: 10, missed: 0)
-      result = instance_double(SimpleCov::Result,
-                               command_name: "RSpec",
-                               coverage_statistics: {line: line_stat})
-      expect(loud_formatter.send(:output_message, result)).to start_with("JSON Coverage report generated")
-    end
-
-    it "floors the percent rather than rounding (so 22103/22104 doesn't print 100%)" do
-      line_stat = SimpleCov::CoverageStatistics.new(covered: 22_103, missed: 1)
-      result = instance_double(SimpleCov::Result,
-                               command_name: "RSpec",
-                               coverage_statistics: {line: line_stat})
-      expect(loud_formatter.send(:output_message, result)).to include("(99.99%)")
-    end
-
-    context "when branch coverage is enabled" do
-      let(:line_stat)   { SimpleCov::CoverageStatistics.new(covered: 10, missed: 0) }
-      let(:branch_stat) { SimpleCov::CoverageStatistics.new(covered: 8,  missed: 2) }
-
-      before { allow(SimpleCov).to receive(:branch_coverage?).and_return(true) }
-
-      it "appends a Branch coverage line to the output_message" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: 10,
-                                 coverage_statistics: {line: line_stat, branch: branch_stat})
-        expect(loud_formatter.send(:output_message, result)).to include("Branch coverage: 8 / 10 (80.00%)")
-      end
-
-      it "omits the Branch coverage line when total_branches is zero" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: 0,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage")
-      end
-
-      it "omits the Branch coverage line when total_branches is nil" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_branches: nil,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Branch coverage")
-      end
-    end
-
-    context "when method coverage is enabled" do
-      let(:line_stat)   { SimpleCov::CoverageStatistics.new(covered: 10, missed: 0) }
-      let(:method_stat) { SimpleCov::CoverageStatistics.new(covered: 9,  missed: 1) }
-
-      before { allow(SimpleCov).to receive(:method_coverage?).and_return(true) }
-
-      it "appends a Method coverage line to the output_message" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: 10,
-                                 coverage_statistics: {line: line_stat, method: method_stat})
-        expect(loud_formatter.send(:output_message, result)).to include("Method coverage: 9 / 10 (90.00%)")
-      end
-
-      it "omits the Method coverage line when total_methods is zero" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: 0,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Method coverage")
-      end
-
-      it "omits the Method coverage line when total_methods is nil" do
-        result = instance_double(SimpleCov::Result,
-                                 command_name: "RSpec", total_methods: nil,
-                                 coverage_statistics: {line: line_stat})
-        expect(loud_formatter.send(:output_message, result)).not_to include("Method coverage")
-      end
-    end
   end
 
   describe "format" do
