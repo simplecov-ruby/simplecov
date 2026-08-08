@@ -1198,10 +1198,13 @@ module SimpleCov
   module LastRun
     def self.last_run_path: () -> String
 
-    # nil when the file does not exist or is blank. Keys are symbolized.
+    # nil when the file does not exist, is blank, or does not hold a
+    # JSON object. Keys are symbolized.
     def self.read: () -> Hash[Symbol, untyped]?
 
     def self.write: (Hash[Symbol, untyped] json) -> void
+
+    def self.invalid_last_run: () -> nil
   end
 end
 

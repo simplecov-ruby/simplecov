@@ -312,6 +312,28 @@ RSpec.describe SimpleCov::ResultMerger do
       stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
       expect(stderr).to be_empty
     end
+
+    it "warns and drops malformed entries while keeping well-formed ones" do
+      malformed = {
+        "good" => {"timestamp" => Time.now.to_f, "coverage" => {}},
+        "null-entry" => nil,
+        "no-timestamp" => {"coverage" => {}},
+        "string-coverage" => {"timestamp" => Time.now.to_f, "coverage" => "x"}
+      }
+      File.write(described_class.resultset_path, JSON.dump(malformed))
+      stderr = capture_stderr { expect(described_class.read_resultset.keys).to eq(["good"]) }
+      expect(stderr).to include("malformed resultset entries: no-timestamp, null-entry, string-coverage")
+    end
+
+    it "merges through a resultset containing a malformed entry instead of crashing" do
+      File.write(described_class.resultset_path, JSON.dump("broken" => nil))
+      result = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+                                     command_name: "RSpec")
+
+      capture_stderr { expect(described_class.store_result(result)).to be true }
+
+      expect(described_class.read_resultset.keys).to eq(["RSpec"])
+    end
   end
 
   describe ".worker_identities_for_run" do
@@ -627,10 +649,11 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "persists to disk" do
-      described_class.store_result("a" => [1])
+      entry = {"timestamp" => Time.now.to_f, "coverage" => {}}
+      described_class.store_result("a" => entry)
 
       new_set = described_class.read_resultset
-      expect(new_set).to eq("a" => [1])
+      expect(new_set).to eq("a" => entry)
     end
 
     it "synchronizes writes" do

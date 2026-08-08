@@ -11,6 +11,12 @@ module SimpleCov
 
       def self?.decode: (untyped content) -> untyped
 
+      # Each surviving entry must be a Hash with a Numeric "timestamp"
+      # and a Hash "coverage"; anything else is warned about and dropped.
+      def self?.drop_malformed_entries: (Hash[untyped, untyped] resultset) -> Hash[untyped, untyped]
+
+      def self?.well_formed_entry?: (untyped data) -> bool
+
       def self?.invalid_resultset: () -> Hash[untyped, untyped]
     end
   end

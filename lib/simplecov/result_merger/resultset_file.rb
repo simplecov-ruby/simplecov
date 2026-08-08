@@ -35,9 +35,27 @@ module SimpleCov
         # fine), but everything downstream iterates command => data
         # pairs, so anything else would crash out of the middle of a
         # merge. Same tolerance as a parse failure: warn and move on.
-        parsed.is_a?(Hash) ? parsed : invalid_resultset
+        parsed.is_a?(Hash) ? drop_malformed_entries(parsed) : invalid_resultset
       rescue StandardError
         invalid_resultset
+      end
+
+      # Each surviving entry must have the shape every consumer relies
+      # on: a Hash carrying a Numeric "timestamp" (the merge-timeout
+      # check) and a Hash "coverage" (the merge fold). A truncated or
+      # hand-edited entry would otherwise crash out of the middle of an
+      # at_exit merge, so it gets the same warn-and-move-on treatment
+      # as an unparseable file.
+      def drop_malformed_entries(resultset)
+        malformed, valid = resultset.partition { |_command_name, data| !well_formed_entry?(data) }
+        return resultset if malformed.empty?
+
+        warn "[SimpleCov]: Warning! Ignoring malformed resultset entries: #{malformed.map(&:first).sort.join(', ')}"
+        valid.to_h
+      end
+
+      def well_formed_entry?(data)
+        data.is_a?(Hash) && data["timestamp"].is_a?(Numeric) && data["coverage"].is_a?(Hash)
       end
 
       def invalid_resultset

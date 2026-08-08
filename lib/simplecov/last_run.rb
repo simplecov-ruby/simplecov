@@ -18,11 +18,24 @@ module SimpleCov
         json = File.read(last_run_path)
         return nil if json.strip.empty?
 
-        JSON.parse(json, symbolize_names: true)
+        parsed = JSON.parse(json, symbolize_names: true)
+        # The maximum_coverage_drop check digs into a Hash, so anything
+        # else in a corrupt or hand-edited file counts as "no previous
+        # run" rather than crashing the at_exit hook.
+        parsed.is_a?(Hash) ? parsed : invalid_last_run
+      rescue JSON::ParserError
+        invalid_last_run
       end
 
       def write(json)
         AtomicFile.write(last_run_path, "#{JSON.pretty_generate(json)}\n")
+      end
+
+    private
+
+      def invalid_last_run
+        warn "[SimpleCov]: Warning! Parsing JSON content of .last_run.json failed, ignoring the previous run"
+        nil
       end
     end
   end
