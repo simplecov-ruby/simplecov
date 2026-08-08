@@ -7,6 +7,10 @@ module SimpleCov
   # but never loaded, so they count toward the denominators instead of being
   # absent from the report entirely.
   #
+  # This is the mechanism; the merge-time policy of *when* to inject and
+  # which criteria the simulated files carry lives in
+  # `ResultMerger::UnloadedFiles` — easy names to confuse.
+  #
   # Everything arrives as arguments rather than being read from the SimpleCov
   # singleton. The merge step performs this injection on behalf of the processes
   # that contributed to it, and it does not necessarily share their

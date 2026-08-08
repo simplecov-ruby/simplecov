@@ -23,6 +23,17 @@ module SimpleCov
 
     private
 
+      # The one home of the "status lines go to stderr, not through warn"
+      # decision (see #1225). stderr rather than stdout because this is a
+      # status message, not the program's output, so it stays out of
+      # pipelines like `rspec -f json`. And `$stderr.puts` rather than
+      # `warn` so the line neither reaches `Warning.warn` hooks (warning
+      # trackers, raise-on-warning test setups) nor vanishes under `-W0`.
+      # Subclasses call this at the end of their `format`.
+      def emit_status(result)
+        $stderr.puts output_message(result) unless @silent # rubocop:disable Style/StderrPuts
+      end
+
       # Subclasses override to prepend a marker (e.g. "JSON ") to the
       # summary line. Default empty for the HTML formatter, which has
       # historically been the unmarked default.

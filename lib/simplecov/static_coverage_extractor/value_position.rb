@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "prism_compat"
+
 module SimpleCov
   module StaticCoverageExtractor
     # Ruby 3.3 value-position analysis for the extractor's legacy branch
@@ -56,25 +58,15 @@ module SimpleCov
         return [node.body] if node.is_a?(::Prism::DefNode)
         return [] unless in_value
 
+        # `case/in` (CaseMatchNode) is intentionally not a tail construct:
+        # its `in` arms and `else` both discard tail position.
         case node
         when ::Prism::StatementsNode then [node.body.last]
-        when ::Prism::IfNode, ::Prism::UnlessNode then [node.statements, subsequent(node)]
-        when ::Prism::CaseNode then [*node.conditions, else_clause(node)]
+        when ::Prism::IfNode, ::Prism::UnlessNode then [node.statements, PrismCompat.subsequent(node)]
+        when ::Prism::CaseNode then [*node.conditions, PrismCompat.else_clause(node)]
         when ::Prism::ElseNode, ::Prism::WhenNode, ::Prism::BeginNode, ::Prism::ProgramNode then [node.statements]
         else []
         end
-      end
-
-      # The `else`/`elsif` clause of an if-like node, and the `else` clause
-      # of a case, under whichever accessor this Prism version exposes.
-      # `case/in` (CaseMatchNode) is intentionally not a tail construct: its
-      # `in` arms and `else` both discard tail position.
-      def subsequent(node)
-        node.is_a?(::Prism::IfNode) ? node.public_send(IF_NODE_SUBSEQUENT_METHOD) : else_clause(node)
-      end
-
-      def else_clause(node)
-        node.public_send(ELSE_CLAUSE_METHOD)
       end
       # simplecov:enable
     end

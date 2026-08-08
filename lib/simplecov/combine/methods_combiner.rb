@@ -59,7 +59,7 @@ module SimpleCov
         target.values.to_h
       end
 
-      # `target` and its pairs are always built by `combine` above, so updating
+      # `target` and its pairs are always built by `absorb` above, so updating
       # them in place can't reach data a caller still holds.
       def merge_methods(target, source)
         source.each do |key, count|

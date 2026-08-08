@@ -1311,6 +1311,10 @@ module SimpleCov
       # `coverage.json`); nil leaves the bare directory in the status line.
       def entry_point_filename: () -> String?
 
+      # Prints `output_message` to stderr unless silent; the one home of
+      # the "status lines go to stderr, not through warn" decision (#1225).
+      def emit_status: (SimpleCov::Result result) -> void
+
       def output_message: (SimpleCov::Result result) -> String
 
       # nil for branch/method criteria with nothing to measure, so the

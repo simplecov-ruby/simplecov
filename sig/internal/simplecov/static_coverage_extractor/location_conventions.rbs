@@ -57,11 +57,10 @@ module SimpleCov
       # block. See issue #1233.
       def safe_navigation_location: (untyped node) -> untyped
 
-      def point_at_end: (untyped location) -> untyped
+      # The range from `from`'s start through `to`'s end.
+      def span: (untyped from, untyped to) -> untyped
 
-      # The `else`/`elsif` clause of an if-like node, under whichever
-      # accessor this Prism version exposes.
-      def if_like_subsequent: (untyped node) -> untyped
+      def point_at_end: (untyped location) -> untyped
 
       def empty_arm_collapses?: (untyped node, untyped type) -> bool
 

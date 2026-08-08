@@ -2,7 +2,11 @@
 
 module SimpleCov
   module ResultMerger
-    # The merge step's half of unloaded-file handling.
+    # The merge step's half of unloaded-file handling: the policy of when
+    # to inject and which criteria simulated files carry. The mechanism —
+    # expanding globs and simulating each file — is
+    # `SimpleCov::UnloadedFileInjector`, an easy name to confuse with this
+    # one.
     #
     # Injection moved here from the individual processes because only the union
     # of what they all loaded says what was really never loaded. Doing it per

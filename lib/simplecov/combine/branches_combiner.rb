@@ -61,7 +61,7 @@ module SimpleCov
         target.values.to_h { |condition, branches| [condition, branches.values.to_h] }
       end
 
-      # `target` and its pairs are always built by `combine` above, so updating
+      # `target` and its pairs are always built by `absorb` above, so updating
       # them in place can't reach data a caller still holds.
       def merge_branches(target, source)
         source.each do |branch, count|

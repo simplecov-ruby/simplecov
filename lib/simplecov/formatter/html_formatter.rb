@@ -40,12 +40,7 @@ module SimpleCov
         viewer_hash = JSONFormatter.build_hash(result, include_source: true)
         json_hash = SimpleCov.source_in_json ? viewer_hash : JSONFormatter.build_hash(result)
         write_report_files(json_hash, viewer_hash)
-
-        # stderr, not stdout: this is a status message, not the program's
-        # output. Keeps the line out of pipelines like `rspec -f json`. And
-        # $stderr.puts, not `warn`: a status line should not reach
-        # `Warning.warn` hooks or vanish under `-W0` (see #1225).
-        $stderr.puts output_message(result) unless @silent # rubocop:disable Style/StderrPuts
+        emit_status(result)
       end
 
       # Generate HTML from a pre-existing coverage.json file without

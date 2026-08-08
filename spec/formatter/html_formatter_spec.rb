@@ -143,12 +143,8 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html unrelated.txt]
     end
 
-    it "embeds the coverage data as a `window.SIMPLECOV_DATA = ...` script" do
-      html = File.read(File.join(coverage_dir, "index.html"))
-
-      expect(html).to include("window.SIMPLECOV_DATA = ")
-    end
-
+    # Extraction goes through the `window.SIMPLECOV_DATA = ` marker, so
+    # this also pins the embedding shape itself.
     it "embeds parseable JSON in the report" do
       data = coverage_data
 
@@ -156,11 +152,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(data).to include("meta", "coverage", "total")
     end
 
-    it "inlines the viewer's JS and CSS rather than referencing sibling files" do
+    it "is a self-contained page with the viewer's JS and CSS inlined, not referenced" do
       html = File.read(File.join(coverage_dir, "index.html"))
 
-      expect(html).to include("<style>", "<script>")
-      expect(html).not_to include("src=\"application.js\"", "href=\"application.css\"")
+      expect(html).to include("<!DOCTYPE html>", "<style>", "<script>")
+      expect(html).not_to include("src=\"application.js\"", "href=\"application.css\"", "coverage_data.js")
     end
 
     it "ships no favicon images (the viewer draws one from the live palette)" do
@@ -474,13 +470,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       coverage_data["coverage"].each_value do |file_data|
         expect(file_data).to include("covered_lines", "missed_lines")
       end
-    end
-
-    it "writes a self-contained index.html with the expected DOCTYPE and no sibling-file references" do
-      html = File.read(File.join(coverage_dir, "index.html"))
-
-      expect(html).to include("<!DOCTYPE html>")
-      expect(html).not_to include("coverage_data.js")
     end
   end
 

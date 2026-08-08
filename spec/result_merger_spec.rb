@@ -287,7 +287,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
     # See GitHub issue #6
     it "returns an empty hash when the resultset cache file is not present" do
-      system "rm #{described_class.resultset_path}" if File.exist?(described_class.resultset_path)
+      FileUtils.rm_f(described_class.resultset_path)
       expect(described_class.read_resultset).to be_empty
     end
 
@@ -316,7 +316,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
   describe "basic workings with 2 resultsets" do
     before do
-      system "rm #{described_class.resultset_path}" if File.exist?(described_class.resultset_path)
+      FileUtils.rm_f(described_class.resultset_path)
       described_class.store_result(first_result)
       described_class.store_result(second_result)
     end

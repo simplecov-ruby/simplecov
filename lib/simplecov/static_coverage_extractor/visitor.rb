@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "prism_compat"
 require_relative "condition_folding"
 require_relative "location_conventions"
 require_relative "method_collector"
@@ -7,38 +8,6 @@ require_relative "value_position"
 
 module SimpleCov
   module StaticCoverageExtractor
-    # `Prism::IfNode#subsequent` was renamed from `consequent` in Prism
-    # 1.3 (Dec 2024). Ruby 3.3's stdlib still ships an older Prism that
-    # only exposes `consequent`; 3.4+ and any project that's done
-    # `gem install prism` exposes `subsequent`. Resolve the method name
-    # ONCE here so the per-node hot path stays branch-free. The
-    # not-taken arm on whichever Prism version we're on can't be
-    # exercised by our own dogfood (we only run on one Prism at a time).
-    # simplecov:disable
-    IF_NODE_SUBSEQUENT_METHOD =
-      if ::Prism::IfNode.method_defined?(:subsequent)
-        :subsequent
-      else
-        :consequent
-      end
-
-    # The same Prism 1.3 rename hit the `else` accessor on `UnlessNode`,
-    # `CaseNode`, and `CaseMatchNode` (all three: `consequent` ->
-    # `else_clause`). Ruby 3.3's stdlib Prism (0.19) only exposes
-    # `consequent`, so reaching for `else_clause` there raised
-    # NoMethodError inside the extractor — `call` swallowed it and the
-    # whole file silently fell back to no simulated data for any
-    # `unless`/`else` or empty-arm `case`. Resolve the name once, like
-    # IF_NODE_SUBSEQUENT_METHOD. All three nodes renamed together, so one
-    # constant (probed off CaseNode) covers them.
-    ELSE_CLAUSE_METHOD =
-      if ::Prism::CaseNode.method_defined?(:else_clause)
-        :else_clause
-      else
-        :consequent
-      end
-    # simplecov:enable
-
     # Prism visitor that accumulates branch and method tuples in the
     # shape Ruby's `Coverage` reports. Tuple ids are sequential across
     # the file — `Coverage` uses sequential ids too, so this matches the
@@ -95,7 +64,7 @@ module SimpleCov
       # (see visit_folded_arms).
       def visit_if_node(node)
         verdict = folded_condition(node.predicate)
-        return visit_folded_arms(verdict, node.statements, node.public_send(IF_NODE_SUBSEQUENT_METHOD)) if verdict
+        return visit_folded_arms(verdict, node.statements, PrismCompat.subsequent(node)) if verdict
 
         emit_if_like(node, :if)
         super
@@ -103,7 +72,7 @@ module SimpleCov
 
       def visit_unless_node(node)
         verdict = folded_condition(node.predicate)
-        return visit_folded_arms(verdict, node.public_send(ELSE_CLAUSE_METHOD), node.statements) if verdict
+        return visit_folded_arms(verdict, PrismCompat.else_clause(node), node.statements) if verdict
 
         emit_if_like(node, :unless)
         super

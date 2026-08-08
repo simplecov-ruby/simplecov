@@ -48,7 +48,7 @@
 
         def initialize: (untyped coverage, branches: bool, methods: bool) -> void
 
-        def new_table: () -> Hash[untyped, untyped]
+        private def new_table: () -> Hash[untyped, untyped]
 
         # The executed side's tuples when it has them, otherwise a table only
         # when this process measures the criterion itself.

@@ -13,10 +13,6 @@ module SimpleCov
       # The children of `node` that inherit its tail position; empty for
       # the void default.
       def self?.tail_children: (untyped node, untyped in_value) -> Array[untyped]
-
-      def self?.subsequent: (untyped node) -> untyped
-
-      def self?.else_clause: (untyped node) -> untyped
     end
   end
 end

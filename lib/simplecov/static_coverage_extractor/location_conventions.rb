@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "prism_compat"
+
 module SimpleCov
   module StaticCoverageExtractor
     # The source ranges Ruby's Coverage assigns to branch conditions and
@@ -34,11 +36,7 @@ module SimpleCov
       def if_like_location(node, type)
         return node.location unless LEGACY_COVERAGE_LOCATIONS && type == :if && elsif_node?(node)
 
-        content_end = legacy_content_end(node)
-        PointLocation.new(
-          start_line: node.location.start_line, start_column: node.location.start_column,
-          end_line: content_end.end_line, end_column: content_end.end_column
-        )
+        span(node.location, legacy_content_end(node))
       end
 
       def elsif_node?(node)
@@ -52,7 +50,7 @@ module SimpleCov
       def legacy_content_end(node)
         tail = node
         while tail.is_a?(::Prism::IfNode)
-          sub = tail.public_send(IF_NODE_SUBSEQUENT_METHOD)
+          sub = PrismCompat.subsequent(tail)
           break unless sub
 
           tail = sub
@@ -76,14 +74,12 @@ module SimpleCov
       end
 
       # Resolve the source range Coverage attributes to a real-or-synthetic
-      # `:else` arm of an if-like construct. IfNode uses
-      # `subsequent` / `consequent` and UnlessNode `else_clause` /
-      # `consequent`, both depending on Prism version (resolved to
-      # `IF_NODE_SUBSEQUENT_METHOD` / `ELSE_CLAUSE_METHOD` at load time).
-      # When neither is present, the synthesized else inherits the
-      # condition's range (matches Coverage's convention).
+      # `:else` arm of an if-like construct (`PrismCompat` hides the
+      # per-Prism-version accessor split). When no else/elsif is present,
+      # the synthesized else inherits the condition's range (matches
+      # Coverage's convention).
       def if_like_else_location(node, type)
-        sub = if_like_subsequent(node)
+        sub = PrismCompat.subsequent(node)
         return if_like_location(node, type) unless sub
         # An `elsif` arrives as a nested IfNode. Coverage attributes the
         # outer else arm to the clause's own range, not its then body
@@ -120,11 +116,7 @@ module SimpleCov
       end
 
       def legacy_when_value_location(case_node, when_node)
-        tail_end = legacy_case_tail_end(case_node, when_node)
-        PointLocation.new(
-          start_line: when_node.location.start_line, start_column: when_node.location.start_column,
-          end_line: tail_end.end_line, end_column: tail_end.end_column
-        )
+        span(when_node.location, legacy_case_tail_end(case_node, when_node))
       end
 
       # The last body content in the case after `when_node`, falling
@@ -141,7 +133,7 @@ module SimpleCov
         # condition when empty), so the whole clause extends the range
         # through trailing EMPTY clauses that have no `statements`.
         content = clauses.drop(index + 1).map(&:location)
-        else_statements = case_node.public_send(ELSE_CLAUSE_METHOD)&.statements
+        else_statements = PrismCompat.else_clause(case_node)&.statements
         content << else_statements.location if else_statements
         content
       end
@@ -152,7 +144,7 @@ module SimpleCov
       # explicit else with an empty body — the else..end span on modern
       # Rubies or the case's full range on legacy ones.
       def else_arm_location(node)
-        else_clause = node.public_send(ELSE_CLAUSE_METHOD)
+        else_clause = PrismCompat.else_clause(node)
         return node.location unless else_clause
         return else_clause.statements.location if else_clause.statements
         return else_clause.location unless LEGACY_COVERAGE_LOCATIONS
@@ -200,10 +192,14 @@ module SimpleCov
       # This convention is the same on legacy and modern Rubies. See
       # issue #1233.
       def safe_navigation_location(node)
-        end_loc = node.closing_loc || node.arguments&.location || node.message_loc
+        span(node.location, node.closing_loc || node.arguments&.location || node.message_loc)
+      end
+
+      # The range from `from`'s start through `to`'s end.
+      def span(from, to)
         PointLocation.new(
-          start_line: node.location.start_line, start_column: node.location.start_column,
-          end_line: end_loc.end_line, end_column: end_loc.end_column
+          start_line: from.start_line, start_column: from.start_column,
+          end_line: to.end_line, end_column: to.end_column
         )
       end
 
@@ -212,13 +208,6 @@ module SimpleCov
           start_line: location.end_line, start_column: location.end_column,
           end_line: location.end_line, end_column: location.end_column
         )
-      end
-
-      # The `else`/`elsif` clause of an if-like node, under whichever
-      # accessor this Prism version exposes (see the two *_METHOD
-      # constants).
-      def if_like_subsequent(node)
-        node.is_a?(::Prism::IfNode) ? node.public_send(IF_NODE_SUBSEQUENT_METHOD) : node.public_send(ELSE_CLAUSE_METHOD)
       end
 
       # Whether an empty then arm collapses to a point at the predicate's

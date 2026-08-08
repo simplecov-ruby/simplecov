@@ -162,10 +162,6 @@ module SimpleCov
           self
         end
 
-        def new_table
-          {} #: Hash[untyped, untyped]
-        end
-
         def to_h
           merged = {"lines" => @lines} #: Hash[String, untyped]
           merged["branches"] = BranchesCombiner.materialize(@branches) if @branches
@@ -174,6 +170,10 @@ module SimpleCov
         end
 
       private
+
+        def new_table
+          {} #: Hash[untyped, untyped]
+        end
 
         # When exactly one side of the merge was actually executed, its branch
         # and method tuples are authoritative and the other side's are

@@ -5,15 +5,9 @@ module SimpleCov
     #
     # Should be called through `CoverageAccumulator`.
     module LinesCombiner
-      # Build a fresh array sized to the longer input. The previous
-      # implementation mutated whichever input was longer in place,
-      # which could surprise callers holding a reference to that array
-      # (e.g. the parsed `coverage` key of a resultset hash being
-      # passed into a second merge).
-      def self?.combine: (untyped coverage_a, untyped coverage_b) -> untyped
-
       # Folds `source` into `target` rather than building a third array.
-      # Only for a `target` the caller owns outright.
+      # Only for a `target` the caller owns outright; `source` is never
+      # touched. nil + nil = nil, nil + int = int, int + int = sum.
       def self?.merge_into: (untyped target, untyped source) -> untyped
 
       # Split out only to keep `merge_into` short; it is the same loop.
@@ -21,24 +15,6 @@ module SimpleCov
 
       # The rare arm: existing is nil or malformed external input.
       def self?.coerce_add: (untyped existing, Integer value) -> Integer
-
-      # Two runs of the same source file should agree on which lines
-      # are coverage-relevant (`nil` for comments / whitespace, `0`+
-      # for executable). When they don't, treat "relevant on either
-      # side" as relevant rather than masking a real `0` as `nil`,
-      # which would silently drop an uncovered line from the
-      # denominator and inflate the percentage.
-      #
-      # Logic:
-      #
-      # => nil + nil = nil
-      # => nil + int = int (preserves a relevant-but-uncovered 0)
-      # => int + int = int (sum)
-      #
-      # @param [Integer || nil] first_val
-      # @param [Integer || nil] second_val
-      # @return [Integer || nil]
-      def self?.merge_line_coverage: (untyped first_val, untyped second_val) -> (nil | untyped)
     end
   end
 end
