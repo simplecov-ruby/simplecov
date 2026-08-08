@@ -39,11 +39,12 @@ Feature: Sophisticated grouping and filtering on RSpec
       | name                            | coverage |
       | lib/faked_project/meta_magic.rb | 100.00%  |
 
-  # Regression for #1038: two groups whose names share an alphanumeric
-  # suffix but differ only in a leading non-letter (e.g. "<group" vs.
-  # ">group") used to render to the same HTML container id, so the
-  # second group's content silently replaced the first's in the report.
-  Scenario: Groups with leading non-letter characters get distinct HTML containers
+  # Regression for #1038 and the encoder's escape-delimiter collision: group
+  # names must remain distinct both when punctuation differs and when one name
+  # contains the literal hexadecimal spelling used to escape another. The
+  # built-in All Files section must also stay separate from a configured group
+  # that shares its display label.
+  Scenario: Encoded group names get distinct HTML containers
     Given SimpleCov for RSpec is configured with:
       """
       require 'simplecov'
@@ -52,6 +53,15 @@ Feature: Sophisticated grouping and filtering on RSpec
           src_file.filename =~ /MaGiC/i
         end
         add_group '>group' do |src_file|
+          src_file.filename =~ /framework_specific/i
+        end
+        add_group 'By/group' do |src_file|
+          src_file.filename =~ /MaGiC/i
+        end
+        add_group 'By_2f_group' do |src_file|
+          src_file.filename =~ /framework_specific/i
+        end
+        add_group 'All Files' do |src_file|
           src_file.filename =~ /framework_specific/i
         end
 
@@ -67,3 +77,8 @@ Feature: Sophisticated grouping and filtering on RSpec
       | All Files | 100.00%  | 1     |
       | <group    | 100.00%  | 1     |
       | >group    | 100.00%  | 0     |
+      | By/group  | 100.00%  | 1     |
+      | By_2f_group | 100.00%  | 0     |
+      | All Files | 100.00%  | 0     |
+
+    And each group tab should open its own file list

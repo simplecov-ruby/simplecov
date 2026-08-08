@@ -2,16 +2,10 @@
 
 Then /^I should see the groups:$/ do |table|
   expected_groups = table.hashes
-  expect(page).to have_css("#content .file_list_container", count: expected_groups.count)
+  containers = page.all("#content .file_list_container", count: expected_groups.count)
 
-  # Mirrors `toHtmlId` in html_frontend/src/app.ts: prefix with "g-" so the
-  # id always starts with a letter, then encode each non-id char as
-  # "_<hex>_" so distinct non-id chars produce distinct ids (the previous
-  # implementation stripped non-letters entirely, which collapsed names like
-  # ">100LOC" and "<10LOC" onto the same id — see #1038).
-  expected_groups.each do |group|
-    container_id = "g-#{group['name'].gsub(/[^a-zA-Z0-9_-]/) { |c| "_#{c.ord.to_s(16)}_" }}"
-    with_scope "#content ##{container_id}.file_list_container" do
+  expected_groups.zip(containers).each do |group, container|
+    within(container) do
       file_count_in_group = page.all("a.src_link").count
       expect(file_count_in_group).to eq(group["files"].to_i)
 
@@ -26,6 +20,23 @@ Then /^I should see the groups:$/ do |table|
         end
       end
     end
+  end
+end
+
+Then "each group tab should open its own file list" do
+  containers = page.all("#content .file_list_container")
+  tabs = page.all(".group_tabs a", count: containers.length)
+  container_ids = containers.map { |container| container[:id] }
+  tab_targets = tabs.map { |tab| tab[:href].split("#", 2).last }
+
+  expect(container_ids.uniq).to eq(container_ids)
+  expect(tab_targets).to eq(container_ids)
+
+  container_ids.each do |container_id|
+    find(".group_tabs a.#{container_id}").click
+    expect(page).to have_css("##{container_id}", visible: :visible)
+    visible_ids = page.all("#content .file_list_container").select(&:visible?).map { |container| container[:id] }
+    expect(visible_ids).to eq([container_id])
   end
 end
 

@@ -6,6 +6,8 @@ module SimpleCov
     # contexts where opening a browser isn't an option (CI logs, ssh
     # sessions, terminal-only workflows).
     module Report
+      TOTAL_LABEL: ::String
+
       SECTIONS: ::Array[::Array[::String]]
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> (1 | 0)

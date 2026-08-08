@@ -2,11 +2,12 @@
 // and one row per source file.
 
 import { escapeHTML } from './dom';
-import { pctClass, fmtNum, fmtPct, toHtmlId, fileId } from './format';
+import { pctClass, fmtNum, fmtPct, fileId } from './format';
 import { renderCoverageCells, renderHeaderCells } from './render_cells';
 import type { StatGroup, FileCoverage } from './types';
 
 interface FileListArgs {
+  containerId: string;
   title: string;
   filenames: string[];
   stats: StatGroup;
@@ -18,8 +19,7 @@ interface FileListArgs {
 // Container open + <thead> (column headers and the totals row), i.e.
 // everything in a file-list section before the per-file <tbody> rows.
 function renderFileListHead(args: FileListArgs): string {
-  const { title, filenames, stats, branchCoverage, methodCoverage } = args;
-  const containerId = toHtmlId(title);
+  const { containerId, title, filenames, stats, branchCoverage, methodCoverage } = args;
   const lineStats = stats.lines;
   const branchStats = branchCoverage ? stats.branches : undefined;
   const methodStats = methodCoverage ? stats.methods : undefined;

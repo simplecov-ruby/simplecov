@@ -4,7 +4,7 @@
 import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
 import { $$, escapeHTML } from './dom';
-import { pctClass, fileId } from './format';
+import { pctClass, fileId, toHtmlId } from './format';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
 import type { CoverageData, FileCoverage } from './types';
@@ -69,12 +69,28 @@ export function renderPage(data: CoverageData): void {
   // loop would trigger on reports with many groups.
   const content = document.getElementById('content')!;
   const fileListSections = [
-    renderFileList({ title: 'All Files', filenames: allFiles, stats: data.total, allCoverage: data.coverage, branchCoverage, methodCoverage }),
+    renderFileList({
+      containerId: 'g-total',
+      title: 'All Files',
+      filenames: allFiles,
+      stats: data.total,
+      allCoverage: data.coverage,
+      branchCoverage,
+      methodCoverage
+    }),
   ];
   for (const groupName of Object.keys(data.groups)) {
     const group = data.groups[groupName];
     fileListSections.push(
-      renderFileList({ title: groupName, filenames: group.files || [], stats: group, allCoverage: data.coverage, branchCoverage, methodCoverage })
+      renderFileList({
+        containerId: toHtmlId(`group-${groupName}`),
+        title: groupName,
+        filenames: group.files || [],
+        stats: group,
+        allCoverage: data.coverage,
+        branchCoverage,
+        methodCoverage
+      })
     );
   }
   content.innerHTML = fileListSections.join('');

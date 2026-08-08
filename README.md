@@ -1322,8 +1322,12 @@ All Files
   Method:  99.73% (372 / 373)
 ```
 
-Pass `--input PATH` to read a non-default `coverage.json`. `--json` emits the totals as a JSON object keyed by section
-name (`"All Files"` plus each group), useful when a CI step needs to act on the numbers rather than display them.
+Pass `--input PATH` to read a non-default `coverage.json`. `--json` preserves separate `total` and `groups` namespaces,
+so even a configured group named `All Files` remains distinct from the overall totals:
+
+```json
+{"total":{"lines":{"percent":99.75,"covered":1638,"total":1642}},"groups":{"Models":{"lines":{"percent":100.0,"covered":400,"total":400}}}}
+```
 
 ### `uncovered` — list lowest-coverage files
 

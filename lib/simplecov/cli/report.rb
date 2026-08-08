@@ -11,6 +11,7 @@ module SimpleCov
     # contexts where opening a browser isn't an option (CI logs, ssh
     # sessions, terminal-only workflows).
     module Report
+      TOTAL_LABEL = "All Files"
       SECTIONS = [%w[Line lines], %w[Branch branches], %w[Method methods]].freeze
 
     module_function
@@ -46,8 +47,11 @@ module SimpleCov
 
       def emit_text(stdout, data, color)
         none = {} #: Hash[String, untyped]
-        emit_totals(stdout, "All Files", data.fetch("total", none), color)
-        data.fetch("groups", none).each { |name, group| emit_totals(stdout, name, group, color) }
+        emit_totals(stdout, TOTAL_LABEL, data.fetch("total", none), color)
+        data.fetch("groups", none).each do |name, group|
+          label = name == TOTAL_LABEL ? "#{name} (group)" : name
+          emit_totals(stdout, label, group, color)
+        end
       end
 
       def emit_totals(stdout, label, totals, color)
@@ -68,8 +72,8 @@ module SimpleCov
 
       def emit_json(stdout, data)
         none = {} #: Hash[String, untyped]
-        payload = {"All Files" => collect_section(data.fetch("total", none))}
-        data.fetch("groups", none).each { |name, group| payload[name] = collect_section(group) }
+        groups = data.fetch("groups", none).transform_values { |group| collect_section(group) }
+        payload = {"total" => collect_section(data.fetch("total", none)), "groups" => groups}
         stdout.puts(JSON.pretty_generate(payload))
       end
 

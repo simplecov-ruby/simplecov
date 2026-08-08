@@ -32,11 +32,12 @@ export function fmtPct(pct: number): string {
 // got the same DOM id and the tabs rendered to one effective group. See
 // #1038. A naive substitution (`> → _`, `< → _`) still loses uniqueness
 // for any pair that differs only in which non-id char they use, so each
-// non-id char is encoded as `_<hex codepoint>_` instead. Prefix with `g-`
-// so the result always starts with a letter regardless of the original
-// title.
+// escaped char is encoded as `_<hex codepoint>_` instead. Underscores must be
+// escaped too because they delimit that encoding: otherwise `a/` and `a_2f_`
+// collapse to the same id. Prefix with `g-` so the result always starts with a
+// letter regardless of the original title.
 export function toHtmlId(value: string): string {
-  return 'g-' + value.replace(/[^a-zA-Z0-9_-]/gu, (c) => `_${c.codePointAt(0)!.toString(16)}_`);
+  return 'g-' + value.replace(/[^a-zA-Z0-9-]/gu, (c) => `_${c.codePointAt(0)!.toString(16)}_`);
 }
 
 // --- Timeago --------------------------------------------------

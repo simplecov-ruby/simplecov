@@ -256,6 +256,11 @@ RSpec.describe SimpleCov::CLI do
                                   "lines" => {"covered" => 40, "total" => 50, "percent" => 80.0},
                                   "branches" => {"covered" => 5, "total" => 5, "percent" => 100.0},
                                   "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+                                },
+                                "All Files" => {
+                                  "lines" => {"covered" => 1, "total" => 2, "percent" => 50.0},
+                                  "branches" => {"covered" => 0, "total" => 0, "percent" => 100.0},
+                                  "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
                                 }
                               }
                             ))
@@ -281,18 +286,27 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.index("All Files")).to be < stdout.string.index("Models")
     end
 
+    it "labels a user group named All Files distinctly" do
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).to include("All Files\n")
+      expect(stdout.string).to include("All Files (group)\n")
+    end
+
     it "errors when the input file is missing" do
       expect(run("report", "--input", "/no/such.json")).to eq(1)
       expect(stderr.string).to include("not found")
     end
 
-    it "emits totals and groups as JSON under --json" do
+    it "emits namespaced totals and groups as JSON under --json" do
       expect(run("report", "--input", json_path, "--json")).to eq(0)
       payload = JSON.parse(stdout.string)
-      expect(payload["All Files"]).to include("lines" => {"percent" => 80.0, "covered" => 80, "total" => 100})
-      expect(payload["All Files"]).to include("branches" => {"percent" => 90.0, "covered" => 9, "total" => 10})
-      expect(payload["All Files"]).not_to include("methods")
-      expect(payload["Models"]).to include("lines" => {"percent" => 80.0, "covered" => 40, "total" => 50})
+      expect(payload["total"]).to include("lines" => {"percent" => 80.0, "covered" => 80, "total" => 100})
+      expect(payload["total"]).to include("branches" => {"percent" => 90.0, "covered" => 9, "total" => 10})
+      expect(payload["total"]).not_to include("methods")
+      expect(payload.dig("groups", "Models"))
+        .to include("lines" => {"percent" => 80.0, "covered" => 40, "total" => 50})
+      expect(payload.dig("groups", "All Files"))
+        .to include("lines" => {"percent" => 50.0, "covered" => 1, "total" => 2})
     end
 
     context "with colorization" do
