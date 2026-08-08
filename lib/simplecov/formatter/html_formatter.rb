@@ -3,6 +3,7 @@
 require "fileutils"
 require "json"
 require_relative "base"
+require_relative "../coverage_json"
 require_relative "json_formatter"
 
 module SimpleCov
@@ -49,13 +50,9 @@ module SimpleCov
       # pretty-printed) input and rejects invalid JSON here rather than
       # embedding it and failing at view time.
       def format_from_json(json_path, output_dir)
+        data = validate_viewer_data!(SimpleCov::CoverageJSON.load(json_path))
+        json = JSON.generate(data)
         FileUtils.mkdir_p(output_dir)
-        # UTF-8 explicitly (JSON is UTF-8 by definition): `File.read`
-        # would tag the text with `Encoding.default_external`, and a
-        # non-UTF-8 locale (minimal CI containers resolve to US-ASCII,
-        # Windows to a code page) would make the substitution below raise
-        # Encoding::CompatibilityError.
-        json = JSON.generate(JSON.parse(File.read(json_path, encoding: Encoding::UTF_8)))
         atomic_write(File.join(output_dir, "index.html"), render_report(json))
       end
 
@@ -63,6 +60,28 @@ module SimpleCov
 
       def entry_point_filename
         "index.html"
+      end
+
+      def validate_viewer_data!(data)
+        %w[meta total coverage groups].each { |key| validate_viewer_section!(data, key) }
+        data.fetch("coverage").each { |filename, file| validate_viewer_file!(filename, file) }
+        data
+      end
+
+      def validate_viewer_section!(data, key)
+        return if data[key].is_a?(Hash)
+
+        raise SimpleCov::CoverageJSON::Error, "#{key.inspect} must be an object"
+      end
+
+      def validate_viewer_file!(filename, file)
+        unless file.is_a?(Hash)
+          raise SimpleCov::CoverageJSON::Error, "coverage entry #{filename.inspect} must be an object"
+        end
+        return if file["source"].is_a?(Array)
+
+        raise SimpleCov::CoverageJSON::Error,
+              "coverage entry #{filename.inspect} must include a source array; regenerate with source_in_json true"
       end
 
       def write_report_files(json_hash, viewer_hash)

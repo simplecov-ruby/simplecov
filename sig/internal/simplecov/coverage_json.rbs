@@ -1,0 +1,8 @@
+module SimpleCov
+  module CoverageJSON
+    class Error < StandardError
+    end
+
+    def self.load: (String path) -> Hash[String, untyped]
+  end
+end

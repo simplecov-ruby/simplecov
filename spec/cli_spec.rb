@@ -128,6 +128,16 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    it "rejects invalid UTF-8 before generating JSON output" do
+      File.binwrite(invalid, "{\"coverage\":{\"lib/a.rb\":{\"source\":[\"\xFF\"]}}}".b)
+
+      expect(run("coverage", "--input", invalid, "--json", "lib/a.rb")).to eq(1)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("simplecov coverage:").and include("not valid UTF-8")
+      expect(stderr.string.lines.size).to eq(1)
+      expect(stderr.string).not_to include("JSON::GeneratorError")
+    end
+
     it "rejects a non-object coverage field" do
       File.write(invalid, JSON.dump("coverage" => []))
 

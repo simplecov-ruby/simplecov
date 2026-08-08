@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
+require_relative "../coverage_json"
 
 module SimpleCov
   module CLI
@@ -11,13 +11,10 @@ module SimpleCov
     module_function
 
       def load_document(path, command:, stderr:)
-        document = JSON.parse(File.read(path, encoding: Encoding::UTF_8))
-        return document if document.is_a?(Hash)
-
-        report_invalid(stderr, command, path, "top-level value must be an object")
+        SimpleCov::CoverageJSON.load(path)
       rescue Errno::ENOENT
         report_missing(stderr, command, path)
-      rescue JSON::ParserError => e
+      rescue SimpleCov::CoverageJSON::Error => e
         report_invalid(stderr, command, path, e.message)
       rescue SystemCallError => e
         report_unreadable(stderr, command, path, e.message)

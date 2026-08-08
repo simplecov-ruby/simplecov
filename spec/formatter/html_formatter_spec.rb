@@ -388,20 +388,55 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   describe "#format_from_json" do
     let(:standalone_dir) { File.join(coverage_dir, "standalone") }
+    let(:json_path) { File.join(coverage_dir, "coverage.json") }
 
-    before do
-      formatter.format(make_result)
-      described_class.new.format_from_json(File.join(coverage_dir, "coverage.json"), standalone_dir)
-    end
+    before { formatter.format(make_result) }
 
     it "writes a single index.html into the target dir" do
+      described_class.new.format_from_json(json_path, standalone_dir)
+
       expect(Dir.children(standalone_dir)).to eq %w[index.html]
     end
 
     it "embeds data with the same shape as the in-process format run" do
+      described_class.new.format_from_json(json_path, standalone_dir)
+
       data = coverage_data(standalone_dir)
 
       expect(data).to include("meta", "coverage")
+    end
+
+    it "rejects missing viewer sections before creating the target dir" do
+      data = JSON.parse(File.read(json_path))
+      File.write(json_path, JSON.dump(data.except("groups")))
+
+      expect { described_class.new.format_from_json(json_path, standalone_dir) }
+        .to raise_error(SimpleCov::CoverageJSON::Error, /"groups" must be an object/)
+      expect(Dir).not_to exist(standalone_dir)
+    end
+
+    it "rejects source-less coverage without replacing an existing report" do
+      FileUtils.mkdir_p(standalone_dir)
+      index_path = File.join(standalone_dir, "index.html")
+      File.write(index_path, "existing report")
+      data = JSON.parse(File.read(json_path))
+      data.fetch("coverage").each_value { |file| file.delete("source") }
+      File.write(json_path, JSON.dump(data))
+
+      expect { described_class.new.format_from_json(json_path, standalone_dir) }
+        .to raise_error(SimpleCov::CoverageJSON::Error, /source array.*source_in_json true/)
+      expect(File.read(index_path)).to eq("existing report")
+    end
+
+    it "rejects coverage entries that are not objects" do
+      data = JSON.parse(File.read(json_path))
+      filename = data.fetch("coverage").keys.first
+      data.fetch("coverage")[filename] = []
+      File.write(json_path, JSON.dump(data))
+
+      expect { described_class.new.format_from_json(json_path, standalone_dir) }
+        .to raise_error(SimpleCov::CoverageJSON::Error, /coverage entry .* must be an object/)
+      expect(Dir).not_to exist(standalone_dir)
     end
   end
 
