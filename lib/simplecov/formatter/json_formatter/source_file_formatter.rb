@@ -61,12 +61,15 @@ module SimpleCov
         end
 
         def method_coverage_section
+          covered = @source_file.covered_methods.size
+          missed = @source_file.missed_methods.size
+
           {
             methods: @source_file.methods.map { |method| format_method(method) },
             methods_covered_percent: @source_file.covered_percent(:method),
-            covered_methods: @source_file.covered_methods.size,
-            missed_methods: @source_file.missed_methods.size,
-            total_methods: @source_file.methods.size
+            covered_methods: covered,
+            missed_methods: missed,
+            total_methods: covered + missed
           }
         end
 

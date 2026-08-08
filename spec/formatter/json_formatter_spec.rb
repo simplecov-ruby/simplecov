@@ -250,6 +250,10 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       it "includes methods array and methods_covered_percent per file" do
         formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_method"))
+
+        file = json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))
+        expect(file.fetch("total_methods")).to eq(file.fetch("covered_methods") + file.fetch("missed_methods"))
+        expect(file.fetch("methods").size).to eq(4)
       end
     end
 

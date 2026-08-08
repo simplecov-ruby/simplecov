@@ -20,14 +20,14 @@
       "omitted": 10,
       "total": 10,
       "percent": 90.0,
-      "strength": 1.0
+      "strength": 0.9
     },
     "branches": {
       "covered": 1,
       "missed": 1,
       "total": 2,
       "percent": 50.0,
-      "strength": 0.0
+      "strength": 0.5
     }
   },
   "coverage": {

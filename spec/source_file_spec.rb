@@ -539,6 +539,7 @@ RSpec.describe SimpleCov::SourceFile do
         expect(source_file.total_branches.size).to eq 4
         expect(source_file.missed_branches.size).to eq 1
         expect(source_file.covered_branches.size).to eq 3
+        expect(source_file.covered_strength(:branch)).to eq 0.75
       end
     end
   end
@@ -1051,6 +1052,7 @@ RSpec.describe SimpleCov::SourceFile do
         expect(source_file.skipped_lines.map(&:line_number)).to eq [2, 3, 4, 5]
         expect(source_file.covered_lines.map(&:line_number)).to eq [1, 6]
         expect(source_file.missed_lines).to eq []
+        expect(source_file.covered_strength).to eq 1.0
       end
     end
 
@@ -1081,7 +1083,7 @@ RSpec.describe SimpleCov::SourceFile do
             "branches" => {},
             "methods" => {
               ["Demo", :covered, 1, 0, 3, 3] => 1,
-              ["Demo", :method_skipped, 6, 0, 8, 3] => 0
+              ["Demo", :method_skipped, 6, 0, 8, 3] => 7
             }
           },
           [
@@ -1105,6 +1107,7 @@ RSpec.describe SimpleCov::SourceFile do
       it "removes skipped methods from covered and missed totals" do
         expect(source_file.covered_methods.map(&:method_name)).to eq [:covered]
         expect(source_file.missed_methods).to eq []
+        expect(source_file.covered_strength(:method)).to eq 1.0
       end
 
       it "leaves the lines themselves alone when only method is disabled" do

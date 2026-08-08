@@ -20,14 +20,14 @@
       "omitted": 10,
       "total": 10,
       "percent": 90.0,
-      "strength": 1.0
+      "strength": 0.9
     },
     "methods": {
       "covered": 3,
       "missed": 0,
       "total": 3,
       "percent": 100.0,
-      "strength": 0.0
+      "strength": 1.0
     }
   },
   "coverage": {
@@ -120,7 +120,7 @@
       "methods_covered_percent": 100.0,
       "covered_methods": 3,
       "missed_methods": 0,
-      "total_methods": 4
+      "total_methods": 3
     }
   },
   "groups": {},

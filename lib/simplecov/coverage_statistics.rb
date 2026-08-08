@@ -10,7 +10,7 @@ module SimpleCov
   # * missed - how many of the coverables are missed
   # * omitted - how many lines cannot be covered (blank lines/comments); only meaningful for line coverage
   # * percent - percentage as covered/missed
-  # * strength - average hits per/coverable (will not exist for one shot lines format)
+  # * strength - average hits per coverable unit (will not exist for one shot lines format)
   class CoverageStatistics
     attr_reader :total, :covered, :missed, :omitted, :strength, :percent
 

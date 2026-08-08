@@ -22,35 +22,43 @@ module SimpleCov
     private
 
       def line_statistics
-        sf = @source_file
         {
-          line: CoverageStatistics.new(
-            total_strength: sf.lines.sum { |line| line.coverage.to_i },
-            covered: sf.covered_lines.size,
-            missed: sf.missed_lines.size,
-            omitted: sf.never_lines.size
+          line: coverage_statistics(
+            @source_file.covered_lines,
+            @source_file.missed_lines,
+            omitted: @source_file.never_lines.size
           )
         }
       end
 
+      # Files added via track_files but never loaded have no branch/method
+      # data. Report 0% instead of the empty-set default of 100% (see #902).
       def branch_statistics
         sf = @source_file
-        # Files added via track_files but never loaded/required have no
-        # branch data. Report 0% instead of misleading 100% (see #902).
-        if sf.not_loaded? && sf.covered_branches.empty? && sf.missed_branches.empty?
-          return {branch: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)}
-        end
+        covered = sf.covered_branches
+        missed = sf.missed_branches
+        percent = 0.0 if sf.not_loaded? && covered.empty? && missed.empty?
 
-        {branch: CoverageStatistics.new(covered: sf.covered_branches.size, missed: sf.missed_branches.size)}
+        {branch: coverage_statistics(covered, missed, percent: percent)}
       end
 
       def method_statistics
         sf = @source_file
-        if sf.not_loaded? && sf.covered_methods.empty? && sf.missed_methods.empty?
-          return {method: CoverageStatistics.new(covered: 0, missed: 0, percent: 0.0)}
-        end
+        covered = sf.covered_methods
+        missed = sf.missed_methods
+        percent = 0.0 if sf.not_loaded? && covered.empty? && missed.empty?
 
-        {method: CoverageStatistics.new(covered: sf.covered_methods.size, missed: sf.missed_methods.size)}
+        {method: coverage_statistics(covered, missed, percent: percent)}
+      end
+
+      def coverage_statistics(covered, missed, omitted: 0, percent: nil)
+        CoverageStatistics.new(
+          total_strength: covered.sum { |item| item.coverage.to_i },
+          covered: covered.size,
+          missed: missed.size,
+          omitted: omitted,
+          percent: percent
+        )
       end
     end
   end

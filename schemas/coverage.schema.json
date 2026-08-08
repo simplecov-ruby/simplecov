@@ -254,7 +254,7 @@
         },
         "total": {"type": "integer", "minimum": 0, "description": "Executable lines: `covered + missed`. Does not include `omitted`."},
         "percent": {"type": "number"},
-        "strength": {"type": "number", "description": "Average number of executions across covered lines (hits per covered line)."}
+        "strength": {"type": "number", "description": "Average executions per coverable line: the sum of hit counts divided by `covered + missed`."}
       }
     },
     "coverage_statistic": {
@@ -266,7 +266,7 @@
         "missed": {"type": "integer", "minimum": 0},
         "total": {"type": "integer", "minimum": 0, "description": "Total branches or methods: `covered + missed`."},
         "percent": {"type": "number"},
-        "strength": {"type": "number", "description": "Average number of executions across covered branches or methods (hits per covered item)."}
+        "strength": {"type": "number", "description": "Average executions per coverable branch or method: the sum of hit counts divided by `covered + missed`."}
       }
     },
     "line_coverage": {
