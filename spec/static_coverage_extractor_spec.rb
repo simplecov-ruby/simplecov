@@ -2,10 +2,7 @@
 
 require "helper"
 require "coverage"
-require "json"
-require "open3"
-require "rbconfig"
-require "tmpdir"
+require "support/coverage_differential"
 
 RSpec.describe SimpleCov::StaticCoverageExtractor do
   describe ".available?" do
@@ -420,61 +417,15 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           }.freeze
         end
 
-        def strip_ids(branches)
-          branches.to_h do |condition, arms|
-            [tuple_identity(condition), arms.keys.map { |arm| tuple_identity(arm) }.sort_by(&:to_s)]
-          end
-        end
-
-        # [type, id, sl, sc, el, ec] -> [type, sl, sc, el, ec]: ids are
-        # process-local counters on both sides and immaterial to merging.
-        def tuple_identity(tuple)
-          [tuple[0].to_s, *tuple.values_at(2, 3, 4, 5)]
-        end
-
-        # One subprocess for all fixtures: writes each as its own file,
-        # loads them under Coverage(branches: true), dumps tuples as JSON.
-        def runtime_branches
-          Dir.mktmpdir do |dir|
-            branch_fixtures.each { |name, src| File.write(File.join(dir, "#{name}.rb"), src) }
-            runner = File.join(dir, "runner.rb")
-            File.write(runner, runner_script(dir))
-            parse_runtime_payload(*Open3.capture2(RbConfig.ruby, runner))
-          end
-        end
-
-        def parse_runtime_payload(output, status)
-          raise "runtime coverage subprocess failed: #{output}" unless status.success?
-
-          JSON.parse(output).transform_values do |pairs|
-            pairs.to_h { |condition, arms| [condition, arms.to_h { |a| [a, 0] }] }
-          end
-        end
-
-        def runner_script(dir)
-          <<~RUBY
-            require "coverage"
-            require "json"
-            Coverage.start(branches: true)
-            names = #{branch_fixtures.keys.inspect}
-            names.each { |name| load File.join(#{dir.inspect}, "\#{name}.rb") }
-            result = Coverage.result
-            payload = names.to_h do |name|
-              branches = result[File.join(#{dir.inspect}, "\#{name}.rb")][:branches]
-              [name, branches.map { |condition, arms| [condition, arms.keys] }]
-            end
-            puts JSON.dump(payload)
-          RUBY
-        end
-
         it "synthesizes tuples identical to Ruby's Coverage for every construct" do
           skip "branch coverage unsupported on this Ruby" unless SimpleCov.branch_coverage_supported?
 
-          runtime = runtime_branches
+          runtime = CoverageDifferential.runtime_branches(branch_fixtures)
           aggregate_failures do
             branch_fixtures.each do |name, source|
               synthesized = described_class.call(source)["branches"]
-              expect(strip_ids(synthesized)).to eq(strip_ids(runtime.fetch(name))), "construct: #{name}"
+              expect(CoverageDifferential.strip_ids(synthesized))
+                .to eq(CoverageDifferential.strip_ids(runtime.fetch(name))), "construct: #{name}"
             end
           end
         end
