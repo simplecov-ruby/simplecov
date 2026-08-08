@@ -19,6 +19,9 @@ module SimpleCov
     # into the resultset so a merge elsewhere can inject the ones nobody loaded
     # without needing that process's `cover` / `track_files` config. See #1250.
     attr_reader :tracked_files
+    # Invocation and top-level worker identities used only for parallel-result
+    # coordination. They do not change which fresh suites are merged.
+    attr_reader :run_id, :worker_id
     # Returns all files that are applicable to this result (sans filters!) as instances of
     # SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
@@ -59,11 +62,11 @@ module SimpleCov
     # FilterConfig to opt out — useful for tests that build synthetic Results
     # and don't want the project's filters or groups applied.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   tracked_files: [], report: false, filter_config: FilterConfig.new)
+                   tracked_files: [], run_id: nil, worker_id: nil, report: false, filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
-      @tracked_files = tracked_files.to_a
+      initialize_coordination_metadata(tracked_files, run_id, worker_id)
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
@@ -123,7 +126,9 @@ module SimpleCov
 
     # Returns a hash representation of this Result that can be used for marshalling it into JSON
     def to_hash
-      data = {"coverage" => coverage, "timestamp" => created_at.to_i} #: Hash[String, untyped]
+      data = {"coverage" => coverage, "timestamp" => created_at.to_f} #: Hash[String, untyped]
+      data["run_id"] = run_id if run_id
+      data["worker_id"] = worker_id if worker_id
       # Omitted when empty so a run that tracks nothing writes the shape it
       # always has, and so the key only appears where it carries information.
       data["tracked_files"] = tracked_files unless tracked_files.empty?
@@ -134,11 +139,18 @@ module SimpleCov
     def self.from_hash(hash)
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]),
-                                    tracked_files: data["tracked_files"] || [])
+                                    tracked_files: data["tracked_files"] || [], run_id: data["run_id"],
+                                    worker_id: data["worker_id"])
       end
     end
 
   private
+
+    def initialize_coordination_metadata(tracked_files, run_id, worker_id)
+      @tracked_files = tracked_files.to_a
+      @run_id = run_id
+      @worker_id = worker_id
+    end
 
     def warn_about_missing_source_files(missing, input_size)
       return if missing.empty?

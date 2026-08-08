@@ -1,0 +1,16 @@
+module SimpleCov
+  module ResultMerger
+    module ResultsetRunIdentity
+      def worker_identities_for_run: (untyped results, String run_id, Time? started_at) -> Array[[Symbol, String]]
+
+      def current_run_entry?: (untyped entry, String? run_id, Time? started_at) -> boolish
+
+      def fresh_entry?: (untyped entry, Time? started_at) -> boolish
+
+      def concurrent_runner_entry?: (untyped entry, ?untyped incoming) -> (false | true | untyped)
+
+      def written_after_start?: (untyped entry, Time? started_at) -> boolish
+
+    end
+  end
+end

@@ -158,10 +158,8 @@ module SimpleCov
                                               ::Process.respond_to?(:_fork)
       # simplecov:enable
 
-      # Trigger adapter selection now so the (possibly lazy) parallel_tests
-      # gem load happens at start_tracking time rather than mid-suite.
-      # `current` is memoized; subsequent calls are cheap.
-      SimpleCov::ParallelAdapters.current
+      # Select the parallel adapter and generate identities before any forks.
+      SimpleCov::RunIdentity.prepare
 
       @result = nil
       self.pid = Process.pid
@@ -249,6 +247,8 @@ require_relative "simplecov/lines_classifier"
 require_relative "simplecov/result_merger"
 require_relative "simplecov/parallel_result_merger"
 require_relative "simplecov/parallel_adapters"
+require_relative "simplecov/run_identity"
+SimpleCov.extend SimpleCov::RunIdentity::Accessors
 require_relative "simplecov/command_guesser"
 require_relative "simplecov/version"
 require_relative "simplecov/result_adapter"

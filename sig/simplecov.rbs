@@ -27,11 +27,17 @@ module SimpleCov
   self.@autoloading_dot_simplecov: bool?
   self.@dot_simplecov_start_warned: bool?
   self.@at_exit_hook_installed: bool?
+  self.@run_id: String?
+  self.@worker_id: String?
 
   attr_accessor self.pid: Integer?
 
   # When this process started tracking coverage.
   attr_accessor self.process_start_time: Time?
+
+  def self.run_id: () -> String
+
+  def self.worker_id: () -> String
 
   # Should something external (e.g. the Minitest plugin) own the
   # at_exit behavior instead of SimpleCov's own hook?
@@ -756,6 +762,8 @@ module SimpleCov
 
     # Every path the producing process was told to track, loaded or not.
     attr_reader tracked_files: Array[String]
+    attr_reader run_id: String?
+    attr_reader worker_id: String?
     attr_reader files: FileList
     alias source_files files
     # The writers accept the strict types; the ivars stay nilable because
@@ -779,7 +787,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?report: bool, ?filter_config: FilterConfig) -> void
 
     def filenames: () -> Array[String]
     # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
@@ -814,6 +822,7 @@ module SimpleCov
 
     private
 
+    def initialize_coordination_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id) -> void
     def warn_about_missing_source_files: (Array[String] missing, Integer input_size) -> void
     def coverage: () -> Hash[String, untyped]
     def apply_filters!: (Array[Filter[untyped]] filters) -> void

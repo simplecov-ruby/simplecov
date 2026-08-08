@@ -533,8 +533,29 @@ RSpec.describe SimpleCov do
     end
 
     it "returns true once every expected worker has reported" do
-      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1, "b" => 2})
+      run_id = described_class.run_id
+      resultset = {
+        "a" => {"run_id" => run_id, "worker_id" => "1"},
+        "b" => {"run_id" => run_id, "worker_id" => "2"}
+      }
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
       expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
+    end
+
+    it "does not count stale entries or forked children as current workers" do
+      run_id = described_class.run_id
+      partial = {
+        "old-1" => {"run_id" => "old-run", "worker_id" => "1"},
+        "old-2" => {"run_id" => "old-run", "worker_id" => "2"},
+        "current" => {"run_id" => run_id, "worker_id" => "1"},
+        "current child" => {"run_id" => run_id, "worker_id" => "1"}
+      }
+      complete = partial.merge("current-2" => {"run_id" => run_id, "worker_id" => "2"})
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(partial, complete)
+      allow(described_class).to receive(:sleep)
+
+      expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
+      expect(SimpleCov::ResultMerger).to have_received(:read_resultset).twice
     end
 
     # A native wait already confirmed all sibling processes exited, so a count
@@ -542,17 +563,28 @@ RSpec.describe SimpleCov do
     # (idle parallel_test groups) — accept it as final instead of blocking for
     # the whole timeout.
     it "accepts a settled count below expected as complete when a native wait ran" do
-      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1})
+      resultset = {"a" => {"run_id" => described_class.run_id, "worker_id" => "1"}}
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
       allow(described_class).to receive(:sleep)
       allow(described_class).to receive(:parallel_wait_timeout).and_return(60)
 
       expect(described_class.send(:wait_for_parallel_results, 4, native_wait: true)).to be(true)
     end
 
+    it "does not let stale entries satisfy the native settled-count shortcut" do
+      stale = {"old" => {"run_id" => "old-run", "worker_id" => "1", "timestamp" => Time.now.to_f}}
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(stale)
+      allow(described_class).to receive(:sleep)
+      allow(described_class).to receive_messages(parallel_wait_timeout: 0, print_errors: false)
+
+      expect(described_class.send(:wait_for_parallel_results, 2, native_wait: true)).to be(false)
+    end
+
     # Without a native wait an idle worker is indistinguishable from a slow
     # one, so keep waiting the full timeout and report the partial result.
     it "times out (partial) on a short count without a native wait" do
-      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return({"a" => 1})
+      resultset = {"a" => {"run_id" => described_class.run_id, "worker_id" => "1"}}
+      allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
       allow(described_class).to receive(:sleep)
       allow(described_class).to receive_messages(parallel_wait_timeout: 0, print_errors: false)
 

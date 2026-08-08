@@ -77,13 +77,18 @@ module SimpleCov
       deadline = monotonic_time + parallel_wait_timeout
       tracker = {count: 0, since: monotonic_time}
       loop do
-        seen = SimpleCov::ResultMerger.read_resultset.size
+        seen = current_parallel_worker_count
         return true if seen >= expected
         return true if native_wait && resultset_count_settled?(tracker, seen)
         return false if parallel_wait_timed_out?(deadline, expected, seen)
 
         sleep 0.1
       end
+    end
+
+    def current_parallel_worker_count
+      resultset = SimpleCov::ResultMerger.read_resultset
+      SimpleCov::ResultMerger.worker_identities_for_run(resultset, SimpleCov.run_id, SimpleCov.process_start_time).size
     end
 
     # Track whether the resultset count has held steady (and positive) for

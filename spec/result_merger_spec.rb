@@ -314,6 +314,69 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
+  describe ".worker_identities_for_run" do
+    it "returns distinct identified workers from only the requested run" do
+      allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true)
+      started_at = Time.now
+      resultset = {
+        "worker 1" => {"run_id" => "current", "worker_id" => "1"},
+        "worker 1 child" => {"run_id" => "current", "worker_id" => "1"},
+        "worker 2" => {"run_id" => "current", "worker_id" => "2"},
+        "stale" => {"run_id" => "old", "worker_id" => "3"},
+        "legacy current" => {"timestamp" => started_at.to_f + 1},
+        "malformed" => nil
+      }
+
+      expect(described_class.worker_identities_for_run(resultset, "current", started_at))
+        .to contain_exactly([:worker, "1"], [:worker, "2"], [:legacy, "legacy current"])
+    end
+
+    it "cannot alias a worker id to a legacy entry's synthesized identity" do
+      allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true)
+      resultset = {
+        "spoofing worker" => {"run_id" => "current", "worker_id" => "legacy:suite"},
+        "suite" => {"timestamp" => 100.75}
+      }
+
+      expect(described_class.worker_identities_for_run(resultset, "current", Time.at(100.5)).size).to eq(2)
+    end
+
+    it "counts numeric and string spellings of one worker id once" do
+      allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true)
+      resultset = {
+        "worker 1 parent" => {"run_id" => "current", "worker_id" => 1},
+        "worker 1 child" => {"run_id" => "current", "worker_id" => "1"}
+      }
+
+      expect(described_class.worker_identities_for_run(resultset, "current", Time.now)).to eq([[:worker, "1"]])
+    end
+
+    it "applies precise freshness to a weak parent-process run identity" do
+      allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(false)
+      resultset = {
+        "stale" => {"run_id" => "parallel-parent:1", "worker_id" => "1", "timestamp" => 100.25},
+        "current" => {"run_id" => "parallel-parent:1", "worker_id" => "2", "timestamp" => 100.75}
+      }
+
+      expect(described_class.worker_identities_for_run(resultset, "parallel-parent:1", Time.at(100.5)))
+        .to eq([[:worker, "2"]])
+    end
+
+    it "ignores a legacy entry whose timestamp is not numeric" do
+      resultset = {"garbage" => {"timestamp" => {}}}
+
+      expect(described_class.worker_identities_for_run(resultset, "current", Time.at(100.5))).to be_empty
+    end
+  end
+
+  describe ".concurrent_runner_entry?" do
+    it "uses timestamp freshness when no incoming run identity is available" do
+      allow(SimpleCov).to receive(:process_start_time).and_return(Time.at(100.5))
+
+      expect(described_class).to be_concurrent_runner_entry("timestamp" => 100.75)
+    end
+  end
+
   describe "basic workings with 2 resultsets" do
     before do
       FileUtils.rm_f(described_class.resultset_path)
@@ -638,6 +701,71 @@ RSpec.describe SimpleCov::ResultMerger do
 
         parent_empty_result.created_at = process_start + 1
         described_class.store_result(parent_empty_result)
+
+        expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
+      end
+
+      it "merges same-command entries carrying the same run identity" do
+        subprocess = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+          command_name: "RSpec", run_id: "same-run", worker_id: "1"
+        )
+        subprocess.created_at = process_start - 60
+        described_class.store_result(subprocess)
+
+        parent = SimpleCov::Result.new({}, command_name: "RSpec", run_id: "same-run", worker_id: "1")
+        described_class.store_result(parent)
+
+        merged = described_class.read_resultset.fetch("RSpec").fetch("coverage")
+        expect(merged).to have_key(source_fixture("sample.rb"))
+      end
+
+      it "merges a later entry written by an exec'd subprocess with its own run identity" do
+        # A shelled-out test runner (fork+exec) doesn't inherit the parent's
+        # memoized run id, so it stores its entry under a random id of its
+        # own. Its post-start timestamp still marks it as concurrent. See
+        # https://github.com/simplecov-ruby/simplecov/issues/581.
+        subprocess = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+          command_name: "RSpec", run_id: "child-run", worker_id: "1"
+        )
+        subprocess.created_at = process_start + 1
+        described_class.store_result(subprocess)
+
+        parent = SimpleCov::Result.new({}, command_name: "RSpec", run_id: "parent-run", worker_id: "1")
+        parent.created_at = process_start + 2
+        described_class.store_result(parent)
+
+        merged = described_class.read_resultset.fetch("RSpec").fetch("coverage")
+        expect(merged).to have_key(source_fixture("sample.rb"))
+      end
+
+      it "overwrites a same-second entry carrying a different run identity" do
+        stale = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+          command_name: "RSpec", run_id: "old-run", worker_id: "1"
+        )
+        stale.created_at = process_start
+        described_class.store_result(stale)
+
+        current = SimpleCov::Result.new({}, command_name: "RSpec", run_id: "new-run", worker_id: "1")
+        current.created_at = process_start
+        described_class.store_result(current)
+
+        expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
+      end
+
+      it "does not merge a legacy entry from earlier in the same second" do
+        allow(SimpleCov).to receive(:process_start_time).and_return(Time.at(100.9))
+        stale = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1]}}, command_name: "RSpec"
+        )
+        stale.created_at = Time.at(100)
+        described_class.store_result(stale)
+
+        current = SimpleCov::Result.new({}, command_name: "RSpec")
+        current.created_at = Time.at(101)
+        described_class.store_result(current)
 
         expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
       end

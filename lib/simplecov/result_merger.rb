@@ -2,6 +2,7 @@
 
 require_relative "result_merger/legacy_format_adapter"
 require_relative "result_merger/resultset_file"
+require_relative "result_merger/resultset_run_identity"
 require_relative "result_merger/resultset_store"
 require_relative "result_merger/unloaded_files"
 
@@ -12,6 +13,8 @@ module SimpleCov
   # upon multiple test suites.
   #
   module ResultMerger
+    extend ResultsetRunIdentity
+
     class << self
       def resultset_path
         ResultsetStore.resultset_path
@@ -173,20 +176,12 @@ module SimpleCov
       # overwriting, so an empty parent-process result doesn't clobber the
       # subprocess's real data. See https://github.com/simplecov-ruby/simplecov/issues/581.
       def merged_entry(existing, incoming)
-        return incoming unless concurrent_runner_entry?(existing)
+        return incoming unless concurrent_runner_entry?(existing, incoming)
 
         merged = incoming.merge(
           "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
         )
         UnloadedFiles.carry_tracked(merged, existing, incoming)
-      end
-
-      def concurrent_runner_entry?(entry)
-        return false unless entry.is_a?(Hash)
-
-        timestamp = entry["timestamp"]
-        process_start = SimpleCov.process_start_time
-        timestamp && process_start && timestamp.to_i >= process_start.to_i
       end
 
       def synchronize_resultset(&)

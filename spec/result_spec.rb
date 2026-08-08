@@ -93,6 +93,22 @@ RSpec.describe SimpleCov::Result do
           expect(described_class.from_hash(tracked_result.to_hash).first.tracked_files).to eq(tracked)
         end
 
+        it "round-trips parallel run and worker identities" do
+          identified = described_class.new(
+            original_result, command_name: "t", run_id: "run-1", worker_id: "worker-2"
+          )
+          restored = described_class.from_hash(identified.to_hash).first
+
+          expect(restored.run_id).to eq("run-1")
+          expect(restored.worker_id).to eq("worker-2")
+        end
+
+        it "round-trips subsecond timestamps" do
+          timestamped = described_class.new(original_result, command_name: "t", created_at: Time.at(100.75))
+
+          expect(described_class.from_hash(timestamped.to_hash).first.created_at.to_f).to eq(100.75)
+        end
+
         context "when loaded back with from_hash" do
           let(:dumped_result) do
             described_class.from_hash(result.to_hash).first

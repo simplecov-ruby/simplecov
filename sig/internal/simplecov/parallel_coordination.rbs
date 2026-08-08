@@ -46,6 +46,8 @@ module SimpleCov
   # keep waiting the full timeout.
   def self.wait_for_parallel_results: (untyped expected, ?native_wait: boolish) -> (true | false | untyped)
 
+  def self.current_parallel_worker_count: () -> Integer
+
   # Track whether the resultset count has held steady (and positive) for
   # `PARALLEL_RESULTS_SETTLE` seconds. `tracker` carries the last count and
   # the time it last changed across poll iterations.

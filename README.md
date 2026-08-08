@@ -749,6 +749,10 @@ whatever has arrived, skipping the minimum / maximum coverage checks against tha
 much heavier test files and routinely finishes a minute or more after the others, raise it with
 `SimpleCov.parallel_wait_timeout 180` so its coverage is included.
 
+SimpleCov tags cached entries with a per-run identity so results left by an earlier invocation cannot satisfy that
+wait. The built-in adapters infer a shared identity for local workers. Distributed or custom runners whose workers do
+not share a launcher process should set the same `SIMPLECOV_RUN_ID` environment variable in every worker.
+
 ### Merge finalization ownership
 
 `SimpleCov.merging true` stores each process' resultset so it can be merged with other suites or workers. By default,

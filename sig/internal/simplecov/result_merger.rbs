@@ -39,6 +39,12 @@ module SimpleCov
 
     def self.read_resultset: () -> untyped
 
+    def self.worker_identities_for_run: (untyped results, String run_id, Time? started_at) -> Array[[Symbol, String]]
+
+    def self.current_run_entry?: (untyped entry, String? run_id, Time? started_at) -> boolish
+
+    def self.fresh_entry?: (untyped entry, Time? started_at) -> boolish
+
     # Saves the given SimpleCov::Result in the resultset cache
     def self.store_result: (untyped result) -> true
 
@@ -49,7 +55,9 @@ module SimpleCov
     # subprocess's real data. See https://github.com/simplecov-ruby/simplecov/issues/581.
     def self.merged_entry: (untyped existing, untyped incoming) -> untyped
 
-    def self.concurrent_runner_entry?: (untyped entry) -> (false | untyped)
+    def self.concurrent_runner_entry?: (untyped entry, ?untyped incoming) -> (false | true | untyped)
+
+    def self.written_after_start?: (untyped entry, Time? started_at) -> boolish
 
     def self.synchronize_resultset: () { (?) -> untyped } -> untyped
   end

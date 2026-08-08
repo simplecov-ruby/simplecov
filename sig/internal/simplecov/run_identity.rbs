@@ -1,0 +1,30 @@
+module SimpleCov
+  module RunIdentity
+    @current: String
+    @current_worker_id: String?
+    @authoritative: bool
+    self.@current: String
+    self.@current_worker_id: String?
+    self.@authoritative: bool
+
+    def self?.generate: () -> [String, bool]
+
+    def self?.worker_id: () -> String
+
+    def self?.authoritative?: () -> bool
+
+    def self?.materialize_current: () -> void
+
+    def self?.current: () -> String
+
+    def self?.current_worker_id: () -> String
+
+    def self?.prepare: () -> String
+
+    module Accessors
+      def run_id: () -> String
+
+      def worker_id: () -> String
+    end
+  end
+end

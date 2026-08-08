@@ -15,6 +15,7 @@ target :lib do
   library "time"
   library "prism"
   library "ripper"
+  library "securerandom"
 
   configure_code_diagnostics(Steep::Diagnostic::Ruby.strict)
 end
