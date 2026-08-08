@@ -4,10 +4,6 @@ module SimpleCov
       # Builds the hash that JSONFormatter serializes to coverage.json:
       # meta, per-file coverage data, group totals, and aggregate stats.
       class ResultHashFormatter
-        @result: untyped
-
-        @include_source: untyped
-
         # Bump SCHEMA_VERSION (and SCHEMA_URL) when the JSON shape
         # changes. Additive changes bump the minor segment, removals or
         # shape changes bump the major segment. The versioned file at
@@ -19,17 +15,15 @@ module SimpleCov
 
         SCHEMA_URL: ::String
 
-        def initialize: (untyped result, ?include_source: bool) -> void
-
-        def format: () -> { :$schema => untyped, meta: untyped, total: untyped, coverage: untyped, groups: untyped, errors: untyped }
+        def self.format: (untyped result, ?include_source: bool) -> { :$schema => untyped, meta: untyped, total: untyped, coverage: untyped, groups: untyped, errors: untyped }
 
         private
 
-        def format_files: () -> untyped
+        def self.format_files: (untyped result, include_source: bool) -> untyped
 
-        def format_groups: () -> untyped
+        def self.format_groups: (untyped result) -> untyped
 
-        def format_meta: () -> untyped
+        def self.format_meta: (untyped result) -> untyped
 
         # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
         # project isn't a git checkout or git isn't on PATH. Recorded so tools
@@ -37,20 +31,15 @@ module SimpleCov
         # matters most when `source_in_json false` drops the source text from
         # coverage.json. stderr is captured (not forwarded) so a non-git project
         # doesn't print git's diagnostics to the build.
-        def git_commit: () -> untyped
+        def self.git_commit: () -> untyped
 
-        def coverage_flags: () -> { line_coverage: untyped, branch_coverage: untyped, method_coverage: untyped }
+        def self.coverage_flags: () -> { line_coverage: untyped, branch_coverage: untyped, method_coverage: untyped }
 
-        # Mirrors SourceFileFormatter's predicate so meta.line_coverage
-        # tracks exactly which configurations cause the formatter to
-        # emit line stats.
-        def line_coverage_enabled?: () -> untyped
+        def self.format_coverage_statistics: (untyped statistics) -> Hash[Symbol, untyped]
 
-        def format_coverage_statistics: (untyped statistics) -> Hash[Symbol, untyped]
+        def self.format_line_statistic: (untyped stat) -> { covered: untyped, missed: untyped, omitted: untyped, total: untyped, percent: untyped, strength: untyped }
 
-        def format_line_statistic: (untyped stat) -> { covered: untyped, missed: untyped, omitted: untyped, total: untyped, percent: untyped, strength: untyped }
-
-        def format_single_statistic: (untyped stat) -> { covered: untyped, missed: untyped, total: untyped, percent: untyped, strength: untyped }
+        def self.format_single_statistic: (untyped stat) -> { covered: untyped, missed: untyped, total: untyped, percent: untyped, strength: untyped }
       end
     end
   end

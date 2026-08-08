@@ -118,10 +118,7 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
     # group totals. Guard against the schema drifting back into
     # requiring those keys.
     it "validates a result emitted with line coverage disabled" do
-      allow(SimpleCov).to receive(:coverage_criterion_enabled?).and_call_original
-      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
-      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
-      allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
+      allow(SimpleCov).to receive_messages(line_coverage?: false, branch_coverage?: true)
       result = SimpleCov::Result.new({
                                        source_fixture("json/sample.rb") => {
                                          "lines" => [nil, 1, 1, 0],

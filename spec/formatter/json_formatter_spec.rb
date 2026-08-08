@@ -257,6 +257,16 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    it "builds a fresh errors hash for every serialization" do
+      allow(SimpleCov).to receive(:minimum_coverage).and_return({line: 95}, {line: 80})
+
+      first = described_class::ErrorsFormatter.call(result)
+      second = described_class::ErrorsFormatter.call(result)
+
+      expect(first).to eq(minimum_coverage: {lines: {expected: 95, actual: 90.0}})
+      expect(second).to eq({})
+    end
+
     context "with minimum_coverage below threshold" do
       before do
         allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 95)
@@ -591,9 +601,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       # `lines_covered_percent` / `total_lines` keys when the line
       # criterion was switched off via `disable_coverage :line`.
       before do
-        allow(SimpleCov).to receive(:coverage_criterion_enabled?).and_call_original
-        allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
-        allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
+        allow(SimpleCov).to receive(:line_coverage?).and_return(false)
         enable_branch_coverage
       end
 

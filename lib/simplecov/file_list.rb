@@ -161,8 +161,7 @@ module SimpleCov
     # reported when they pass their own engine-support check.
     def enabled_criteria_for_reporting
       criteria = [] #: Array[SimpleCov::criterion]
-      criteria << :line   if SimpleCov.coverage_criterion_enabled?(:line) ||
-                             SimpleCov.coverage_criterion_enabled?(:oneshot_line)
+      criteria << :line   if SimpleCov.line_coverage?
       criteria << :branch if SimpleCov.branch_coverage?
       criteria << :method if SimpleCov.method_coverage?
       criteria

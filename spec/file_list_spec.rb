@@ -131,8 +131,7 @@ RSpec.describe SimpleCov::FileList do
 
     before do
       allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: false)
-      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
-      allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:oneshot_line).and_return(false)
+      allow(SimpleCov).to receive(:line_coverage?).and_return(false)
     end
 
     it "returns nil from line-coverage accessors" do

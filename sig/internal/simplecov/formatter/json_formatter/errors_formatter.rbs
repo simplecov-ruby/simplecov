@@ -7,35 +7,29 @@ module SimpleCov
       # (`:lines` / `:branches` / `:methods`) so consumers can render
       # per-criterion messages without re-deriving them.
       class ErrorsFormatter
-        @result: untyped
-
-        @errors: Hash[Symbol, Hash[untyped, untyped]]
-
         CRITERION_KEYS: Hash[Symbol, Symbol]
 
-        def initialize: (untyped result) -> void
-
-        def call: () -> Hash[Symbol, Hash[untyped, untyped]]
+        def self.call: (untyped result) -> Hash[Symbol, Hash[untyped, untyped]]
 
         private
 
-        def format_minimum_overall: () -> untyped
+        def self.format_minimum_overall: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def format_minimum_by_file: () -> untyped
+        def self.format_minimum_by_file: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def record_by_file: (untyped violation) -> untyped
+        def self.record_by_file: (untyped violation, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def format_minimum_by_group: () -> untyped
+        def self.format_minimum_by_group: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def format_maximum_overall: () -> untyped
+        def self.format_maximum_overall: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def format_maximum_drop: () -> untyped
+        def self.format_maximum_drop: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
-        def bucket: (Symbol name) -> Hash[untyped, untyped]
+        def self.bucket: (Hash[Symbol, Hash[untyped, untyped]] errors, Symbol name) -> Hash[untyped, untyped]
 
-        def key_for: (untyped violation) -> Symbol
+        def self.key_for: (untyped violation) -> Symbol
 
-        def expected_actual: (untyped violation) -> { expected: untyped, actual: untyped }
+        def self.expected_actual: (untyped violation) -> { expected: untyped, actual: untyped }
       end
     end
   end

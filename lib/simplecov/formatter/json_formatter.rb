@@ -19,7 +19,7 @@ module SimpleCov
       # setting (the HTML formatter, which feeds the client-side
       # viewer) pass `include_source: true` explicitly.
       def self.build_hash(result, include_source: SimpleCov.source_in_json)
-        ResultHashFormatter.new(result, include_source: include_source).format
+        ResultHashFormatter.format(result, include_source: include_source)
       end
 
       def format(result)
