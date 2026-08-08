@@ -13,6 +13,11 @@ module SimpleCov
     def self.instance_for(formatter)
       formatter.is_a?(Class) ? formatter.new : formatter
     end
+
+    # Normalize a class or instance, then dispatch the result to it.
+    def self.format(formatter, result)
+      instance_for(formatter).format(result)
+    end
   end
 end
 

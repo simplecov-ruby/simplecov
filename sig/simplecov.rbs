@@ -1297,6 +1297,9 @@ module SimpleCov
     # Normalizes a configured formatter — class or ready-built
     # instance — into an instance. See #1240.
     def self.instance_for: (untyped formatter) -> untyped
+
+    # Instantiates a formatter class when necessary and dispatches the result.
+    def self.format: (untyped formatter, SimpleCov::Result result) -> untyped
   end
 end
 

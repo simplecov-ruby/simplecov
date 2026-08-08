@@ -1110,8 +1110,9 @@ SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
 SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 ```
 
-`SimpleCov.result.format!` then invokes `SimpleCov::Formatter::YourFormatter.new.format(result)`, where `result` is a
-`SimpleCov::Result`. Do whatever you wish with it.
+`SimpleCov.result.format!` instantiates a configured formatter class, then calls `#format(result)`, where `result` is a
+`SimpleCov::Result`. A ready-built formatter instance receives `#format` directly, which lets constructor options carry
+through to report generation. Do whatever you wish with it.
 
 ### Passing options to formatters
 

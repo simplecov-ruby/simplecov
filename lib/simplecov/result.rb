@@ -110,7 +110,7 @@ module SimpleCov
       formatter = SimpleCov.formatter
       return nil if formatter.nil?
 
-      Formatter.instance_for(formatter).format(self)
+      Formatter.format(formatter, self)
     end
 
     # Defines when this result has been created. Defaults to Time.now
