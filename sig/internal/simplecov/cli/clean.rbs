@@ -5,11 +5,19 @@ module SimpleCov
     # `--dry-run` flag prints what would be deleted without touching
     # disk, for when you're not sure what's in there.
     module Clean
-      def self?.run: (untyped args, stdout: untyped, **untyped) -> (untyped | 0)
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (untyped | 0 | 1)
 
       def self?.sweep: (untyped dir, untyped opts, untyped stdout) -> untyped
 
       def self?.announce: (untyped stdout, untyped opts, untyped message) -> (untyped | nil)
+
+      def self?.safe_to_remove?: (String dir) -> bool
+
+      def self?.protected_paths: () -> Array[String]
+
+      def self?.descendant_of?: (String path, String possible_ancestor) -> bool
+
+      def self?.canonical_path: (String path) -> String
 
       def self?.parse: (untyped args) -> untyped
     end

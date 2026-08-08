@@ -1373,7 +1373,8 @@ are normalized, so a baseline from an older SimpleCov still diffs cleanly agains
 `127.0.0.1`).
 
 `simplecov clean` removes the coverage report directory. `--dry-run` prints what would be removed without deleting
-anything; `-q` / `--quiet` suppresses status lines.
+anything; `-q` / `--quiet` suppresses status lines. For safety, `clean` refuses to remove the current directory, the
+project root, or any of their ancestors when `coverage_dir` resolves to one of those paths.
 
 ## Compatibility and troubleshooting
 

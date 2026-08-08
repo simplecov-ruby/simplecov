@@ -11,9 +11,13 @@ module SimpleCov
     module Clean
     module_function
 
-      def run(args, stdout:, **)
+      def run(args, stdout:, stderr:, **)
         opts = parse(args)
         dir = SimpleCov::CLI.coverage_dir
+        unless safe_to_remove?(dir)
+          stderr.puts("simplecov clean: refusing to remove unsafe coverage directory #{dir.inspect}")
+          return 1
+        end
         return announce(stdout, opts, "#{dir} doesn't exist; nothing to do") || 0 unless File.directory?(dir)
 
         sweep(dir, opts, stdout)
@@ -32,6 +36,27 @@ module SimpleCov
 
       def announce(stdout, opts, message)
         stdout.puts("simplecov clean: #{message}") unless opts[:quiet]
+      end
+
+      def safe_to_remove?(dir)
+        target = canonical_path(dir)
+        protected_paths.none? { |path| path == target || descendant_of?(path, target) }
+      end
+
+      def protected_paths
+        project_root = SimpleCov::CLI::Dotfile.find
+        [Dir.pwd, (File.dirname(project_root) if project_root)].compact.map { |path| canonical_path(path) }.uniq
+      end
+
+      def descendant_of?(path, possible_ancestor)
+        prefix = possible_ancestor.end_with?(File::SEPARATOR) ? possible_ancestor : "#{possible_ancestor}#{File::SEPARATOR}"
+        path.start_with?(prefix)
+      end
+
+      def canonical_path(path)
+        File.realpath(path)
+      rescue SystemCallError
+        File.expand_path(path)
       end
 
       def parse(args)

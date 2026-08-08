@@ -914,6 +914,49 @@ RSpec.describe SimpleCov::CLI do
       expect(run("clean", "-q")).to eq(0)
       expect(stdout.string).to be_empty
     end
+
+    it "refuses to remove the current directory" do
+      Dir.chdir(tmp) do
+        allow(described_class).to receive(:coverage_dir).and_return(".")
+
+        expect(run("clean")).to eq(1)
+        expect(File).to exist(File.join(tmp, "index.html"))
+        expect(stderr.string).to include("refusing to remove unsafe coverage directory")
+      end
+    end
+
+    it "refuses to remove an ancestor of the current directory" do
+      child = File.join(tmp, "nested")
+      FileUtils.mkdir_p(child)
+
+      Dir.chdir(child) do
+        allow(described_class).to receive(:coverage_dir).and_return("..")
+
+        expect(run("clean", "--quiet")).to eq(1)
+        expect(File).to exist(File.join(tmp, "index.html"))
+        expect(stderr.string).to include("refusing to remove unsafe coverage directory")
+      end
+    end
+
+    it "refuses to remove the filesystem root" do
+      allow(described_class).to receive(:coverage_dir).and_return(File::SEPARATOR)
+
+      expect(run("clean")).to eq(1)
+      expect(stderr.string).to include("refusing to remove unsafe coverage directory")
+    end
+
+    it "refuses to remove the project root found through .simplecov" do
+      File.write(File.join(tmp, ".simplecov"), "# project config\n")
+      child = File.join(tmp, "nested")
+      FileUtils.mkdir_p(child)
+
+      Dir.chdir(child) do
+        allow(described_class).to receive(:coverage_dir).and_return(tmp)
+
+        expect(run("clean")).to eq(1)
+        expect(File).to exist(File.join(tmp, "index.html"))
+      end
+    end
   end
 
   describe "open subcommand" do
