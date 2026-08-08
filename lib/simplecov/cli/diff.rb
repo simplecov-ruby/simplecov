@@ -5,8 +5,8 @@ require "optparse"
 
 module SimpleCov
   module CLI
-    # `simplecov diff <baseline>` — print the per-file line-coverage
-    # delta between coverage.json (--input) and a baseline coverage.json
+    # `simplecov diff <baseline>` — print per-file coverage deltas between
+    # coverage.json (--input) and a baseline coverage.json
     # checked in alongside the suite. Only files whose coverage moved
     # are listed; --fail-on-drop exits non-zero when any file regressed,
     # so this composes with CI as a "coverage of this PR didn't drop"
@@ -36,11 +36,11 @@ module SimpleCov
         rows = compute_rows(opts[:current], opts[:baseline], opts[:threshold])
         rows.sort_by! { |row| row[:line_delta] }
         if opts[:json]
-          emit_json(stdout, rows)
+          stdout.puts(JSON.pretty_generate(rows))
         else
           emit_text(stdout, rows, SimpleCov::CLI.color_enabled?(opts, stdout))
         end
-        opts[:fail_on_drop] && rows.any? { |row| row[:line_delta].negative? } ? 1 : 0
+        opts[:fail_on_drop] && coverage_drop?(rows) ? 1 : 0
       end
 
       def parse(args, stderr)
@@ -135,6 +135,10 @@ module SimpleCov
         ].compact
       end
 
+      def coverage_drop?(rows)
+        rows.any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min.negative? }
+      end
+
       # Deltas are sign-based, not threshold-based: a +5% bump is good
       # (green) and a -5% drop is bad (red), regardless of where the
       # absolute coverage level lands.
@@ -142,10 +146,6 @@ module SimpleCov
         sign = delta.positive? ? "+" : ""
         text = format("%<sign>s%<delta>6.2f%% %<label>s", sign: sign, delta: delta, label: label)
         SimpleCov::Color.colorize(text, delta.negative? ? :red : :green, enabled: color)
-      end
-
-      def emit_json(stdout, rows)
-        stdout.puts(JSON.pretty_generate(rows))
       end
     end
   end

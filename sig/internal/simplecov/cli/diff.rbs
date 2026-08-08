@@ -1,7 +1,7 @@
 module SimpleCov
   module CLI
-    # `simplecov diff <baseline>` — print the per-file line-coverage
-    # delta between coverage.json (--input) and a baseline coverage.json
+    # `simplecov diff <baseline>` — print per-file coverage deltas between
+    # coverage.json (--input) and a baseline coverage.json
     # checked in alongside the suite. Only files whose coverage moved
     # are listed; --fail-on-drop exits non-zero when any file regressed,
     # so this composes with CI as a "coverage of this PR didn't drop"
@@ -48,12 +48,12 @@ module SimpleCov
 
       def self?.delta_parts: (untyped row, untyped color) -> untyped
 
+      def self?.coverage_drop?: (untyped rows) -> bool
+
       # Deltas are sign-based, not threshold-based: a +5% bump is good
       # (green) and a -5% drop is bad (red), regardless of where the
       # absolute coverage level lands.
       def self?.format_delta: (untyped delta, untyped label, untyped color) -> untyped
-
-      def self?.emit_json: (untyped stdout, untyped rows) -> untyped
     end
   end
 end

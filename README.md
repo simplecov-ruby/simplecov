@@ -1364,8 +1364,9 @@ $ simplecov diff coverage/baseline.json
   -95.00% lines  lib/gone.rb  (removed)
 ```
 
-Regressions are listed first. Pass `--fail-on-drop` to exit non-zero when any file's line coverage slipped, so this
-composes with CI as a "coverage of this PR didn't drop" gate even when overall thresholds are still satisfied.
+Regressions are listed first. Pass `--fail-on-drop` to exit non-zero when any file's coverage slipped on any reported
+criterion, so this composes with CI as a "coverage of this PR didn't drop" gate even when overall thresholds are still
+satisfied.
 `--threshold N` filters out deltas below N% in absolute value, useful when a baseline is noisy. `--json` emits the rows
 as a JSON array for programmatic consumption:
 

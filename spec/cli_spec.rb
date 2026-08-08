@@ -618,7 +618,7 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("not found")
     end
 
-    it "reports branch coverage deltas when both sides include branch data" do
+    it "fails on a branch coverage drop when --fail-on-drop is set" do
       write_coverage(baseline,
                      "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
                                     "total_branches" => 20, "covered_branches" => 16,
@@ -628,12 +628,12 @@ RSpec.describe SimpleCov::CLI do
                                     "total_branches" => 20, "covered_branches" => 10,
                                     "branches_covered_percent" => 50.0})
 
-      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
       expect(stdout.string).to include("lib/a.rb")
       expect(stdout.string).to match(/-\s*30\.00%\s+branches/)
     end
 
-    it "reports method coverage deltas when both sides include method data" do
+    it "fails on a method coverage drop when --fail-on-drop is set" do
       write_coverage(baseline,
                      "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
                                     "total_methods" => 20, "covered_methods" => 18,
@@ -643,7 +643,7 @@ RSpec.describe SimpleCov::CLI do
                                     "total_methods" => 20, "covered_methods" => 15,
                                     "methods_covered_percent" => 75.0})
 
-      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
       expect(stdout.string).to include("lib/a.rb")
       expect(stdout.string).to match(/-\s*15\.00%\s+methods/)
     end
