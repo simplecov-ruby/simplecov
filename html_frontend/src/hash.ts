@@ -1,4 +1,5 @@
-// SHA-1 via Web Crypto, truncated to 8 hex characters.
+// SHA-1 via Web Crypto, truncated to 8 hex characters. The file-ID
+// allocator resolves the rare truncated collisions within each report.
 //
 // Used to derive stable, fixed-length, URL/HTML-safe IDs from source-file
 // paths. Those IDs become HTML element ids and URL hash fragments

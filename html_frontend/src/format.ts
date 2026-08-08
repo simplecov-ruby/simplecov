@@ -82,13 +82,30 @@ export function timeagoNextTick(date: Date): number {
 // --- Per-file ids ---------------------------------------------
 
 // Populated by precomputeFileIds before any rendering happens.
-const fileIds: Record<string, string> = {};
+const fileIds = new Map<string, string>();
 
 export function fileId(filename: string): string {
-  return fileIds[filename];
+  const id = fileIds.get(filename);
+  if (id === undefined) throw new Error(`File ID was not precomputed for ${filename}`);
+  return id;
 }
 
 export async function precomputeFileIds(filenames: string[]): Promise<void> {
-  const hashes = await Promise.all(filenames.map(hash));
-  filenames.forEach((fn, i) => { fileIds[fn] = hashes[i]; });
+  fileIds.clear();
+  const uniqueFilenames = [...new Set(filenames)];
+  const hashes = await Promise.all(uniqueFilenames.map(hash));
+  const buckets = new Map<string, string[]>();
+
+  uniqueFilenames.forEach((filename, index) => {
+    const baseId = hashes[index];
+    const bucket = buckets.get(baseId) || [];
+    bucket.push(filename);
+    buckets.set(baseId, bucket);
+  });
+
+  for (const [baseId, bucket] of buckets) {
+    bucket.sort().forEach((filename, index) => {
+      fileIds.set(filename, index === 0 ? baseId : `${baseId}-${index}`);
+    });
+  }
 }
