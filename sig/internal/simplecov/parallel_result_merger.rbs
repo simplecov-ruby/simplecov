@@ -1,0 +1,63 @@
+module SimpleCov
+  #
+  # Merges a list of resultset files into one coverage table across forked
+  # worker processes. Drives `SimpleCov.collate(..., processes: N)`.
+  #
+  # `ResultMerger.absorb_results` is a fold over N independent
+  # read-parse-combine steps, so it splits cleanly: each worker runs that
+  # same fold over a contiguous slice of the file list and ships the pair
+  # back over a pipe, and the parent combines the per-worker pairs.
+  #
+  # Every failure path returns nil rather than a partial merge, so the caller
+  # can redo the merge in this process.
+  #
+  module ParallelResultMerger
+    # `ResultMerger.merge_and_store` across `processes` forked workers.
+    def self?.merge_and_store: (*untyped file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
+
+    # `ResultMerger.merge_results` across `processes` forked workers, merging
+    # in this process when the fan-out did not produce a complete merge.
+    def self?.merge_results: (*untyped file_paths, processes: Integer, ?ignore_timeout: bool) -> untyped
+
+    #
+    # `ResultMerger.absorb_results` across at most `processes` forked
+    # workers: same arguments, same `[command_names, coverage]` return, or
+    # nil when the work could not be fanned out. Tracked paths seen by the
+    # workers are merged into `tracked_files`.
+    #
+    def self?.absorb_results: (Array[String] file_paths, processes: Integer, ?ignore_timeout: bool,
+                               ?tracked_files: Set[String]) -> untyped
+
+    # Contiguous slices whose sizes differ by at most one. There are never
+    # more slices than files.
+    def self?.chunk: (Array[String] file_paths, Integer processes) -> Array[Array[String]]
+
+    # Raises if the OS refuses a fork; see the method comment.
+    def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool, ?tracked_files: Set[String]) -> untyped
+
+    def self?.spawn_workers: (Array[Array[String]] chunks, ignore_timeout: bool) -> Array[Hash[Symbol, untyped]]
+
+    def self?.spawn_worker: (Array[String] chunk, ignore_timeout: bool) -> Hash[Symbol, untyped]
+
+    def self?.abandon: (Array[Hash[Symbol, untyped]] workers) -> void
+
+    # Everything the child does; ends the process with `exit!`.
+    def self?.run_in_child: (IO reader, IO writer, Array[String] chunk, bool ignore_timeout) -> bot
+
+    # The body of a worker: merge the slice, ship it back, and report the exit
+    # status the child should terminate with.
+    def self?.run_worker: (Array[String] chunk, IO writer, ignore_timeout: bool) -> Integer
+
+    # Returns nil if any worker failed, so the caller can fall back to merging
+    # in this process.
+    def self?.collect: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]?
+
+    def self?.drain: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]
+
+    def self?.read_payload: (IO reader) -> untyped
+
+    def self?.succeeded?: (Integer pid) -> bool
+
+    def self?.warn_about_failed_workers: (Integer failed, Integer total) -> void
+  end
+end

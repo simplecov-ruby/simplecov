@@ -107,8 +107,10 @@ module SimpleCov
 
   # Collate a series of resultset files into a single merged report. By
   # default ignores `merge_timeout` so every listed resultset merges;
-  # pass `ignore_timeout: false` to honor it.
-  def self.collate: (Array[String] result_filenames, ?(String | Symbol)? profile, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
+  # pass `ignore_timeout: false` to honor it. `processes:` above 1 fans the
+  # merge out across that many forked workers, for an identical report;
+  # anything below 1 is taken as 1.
+  def self.collate: (Array[String] result_filenames, ?(String | Symbol)? profile, ?processes: Integer, ?ignore_timeout: bool) ?{ () [self: singleton(SimpleCov)] -> void } -> void
 
   # The result for the current coverage run, merged across test suites
   # when merging is active. nil when no coverage was tracked.

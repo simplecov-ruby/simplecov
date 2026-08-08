@@ -22,10 +22,16 @@ module CollateBenchmark
     def header(fixture)
       puts
       puts "SimpleCov collate benchmark — #{@run.label}"
+      print_summary(fixture)
+      puts
+    end
+
+    def print_summary(fixture)
+      merge = @run.processes > 1 ? "across #{@run.processes} forked workers" : "serial, in this process"
       puts "  resultsets:   #{fixture.resultset_paths.size}"
+      puts "  merge:        #{merge}"
       puts "  fixture:      #{fixture_summary(fixture)}"
       puts "  skipping:     #{@run.skip.to_a.join(', ')}" if @run.skip.any?
-      puts
     end
 
     def fixture_summary(fixture)
@@ -112,7 +118,7 @@ module CollateBenchmark
       FileUtils.mkdir_p(Fixture::TIMINGS_DIR)
       timings = {
         "label" => @run.label, "scale" => @run.scale, "resultsets" => @run.resultsets_used,
-        "phases" => @timings, "total" => total, "peak_rss" => peak_rss,
+        "processes" => @run.processes, "phases" => @timings, "total" => total, "peak_rss" => peak_rss,
         "files_reported" => files_reported, "ruby" => RUBY_DESCRIPTION,
         # Instrumented runs carry a few percent of wrapper overhead; flagged so
         # a future comparison knows not to trust this as a baseline.

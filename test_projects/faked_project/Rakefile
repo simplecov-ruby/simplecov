@@ -26,6 +26,11 @@ task :collate do
   SimpleCov.collate Dir["coverage/resultset*.json"]
 end
 
+task :parallel_collate do
+  require "simplecov"
+  SimpleCov.collate Dir["coverage/resultset*.json"], processes: 2
+end
+
 Rake::TestTask.new(:minitest) do |test|
   test.libs << "minitest"
   test.test_files = FileList["minitest/**/*_test.rb"].sort

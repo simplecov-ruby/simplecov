@@ -20,7 +20,7 @@ module CollateBenchmark
     # only the three trailing phases can be dropped from a run.
     SKIPPABLE_PHASES = %w[store format thresholds].freeze
 
-    attr_reader :label, :scale, :skip, :breakdown, :resultsets_used
+    attr_reader :label, :scale, :skip, :breakdown, :processes, :resultsets_used
 
     def initialize(options)
       @label = options.label
@@ -30,6 +30,7 @@ module CollateBenchmark
       @rebuild = options.rebuild
       @baseline_label = options.baseline
       @breakdown = options.breakdown
+      @processes = options.processes
       @timings = {}
     end
 
@@ -37,7 +38,7 @@ module CollateBenchmark
       fixture = Fixture.prepare(scale: @scale, resultsets: @requested_resultsets, force: @rebuild)
       @resultsets_used = fixture.resultset_paths.size
       configure(fixture)
-      Breakdown.install! if @breakdown
+      install_breakdown if @breakdown
 
       report = Report.new(run: self, timings: @timings, baseline_label: @baseline_label)
       report.header(fixture)
@@ -46,6 +47,17 @@ module CollateBenchmark
     end
 
   private
+
+    # The counters live in whichever process ran the wrapped method, so a
+    # forked worker's attribution dies with it and the merge row would come
+    # back near-empty. Say so rather than print a misleading table.
+    def install_breakdown
+      if processes > 1
+        warn "[#{@label}] BREAKDOWN only attributes work done in this process; " \
+             "the workers' share of the merge will be missing"
+      end
+      Breakdown.install!
+    end
 
     def measure(fixture)
       sampler = RssSampler.new
@@ -83,11 +95,22 @@ module CollateBenchmark
       @files_reported = result&.files&.size
     end
 
+    # With PROCESSES > 1, the fan-out `SimpleCov.collate processes: N` performs
+    # runs instead of the in-process absorb. Falls through to the serial path
+    # when the fan-out bails, which is what `ResultMerger.merge_results` does
+    # too.
+    def merge_coverage(paths)
+      return serial_merge_coverage(paths) if processes < 2
+
+      SimpleCov::ParallelResultMerger.absorb_results(paths, processes: processes, ignore_timeout: true) ||
+        serial_merge_coverage(paths)
+    end
+
     # The real merge — `ResultMerger.absorb_results` is what `merge_results`
     # itself runs, so this times what ships rather than a copy of it. It stops
     # short of `create_result`, which is why the benchmark can call it instead
     # of `merge_results` and still time source-file building separately.
-    def merge_coverage(paths)
+    def serial_merge_coverage(paths)
       SimpleCov::ResultMerger.absorb_results(with_progress(paths), ignore_timeout: true)
     end
 

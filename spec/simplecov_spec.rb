@@ -1223,6 +1223,106 @@ RSpec.describe SimpleCov do
     end
   end
 
+  describe ".collate across processes" do
+    let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
+
+    let(:resultset_folder) { File.dirname(resultset_path) }
+
+    let(:collated) do
+      JSON.parse(File.read(resultset_path)).transform_values { |data| data.reject { |key| key == "timestamp" } }
+    end
+
+    context "when no files to be merged" do
+      it "shows an error message" do
+        expect { described_class.collate([], processes: 2) }
+          .to raise_error("There are no reports to be merged")
+      end
+    end
+
+    context "when files to be merged" do
+      before do
+        allow(described_class).to receive(:run_exit_tasks!)
+        5.times { |index| create_mergeable_report("result#{index}", index) }
+      end
+
+      after do
+        described_class.clear_result
+        FileUtils.rm Dir.glob("#{resultset_path}*")
+      end
+
+      it "produces the report a single-process collate produces" do
+        expect(collate_with { |paths| described_class.collate paths, processes: 3 })
+          .to eq(collate_with { |paths| described_class.collate paths })
+        expect(described_class).to have_received(:run_exit_tasks!).twice
+      end
+
+      it "produces that report however many processes it is given" do
+        reports = [1, 2, 4, 9].map do |processes|
+          collate_with { |paths| described_class.collate paths, processes: processes }
+        end
+
+        expect(reports.uniq.size).to eq(1)
+      end
+
+      it "takes a process count below 1 as 1 rather than raising" do
+        expect(collate_with { |paths| described_class.collate paths, processes: 0 })
+          .to eq(collate_with { |paths| described_class.collate paths })
+      end
+
+      it "defaults the process count to SIMPLECOV_CONCURRENCY" do
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_call_original
+
+        with_env("SIMPLECOV_CONCURRENCY" => "3") { collate_with { |paths| described_class.collate paths } }
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:absorb_results)
+          .with(anything, hash_including(processes: 3))
+      end
+
+      it "prefers an explicit process count over SIMPLECOV_CONCURRENCY" do
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_call_original
+
+        with_env("SIMPLECOV_CONCURRENCY" => "3") do
+          collate_with { |paths| described_class.collate paths, processes: 2 }
+        end
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:absorb_results)
+          .with(anything, hash_including(processes: 2))
+      end
+
+      it "merges in this process when the fan-out cannot run" do
+        serial = collate_with { |paths| described_class.collate paths }
+        allow(SimpleCov::ParallelResultMerger).to receive(:absorb_results).and_return(nil)
+
+        expect(collate_with { |paths| described_class.collate paths, processes: 3 }).to eq(serial)
+      end
+
+    private
+
+      # Each shard covers `sample.rb` plus one file only it loaded, so the
+      # merged table exercises both summing and union.
+      def create_mergeable_report(name, index)
+        coverage = {
+          source_fixture("sample.rb") => {"lines" => [nil, 1, index, nil, nil, nil, 1, 1, nil, nil]},
+          source_fixture("resultset#{index}.rb") => {"lines" => [1, index, nil, 1]}
+        }
+        result = SimpleCov::Result.new(coverage)
+        result.command_name = name
+        SimpleCov::ResultMerger.store_result(result)
+        FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
+      end
+
+      # Collate the stored shards from a clean slate and return the resultset
+      # that produced, so two strategies can be compared on equal terms —
+      # `store_result` merges into whatever is already at `resultset_path`.
+      def collate_with
+        FileUtils.rm_f(resultset_path)
+        described_class.clear_result
+        yield Dir.glob("#{resultset_folder}/*.final", File::FNM_DOTMATCH)
+        collated
+      end
+    end
+  end
+
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
   describe ".start_coverage_measurement" do

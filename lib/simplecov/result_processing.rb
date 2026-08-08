@@ -13,13 +13,27 @@ module SimpleCov
     # so all results in all files specified will be merged. Pass
     # `ignore_timeout: false` to honor it.
     #
-    def collate(result_filenames, profile = nil, ignore_timeout: true, &)
+    # `processes:` above 1 fans the merge out across that many forked worker
+    # processes, for a collate big enough that reading and parsing the
+    # resultsets dominates it. The report is identical either way, not merely
+    # equivalent — the workers visit the resultsets in the order the
+    # single-process merge visits them — and one process never forks at all.
+    # The count is deliberately not clamped to the machine's core count nor
+    # gated on some minimum number of resultsets: how many processes a collate
+    # job can afford is the caller's call, not SimpleCov's. Anything below 1 is
+    # taken as 1, so a count computed from arithmetic that can reach zero needs
+    # no guarding. Defaults to `SIMPLECOV_CONCURRENCY`, or 1 when that is
+    # unset. See `SimpleCov::ParallelResultMerger`.
+    #
+    def collate(result_filenames, profile = nil, processes: ENV.fetch("SIMPLECOV_CONCURRENCY", 1).to_i,
+                ignore_timeout: true, &)
       raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ResultMerger.merge_and_store(*result_filenames, ignore_timeout: ignore_timeout)
+      @result = ParallelResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
+                                                                        ignore_timeout: ignore_timeout)
 
       @collating_result = true
       run_exit_tasks!
