@@ -3,6 +3,7 @@
 require_relative "color"
 require_relative "cli/dotfile"
 require_relative "cli/clean"
+require_relative "cli/coverage_file"
 require_relative "cli/coverage"
 require_relative "cli/diff"
 require_relative "cli/merge"

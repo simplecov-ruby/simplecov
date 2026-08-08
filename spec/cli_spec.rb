@@ -88,6 +88,59 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "coverage JSON input errors" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-json-errors-spec-") }
+    let(:invalid) { File.join(tmp, "invalid.json") }
+    let(:valid) { File.join(tmp, "valid.json") }
+
+    before do
+      File.write(invalid, "{")
+      File.write(valid, JSON.dump("coverage" => {}))
+    end
+
+    after { FileUtils.remove_entry(tmp) }
+
+    [
+      ["coverage", ->(bad, _good) { ["coverage", "--input", bad, "lib/a.rb"] }],
+      ["report", ->(bad, _good) { ["report", "--input", bad] }],
+      ["uncovered", ->(bad, _good) { ["uncovered", "--input", bad] }],
+      ["diff baseline", ->(bad, good) { ["diff", "--input", good, bad] }],
+      ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }]
+    ].each do |description, argv_for|
+      it "handles malformed JSON for #{description}" do
+        argv = argv_for.call(invalid, valid)
+
+        expect(run(*argv)).to eq(1)
+        expect(stdout.string).to be_empty
+        expect(stderr.string).to start_with("simplecov #{argv.first}:")
+        expect(stderr.string).to include(invalid).and include("isn't valid JSON")
+        expect(stderr.string.lines.size).to eq(1)
+        expect(stderr.string).not_to include("JSON::ParserError")
+      end
+    end
+
+    ["null", "[]"].each do |document|
+      it "rejects the #{document} top-level JSON value" do
+        File.write(invalid, document)
+
+        expect(run("report", "--input", invalid)).to eq(1)
+        expect(stderr.string).to include("top-level value must be an object")
+      end
+    end
+
+    it "rejects a non-object coverage field" do
+      File.write(invalid, JSON.dump("coverage" => []))
+
+      expect(run("uncovered", "--input", invalid)).to eq(1)
+      expect(stderr.string).to include('"coverage" must be an object')
+    end
+
+    it "handles an input path that cannot be read as a file" do
+      expect(run("report", "--input", tmp)).to eq(1)
+      expect(stderr.string).to include("simplecov report:").and include("cannot read").and include(tmp)
+    end
+  end
+
   describe "coverage subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
@@ -627,9 +680,18 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("missing baseline argument")
     end
 
-    it "errors when an input file isn't readable" do
-      expect(run("diff", "--input", File.join(tmp, "nope.json"), baseline)).to eq(1)
-      expect(stderr.string).to include("not found")
+    it "errors when the baseline file is missing" do
+      write_coverage(current, "lib/a.rb" => 80)
+
+      expect(run("diff", "--input", current, baseline)).to eq(1)
+      expect(stderr.string).to include(baseline).and include("not found")
+    end
+
+    it "errors when the current input file is missing" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+
+      expect(run("diff", "--input", current, baseline)).to eq(1)
+      expect(stderr.string).to include(current).and include("not found")
     end
 
     it "fails on a branch coverage drop when --fail-on-drop is set" do

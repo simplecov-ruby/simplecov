@@ -39,10 +39,7 @@ module SimpleCov
       end
 
       def load_data(input, stderr)
-        return JSON.parse(File.read(input)) if File.exist?(input)
-
-        stderr.puts("simplecov report: #{input} not found")
-        nil
+        CoverageFile.load_document(input, command: "report", stderr: stderr)
       end
 
       def emit_text(stdout, data, color)

@@ -2,7 +2,6 @@
 
 require "json"
 require "optparse"
-require_relative "report"
 
 module SimpleCov
   module CLI
@@ -31,10 +30,10 @@ module SimpleCov
       end
 
       def report(opts, keys, stdout, stderr)
-        return 1 unless (data = Report.load_data(opts[:input], stderr))
+        coverage = CoverageFile.load_coverage(opts[:input], command: "uncovered", stderr: stderr)
+        return 1 unless coverage
 
-        none = {} #: Hash[String, untyped]
-        files = rank(data.fetch("coverage", none), opts[:threshold], keys).first(opts[:top])
+        files = rank(coverage, opts[:threshold], keys).first(opts[:top])
         return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
 
         emit(stdout, files, opts)

@@ -1,0 +1,16 @@
+module SimpleCov
+  module CLI
+    # Shared outer-shape validation for JSONFormatter coverage.json inputs.
+    module CoverageFile
+      def self?.load_document: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
+
+      def self?.load_coverage: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
+
+      def self?.report_invalid: (untyped stderr, String command, String path, String reason) -> nil
+
+      def self?.report_missing: (untyped stderr, String command, String path) -> nil
+
+      def self?.report_unreadable: (untyped stderr, String command, String path, String reason) -> nil
+    end
+  end
+end

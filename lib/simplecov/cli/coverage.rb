@@ -42,11 +42,10 @@ module SimpleCov
       end
 
       def locate_match(opts, stderr)
-        return stderr.puts("simplecov coverage: #{opts[:input]} not found") && nil unless File.exist?(opts[:input])
+        coverage = CoverageFile.load_coverage(opts[:input], command: "coverage", stderr: stderr)
+        return unless coverage
 
-        data = JSON.parse(File.read(opts[:input]))
-        none = {} #: Hash[String, untyped]
-        match = lookup(data.fetch("coverage", none), opts[:path])
+        match = lookup(coverage, opts[:path])
         return match if match
 
         stderr.puts("simplecov coverage: no entry for #{opts[:path]} in #{opts[:input]}")
