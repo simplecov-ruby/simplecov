@@ -57,6 +57,17 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
   end
 
+  it "atomically replaces a read-only coverage.json" do
+    formatter.format(result)
+    path = File.join("tmp/coverage", described_class::FILENAME)
+    File.chmod(0o400, path)
+
+    expect { formatter.format(result) }.not_to raise_error
+    expect(JSON.parse(File.read(path))).to include("coverage")
+  ensure
+    File.chmod(0o600, path) if path && File.exist?(path)
+  end
+
   describe "#output_message" do
     let(:loud_formatter) { described_class.new }
 

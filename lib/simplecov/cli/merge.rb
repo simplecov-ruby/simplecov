@@ -2,6 +2,7 @@
 
 require "json"
 require "optparse"
+require_relative "../atomic_file"
 
 module SimpleCov
   module CLI
@@ -104,9 +105,7 @@ module SimpleCov
       end
 
       def write(path, result)
-        require "fileutils"
-        FileUtils.mkdir_p(File.dirname(path))
-        File.write(path, JSON.pretty_generate(result.to_hash))
+        AtomicFile.write(path, JSON.pretty_generate(result.to_hash))
       end
 
       def error(stderr, message)

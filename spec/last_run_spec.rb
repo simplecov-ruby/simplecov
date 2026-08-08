@@ -14,6 +14,7 @@ RSpec.describe SimpleCov::LastRun do
     last_run.write(structure)
     file_contents = File.read(last_run.last_run_path)
     expect(JSON.parse(file_contents)).to eq structure
+    expect(file_contents).to end_with("\n")
   end
 
   context "when reading" do

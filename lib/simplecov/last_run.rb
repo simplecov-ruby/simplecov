@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "fileutils"
 require "json"
+require_relative "atomic_file"
 
 module SimpleCov
   # Reads and writes coverage/.last_run.json — the previous run's coverage
@@ -21,14 +21,8 @@ module SimpleCov
         JSON.parse(json, symbolize_names: true)
       end
 
-      # Write to a process-private temp file, then atomically rename, so a
-      # concurrent reader (e.g. another parallel-tests worker checking
-      # MaximumCoverageDrop) never sees a half-written file.
       def write(json)
-        FileUtils.mkdir_p(SimpleCov.coverage_path)
-        temp_path = "#{last_run_path}.#{Process.pid}.tmp"
-        File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(json) }
-        File.rename(temp_path, last_run_path)
+        AtomicFile.write(last_run_path, "#{JSON.pretty_generate(json)}\n")
       end
     end
   end

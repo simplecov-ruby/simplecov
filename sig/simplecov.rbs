@@ -1426,10 +1426,6 @@ module SimpleCov
       # Substitute the coverage JSON into the compiled template.
       def render_report: (String json) -> String
 
-      # Write via temp file + File.rename so parallel writers can't race
-      # and read-only existing assets are replaced without EACCES.
-      def atomic_write: (String dest, String content) -> void
-
       def public_dir: () -> String
     end
   end

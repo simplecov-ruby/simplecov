@@ -1,0 +1,12 @@
+module SimpleCov
+  # Same-directory atomic replacement for generated coverage artifacts.
+  module AtomicFile
+    DEFAULT_MODE: Integer
+
+    def self.write: (String path, String content, ?binary: bool) -> void
+
+    def self.replace: (File temp, String path, String content, Integer mode, binary: bool) -> void
+
+    def self.destination_mode: (String path) -> Integer
+  end
+end

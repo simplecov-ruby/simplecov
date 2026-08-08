@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
-require "fileutils"
+require_relative "../atomic_file"
 require "json"
 require "time"
 
@@ -23,10 +23,9 @@ module SimpleCov
       end
 
       def format(result)
-        FileUtils.mkdir_p(output_path)
         path = File.join(output_path, FILENAME)
         warn_if_concurrent_overwrite(path, result)
-        File.write(path, JSON.pretty_generate(self.class.build_hash(result)))
+        AtomicFile.write(path, JSON.pretty_generate(self.class.build_hash(result)))
         emit_status(result)
       end
 

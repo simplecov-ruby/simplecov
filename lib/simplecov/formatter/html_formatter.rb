@@ -3,6 +3,7 @@
 require "fileutils"
 require "json"
 require_relative "base"
+require_relative "../atomic_file"
 require_relative "../coverage_json"
 require_relative "json_formatter"
 
@@ -37,7 +38,6 @@ module SimpleCov
         # printing puts every element of every per-line coverage array
         # on its own indented line, roughly doubling the payload);
         # coverage.json stays pretty-printed for human readers.
-        FileUtils.mkdir_p(output_path)
         viewer_hash = JSONFormatter.build_hash(result, include_source: true)
         json_hash = SimpleCov.source_in_json ? viewer_hash : JSONFormatter.build_hash(result)
         write_report_files(json_hash, viewer_hash)
@@ -52,8 +52,7 @@ module SimpleCov
       def format_from_json(json_path, output_dir)
         data = validate_viewer_data!(SimpleCov::CoverageJSON.load(json_path))
         json = JSON.generate(data)
-        FileUtils.mkdir_p(output_dir)
-        atomic_write(File.join(output_dir, "index.html"), render_report(json))
+        AtomicFile.write(File.join(output_dir, "index.html"), render_report(json), binary: true)
       end
 
     private
@@ -85,8 +84,8 @@ module SimpleCov
       end
 
       def write_report_files(json_hash, viewer_hash)
-        atomic_write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash))
-        atomic_write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)))
+        AtomicFile.write(File.join(output_path, JSONFormatter::FILENAME), JSON.pretty_generate(json_hash), binary: true)
+        AtomicFile.write(File.join(output_path, "index.html"), render_report(JSON.generate(viewer_hash)), binary: true)
         FileUtils.rm_f(LEGACY_REPORT_FILES.map { |name| File.join(output_path, name) })
       end
 
@@ -109,23 +108,6 @@ module SimpleCov
 
         data_script = "<script>window.SIMPLECOV_DATA = #{json.gsub('<') { '\u003c' }};</script>"
         template.sub(DATA_MARKER) { data_script }
-      end
-
-      # Write `content` at `dest` via a uniquely-named temp file in the
-      # same directory, then `File.rename` onto the final path. rename is
-      # atomic and overwrite-safe, so:
-      # - parallel writers can't race on an unlink-then-write window, and
-      # - read-only existing files (e.g. assets shipped at 0444 from
-      #   /nix/store) are replaced cleanly instead of triggering EACCES
-      #   from opening the existing path for writing.
-      def atomic_write(dest, content)
-        temp = "#{dest}.#{Process.pid}.#{rand(2**32).to_s(36)}"
-        begin
-          File.binwrite(temp, content)
-          File.rename(temp, dest)
-        ensure
-          FileUtils.rm_f(temp)
-        end
       end
 
       def public_dir

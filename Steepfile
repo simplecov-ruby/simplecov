@@ -13,6 +13,7 @@ target :lib do
   library "optparse"
   library "socket"
   library "time"
+  library "tempfile"
   library "prism"
   library "ripper"
   library "securerandom"

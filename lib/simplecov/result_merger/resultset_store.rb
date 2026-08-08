@@ -3,6 +3,7 @@
 require "fileutils"
 require "json"
 require "monitor"
+require_relative "../atomic_file"
 
 module SimpleCov
   module ResultMerger
@@ -24,10 +25,7 @@ module SimpleCov
       end
 
       def write(resultset)
-        FileUtils.mkdir_p(SimpleCov.coverage_path)
-        temp_path = "#{resultset_path}.#{Process.pid}.tmp"
-        File.open(temp_path, "w") { |f| f.puts JSON.pretty_generate(resultset) }
-        File.rename(temp_path, resultset_path)
+        AtomicFile.write(resultset_path, "#{JSON.pretty_generate(resultset)}\n")
       end
 
       # Serialize threads before taking the process-wide file lock. Nested

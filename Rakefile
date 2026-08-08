@@ -59,7 +59,8 @@ end
 desc "Validate the RBS type signatures in sig/"
 task :rbs do
   require "rbs"
-  sh "rbs", "-r", "forwardable", "-r", "monitor", "-r", "prism", "-r", "socket", "-I", "sig", "validate"
+  sh "rbs", "-r", "forwardable", "-r", "monitor", "-r", "prism", "-r", "socket", "-r", "tempfile",
+     "-I", "sig", "validate"
 rescue LoadError
   # RBS's native extension doesn't build on JRuby; see the Gemfile.
   warn "RBS is disabled"
