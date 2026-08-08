@@ -50,7 +50,7 @@ module SimpleCov
       # pretty-printed) input and rejects invalid JSON here rather than
       # embedding it and failing at view time.
       def format_from_json(json_path, output_dir)
-        data = validate_viewer_data!(SimpleCov::CoverageJSON.load(json_path))
+        data = ViewerDataValidator.call(SimpleCov::CoverageJSON.load(json_path))
         json = JSON.generate(data)
         AtomicFile.write(File.join(output_dir, "index.html"), render_report(json), binary: true)
       end
@@ -59,28 +59,6 @@ module SimpleCov
 
       def entry_point_filename
         "index.html"
-      end
-
-      def validate_viewer_data!(data)
-        %w[meta total coverage groups].each { |key| validate_viewer_section!(data, key) }
-        data.fetch("coverage").each { |filename, file| validate_viewer_file!(filename, file) }
-        data
-      end
-
-      def validate_viewer_section!(data, key)
-        return if data[key].is_a?(Hash)
-
-        raise SimpleCov::CoverageJSON::Error, "#{key.inspect} must be an object"
-      end
-
-      def validate_viewer_file!(filename, file)
-        unless file.is_a?(Hash)
-          raise SimpleCov::CoverageJSON::Error, "coverage entry #{filename.inspect} must be an object"
-        end
-        return if file["source"].is_a?(Array)
-
-        raise SimpleCov::CoverageJSON::Error,
-              "coverage entry #{filename.inspect} must include a source array; regenerate with source_in_json true"
       end
 
       def source_less_hash(hash)
@@ -123,3 +101,5 @@ module SimpleCov
     end
   end
 end
+
+require_relative "html_formatter/viewer_data_validator"

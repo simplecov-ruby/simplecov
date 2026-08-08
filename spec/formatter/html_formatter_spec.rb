@@ -255,7 +255,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       File.write(json_path, JSON.dump(data))
 
       expect { described_class.new.format_from_json(json_path, standalone_dir) }
-        .to raise_error(SimpleCov::CoverageJSON::Error, /source array.*source_in_json true/)
+        .to raise_error(SimpleCov::CoverageJSON::Error, /array of source strings.*source_in_json true/)
       expect(File.read(index_path)).to eq("existing report")
     end
 
@@ -267,6 +267,16 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
       expect { described_class.new.format_from_json(json_path, standalone_dir) }
         .to raise_error(SimpleCov::CoverageJSON::Error, /coverage entry .* must be an object/)
+      expect(Dir).not_to exist(standalone_dir)
+    end
+
+    it "rejects metadata that would crash the viewer before creating the target dir" do
+      data = JSON.parse(File.read(json_path))
+      data.fetch("meta").delete("timestamp")
+      File.write(json_path, JSON.dump(data))
+
+      expect { described_class.new.format_from_json(json_path, standalone_dir) }
+        .to raise_error(SimpleCov::CoverageJSON::Error, /meta\.timestamp must be a string/)
       expect(Dir).not_to exist(standalone_dir)
     end
   end

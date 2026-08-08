@@ -1416,12 +1416,6 @@ module SimpleCov
 
       def entry_point_filename: () -> String
 
-      def validate_viewer_data!: (Hash[String, untyped] data) -> Hash[String, untyped]
-
-      def validate_viewer_section!: (Hash[String, untyped] data, String key) -> void
-
-      def validate_viewer_file!: (String filename, untyped file) -> void
-
       def source_less_hash: (Hash[Symbol, untyped] hash) -> Hash[Symbol, untyped]
 
       # Write coverage.json and index.html, then clear any legacy

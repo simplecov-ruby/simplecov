@@ -830,7 +830,17 @@ RSpec.describe SimpleCov::CLI do
 
     it "builds a missing index from coverage.json before binding" do
       FileUtils.mkdir_p(tmp)
-      data = {"meta" => {}, "total" => {}, "coverage" => {}, "groups" => {}}
+      lines = {"covered" => 1, "missed" => 0, "total" => 1, "percent" => 100.0, "strength" => 1.0}
+      data = {
+        "meta" => {
+          "simplecov_version" => SimpleCov::VERSION, "command_name" => "RSpec", "project_name" => "Example",
+          "timestamp" => Time.now.iso8601, "line_coverage" => true,
+          "branch_coverage" => false, "method_coverage" => false
+        },
+        "total" => {"lines" => lines},
+        "coverage" => {"lib/a.rb" => {"source" => ["puts :ok"]}},
+        "groups" => {}
+      }
       File.write(File.join(tmp, "coverage.json"), JSON.dump(data))
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
       allow(described_class::Serve).to receive(:with_server).and_return(0)

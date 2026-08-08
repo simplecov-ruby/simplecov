@@ -1,0 +1,20 @@
+module SimpleCov
+  module Formatter
+    class HTMLFormatter
+      module ViewerDataValidator
+        META_STRINGS: Array[String]
+        COVERAGE_FLAGS: Hash[String, String]
+        STAT_FIELDS: Array[String]
+
+        def self.call: (Hash[String, untyped] data) -> Hash[String, untyped]
+        def self.validate_section!: (Hash[String, untyped] data, String key) -> void
+        def self.validate_file!: (String filename, untyped file) -> void
+        def self.validate_meta!: (Hash[String, untyped] meta) -> void
+        def self.validate_statistics!: (Hash[String, untyped] statistics, Hash[String, untyped] meta, String location) -> void
+        def self.validate_group!: (String name, untyped group, Hash[String, untyped] meta) -> void
+        def self.validate_type!: (Hash[String, untyped] object, String key, untyped type, String location) -> untyped
+        def self.validate_boolean!: (Hash[String, untyped] meta, String key) -> void
+      end
+    end
+  end
+end
