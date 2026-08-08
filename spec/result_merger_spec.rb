@@ -791,24 +791,11 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".synchronize_resultset" do
-    it "is reentrant (i.e. doesn't block its own process)" do
-      # without @resultset_locked, this spec would fail and
-      # `.store_result` wouldn't work
-      expect do
-        Timeout.timeout(1) do
-          described_class.synchronize_resultset do
-            described_class.synchronize_resultset do
-              # nothing
-            end
-          end
-        end
-      end.not_to raise_error
-    end
+    let(:resultset_store) { SimpleCov::ResultMerger::ResultsetStore }
 
-    it "stays reentrant across sibling nested calls" do
-      # The first nested call must not reset the outer lock's flag on its
-      # way out: the second sibling call would then take the flock path
-      # and self-deadlock against the fd the outer call still holds.
+    it "takes the file lock once across nested and sibling calls" do
+      allow(resultset_store).to receive(:with_flock).and_call_original
+
       expect do
         Timeout.timeout(1) do
           described_class.synchronize_resultset do
@@ -817,6 +804,46 @@ RSpec.describe SimpleCov::ResultMerger do
           end
         end
       end.not_to raise_error
+
+      expect(resultset_store).to have_received(:with_flock).once
+    end
+
+    it "blocks sibling threads until the owner releases the lock" do # rubocop:disable RSpec/ExampleLength
+      entered = Queue.new
+      release = Queue.new
+      second_started = Queue.new
+      first = Thread.new do
+        described_class.synchronize_resultset do
+          entered << :first
+          release.pop
+        end
+      end
+      expect(Timeout.timeout(1) { entered.pop }).to eq(:first)
+
+      second = Thread.new do
+        second_started << true
+        described_class.synchronize_resultset { entered << :second }
+      end
+      Timeout.timeout(1) { second_started.pop }
+
+      expect { Timeout.timeout(0.1) { entered.pop } }.to raise_error(Timeout::Error)
+      release << true
+      expect(Timeout.timeout(1) { entered.pop }).to eq(:second)
+      first.value
+      second.value
+    ensure
+      release << true if first&.alive?
+      first&.join(1)
+      second&.join(1)
+    end
+
+    it "releases both locks when the critical section raises" do
+      expect do
+        described_class.synchronize_resultset { raise "failure" }
+      end.to raise_error("failure")
+
+      acquired = Thread.new { described_class.synchronize_resultset { :acquired } }
+      expect(Timeout.timeout(1) { acquired.value }).to eq(:acquired)
     end
 
     it "blocks other processes" do # rubocop:disable RSpec/ExampleLength
@@ -828,32 +855,30 @@ RSpec.describe SimpleCov::ResultMerger do
       require "simplecov"
       SimpleCov.coverage_dir(#{SimpleCov.coverage_dir.inspect})
 
-      # ensure the parent process has enough time to get a
-      # lock before we do
-      sleep 0.5
-
       $stdout.sync = true
-      puts "running" # see `sleep`s in parent process
+      puts "ready"
+      $stdin.gets
+      puts "attempting"
 
       SimpleCov::ResultMerger.synchronize_resultset do
         File.open(#{file.path.inspect}, "a") { |f| f.write("process 2\n") }
+        puts "acquired"
       end
       CODE
 
-      IO.popen("ruby -e #{Shellwords.escape(test_script)} 2>/dev/null") do |other_process|
-        described_class.synchronize_resultset do
-          # wait until the child process is going, and then wait some more
-          # so we can be sure it blocks on the lock we already have.
-          sleep 0.1 until other_process.gets == "running\n"
-          sleep 1
+      IO.popen(["ruby", "-Ilib", "-e", test_script], "r+") do |other_process|
+        expect(Timeout.timeout(1) { other_process.gets }).to eq("ready\n")
 
-          # despite the sleeps, this will be written first since we got
-          # the first lock
+        described_class.synchronize_resultset do
+          other_process.puts("start")
+          other_process.flush
+          expect(Timeout.timeout(1) { other_process.gets }).to eq("attempting\n")
+          expect(other_process.wait_readable(0.1)).to be_nil
+
           File.open(file.path, "a") { |f| f.write("process 1\n") }
         end
 
-        # wait for it to finish
-        other_process.gets
+        expect(Timeout.timeout(1) { other_process.gets }).to eq("acquired\n")
       end
 
       expect(file.read).to eq("process 1\nprocess 2\n")

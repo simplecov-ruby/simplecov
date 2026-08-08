@@ -2,6 +2,7 @@
 
 require "fileutils"
 require "json"
+require "monitor"
 
 module SimpleCov
   module ResultMerger
@@ -9,6 +10,9 @@ module SimpleCov
     # file-lock synchronization between processes and atomic temp-file
     # renames so concurrent readers don't observe a truncated file.
     module ResultsetStore
+      LOCK_MONITOR = Monitor.new
+      private_constant :LOCK_MONITOR
+
     module_function
 
       def resultset_path
@@ -26,21 +30,13 @@ module SimpleCov
         File.rename(temp_path, resultset_path)
       end
 
-      # Ensure only one process is reading or writing the resultset at
-      # any given time. Reentrant: the lock is acquired once per outer
-      # call no matter how deeply nested. Only the acquiring call may
-      # reset the flag — a method-level ensure would run on the nested
-      # early-return path too, and the next sibling nested call would
-      # then flock a second fd against our own held lock and deadlock.
+      # Serialize threads before taking the process-wide file lock. Nested
+      # calls by the owning thread bypass flock so they cannot deadlock on a
+      # second descriptor for the same lock file.
       def synchronize(&)
-        return yield if @locked
+        return yield if LOCK_MONITOR.mon_owned?
 
-        @locked = true
-        begin
-          with_flock(&)
-        ensure
-          @locked = false
-        end
+        LOCK_MONITOR.synchronize { with_flock(&) }
       end
 
       def with_flock
