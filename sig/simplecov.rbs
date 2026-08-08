@@ -2,6 +2,7 @@
 module SimpleCov
   # A coverage criterion that can be enabled, measured, and reported.
   type criterion = :line | :branch | :method
+  type line_coverage_alternatives = Hash[criterion | :oneshot_line, :line | :oneshot_line]
 
   # Anything accepted by `skip` / `group` (and the deprecated
   # `add_filter` / `add_group`): a path-segment substring, a Regexp, a
@@ -256,13 +257,15 @@ module SimpleCov
 
     ONESHOT_LINE_COVERAGE_CRITERION: :oneshot_line
 
+    LINE_COVERAGE_ALTERNATIVES: line_coverage_alternatives
+
     @primary_coverage: (criterion | :oneshot_line)?
     @coverage_criteria: Set[criterion | :oneshot_line]?
     @coverage_for_eval_enabled: bool?
 
     # Enable one or more coverage criteria. `:eval` is accepted as a
-    # shorthand for the standalone eval-coverage toggle;
-    # `:oneshot_line` replaces `:line`.
+    # shorthand for the standalone eval-coverage toggle. `:line` and
+    # `:oneshot_line` replace each other; the last enabled mode wins.
     def enable_coverage: (*(criterion | :oneshot_line | :eval) criteria) -> void
 
     # Remove `criterion` from the set of enabled coverage criteria.
@@ -314,6 +317,8 @@ module SimpleCov
     def enable_coverage_for_eval: () -> void
 
     private
+
+    def add_coverage_criterion: ((criterion | :oneshot_line) criterion) -> void
 
     def enable_eval_coverage: () -> void
 

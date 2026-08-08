@@ -9,20 +9,13 @@ module SimpleCov
     SUPPORTED_COVERAGE_CRITERIA = %i[line branch method oneshot_line].freeze
     DEFAULT_COVERAGE_CRITERION = :line
     ONESHOT_LINE_COVERAGE_CRITERION = :oneshot_line
+    LINE_COVERAGE_ALTERNATIVES = {line: :oneshot_line, oneshot_line: :line}.freeze #: line_coverage_alternatives
+    private_constant :LINE_COVERAGE_ALTERNATIVES
 
     # Enable one or more coverage criteria. `:eval` is accepted as a
     # shorthand for the standalone eval-coverage toggle.
     def enable_coverage(*criteria)
-      criteria.each do |criterion|
-        if criterion == :eval
-          enable_eval_coverage
-        else
-          raise_if_criterion_unsupported(criterion)
-          # :oneshot_lines can not be combined with :lines
-          coverage_criteria.delete(DEFAULT_COVERAGE_CRITERION) if criterion == ONESHOT_LINE_COVERAGE_CRITERION
-          coverage_criteria << criterion
-        end
-      end
+      criteria.each { |criterion| criterion == :eval ? enable_eval_coverage : add_coverage_criterion(criterion) }
     end
 
     # Remove `criterion` from the set of enabled coverage criteria.
@@ -125,6 +118,13 @@ module SimpleCov
     end
 
   private
+
+    def add_coverage_criterion(criterion)
+      raise_if_criterion_unsupported(criterion)
+      incompatible = LINE_COVERAGE_ALTERNATIVES[criterion]
+      disable_coverage(incompatible) if incompatible
+      coverage_criteria << criterion
+    end
 
     # Shared implementation backing both `enable_coverage :eval` and
     # the deprecated `enable_coverage_for_eval`.

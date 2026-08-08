@@ -33,6 +33,13 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.coverage_criterion_enabled?(:oneshot_line)).to be true
       end
 
+      it "switches back to ordinary lines when line is selected again" do
+        config.coverage :line, oneshot: true
+        config.coverage :line
+
+        expect(config.coverage_criteria).to contain_exactly(:line)
+      end
+
       it "rejects oneshot mode for non-line criteria" do
         expect { config.coverage :branch, oneshot: true }
           .to raise_error(SimpleCov::ConfigurationError, /only valid for/)
@@ -1136,6 +1143,31 @@ RSpec.describe SimpleCov::Configuration do
         config.enable_coverage :line
 
         expect(config.coverage_criteria).to contain_exactly :line
+      end
+
+      it "replaces line with oneshot line coverage and resets its primary" do
+        config.primary_coverage :line
+        config.enable_coverage :oneshot_line
+
+        expect(config.coverage_criteria).to contain_exactly(:oneshot_line)
+        expect(config.primary_coverage).to eq(:oneshot_line)
+      end
+
+      it "replaces oneshot line coverage with line and resets its primary" do
+        config.enable_coverage :oneshot_line
+        config.primary_coverage :oneshot_line
+        config.enable_coverage :line
+
+        expect(config.coverage_criteria).to contain_exactly(:line)
+        expect(config.primary_coverage).to eq(:line)
+      end
+
+      it "lets the last variadic line mode win without removing other criteria" do
+        config.enable_coverage :branch, :method, :oneshot_line, :line
+        expect(config.coverage_criteria).to contain_exactly(:branch, :method, :line)
+
+        config.enable_coverage :line, :oneshot_line
+        expect(config.coverage_criteria).to contain_exactly(:branch, :method, :oneshot_line)
       end
 
       it "can't enable arbitrary things" do

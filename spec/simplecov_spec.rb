@@ -1401,6 +1401,17 @@ RSpec.describe SimpleCov do
       expect(Coverage).to have_received(:start).with({lines: true, methods: true})
     end
 
+    it "passes only the last requested line mode to Coverage.start" do
+      allow(Coverage).to receive(:start)
+      allow(described_class).to receive(:coverage_criterion_supported?).and_return(true)
+      described_class.enable_coverage :oneshot_line
+      described_class.enable_coverage :line
+
+      described_class.send :start_coverage_measurement
+
+      expect(Coverage).to have_received(:start).with({lines: true})
+    end
+
     it "passes eval: true to Coverage.start when coverage_for_eval is enabled" do
       allow(Coverage).to receive(:start)
       allow(described_class).to receive(:coverage_for_eval_enabled?).and_return(true)

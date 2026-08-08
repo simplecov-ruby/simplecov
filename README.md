@@ -259,8 +259,8 @@ end
 
 ## Coverage criteria
 
-Line coverage is on by default. You can additionally enable branch, method, oneshot-line, and eval coverage, and choose
-which criterion leads the report.
+Line coverage is on by default. You can additionally enable branch, method, and eval coverage, replace ordinary line
+coverage with oneshot-line coverage, and choose which criterion leads the report.
 
 ### Disabling line coverage
 
@@ -362,6 +362,9 @@ a line with an eval-generated entry are kept (line-presence is the matcher).
 ### Oneshot lines coverage
 
 Oneshot lines coverage is a faster alternative to line coverage.
+
+Ordinary and oneshot line coverage are mutually exclusive. `enable_coverage :oneshot_line` replaces `:line`; calling
+`enable_coverage :line` later switches back. When both appear in one call, the last requested mode wins.
 
 Traditional coverage records *how many times* each line ran. Often it's enough to know *whether* each line ran at
 least once — and the counting just adds overhead. Oneshot coverage records only the first execution of each line; the
