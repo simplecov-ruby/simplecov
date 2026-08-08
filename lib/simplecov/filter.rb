@@ -80,14 +80,15 @@ module SimpleCov
       escaped    = Regexp.escape(normalized)
       boundary   = '(?:\A|/)'
 
-      if normalized.include?(".")
-        # Filename pattern (e.g. "test.rb" matches "faked_test.rb"): allow
-        # substring match within the last path segment, anchored to a
-        # segment boundary.
-        %r{#{boundary}[^/]*#{escaped}}
-      elsif normalized.end_with?("/")
+      if normalized.end_with?("/")
         # Trailing slash signals directory-only matching.
         /#{boundary}#{escaped}/
+      elsif normalized.include?(".") && !normalized.include?("/")
+        # Bare filename pattern (e.g. "test.rb" matches "faked_test.rb"):
+        # allow a substring match within a single path segment. Multi-segment
+        # arguments must not get this relaxation, or "app/models/user.rb"
+        # would also match "webapp/models/user.rb".
+        %r{#{boundary}[^/]*#{escaped}(?=[/.]|\z)}
       else
         # Directory or path: require a segment-boundary match so "lib"
         # matches "lib/" but not "library/".

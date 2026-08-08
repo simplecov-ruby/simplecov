@@ -43,6 +43,38 @@ RSpec.describe SimpleCov::Filter do
     expect(SimpleCov::StringFilter.new(".pl")).not_to be_matches source_file
   end
 
+  it "matches a bare filename as a substring within one segment" do
+    faked_file = SimpleCov::SourceFile.new(
+      File.join(SimpleCov.root, "spec/faked_sample.rb"),
+      [nil, 1, 1]
+    )
+    expect(SimpleCov::StringFilter.new("sample.rb")).to be_matches faked_file
+  end
+
+  it "doesn't match a bare filename that only prefixes another extension" do
+    rbx_file = SimpleCov::SourceFile.new(
+      File.join(SimpleCov.root, "spec/sample.rbx"),
+      [nil, 1, 1]
+    )
+    expect(SimpleCov::StringFilter.new("sample.rb")).not_to be_matches rbx_file
+  end
+
+  it "doesn't relax multi-segment paths to filename matching" do
+    webapp_file = SimpleCov::SourceFile.new(
+      File.join(SimpleCov.root, "webapp/models/user.rb"),
+      [nil, 1, 1]
+    )
+    expect(SimpleCov::StringFilter.new("app/models/user.rb")).not_to be_matches webapp_file
+  end
+
+  it "matches a multi-segment path at a segment boundary" do
+    app_file = SimpleCov::SourceFile.new(
+      File.join(SimpleCov.root, "engine/app/models/user.rb"),
+      [nil, 1, 1]
+    )
+    expect(SimpleCov::StringFilter.new("app/models/user.rb")).to be_matches app_file
+  end
+
   it "doesn't match a parent directory with a new SimpleCov::StringFilter" do
     parent_dir_name = File.basename(File.expand_path("..", File.dirname(__FILE__)))
     expect(SimpleCov::StringFilter.new(parent_dir_name)).not_to be_matches source_file
