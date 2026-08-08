@@ -55,8 +55,14 @@ module_function
     # Value-position leaves (arm bodies): literals are fine here.
     LEAVES = ["a", "b", "c", "1", ":x", "foo", "a.b", "self"].freeze
     # Condition leaves: never constant, so the compiler can't fold the
-    # branch away (folding is pinned separately in the deterministic spec).
+    # branch away. Loops and case subjects always draw from here (they
+    # don't fold, literal or not), as do one-line pattern subjects
+    # (their legacy conventions are pinned deterministically instead).
     CONDITIONS = ["a", "b", "c", "foo", "a.b", "a && b", "a || b"].freeze
+    # The if-like sites also draw compile-time literals, so the fuzzer
+    # exercises constant folding and its dead-arm elimination — the
+    # class where the phantom-tuple bugs actually lived.
+    FOLDABLE_CONDITIONS = %w[true false nil 1].freeze
     PATTERNS = ["Integer", "String", "[a]", "{x:}", "Symbol"].freeze
     CONSTRUCTS = %i[
       gen_if gen_unless gen_ternary gen_case_when gen_case_in gen_while
@@ -91,25 +97,29 @@ module_function
       @rng.pick(CONDITIONS)
     end
 
+    def foldable_cond
+      @rng.chance?(1, 4) ? @rng.pick(FOLDABLE_CONDITIONS) : cond
+    end
+
     def body_or_empty(depth)
       @rng.chance?(1, 4) ? "" : statements(depth + 1)
     end
 
     def gen_if(depth)
-      parts = ["if #{cond}", body_or_empty(depth)]
-      @rng.int(3).times { parts += ["elsif #{cond}", body_or_empty(depth)] }
+      parts = ["if #{foldable_cond}", body_or_empty(depth)]
+      @rng.int(3).times { parts += ["elsif #{foldable_cond}", body_or_empty(depth)] }
       parts += ["else", body_or_empty(depth)] if @rng.chance?(1, 2)
       block(depth, parts << "end")
     end
 
     def gen_unless(depth)
-      parts = ["unless #{cond}", body_or_empty(depth)]
+      parts = ["unless #{foldable_cond}", body_or_empty(depth)]
       parts += ["else", body_or_empty(depth)] if @rng.chance?(1, 2)
       block(depth, parts << "end")
     end
 
     def gen_ternary(depth)
-      indent(depth, "#{cond} ? #{leaf} : #{leaf}")
+      indent(depth, "#{foldable_cond} ? #{leaf} : #{leaf}")
     end
 
     def gen_case_when(depth)
@@ -148,7 +158,9 @@ module_function
     end
 
     def gen_modifier(depth)
-      indent(depth, "#{leaf} #{@rng.pick(%w[if unless while until])} #{cond}")
+      keyword = @rng.pick(%w[if unless while until])
+      condition = %w[if unless].include?(keyword) ? foldable_cond : cond
+      indent(depth, "#{leaf} #{keyword} #{condition}")
     end
 
     # Only the `=>` form: `x in Pattern` nested in a case/in body is a

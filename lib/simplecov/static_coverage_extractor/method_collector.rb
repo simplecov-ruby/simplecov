@@ -22,7 +22,14 @@ module SimpleCov
       # `def name(...)` and `def self.name(...)` both produce DefNode.
       # The class context is the surrounding lexical class/module (or
       # `Object` at the top level, matching `Coverage`'s convention).
+      # Suppression covers 3.2's folded dead arms, where nested branches
+      # stay instrumented but a `def` never registers (see
+      # Visitor#visit_dead_arm).
       def visit_def_node(node)
+        # simplecov:disable branch — suppression is reachable on 3.2 only
+        return super if @suppress_methods
+
+        # simplecov:enable branch
         loc = node.location
         class_name = @class_stack.last || "Object"
         key = [class_name, node.name, loc.start_line, loc.start_column, loc.end_line, loc.end_column]

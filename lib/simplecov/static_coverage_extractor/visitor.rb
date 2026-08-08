@@ -64,6 +64,7 @@ module SimpleCov
         @next_id = 0
         @class_stack = []
         @value_positions = nil
+        @suppress_methods = false
       end
 
       # Entry point for a parsed file. On legacy Rubies the location of an
@@ -84,13 +85,27 @@ module SimpleCov
       # `else`, another IfNode for `elsif`). When the subsequent is
       # missing, Coverage synthesizes a `:else` arm attributed to the
       # whole condition's range — we do the same.
+      #
+      # A folded condition emits no tuple, and on modern Rubies only its
+      # live arm is descended into: the compiler eliminates the dead
+      # arm's entire subtree, so a branch or method nested there would be
+      # a phantom no loaded run can produce. A falsy `if`'s elsif chain
+      # survives as a plain `if`, which is what visiting the subsequent
+      # IfNode emits. On 3.2 the dead arm is visited too, branches only
+      # (see visit_folded_arms).
       def visit_if_node(node)
-        emit_if_like(node, :if) unless static_condition?(node.predicate)
+        verdict = folded_condition(node.predicate)
+        return visit_folded_arms(verdict, node.statements, node.public_send(IF_NODE_SUBSEQUENT_METHOD)) if verdict
+
+        emit_if_like(node, :if)
         super
       end
 
       def visit_unless_node(node)
-        emit_if_like(node, :unless) unless static_condition?(node.predicate)
+        verdict = folded_condition(node.predicate)
+        return visit_folded_arms(verdict, node.public_send(ELSE_CLAUSE_METHOD), node.statements) if verdict
+
+        emit_if_like(node, :unless)
         super
       end
 

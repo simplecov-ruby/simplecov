@@ -10,6 +10,7 @@ module SimpleCov
       # writes them; Visitor sees them through the include.
       @methods: Hash[untyped, Integer]
       @class_stack: Array[String]
+      @suppress_methods: bool
 
       def visit_class_node: (Prism::ClassNode node) -> void
 

@@ -72,6 +72,9 @@ module SimpleCov
 
       private
 
+      # Visits only the arm the compiler keeps for a folded condition.
+      def visit_live_arm: (Symbol verdict, untyped truthy_arm, untyped falsy_arm) -> untyped
+
       # IfNode and UnlessNode share a shape (predicate + then body +
       # optional else/elsif) but expose the trailing arm under different
       # accessors. `if_like_else_location` hides that split.

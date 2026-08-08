@@ -2,13 +2,34 @@ module SimpleCov
   module StaticCoverageExtractor
     # Detects the `if` / `unless` / ternary conditions CRuby folds away
     # (compile-time literals), for which Coverage emits no branch.
-    module ConditionFolding
+    module ConditionFolding : ::Prism::Visitor
+      # Per-Ruby-version fold behavior (see the implementation comment).
+      FOLDS_SOURCE_FILE: bool
+      PARENS_ALWAYS_TRANSPARENT: bool
+      DEAD_ARM_BRANCHES_SURVIVE: bool
+
       # Prism node types for the literals that fold.
       STATIC_CONDITION_TYPES: Array[untyped]
 
+      # The folding literals that are falsy (`false`, `nil`).
+      FALSY_CONDITION_TYPES: Array[untyped]
+
+      # The literals whose fold does not see through parentheses.
+      PAREN_OPAQUE_TYPES: Array[untyped]
+
+      # Set while visiting a 3.2 folded dead arm; read by
+      # MethodCollector#visit_def_node.
+      @suppress_methods: bool
+
       private
 
-      def static_condition?: (untyped node) -> bool
+      def visit_folded_arms: (Symbol verdict, untyped truthy_arm, untyped falsy_arm) -> void
+
+      def visit_dead_arm: (untyped arm) -> void
+
+      def folded_condition: (untyped node) -> Symbol?
+
+      def foldable?: (untyped node, untyped unwrapped) -> bool
 
       def unwrap_parentheses: (untyped node) -> untyped
     end

@@ -180,7 +180,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             ["if 1.5\n  x\nend\n", "float"],
             ["unless true\n  x\nend\n", "unless with literal"],
             ["1 ? x : y\n", "ternary"],
-            ["if (1)\n  x\nend\n", "parenthesized literal"]
+            ["if (1)\n  x\nend\n", "parenthesized literal"],
+            ["if __LINE__\n  x\nend\n", "__LINE__"],
+            ["if __ENCODING__\n  x\nend\n", "__ENCODING__"],
+            ["if -> { x }\n  a\nend\n", "lambda literal"]
           ].each do |src, label|
             it "emits no branch for a #{label} condition" do
               expect(static_branches(src)).to be_empty
@@ -199,10 +202,87 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(static_branches("if !true\n  x\nend\n").keys.first.first).to eq(:if)
           end
 
+          it "matches the running compiler's treatment of `__FILE__`" do
+            branches = static_branches("if __FILE__\n  x\nend\n")
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::FOLDS_SOURCE_FILE
+              # parse.y (3.2 / 3.3) folds __FILE__ like any other string literal.
+              expect(branches).to be_empty
+            else
+              # The Prism compiler (3.4+) keeps its branch.
+              expect(branches.keys.first.first).to eq(:if)
+            end
+          end
+
+          it "still tracks a `lambda` call (only the `->` literal folds)" do
+            expect(static_branches("if lambda { x }\n  a\nend\n").keys.first.first).to eq(:if)
+          end
+
+          # The modern compiler's paren transparency is not universal: `(1)`
+          # folds like `1`, but nil, strings, and lambdas stop folding the
+          # moment parentheses wrap them — while 3.2's parse.y saw through
+          # parentheses for every literal. Verified against real Coverage
+          # and pinned across versions by the runtime battery below.
+          it "matches the running compiler's paren transparency for `(nil)`, `(\"x\")`, and `(-> {})`" do
+            trio = ["if (nil)\n  x\nend\n", "if (\"x\")\n  a\nend\n", "if (-> { x })\n  a\nend\n"]
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
+              trio.each { |src| expect(static_branches(src)).to be_empty }
+            else
+              trio.each { |src| expect(static_branches(src).keys.first.first).to eq(:if) }
+            end
+          end
+
           it "does not fold a parenthesized multi-statement condition" do
             # `(a; b)` isn't a single wrapped expression, so the paren
             # unwrapping stops and the whole thing is treated as non-literal.
             expect(static_branches("if (a; b)\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          # The modern compiler eliminates the dead arm's entire subtree, not
+          # just the folded condition, so nothing nested inside it may emit
+          # either — a branch or method there is a phantom no loaded run can
+          # produce. 3.2's parse.y instrumented branches before eliminating
+          # dead code, so there the nested branch tuple survives.
+          it "matches the running compiler for a branch nested in a dead then arm" do
+            branches = static_branches("if false\n  if a\n    :x\n  end\nend\n")
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
+              expect(branches.keys.map(&:first)).to eq([:if])
+            else
+              expect(branches).to be_empty
+            end
+          end
+
+          it "matches the running compiler for a branch nested in a dead else arm" do
+            branches = static_branches("if true\n  :a\nelse\n  if a\n    :x\n  end\nend\n")
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
+              expect(branches.keys.map(&:first)).to eq([:if])
+            else
+              expect(branches).to be_empty
+            end
+          end
+
+          it "emits no method tuple for a def in a dead arm" do
+            result = described_class.call("if false\n  def dead_fn\n  end\nend\n")
+            expect(result["methods"]).to be_empty
+          end
+
+          it "keeps a branch nested in the live arm" do
+            expect(static_branches("if true\n  if a\n    :x\n  end\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "keeps a falsy if's elsif chain as a plain if" do
+            branches = static_branches("if false\n  :a\nelsif a\n  :b\nend\n")
+            expect(branches.keys.map(&:first)).to eq([:if])
+          end
+
+          it "keeps the else contents of a folded truthy unless" do
+            branches = static_branches("unless true\n  a ? :x : :y\nelse\n  if b\n    :z\n  end\nend\n")
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
+              # The live else contents come first, then the dead arm's
+              # surviving ternary (3.2 instrumented before eliminating).
+              expect(branches.keys.map(&:first)).to eq(%i[if if])
+            else
+              expect(branches.keys.map(&:first)).to eq([:if])
+            end
           end
         end
       end
@@ -274,6 +354,41 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "folded_unless_false" => "def fx(a)\n  unless false\n    :a\n  end\nend\n",
             "folded_ternary" => "def fx(a)\n  1 ? :a : :b\nend\n",
             "folded_if_void" => "def fx(a)\n  if true\n    :a\n  end\n  a\nend\n",
+            # Dead-arm elimination: on 3.3+ the compiler removes the dead
+            # arm's whole subtree, so branches nested inside it emit
+            # nothing, while the live arm's contents (and a falsy
+            # predicate's surviving elsif chain) still do. 3.2's parse.y
+            # instrumented branches before eliminating dead code, so
+            # there the dead arm's branch entries survive — even inside
+            # a dead `def` or lambda body — though its `def`s never
+            # register.
+            "folded_dead_then_nested" => "def fx(a)\n  if false\n    a ? :x : :y\n  end\nend\n",
+            "folded_dead_def_branch" =>
+              "def fx(a)\n  if false\n    def dead(x)\n      x ? 1 : 2\n    end\n  end\nend\n",
+            "folded_dead_lambda_body" => "def fx(a)\n  if false\n    y = -> { a ? 1 : 2 }\n  end\nend\n",
+            "folded_dead_else_nested" => "def fx(a)\n  if true\n    :a\n  else\n    a ? :x : :y\n  end\nend\n",
+            "folded_live_then_nested" => "def fx(a)\n  if true\n    a ? :x : :y\n  end\nend\n",
+            "folded_elsif_survives" => "def fx(a)\n  if false\n    :a\n  elsif a\n    :b\n  end\nend\n",
+            "folded_midchain_elsif" =>
+              "def fx(a)\n  if a\n    1\n  elsif true\n    2\n  else\n    a ? 3 : 4\n  end\nend\n",
+            "folded_unless_dead_then" => "def fx(a)\n  unless true\n    a ? :x : :y\n  else\n    :b\n  end\nend\n",
+            # The rarer folding literals, and their non-folding lookalikes:
+            # `__LINE__` / `__ENCODING__` / `->` fold everywhere, a
+            # `lambda` call never does, and `__FILE__` (a string, but not
+            # to the 3.4+ compiler) folds on 3.2/3.3 only.
+            "folded_if_line" => "def fx(a)\n  if __LINE__\n    :a\n  end\nend\n",
+            "folded_if_encoding" => "def fx(a)\n  if __ENCODING__\n    :a\n  end\nend\n",
+            "folded_if_lambda" => "def fx(a)\n  if -> { a }\n    :a\n  end\nend\n",
+            "unfolded_if_file" => "def fx(a)\n  if __FILE__\n    :a\n  end\nend\n",
+            "unfolded_lambda_call" => "def fx(a)\n  if lambda { a }\n    :a\n  end\nend\n",
+            # Paren transparency is not universal on 3.3+: `(1)` folds,
+            # but nil, strings, and lambdas stop folding once
+            # parenthesized. On 3.2 parens are transparent for every
+            # literal.
+            "folded_paren_int" => "def fx(a)\n  if (1)\n    :a\n  end\nend\n",
+            "unfolded_paren_nil" => "def fx(a)\n  if (nil)\n    :a\n  end\nend\n",
+            "unfolded_paren_string" => "def fx(a)\n  if (\"x\")\n    :a\n  end\nend\n",
+            "unfolded_paren_lambda" => "def fx(a)\n  if (-> { a ? 1 : 2 })\n    :a\n  end\nend\n",
             # do-while (`begin ... end while/until`): 3.3 attributes the
             # body to the begin's inner statements, 3.4 to the whole span.
             "do_while" => "def fx(a)\n  begin\n    a\n  end while a\nend\n",
@@ -397,13 +512,23 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           method_names = result["methods"].keys.map { |k| k[1] }
           expect(method_names).to include(:bar)
         end
+
+        it "registers no method for a def in a folded dead arm" do
+          # A dead `def` never registers with Coverage on any Ruby, even
+          # on 3.2 where the dead arm's nested BRANCHES stay instrumented.
+          result = described_class.call("if false\n  def dead(x)\n    x ? 1 : 2\n  end\nend\n")
+          expect(result["methods"]).to be_empty
+        end
       end
 
       describe "sequential id assignment" do
         it "assigns ascending ids across all branches and arms in source order" do
-          src = "if true\n  :a\nelse\n  :b\nend\nif true\n  :c\nelse\n  :d\nend\n"
+          # Non-literal conditions on purpose: `if true` would be folded
+          # away and leave nothing to assert against.
+          src = "if a\n  :a\nelse\n  :b\nend\nif b\n  :c\nelse\n  :d\nend\n"
           result = described_class.call(src)
           ids = result["branches"].flat_map { |cond, arms| [cond[1]] + arms.keys.map { |a| a[1] } }
+          expect(ids.length).to eq(6) # two conditions, two arms each
           expect(ids).to eq(ids.sort) # ids are strictly increasing
           expect(ids.uniq).to eq(ids) # no duplicates
         end
