@@ -406,8 +406,10 @@ RSpec.describe SimpleCov::ResultMerger do
       described_class.store_result(second_result)
     end
 
-    it "has stored data in resultset_path JSON file" do
-      expect(File.readlines(described_class.resultset_path).length).to be > 50
+    it "has stored both results in the resultset_path JSON file" do
+      stored = JSON.parse(File.read(described_class.resultset_path))
+      expect(stored.keys.sort).to eq %w[result1 result2]
+      expect(stored.each_value).to all(include("coverage", "timestamp"))
     end
 
     it "returns a hash containing keys ['result1' and 'result2'] for resultset" do
