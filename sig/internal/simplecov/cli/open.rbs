@@ -4,9 +4,13 @@ module SimpleCov
     # platform's default browser. Tiny QoL wrapper around `xdg-open` /
     # `open` / `start` so users don't have to type a file:// URL.
     module Open
-      def self?.run: (untyped args, stderr: untyped, **untyped) -> untyped
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
 
-      def self?.error: (untyped stderr, untyped message) -> 1
+      extend CommandHelpers
+
+      def self?.run: (untyped args, stderr: untyped, **untyped) -> untyped
 
       def self?.parse: (untyped args) -> untyped
 

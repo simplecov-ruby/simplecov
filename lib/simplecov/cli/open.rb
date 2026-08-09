@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -8,6 +9,8 @@ module SimpleCov
     # platform's default browser. Tiny QoL wrapper around `xdg-open` /
     # `open` / `start` so users don't have to type a file:// URL.
     module Open
+      extend CommandHelpers
+
     module_function
 
       def run(args, stderr:, **)
@@ -18,11 +21,6 @@ module SimpleCov
         return error(stderr, "no known opener for #{RbConfig::CONFIG['host_os']}") unless opener
 
         system(*opener, path) ? 0 : 1
-      end
-
-      def error(stderr, message)
-        stderr.puts("simplecov open: #{message}")
-        1
       end
 
       def parse(args)

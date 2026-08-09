@@ -5,10 +5,13 @@ module SimpleCov
     # developer can answer "where should I add tests next?" without
     # opening a browser. Reads coverage.json directly.
     module Uncovered
-      DEFAULT_TOP: 10
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
 
-      # The coverage.json fields backing each criterion.
-      CRITERION_KEYS: ::Hash[::Symbol, ::Hash[::Symbol, ::String]]
+      extend CommandHelpers
+
+      DEFAULT_TOP: 10
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> untyped
 

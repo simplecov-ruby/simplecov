@@ -2,6 +2,7 @@
 
 require "json"
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -10,20 +11,15 @@ module SimpleCov
     # developer can answer "where should I add tests next?" without
     # opening a browser. Reads coverage.json directly.
     module Uncovered
-      DEFAULT_TOP = 10
+      extend CommandHelpers
 
-      # The coverage.json fields backing each criterion.
-      CRITERION_KEYS = {
-        line: {percent: "lines_covered_percent", covered: "covered_lines", total: "total_lines"},
-        branch: {percent: "branches_covered_percent", covered: "covered_branches", total: "total_branches"},
-        method: {percent: "methods_covered_percent", covered: "covered_methods", total: "total_methods"}
-      }.freeze
+      DEFAULT_TOP = 10
 
     module_function
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
-        keys = CRITERION_KEYS[opts[:criterion]]
+        keys = CoverageFile::CRITERIA[opts[:criterion]]
         return unknown_criterion(opts[:criterion], stderr) unless keys
 
         report(opts, keys, stdout, stderr)
@@ -55,16 +51,12 @@ module SimpleCov
         opts
       end
 
-      # Option parsing with per-flag coercions is inherently ABC-heavy; the
-      # metric is noise here.
-      def build_parser(opts) # rubocop:disable Metrics/AbcSize
+      def build_parser(opts)
         OptionParser.new do |o|
-          o.on("--input PATH")         { |v| opts[:input] = v }
+          common_options(o, opts)
           o.on("--threshold N", Float) { |v| opts[:threshold] = v }
           o.on("--top N", Integer)     { |v| opts[:top] = validate_top(v) }
           o.on("--criterion C")        { |v| opts[:criterion] = v.to_sym }
-          o.on("--json")               { opts[:json] = true }
-          o.on("--no-color")           { opts[:no_color] = true }
         end
       end
 

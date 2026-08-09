@@ -2,6 +2,7 @@
 
 require "json"
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -12,18 +13,9 @@ module SimpleCov
     # so this composes with CI as a "coverage of this PR didn't drop"
     # gate. Resolves the long-standing "diff coverage" feature request.
     module Diff
-      EPSILON = 0.005 # tolerance below which a delta is considered noise
+      extend CommandHelpers
 
-      # Per-criterion key map. coverage.json carries `lines_covered_percent`
-      # plus `branches_covered_percent` / `methods_covered_percent` when
-      # the corresponding criterion is enabled, so the diff can describe
-      # whichever criteria the baseline + current both report on.
-      CRITERIA = %i[lines branches methods].freeze
-      CRITERION_FIELDS = {
-        lines: {pct: "lines_covered_percent", total: "total_lines"},
-        branches: {pct: "branches_covered_percent", total: "total_branches"},
-        methods: {pct: "methods_covered_percent", total: "total_methods"}
-      }.freeze
+      EPSILON = 0.005 # tolerance below which a delta is considered noise
 
       STATUS_SUFFIX = {"added" => "(new file)", "removed" => "(removed)"}.freeze
 
@@ -59,11 +51,9 @@ module SimpleCov
 
       def option_parser(opts)
         OptionParser.new do |o|
-          o.on("--input PATH")         { |v| opts[:input] = v }
+          common_options(o, opts)
           o.on("--fail-on-drop")       { opts[:fail_on_drop] = true }
-          o.on("--json")               { opts[:json] = true }
           o.on("--threshold N", Float) { |v| opts[:threshold] = v }
-          o.on("--no-color")           { opts[:no_color] = true }
         end
       end
 
@@ -91,17 +81,18 @@ module SimpleCov
       # is listed under `--threshold N`, matching the "at least N%" the
       # usage text promises.
       def compute_row(fname, current_payload, baseline_payload, threshold)
-        deltas = CRITERIA.to_h { |c| [c, pct_for(c, current_payload) - pct_for(c, baseline_payload)] }
+        deltas = compute_deltas(current_payload, baseline_payload)
         floor = threshold.abs
         return nil unless deltas.values.any? { |delta| delta.abs > EPSILON && delta.abs >= floor }
 
-        {
-          file: fname,
-          status: status_for(current_payload, baseline_payload),
-          line_delta: deltas[:lines],
-          branch_delta: deltas[:branches],
-          method_delta: deltas[:methods]
-        }
+        {file: fname, status: status_for(current_payload, baseline_payload),
+         line_delta: deltas[:line], branch_delta: deltas[:branch], method_delta: deltas[:method]}
+      end
+
+      def compute_deltas(current_payload, baseline_payload)
+        CoverageFile::CRITERIA.transform_values do |fields|
+          pct_for(fields, current_payload) - pct_for(fields, baseline_payload)
+        end
       end
 
       def status_for(current_payload, baseline_payload)
@@ -111,11 +102,10 @@ module SimpleCov
         "changed"
       end
 
-      def pct_for(criterion, payload)
-        fields = CRITERION_FIELDS.fetch(criterion)
+      def pct_for(fields, payload)
         return 0.0 unless payload.is_a?(Hash) && payload[fields[:total]].to_i.positive?
 
-        payload[fields[:pct]].to_f
+        payload[fields[:percent]].to_f
       end
 
       def emit_text(stdout, rows, color)

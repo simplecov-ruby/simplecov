@@ -1,0 +1,21 @@
+module SimpleCov
+  module CLI
+    # Plumbing the subcommands repeat, which their modules `extend`:
+    # the standard option trio the read-only commands share, the
+    # one-line error helper, and the human-readable stats row.
+    module CommandHelpers
+      STATS_ROW_FORMAT: ::String
+
+      # "simplecov merge: ..." — derived from the extending module's name.
+      def command_name: () -> ::String
+
+      def error: (untyped stderr, untyped message) -> 1
+
+      # The --input / --json / --no-color trio every read-only
+      # subcommand accepts.
+      def common_options: (untyped parser, untyped opts) -> untyped
+
+      def stats_row: (untyped label, untyped percent_text, untyped covered, untyped total) -> ::String
+    end
+  end
+end

@@ -2,17 +2,14 @@
 
 require "json"
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
     # `simplecov coverage <path>` — print per-criterion stats for one
     # file from a JSONFormatter coverage.json.
     module Coverage
-      CRITERIA = [
-        {label: "Line",   pct: "lines_covered_percent",    cov: "covered_lines",    tot: "total_lines"},
-        {label: "Branch", pct: "branches_covered_percent", cov: "covered_branches", tot: "total_branches"},
-        {label: "Method", pct: "methods_covered_percent",  cov: "covered_methods",  tot: "total_methods"}
-      ].freeze
+      extend CommandHelpers
 
     module_function
 
@@ -29,12 +26,7 @@ module SimpleCov
 
       def parse(args, stderr:)
         opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
-        rest =
-          OptionParser.new do |o|
-            o.on("--input PATH") { |v| opts[:input] = v }
-            o.on("--json") { opts[:json] = true }
-            o.on("--no-color") { opts[:no_color] = true }
-          end.parse(args)
+        rest = OptionParser.new { |o| common_options(o, opts) }.parse(args)
         return stderr.puts("simplecov coverage: missing file argument") && nil if rest.empty?
 
         opts[:path] = rest.first
@@ -74,18 +66,17 @@ module SimpleCov
 
       def print_human(filename, payload, stdout, color)
         stdout.puts(filename)
-        CRITERIA.each { |c| emit_criterion(stdout, payload, c, color) }
+        CoverageFile::CRITERIA.each_value { |c| emit_criterion(stdout, payload, c, color) }
       end
 
       def emit_criterion(stdout, payload, criterion, color)
-        return unless payload.key?(criterion[:pct])
+        return unless payload.key?(criterion[:percent])
 
-        pct = payload[criterion[:pct]].to_f
-        stdout.puts(format("  %<label>-7s %<pct>s (%<covered>d / %<total>d)",
-                           label: "#{criterion[:label]}:",
-                           pct: SimpleCov::Color.colorize_percent(pct, enabled: color),
-                           covered: payload[criterion[:cov]] || 0,
-                           total: payload[criterion[:tot]] || 0))
+        pct = payload[criterion[:percent]].to_f
+        stdout.puts(stats_row(criterion[:label],
+                              SimpleCov::Color.colorize_percent(pct, enabled: color),
+                              payload[criterion[:covered]],
+                              payload[criterion[:total]]))
       end
     end
   end

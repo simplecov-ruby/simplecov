@@ -8,6 +8,19 @@ module SimpleCov
     # coverage.json. It validates only the stable outer shape so older schema
     # versions remain readable.
     module CoverageFile
+      # The coverage.json fields backing each criterion, keyed by the
+      # criterion's singular name. The one table the coverage, uncovered,
+      # and diff subcommands all read from, so a schema change lands in
+      # exactly one place.
+      CRITERIA = {
+        line: {label: "Line", percent: "lines_covered_percent",
+               covered: "covered_lines", total: "total_lines"},
+        branch: {label: "Branch", percent: "branches_covered_percent",
+                 covered: "covered_branches", total: "total_branches"},
+        method: {label: "Method", percent: "methods_covered_percent",
+                 covered: "covered_methods", total: "total_methods"}
+      }.freeze
+
     module_function
 
       def load_document(path, command:, stderr:)
