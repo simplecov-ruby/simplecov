@@ -38,32 +38,41 @@ function getThemePreference(): string | null {
 
 // --- Colorblind mode ------------------------------------------
 
+// Both toggles appear twice: once in the report toolbar and once in the source
+// dialog's header, so the mode can be changed from either view. They are wired
+// by `data-toggle` rather than id, and every button of a kind shares one click
+// handler and is kept in sync, so the two copies always agree.
+function toggleButtons(kind: string): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(`[data-toggle="${kind}"]`));
+}
+
 // A colorblind-friendly palette (blue = covered, orange = missed) plus the
 // always-on coverage symbols, so red/green colour vision is never required to
 // read the report. Persisted and applied before paint by the head preflight;
-// this only wires the toggle. See issue #534.
+// this only wires the toggles. See issue #534.
 export function initColorblindMode(): void {
-  const toggle = document.getElementById('colorblind-toggle');
-  if (!toggle) return;
+  const toggles = toggleButtons('colorblind');
+  if (toggles.length === 0) return;
 
   const root = document.documentElement;
 
   const sync = (): void => {
-    toggle.setAttribute('aria-pressed', String(root.classList.contains('colorblind-mode')));
+    const on = String(root.classList.contains('colorblind-mode'));
+    toggles.forEach((t) => t.setAttribute('aria-pressed', on));
   };
   sync();
 
-  toggle.addEventListener('click', () => {
+  toggles.forEach((toggle) => toggle.addEventListener('click', () => {
     const on = root.classList.toggle('colorblind-mode');
     writePreference(COLORBLIND_STORAGE_KEY, on ? 'on' : 'off');
     sync();
     updateFavicon();
-  });
+  }));
 }
 
 export function initDarkMode(): void {
-  const toggle = document.getElementById('dark-mode-toggle');
-  if (!toggle) return;
+  const toggles = toggleButtons('dark');
+  if (toggles.length === 0) return;
 
   const root = document.documentElement;
 
@@ -73,31 +82,33 @@ export function initDarkMode(): void {
         window.matchMedia('(prefers-color-scheme: dark)').matches);
   }
 
-  function updateLabel(): void {
+  function updateLabels(): void {
     const dark = isDark();
-    toggle!.textContent = dark ? '☀️ Light' : '🌙 Dark';
-    // This is an action button, not a toggle button: its visible label names
-    // the action and flips with state, so the accessible name is kept in sync
-    // with it (and contains the visible word, for WCAG 2.5.3 Label in Name).
-    // No aria-pressed — that needs a stable name, which would fight the
-    // flipping label. The colorblind toggle, whose label never changes, is the
-    // one that carries aria-pressed.
-    toggle!.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    toggles.forEach((toggle) => {
+      toggle.textContent = dark ? '☀️ Light' : '🌙 Dark';
+      // This is an action button, not a toggle button: its visible label names
+      // the action and flips with state, so the accessible name is kept in sync
+      // with it (and contains the visible word, for WCAG 2.5.3 Label in Name).
+      // No aria-pressed — that needs a stable name, which would fight the
+      // flipping label. The colorblind toggle, whose label never changes, is the
+      // one that carries aria-pressed.
+      toggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    });
   }
 
-  updateLabel();
+  updateLabels();
 
-  toggle.addEventListener('click', () => {
+  toggles.forEach((toggle) => toggle.addEventListener('click', () => {
     const switchToLight = isDark();
     root.classList.toggle('light-mode', switchToLight);
     root.classList.toggle('dark-mode', !switchToLight);
     writePreference(THEME_STORAGE_KEY, switchToLight ? 'light' : 'dark');
-    updateLabel();
+    updateLabels();
     updateFavicon();
-  });
+  }));
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (!getThemePreference()) updateLabel();
+    if (!getThemePreference()) updateLabels();
     updateFavicon();
   });
 }
