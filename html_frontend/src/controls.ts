@@ -76,9 +76,12 @@ export function initDarkMode(): void {
   function updateLabel(): void {
     const dark = isDark();
     toggle!.textContent = dark ? '☀️ Light' : '🌙 Dark';
-    // The label already names the next action; aria-pressed reports the
-    // current state to assistive tech, and aria-label keeps the name stable.
-    toggle!.setAttribute('aria-pressed', String(dark));
+    // This is an action button, not a toggle button: its visible label names
+    // the action and flips with state, so the accessible name is kept in sync
+    // with it (and contains the visible word, for WCAG 2.5.3 Label in Name).
+    // No aria-pressed — that needs a stable name, which would fight the
+    // flipping label. The colorblind toggle, whose label never changes, is the
+    // one that carries aria-pressed.
     toggle!.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   }
 
