@@ -16,6 +16,18 @@ RSpec.describe SimpleCov::CLI do
     described_class.run(argv, stdout: stdout, stderr: stderr)
   end
 
+  # The --no-color kill-switch behaves identically across the read-only
+  # subcommands; each colorization context supplies its argv.
+  shared_examples "a --no-color subcommand" do
+    it "skips colorization when --no-color is passed, even with Color.enabled? on" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect(run(*no_color_argv)).to eq(0)
+      expect(stdout.string).not_to be_empty
+      expect(stdout.string).not_to include("\e[")
+    end
+  end
+
   describe "dispatch" do
     it "prints usage and exits 0 with no arguments" do
       expect(run).to eq(0)
@@ -250,11 +262,8 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(/\e\[31m66\.67%\e\[0m/)
       end
 
-      it "skips colorization when --no-color is passed, even with Color.enabled? on" do
-        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
-        expect(run("coverage", "--input", json_path, "--no-color", abs_filename)).to eq(0)
-        expect(stdout.string).not_to include("\e[")
-        expect(stdout.string).to include("66.67%")
+      it_behaves_like "a --no-color subcommand" do
+        let(:no_color_argv) { ["coverage", "--input", json_path, "--no-color", abs_filename] }
       end
     end
   end
@@ -417,10 +426,8 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(/\e\[32m90\.00%\e\[0m/)
       end
 
-      it "skips colorization when --no-color is passed" do
-        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
-        expect(run("report", "--input", json_path, "--no-color")).to eq(0)
-        expect(stdout.string).not_to include("\e[")
+      it_behaves_like "a --no-color subcommand" do
+        let(:no_color_argv) { ["report", "--input", json_path, "--no-color"] }
       end
     end
   end
@@ -530,10 +537,8 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(/\e\[31m\s+50\.00%\e\[0m/)
       end
 
-      it "skips colorization when --no-color is passed" do
-        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
-        expect(run("uncovered", "--input", json_path, "--no-color")).to eq(0)
-        expect(stdout.string).not_to include("\e[")
+      it_behaves_like "a --no-color subcommand" do
+        let(:no_color_argv) { ["uncovered", "--input", json_path, "--no-color"] }
       end
     end
 
@@ -559,6 +564,12 @@ RSpec.describe SimpleCov::CLI do
 
   describe "merge subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-merge-spec-") }
+    let(:a) { File.join(tmp, "a.json") }
+    let(:b) { File.join(tmp, "b.json") }
+    let(:out) { File.join(tmp, "merged.json") }
+    # Use a real on-disk file inside SimpleCov.root so the default
+    # root_filter doesn't strip it during result construction.
+    let(:file) { File.expand_path("spec/fixtures/sample.rb", SimpleCov.root) }
 
     after { FileUtils.remove_entry(tmp) }
 
@@ -577,12 +588,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "merges two resultsets and writes the merged JSON to --output" do
-      a = File.join(tmp, "a.json")
-      b = File.join(tmp, "b.json")
-      out = File.join(tmp, "merged.json")
-      # Use a real on-disk file inside SimpleCov.root so the default
-      # root_filter doesn't strip it during result construction.
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       write_resultset(a, "worker_1", file, [1, 0, nil])
       write_resultset(b, "worker_2", file, [1, 1, nil])
 
@@ -596,7 +601,7 @@ RSpec.describe SimpleCov::CLI do
     it "surfaces a specific JSON parse error for an unparseable input" do
       bad = File.join(tmp, "bad.json")
       File.write(bad, "")
-      expect(run("merge", "--output", File.join(tmp, "out.json"), bad)).to eq(1)
+      expect(run("merge", "--output", out, bad)).to eq(1)
       expect(stderr.string).to include("isn't valid JSON")
       expect(stderr.string).to include("bad.json")
     end
@@ -604,44 +609,36 @@ RSpec.describe SimpleCov::CLI do
     it "surfaces a specific error when an input is structurally empty" do
       empty = File.join(tmp, "empty.json")
       File.write(empty, "{}")
-      expect(run("merge", "--output", File.join(tmp, "out.json"), empty)).to eq(1)
+      expect(run("merge", "--output", out, empty)).to eq(1)
       expect(stderr.string).to include("no resultset entries")
       expect(stderr.string).to include("empty.json")
     end
 
     it "surfaces a specific error when an input file doesn't exist" do
-      expect(run("merge", "--output", File.join(tmp, "out.json"), File.join(tmp, "nope.json"))).to eq(1)
+      expect(run("merge", "--output", out, File.join(tmp, "nope.json"))).to eq(1)
       expect(stderr.string).to include("not found")
       expect(stderr.string).to include("nope.json")
     end
 
     it "errors when --honor-timeout expires every input's entries" do
-      a = File.join(tmp, "a.json")
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       # Far enough in the past that any reasonable merge_timeout drops it.
       File.write(a, JSON.dump("worker_1" => {"coverage" => {file => {"lines" => [1]}},
                                              "timestamp" => Time.now.to_i - 86_400}))
-      expect(run("merge", "--output", File.join(tmp, "merged.json"), "--honor-timeout", a)).to eq(1)
+      expect(run("merge", "--output", out, "--honor-timeout", a)).to eq(1)
       expect(stderr.string).to include("no mergeable results")
     end
 
     it "warns when two input files share a command_name" do
-      a = File.join(tmp, "a.json")
-      b = File.join(tmp, "b.json")
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       write_resultset(a, "RSpec", file, [1, 0, nil])
       write_resultset(b, "RSpec", file, [0, 1, nil])
 
-      expect(run("merge", "--output", File.join(tmp, "merged.json"), a, b)).to eq(0)
+      expect(run("merge", "--output", out, a, b)).to eq(0)
       expect(stderr.string).to include("warning")
       expect(stderr.string).to include('"RSpec"')
       expect(stderr.string).to include("appears in 2 input files")
     end
 
     it "doesn't write the output file under --dry-run" do
-      a = File.join(tmp, "a.json")
-      out = File.join(tmp, "merged.json")
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       write_resultset(a, "worker_1", file, [1, 0, nil])
 
       expect(run("merge", "--output", out, "--dry-run", a)).to eq(0)
@@ -651,9 +648,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "silences the success status line under --quiet" do
-      a = File.join(tmp, "a.json")
-      out = File.join(tmp, "merged.json")
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       write_resultset(a, "worker_1", file, [1, 0, nil])
 
       expect(run("merge", "--output", out, "--quiet", a)).to eq(0)
@@ -662,9 +656,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "accepts -q as the short alias for --quiet" do
-      a = File.join(tmp, "a.json")
-      out = File.join(tmp, "merged.json")
-      file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
       write_resultset(a, "worker_1", file, [1, 0, nil])
 
       expect(run("merge", "--output", out, "-q", a)).to eq(0)
@@ -841,13 +832,13 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(/\e\[32m\+\s*5\.00% lines\e\[0m/)
       end
 
-      it "skips colorization when --no-color is passed" do
-        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
-        write_coverage(baseline, "lib/a.rb" => 80)
-        write_coverage(current,  "lib/a.rb" => 70)
+      it_behaves_like "a --no-color subcommand" do
+        before do
+          write_coverage(baseline, "lib/a.rb" => 80)
+          write_coverage(current,  "lib/a.rb" => 70)
+        end
 
-        expect(run("diff", "--input", current, "--no-color", baseline)).to eq(0)
-        expect(stdout.string).not_to include("\e[")
+        let(:no_color_argv) { ["diff", "--input", current, "--no-color", baseline] }
       end
     end
   end

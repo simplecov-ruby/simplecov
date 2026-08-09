@@ -15,20 +15,6 @@ When /^I open the coverage report$/ do
   page.has_css?("#content", visible: true, wait: 10)
 end
 
-Given /^(?:|I )am on (.+)$/ do |path|
-  visit path
-end
-
-When /^(?:|I )go to (.+)$/ do |path|
-  visit path
-end
-
-When /^(?:|I )press "([^"]*)"(?: within "([^"]*)")?$/ do |button, selector|
-  with_scope(selector) do
-    click_button(button)
-  end
-end
-
 When /^(?:|I )follow "([^"]*)"(?: within "([^"]*)")?$/ do |link, selector|
   with_scope(selector) do
     click_link(link)
@@ -41,26 +27,6 @@ Then /^(?:|I )should see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
   end
 end
 
-Then %r{^(?:|I )should see /([^/]*)/(?: within "([^"]*)")?$} do |regexp, selector|
-  regexp = Regexp.new(regexp)
-  with_scope(selector) do
-    expect(page).to have_xpath("//*", text: regexp)
-  end
-end
-
-Then /^(?:|I )should not see "([^"]*)"(?: within "([^"]*)")?$/ do |text, selector|
-  with_scope(selector) do
-    expect(page).to have_no_text(text)
-  end
-end
-
-Then %r{^(?:|I )should not see /([^/]*)/(?: within "([^"]*)")?$} do |regexp, selector|
-  regexp = Regexp.new(regexp)
-  with_scope(selector) do
-    expect(page).to have_no_xpath("//*", text: regexp)
-  end
-end
-
 # the default in our settings is still to check unvisible content
 # as well and until we change that these steps similar to "should (not)
 # see" are necessary
@@ -70,12 +36,4 @@ end
 
 Then "{string} should not be visible" do |text|
   expect(page).to have_no_text(:visible, text)
-end
-
-Then /^show me the page$/ do
-  save_and_open_page # rubocop:disable Lint/Debugger
-end
-
-Then /^print the page$/ do
-  puts page.body
 end
