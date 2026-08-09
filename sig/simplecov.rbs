@@ -831,7 +831,7 @@ module SimpleCov
     # Delegated to #files (see FileList).
     def covered_percent: (?criterion) -> Float?
     def covered_percentages: () -> Array[Float?]
-    def least_covered_file: () -> String
+    def least_covered_file: () -> String?
     def covered_strength: (?criterion) -> Float?
     def covered_lines: () -> Integer?
     def missed_lines: () -> Integer?
@@ -891,11 +891,10 @@ module SimpleCov
 
     def covered_lines: () -> Integer?
     def missed_lines: () -> Integer?
-    # 0.0 when the list is empty, an Integer sum otherwise.
-    def never_lines: () -> (Integer | Float)
-    def skipped_lines: () -> (Integer | Float)
+    def never_lines: () -> Integer
+    def skipped_lines: () -> Integer
     def covered_percentages: () -> Array[Float?]
-    def least_covered_file: () -> String
+    def least_covered_file: () -> String?
     def lines_of_code: () -> Integer?
     def covered_percent: (?criterion) -> Float?
     def covered_strength: (?criterion) -> Float?
