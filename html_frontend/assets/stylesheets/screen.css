@@ -184,7 +184,12 @@
    Only the covered/missed and the green/red band tokens change, so the rest of
    the theme is untouched. The blocks are ordered after the light/dark token
    definitions so they win on equal specificity; the dark variants raise
-   specificity so they win over the light colorblind values under dark. */
+   specificity so they win over the light colorblind values under dark.
+
+   The light values apply on screen and in print (the @media print reset below
+   re-asserts them so a printout keeps the colorblind palette). The dark values
+   are scoped to `@media screen` so they never reach paper: their higher
+   specificity would otherwise beat the print reset and print dark backgrounds. */
 .colorblind-mode {
   --green: #0060a8;
   --red: #c2410c;
@@ -194,7 +199,7 @@
   --missed-line-num-bg: #ffc39a;
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   .colorblind-mode:not(.light-mode) {
     --green: #6cb6ff;
     --red: #f0883e;
@@ -205,13 +210,15 @@
   }
 }
 
-.colorblind-mode.dark-mode {
-  --green: #6cb6ff;
-  --red: #f0883e;
-  --covered-bg: #0e2a45;
-  --covered-line-num-bg: #12385c;
-  --missed-bg: #3a2410;
-  --missed-line-num-bg: #52331a;
+@media screen {
+  .colorblind-mode.dark-mode {
+    --green: #6cb6ff;
+    --red: #f0883e;
+    --covered-bg: #0e2a45;
+    --covered-line-num-bg: #12385c;
+    --missed-bg: #3a2410;
+    --missed-line-num-bg: #52331a;
+  }
 }
 
 /* --- Base -------------------------------------------------- */
@@ -1116,6 +1123,19 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     --source-line-num-bg: #f0f1f3;
     --hits-bg: #e0e3e8;
     --hits-color: #333;
+  }
+
+  /* Keep the colorblind palette on paper. The reset above forces the standard
+     light green/red for every context; re-assert the light colorblind values
+     (same specificity, later in source) so a colorblind report prints blue and
+     orange rather than the green and red its reader configured away. */
+  .colorblind-mode {
+    --green: #0060a8;
+    --red: #c2410c;
+    --covered-bg: #d3eaf7;
+    --covered-line-num-bg: #a5d2ee;
+    --missed-bg: #ffe0cc;
+    --missed-line-num-bg: #ffc39a;
   }
 
   body {
