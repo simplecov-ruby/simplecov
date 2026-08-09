@@ -891,19 +891,24 @@ RSpec.describe SimpleCov::ResultMerger do
       end
       CODE
 
-      IO.popen(["ruby", "-Ilib", "-e", test_script], "r+") do |other_process|
-        expect(Timeout.timeout(1) { other_process.gets }).to eq("ready\n")
+      # RbConfig.ruby (not "ruby") so the child runs the same engine as
+      # the suite even when PATH resolves to a different interpreter.
+      IO.popen([RbConfig.ruby, "-Ilib", "-e", test_script], "r+") do |other_process|
+        # A generous boot timeout: JRuby and TruffleRuby take several
+        # seconds to start a subprocess. The later reads stay snappier
+        # since by then the child is warm.
+        expect(Timeout.timeout(30) { other_process.gets }).to eq("ready\n")
 
         described_class.synchronize_resultset do
           other_process.puts("start")
           other_process.flush
-          expect(Timeout.timeout(1) { other_process.gets }).to eq("attempting\n")
+          expect(Timeout.timeout(10) { other_process.gets }).to eq("attempting\n")
           expect(other_process.wait_readable(0.1)).to be_nil
 
           File.open(file.path, "a") { |f| f.write("process 1\n") }
         end
 
-        expect(Timeout.timeout(1) { other_process.gets }).to eq("acquired\n")
+        expect(Timeout.timeout(10) { other_process.gets }).to eq("acquired\n")
       end
 
       expect(file.read).to eq("process 1\nprocess 2\n")
