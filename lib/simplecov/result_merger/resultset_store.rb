@@ -24,8 +24,12 @@ module SimpleCov
         File.join(SimpleCov.coverage_path, ".resultset.json.lock")
       end
 
+      # Compact JSON, not pretty-printed: this is a machine-read cache
+      # that every parallel worker rewrites wholesale, and on a large
+      # project pretty printing nearly doubles the bytes written, read
+      # back, and parsed on each of those store-merge round trips.
       def write(resultset)
-        AtomicFile.write(resultset_path, "#{JSON.pretty_generate(resultset)}\n")
+        AtomicFile.write(resultset_path, "#{JSON.generate(resultset)}\n")
       end
 
       # Serialize threads before taking the process-wide file lock. Nested
