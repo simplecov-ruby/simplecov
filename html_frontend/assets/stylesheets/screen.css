@@ -770,6 +770,18 @@ dialog.source-dialog[open] {
 .source-legend__swatch--missed-branch::after { content: "\00B1"; }
 .source-legend__swatch--missed-method::after { content: "\0192"; }
 
+/* The colorblind and dark toggles, repeated in the dialog header so the mode
+   can be changed while a source file is open (the modal covers the report's
+   own toolbar). Sits between the legend and the close button, top-aligned. */
+.source-dialog__toggles {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+  margin-left: var(--sp-4);
+  align-self: flex-start;
+}
+
 .source-dialog__close {
   appearance: none;
   background: none;
@@ -1147,6 +1159,7 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
   #loading,
   #sort-overlay,
   .toolbar,
+  .source-dialog__toggles,
   .tab-bar,
   .source_files,
   .col-filter--name,
