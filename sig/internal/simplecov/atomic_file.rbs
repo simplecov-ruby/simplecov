@@ -7,6 +7,8 @@ module SimpleCov
 
     def self.replace: (File temp, String path, String content, Integer mode, binary: bool) -> void
 
+    def self.rename_over: (String temp_path, String path) -> void
+
     def self.destination_mode: (String path) -> Integer
   end
 end

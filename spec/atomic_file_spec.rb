@@ -23,8 +23,11 @@ RSpec.describe SimpleCov::AtomicFile do
     expect(File.stat(path).mode & 0o777).to eq(File.stat(control).mode & 0o777)
 
     File.chmod(0o400, path)
+    # Compare against what chmod actually recorded: Windows widens 0400
+    # to 0444, and either is distinct from the default for new files.
+    restricted_mode = File.stat(path).mode & 0o777
     described_class.write(path, "second")
-    expect(File.stat(path).mode & 0o777).to eq(0o400)
+    expect(File.stat(path).mode & 0o777).to eq(restricted_mode)
     expect(File.read(path)).to eq("second")
   end
 

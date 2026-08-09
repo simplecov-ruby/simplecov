@@ -27,12 +27,36 @@ module SimpleCov
       temp.write(content)
       temp.close
       File.chmod(mode, temp.path)
-      File.rename(temp.path, path)
+      rename_over(temp.path, path)
     ensure
       temp.close unless temp.closed?
       FileUtils.rm_f(temp.path)
     end
     private_class_method :replace
+
+    # On POSIX systems rename replaces the destination atomically. On
+    # Windows it fails with EACCES when the destination is open in a
+    # reader or mid-replacement by a concurrent writer, so retry briefly
+    # there before giving up.
+    def self.rename_over(temp_path, path)
+      attempts = 0
+      begin
+        File.rename(temp_path, path)
+      rescue Errno::EACCES
+        # simplecov:disable branch — which arm runs is fixed by the platform
+        raise unless Gem.win_platform?
+
+        # simplecov:enable branch
+        # simplecov:disable — Windows-only; unreachable where dogfood runs
+        attempts += 1
+        raise if attempts >= 10
+
+        sleep(0.01)
+        retry
+        # simplecov:enable
+      end
+    end
+    private_class_method :rename_over
 
     def self.destination_mode(path)
       return DEFAULT_MODE & ~File.umask if File.symlink?(path)

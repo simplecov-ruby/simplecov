@@ -40,6 +40,12 @@ module SimpleCov
 
       def safe_to_remove?(dir)
         target = canonical_path(dir)
+        # A filesystem root is its own dirname ("/" everywhere, drive
+        # roots like "D:/" on Windows). The descendant check below only
+        # protects roots that happen to contain the cwd or project root,
+        # which misses other drives, so refuse roots outright.
+        return false if File.dirname(target) == target
+
         protected_paths.none? { |path| path == target || descendant_of?(path, target) }
       end
 
@@ -48,9 +54,10 @@ module SimpleCov
         [Dir.pwd, (File.dirname(project_root) if project_root)].compact.map { |path| canonical_path(path) }.uniq
       end
 
+      # Canonical paths only carry a trailing separator on a filesystem
+      # root, and roots are refused before this check runs.
       def descendant_of?(path, possible_ancestor)
-        prefix = possible_ancestor.end_with?(File::SEPARATOR) ? possible_ancestor : "#{possible_ancestor}#{File::SEPARATOR}"
-        path.start_with?(prefix)
+        path.start_with?("#{possible_ancestor}#{File::SEPARATOR}")
       end
 
       def canonical_path(path)
