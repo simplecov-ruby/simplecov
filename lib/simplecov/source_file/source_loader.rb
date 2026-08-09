@@ -17,15 +17,25 @@ module SimpleCov
         lines = [] #: Array[String]
         # The default encoding is UTF-8
         File.open(filename, "rb:UTF-8") do |file|
-          current_line = file.gets
+          current_line = scrub_invalid(file.gets)
 
           if current_line && shebang?(current_line)
             lines << current_line
-            current_line = file.gets
+            current_line = scrub_invalid(file.gets)
           end
 
           read_lines(file, lines, current_line)
         end
+      end
+
+      # A line read as UTF-8 can still carry invalid bytes (a Latin-1
+      # source file without a magic comment, say). Replace them before
+      # any regex sees the line: the shebang and magic-comment checks
+      # would otherwise raise ArgumentError and take the report down.
+      def scrub_invalid(line)
+        return line if line.nil? || line.valid_encoding?
+
+        line.scrub
       end
 
       def shebang?(line)
@@ -47,14 +57,20 @@ module SimpleCov
         end
       end
 
-      # invalid/undef replace are technically not really necessary but
-      # nice to have and work around a JRuby incompatibility. Setting
-      # these options on `file.set_encoding` doesn't seem to work
-      # properly, so it has to be done here.
+      # Guarantee every line leaves the loader as valid UTF-8, replacing
+      # what can't be represented: transcode non-UTF-8 lines (setting
+      # invalid/undef options on `file.set_encoding` doesn't work
+      # properly, and this also works around a JRuby incompatibility)
+      # and scrub UTF-8-tagged lines that carry invalid bytes, which
+      # would otherwise raise from every regex the classifier runs.
       def ensure_remove_undefs(file_lines)
         file_lines.each do |line|
           # simplecov:disable — defensive: only fires for non-UTF-8 source files
-          line.encode!("UTF-8", invalid: :replace, undef: :replace) unless line.encoding == Encoding::UTF_8
+          if line.encoding == Encoding::UTF_8
+            line.scrub! unless line.valid_encoding?
+          else
+            line.encode!("UTF-8", invalid: :replace, undef: :replace)
+          end
           # simplecov:enable
         end
       end

@@ -112,6 +112,26 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         formatter.format(result)
         expect(file_entry).to include("lines", "covered_lines", "missed_lines", "total_lines", "lines_covered_percent")
       end
+
+      it "replaces bytes that are not valid UTF-8 in embedded source" do
+        # The fast path passes valid UTF-8 lines through untouched; this
+        # pins the conversion fallback for source carrying invalid bytes.
+        Dir.mktmpdir do |dir|
+          path = File.join(dir, "invalid.rb")
+          File.binwrite(path, "x = 1 # caf\xE9\n")
+          bad_result = SimpleCov::Result.new(
+            {path => {"lines" => [1]}},
+            filter_config: SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [], groups: {})
+          )
+
+          coverage = described_class.build_hash(bad_result, include_source: true).fetch(:coverage)
+          expect(coverage.size).to eq 1
+          source = coverage.values.first.fetch(:source)
+
+          expect(source.first).to eq("x = 1 # caf�")
+          expect(source.first.encoding).to eq(Encoding::UTF_8)
+        end
+      end
     end
 
     context "with branch coverage" do
