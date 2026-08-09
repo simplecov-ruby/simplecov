@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "command_helpers"
 require_relative "serve/report_preparer"
 require_relative "serve/static_file_handler"
 
@@ -13,6 +14,8 @@ module SimpleCov
     # the CLI wiring (options, binding, the accept loop); the HTTP
     # mechanics live in StaticFileHandler.
     module Serve
+      extend CommandHelpers
+
     module_function
 
       def run(args, stdout:, stderr:, **)
@@ -70,11 +73,6 @@ module SimpleCov
         end
       rescue Interrupt
         stdout.puts("\nsimplecov serve: stopping")
-      end
-
-      def error(stderr, message)
-        stderr.puts("simplecov serve: #{message}")
-        1
       end
     end
   end

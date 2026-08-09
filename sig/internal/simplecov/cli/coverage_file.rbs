@@ -2,6 +2,11 @@ module SimpleCov
   module CLI
     # Shared outer-shape validation for JSONFormatter coverage.json inputs.
     module CoverageFile
+      # The coverage.json fields backing each criterion, keyed by the
+      # criterion's singular name. Shared by the coverage, uncovered,
+      # and diff subcommands.
+      CRITERIA: ::Hash[::Symbol, ::Hash[::Symbol, ::String]]
+
       def self?.load_document: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
 
       def self?.load_coverage: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?

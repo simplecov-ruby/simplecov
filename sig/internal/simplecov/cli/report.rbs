@@ -6,6 +6,12 @@ module SimpleCov
     # contexts where opening a browser isn't an option (CI logs, ssh
     # sessions, terminal-only workflows).
     module Report
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
       TOTAL_LABEL: ::String
 
       SECTIONS: ::Array[::Array[::String]]

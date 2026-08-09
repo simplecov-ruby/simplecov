@@ -4,6 +4,12 @@ module SimpleCov
     # report over HTTP. This module is the CLI wiring (options, binding,
     # the accept loop); the HTTP mechanics live in StaticFileHandler.
     module Serve
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> untyped
 
       def self?.parse: (untyped args) -> untyped
@@ -16,7 +22,6 @@ module SimpleCov
 
       def self?.serve_loop: (untyped server, untyped dir, untyped stdout) -> untyped
 
-      def self?.error: (untyped stderr, untyped message) -> 1
     end
   end
 end

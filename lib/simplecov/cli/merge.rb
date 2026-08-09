@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require_relative "../atomic_file"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -13,6 +14,8 @@ module SimpleCov
     # load path; lazy-required so the read-only subcommands above don't
     # pay for ResultMerger (and its Coverage runtime guard).
     module Merge
+      extend CommandHelpers
+
     module_function
 
       def run(args, stdout:, stderr:, **)
@@ -106,11 +109,6 @@ module SimpleCov
 
       def write(path, result)
         AtomicFile.write(path, JSON.pretty_generate(result.to_hash))
-      end
-
-      def error(stderr, message)
-        stderr.puts("simplecov merge: #{message}")
-        1
       end
     end
   end

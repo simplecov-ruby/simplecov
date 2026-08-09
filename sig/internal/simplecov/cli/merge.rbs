@@ -7,6 +7,12 @@ module SimpleCov
     # load path; lazy-required so the read-only subcommands above don't
     # pay for ResultMerger (and its Coverage runtime guard).
     module Merge
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (untyped | 1 | 0)
 
       def self?.commit: (untyped opts, untyped result, untyped stdout) -> untyped
@@ -35,7 +41,6 @@ module SimpleCov
 
       def self?.write: (untyped path, untyped result) -> untyped
 
-      def self?.error: (untyped stderr, untyped message) -> 1
     end
   end
 end

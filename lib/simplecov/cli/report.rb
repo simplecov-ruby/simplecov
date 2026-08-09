@@ -2,6 +2,7 @@
 
 require "json"
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -11,6 +12,8 @@ module SimpleCov
     # contexts where opening a browser isn't an option (CI logs, ssh
     # sessions, terminal-only workflows).
     module Report
+      extend CommandHelpers
+
       TOTAL_LABEL = "All Files"
       SECTIONS = [%w[Line lines], %w[Branch branches], %w[Method methods]].freeze
 
@@ -30,11 +33,7 @@ module SimpleCov
 
       def parse(args)
         opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false}
-        OptionParser.new do |o|
-          o.on("--input PATH") { |v| opts[:input] = v }
-          o.on("--json")       { opts[:json] = true }
-          o.on("--no-color")   { opts[:no_color] = true }
-        end.parse(args)
+        OptionParser.new { |o| common_options(o, opts) }.parse(args)
         opts
       end
 
@@ -60,11 +59,10 @@ module SimpleCov
       def emit_section(stdout, display, section, color)
         return unless section.is_a?(Hash) && section["total"].to_i.positive?
 
-        stdout.puts(format("  %<label>-7s %<pct>s (%<covered>d / %<total>d)",
-                           label: "#{display}:",
-                           pct: SimpleCov::Color.colorize_percent(section["percent"].to_f, enabled: color),
-                           covered: section["covered"] || 0,
-                           total: section["total"] || 0))
+        stdout.puts(stats_row(display,
+                              SimpleCov::Color.colorize_percent(section["percent"].to_f, enabled: color),
+                              section["covered"],
+                              section["total"]))
       end
 
       def emit_json(stdout, data)
