@@ -993,6 +993,39 @@ RSpec.describe SimpleCov::SourceFile do
       end
     end
 
+    describe "invalid UTF-8 bytes without a magic comment" do
+      subject(:source_file) do
+        described_class.new(invalid_path, COVERAGE_FOR_TRIPLE_LINES)
+      end
+
+      # A Latin-1 file with no encoding declaration reads as UTF-8-tagged
+      # lines carrying invalid bytes. Those must be replaced at load time,
+      # or every regex downstream (shebang check, lines classifier)
+      # raises ArgumentError and takes the whole report down.
+      let(:tmpdir) { Dir.mktmpdir("simplecov-invalid-utf8-spec-") }
+      let(:invalid_path) do
+        File.join(tmpdir, "invalid.rb").tap do |path|
+          File.binwrite(path, "#!/usr/bin/env ruby\nx = 1 # caf\xE9\ny = 2\n")
+        end
+      end
+
+      after { FileUtils.remove_entry(tmpdir) }
+
+      it_behaves_like "converting to UTF-8"
+
+      it "replaces the invalid bytes and keeps the rest of the line" do
+        expect(source_file.lines.map(&:source)).to eq [
+          "#!/usr/bin/env ruby\n",
+          "x = 1 # caf�\n",
+          "y = 2\n"
+        ]
+      end
+
+      it "still classifies and reports coverage" do
+        expect(source_file.covered_lines.size).to eq 1
+      end
+    end
+
     describe "empty euc-jp file" do
       subject(:source_file) do
         described_class.new(source_fixture("empty_euc-jp.rb"), {"lines" => []})

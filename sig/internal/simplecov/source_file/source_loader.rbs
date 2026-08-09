@@ -12,6 +12,10 @@ module SimpleCov
 
       def self?.call: (String filename) -> Array[String]
 
+      # Replaces invalid bytes in a UTF-8-tagged line before any regex
+      # sees it; nil and valid lines pass through untouched.
+      def self?.scrub_invalid: (String? line) -> String?
+
       def self?.shebang?: (untyped line) -> untyped
 
       def self?.read_lines: (untyped file, untyped lines, untyped current_line) -> untyped

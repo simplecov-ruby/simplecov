@@ -11,8 +11,6 @@ module SimpleCov
 
         def self.format_source_code: (untyped source_file) -> { source: untyped }
 
-        def self.ensure_utf8: (untyped str) -> untyped
-
         def self.line_coverage_section: (untyped source_file) -> { lines: untyped, lines_covered_percent: untyped, covered_lines: untyped, missed_lines: untyped, omitted_lines: untyped, total_lines: untyped }
 
         def self.branch_coverage_section: (untyped source_file) -> { branches: untyped, branches_covered_percent: untyped, covered_branches: untyped, missed_branches: untyped, total_branches: untyped }

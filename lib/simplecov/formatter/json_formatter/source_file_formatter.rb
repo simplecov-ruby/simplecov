@@ -18,12 +18,13 @@ module SimpleCov
 
         private
 
+          # No per-line encoding conversion here: SourceLoader guarantees
+          # every line leaves it as valid UTF-8 (transcoding declared
+          # encodings, scrubbing invalid bytes), and the converter copy
+          # this used to make per line was the single largest allocation
+          # source in formatting a large report.
           def format_source_code(source_file)
-            {source: source_file.lines.map { |line| ensure_utf8(line.src.chomp) }}
-          end
-
-          def ensure_utf8(str)
-            str.encode("UTF-8", invalid: :replace, undef: :replace)
+            {source: source_file.lines.map { |line| line.src.chomp }}
           end
 
           def line_coverage_section(source_file)
