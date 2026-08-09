@@ -6,11 +6,15 @@
     <title>Code Coverage</title>
     <!-- SIMPLECOV_CSS -->
     <script>
-      // Apply the saved dark/light preference before paint to avoid a flash.
+      // Apply the saved dark/light and colorblind preferences before paint to
+      // avoid a flash of the wrong palette.
       try {
         const pref = localStorage.getItem('simplecov-dark-mode');
         if (pref === 'dark' || pref === 'light') {
           document.documentElement.classList.add(`${pref}-mode`);
+        }
+        if (localStorage.getItem('simplecov-colorblind-mode') === 'on') {
+          document.documentElement.classList.add('colorblind-mode');
         }
       } catch (_error) {
         // localStorage can be unavailable in locked-down browser contexts.
@@ -31,7 +35,10 @@
     <div id="wrapper" class="hide">
       <div class="tab-bar">
         <ul class="group_tabs" role="tablist"></ul>
-        <button id="dark-mode-toggle" aria-label="Toggle dark mode"></button>
+        <div class="toolbar">
+          <button id="colorblind-toggle" class="toolbar-toggle" type="button" aria-pressed="false" title="Use a colorblind-friendly palette and coverage symbols">🎨 Colorblind</button>
+          <button id="dark-mode-toggle" class="toolbar-toggle" type="button" aria-pressed="false"></button>
+        </div>
       </div>
 
       <div id="content"></div>
