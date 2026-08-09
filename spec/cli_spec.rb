@@ -1158,7 +1158,10 @@ RSpec.describe SimpleCov::CLI do
     it "refuses to remove the filesystem root" do
       allow(described_class).to receive(:coverage_dir).and_return(File::SEPARATOR)
 
-      expect(run("clean")).to eq(1)
+      # --dry-run as defense in depth: if the guard ever regresses, the
+      # failure is a wrong message, not a recursive delete from the root
+      # of the CI runner's disk.
+      expect(run("clean", "--dry-run")).to eq(1)
       expect(stderr.string).to include("refusing to remove unsafe coverage directory")
     end
 

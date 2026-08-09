@@ -6,6 +6,8 @@ require "tmpdir"
 
 RSpec.describe "frontend asset compilation" do # rubocop:disable RSpec/DescribeClass
   it "fails when the CSS minifier exits unsuccessfully" do
+    skip "the fake esbuild is a POSIX shell script" if Gem.win_platform?
+
     Dir.mktmpdir("simplecov-failing-esbuild-") do |tmp|
       esbuild = File.join(tmp, "esbuild")
       File.write(esbuild, <<~SH)

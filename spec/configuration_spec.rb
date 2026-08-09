@@ -1803,7 +1803,7 @@ RSpec.describe SimpleCov::Configuration do
           target.configure { observed_root = @root } # rubocop:disable RSpec/InstanceVariable
         end
 
-        expect(observed_root).to eq("/real/project")
+        expect(observed_root).to eq(File.expand_path("/real/project"))
         expect(owner.instance_variable_get(:@root)).to eq("/caller/project")
       end
 
@@ -1820,7 +1820,7 @@ RSpec.describe SimpleCov::Configuration do
           target.coverage_path
         end
 
-        expect(path).to eq("/real/project/cov")
+        expect(path).to eq(File.expand_path("/real/project/cov"))
       end
 
       it "preserves block locals and block_given?" do
