@@ -665,7 +665,7 @@ module SimpleCov
 
     # DEPRECATED: use `merging` instead (same value, same behavior).
     # Returns nil when merging had already been disabled.
-    def use_merging: (?bool? use) -> bool?
+    def use_merging: (?bool? use) -> bool
 
     # The maximum age (in seconds) of a resultset to still be included
     # in merged results. Defaults to 600.
@@ -758,6 +758,9 @@ module SimpleCov
     def refuse_coverage_drop: (*(criterion | :oneshot_line) criteria) -> coverage_thresholds
 
     private
+
+    # Shared normalize-and-validate step behind every threshold setter.
+    def normalized_threshold: ((Numeric | coverage_thresholds) coverage, String setting) -> coverage_thresholds
 
     def partition_per_file_thresholds: (Hash[Symbol | String | Regexp, Numeric | coverage_thresholds] coverage) -> [coverage_thresholds, Hash[String | Regexp, coverage_thresholds]]
 

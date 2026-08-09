@@ -14,9 +14,7 @@ module SimpleCov
     def minimum_coverage(coverage = nil)
       return @minimum_coverage ||= {} unless coverage
 
-      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
-      raise_on_invalid_coverage(coverage, "minimum_coverage")
-      @minimum_coverage = coverage
+      @minimum_coverage = normalized_threshold(coverage, "minimum_coverage")
     end
 
     def raise_on_invalid_coverage(coverage, coverage_setting)
@@ -35,9 +33,7 @@ module SimpleCov
     def maximum_coverage(coverage = nil)
       return @maximum_coverage ||= {} unless coverage
 
-      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
-      raise_on_invalid_coverage(coverage, "maximum_coverage")
-      @maximum_coverage = coverage
+      @maximum_coverage = normalized_threshold(coverage, "maximum_coverage")
     end
 
     #
@@ -58,9 +54,7 @@ module SimpleCov
     def maximum_coverage_drop(coverage_drop = nil)
       return @maximum_coverage_drop ||= {} unless coverage_drop
 
-      coverage_drop = {primary_coverage => coverage_drop} if coverage_drop.is_a?(Numeric)
-      raise_on_invalid_coverage(coverage_drop, "maximum_coverage_drop")
-      @maximum_coverage_drop = coverage_drop
+      @maximum_coverage_drop = normalized_threshold(coverage_drop, "maximum_coverage_drop")
     end
 
     #
@@ -101,9 +95,7 @@ module SimpleCov
       SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
                                   "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
       @minimum_coverage_by_group = coverage.dup.transform_values do |group_coverage|
-        group_coverage = {primary_coverage => group_coverage} if group_coverage.is_a?(Numeric)
-        raise_on_invalid_coverage(group_coverage, "minimum_coverage_by_group")
-        group_coverage
+        normalized_threshold(group_coverage, "minimum_coverage_by_group")
       end
     end
 
@@ -116,6 +108,15 @@ module SimpleCov
     end
 
   private
+
+    # Shared normalize-and-validate step behind every threshold setter:
+    # a bare Numeric targets the primary criterion, and the resulting
+    # per-criterion hash is validated before it is stored.
+    def normalized_threshold(coverage, setting)
+      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
+      raise_on_invalid_coverage(coverage, setting)
+      coverage
+    end
 
     # Split a `minimum_coverage_by_file` argument into Symbol-keyed
     # criterion defaults and String/Regexp-keyed per-path overrides;

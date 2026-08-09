@@ -807,6 +807,13 @@ RSpec.describe SimpleCov::Configuration do
         expect(stderr).to include("`SimpleCov.merging`")
         expect(config.instance_variable_get(:@use_merging)).to be false
       end
+
+      it "returns the stored value like `merging` does" do
+        result = nil
+        capture_stderr { result = config.use_merging(false) }
+
+        expect(result).to be false
+      end
     end
 
     describe "#merge_subprocesses" do
