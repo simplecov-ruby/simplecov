@@ -129,7 +129,14 @@ JS_VISIBLE_CSS_VARS = %w[--bar-sizer-width --green --red --yellow].freeze
 # pass over full `--name` tokens, so `--text` cannot clobber
 # `--text-secondary` and renames cannot chain.
 def mangle_css_custom_properties(css)
-  token = /--[a-zA-Z][\w-]*/
+  # Match only genuine custom properties: a `--name` whose `--` is not
+  # preceded by an identifier character. A custom property's `--` always
+  # follows a separator (`(`, `,`, whitespace, `{`, `;`, `:`), whereas a BEM
+  # class modifier's does not — `cell--numerator` has a letter before it. The
+  # lookbehind keeps the mangler off class names: it rewrites CSS only, so
+  # aliasing a `.cell--numerator` selector would desync it from the
+  # `class="cell--numerator"` the JS emits and silently drop the rule.
+  token = /(?<![\w-])--[a-zA-Z][\w-]*/
   counts = css.scan(token).tally.except(*JS_VISIBLE_CSS_VARS)
   aliases = short_css_names.reject { |name| counts.key?(name) }
   mapping = counts.sort_by { |name, count| [-count, name] }.map(&:first).zip(aliases).to_h
