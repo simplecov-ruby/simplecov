@@ -9,7 +9,7 @@ import { setupColumnFilters } from './filter';
 import { scheduleEqualizeBarWidths, equalizeBarWidths } from './bar_width';
 import { setupSourceDialog, navigateToHash } from './dialog';
 import { setupEventDelegation } from './events';
-import { initDarkMode, handleKeydown } from './controls';
+import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
 
 // Timeago — schedule the next update for exactly when the text would change.
 function scheduleTimeago(): void {
@@ -80,6 +80,7 @@ async function init(): Promise<void> {
 
   scheduleTimeago();
   initDarkMode();
+  initColorblindMode();
   setupTableSorting(data.meta.primary_coverage);
   setupColumnFilters();
   document.addEventListener('keydown', handleKeydown);

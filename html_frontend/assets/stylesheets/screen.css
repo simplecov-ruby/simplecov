@@ -173,6 +173,47 @@
   --bar-bg: #3d444d;
 }
 
+/* --- Colorblind palette ------------------------------------ */
+
+/* Red/green is the coverage report's core signal (covered vs missed) and the
+   pairing most colorblind viewers cannot separate (see issue #534). This mode
+   swaps it for blue (covered) vs orange/vermillion (missed) — the classic
+   colorblind-safe pairing — while leaving skipped (yellow), missed-branch
+   (orange-brown) and missed-method (purple) as-is, since those already read as
+   distinct hues and now also carry non-color symbols (see li::after below).
+   Only the covered/missed and the green/red band tokens change, so the rest of
+   the theme is untouched. The blocks are ordered after the light/dark token
+   definitions so they win on equal specificity; the dark variants raise
+   specificity so they win over the light colorblind values under dark. */
+.colorblind-mode {
+  --green: #0060a8;
+  --red: #c2410c;
+  --covered-bg: #d3eaf7;
+  --covered-line-num-bg: #a5d2ee;
+  --missed-bg: #ffe0cc;
+  --missed-line-num-bg: #ffc39a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .colorblind-mode:not(.light-mode) {
+    --green: #6cb6ff;
+    --red: #f0883e;
+    --covered-bg: #0e2a45;
+    --covered-line-num-bg: #12385c;
+    --missed-bg: #3a2410;
+    --missed-line-num-bg: #52331a;
+  }
+}
+
+.colorblind-mode.dark-mode {
+  --green: #6cb6ff;
+  --red: #f0883e;
+  --covered-bg: #0e2a45;
+  --covered-line-num-bg: #12385c;
+  --missed-bg: #3a2410;
+  --missed-line-num-bg: #52331a;
+}
+
 /* --- Base -------------------------------------------------- */
 
 body {
@@ -694,19 +735,33 @@ dialog.source-dialog[open] {
   white-space: nowrap;
 }
 
+/* The swatch carries the same glyph the source gutter uses, so the legend
+   teaches the non-color mapping and reads without colour. */
 .source-legend__swatch {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   border-radius: 3px;
   border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.source-legend__swatch--covered       { background: var(--covered-bg); border-color: var(--covered-line-num-bg); }
-.source-legend__swatch--missed        { background: var(--missed-bg); border-color: var(--missed-line-num-bg); }
-.source-legend__swatch--skipped       { background: var(--skipped-bg); border-color: var(--skipped-line-num-bg); }
-.source-legend__swatch--missed-branch { background: var(--missed-branch-bg); border-color: var(--missed-branch-line-num-bg); }
-.source-legend__swatch--missed-method { background: var(--missed-method-bg); border-color: var(--missed-method-line-num-bg); }
+.source-legend__swatch--covered       { background: var(--covered-bg); border-color: var(--covered-line-num-bg); color: var(--green); }
+.source-legend__swatch--missed        { background: var(--missed-bg); border-color: var(--missed-line-num-bg); color: var(--red); }
+.source-legend__swatch--skipped       { background: var(--skipped-bg); border-color: var(--skipped-line-num-bg); color: var(--text-secondary); }
+.source-legend__swatch--missed-branch { background: var(--missed-branch-bg); border-color: var(--missed-branch-line-num-bg); color: var(--missed-branch-text); }
+.source-legend__swatch--missed-method { background: var(--missed-method-bg); border-color: var(--missed-method-line-num-bg); color: var(--missed-method-text); }
+
+.source-legend__swatch--covered::after       { content: "+"; }
+.source-legend__swatch--missed::after        { content: "\2212"; }
+.source-legend__swatch--skipped::after       { content: "\007E"; }
+.source-legend__swatch--missed-branch::after { content: "\00B1"; }
+.source-legend__swatch--missed-method::after { content: "\0192"; }
 
 .source-dialog__close {
   appearance: none;
@@ -900,9 +955,41 @@ table.file_list .totals-row td {
 .source_table .missed-branch::before { background-color: var(--missed-branch-line-num-bg); }
 .source_table .missed-method::before { background-color: var(--missed-method-line-num-bg); }
 
-/* --- Dark mode toggle -------------------------------------- */
+/* Non-color coverage markers. A left gutter glyph states each line's status
+   without relying on colour at all, so the report is legible in greyscale, to
+   colorblind viewers, and in high-contrast modes. `li::before` is the line
+   number, so the marker rides the spare `::after` pseudo, ordered ahead of
+   everything else in the row. Requested on issue #534. */
+.source_table pre li::after {
+  order: -1;
+  content: "";
+  flex-shrink: 0;
+  width: 1.6em;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--source-line-num-bg);
+  border-right: 1px solid var(--source-border);
+  -webkit-user-select: none;
+  user-select: none;
+}
 
-#dark-mode-toggle {
+.source_table .covered::after       { content: "+"; color: var(--green); background: var(--covered-line-num-bg); }
+.source_table .missed::after        { content: "\2212"; color: var(--red); background: var(--missed-line-num-bg); } /* minus sign */
+.source_table .skipped::after       { content: "\007E"; background: var(--skipped-line-num-bg); } /* tilde: ignored */
+.source_table .missed-branch::after { content: "\00B1"; color: var(--missed-branch-text); background: var(--missed-branch-line-num-bg); } /* plus-minus: line ran, a branch didn't */
+.source_table .missed-method::after { content: "\0192"; color: var(--missed-method-text); background: var(--missed-method-line-num-bg); } /* florin f: an uncalled method */
+
+/* --- Toolbar toggles (colorblind + dark) ------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.toolbar-toggle {
   appearance: none;
   background: var(--surface);
   color: var(--text-secondary);
@@ -913,12 +1000,37 @@ table.file_list .totals-row td {
   font-family: var(--font-sans);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-#dark-mode-toggle:hover {
+.toolbar-toggle:hover {
   color: var(--text);
   border-color: var(--border-strong);
+}
+
+/* Pressed state for the colorblind toggle: it is a mode switch, not a
+   this-or-that swap like the dark toggle, so reflect "on" with a filled
+   accent chip (aria-pressed carries it to assistive tech). */
+.toolbar-toggle[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- Keyboard focus ---------------------------------------- */
+
+/* A visible focus ring on every keyboard-focused control. :focus-visible keeps
+   it off mouse clicks, so it aids keyboard users without adding chrome for
+   everyone else. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible,
+.source_table pre li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 /* --- Footer ------------------------------------------------ */
@@ -1014,7 +1126,7 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
   /* Hide interactive/non-printable elements */
   #loading,
   #sort-overlay,
-  #dark-mode-toggle,
+  .toolbar,
   .tab-bar,
   .source_files,
   .col-filter--name,
