@@ -49,7 +49,7 @@ module SimpleCov
     def existing_report_newer_than_us?
       return false unless process_start_time
 
-      last_run_path = File.join(coverage_path, ".last_run.json")
+      last_run_path = SimpleCov::LastRun.last_run_path
       File.exist?(last_run_path) && File.mtime(last_run_path) > process_start_time
     end
 
