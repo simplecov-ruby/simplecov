@@ -1843,8 +1843,10 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "resolves require_relative from the configuration source" do
-        source_path = File.join(SimpleCov.root, "lib/configuration_probe.rb")
-        # A synthetic filename is required to verify require_relative's base.
+        # An eval source under lib/ (not spec/) verifies require_relative's
+        # base is the configuration source, not this spec. It must be a
+        # file that exists: JRuby resolves the base through realpath.
+        source_path = File.join(SimpleCov.root, "lib/simplecov.rb")
         # rubocop:disable Style/EvalWithLocation
         configuration = eval(<<~RUBY, binding, source_path, 1)
           proc { require_relative "simplecov/version" }
