@@ -10,8 +10,11 @@ module SimpleCov
   module StaticCoverageExtractor
     # Prism visitor that accumulates branch and method tuples in the
     # shape Ruby's `Coverage` reports. Tuple ids are sequential across
-    # the file — `Coverage` uses sequential ids too, so this matches the
-    # conventional shape. Only defined when Prism is loadable;
+    # the file like `Coverage`'s, but the numbering order can differ
+    # (e.g. `case`/`when` and chained `&.` are visited in a different
+    # order than Coverage numbers them). That's fine: the combiners
+    # intern on source span and the report output drops ids, so nothing
+    # downstream compares them. Only defined when Prism is loadable;
     # `StaticCoverageExtractor.available?` is the runtime gate.
     class Visitor < ::Prism::Visitor
       # Method tuples and the class/module nesting that names them are
