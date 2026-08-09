@@ -33,8 +33,8 @@ module SimpleCov
         end
       end
 
-      # no_cov_chunks is zero indexed to work directly with the array
-      # holding the lines.
+      # Ranges of 1-based line numbers (see `with_index(1)` below);
+      # consumers subtract 1 to index into the zero-based lines array.
       def nocov_chunks
         @nocov_chunks ||= build_nocov_chunks
       end
