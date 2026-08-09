@@ -47,15 +47,11 @@ module SimpleCov
 
     # Returns the count of lines that are not relevant for coverage
     def never_lines
-      return 0.0 if empty?
-
       sum { |f| f.never_lines.size }
     end
 
     # Returns the count of skipped lines
     def skipped_lines
-      return 0.0 if empty?
-
       sum { |f| f.skipped_lines.size }
     end
 
@@ -65,13 +61,13 @@ module SimpleCov
       map(&:covered_percent)
     end
 
-    # Finds the least covered file and returns that file's name
+    # Finds the least covered file and returns that file's name, or nil
+    # for an empty list (e.g. a fully filtered result).
     def least_covered_file
       # `covered_percent` is nil only for an unmeasured criterion, and :line
       # is always measured, so the `|| 0.0` arm never fires at runtime; it
-      # (and the cast) exist to satisfy min_by's Comparable requirement.
-      least_covered = min_by { |file| file.covered_percent || 0.0 }
-      (_ = least_covered).filename
+      # exists to satisfy min_by's Comparable requirement.
+      min_by { |file| file.covered_percent || 0.0 }&.filename
     end
 
     # Returns the overall amount of relevant lines of code across all files in this list

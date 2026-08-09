@@ -82,9 +82,13 @@ RSpec.describe SimpleCov::FileList do
   context "when the FileList is empty" do
     let(:empty_file_list) { described_class.new([]) }
 
-    it "returns 0.0 for never_lines and skipped_lines" do
-      expect(empty_file_list.never_lines).to eq(0.0)
-      expect(empty_file_list.skipped_lines).to eq(0.0)
+    it "returns 0 for never_lines and skipped_lines" do
+      expect(empty_file_list.never_lines).to eq(0)
+      expect(empty_file_list.skipped_lines).to eq(0)
+    end
+
+    it "returns nil for least_covered_file instead of raising" do
+      expect(empty_file_list.least_covered_file).to be_nil
     end
   end
 
