@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "command_helpers"
 
 module SimpleCov
   module CLI
@@ -9,15 +10,14 @@ module SimpleCov
     # `--dry-run` flag prints what would be deleted without touching
     # disk, for when you're not sure what's in there.
     module Clean
+      extend CommandHelpers
+
     module_function
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
         dir = SimpleCov::CLI.coverage_dir
-        unless safe_to_remove?(dir)
-          stderr.puts("simplecov clean: refusing to remove unsafe coverage directory #{dir.inspect}")
-          return 1
-        end
+        return error(stderr, "refusing to remove unsafe coverage directory #{dir.inspect}") unless safe_to_remove?(dir)
         return announce(stdout, opts, "#{dir} doesn't exist; nothing to do") || 0 unless File.directory?(dir)
 
         sweep(dir, opts, stdout)
@@ -26,7 +26,7 @@ module SimpleCov
 
       def sweep(dir, opts, stdout)
         if opts[:dry_run]
-          announce(stdout, opts, "would remove #{dir} (#{Dir["#{dir}/**/*"].size} entries)")
+          announce(stdout, opts, "would remove #{dir} (#{entry_count(dir)} entries)")
         else
           require "fileutils"
           FileUtils.rm_rf(dir)
@@ -34,8 +34,16 @@ module SimpleCov
         end
       end
 
+      # FNM_DOTMATCH so the dotfiles rm_rf will actually delete
+      # (.resultset.json, .last_run.json) count too; the glob still
+      # yields the directory's own "." entry, which rm_rf does not
+      # remove separately.
+      def entry_count(dir)
+        Dir.glob("#{dir}/**/*", File::FNM_DOTMATCH).count { |path| !path.end_with?("/.") }
+      end
+
       def announce(stdout, opts, message)
-        stdout.puts("simplecov clean: #{message}") unless opts[:quiet]
+        stdout.puts("simplecov #{command_name}: #{message}") unless opts[:quiet]
       end
 
       def safe_to_remove?(dir)

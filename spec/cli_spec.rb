@@ -1174,6 +1174,16 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("would remove #{tmp}")
     end
 
+    # The pre-fix Dir[] glob skipped dotfiles, so a typical coverage dir
+    # holding .resultset.json undercounted what rm_rf would delete.
+    it "counts dotfiles in the --dry-run entry count" do
+      File.write(File.join(tmp, ".resultset.json"), "{}")
+
+      expect(run("clean", "--dry-run")).to eq(0)
+      # assets/, index.html, coverage.json, and .resultset.json
+      expect(stdout.string).to include("(4 entries)")
+    end
+
     it "is a no-op when the directory doesn't exist" do
       FileUtils.remove_entry(tmp)
       expect(run("clean")).to eq(0)
