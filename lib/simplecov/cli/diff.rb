@@ -130,10 +130,13 @@ module SimpleCov
 
       # A removed file's deltas are all -baseline%, but deleting a
       # covered file (dead code cleanup) is not a coverage regression,
-      # so removed rows never trip the --fail-on-drop gate.
+      # so removed rows never trip the --fail-on-drop gate. Drops are
+      # gated on EPSILON like row inclusion and display: a row listed
+      # for a gain in one criterion must not fail the run over float
+      # noise in another, invisible in the printed output.
       def coverage_drop?(rows)
         rows.reject { |row| row[:status] == "removed" }
-            .any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min.negative? }
+            .any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min < -EPSILON }
       end
 
       # Deltas are sign-based, not threshold-based: a +5% bump is good
