@@ -4,20 +4,7 @@ module SimpleCov
   module ExitCodes
     # Fails when the overall (project-wide) coverage for any criterion is
     # below the configured minimum.
-    class MinimumOverallCoverageCheck
-      def initialize(result, minimum_coverage)
-        @result = result
-        @minimum_coverage = minimum_coverage
-      end
-
-      def failing?
-        violations.any?
-      end
-
-      def report
-        violations.each { |violation| report_violation(violation) }
-      end
-
+    class MinimumOverallCoverageCheck < Check
       def exit_code
         SimpleCov::ExitCodes::MINIMUM_COVERAGE
       end
@@ -27,8 +14,8 @@ module SimpleCov
       WORST_FILES_LIMIT = 5
       private_constant :WORST_FILES_LIMIT
 
-      def violations
-        @violations ||= SimpleCov::CoverageViolations.minimum_overall(@result, @minimum_coverage)
+      def compute_violations
+        SimpleCov::CoverageViolations.minimum_overall(result, thresholds)
       end
 
       def report_violation(violation)
@@ -59,7 +46,7 @@ module SimpleCov
 
       def worst_files_for(criterion)
         stats_key = SimpleCov.coverage_statistics_key(criterion)
-        with_stats = @result.files.filter_map do |source_file|
+        with_stats = result.files.filter_map do |source_file|
           stats = source_file.coverage_statistics[stats_key]
           [source_file.project_filename, stats.percent] if stats
         end

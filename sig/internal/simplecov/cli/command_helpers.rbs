@@ -15,6 +15,10 @@ module SimpleCov
       # subcommand accepts.
       def common_options: (untyped parser, untyped opts) -> untyped
 
+      # Shared parse scaffold: seeded defaults, the common option trio,
+      # a block for command-specific flags, returns [opts, rest].
+      def parse_common: (untyped args, ?::Hash[Symbol, untyped] defaults) ?{ (untyped, untyped) -> untyped } -> [untyped, untyped]
+
       def stats_row: (untyped label, untyped percent_text, untyped covered, untyped total) -> ::String
     end
   end

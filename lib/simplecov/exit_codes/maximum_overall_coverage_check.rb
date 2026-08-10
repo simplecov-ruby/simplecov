@@ -7,28 +7,15 @@ module SimpleCov
     # `SimpleCov::ExitCodes::MinimumOverallCoverageCheck` (or use
     # `SimpleCov.expected_coverage`) to pin coverage to an exact value
     # and surface unexpected increases instead of silently absorbing them.
-    class MaximumOverallCoverageCheck
-      def initialize(result, maximum_coverage)
-        @result = result
-        @maximum_coverage = maximum_coverage
-      end
-
-      def failing?
-        violations.any?
-      end
-
-      def report
-        violations.each { |violation| report_violation(violation) }
-      end
-
+    class MaximumOverallCoverageCheck < Check
       def exit_code
         SimpleCov::ExitCodes::MAXIMUM_COVERAGE
       end
 
     private
 
-      def violations
-        @violations ||= SimpleCov::CoverageViolations.maximum_overall(@result, @maximum_coverage)
+      def compute_violations
+        SimpleCov::CoverageViolations.maximum_overall(result, thresholds)
       end
 
       def report_violation(violation)
