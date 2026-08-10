@@ -43,7 +43,7 @@ module SimpleCov
     PATTERN = /
       \#\s*simplecov\s*:\s*
       (?<mode>disable|enable)\b
-      (?:\s+(?<categories>#{CATEGORIES_PATTERN}))?
+      (?:\s+(?<categories>#{CATEGORIES_PATTERN})\b)?
       .*?
       \s*\z
     /x
