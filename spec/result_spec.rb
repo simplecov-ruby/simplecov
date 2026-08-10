@@ -230,6 +230,19 @@ RSpec.describe SimpleCov::Result do
         it "returns a formatted string with result.format!" do
           expect(result.format!).to be_a String
         end
+
+        # The stamp is the on-disk signal behind the clobber-prevention
+        # backstop; unlike .last_run.json it must appear no matter how
+        # the run ends.
+        it "touches the report stamp when formatting" do
+          Dir.mktmpdir("simplecov-stamp-spec-") do |dir|
+            allow(SimpleCov).to receive(:coverage_path).and_return(dir)
+
+            result.format!
+
+            expect(File).to exist(File.join(dir, ".report_stamp"))
+          end
+        end
       end
 
       context "when multi formatter being used" do

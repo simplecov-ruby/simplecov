@@ -1,0 +1,13 @@
+# The clobber-prevention backstop: an empty process stands down instead
+# of formatting over a fresher report a sibling produced. See #581.
+module SimpleCov
+  # Returns true when our process has no coverage data to contribute
+  # (after the resultset merge) and a newer report already exists on
+  # disk. Typically fires when `SimpleCov.start` ran in a parent
+  # process that shelled out to the test runner. See issue #581.
+  def self.defer_to_existing_report?: () -> (false | untyped)
+
+  def self.existing_report_newer_than_us?: () -> (false | untyped)
+
+  def self.warn_about_deferred_report: () -> (nil | untyped)
+end

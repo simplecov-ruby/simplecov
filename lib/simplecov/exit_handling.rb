@@ -25,50 +25,20 @@ module SimpleCov
       # or a test consumed the result) then don't run exit tasks.
       return unless Coverage.running?
 
-      # Stand down when we'd only clobber a fresher report. See
-      # `defer_to_existing_report?` and issue #581.
-      return if defer_to_existing_report?
-
-      SimpleCov.run_exit_tasks!
-    end
-
-    # Returns true when our process has no coverage data to contribute
-    # (after the resultset merge) and a newer report already exists on
-    # disk. Typically fires when `SimpleCov.start` ran in a parent
-    # process — e.g. a Rakefile or Rails' `Bundler.require` — that
-    # shelled out to the test runner. See issue #581.
-    def defer_to_existing_report?
-      return false unless existing_report_newer_than_us?
-
-      res = result
-      empty = res.nil? || res.files.empty?
-      warn_about_deferred_report if empty
-      empty
-    end
-
-    def existing_report_newer_than_us?
-      return false unless process_start_time
-
-      last_run_path = SimpleCov::LastRun.last_run_path
-      File.exist?(last_run_path) && File.mtime(last_run_path) > process_start_time
-    end
-
-    def warn_about_deferred_report
-      return unless print_errors
-
-      ExitCodes.print_error SimpleCov::Color.colorize(
-        "Skipping SimpleCov report — this process tracked no application code and a newer " \
-        "report already exists at #{coverage_path}. This usually means SimpleCov.start ran in a " \
-        "parent process (e.g. a Rakefile or Rails' Bundler.require) that shelled out to the test " \
-        "runner. See https://github.com/simplecov-ruby/simplecov/issues/581.",
-        :yellow
-      )
-    end
-
-    # @api private — called from the at_exit block.
-    def run_exit_tasks!
+      # Capture the suite's exit status BEFORE the deferral probe: its
+      # freshness check rescues filesystem errors, and completing any
+      # rescue inside an at_exit handler resets $ERROR_INFO to nil.
       error_exit_status = exit_status_from_exception
 
+      # Stand down when we'd only clobber a fresher report (#581).
+      return if defer_to_existing_report?
+
+      SimpleCov.run_exit_tasks!(error_exit_status)
+    end
+
+    # @api private — called from the at_exit block (which pre-captures
+    # the status, see there) and by `collate` (the default argument).
+    def run_exit_tasks!(error_exit_status = exit_status_from_exception)
       at_exit.call
 
       exit_and_report_previous_error(error_exit_status) if previous_error?(error_exit_status)
