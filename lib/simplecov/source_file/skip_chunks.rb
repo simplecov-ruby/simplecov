@@ -22,15 +22,12 @@ module SimpleCov
         @src = src
       end
 
-      # `:method` ignores nocov chunks (Ruby's Coverage doesn't tie
-      # method entries to line ranges); `:line` / `:branch` honor both
-      # the nocov chunks and the per-criterion directive ranges.
+      # Every criterion honors the deprecated all-criteria `# :nocov:`
+      # chunks plus its own per-criterion directive ranges. Methods
+      # included: they carry a source range, and nocov has always meant
+      # "exclude everything here".
       def for(criterion)
-        if criterion == :method
-          directive_chunks.fetch(:method)
-        else
-          nocov_chunks + directive_chunks.fetch(criterion)
-        end
+        nocov_chunks + directive_chunks.fetch(criterion)
       end
 
       # Ranges of 1-based line numbers (see `with_index(1)` below);

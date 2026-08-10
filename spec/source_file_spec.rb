@@ -1165,6 +1165,64 @@ RSpec.describe SimpleCov::SourceFile do
       end
     end
 
+    # A line-only directive must not leak into method coverage. The
+    # skipped? fallback used to consult the method's LINES, so wrapping a
+    # def in `# simplecov:disable line` (the README's own line-directive
+    # example) silently removed the method from method totals.
+    describe "block disable of line coverage around a method" do
+      subject(:source_file) do
+        build(
+          {
+            "lines" => [nil, 1, 5, nil, nil],
+            "branches" => {},
+            "methods" => {["Demo", :greet, 2, 0, 4, 3] => 5}
+          },
+          [
+            "# simplecov:disable line\n", # 1
+            "def greet\n",                # 2
+            "  :hi\n",                    # 3
+            "end\n",                      # 4
+            "# simplecov:enable line\n"   # 5
+          ]
+        )
+      end
+
+      it "keeps the method in method totals" do
+        expect(source_file.methods.map(&:skipped?)).to eq [false]
+        expect(source_file.covered_methods.map(&:method_name)).to eq [:greet]
+      end
+
+      it "still skips the lines" do
+        expect(source_file.skipped_lines.map(&:line_number)).to eq [1, 2, 3, 4, 5]
+      end
+    end
+
+    describe "deprecated :nocov: block around a method" do
+      subject(:source_file) do
+        build(
+          {
+            "lines" => [nil, nil, 0, nil, nil],
+            "branches" => {},
+            "methods" => {["Demo", :hidden, 2, 0, 4, 3] => 0}
+          },
+          [
+            "# :nocov:\n", # 1
+            "def hidden\n", # 2
+            "  :hi\n",      # 3
+            "end\n",        # 4
+            "# :nocov:\n"   # 5
+          ]
+        )
+      end
+
+      before { SimpleCov::SourceFile::SkipChunks.nocov_warned.add("dummy.rb") }
+
+      it "still excludes the method from method totals" do
+        expect(source_file.methods.map(&:skipped?)).to eq [true]
+        expect(source_file.missed_methods).to eq []
+      end
+    end
+
     describe "block disable of branch coverage" do
       subject(:source_file) do
         build(

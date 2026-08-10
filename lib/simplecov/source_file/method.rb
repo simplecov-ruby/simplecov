@@ -18,10 +18,16 @@ module SimpleCov
         !skipped? && coverage.positive?
       end
 
+      # Criterion-level skips (nocov chunks, `# simplecov:disable` /
+      # `# simplecov:disable method` regions) arrive via `skipped!` from
+      # MethodBuilder. Deliberately NOT derived from the lines' skip
+      # state: a line-only directive around a def must not remove the
+      # method from method totals. Without line info there is nothing to
+      # report against, so such a method stays skipped.
       def skipped?
         return @skipped if defined?(@skipped)
 
-        @skipped = lines.all?(&:skipped?)
+        @skipped = lines.empty?
       end
 
       # Flag the method as skipped directly, without going through its lines.
