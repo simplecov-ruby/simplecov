@@ -25,8 +25,7 @@ module SimpleCov
       end
 
       def parse(args, stderr:)
-        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
-        rest = OptionParser.new { |o| common_options(o, opts) }.parse(args)
+        opts, rest = parse_common(args)
         return stderr.puts("simplecov coverage: missing file argument") && nil if rest.empty?
 
         opts[:path] = rest.first
@@ -38,10 +37,14 @@ module SimpleCov
         return unless coverage
 
         match = lookup(coverage, opts[:path])
-        return match if match
+        if match.nil?
+          stderr.puts("simplecov coverage: no entry for #{opts[:path]} in #{opts[:input]}")
+          return nil
+        end
+        # A wrong-typed entry used to escape here and crash print_human.
+        return match if match.last.is_a?(Hash)
 
-        stderr.puts("simplecov coverage: no entry for #{opts[:path]} in #{opts[:input]}")
-        nil
+        CoverageFile.report_invalid(stderr, "coverage", opts[:input], "entry for #{opts[:path]} must be an object")
       end
 
       # Match either the absolute path, the literal string passed, or

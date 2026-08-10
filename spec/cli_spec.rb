@@ -197,6 +197,34 @@ RSpec.describe SimpleCov::CLI do
       expect(run("report", "--input", tmp)).to eq(1)
       expect(stderr.string).to include("simplecov report:").and include("cannot read").and include(tmp)
     end
+
+    # Valid JSON with wrong-typed totals used to crash the emitters with
+    # NoMethodError/TypeError backtraces instead of a one-line error.
+    it "reports wrong-typed \"groups\" as invalid input in both output modes" do
+      invalid = File.join(tmp, "bad_groups.json")
+      File.write(invalid, JSON.dump("total" => {}, "groups" => [1, 2]))
+
+      expect(run("report", "--input", invalid)).to eq(1)
+      expect(stderr.string).to include('"groups" must be an object')
+
+      expect(run("report", "--json", "--input", invalid)).to eq(1)
+    end
+
+    it "reports a wrong-typed group entry as invalid input" do
+      invalid = File.join(tmp, "bad_group_entry.json")
+      File.write(invalid, JSON.dump("total" => {}, "groups" => {"Models" => 5}))
+
+      expect(run("report", "--input", invalid)).to eq(1)
+      expect(stderr.string).to include('"groups" must be an object of objects')
+    end
+
+    it "reports a wrong-typed \"total\" as invalid input" do
+      invalid = File.join(tmp, "bad_total.json")
+      File.write(invalid, JSON.dump("total" => []))
+
+      expect(run("report", "--input", invalid)).to eq(1)
+      expect(stderr.string).to include('"total" must be an object')
+    end
   end
 
   describe "coverage subcommand" do
@@ -240,6 +268,15 @@ RSpec.describe SimpleCov::CLI do
     it "errors when the requested file isn't in the report" do
       expect(run("coverage", "--input", json_path, "lib/missing.rb")).to eq(1)
       expect(stderr.string).to include("no entry for lib/missing.rb")
+    end
+
+    # A wrong-typed per-file entry used to crash print_human with
+    # NoMethodError instead of the one-line error the siblings print.
+    it "errors when the matched entry is not an object" do
+      File.write(json_path, JSON.dump("coverage" => {abs_filename => "junk"}))
+
+      expect(run("coverage", "--input", json_path, abs_filename)).to eq(1)
+      expect(stderr.string).to include("entry for #{abs_filename} must be an object")
     end
 
     it "errors when the file argument is missing" do
@@ -618,6 +655,16 @@ RSpec.describe SimpleCov::CLI do
       expect(run("merge", "--output", out, File.join(tmp, "nope.json"))).to eq(1)
       expect(stderr.string).to include("not found")
       expect(stderr.string).to include("nope.json")
+    end
+
+    # A directory passed File.exist? and then File.read raised EISDIR
+    # with a full backtrace; EACCES behaved the same. The read errors
+    # must come back as the same one-line reports the other input
+    # problems get.
+    it "surfaces a specific error when an input path is not a readable file" do
+      expect(run("merge", "--output", out, tmp)).to eq(1)
+      expect(stderr.string).to include("cannot be read")
+      expect(stderr.string).to include(tmp)
     end
 
     it "errors when --honor-timeout expires every input's entries" do
