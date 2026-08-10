@@ -173,8 +173,15 @@ module SimpleCov
       ).warn!
     end
 
+    # A live result's criterion keys are Symbols (`:lines`, `:branches`),
+    # while entries parsed back from `.resultset.json` carry Strings, and
+    # the combiners read only String keys. Serialize with String keys so a
+    # live result merged against a stored entry contributes its counts
+    # instead of being silently dropped for every shared file.
     def coverage
-      original_result.slice(*filenames)
+      original_result.slice(*filenames).transform_values do |file_coverage|
+        file_coverage.transform_keys(&:to_s)
+      end
     end
 
     # Applies the given filter chain to `@files`, dropping each source

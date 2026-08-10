@@ -103,6 +103,21 @@ RSpec.describe SimpleCov::Result do
           expect(restored.worker_id).to eq("worker-2")
         end
 
+        # A live result's criterion keys are Symbols (ResultAdapter keeps
+        # Ruby's Coverage keys), while stored entries parsed back from JSON
+        # carry Strings and the combiners read only Strings. Symbol keys in
+        # the dump meant a live result merged against a stored entry with
+        # the same command name (the #581 concurrent-runner path)
+        # contributed nothing for every shared file.
+        it "serializes symbol criterion keys as strings" do
+          live = described_class.new(
+            {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}},
+            command_name: "t"
+          )
+
+          expect(live.to_hash["t"]["coverage"][source_fixture("sample.rb")].keys).to eq ["lines"]
+        end
+
         it "round-trips subsecond timestamps" do
           timestamped = described_class.new(original_result, command_name: "t", created_at: Time.at(100.75))
 
