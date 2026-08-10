@@ -14,19 +14,8 @@ module SimpleCov
 
   def self.at_exit_behavior: () -> (nil | untyped)
 
-  # Returns true when our process has no coverage data to contribute
-  # (after the resultset merge) and a newer report already exists on
-  # disk. Typically fires when `SimpleCov.start` ran in a parent
-  # process — e.g. a Rakefile or Rails' `Bundler.require` — that
-  # shelled out to the test runner. See issue #581.
-  def self.defer_to_existing_report?: () -> (false | untyped)
-
-  def self.existing_report_newer_than_us?: () -> (false | untyped)
-
-  def self.warn_about_deferred_report: () -> (nil | untyped)
-
   # @api private — called from the at_exit block.
-  def self.run_exit_tasks!: () -> untyped
+  def self.run_exit_tasks!: (?untyped error_exit_status) -> untyped
 
   # @api private — returns the exit status from the exit exception.
   def self.exit_status_from_exception: () -> (nil | untyped)

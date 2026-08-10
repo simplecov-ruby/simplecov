@@ -110,7 +110,13 @@ module SimpleCov
       formatter = SimpleCov.formatter
       return nil if formatter.nil?
 
-      Formatter.format(formatter, self)
+      formatted = Formatter.format(formatter, self)
+      # Recorded regardless of how the run ends, so a parent process's
+      # clobber-prevention backstop can tell a report was produced even
+      # when this run's checks or tests failed (unlike .last_run.json,
+      # which only successful runs write).
+      SimpleCov::ReportStamp.touch
+      formatted
     end
 
     # Defines when this result has been created. Defaults to Time.now

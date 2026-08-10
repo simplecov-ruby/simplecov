@@ -651,6 +651,22 @@ RSpec.describe SimpleCov do
       described_class.at_exit_behavior
       expect(described_class).not_to have_received(:run_exit_tasks!)
     end
+
+    # The deferral probe's freshness check rescues filesystem errors,
+    # and completing ANY rescue inside an at_exit handler resets
+    # $ERROR_INFO to nil — so the suite's exit status must be captured
+    # before the probe runs, or a failing suite reads as clean and its
+    # failure status is swallowed.
+    it "captures the exit status up front and hands it to run_exit_tasks!" do
+      described_class.pid = Process.pid
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive_messages(exit_status_from_exception: 1, defer_to_existing_report?: false)
+      allow(described_class).to receive(:run_exit_tasks!)
+
+      described_class.at_exit_behavior
+
+      expect(described_class).to have_received(:run_exit_tasks!).with(1)
+    end
   end
 
   describe ".defer_to_existing_report?" do
@@ -667,6 +683,29 @@ RSpec.describe SimpleCov do
 
     it "is false when no on-disk last_run report exists" do
       allow(described_class).to receive(:process_start_time).and_return(Time.now)
+      expect(described_class.defer_to_existing_report?).to be false
+    end
+
+    # .last_run.json is only written by fully successful runs, so keying
+    # the backstop on it alone left it inert when the child run FAILED —
+    # the case where clobbering its report hurts most. The report stamp
+    # is touched by every formatting process regardless of exit status.
+    it "defers on a fresh report stamp even without .last_run.json (failed child run)" do
+      stamp = File.join(tmp, ".report_stamp")
+      FileUtils.touch(stamp)
+      future = Time.now + 60
+      File.utime(future, future, stamp)
+      result = instance_double(SimpleCov::Result, files: [])
+      allow(described_class).to receive_messages(process_start_time: Time.now, result: result)
+      allow(described_class).to receive(:warn_about_deferred_report)
+
+      expect(described_class.defer_to_existing_report?).to be true
+    end
+
+    it "does not raise when the on-disk report vanishes between checks" do
+      allow(described_class).to receive(:process_start_time).and_return(Time.now)
+      allow(File).to receive(:mtime).and_raise(Errno::ENOENT)
+
       expect(described_class.defer_to_existing_report?).to be false
     end
 
