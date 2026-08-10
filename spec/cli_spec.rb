@@ -718,6 +718,25 @@ RSpec.describe SimpleCov::CLI do
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
     end
 
+    # Row inclusion and display both treat sub-EPSILON deltas as float
+    # noise, so the gate must too: a row listed for a gain in one
+    # criterion used to exit 1 over a 1e-14 drift in another, failing CI
+    # with only gains visible in the output.
+    it "does not fail on sub-epsilon float noise under --fail-on-drop" do
+      write_coverage(baseline,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 20, "covered_branches" => 16,
+                                    "branches_covered_percent" => 80.0})
+      write_coverage(current,
+                     "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
+                                    "total_branches" => 20, "covered_branches" => 16,
+                                    "branches_covered_percent" => 80.0 - 1e-14})
+
+      expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(0)
+      expect(stdout.string).to include("lib/a.rb")
+      expect(stdout.string).to match(/\+\s*5\.00%\s+lines/)
+    end
+
     it "errors when the baseline argument is missing" do
       expect(run("diff")).to eq(1)
       expect(stderr.string).to include("missing baseline argument")
