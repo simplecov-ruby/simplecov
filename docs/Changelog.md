@@ -364,4 +364,4 @@ On a personal note from [@PragTob](https://github.com/PragTob/) thanks to [ruby 
 Older Changelogs
 ================
 
-Looking for older changelogs? Please check the [old Changelog](https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.old.md)
+Looking for older changelogs? Please check the [old Changelog](https://github.com/simplecov-ruby/simplecov/blob/main/docs/Changelog.old.md)
