@@ -139,18 +139,14 @@ module SimpleCov
     end
 
     # Build a filter for a `cover` argument. Strings are treated as
-    # globs (not substrings — that's `skip`/`add_filter`'s semantics).
+    # globs (not substrings — that's `skip`/`add_filter`'s semantics);
+    # everything else dispatches exactly like `add_filter`.
     def build_cover_filter(arg)
-      case arg
-      when String            then SimpleCov::GlobFilter.new(arg)
-      when Regexp            then SimpleCov::RegexFilter.new(arg)
-      when Proc              then SimpleCov::BlockFilter.new(arg)
-      when SimpleCov::Filter then arg
-      when Array             then SimpleCov::ArrayFilter.new(arg.map { |a| build_cover_filter(a) })
-      else raise SimpleCov::ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
-                                                "expected a String glob, Regexp, Proc, " \
-                                                "SimpleCov::Filter, or Array of those."
-      end
+      SimpleCov::Filter.build_filter(arg, string_filter: SimpleCov::GlobFilter)
+    rescue SimpleCov::ConfigurationError
+      raise SimpleCov::ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
+                                           "expected a String glob, Regexp, Proc, " \
+                                           "SimpleCov::Filter, or Array of those."
     end
 
     # Walk a list of cover filters and return the string globs they hold,
