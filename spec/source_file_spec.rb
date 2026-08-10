@@ -273,6 +273,21 @@ RSpec.describe SimpleCov::SourceFile do
         expect(method.start_line).to eq(2)
       end
     end
+
+    # `def obj.greet` on a plain instance records the nested inspect form
+    # `#<Class:#<Object:0x...>>`. The quoting regex used to stop at the
+    # first `>`, leaving a dangling `>` that failed both Ripper passes and
+    # raised ArgumentError out of the merge.
+    context "with a singleton class of an instance" do
+      let(:methods_data) { {"[#<Class:#<Object:0x0>>, :bar, 2, 2, 5, 5]" => 1} }
+
+      it "parses the nested singleton class name" do
+        method = source_file.methods.first
+        expect(method.class_name).to eq("#<Class:#<Object:0x0>>")
+        expect(method.method_name).to eq(:bar)
+        expect(method.start_line).to eq(2)
+      end
+    end
   end
 
   # Regression: coverage data can have "branches" => nil when another gem
