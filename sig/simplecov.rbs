@@ -1227,7 +1227,7 @@ module SimpleCov
     # before the file has any coverage.
     def path_only?: () -> bool
 
-    def self.build_filter: (filter_arg filter_argument) -> Filter[untyped]
+    def self.build_filter: (filter_arg filter_argument, ?string_filter: singleton(Filter)) -> Filter[untyped]
 
     def self.class_for_argument: (filter_arg filter_argument) -> singleton(Filter)
 

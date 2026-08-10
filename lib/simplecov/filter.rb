@@ -31,10 +31,18 @@ module SimpleCov
       false
     end
 
-    def self.build_filter(filter_argument)
-      return filter_argument if filter_argument.is_a?(SimpleCov::Filter)
-
-      class_for_argument(filter_argument).new(filter_argument)
+    # `string_filter` selects the semantics of bare String arguments —
+    # StringFilter's segment-substring match for `add_filter`/`skip`,
+    # GlobFilter for `cover` — and threads through Array elements so a
+    # list gets the same treatment as its members.
+    def self.build_filter(filter_argument, string_filter: SimpleCov::StringFilter)
+      case filter_argument
+      when SimpleCov::Filter then filter_argument
+      when String            then string_filter.new(filter_argument)
+      when Array
+        SimpleCov::ArrayFilter.new(filter_argument.map { |arg| build_filter(arg, string_filter: string_filter) })
+      else class_for_argument(filter_argument).new(filter_argument)
+      end
     end
 
     def self.class_for_argument(filter_argument)
