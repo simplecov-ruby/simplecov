@@ -43,7 +43,7 @@ Gem::Specification.new do |gem|
   gem.license     = "MIT"
   gem.metadata    = {
     "bug_tracker_uri" => "https://github.com/simplecov-ruby/simplecov/issues",
-    "changelog_uri" => "https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md",
+    "changelog_uri" => "https://github.com/simplecov-ruby/simplecov/blob/main/docs/Changelog.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
     "mailing_list_uri" => "https://groups.google.com/forum/#!forum/simplecov",
     "source_code_uri" => "https://github.com/simplecov-ruby/simplecov/tree/v#{gem.version}",
@@ -52,12 +52,12 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = ">= 3.2"
 
-  # CHANGELOG.md is intentionally not packaged — it grows every release and is
+  # The changelog is intentionally not packaged — it grows every release and is
   # the gem's largest avoidable payload. The `changelog_uri` metadata above
   # points readers at the GitHub copy instead.
   # sig/internal holds skeleton signatures for internal classes so Steep can
   # type-check the whole codebase; only the public API signature file ships.
-  gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "README.md", "doc/*", "sig/simplecov.rbs"]
+  gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
   gem.bindir        = "exe"
   gem.executables   = ["simplecov"]
   gem.require_paths = ["lib"]
