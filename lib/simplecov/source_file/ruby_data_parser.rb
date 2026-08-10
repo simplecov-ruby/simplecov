@@ -97,9 +97,13 @@ module SimpleCov
       # Method coverage keys can contain inspect-format class references
       # like `#<Class:Foo>` or `#<Class:0x...>`, which aren't valid Ruby
       # syntax. Wrap them in quotes so Ripper can parse the surrounding
-      # array literal; downstream we treat them as opaque strings.
+      # array literal; downstream we treat them as opaque strings. The
+      # pattern recurses because singleton methods on instances nest one
+      # inspect segment inside another (`#<Class:#<Object:0x...>>`), and
+      # stopping at the first `>` leaves a dangling `>` that fails both
+      # Ripper passes and crashes the merge.
       def quote_inspected_class_segments(str)
-        str.gsub(/#<[^>]*>/) { |segment| %("#{segment.gsub('"', '\\"')}") }
+        str.gsub(/#<(?:[^<>]|\g<0>)*>/) { |segment| %("#{segment.gsub('"', '\\"')}") }
       end
     end
   end
