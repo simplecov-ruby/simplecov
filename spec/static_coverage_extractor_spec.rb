@@ -228,10 +228,55 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             end
           end
 
-          it "does not fold a parenthesized multi-statement condition" do
-            # `(a; b)` isn't a single wrapped expression, so the paren
-            # unwrapping stops and the whole thing is treated as non-literal.
-            expect(static_branches("if (a; b)\n  x\nend\n").keys.first.first).to eq(:if)
+          # A multi-statement paren condition folds by its LAST expression,
+          # but only when the compiler eliminates every leading statement
+          # (pure literals everywhere; side-effect-free reads and static
+          # containers on 3.3+). A leading statement the compiler must
+          # keep — a call, an assignment — keeps the branch real. Pinned
+          # against real Coverage on 3.2 through 4.0 and patrolled by the
+          # runtime battery below. The extractor used to synthesize a
+          # phantom then/else pair for `if (1; 2)` that no run can hit.
+          it "folds a multi-statement paren condition with eliminable leading statements" do
+            expect(static_branches("if (1; 2)\n  x\nelse\n  y\nend\n")).to be_empty
+            expect(static_branches("if (:s; \"t\"; 2)\n  x\nend\n")).to be_empty
+            expect(static_branches("if ((1; 2))\n  x\nend\n")).to be_empty
+          end
+
+          it "keeps the branch when a leading statement is not eliminable" do
+            expect(static_branches("if (a; 2)\n  x\nend\n").keys.first.first).to eq(:if)
+            expect(static_branches("if (x = 5; 2)\n  x\nend\n").keys.first.first).to eq(:if)
+            expect(static_branches("if ([a]; 2)\n  x\nend\n").keys.first.first).to eq(:if)
+            expect(static_branches("if ({a: b}; 2)\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "keeps the branch when the last statement of a sequence is not a foldable literal" do
+            expect(static_branches("if (1; a)\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "keeps the branch for an empty paren condition" do
+            # `if ()` is valid Ruby, parses to a ParenthesesNode with no
+            # body, and keeps a real branch on every supported version.
+            expect(static_branches("if ()\n  x\nend\n").keys.first.first).to eq(:if)
+          end
+
+          it "applies paren opacity to the last statement of a sequence" do
+            src = "if (1; nil)\n  x\nelse\n  y\nend\n"
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
+              expect(static_branches(src)).to be_empty
+            else
+              expect(static_branches(src).keys.first.first).to eq(:if)
+            end
+          end
+
+          it "matches the running compiler for version-dependent eliminable leading reads" do
+            srcs = ["if (@x; 2)\n  a\nend\n", "if ([1]; 2)\n  a\nend\n",
+                    "if ({a: 1}; 2)\n  a\nend\n", "if ((3..4); 2)\n  a\nend\n"]
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
+              # parse.y (3.2) eliminates only pure literals, so these stay real.
+              srcs.each { |src| expect(static_branches(src).keys.first.first).to eq(:if) }
+            else
+              srcs.each { |src| expect(static_branches(src)).to be_empty }
+            end
           end
 
           # The modern compiler eliminates the dead arm's entire subtree, not
@@ -281,6 +326,33 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
               expect(branches.keys.map(&:first)).to eq([:if])
             end
           end
+        end
+      end
+
+      # The container-eliminability predicates behind the multi-statement
+      # paren fold, exercised directly: on 3.2 the public path never
+      # consults them (parse.y eliminates only scalar literals), but
+      # their logic is version-independent and must stay covered — and
+      # correct — on every supported Ruby.
+      describe "container eliminability predicates" do
+        def predicate(name, source)
+          node = Prism.parse(source).value.statements.body.first
+          SimpleCov::StaticCoverageExtractor::Visitor.new.send(name, node)
+        end
+
+        it "treats containers of scalar literals as static" do
+          expect(predicate(:static_container?, "[1, 2]")).to be true
+          expect(predicate(:static_container?, "{a: 1}")).to be true
+          expect(predicate(:static_container?, "3..4")).to be true
+          expect(predicate(:static_container?, "..4")).to be true
+        end
+
+        it "rejects containers with effectful or non-literal contents" do
+          expect(predicate(:static_container?, "[foo]")).to be false
+          expect(predicate(:static_container?, "{a: foo}")).to be false
+          expect(predicate(:static_container?, "{**foo}")).to be false
+          expect(predicate(:static_container?, "foo..4")).to be false
+          expect(predicate(:static_container?, "foo")).to be false
         end
       end
 
@@ -386,6 +458,30 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "unfolded_paren_nil" => "def fx(a)\n  if (nil)\n    :a\n  end\nend\n",
             "unfolded_paren_string" => "def fx(a)\n  if (\"x\")\n    :a\n  end\nend\n",
             "unfolded_paren_lambda" => "def fx(a)\n  if (-> { a ? 1 : 2 })\n    :a\n  end\nend\n",
+            # Multi-statement paren conditions fold by their last
+            # expression when the compiler eliminates every leading
+            # statement: pure literals everywhere, plus side-effect-free
+            # reads and static containers on 3.3+. A call, assignment, or
+            # dynamic container as a leading statement keeps the branch
+            # real, as does an opaque (nil / string / lambda) last
+            # statement on 3.3+.
+            "folded_seq_int" => "def fx(a)\n  if (1; 2)\n    :a\n  else\n    :b\n  end\nend\n",
+            "folded_seq_three" => "def fx(a)\n  if (:s; \"t\"; 2)\n    :a\n  end\nend\n",
+            "folded_seq_nested" => "def fx(a)\n  if ((1; 2))\n    :a\n  end\nend\n",
+            "unfolded_seq_call" => "def fx(a)\n  if (foo; 2)\n    :a\n  end\nend\n",
+            "unfolded_seq_asgn" => "def fx(a)\n  if (x = 5; 2)\n    :a\n  end\nend\n",
+            "unfolded_seq_last_lvar" => "def fx(a)\n  if (1; a)\n    :a\n  end\nend\n",
+            "seq_opaque_nil_last" => "def fx(a)\n  if (1; nil)\n    :a\n  else\n    :b\n  end\nend\n",
+            "seq_ivar_read" => "def fx(a)\n  if (@x; 2)\n    :a\n  end\nend\n",
+            "seq_static_array" => "def fx(a)\n  if ([1]; 2)\n    :a\n  end\nend\n",
+            "seq_dynamic_array" => "def fx(a)\n  if ([a]; 2)\n    :a\n  end\nend\n",
+            "seq_static_hash" => "def fx(a)\n  if ({a: 1}; 2)\n    :a\n  end\nend\n",
+            "seq_dynamic_hash" => "def fx(a)\n  if ({a: foo}; 2)\n    :a\n  end\nend\n",
+            "seq_static_range" => "def fx(a)\n  if ((3..4); 2)\n    :a\n  end\nend\n",
+            "seq_self" => "def fx(a)\n  if (self; 2)\n    :a\n  end\nend\n",
+            "seq_array_self" => "def fx(a)\n  if ([self]; 2)\n    :a\n  end\nend\n",
+            "seq_call_array" => "def fx(a)\n  if ([foo]; 2)\n    :a\n  end\nend\n",
+            "seq_empty_paren" => "def fx(a)\n  if ()\n    :a\n  end\nend\n",
             # do-while (`begin ... end while/until`): 3.3 attributes the
             # body to the begin's inner statements, 3.4 to the whole span.
             "do_while" => "def fx(a)\n  begin\n    a\n  end while a\nend\n",

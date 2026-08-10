@@ -7,6 +7,7 @@ module SimpleCov
       FOLDS_SOURCE_FILE: bool
       PARENS_ALWAYS_TRANSPARENT: bool
       DEAD_ARM_BRANCHES_SURVIVE: bool
+      CONTAINER_CONTENTS_NEED_STATIC_LITERALS: bool
 
       # Prism node types for the literals that fold.
       STATIC_CONDITION_TYPES: Array[untyped]
@@ -16,6 +17,13 @@ module SimpleCov
 
       # The literals whose fold does not see through parentheses.
       PAREN_OPAQUE_TYPES: Array[untyped]
+
+      # The scalar literals the compiler treats as fully static.
+      STATIC_LITERAL_LEAF_TYPES: Array[untyped]
+
+      # Non-literal reads eliminated when discarded, bare only.
+      PRISM_ERA_ELIMINABLE_READS: Array[untyped]
+      ELIMINABLE_READ_TYPES: Array[untyped]
 
       # Set while visiting a 3.2 folded dead arm; read by
       # MethodCollector#visit_def_node.
@@ -32,6 +40,20 @@ module SimpleCov
       def foldable?: (untyped node, untyped unwrapped) -> bool
 
       def unwrap_parentheses: (untyped node) -> untyped
+
+      def eliminable_when_discarded?: (untyped node) -> bool
+
+      def static_container_literal?: (untyped node) -> bool
+
+      def static_container?: (untyped node) -> bool
+
+      def container_contents_eliminable?: (untyped node) -> bool
+
+      def static_array_literal?: (untyped node) -> bool
+
+      def static_hash_literal?: (untyped node) -> bool
+
+      def static_range_literal?: (untyped node) -> bool
     end
   end
 end

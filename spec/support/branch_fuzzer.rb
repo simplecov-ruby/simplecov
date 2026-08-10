@@ -61,8 +61,12 @@ module_function
     CONDITIONS = ["a", "b", "c", "foo", "a.b", "a && b", "a || b"].freeze
     # The if-like sites also draw compile-time literals, so the fuzzer
     # exercises constant folding and its dead-arm elimination — the
-    # class where the phantom-tuple bugs actually lived.
-    FOLDABLE_CONDITIONS = %w[true false nil 1].freeze
+    # class where the phantom-tuple bugs actually lived. The
+    # parenthesized and multi-statement forms exercise paren opacity and
+    # the leading-statement elimination rules, which vary by Ruby
+    # version.
+    FOLDABLE_CONDITIONS = ["true", "false", "nil", "1", "(nil)",
+                           "(1; 2)", "(foo; 2)", "(1; nil)", "(@x; 2)"].freeze
     PATTERNS = ["Integer", "String", "[a]", "{x:}", "Symbol"].freeze
     CONSTRUCTS = %i[
       gen_if gen_unless gen_ternary gen_case_when gen_case_in gen_while
