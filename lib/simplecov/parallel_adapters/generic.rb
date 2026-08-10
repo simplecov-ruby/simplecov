@@ -23,7 +23,7 @@ module SimpleCov
     class GenericAdapter < Base
       class << self
         def active?
-          return false if SimpleCov.parallel_tests == false
+          return false if forced_off?
 
           ENV.key?("TEST_ENV_NUMBER")
         end
@@ -36,7 +36,7 @@ module SimpleCov
         end
 
         def expected_worker_count
-          ENV["PARALLEL_TEST_GROUPS"]&.to_i || 1
+          parallel_test_groups_count
         end
       end
     end

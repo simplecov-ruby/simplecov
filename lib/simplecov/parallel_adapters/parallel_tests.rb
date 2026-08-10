@@ -16,7 +16,7 @@ module SimpleCov
     class ParallelTestsAdapter < Base
       class << self
         def active?
-          return false if SimpleCov.parallel_tests == false
+          return false if forced_off?
 
           ensure_loaded
           # !! to coerce `defined?` (returns nil or "constant") to a proper bool.
@@ -50,7 +50,7 @@ module SimpleCov
         end
 
         def expected_worker_count
-          ENV["PARALLEL_TEST_GROUPS"]&.to_i || 1
+          parallel_test_groups_count
         end
 
         # Auto-require `parallel_tests` when it's installed AND the env

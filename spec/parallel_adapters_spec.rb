@@ -192,6 +192,24 @@ RSpec.describe SimpleCov::ParallelAdapters do
         ENV.delete("PARALLEL_TEST_GROUPS")
         expect(described_class.expected_worker_count).to eq(1)
       end
+
+      # `&.to_i || 1` returned 0 for these (0 is truthy), and a 0-worker
+      # expectation ends the sibling wait before it starts. Pinned here
+      # once for the Base helper both built-in adapters share.
+      it "treats an empty PARALLEL_TEST_GROUPS as 1" do
+        ENV["PARALLEL_TEST_GROUPS"] = ""
+        expect(described_class.expected_worker_count).to eq(1)
+      end
+
+      it "treats a non-numeric PARALLEL_TEST_GROUPS as 1" do
+        ENV["PARALLEL_TEST_GROUPS"] = "lots"
+        expect(described_class.expected_worker_count).to eq(1)
+      end
+
+      it "treats a non-positive PARALLEL_TEST_GROUPS as 1" do
+        ENV["PARALLEL_TEST_GROUPS"] = "0"
+        expect(described_class.expected_worker_count).to eq(1)
+      end
     end
 
     it "wait_for_siblings is a no-op (no native runner API)" do

@@ -55,6 +55,23 @@ module SimpleCov
         def expected_worker_count
           1
         end
+
+        # The user's explicit `SimpleCov.parallel_tests false` opt-out,
+        # which every adapter's `active?` honors before its own
+        # detection.
+        def forced_off?
+          SimpleCov.parallel_tests == false
+        end
+
+        # Shared implementation of the PARALLEL_TEST_GROUPS convention
+        # both built-in adapters follow for `expected_worker_count`.
+        # Unset, empty, non-numeric, and non-positive values all mean 1:
+        # an unparseable value must not yield 0 workers, which would end
+        # the sibling wait before it started.
+        def parallel_test_groups_count
+          count = Integer(ENV.fetch("PARALLEL_TEST_GROUPS", ""), exception: false)
+          count&.positive? ? count : 1
+        end
       end
     end
   end
