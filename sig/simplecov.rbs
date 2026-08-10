@@ -1683,6 +1683,13 @@ module SimpleCov
 
       # How many parallel workers participate in this run. Defaults to 1.
       def self.expected_worker_count: () -> Integer
+
+      # The user's explicit `SimpleCov.parallel_tests false` opt-out.
+      def self.forced_off?: () -> bool
+
+      # Shared PARALLEL_TEST_GROUPS parsing; 1 for unset, empty,
+      # non-numeric, or non-positive values.
+      def self.parallel_test_groups_count: () -> Integer
     end
   end
 end
