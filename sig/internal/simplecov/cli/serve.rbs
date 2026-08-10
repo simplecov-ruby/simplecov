@@ -16,6 +16,9 @@ module SimpleCov
 
       def self?.announce: (untyped stdout, untyped server, untyped dir) -> untyped
 
+      # IPv6 literals need brackets in a URL.
+      def self?.url_host: (String host) -> String
+
       # Returns the block's exit status, or 1 when the socket can't
       # be bound.
       def self?.with_server: (untyped opts, untyped stderr) { (TCPServer) -> untyped } -> untyped

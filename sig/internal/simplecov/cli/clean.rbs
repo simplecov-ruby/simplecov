@@ -5,9 +5,17 @@ module SimpleCov
     # `--dry-run` flag prints what would be deleted without touching
     # disk, for when you're not sure what's in there.
     module Clean
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (untyped | 0 | 1)
 
       def self?.sweep: (untyped dir, untyped opts, untyped stdout) -> untyped
+
+      def self?.entry_count: (untyped dir) -> Integer
 
       def self?.announce: (untyped stdout, untyped opts, untyped message) -> (untyped | nil)
 

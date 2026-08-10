@@ -22,6 +22,7 @@ module SimpleCov
   end
 end
 
+require_relative "exit_codes/check"
 require_relative "exit_codes/exit_code_handling"
 require_relative "exit_codes/maximum_coverage_drop_check"
 require_relative "exit_codes/maximum_overall_coverage_check"
