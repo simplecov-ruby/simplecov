@@ -1,0 +1,8 @@
+module SimpleCov
+  module Combine
+    # The inner merge loop the branches and methods combiners share.
+    module InternedCounts
+      def self?.absorb_counts: (untyped target, untyped source, untyped identities) -> untyped
+    end
+  end
+end

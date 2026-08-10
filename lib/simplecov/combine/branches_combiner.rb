@@ -2,6 +2,7 @@
 
 require_relative "../source_file/ruby_data_parser"
 require_relative "identity_interner"
+require_relative "interned_counts"
 
 module SimpleCov
   module Combine
@@ -40,7 +41,7 @@ module SimpleCov
 
         coverage.each do |condition, branches_inside|
           entry = target[identities[condition]] ||= new_condition(condition)
-          merge_branches(entry[1], branches_inside)
+          InternedCounts.absorb_counts(entry[1], branches_inside, identities)
         end
 
         target
@@ -59,20 +60,6 @@ module SimpleCov
       # @return [Hash]
       def materialize(target)
         target.values.to_h { |condition, branches| [condition, branches.values.to_h] }
-      end
-
-      # `target` and its pairs are always built by `absorb` above, so updating
-      # them in place can't reach data a caller still holds.
-      def merge_branches(target, source)
-        source.each do |branch, count|
-          branch_key = identities[branch]
-          existing = target[branch_key]
-          if existing
-            existing[1] += count
-          else
-            target[branch_key] = [branch, count]
-          end
-        end
       end
 
       # Bounded by the project's branch count, like `RubyDataParser`'s parse
