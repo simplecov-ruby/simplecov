@@ -109,7 +109,10 @@ module SimpleCov
 
     def store_minimum_per_group(criterion, percent, group_name)
       raise_on_invalid_coverage({criterion => percent}, "minimum_coverage_by_group")
-      (minimum_coverage_by_group[group_name] ||= {})[criterion] = percent
+      # Normalize like `group` does, so `only: :Models` finds the group
+      # defined as `group "Models"` at check time instead of storing a
+      # Symbol key no lookup ever matches.
+      (minimum_coverage_by_group[GroupNames.normalize(group_name)] ||= {})[criterion] = percent
     end
 
     #

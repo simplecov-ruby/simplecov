@@ -159,6 +159,14 @@ RSpec.describe SimpleCov::Configuration do
         config.coverage(:branch) { minimum_per_group 90, only: "Models" }
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95, branch: 90})
       end
+
+      # `group :Models` normalizes to the String "Models", so the threshold
+      # store must too. A Symbol key here missed the check-time lookup and
+      # silently left the minimum unenforced.
+      it "normalizes a Symbol only: target to match Symbol-defined groups" do
+        config.coverage(:line) { minimum_per_group 95, only: :Models }
+        expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95})
+      end
     end
   end
 
@@ -1081,6 +1089,11 @@ RSpec.describe SimpleCov::Configuration do
         config.minimum_coverage_by_group({"Test Group 1" => 100.01})
         expect(config).to have_received(:warn)
           .with("The coverage you set for minimum_coverage_by_group is greater than 100%")
+      end
+
+      it "normalizes Symbol group names to Strings like `group` does" do
+        config.minimum_coverage_by_group({Models: 80})
+        expect(config.minimum_coverage_by_group).to eq("Models" => {line: 80})
       end
 
       it "warns with the equivalent `coverage` configuration built from the real arguments" do
