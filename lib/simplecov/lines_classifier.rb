@@ -18,6 +18,11 @@ module SimpleCov
     # `whitespace_line?`, which is sound only while every marker is also a
     # comment. Loosening this to match a trailing `x = 1 # :nocov:` would stop
     # the toggle firing. `lines_classifier_spec.rb` pins the implication.
+    #
+    # The `/o` flag freezes the interpolated nocov token at this
+    # process's first classification; a `nocov_token` configured after
+    # coverage has classified a file would be silently ignored. Sound
+    # today because configuration always precedes classification.
     def self.no_cov_line
       /^(\s*)#(\s*)(:#{SimpleCov.current_nocov_token}:)/o
     end

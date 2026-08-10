@@ -41,8 +41,9 @@ loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
     # `.simplecov` is a configuration file; SimpleCov.start calls inside
-    # it are intercepted and converted to configuration, with a deprecation
-    # warning. See `SimpleCov.with_dot_simplecov_autoload` and issue #581.
+    # it draw a deprecation warning, and tracking still begins for
+    # backward compatibility. See `SimpleCov.with_dot_simplecov_autoload`
+    # and issue #581.
     SimpleCov.with_dot_simplecov_autoload do
       load filename.to_s
     rescue LoadError, StandardError => e

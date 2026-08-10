@@ -77,6 +77,16 @@ RSpec.describe SimpleCov::Configuration do
 
         expect(config.coverage_for_eval_enabled?).to be false
       end
+
+      # `coverage :eval` alone is supported, so the old "Unsupported
+      # coverage criterion eval" message was misleading. The refusal is
+      # about thresholds specifically.
+      it "rejects thresholds for :eval with a message about thresholds, not the criterion" do
+        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
+
+        expect { config.coverage :eval, minimum: 100 }
+          .to raise_error(SimpleCov::ConfigurationError, /:eval only toggles measuring eval'd code/)
+      end
     end
 
     describe "overall thresholds" do
