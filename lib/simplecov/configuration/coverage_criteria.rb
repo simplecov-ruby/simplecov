@@ -127,6 +127,15 @@ module SimpleCov
     end
 
     def raise_if_criterion_disabled(criterion)
+      # `coverage :eval` by itself IS supported — it's a standalone
+      # toggle, never in the enabled-criteria set — so the generic
+      # "unsupported criterion" message below would mislead here.
+      if criterion == :eval
+        raise SimpleCov::ConfigurationError,
+              "Coverage criterion :eval only toggles measuring eval'd code; " \
+              "it cannot carry thresholds or serve as the primary criterion"
+      end
+
       raise_if_criterion_unsupported(criterion)
       return if coverage_criterion_enabled?(criterion)
 
