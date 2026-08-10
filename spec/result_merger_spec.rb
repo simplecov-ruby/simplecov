@@ -399,6 +399,33 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
+  # Two concurrent writers sharing a command name have their coverage
+  # combined rather than last-writer-wins (#581). The incoming side of that
+  # combine is a LIVE result whose criterion keys are Symbols, while the
+  # stored side was parsed from JSON with String keys — a key mismatch here
+  # silently dropped the later writer's counts for every shared file.
+  describe "storing a live result over a concurrent entry with the same command name" do
+    it "combines counts for files both writers carry" do
+      # Unset outside SimpleCov.start. Anything before both stores makes
+      # the first entry count as a concurrent writer's.
+      allow(SimpleCov).to receive(:process_start_time).and_return(Time.at(0))
+      stored = SimpleCov::Result.new(
+        {source_fixture("sample.rb") => {"lines" => [nil, 1, 0, 1, nil, nil, 1, 1, nil, nil]}},
+        command_name: "shared"
+      )
+      live = SimpleCov::Result.new(
+        {source_fixture("sample.rb") => {lines: [nil, 5, 1, 0, nil, nil, 1, 1, nil, nil]}},
+        command_name: "shared"
+      )
+
+      described_class.store_result(stored)
+      described_class.store_result(live)
+
+      combined = described_class.read_resultset.dig("shared", "coverage", source_fixture("sample.rb"))
+      expect(combined["lines"]).to eq [nil, 6, 1, 1, nil, nil, 2, 2, nil, nil]
+    end
+  end
+
   describe "basic workings with 2 resultsets" do
     before do
       FileUtils.rm_f(described_class.resultset_path)
