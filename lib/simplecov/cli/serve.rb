@@ -59,9 +59,15 @@ module SimpleCov
 
       def announce(stdout, server, dir)
         port = server.addr[1]
-        host = server.addr[3]
+        host = url_host(server.addr[3])
         stdout.puts("simplecov serve: serving #{dir} at http://#{host}:#{port}/")
         stdout.puts("Press Ctrl-C to stop.")
+      end
+
+      # IPv6 literals need brackets in a URL (--host ::1 must announce
+      # http://[::1]:PORT/, not the invalid http://::1:PORT/).
+      def url_host(host)
+        host.include?(":") ? "[#{host}]" : host
       end
 
       # One thread per connection: browsers open speculative sockets

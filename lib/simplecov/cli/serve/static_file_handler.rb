@@ -45,6 +45,10 @@ module SimpleCov
           # simplecov:enable branch
           method, path = client.readline.split
           drain_headers(client)
+          # A request line without both tokens used to raise on
+          # `path.split` inside the wide rescue, closing the connection
+          # with an empty response instead of the 400 defined below.
+          return respond(client, 400) if path.nil?
           return respond(client, 405) unless method == "GET"
 
           serve_file(client, path, root)
@@ -73,6 +77,12 @@ module SimpleCov
         # Returns the absolute path of the file to serve, :forbidden for
         # a traversal attempt (including symlinks that escape root), or
         # nil for "not found".
+        #
+        # The request path is deliberately NOT percent-decoded: filenames
+        # needing escapes don't occur in generated reports, and keeping
+        # `%2e%2e%2f` as literal bytes is part of the traversal defense.
+        # If decoding is ever added, it must happen BEFORE the `inside?`
+        # check below.
         def resolve(request_path, root)
           path = request_path.split("?", 2).first.to_s.sub(%r{^/}, "")
           absolute_root = File.realpath(root)

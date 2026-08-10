@@ -1069,6 +1069,27 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
+    # A malformed request line used to raise inside the wide rescue and
+    # close the connection with an empty response; the 400 status text
+    # was defined but unreachable.
+    it "responds 400 to a malformed request line" do
+      FileUtils.mkdir_p(tmp)
+      server = TCPServer.new("127.0.0.1", 0)
+      thread = Thread.new { described_class::Serve::StaticFileHandler.handle_connection(server.accept, tmp) }
+      sock = TCPSocket.new("127.0.0.1", server.addr[1])
+      sock.write("GET\r\n\r\n")
+      expect(sock.read).to start_with("HTTP/1.1 400")
+    ensure
+      sock&.close
+      thread&.join(2)
+      server&.close
+    end
+
+    it "brackets IPv6 hosts in the announced URL" do
+      expect(described_class::Serve.url_host("::1")).to eq("[::1]")
+      expect(described_class::Serve.url_host("127.0.0.1")).to eq("127.0.0.1")
+    end
+
     it "exits 405 for non-GET requests" do
       FileUtils.mkdir_p(tmp)
       server = TCPServer.new("127.0.0.1", 0)
