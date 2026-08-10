@@ -20,6 +20,12 @@ module SimpleCov
       FOLDS_SOURCE_FILE = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.4")
       PARENS_ALWAYS_TRANSPARENT = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.3")
       DEAD_ARM_BRANCHES_SURVIVE = PARENS_ALWAYS_TRANSPARENT
+      # Container literals in discarded position are eliminated from 3.3
+      # on, but the contents rule differs: 3.3's compile.c elides a
+      # container whose contents are merely effect-free (`[x]`, `[self]`),
+      # while the Prism compiler (3.4+) demands fully static literals
+      # (`[1]` goes, `[x]` stays). See `static_container_literal?`.
+      CONTAINER_CONTENTS_NEED_STATIC_LITERALS = !FOLDS_SOURCE_FILE
 
       # Prism node types for the literals that fold. `while` / `until` do
       # NOT fold (`while true` is a real branch), so only the if-like
@@ -54,6 +60,34 @@ module SimpleCov
       PAREN_OPAQUE_TYPES = [
         ::Prism::NilNode, ::Prism::StringNode, ::Prism::LambdaNode, ::Prism::SourceFileNode
       ].freeze
+
+      # The scalar literals the compiler treats as fully static: a
+      # multi-statement paren condition (`if (1; 2)`) folds by its last
+      # expression only when every leading statement is eliminated when
+      # discarded, and these — bare or composing an Array/Hash/Range —
+      # always are. Pinned against real Coverage on 3.2 through 4.0.
+      STATIC_LITERAL_LEAF_TYPES = [
+        ::Prism::IntegerNode, ::Prism::FloatNode, ::Prism::RationalNode,
+        ::Prism::ImaginaryNode, ::Prism::StringNode, ::Prism::SymbolNode,
+        ::Prism::TrueNode, ::Prism::FalseNode, ::Prism::NilNode,
+        ::Prism::SourceLineNode, ::Prism::SourceFileNode, ::Prism::SourceEncodingNode, ::Prism::RegularExpressionNode
+      ].freeze
+
+      # Non-literal reads that are also eliminated when discarded.
+      # `self` is eliminated by every supported compiler; local/ivar/
+      # defined? elimination arrived with the Prism-era compilers.
+      # Anything that can raise or run hooks (constants, globals, calls,
+      # writes) is never eliminated and keeps the branch real.
+      PRISM_ERA_ELIMINABLE_READS = [
+        ::Prism::LocalVariableReadNode, ::Prism::InstanceVariableReadNode, ::Prism::DefinedNode
+      ].freeze
+
+      # simplecov:disable branch — which arm runs is fixed by the running Ruby's version
+      ELIMINABLE_READ_TYPES = [
+        ::Prism::SelfNode,
+        *(PRISM_ERA_ELIMINABLE_READS unless PARENS_ALWAYS_TRANSPARENT)
+      ].freeze
+      # simplecov:enable branch
 
     private
 
@@ -122,16 +156,83 @@ module SimpleCov
         # simplecov:enable
       end
 
+      # Parentheses are transparent to the fold, and a multi-statement
+      # body (`if (1; 2)`) folds by its LAST expression — but only when
+      # the compiler eliminates every leading statement. Stopping at
+      # multi-statement bodies synthesized a phantom then/else pair no
+      # real run can ever hit.
       def unwrap_parentheses(node)
         # @type var current: untyped
         current = node
         while current.is_a?(::Prism::ParenthesesNode)
           body = current.body
-          break unless body.is_a?(::Prism::StatementsNode) && body.body.size == 1
+          break unless body.is_a?(::Prism::StatementsNode) && !body.body.empty?
 
-          current = body.body.first
+          statements = body.body
+          break unless statements.take(statements.size - 1).all? { |leading| eliminable_when_discarded?(leading) }
+
+          current = statements.last
         end
         current
+      end
+
+      # Whether the compiler compiles `node` to nothing when its value is
+      # discarded.
+      def eliminable_when_discarded?(node)
+        return true if static_container_literal?(node)
+        return true if ELIMINABLE_READ_TYPES.any? { |type| node.is_a?(type) }
+
+        node.is_a?(::Prism::ParenthesesNode) &&
+          node.body.is_a?(::Prism::StatementsNode) &&
+          node.body.body.all? { |statement| eliminable_when_discarded?(statement) }
+      end
+
+      # A scalar literal leaf, or an Array/Hash/Range whose contents pass
+      # the running compiler's contents rule (see
+      # CONTAINER_CONTENTS_NEED_STATIC_LITERALS). Container elimination
+      # only exists from 3.3 on.
+      def static_container_literal?(node)
+        return true if STATIC_LITERAL_LEAF_TYPES.any? { |type| node.is_a?(type) }
+        # simplecov:disable — which of these lines runs is fixed by the
+        # running Ruby's version: parse.y (3.2) never eliminates
+        # container literals, so there the early return always fires and
+        # the dispatch below is dead code.
+        return false if PARENS_ALWAYS_TRANSPARENT
+
+        static_container?(node)
+        # simplecov:enable
+      end
+
+      # The container dispatch, version-free: the predicate specs
+      # exercise it directly on every supported Ruby, 3.2 included.
+      def static_container?(node)
+        case node
+        when ::Prism::ArrayNode then static_array_literal?(node)
+        when ::Prism::HashNode  then static_hash_literal?(node)
+        when ::Prism::RangeNode then static_range_literal?(node)
+        else false
+        end
+      end
+
+      def static_array_literal?(node)
+        node.elements.all? { |element| container_contents_eliminable?(element) }
+      end
+
+      def static_hash_literal?(node)
+        node.elements.all? do |element|
+          element.is_a?(::Prism::AssocNode) &&
+            container_contents_eliminable?(element.key) && container_contents_eliminable?(element.value)
+        end
+      end
+
+      def static_range_literal?(node)
+        [node.left, node.right].all? { |bound| bound.nil? || container_contents_eliminable?(bound) }
+      end
+
+      def container_contents_eliminable?(node)
+        # simplecov:disable branch — which arm runs is fixed by the running Ruby's version
+        CONTAINER_CONTENTS_NEED_STATIC_LITERALS ? static_container_literal?(node) : eliminable_when_discarded?(node)
+        # simplecov:enable branch
       end
     end
   end
