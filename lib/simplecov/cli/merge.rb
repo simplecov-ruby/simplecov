@@ -69,15 +69,20 @@ module SimpleCov
         end
       end
 
+      # Read first, classify by the exception: an exist?-then-read pair
+      # is racy, and rescuing only ENOENT crashed with a backtrace on a
+      # directory (EISDIR) or an unreadable file (EACCES).
       def parse_input(path, stderr)
-        return parse_input_error(stderr, path, "not found") unless File.exist?(path)
-
         data = JSON.parse(File.read(path))
         return data if data.is_a?(Hash) && !data.empty?
 
         parse_input_error(stderr, path, "has no resultset entries")
+      rescue Errno::ENOENT
+        parse_input_error(stderr, path, "not found")
       rescue JSON::ParserError => e
         parse_input_error(stderr, path, "isn't valid JSON (#{e.message})")
+      rescue SystemCallError => e
+        parse_input_error(stderr, path, "cannot be read (#{e.message.lines.first.to_s.strip})")
       end
 
       def parse_input_error(stderr, path, reason)

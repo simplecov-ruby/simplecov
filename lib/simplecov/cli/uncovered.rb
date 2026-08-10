@@ -46,18 +46,12 @@ module SimpleCov
       end
 
       def parse(args)
-        opts = {input: SimpleCov::CLI.default_input, threshold: 100.0, top: DEFAULT_TOP, criterion: :line, no_color: false}
-        build_parser(opts).parse(args)
-        opts
-      end
-
-      def build_parser(opts)
-        OptionParser.new do |o|
-          common_options(o, opts)
-          o.on("--threshold N", Float) { |v| opts[:threshold] = v }
-          o.on("--top N", Integer)     { |v| opts[:top] = validate_top(v) }
-          o.on("--criterion C")        { |v| opts[:criterion] = v.to_sym }
+        opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line) do |o, options|
+          o.on("--threshold N", Float) { |v| options[:threshold] = v }
+          o.on("--top N", Integer)     { |v| options[:top] = validate_top(v) }
+          o.on("--criterion C")        { |v| options[:criterion] = v.to_sym }
         end
+        opts
       end
 
       # A negative count would raise from `Array#first`; report it as

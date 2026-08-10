@@ -45,16 +45,11 @@ module SimpleCov
       end
 
       def parse_flags(args)
-        opts = {input: SimpleCov::CLI.default_input, fail_on_drop: false, json: false, threshold: 0.0, no_color: false}
-        opts.merge(rest: option_parser(opts).parse(args))
-      end
-
-      def option_parser(opts)
-        OptionParser.new do |o|
-          common_options(o, opts)
-          o.on("--fail-on-drop")       { opts[:fail_on_drop] = true }
-          o.on("--threshold N", Float) { |v| opts[:threshold] = v }
+        opts, rest = parse_common(args, fail_on_drop: false, threshold: 0.0) do |o, options|
+          o.on("--fail-on-drop")       { options[:fail_on_drop] = true }
+          o.on("--threshold N", Float) { |v| options[:threshold] = v }
         end
+        opts.merge(rest: rest)
       end
 
       def load_coverage(path, stderr)

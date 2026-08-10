@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
+require "optparse"
+
 module SimpleCov
   module CLI
     # Plumbing the subcommands repeat, which their modules `extend`: the
-    # standard option trio the read-only commands share, the one-line
-    # error helper (prefixed with the command's own name), and the
-    # human-readable stats row `coverage` and `report` both print.
+    # standard option trio the read-only commands share, the parse
+    # scaffold around it, the one-line error helper (prefixed with the
+    # command's own name), and the human-readable stats row `coverage`
+    # and `report` both print.
     module CommandHelpers
       STATS_ROW_FORMAT = "  %<label>-7s %<pct>s (%<covered>d / %<total>d)"
 
@@ -27,6 +30,21 @@ module SimpleCov
         parser.on("--input PATH") { |v| opts[:input] = v }
         parser.on("--json")       { opts[:json] = true }
         parser.on("--no-color")   { opts[:no_color] = true }
+      end
+
+      # The parse scaffold every read-only subcommand repeats: seed the
+      # shared defaults (plus the command's own), wire up the common
+      # option trio, yield the parser for command-specific flags, and
+      # return the parsed opts alongside the positional arguments.
+      def parse_common(args, defaults = {})
+        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
+        opts.merge!(defaults)
+        rest =
+          OptionParser.new do |parser|
+            common_options(parser, opts)
+            yield parser, opts if block_given?
+          end.parse(args)
+        [opts, rest]
       end
 
       def stats_row(label, percent_text, covered, total)

@@ -20,7 +20,7 @@ module SimpleCov
     module_function
 
       def run(args, stdout:, stderr:)
-        opts = parse(args)
+        opts, = parse_common(args)
         return 1 unless (data = load_data(opts[:input], stderr))
 
         if opts[:json]
@@ -31,14 +31,23 @@ module SimpleCov
         0
       end
 
-      def parse(args)
-        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false}
-        OptionParser.new { |o| common_options(o, opts) }.parse(args)
-        opts
-      end
-
+      # Valid JSON isn't enough: a wrong-typed "total" or "groups" (or a
+      # wrong-typed group entry) used to escape here and crash the
+      # emitters with a backtrace instead of the one-line error the
+      # sibling commands print.
       def load_data(input, stderr)
-        CoverageFile.load_document(input, command: "report", stderr: stderr)
+        data = CoverageFile.load_document(input, command: "report", stderr: stderr)
+        return unless data
+
+        none = {} #: Hash[String, untyped]
+        unless data.fetch("total", none).is_a?(Hash)
+          return CoverageFile.report_invalid(stderr, "report", input, '"total" must be an object')
+        end
+
+        groups = data.fetch("groups", none)
+        return data if groups.is_a?(Hash) && groups.each_value.all?(Hash)
+
+        CoverageFile.report_invalid(stderr, "report", input, '"groups" must be an object of objects')
       end
 
       def emit_text(stdout, data, color)
