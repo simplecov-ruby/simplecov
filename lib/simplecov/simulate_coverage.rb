@@ -66,9 +66,13 @@ module SimpleCov
       {"branches" => synthesized["branches"], "methods" => synthesized["methods"]}
     end
 
+    # SystemCallError, not just ENOENT: a `track_files` glob can sweep
+    # up an unreadable file or a directory named like a Ruby file
+    # (EACCES, EISDIR), and simulation must degrade to "empty file"
+    # rather than crash the merge or report step.
     def read_lines(path)
       File.readlines(path)
-    rescue Errno::ENOENT
+    rescue SystemCallError
       []
     end
 
@@ -85,7 +89,10 @@ module SimpleCov
       classifier_output = LinesClassifier.new.classify(source_lines)
       stub.each_index { |idx| stub[idx] = nil if classifier_output[idx].nil? }
       stub
-    rescue Errno::ENOENT, SyntaxError
+    rescue SystemCallError, SyntaxError
+      # SystemCallError for the same reason as read_lines above:
+      # line_stub reads the file itself, so EACCES/EISDIR surface here
+      # too.
       nil
     end
   end

@@ -3,6 +3,7 @@
 require "helper"
 require "coverage"
 require "tempfile"
+require "tmpdir"
 
 RSpec.describe SimpleCov::SimulateCoverage do
   describe ".call" do
@@ -18,6 +19,18 @@ RSpec.describe SimpleCov::SimulateCoverage do
     it "produces a hash with lines/branches/methods keys" do
       result = described_class.call(fixture)
       expect(result.keys).to contain_exactly("lines", "branches", "methods")
+    end
+
+    # A track_files glob can sweep up entries that exist but can't be
+    # read as files (a directory named like a Ruby file, permission
+    # denied). Rescuing only ENOENT crashed the merge or report step on
+    # those; they must degrade to "empty file" like a missing one.
+    it "treats an unreadable path as an empty file" do
+      Dir.mktmpdir("simulate-coverage-spec-") do |dir|
+        result = described_class.call(dir)
+        expect(result["lines"]).to eq([])
+        expect(result["branches"]).to eq({})
+      end
     end
 
     it "classifies the file's lines as an Array" do

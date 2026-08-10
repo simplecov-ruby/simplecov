@@ -62,5 +62,14 @@ RSpec.describe SimpleCov::CoverageViolations do
       violations = described_class.maximum_drop(result, {line: 5, branch: 5}, last_run: last_run)
       expect(violations.map { |v| v[:criterion] }).to contain_exactly(:line)
     end
+
+    # LastRun.read only vouches for the top level being a Hash, so a
+    # hand-edited .last_run.json can carry any value type. Subtracting
+    # from a String raised out of the at_exit hook.
+    it "treats a non-numeric last-run value as missing instead of raising" do
+      result = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
+      violations = described_class.maximum_drop(result, {line: 5}, last_run: {result: {line: "95.0"}})
+      expect(violations).to eq([])
+    end
   end
 end

@@ -17,13 +17,19 @@ module SimpleCov
         decode(data)
       end
 
+      # A missing or blank file quietly means "no results yet"; anything
+      # else — a 1-byte truncation included — flows through decode so
+      # corruption warns instead of silently vanishing (the old
+      # `length < 2` check swallowed exactly those). Read first and
+      # rescue rather than check exist? (racy against a concurrent
+      # clean).
       def read(path)
-        return unless File.exist?(path)
-
         data = File.read(path)
-        return if data.nil? || data.length < 2
+        return if data.match?(/\A\s*\z/)
 
         data
+      rescue Errno::ENOENT
+        nil
       end
 
       def decode(content)

@@ -122,11 +122,15 @@ module SimpleCov
         end
       end
 
+      # The misconfiguration notice is enforcement output, not a Ruby
+      # warning: like every other enforcement message it must survive
+      # `-W0` and `Warning.warn` hooks (see ExitCodes.print_error) and
+      # honor the `print_errors` opt-out.
       def lookup_group(result, group_name)
         group = result.groups[group_name]
-        unless group
-          warn "minimum_coverage_by_group: no group named '#{group_name}' exists. " \
-               "Available groups: #{result.groups.keys.join(', ')}"
+        if group.nil? && SimpleCov.print_errors
+          ExitCodes.print_error "minimum_coverage_by_group: no group named '#{group_name}' exists. " \
+                                "Available groups: #{result.groups.keys.join(', ')}"
         end
         group
       end
@@ -134,8 +138,14 @@ module SimpleCov
       def compute_drop(criterion, result, last_run)
         stats_key = SimpleCov.coverage_statistics_key(criterion)
         last_coverage_percent = last_run.dig(:result, stats_key)
-        last_coverage_percent ||= last_run.dig(:result, :covered_percent) if stats_key == :line
-        return unless last_coverage_percent
+        if last_coverage_percent.nil? && stats_key == :line
+          last_coverage_percent = last_run.dig(:result, :covered_percent)
+        end
+        # A hand-edited .last_run.json can carry any value type, and
+        # LastRun.read only vouches for the top level being a Hash.
+        # Treat a non-numeric percent like a missing one instead of
+        # raising out of the at_exit hook.
+        return unless last_coverage_percent.is_a?(Numeric)
 
         current = percent_for(result, criterion) or return
         (last_coverage_percent - current).floor(10)
