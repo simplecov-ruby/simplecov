@@ -174,6 +174,18 @@ RSpec.describe SimpleCov::Directive do
         expect(ranges).to eq(line: [1..2], branch: [1..2], method: [1..2])
       end
 
+      # Without a boundary after the category list, "linear" parsed as the
+      # category "line" with reason "ar ...", silently narrowing the
+      # directive to line coverage instead of over-disabling everything.
+      it "treats a reason that merely starts with a category name as the bare form" do
+        ranges = described_class.disabled_ranges([
+                                                   "# simplecov:disable linear algebra reasons", # 1
+                                                   "code"                                        # 2
+                                                 ])
+
+        expect(ranges).to eq(line: [1..2], branch: [1..2], method: [1..2])
+      end
+
       it "stops parsing categories at the first unrecognised entry, treats the rest as reason" do
         ranges = described_class.disabled_ranges([
                                                    "# simplecov:disable line, frobnicate", # 1
