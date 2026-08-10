@@ -36,8 +36,6 @@ module SimpleCov
       # annotation. Only allocated the first time a condition is seen.
       def self?.new_condition: (untyped condition) -> [untyped, Hash[untyped, untyped]]
 
-      def self?.merge_branches: (untyped target, untyped source) -> untyped
-
       def self?.identities: () -> Hash[untyped, Integer]
 
       def self?.tuple_identity: (untyped tuple) -> ::Array[untyped]

@@ -2,6 +2,7 @@
 
 require_relative "../source_file/ruby_data_parser"
 require_relative "identity_interner"
+require_relative "interned_counts"
 
 module SimpleCov
   module Combine
@@ -47,8 +48,7 @@ module SimpleCov
         return target unless coverage
 
         target ||= {} #: Hash[untyped, [untyped, Integer]]
-        merge_methods(target, coverage)
-        target
+        InternedCounts.absorb_counts(target, coverage, identities)
       end
 
       # Turns an interned table back into the tuple-keyed hash the rest of
@@ -57,20 +57,6 @@ module SimpleCov
       # @return [Hash]
       def materialize(target)
         target.values.to_h
-      end
-
-      # `target` and its pairs are always built by `absorb` above, so updating
-      # them in place can't reach data a caller still holds.
-      def merge_methods(target, source)
-        source.each do |key, count|
-          method_key = identities[key]
-          entry = target[method_key]
-          if entry
-            entry[1] += count
-          else
-            target[method_key] = [key, count]
-          end
-        end
       end
 
       # Bounded by the project's method count, like `RubyDataParser`'s parse

@@ -32,8 +32,6 @@ module SimpleCov
       # SimpleCov reads.
       def self?.materialize: (untyped target) -> untyped
 
-      def self?.merge_methods: (untyped target, untyped source) -> untyped
-
       def self?.identities: () -> Hash[untyped, Integer]
 
       def self?.source_identity: (untyped key) -> Array[untyped]
