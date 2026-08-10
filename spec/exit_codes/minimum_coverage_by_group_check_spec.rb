@@ -42,6 +42,14 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck do
       ).to_stderr
       expect(check).not_to be_failing
     end
+
+    # The notice is enforcement output like every other threshold
+    # message, so the print_errors opt-out silences it too.
+    it "stays silent about the missing group when print_errors is off" do
+      allow(SimpleCov).to receive(:print_errors).and_return(false)
+
+      expect { check.failing? }.not_to output.to_stderr
+    end
   end
 
   describe "#report" do

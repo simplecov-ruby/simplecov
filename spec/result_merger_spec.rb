@@ -297,6 +297,15 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(stderr).to include("Parsing JSON content of resultset file failed")
     end
 
+    # A file truncated to a single byte used to slip under a `length < 2`
+    # check and read as quietly empty — hiding exactly the corruption
+    # this module exists to warn about.
+    it "warns about a resultset truncated to a single byte" do
+      File.write(described_class.resultset_path, "{")
+      stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
+      expect(stderr).to include("Parsing JSON content of resultset file failed")
+    end
+
     # Valid JSON, wrong shape: everything downstream iterates
     # command => data pairs, so a top-level array or string would crash
     # out of the middle of a merge rather than being tolerated like the
