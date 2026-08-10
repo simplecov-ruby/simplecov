@@ -94,8 +94,8 @@ module SimpleCov
 
       SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
                                   "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
-      @minimum_coverage_by_group = coverage.dup.transform_values do |group_coverage|
-        normalized_threshold(group_coverage, "minimum_coverage_by_group")
+      @minimum_coverage_by_group = coverage.to_h do |group_name, group_coverage|
+        [GroupNames.normalize(group_name), normalized_threshold(group_coverage, "minimum_coverage_by_group")]
       end
     end
 
