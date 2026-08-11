@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "coverage"
+
 module SimpleCov
   #
   # Responsible for adapting the format of the coverage result whether it's default or with statistics

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "coverage"
 require_relative "static_coverage_extractor"
 
 module SimpleCov
