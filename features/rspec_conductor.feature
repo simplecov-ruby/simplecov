@@ -16,10 +16,10 @@ Feature:
   # so the merged totals come out the same either way.
   #
   # The scenarios assert on the generated report files rather than on the
-  # usual "Coverage report generated" line. The reporting worker prints that
-  # line from its at_exit hook, after it already sent its run summary to the
-  # conductor server, and the server does not forward worker output arriving
-  # that late. The report itself is written fine.
+  # usual "Coverage report generated" line. The conductor server closes each
+  # worker's output pipes once the worker has sent its run summary, before
+  # at_exit hooks run, so nothing SimpleCov prints from at_exit can reach
+  # the output. The report itself is written fine.
 
   Background:
     Given I'm working on the project "parallel_tests" with the Gemfile from "rspec_conductor"
@@ -75,7 +75,15 @@ Feature:
   # Each worker on its own covers only a slice of the project, so a threshold
   # check against a single worker's partial result would fail. Only the
   # reporting worker, after merging every sibling's slice, may enforce it.
-  Scenario: Coverage violations aren't printed until the end
+  #
+  # The conductor server swallows a worker's output printed from at_exit and
+  # ignores its exit status once its run summary is in, so asserting on the
+  # command's output or exit code proves nothing here. Instead the scenario
+  # leans on .last_run.json, which SimpleCov writes only when the threshold
+  # check passes. Finding it filled with the merged 81.48 shows the check ran
+  # against the merged result, where any single worker's slice would have
+  # failed and left the file unwritten.
+  Scenario: Coverage thresholds are enforced against the merged result, not per worker
     Given I install dependencies
     And SimpleCov for RSpec is configured with:
       """
@@ -85,4 +93,6 @@ Feature:
       end
       """
     When I successfully run `bundle exec rspec-conductor --workers 2 spec`
-    Then the output should not match /.*cover.+below.+minimum/
+    Then the file "coverage/.last_run.json" should contain "81.48"
+    When I open the coverage report
+    Then I should see the line coverage results for the parallel fixture project

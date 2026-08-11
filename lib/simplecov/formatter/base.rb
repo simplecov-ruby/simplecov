@@ -32,6 +32,11 @@ module SimpleCov
       # Subclasses call this at the end of their `format`.
       def emit_status(result)
         $stderr.puts output_message(result) unless @silent # rubocop:disable Style/StderrPuts
+      rescue IOError
+        # A parallel runner can close a worker's stderr before its at_exit
+        # hooks run (rspec-conductor does). Losing the status line must not
+        # abort the exit tasks that follow report generation, i.e. the
+        # threshold checks and the .last_run.json write.
       end
 
       # Subclasses override to prepend a marker (e.g. "JSON ") to the
