@@ -22,7 +22,7 @@ Feature:
       SimpleCov.start
       """
     When I open the coverage report generated with `bundle exec parallel_rspec -n 2 spec`
-    Then I should see the line coverage results for the parallel tests project
+    Then I should see the line coverage results for the parallel fixture project
 
   # Note it's better not to test this in the same scenario as before.
   # Merging of results might kick in and ruin this.
@@ -34,7 +34,7 @@ Feature:
       SimpleCov.start
       """
     When I open the coverage report generated with `bundle exec rspec spec`
-    Then I should see the line coverage results for the parallel tests project
+    Then I should see the line coverage results for the parallel fixture project
 
   @branch_coverage
   Scenario: Running the project with normal rspec and branch coverage
@@ -47,7 +47,7 @@ Feature:
       end
       """
     When I open the coverage report generated with `bundle exec rspec spec`
-    Then I should see the branch coverage results for the parallel tests project
+    Then I should see the branch coverage results for the parallel fixture project
 
   @branch_coverage
   Scenario: Running the project with normal rspec and branch coverage
@@ -60,7 +60,7 @@ Feature:
       end
       """
     When I open the coverage report generated with `bundle exec parallel_rspec -n 2 spec`
-    Then I should see the branch coverage results for the parallel tests project
+    Then I should see the branch coverage results for the parallel fixture project
 
   Scenario: Coverage violations aren't printed until the end
     Given I install dependencies

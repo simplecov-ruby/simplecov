@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-Then "I should see the line coverage results for the parallel tests project" do
+Then "I should see the line coverage results for the parallel fixture project" do
   steps %(
     Then I should see the groups:
       | name      | coverage | files |
@@ -15,7 +15,7 @@ Then "I should see the line coverage results for the parallel tests project" do
   )
 end
 
-Then "I should see the branch coverage results for the parallel tests project" do
+Then "I should see the branch coverage results for the parallel fixture project" do
   steps %(
     Then I should see the groups:
       | name      | coverage | files |
