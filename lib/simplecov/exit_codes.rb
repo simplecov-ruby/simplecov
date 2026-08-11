@@ -18,6 +18,10 @@ module SimpleCov
     # warning logs. `print_errors false` remains the intended opt-out.
     def self.print_error(message)
       $stderr.puts message # rubocop:disable Style/StderrPuts
+    rescue IOError
+      # A parallel runner can close a worker's stderr before its at_exit
+      # hooks run (rspec-conductor does). The violation still has to set
+      # the exit status even when its explanation cannot be printed.
     end
   end
 end

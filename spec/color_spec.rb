@@ -84,6 +84,13 @@ RSpec.describe SimpleCov::Color do
       expect(described_class.enabled?(stdout_not_tty)).to be false
     end
 
+    it "returns false for a closed stream (a parallel runner can close worker stdio before at_exit runs)" do
+      read, write = IO.pipe
+      read.close
+      write.close
+      expect(described_class.enabled?(write)).to be false
+    end
+
     it "falls through when SimpleCov has no color config (standalone CLI)" do
       # In the standalone `exe/simplecov` process, `simplecov/color` is
       # loaded without `simplecov/configuration`, so `SimpleCov` doesn't

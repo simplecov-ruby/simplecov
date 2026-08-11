@@ -38,6 +38,13 @@ RSpec.describe SimpleCov::Formatter::Base do
     expect(Warning).not_to have_received(:warn)
   end
 
+  it "loses the status line quietly when stderr was closed before at_exit (e.g. by rspec-conductor)" do
+    result = result_with(line: statistics(8, 2))
+    allow($stderr).to receive(:puts).and_raise(IOError, "closed stream")
+
+    expect { formatter.send(:emit_status, result) }.not_to raise_error
+  end
+
   it "does not build or emit a status when silent" do
     silent_formatter = described_class.new(silent: true)
     result = result_with(line: statistics(8, 2))

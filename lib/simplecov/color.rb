@@ -45,6 +45,10 @@ module SimpleCov
       return true  if env_set?("FORCE_COLOR")
 
       stream.tty?
+    rescue IOError
+      # A parallel runner can close a worker's stdio before its at_exit
+      # hooks run (rspec-conductor does). A closed stream is not a tty.
+      false
     end
 
     def for_percent(percent)
