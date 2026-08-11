@@ -379,7 +379,7 @@ RSpec.describe SimpleCov do
     end
 
     context "when a criterion that reads the tuples is enabled" do
-      it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
+      it "synthesizes them" do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
         described_class.cover "spec/fixtures/sample.rb"
         sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
@@ -1443,7 +1443,6 @@ RSpec.describe SimpleCov do
 
     it "passes only the last requested line mode to Coverage.start" do
       allow(Coverage).to receive(:start)
-      allow(described_class).to receive(:coverage_criterion_supported?).and_return(true)
       described_class.enable_coverage :oneshot_line
       described_class.enable_coverage :line
 
@@ -1460,8 +1459,6 @@ RSpec.describe SimpleCov do
     end
 
     it "omits `lines: true` when :line coverage has been disabled" do
-      skip "branch coverage not supported on this engine" unless described_class.branch_coverage_supported?
-
       allow(Coverage).to receive(:start)
       previous = described_class.coverage_criteria.dup
       described_class.enable_coverage :branch

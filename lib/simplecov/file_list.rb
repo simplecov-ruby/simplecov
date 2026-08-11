@@ -153,8 +153,7 @@ module SimpleCov
     end
 
     # `:line` (or its `:oneshot_line` synonym) is reported when either
-    # criterion is enabled; the JRuby-gated branch/method criteria are
-    # reported when they pass their own engine-support check.
+    # criterion is enabled; branch/method are reported when enabled.
     def enabled_criteria_for_reporting
       criteria = [] #: Array[SimpleCov::criterion]
       criteria << :line   if SimpleCov.line_coverage?

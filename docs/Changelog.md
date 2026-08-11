@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Breaking Changes
+* Dropped support for Ruby 3.2 and 3.3, JRuby, and TruffleRuby. The minimum supported Ruby is now CRuby 3.4 (`required_ruby_version >= 3.4`). Every coverage criterion (line, branch, method, oneshot line, and eval) is available on all supported Rubies, so the engine-support predicates `SimpleCov.branch_coverage_supported?`, `SimpleCov.method_coverage_supported?`, `SimpleCov.coverage_criterion_supported?`, and `SimpleCov.coverage_for_eval_supported?` were removed along with the JRuby full-trace warning and the per-engine fallbacks in the static coverage extractor for the parse.y-based compilers of Ruby 3.2 and 3.3.
+
 1.1.0 (2026-08-10)
 ==================
 

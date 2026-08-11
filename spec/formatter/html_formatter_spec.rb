@@ -346,8 +346,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     it "includes branch totals and per-file branch stats when branch coverage is enabled" do
-      skip "Branch coverage not supported on this Ruby" unless SimpleCov.branch_coverage_supported?
-
       expect(coverage_data["total"]).to have_key("branches")
       coverage_data["coverage"].each_value do |file_data|
         expect(file_data).to include("branches", "branches_covered_percent")
@@ -355,8 +353,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     it "reports the expected per-file branch coverages" do
-      skip "Branch coverage not supported on this Ruby" unless SimpleCov.branch_coverage_supported?
-
       pcts = coverage_data["coverage"].values.map { |f| f["branches_covered_percent"] }
       formatted = pcts.map { |p| format("%.2f%%", (p * 100).floor / 100.0) }.sort_by(&:to_f)
 
@@ -383,8 +379,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   describe "method coverage" do
     before do
-      skip "Method coverage not supported on this Ruby" unless SimpleCov.method_coverage_supported?
-
       SimpleCov.enable_coverage(:method)
       formatter.format(make_result)
     end

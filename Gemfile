@@ -17,25 +17,16 @@ group :development do
   gem "rspec"
   gem "test-unit"
 
-  # RBS's native extension fails to build on JRuby, so the type-checking
-  # stack stays off there; JRuby runs `rake spec` only. The Rakefile's rbs
-  # and steep tasks rescue the missing require with a warning, and `rake
-  # spec` falls back to a serial run without parallel_tests (the sandbox
-  # specs it fans out don't run on JRuby anyway).
-  unless RUBY_ENGINE == "jruby"
-    # Fans `rake spec` out across worker processes.
-    gem "parallel_tests"
-    gem "rbs", "~> 4.0.0"
-    gem "steep", ">= 1.10", require: false
-  end
+  # Fans `rake spec` out across worker processes.
+  gem "parallel_tests"
+  gem "rbs", "~> 4.0.0"
+  gem "steep", ">= 1.10", require: false
 
-  if RUBY_VERSION > "3.2"
-    gem "rubocop"
-    gem "rubocop-minitest"
-    gem "rubocop-performance"
-    gem "rubocop-rake"
-    gem "rubocop-rspec"
-  end
+  gem "rubocop"
+  gem "rubocop-minitest"
+  gem "rubocop-performance"
+  gem "rubocop-rake"
+  gem "rubocop-rspec"
 end
 
 group :benchmark do

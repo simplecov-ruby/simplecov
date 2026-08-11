@@ -3,8 +3,7 @@ module SimpleCov
     # Prism visitor that accumulates branch and method tuples in the
     # shape Ruby's `Coverage` reports. Tuple ids are sequential across
     # the file — `Coverage` uses sequential ids too, so this matches the
-    # conventional shape. Only defined when Prism is loadable;
-    # `StaticCoverageExtractor.available?` is the runtime gate.
+    # conventional shape.
     class Visitor < ::Prism::Visitor
       @branches: untyped
 
@@ -23,13 +22,10 @@ module SimpleCov
 
       def initialize: () -> void
 
-      # Precomputes the legacy value-position set before emitting.
-      def visit_program_node: (untyped node) -> untyped
-
       # `if` / `unless` / postfix-if / postfix-unless / ternary all parse
       # as IfNode (or UnlessNode). Both carry a `then` arm (the
-      # statements body) and an optional `subsequent` (an ElseNode for
-      # `else`, another IfNode for `elsif`). When the subsequent is
+      # statements body) and an optional trailing clause (an ElseNode for
+      # `else`, another IfNode for `elsif`). When the trailing clause is
       # missing, Coverage synthesizes a `:else` arm attributed to the
       # whole condition's range — we do the same.
       def visit_if_node: (untyped node) -> untyped
@@ -45,11 +41,6 @@ module SimpleCov
 
       def visit_case_match_node: (untyped node) -> untyped
 
-      # One-line pattern matching (`x => p` / `x in p`), legacy-only.
-      def visit_match_required_node: (untyped node) -> untyped
-
-      def visit_match_predicate_node: (untyped node) -> untyped
-
       # `while` / `until` loops get a single `:body` arm. No synthetic
       # else (the loop either runs the body or doesn't).
       def visit_while_node: (untyped node) -> untyped
@@ -58,17 +49,12 @@ module SimpleCov
 
       private
 
-      # Visits only the arm the compiler keeps for a folded condition.
-      def visit_live_arm: (Symbol verdict, untyped truthy_arm, untyped falsy_arm) -> untyped
-
       # IfNode and UnlessNode share a shape (predicate + then body +
       # optional else/elsif) but expose the trailing arm under different
       # accessors. `if_like_else_location` hides that split.
       def emit_if_like: (untyped node, untyped type) -> untyped
 
       def emit_safe_navigation: (untyped node) -> untyped
-
-      def emit_oneline_pattern: (untyped node, untyped else_location) -> untyped
 
       def emit_case_like: (untyped node, untyped when_type) -> untyped
 

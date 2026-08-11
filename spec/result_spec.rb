@@ -429,11 +429,9 @@ RSpec.describe SimpleCov::Result do
       # In a parallel run only the final-result process reports, so the warning
       # is emitted once rather than once per worker. See issue #1171.
       #
-      # Real state rather than a partial double: JRuby intermittently kept
-      # dispatching to the original final_result_process? through an
-      # already-compiled call site, letting the warning through and failing
-      # the suite. A forked subprocess is never the final-result process,
-      # so marking the real flag exercises the same gate without stubbing.
+      # Real state rather than a partial double: a forked subprocess is
+      # never the final-result process, so marking the real flag
+      # exercises the same gate without stubbing.
       it "stays silent when this isn't the final-result process" do
         previous = SimpleCov.instance_variable_get(:@forked_subprocess)
         SimpleCov.mark_forked_subprocess!

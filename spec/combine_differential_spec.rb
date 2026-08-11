@@ -29,8 +29,7 @@ RSpec.describe SimpleCov::Combine do
     SimpleCov.clear_coverage_criteria
   end
 
-  describe "merging N resultsets",
-           if: SimpleCov.branch_coverage_supported? && SimpleCov.method_coverage_supported? do
+  describe "merging N resultsets" do
     it "agrees with the reference merge on every generated shard set" do
       mismatches = seeds.filter_map { |seed| mismatch_for(seed, :fold, saturate: true) }
 

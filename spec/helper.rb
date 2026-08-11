@@ -11,19 +11,7 @@ DOGFOOD_DISABLED = ENV["SIMPLECOV_NO_DOGFOOD"] || Gem.win_platform?
 
 unless DOGFOOD_DISABLED
   require "coverage"
-  # Build the criteria hash by what the runtime actually supports — JRuby
-  # silently ignores `branches:`/`methods:` (with warnings); some engines
-  # may reject them outright. CRuby is the primary target so its full
-  # set is always on.
-  start_args = {lines: true}
-  if Coverage.respond_to?(:supported?)
-    start_args[:branches] = true if Coverage.supported?(:branches)
-    start_args[:methods]  = true if Coverage.supported?(:methods)
-  else
-    start_args[:branches] = true
-    start_args[:methods]  = true
-  end
-  Coverage.start(start_args)
+  Coverage.start(lines: true, branches: true, methods: true)
 end
 
 # `rake spec` fans this suite out through parallel_rspec. Everything
@@ -84,9 +72,9 @@ unless DOGFOOD_DISABLED
 end
 
 # Specs that need real worker processes (see
-# spec/parallel_result_merger_spec.rb) are skipped where this is false: CRuby
-# on Windows, and JRuby / TruffleRuby, which cannot fork on the JVM. The
-# in-process merge those runtimes fall back to is covered on every engine.
+# spec/parallel_result_merger_spec.rb) are skipped where this is false:
+# CRuby on Windows. The in-process merge it falls back to is covered
+# everywhere.
 FORK_SUPPORTED = Process.respond_to?(:fork)
 
 def source_fixture(filename)

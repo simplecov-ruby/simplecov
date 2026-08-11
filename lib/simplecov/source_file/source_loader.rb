@@ -4,9 +4,8 @@ module SimpleCov
   class SourceFile
     # Reads a source file into an array of lines, honoring the source's
     # shebang and `coding:` magic comment when present. Always
-    # transcodes to UTF-8 with invalid/undef bytes replaced — both for
-    # JRuby compatibility and to keep encoding shenanigans in one place
-    # (see #866).
+    # transcodes to UTF-8 with invalid/undef bytes replaced, keeping
+    # encoding shenanigans in one place (see #866).
     module SourceLoader
       SHEBANG_REGEX = /\A#!/
       RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/
@@ -60,9 +59,8 @@ module SimpleCov
       # Guarantee every line leaves the loader as valid UTF-8, replacing
       # what can't be represented: transcode non-UTF-8 lines (setting
       # invalid/undef options on `file.set_encoding` doesn't work
-      # properly, and this also works around a JRuby incompatibility)
-      # and scrub UTF-8-tagged lines that carry invalid bytes, which
-      # would otherwise raise from every regex the classifier runs.
+      # properly) and scrub UTF-8-tagged lines that carry invalid bytes,
+      # which would otherwise raise from every regex the classifier runs.
       def ensure_remove_undefs(file_lines)
         file_lines.each do |line|
           # simplecov:disable — defensive: only fires for non-UTF-8 source files

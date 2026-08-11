@@ -38,11 +38,6 @@ RSpec.describe SimpleCov::Profiles do
       SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, prev_eval)
     end
 
-    # No engine-conditional logic in the profile itself — every clause
-    # runs unconditionally, and CoverageViolations skips threshold
-    # lookups for criteria the runtime didn't measure. So on JRuby the
-    # branch / method thresholds silently no-op and only :line is
-    # enforced at check time.
     it "enables every criterion and pins each to 100%" do
       SimpleCov.load_profile "strict"
 
@@ -51,15 +46,12 @@ RSpec.describe SimpleCov::Profiles do
     end
 
     # `:eval` widens the strict universe to include code passed through
-    # `Kernel#eval` (ERB templates, etc.) on runtimes that support it.
-    # On older Rubies the toggle is silently skipped — `enable_coverage
-    # :eval` would otherwise warn about missing runtime support every
-    # time the profile loaded.
-    it "enables :eval when the runtime supports it" do
+    # `Kernel#eval` (ERB templates, etc.).
+    it "enables :eval" do
       SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, false)
       SimpleCov.load_profile "strict"
 
-      expect(SimpleCov.coverage_for_eval_enabled?).to eq(SimpleCov.coverage_for_eval_supported?)
+      expect(SimpleCov.coverage_for_eval_enabled?).to be(true)
     end
   end
 

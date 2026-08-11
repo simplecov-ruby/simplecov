@@ -22,10 +22,9 @@ module SimpleCov
     # branch/method denominators while their lines DID count — so a
     # `track_files`/`cover` glob that picked up files without specs
     # silently inflated branch% relative to line%. See
-    # https://github.com/simplecov-ruby/simplecov/issues/1059. When Prism
-    # isn't loadable (Ruby < 3.3 without the prism gem) or the file
-    # can't be parsed, fall back to the old empty hashes — old behavior,
-    # old tradeoff.
+    # https://github.com/simplecov-ruby/simplecov/issues/1059. When the
+    # file can't be parsed, fall back to the old empty hashes — old
+    # behavior, old tradeoff.
     #
     # Pass `synthesize: false` to skip the static analysis and return the
     # empty hashes directly. Callers use it when neither branch nor method
@@ -43,8 +42,8 @@ module SimpleCov
     def self?.call: (untyped absolute_path, ?synthesize: bool, ?lines: bool) -> Hash[String, untyped]
 
     # The branch and method tuples for a file, or empty hashes when the static
-    # analysis is skipped (nothing enabled reads them) or unavailable (no Prism,
-    # or the file doesn't parse).
+    # analysis is skipped (nothing enabled reads them) or the file doesn't
+    # parse.
     def self?.synthesized_tuples: (untyped source_lines, bool synthesize) -> { "branches" => untyped, "methods" => untyped }
 
     def self?.read_lines: (untyped path) -> untyped
@@ -53,8 +52,7 @@ module SimpleCov
     # with `LinesClassifier` (which knows about `# :nocov:` toggles and
     # `# simplecov:disable line` ranges). Returns nil — and the caller
     # falls back to `LinesClassifier` alone — when `Coverage` can't read
-    # or parse the file, or when the runtime doesn't expose `line_stub`
-    # (JRuby and TruffleRuby).
+    # or parse the file.
     def self?.coverage_stub: (untyped path, untyped source_lines) -> untyped
   end
 end

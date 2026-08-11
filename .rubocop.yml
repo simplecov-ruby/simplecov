@@ -15,7 +15,7 @@ AllCops:
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
-  TargetRubyVersion: 3.2
+  TargetRubyVersion: 3.4
   NewCops: enable
 
 Layout/AccessModifierIndentation:
@@ -127,8 +127,9 @@ Style/FrozenStringLiteralComment:
     - "spec/fixtures/**/*"
 
 Style/EnvHome:
-  # `Dir.home` raises ArgumentError on JRuby when HOME is unset, defeating
-  # the `||` fall-through chain in lib/simplecov/load_global_config.rb.
+  # lib/simplecov/load_global_config.rb checks ENV["HOME"] on purpose:
+  # `File.expand_path("~")` raises for a set-but-empty HOME (some
+  # container/CI images), which must not break `require "simplecov"`.
   Enabled: false
 
 Style/StringLiterals:

@@ -2,10 +2,9 @@
 
 # `~/.simplecov` was historically resolved via a three-step fallback chain
 # (HOME, then `Etc.getpwuid.dir`, then `~$USER`) for hostile container
-# environments circa 2017. Modern CRuby/JRuby/TruffleRuby all set HOME
-# reliably, so trust it and skip silently when it isn't there. An ENV
-# check rather than Dir.home: JRuby raises from Dir.home with HOME
-# unset, and `File.expand_path("~")` raises for a set-but-empty HOME
+# environments circa 2017. Modern environments all set HOME reliably, so
+# trust it and skip silently when it isn't there. An ENV check rather
+# than Dir.home: `File.expand_path("~")` raises for a set-but-empty HOME
 # (some container/CI images), which must not break `require "simplecov"`.
 unless ENV.fetch("HOME", "").empty?
   # simplecov:disable — only fires when ~/.simplecov exists, which is

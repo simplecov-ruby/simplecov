@@ -10,21 +10,13 @@ jobs:
     timeout-minutes: 20
     env:
       BUNDLE_WITHOUT: "benchmark"
-      JRUBY_OPTS: "--debug"
     strategy:
       fail-fast: false
 
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         ruby-version:
           - ruby-head
-          - jruby-head
-          - truffleruby-head
-        include:
-          - os: macos-latest
-            ruby-version: ruby-head
-          - os: windows-latest
-            ruby-version: ruby-head
 
     steps:
       - uses: actions/checkout@v7.0.1

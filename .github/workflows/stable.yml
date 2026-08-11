@@ -9,19 +9,14 @@ jobs:
 
     env:
       BUNDLE_WITHOUT: "benchmark"
-      JRUBY_OPTS: "--debug"
     strategy:
       fail-fast: false
 
       matrix:
         os: [ubuntu-latest]
         ruby-version:
-          - '3.2'
-          - '3.3'
           - '3.4'
           - '4.0'
-          - jruby-10.0
-          - truffleruby
         include:
           - os: macos-latest
             ruby-version: ruby

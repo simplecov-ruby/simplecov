@@ -26,8 +26,6 @@ require "simplecov/static_coverage_extractor"
 # into the deterministic spec.
 RSpec.describe SimpleCov::StaticCoverageExtractor, if: ENV.fetch("SIMPLECOV_FUZZ", nil) do
   it "synthesizes tuples identical to Coverage across fuzzed programs" do
-    skip "branch coverage unsupported on this Ruby" unless SimpleCov.branch_coverage_supported?
-
     programs = BranchFuzzer.programs(seeds: Integer(ENV.fetch("SIMPLECOV_FUZZ_SEEDS", "20")),
                                      per_seed: Integer(ENV.fetch("SIMPLECOV_FUZZ_PER_SEED", "60")))
     runtime = coverage_branches(programs)

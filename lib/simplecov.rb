@@ -151,7 +151,6 @@ module SimpleCov
     #
     def start_tracking
       require "coverage"
-      warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
       # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
@@ -171,9 +170,7 @@ module SimpleCov
   private
 
     #
-    # Trigger Coverage.start with the configured criteria. Every supported
-    # runtime (CRuby >= 3.2, JRuby >= 10, TruffleRuby >= 22) accepts the
-    # criteria-hash form, so no compatibility fallback is needed.
+    # Trigger Coverage.start with the configured criteria.
     #
     def start_coverage_measurement
       start_arguments = coverage_criteria.to_h do |criterion|
@@ -202,24 +199,6 @@ module SimpleCov
     def defer_to_minitest_after_run
       self.external_at_exit = true
       Minitest.after_run { SimpleCov.at_exit_behavior }
-    end
-
-    # JRuby coverage data is unreliable unless full-trace mode is enabled.
-    # @see https://github.com/jruby/jruby/issues/1196
-    # @see https://github.com/simplecov-ruby/simplecov/issues/420
-    # @see https://github.com/simplecov-ruby/simplecov/issues/86
-    def warn_if_jruby_full_trace_disabled
-      return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
-
-      # simplecov:disable — JRuby-only branches; unreachable from CRuby
-      # `org` is JRuby's Java-package entry point; it does not exist on
-      # CRuby, so no RBS declaration can be truthful here.
-      return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED # steep:ignore NoMethod
-
-      warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
-           'or do JRUBY_OPTS="--debug" ' \
-           'or set the "debug.fullTrace=true" option in your .jrubyrc'
-      # simplecov:enable
     end
   end
 end

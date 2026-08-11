@@ -35,14 +35,7 @@ module SimpleCov
         # can't crash the server. The read timeout keeps idle connections
         # from pinning their threads forever.
         def handle_connection(client, root)
-          # simplecov:disable branch — support for IO#timeout= is fixed by the engine
-          # JRuby and TruffleRuby don't implement IO#timeout=. Without
-          # the guard the NoMethodError lands in the wide rescue below
-          # and every connection closes with an empty response. On those
-          # engines an idle connection pins its thread instead of timing
-          # out, which only leaks a thread in an interactive dev server.
-          client.timeout = READ_TIMEOUT if client.respond_to?(:timeout=)
-          # simplecov:enable branch
+          client.timeout = READ_TIMEOUT
           method, path = client.readline.split
           drain_headers(client)
           # A request line without both tokens used to raise on

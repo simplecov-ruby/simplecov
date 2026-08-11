@@ -138,7 +138,7 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     end
   end
 
-  describe "branch merging", if: SimpleCov.branch_coverage_supported? do
+  describe "branch merging" do
     around do |example|
       SimpleCov.enable_coverage(:branch)
       example.run
@@ -231,7 +231,7 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     end
   end
 
-  describe "method merging", if: SimpleCov.method_coverage_supported? do
+  describe "method merging" do
     around do |example|
       SimpleCov.enable_coverage(:method)
       example.run

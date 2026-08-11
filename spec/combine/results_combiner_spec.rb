@@ -59,20 +59,16 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
       it "has proper results for sample.rb" do
         expect(combined[source_fixture("sample.rb")]["lines"]).to eq([1, 1, 2, 2, nil, nil, 2, 2, nil, nil])
 
-        if SimpleCov.branch_coverage_supported?
-          branches = combined[source_fixture("sample.rb")]["branches"]
-          expect(branches[[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(47)
-        end
+        branches = combined[source_fixture("sample.rb")]["branches"]
+        expect(branches[[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(47)
       end
 
       it "has proper results for user.rb" do
         expect(combined[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
 
-        if SimpleCov.branch_coverage_supported?
-          branches = combined[source_fixture("app/models/user.rb")]["branches"]
-          expect(branches[[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
-          expect(branches[[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
-        end
+        branches = combined[source_fixture("app/models/user.rb")]["branches"]
+        expect(branches[[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
+        expect(branches[[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
       end
 
       it "has proper results for sample_controller.rb" do
@@ -108,13 +104,13 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
         expect(combined[source_fixture("three.rb")]["lines"]).to eq([nil, 3, 7])
       end
 
-      it "always returns a Hash object for branches", if: SimpleCov.branch_coverage_supported? do
+      it "always returns a Hash object for branches" do
         expect(combined[source_fixture("three.rb")]["branches"]).to eq({})
       end
     end
   end
 
-  describe "with method coverage", if: SimpleCov.method_coverage_supported? do
+  describe "with method coverage" do
     before { SimpleCov.enable_coverage :method }
     after { SimpleCov.clear_coverage_criteria }
 

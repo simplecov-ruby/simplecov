@@ -8,18 +8,8 @@ Ruby and framework compatibility notes, common problems, and upgrade guidance.
 
 ### Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 3.2+ and JRuby 10+. On CRuby, every coverage criterion
-described above is available on the supported versions, with one exception: [eval coverage](Configuration.md#eval-coverage) requires
-CRuby 3.2+.
-
-### JRuby
-
-On JRuby, only **line coverage** is available — branch, method, oneshot-line, and eval coverage rely on features of
-CRuby's `Coverage` library that JRuby doesn't implement. SimpleCov detects this automatically: the bundled `strict`
-profile, for instance, enforces only line coverage at 100% on JRuby instead of failing to load.
-
-To get accurate line numbers in coverage results, JRuby needs its full backtrace enabled. Pass `JRUBY_OPTS="--debug"`,
-or create a `.jrubyrc` with `debug.fullTrace=true`.
+SimpleCov is built in [Continuous Integration] on Ruby 3.4+. Every coverage criterion described above is available
+on the supported versions.
 
 ### Notes on specific frameworks and test utilities
 

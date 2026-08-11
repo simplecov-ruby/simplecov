@@ -74,36 +74,12 @@ module SimpleCov
     end
 
     def branch_coverage?
-      branch_coverage_supported? && coverage_criterion_enabled?(:branch)
-    end
-
-    def branch_coverage_supported?
-      coverage_criterion_supported?(:branches)
+      coverage_criterion_enabled?(:branch)
     end
 
     def method_coverage?
-      method_coverage_supported? && coverage_criterion_enabled?(:method)
+      coverage_criterion_enabled?(:method)
     end
-
-    def method_coverage_supported?
-      coverage_criterion_supported?(:methods)
-    end
-
-    # Ask the Coverage runtime itself whether a criterion is supported
-    # (Ruby >= 3.2). Older Rubies don't expose `Coverage.supported?`, so
-    # fall back to the historical engine check that line/branch/method
-    # were unavailable on JRuby. `:eval` was added later, so on older
-    # Rubies its fallback is "always unsupported" rather than the
-    # JRuby-only one above. The fallback arm is unreachable from the
-    # dogfood report, which runs on a newer Ruby.
-    # simplecov:disable
-    def coverage_criterion_supported?(criterion)
-      require "coverage"
-      return Coverage.supported?(criterion) if Coverage.respond_to?(:supported?)
-
-      criterion != :eval && RUBY_ENGINE != "jruby"
-    end
-    # simplecov:enable
 
   private
 

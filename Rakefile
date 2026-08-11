@@ -29,26 +29,16 @@ RSpec::Core::RakeTask.new(:"spec:serial")
 # specs spend nearly all their time waiting on fixture subprocesses, so
 # the suite parallelizes almost linearly. The dogfood coverage check
 # merges every worker's slice and enforces its thresholds on the union
-# (see spec/support/dogfood_report.rb). Falls back to the serial task
-# where parallel_tests isn't installed (JRuby, whose Gemfile group skips
-# it and whose platform envelope excludes the sandbox specs anyway).
+# (see spec/support/dogfood_report.rb). The serial task stays around for
+# debugging a single flow without worker interleaving.
 desc "Run the RSpec suite across parallel workers"
 task :spec do
-  require "parallel_tests"
   rm_rf "tmp/dogfood-partials"
   sh "bundle exec parallel_rspec --serialize-stdout spec"
-rescue LoadError
-  Rake::Task[:"spec:serial"].invoke
 end
 
-begin
-  require "rubocop/rake_task"
-  RuboCop::RakeTask.new
-rescue LoadError
-  task :rubocop do
-    warn "Rubocop is disabled"
-  end
-end
+require "rubocop/rake_task"
+RuboCop::RakeTask.new
 
 # The frontend's tests run under bun's built-in runner; bunfig.toml enforces
 # 100% line and function coverage of html_frontend/src, the JS counterpart of
@@ -68,21 +58,13 @@ end
 
 desc "Validate the RBS type signatures in sig/"
 task :rbs do
-  require "rbs"
   sh "rbs", "-r", "forwardable", "-r", "monitor", "-r", "prism", "-r", "socket", "-r", "tempfile",
      "-I", "sig", "validate"
-rescue LoadError
-  # RBS's native extension doesn't build on JRuby; see the Gemfile.
-  warn "RBS is disabled"
 end
 
 desc "Type-check lib/ against sig/ with Steep (strict mode)"
 task :steep do
-  require "rbs"
   sh "steep", "check"
-rescue LoadError
-  # Steep depends on RBS, which doesn't build on JRuby; see the Gemfile.
-  warn "Steep is disabled"
 end
 
 task test: %i[spec frontend:test]

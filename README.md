@@ -140,7 +140,7 @@ including criteria, filters, groups, profiles, and thresholds.
 | [Merging & parallel tests](docs/Parallelism.md) | Test suite names, merging within and across machines, `SimpleCov.collate`, forked/spawned subprocesses, parallel-test-runner adapters |
 | [Formatters & output](docs/Formatters.md) | The HTML and JSON formatters, formatter options, the `coverage.json` schema, error output and color |
 | [Command-line interface](docs/CLI.md) | The `simplecov` executable: `run`, `coverage`, `report`, `uncovered`, `merge`, `diff`, `open`, `serve`, `clean` |
-| [Compatibility & troubleshooting](docs/Troubleshooting.md) | Ruby/JRuby support, framework quirks, Spring, local-vs-CI drift, missing coverage, upgrading from 0.x |
+| [Compatibility & troubleshooting](docs/Troubleshooting.md) | Ruby support, framework quirks, Spring, local-vs-CI drift, missing coverage, upgrading from 0.x |
 
 ## Contributing
 

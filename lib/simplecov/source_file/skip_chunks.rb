@@ -48,9 +48,7 @@ module SimpleCov
         warn_nocov_deprecation(no_cov_lines.first.last) if no_cov_lines.any?
 
         # If we have an uneven number of nocovs we assume they go to the
-        # end of the file, the source doesn't really matter. Can't deal
-        # with this within the each_slice due to differing behavior in
-        # JRuby: jruby/jruby#6048
+        # end of the file, the source doesn't really matter.
         no_cov_lines << ["", @src.size] if no_cov_lines.size.odd?
 
         no_cov_lines.each_slice(2).map do |(_line_src_start, index_start), (_line_src_end, index_end)|

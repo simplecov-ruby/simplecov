@@ -63,15 +63,11 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "enables eval coverage" do
-        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
-
         config.coverage :eval
         expect(config.coverage_for_eval_enabled?).to be true
       end
 
       it "disables eval coverage with enabled: false" do
-        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
-
         config.coverage :eval
         config.coverage :eval, enabled: false
 
@@ -82,8 +78,6 @@ RSpec.describe SimpleCov::Configuration do
       # coverage criterion eval" message was misleading. The refusal is
       # about thresholds specifically.
       it "rejects thresholds for :eval with a message about thresholds, not the criterion" do
-        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
-
         expect { config.coverage :eval, minimum: 100 }
           .to raise_error(SimpleCov::ConfigurationError, /:eval only toggles measuring eval'd code/)
       end
@@ -891,27 +885,21 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#enable_coverage with :eval" do
-      context "when the runtime supports eval coverage" do
-        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
+      it "flips coverage_for_eval_enabled? to true" do
+        config.enable_coverage :eval
 
-        it "flips coverage_for_eval_enabled? to true" do
-          config.enable_coverage :eval
+        expect(config.coverage_for_eval_enabled?).to be true
+      end
 
-          expect(config.coverage_for_eval_enabled?).to be true
-        end
+      it "combines with regular criteria in one call" do
+        config.enable_coverage :branch, :eval
 
-        it "combines with regular criteria in one call" do
-          config.enable_coverage :branch, :eval
-
-          expect(config.coverage_criteria).to include :branch
-          expect(config.coverage_for_eval_enabled?).to be true
-        end
+        expect(config.coverage_criteria).to include :branch
+        expect(config.coverage_for_eval_enabled?).to be true
       end
     end
 
     describe "#enable_coverage_for_eval (deprecated)" do
-      before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
-
       it "warns and still toggles the flag" do
         stderr = capture_stderr { config.enable_coverage_for_eval }
 
@@ -1406,7 +1394,6 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "turns the eval toggle back off" do
-        allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
         config.enable_coverage :eval
 
         config.disable_coverage :eval
@@ -1457,7 +1444,7 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#branch_coverage?", if: SimpleCov.branch_coverage_supported? do
+    describe "#branch_coverage?" do
       it "returns true of branch coverage is being measured" do
         config.enable_coverage :branch
 
@@ -1471,7 +1458,7 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#method_coverage?", if: SimpleCov.method_coverage_supported? do
+    describe "#method_coverage?" do
       it "returns true if method coverage is being measured" do
         config.enable_coverage :method
 
@@ -1867,8 +1854,7 @@ RSpec.describe SimpleCov::Configuration do
 
       it "resolves require_relative from the configuration source" do
         # An eval source under lib/ (not spec/) verifies require_relative's
-        # base is the configuration source, not this spec. It must be a
-        # file that exists: JRuby resolves the base through realpath.
+        # base is the configuration source, not this spec.
         source_path = File.join(SimpleCov.root, "lib/simplecov.rb")
         # rubocop:disable Style/EvalWithLocation
         configuration = eval(<<~RUBY, binding, source_path, 1)
@@ -1994,19 +1980,6 @@ RSpec.describe SimpleCov::Configuration do
 
       it "defaults to true when never set" do
         capture_stderr { expect(config.use_merging).to be true }
-      end
-    end
-
-    describe "#enable_coverage_for_eval (deprecated, still functional)" do
-      context "when the runtime does not support eval coverage" do
-        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(false) }
-
-        it "leaves the flag false and warns about unsupported runtime" do
-          stderr = capture_stderr { config.enable_coverage_for_eval }
-
-          expect(config.coverage_for_eval_enabled?).to be false
-          expect(stderr).to include("Coverage for eval is not available")
-        end
       end
     end
 

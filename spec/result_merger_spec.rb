@@ -79,8 +79,7 @@ RSpec.describe SimpleCov::ResultMerger do
       result.original_result.fetch(never_loaded)
     end
 
-    it "synthesizes tuples when the merged files carry them, whatever this process measures",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+    it "synthesizes tuples when the merged files carry them, whatever this process measures" do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "methods" => {}})
@@ -88,8 +87,7 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(entry["methods"]).not_to be_empty
     end
 
-    it "leaves them empty when the merged files carry none",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+    it "leaves them empty when the merged files carry none" do
       allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: true)
 
       entry = injected(loaded => {"lines" => [1, 1]})
@@ -578,7 +576,7 @@ RSpec.describe SimpleCov::ResultMerger do
       end
     end
 
-    context "with method coverage", if: SimpleCov.method_coverage_supported? do
+    context "with method coverage" do
       let(:method_lines) { [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1] }
       let(:method_resultset1_path) { "#{resultset_prefix}_method1.json" }
       let(:method_resultset2_path) { "#{resultset_prefix}_method2.json" }
@@ -930,9 +928,8 @@ RSpec.describe SimpleCov::ResultMerger do
       # RbConfig.ruby (not "ruby") so the child runs the same engine as
       # the suite even when PATH resolves to a different interpreter.
       IO.popen([RbConfig.ruby, "-Ilib", "-e", test_script], "r+") do |other_process|
-        # A generous boot timeout: JRuby and TruffleRuby take several
-        # seconds to start a subprocess. The later reads stay snappier
-        # since by then the child is warm.
+        # A generous boot timeout for slow CI runners. The later reads
+        # stay snappier since by then the child is warm.
         expect(Timeout.timeout(30) { other_process.gets }).to eq("ready\n")
 
         described_class.synchronize_resultset do

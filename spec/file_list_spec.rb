@@ -92,7 +92,7 @@ RSpec.describe SimpleCov::FileList do
     end
   end
 
-  context "with branch and method coverage criteria enabled", if: SimpleCov.branch_coverage_supported? do
+  context "with branch and method coverage criteria enabled" do
     around do |example|
       SimpleCov.enable_coverage :branch
       SimpleCov.enable_coverage :method

@@ -29,10 +29,9 @@ module SimpleCov
     # branch/method denominators while their lines DID count — so a
     # `track_files`/`cover` glob that picked up files without specs
     # silently inflated branch% relative to line%. See
-    # https://github.com/simplecov-ruby/simplecov/issues/1059. When Prism
-    # isn't loadable (Ruby < 3.3 without the prism gem) or the file
-    # can't be parsed, fall back to the old empty hashes — old behavior,
-    # old tradeoff.
+    # https://github.com/simplecov-ruby/simplecov/issues/1059. When the
+    # file can't be parsed, fall back to the old empty hashes — old
+    # behavior, old tradeoff.
     #
     # Pass `synthesize: false` to skip the static analysis and return the
     # empty hashes directly. Callers use it when neither branch nor method
@@ -58,8 +57,8 @@ module SimpleCov
     end
 
     # The branch and method tuples for a file, or empty hashes when the static
-    # analysis is skipped (nothing enabled reads them) or unavailable (no Prism,
-    # or the file doesn't parse).
+    # analysis is skipped (nothing enabled reads them) or the file doesn't
+    # parse.
     def synthesized_tuples(source_lines, synthesize)
       empty = {"branches" => {}, "methods" => {}} #: Hash[String, Hash[untyped, untyped]]
       synthesized = (StaticCoverageExtractor.call(source_lines.join) if synthesize) || empty
@@ -81,11 +80,8 @@ module SimpleCov
     # with `LinesClassifier` (which knows about `# :nocov:` toggles and
     # `# simplecov:disable line` ranges). Returns nil — and the caller
     # falls back to `LinesClassifier` alone — when `Coverage` can't read
-    # or parse the file, or when the runtime doesn't expose `line_stub`
-    # (JRuby and TruffleRuby).
+    # or parse the file.
     def coverage_stub(path, source_lines)
-      return nil unless Coverage.respond_to?(:line_stub)
-
       stub = Coverage.line_stub(path)
       classifier_output = LinesClassifier.new.classify(source_lines)
       stub.each_index { |idx| stub[idx] = nil if classifier_output[idx].nil? }

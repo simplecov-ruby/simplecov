@@ -320,8 +320,8 @@ private
     spawned
   end
 
-  # What CRuby on Windows, JRuby and TruffleRuby report. Every other
-  # `respond_to?` has to keep working, hence the `and_call_original` first.
+  # What CRuby on Windows reports. Every other `respond_to?` has to
+  # keep working, hence the `and_call_original` first.
   def without_fork
     allow(Process).to receive(:respond_to?).and_call_original
     allow(Process).to receive(:respond_to?).with(:fork).and_return(false)

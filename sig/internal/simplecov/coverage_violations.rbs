@@ -35,10 +35,8 @@ module SimpleCov
 
     # Look up a criterion's percent on any coverage_statistics-bearing
     # object (Result, SourceFile, FileList). Returns nil — and the
-    # caller silently skips — when the criterion was configured but not
-    # actually measured by the runtime (e.g. `minimum_coverage branch:
-    # 100` under the "strict" profile on JRuby, where the Coverage
-    # module doesn't emit branch data). The config-time
+    # caller silently skips — when the criterion was configured but no
+    # data for it was measured. The config-time
     # `raise_if_criterion_disabled` check still catches the genuine
     # "forgot to enable the criterion" mistake before we ever get here.
     def self.percent_for: (untyped stats_source, untyped criterion) -> untyped

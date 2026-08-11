@@ -2,12 +2,10 @@
 
 require "helper"
 
-# Focuses on the "criterion configured but not measured" path that the
-# strict profile relies on for JRuby — `enable_coverage :branch` is
-# accepted on every engine, but JRuby's Coverage doesn't actually emit
-# branch data, so the criterion ends up in the thresholds hash with no
-# stats to check against. The runtime check skips silently rather than
-# `fetch`-raising.
+# Focuses on the "criterion configured but not measured" path: a
+# criterion can end up in the thresholds hash with no stats to check
+# against (e.g. merging an old resultset that never recorded it). The
+# runtime check skips silently rather than `fetch`-raising.
 RSpec.describe SimpleCov::CoverageViolations do
   let(:line_stats)   { SimpleCov::CoverageStatistics.new(covered: 80, missed: 20) }
   let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 5,  missed: 5) }
@@ -20,8 +18,8 @@ RSpec.describe SimpleCov::CoverageViolations do
     end
 
     it "skips a configured threshold whose criterion isn't in the stats" do
-      # No :branch key in coverage_statistics — simulates JRuby's "branch
-      # criterion enabled but not measurable" state.
+      # No :branch key in coverage_statistics — the "branch criterion
+      # configured but never measured" state.
       result = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
       violations = described_class.minimum_overall(result, line: 100, branch: 100)
       expect(violations).to contain_exactly(criterion: :line, expected: 100, actual: 80.0)

@@ -101,8 +101,6 @@ module SimpleCov
   def self.minitest_autorun_pending?: () -> bool
 
   def self.defer_to_minitest_after_run: () -> void
-
-  def self.warn_if_jruby_full_trace_disabled: () -> void
 end
 
 # ----- version -----
@@ -308,16 +306,7 @@ module SimpleCov
 
     def branch_coverage?: () -> bool
 
-    def branch_coverage_supported?: () -> bool
-
     def method_coverage?: () -> bool
-
-    def method_coverage_supported?: () -> bool
-
-    # Whether the running Ruby's Coverage library supports the given
-    # criterion, named in Coverage's own plural vocabulary
-    # (`:lines`, `:branches`, `:methods`, `:oneshot_lines`, `:eval`).
-    def coverage_criterion_supported?: (Symbol criterion) -> bool
 
     private
 
@@ -336,12 +325,10 @@ end
 # ----- configuration/eval_coverage -----
 
 # The standalone eval-coverage toggle (`enable_coverage :eval`),
-# instrumenting `eval`'d code on Rubies that support it. A boolean
-# toggle, never a member of the enabled-criteria set.
+# instrumenting `eval`'d code. A boolean toggle, never a member of the
+# enabled-criteria set.
 module SimpleCov
   module Configuration
-    def coverage_for_eval_supported?: () -> bool
-
     def coverage_for_eval_enabled?: () -> bool
 
     # DEPRECATED: use `enable_coverage :eval` instead.

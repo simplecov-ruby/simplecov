@@ -21,21 +21,8 @@ module DogfoodReport
   OUTPUT_DIR = "tmp/dogfood"
   PARTIALS_ROOT = "tmp/dogfood-partials"
 
-  # Per-engine thresholds. CRuby is the primary target and is held to
-  # 100% on every criterion. JRuby and TruffleRuby `skip` specs that
-  # exercise branch / method coverage paths their Coverage module
-  # doesn't support, so the lib/ lines those specs would have hit stay
-  # uncovered there — set the line threshold a hair below today's
-  # actual to act as a regression guard rather than a strict ceiling.
-  # (Files that are wholly unreachable on an engine are filtered out
-  # in `report` instead, so they don't drag this number down.)
-  # Engines absent from this hash get an informational report only,
-  # no threshold enforcement.
-  THRESHOLDS = {
-    "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
-    "jruby" => {line: 96.5},
-    "truffleruby" => {line: 97.5}
-  }.freeze
+  # The dogfood report is held to 100% on every criterion.
+  THRESHOLDS = {line: 100.0, branch: 100.0, method: 100.0}.freeze
 
 module_function
 
@@ -111,9 +98,9 @@ module_function
   def report(coverage)
     extra_filters = %w[/spec/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
     # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
-    # (JRuby, TruffleRuby, CRuby on Windows) its worker lines are unreachable
-    # rather than untested. Drop the file on those engines instead of
-    # lowering the bar for every other file; CRuby still holds it to 100%.
+    # (CRuby on Windows) its worker lines are unreachable rather than
+    # untested. Drop the file there instead of lowering the bar for every
+    # other file; everywhere else it is still held to 100%.
     extra_filters << SimpleCov::StringFilter.new("parallel_result_merger.rb") unless FORK_SUPPORTED
 
     # Enabling :branch / :method is what teaches FileList / Result
@@ -121,8 +108,8 @@ module_function
     # (rather than in SimpleCov.start) to avoid leaking the
     # multi-criterion output shape into formatter specs that assert
     # against line-only fixtures.
-    SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
-    SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
+    SimpleCov.enable_coverage :branch
+    SimpleCov.enable_coverage :method
     filter_config = SimpleCov::Result::FilterConfig.new(filters: SimpleCov.filters + extra_filters, groups: {})
     result = SimpleCov::Result.new(coverage, filter_config: filter_config)
 
@@ -158,7 +145,7 @@ module_function
   # to internal API minimal.
   def coverage_limits
     limits = {
-      minimum_coverage: THRESHOLDS[RUBY_ENGINE] || {},
+      minimum_coverage: THRESHOLDS,
       minimum_coverage_by_file: {}, minimum_coverage_by_file_overrides: {},
       minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {}
     }

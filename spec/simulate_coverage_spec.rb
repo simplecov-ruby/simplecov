@@ -9,13 +9,6 @@ RSpec.describe SimpleCov::SimulateCoverage do
   describe ".call" do
     let(:fixture) { source_fixture("sample.rb") }
 
-    # TruffleRuby doesn't implement Coverage.line_stub at all, and JRuby's
-    # implementation returns the wrong length for multi-line statements.
-    # The contexts below assert the exact shape line_stub produces and are
-    # gated accordingly.
-    has_line_stub = Coverage.respond_to?(:line_stub)
-    line_stub_handles_multiline = has_line_stub && RUBY_ENGINE == "ruby"
-
     it "produces a hash with lines/branches/methods keys" do
       result = described_class.call(fixture)
       expect(result.keys).to contain_exactly("lines", "branches", "methods")
@@ -42,33 +35,27 @@ RSpec.describe SimpleCov::SimulateCoverage do
     # Pre-#1059 behavior was to leave branches/methods empty, so unloaded
     # files were invisible to those denominators while their lines DID
     # count. SimulateCoverage now enumerates branches and methods via
-    # StaticCoverageExtractor so the totals stay symmetric. On Rubies
-    # without Prism the static path no-ops and the fields stay empty —
-    # both shapes are documented as valid here.
+    # StaticCoverageExtractor so the totals stay symmetric.
     it "returns hash-shaped branches and methods" do
       result = described_class.call(fixture)
       expect(result["branches"]).to be_a(Hash)
       expect(result["methods"]).to be_a(Hash)
     end
 
-    context "when Prism is available" do
-      it "synthesizes branch entries for unloaded files",
-         if: SimpleCov::StaticCoverageExtractor.available? do
-        with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
-          result = described_class.call(path)
-          expect(result["branches"]).not_to be_empty
-          types = result["branches"].keys.map(&:first)
-          expect(types).to include(:if)
-        end
+    it "synthesizes branch entries for unloaded files" do
+      with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
+        result = described_class.call(path)
+        expect(result["branches"]).not_to be_empty
+        types = result["branches"].keys.map(&:first)
+        expect(types).to include(:if)
       end
+    end
 
-      it "synthesizes method entries for unloaded files",
-         if: SimpleCov::StaticCoverageExtractor.available? do
-        with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
-          result = described_class.call(path)
-          method_names = result["methods"].keys.map { |k| k[1] }
-          expect(method_names).to include(:bar)
-        end
+    it "synthesizes method entries for unloaded files" do
+      with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
+        result = described_class.call(path)
+        method_names = result["methods"].keys.map { |k| k[1] }
+        expect(method_names).to include(:bar)
       end
     end
 
@@ -77,7 +64,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
     # every continuation line as relevant when the file was tracked but not
     # loaded — even though Ruby's Coverage module marks the continuations as
     # nil for a loaded file. The two paths now agree.
-    context "with a multi-line method chain", if: line_stub_handles_multiline do
+    context "with a multi-line method chain" do
       let(:source) { <<~RUBY }
         def show
           @product = base_scope
@@ -98,7 +85,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
 
     # Coverage.line_stub doesn't understand SimpleCov's `# :nocov:` toggles,
     # so the overlay step must demote those lines to nil.
-    context "with a :nocov: block", if: has_line_stub do
+    context "with a :nocov: block" do
       let(:source) { <<~RUBY }
         def shown
           1
@@ -120,7 +107,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
     end
 
     # Same overlay path, but with the new `# simplecov:disable line` directive.
-    context "with a simplecov:disable line range", if: has_line_stub do
+    context "with a simplecov:disable line range" do
       let(:source) { <<~RUBY }
         def shown
           1
@@ -157,26 +144,13 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
     end
 
-    # Simulates JRuby / TruffleRuby, where Coverage.line_stub doesn't exist.
-    # Runs on every engine so the fallback branch stays exercised on MRI.
-    context "when Coverage doesn't expose line_stub" do
-      it "falls back to LinesClassifier's raw output" do
-        allow(Coverage).to receive(:respond_to?).and_call_original
-        allow(Coverage).to receive(:respond_to?).with(:line_stub).and_return(false)
-        with_tmp_source("a = 1\nb = 2\n") do |path|
-          expect(described_class.call(path)["lines"]).to eq([0, 0])
-        end
-      end
-    end
-
     # The caller passes `synthesize: false` when neither branch nor method
     # coverage is enabled, since nothing reads the tuples and the Prism parse
     # that produces them is about half the cost of simulating a file. See #1250.
     context "with synthesize: false" do
       let(:source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
-      it "returns empty branches and methods",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+      it "returns empty branches and methods" do
         with_tmp_source(source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
 
@@ -196,8 +170,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       # Empty tuples alone would also be satisfied by parsing and discarding
       # the result. The point of the flag is that the Prism parse — over half
       # the cost of simulating a file — never happens.
-      it "does not parse the file at all",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+      it "does not parse the file at all" do
         with_tmp_source(source) do |path|
           allow(SimpleCov::StaticCoverageExtractor).to receive(:call).and_call_original
 
@@ -221,8 +194,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
         end
       end
 
-      it "still synthesizes branches and methods",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+      it "still synthesizes branches and methods" do
         with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
           expect(described_class.call(path, lines: false)["branches"]).not_to be_empty
         end

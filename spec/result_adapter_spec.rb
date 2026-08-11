@@ -9,10 +9,6 @@ RSpec.describe SimpleCov::ResultAdapter do
   let(:existing_file) { source_fixture("app/models/user.rb") }
 
   describe "with oneshot_lines coverage" do
-    before do
-      skip "oneshot_lines coverage not supported on truffleruby" if RUBY_ENGINE == "truffleruby"
-    end
-
     context "when all tracked files exist" do
       let(:result_set) do
         {
@@ -110,18 +106,14 @@ RSpec.describe SimpleCov::ResultAdapter do
       mod
     end
 
-    # Engines render singleton wrappers differently: CRuby routes a
-    # singleton class's `to_s` through the attached object's `#inspect`
-    # (which is what can crash), while JRuby and TruffleRuby render from
-    # the class name chain and never hit the rescue. The invariant on
-    # every engine is: adapting must not raise, and the rendered receiver
-    # must carry no unnormalized address. The exact strings are pinned on
-    # CRuby only, where the fallback path actually runs.
+    # CRuby routes a singleton class's `to_s` through the attached
+    # object's `#inspect` (which is what can crash). The invariant is:
+    # adapting must not raise, and the rendered receiver must carry no
+    # unnormalized address.
     it "recovers the named singleton wrapper via Module#name" do
       methods = adapter_for(named_shadowing_module.singleton_class)
       rendered = methods.keys.first[0]
-      expect(rendered).not_to match(/0x\h{2,}/)
-      expect(rendered).to eq("FakeLiquidUtils") if RUBY_ENGINE == "ruby"
+      expect(rendered).to eq("FakeLiquidUtils")
     end
 
     it "falls back to the address form for an anonymous shadowing module" do
@@ -133,8 +125,7 @@ RSpec.describe SimpleCov::ResultAdapter do
       end
       methods = adapter_for(mod.singleton_class)
       rendered = methods.keys.first[0]
-      expect(rendered).not_to match(/0x\h{2,}/)
-      expect(rendered).to eq("#<Class:0x0>") if RUBY_ENGINE == "ruby"
+      expect(rendered).to eq("#<Class:0x0>")
     end
 
     it "falls back to the address form when to_s itself is shadowed" do
