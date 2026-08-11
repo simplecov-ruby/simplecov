@@ -20,8 +20,10 @@ module SimpleCov
   #     (precise sync + first-process detection via the gem's own API).
   #   - `GenericAdapter` — env-var-only detection for runners that follow
   #     the parallel_tests `TEST_ENV_NUMBER` convention but don't ship a
-  #     Ruby API (parallel_rspec, custom CI sharding, knapsack-style
-  #     splitters). See https://github.com/simplecov-ruby/simplecov/issues/1065.
+  #     Ruby API (parallel_rspec, rspec-conductor 1.0.7+, custom CI
+  #     sharding, knapsack-style splitters). See
+  #     https://github.com/simplecov-ruby/simplecov/issues/1065 and
+  #     https://github.com/simplecov-ruby/simplecov/issues/1156.
   #
   # Users can plug in additional adapters:
   #
