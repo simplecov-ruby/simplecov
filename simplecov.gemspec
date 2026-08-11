@@ -57,7 +57,9 @@ Gem::Specification.new do |gem|
   # points readers at the GitHub copy instead.
   # sig/internal holds skeleton signatures for internal classes so Steep can
   # type-check the whole codebase; only the public API signature file ships.
-  gem.files         = Dir["{lib,schemas}/**/*.*", "exe/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
+  # The schemas/ directory is also not packaged. Nothing reads it at runtime,
+  # the JSON formatter refers consumers to the canonical schema URL on GitHub.
+  gem.files         = Dir["lib/**/*.*", "exe/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
   gem.bindir        = "exe"
   gem.executables   = ["simplecov"]
   gem.require_paths = ["lib"]
