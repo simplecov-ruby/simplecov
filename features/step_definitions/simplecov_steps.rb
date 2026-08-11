@@ -159,3 +159,15 @@ Given "I'm working on the project {string}" do |project_name|
 
   step 'I cd to "project"'
 end
+
+# For fixtures that reuse another project's sources wholesale and differ only
+# in which gems they pull in (their test_projects directory holds nothing but
+# a Gemfile and Gemfile.lock).
+Given "I'm working on the project {string} with the Gemfile from {string}" do |project_name, gemfile_project|
+  step "I'm working on the project \"#{project_name}\""
+
+  gemfile_source = File.expand_path("../../test_projects/#{gemfile_project}", __dir__)
+  cd(".") do
+    FileUtils.cp(Dir.glob("#{gemfile_source}/Gemfile*"), ".")
+  end
+end

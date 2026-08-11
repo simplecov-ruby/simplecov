@@ -22,7 +22,7 @@ Feature:
   # that late. The report itself is written fine.
 
   Background:
-    Given I'm working on the project "rspec_conductor"
+    Given I'm working on the project "parallel_tests" with the Gemfile from "rspec_conductor"
 
   Scenario: Running it through rspec-conductor produces the same results as a normal rspec run
     Given I install dependencies
@@ -36,16 +36,7 @@ Feature:
       | coverage/index.html      |
       | coverage/.resultset.json |
     When I open the coverage report
-    Then I should see the groups:
-      | name      | coverage | files |
-      | All Files | 81.48%   | 5     |
-    And I should see the source files:
-      | name            | coverage |
-      | lib/all.rb      | 100.00%  |
-      | lib/a.rb        | 85.71%   |
-      | lib/b.rb        | 80.00%   |
-      | lib/c.rb        | 75.00%   |
-      | lib/d.rb        | 71.42%   |
+    Then I should see the line coverage results for the parallel fixture project
 
   # In default mode the first worker's TEST_ENV_NUMBER is "" like
   # parallel_tests. With --first-is-1 it is "1" instead, and the workers count
@@ -62,16 +53,7 @@ Feature:
       | coverage/index.html      |
       | coverage/.resultset.json |
     When I open the coverage report
-    Then I should see the groups:
-      | name      | coverage | files |
-      | All Files | 81.48%   | 5     |
-    And I should see the source files:
-      | name            | coverage |
-      | lib/all.rb      | 100.00%  |
-      | lib/a.rb        | 85.71%   |
-      | lib/b.rb        | 80.00%   |
-      | lib/c.rb        | 75.00%   |
-      | lib/d.rb        | 71.42%   |
+    Then I should see the line coverage results for the parallel fixture project
 
   @branch_coverage
   Scenario: Running with branch coverage enabled
@@ -88,18 +70,7 @@ Feature:
       | coverage/index.html      |
       | coverage/.resultset.json |
     When I open the coverage report
-    Then I should see the groups:
-      | name      | coverage | files |
-      | All Files | 81.48%   | 5     |
-    And I should see a line coverage summary of 22/27
-    And I should see a branch coverage summary of 4/8
-    And I should see the source files:
-      | name            | coverage | branch coverage |
-      | lib/all.rb      | 100.00%  | 100.00%         |
-      | lib/a.rb        | 85.71%   | 50.00%          |
-      | lib/b.rb        | 80.00%   | 100.00%         |
-      | lib/c.rb        | 75.00%   | 50.00%          |
-      | lib/d.rb        | 71.42%   | 50.00%          |
+    Then I should see the branch coverage results for the parallel fixture project
 
   # Each worker on its own covers only a slice of the project, so a threshold
   # check against a single worker's partial result would fail. Only the
