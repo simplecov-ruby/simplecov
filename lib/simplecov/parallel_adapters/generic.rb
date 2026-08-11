@@ -7,14 +7,15 @@ module SimpleCov
     # Catch-all adapter for parallel test runners that follow the
     # `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` env-var convention but
     # don't ship a Ruby API for SimpleCov to hook (parallel_rspec,
-    # knapsack-style splitters, custom CI sharding scripts). Activates
-    # when `TEST_ENV_NUMBER` is set; doesn't require any specific gem to
-    # be loaded.
+    # rspec-conductor since 1.0.7, knapsack-style splitters, custom CI
+    # sharding scripts). Activates when `TEST_ENV_NUMBER` is set;
+    # doesn't require any specific gem to be loaded.
     #
     # Heuristic for `first_worker?`: the worker whose `TEST_ENV_NUMBER`
-    # is `""` (parallel_tests/parallel_rspec convention) or `"1"`
-    # (zero-based runners that start at 1). Any other value is treated
-    # as a non-first worker.
+    # is `""` (parallel_tests/parallel_rspec convention, rspec-conductor's
+    # default) or `"1"` (runners that number from 1, like rspec-conductor
+    # with `--first-is-1`). Any other value is treated as a non-first
+    # worker.
     #
     # `wait_for_siblings` is inherited from Base as a no-op — without a
     # runner-provided API the only synchronization available is polling

@@ -285,8 +285,9 @@ SimpleCov coordinates with parallel test runners through a small pluggable adapt
   uses its `ParallelTests.first_process?` / `ParallelTests.wait_for_other_processes_to_finish` APIs for precise worker
   coordination. Activates only when the native `parallel_tests` pid-file contract is present.
 - **`GenericAdapter`** — catch-all for any runner that follows the `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` env-var
-  convention but doesn't ship a Ruby API (parallel_rspec, knapsack-style splitters, custom CI sharding scripts).
-  Activates when `TEST_ENV_NUMBER` is set and no more-specific adapter is.
+  convention but doesn't ship a Ruby API (parallel_rspec, [rspec-conductor](https://github.com/markiz/rspec-conductor)
+  1.0.7 or later, knapsack-style splitters, custom CI sharding scripts). Activates when `TEST_ENV_NUMBER` is set and no
+  more-specific adapter is.
 
 Adapters are tried in registration order; the first whose `active?` returns `true` is chosen. With both built-ins, this
 means parallel_tests users get the precise gem-based path and parallel_rspec (or any env-var-only runner) gets the
