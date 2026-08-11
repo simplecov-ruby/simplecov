@@ -75,8 +75,8 @@ module_function
     sum_counts(entries.flat_map { |entry| (entry["methods"] || {}).to_a }) { |key| location(key) }
   end
 
-  def sum_counts(pairs, &identity)
-    group(pairs, &identity).to_h { |first_key, group| [first_key, group.sum { |(_key, count)| count }] }
+  def sum_counts(pairs, &)
+    group(pairs, &).to_h { |first_key, group| [first_key, group.sum { |(_key, count)| count }] }
   end
 
   # Groups `[key, value]` pairs by their key's identity, as
