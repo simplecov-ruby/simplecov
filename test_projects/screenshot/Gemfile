@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+gem "rake"
+gem "rspec"
+
+in_place_gemspec = File.expand_path("../../simplecov.gemspec", __dir__)
+simplecov_path = File.exist?(in_place_gemspec) ? "../.." : "../../.."
+
+gem "simplecov", path: simplecov_path

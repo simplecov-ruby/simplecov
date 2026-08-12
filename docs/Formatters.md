@@ -6,6 +6,27 @@ The bundled HTML and JSON formatters, third-party formatters, the coverage.json 
 
 ## Formatters
 
+### HTML report appearance
+
+The bundled HTML formatter produces a self-contained report with file-list and
+source-file views. Its Light/Dark and Colorblind controls apply to both views
+and remember their settings in the browser.
+
+#### Dark mode
+
+| File list | Source file |
+|---|---|
+| ![SimpleCov file list in dark mode](https://github.com/user-attachments/assets/2e7b365f-e430-4188-9c14-bcaa34d1ec7d) | ![SimpleCov source file in dark mode](https://github.com/user-attachments/assets/64432b66-e831-4d5a-9017-a5fd7e0dff94) |
+
+#### Colorblind mode
+
+Colorblind mode uses a blue/orange palette and keeps the report's non-color
+coverage markers, so coverage states do not depend on color alone.
+
+| File list | Source file |
+|---|---|
+| ![SimpleCov file list in light colorblind mode](https://github.com/user-attachments/assets/0fdbfbd5-b6b7-41cd-ae60-e1283740c7f3) | ![SimpleCov source file in light colorblind mode](https://github.com/user-attachments/assets/737bff3a-1978-462c-9ae4-7209320fa95d) |
+
 ### Using your own formatter
 
 ```ruby
@@ -150,5 +171,4 @@ SimpleCov.color true   # always on
 SimpleCov.color false  # always off
 SimpleCov.color :auto  # default behavior: NO_COLOR/FORCE_COLOR/TTY
 ```
-
 

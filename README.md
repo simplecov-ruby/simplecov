@@ -104,11 +104,11 @@ SimpleCov.start 'rails'
 
 **Coverage results report, fully browsable locally with sorting and much more:**
 
-![SimpleCov coverage report](https://github.com/user-attachments/assets/33275385-e0f3-482d-b63e-2a6cd4965fe0)
+![SimpleCov coverage report](https://github.com/user-attachments/assets/660b616c-d6a7-4691-a514-276d45d60345)
 
 **Source file coverage details view:**
 
-![SimpleCov source file detail view](https://github.com/user-attachments/assets/abcd93b4-a45d-48bb-a0e4-6129c4429193)
+![SimpleCov source file detail view](https://github.com/user-attachments/assets/3fbf4012-0661-4fa0-96f1-adc4ef17f544)
 
 ## Configuration at a glance
 
