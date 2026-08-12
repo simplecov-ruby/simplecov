@@ -21,6 +21,12 @@
   --radius-md: 12px;
   --radius-lg: 16px;
 
+  /* The index reserves this slot so its toolbar stays pixel-aligned with the
+     source toolbar when the close button appears. */
+  --source-close-size: 34px;
+  --source-close-gap: var(--sp-4);
+  --source-close-slot: calc(var(--source-close-size) + var(--source-close-gap));
+
   /* Light theme */
   --bg: #f0f1f3;
   --surface: #fff;
@@ -222,6 +228,17 @@
 }
 
 /* --- Base -------------------------------------------------- */
+
+/* Opening the source dialog sets overflow:hidden on this element to stop the
+   page behind it from scrolling. Where scrollbars take up layout space (the
+   Windows and Linux default rather than macOS overlay scrollbars), that would
+   widen the viewport by the scrollbar's width mid-interaction and shift the
+   toolbar the --source-close-slot alignment exists to hold still. Reserving
+   the gutter for good keeps the width constant whether or not the scrollbar
+   is showing. */
+html {
+  scrollbar-gutter: stable;
+}
 
 body {
   font-family: var(--font-sans);
@@ -698,21 +715,23 @@ dialog.source-dialog[open] {
 }
 
 .source-dialog__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: flex-start;
-  justify-content: space-between;
-  padding: var(--sp-4) var(--sp-6);
-  background: var(--surface);
+  padding: var(--sp-6);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .source-dialog__title {
-  flex: 1;
+  display: contents;
   min-width: 0;
 }
 
 .source-dialog__title h2 {
+  grid-column: 1;
+  grid-row: 1;
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
@@ -720,17 +739,56 @@ dialog.source-dialog[open] {
   word-break: break-all;
 }
 
+.source-dialog__title .summary-stats {
+  display: contents;
+}
+
+.source-dialog__title .t-line-summary {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.source-dialog__title .t-branch-summary {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.source-dialog__title .t-method-summary {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.source-dialog__title > .t-missed-method-list {
+  grid-column: 1 / -1;
+  grid-row: 5;
+}
+
 /* --- Source legend ------------------------------------------ */
 
 .source-legend {
+  display: contents;
+}
+
+.source-legend__row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2) var(--sp-4);
   align-items: center;
-  align-self: flex-end;
-  flex-shrink: 0;
-  margin-left: auto;
-  padding-left: var(--sp-6);
+  align-self: center;
+  justify-content: flex-end;
+  grid-column: 2 / 4;
+}
+
+.source-legend__row--line {
+  grid-row: 2;
+}
+
+.source-legend__row--branch {
+  grid-row: 3;
+}
+
+.source-legend__row--method {
+  grid-row: 4;
 }
 
 .source-legend__item {
@@ -772,7 +830,8 @@ dialog.source-dialog[open] {
 
 /* The colorblind and dark toggles, repeated in the dialog header so the mode
    can be changed while a source file is open (the modal covers the report's
-   own toolbar). Sits between the legend and the close button, top-aligned. */
+   own toolbar). The index toolbar reserves the close button's exact width and
+   gap, so both copies have identical viewport coordinates. */
 .source-dialog__toggles {
   display: flex;
   align-items: center;
@@ -787,14 +846,14 @@ dialog.source-dialog[open] {
   background: none;
   border: 1px solid var(--border);
   border-radius: 50%;
-  width: 34px;
-  height: 34px;
+  width: var(--source-close-size);
+  height: var(--source-close-size);
   font-size: 0;
   color: var(--text-secondary);
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  margin-left: var(--sp-4);
+  margin-left: var(--source-close-gap);
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -1006,6 +1065,7 @@ table.file_list .totals-row td {
   align-items: flex-start;
   gap: var(--sp-2);
   flex-shrink: 0;
+  margin-right: var(--source-close-slot);
 }
 
 .toolbar-toggle {
@@ -1054,19 +1114,32 @@ select:focus-visible,
 
 /* --- Footer ------------------------------------------------ */
 
-#footer {
+#footer,
+.source-dialog__footer {
   color: var(--text-tertiary);
   font-size: 16px;
-  margin-top: var(--sp-5);
   text-align: center;
 }
 
-#footer a {
+#footer {
+  margin-top: var(--sp-5);
+}
+
+.source-dialog__footer {
+  flex-shrink: 0;
+  padding: var(--sp-3) var(--sp-6);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+#footer a,
+.source-dialog__footer a {
   color: var(--text-secondary);
   text-decoration: underline;
 }
 
-#footer a:hover {
+#footer a:hover,
+.source-dialog__footer a:hover {
   color: var(--text);
 }
 
@@ -1227,14 +1300,15 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     display: none !important;
   }
 
+  /* On screen the header is a grid that seats each legend row beside its
+     coverage summary, in the columns the toggles and close button occupy.
+     Those controls don't print, so on paper that layout only squeezes the
+     summaries against a legend column. Fall back to document flow, which
+     prints each legend row full width beneath the summary it describes. */
   .source-dialog__header {
-    flex-wrap: wrap;
+    display: block;
     border-bottom: none;
     padding: 0 0 8pt 0;
-  }
-
-  .source-dialog__title {
-    flex: 0 0 100%;
   }
 
   .source-dialog__title h2 {
@@ -1242,10 +1316,8 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     overflow-wrap: break-word;
   }
 
-  .source-legend {
-    margin-left: 0;
-    padding-left: 0;
-    padding-top: var(--sp-2);
+  .source-legend__row {
+    justify-content: flex-start;
   }
 
   .source-dialog__body {
@@ -1312,13 +1384,15 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     display: table-header-group;
   }
 
-  #footer {
+  #footer,
+  .source-dialog__footer {
     font-size: 10pt;
     margin-top: 12pt;
   }
 
   /* Links: show URL after link text */
-  #footer a::after {
+  #footer a::after,
+  .source-dialog__footer a::after {
     content: " (" attr(href) ")";
     font-size: 9pt;
     color: var(--text-tertiary);

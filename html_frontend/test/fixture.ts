@@ -40,6 +40,7 @@ export const PAGE_BODY_HTML = `
         <button class="source-dialog__close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="source-dialog__body" id="source-dialog-body" tabindex="0"></div>
+      <div class="source-dialog__footer" id="source-dialog-footer"></div>
     </dialog>
 `;
 
