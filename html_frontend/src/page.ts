@@ -112,24 +112,31 @@ export function renderPage(data: CoverageData): void {
 
   // Footer
   const timestamp = new Date(meta.timestamp);
-  const footer = document.getElementById('footer')!;
-  footer.innerHTML = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
+  const footerHtml = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
     ` by <a href="https://github.com/simplecov-ruby/simplecov">simplecov</a> v${escapeHTML(meta.simplecov_version)}` +
     ` using ${escapeHTML(meta.command_name)}`;
+  document.getElementById('footer')!.innerHTML = footerHtml;
+  document.getElementById('source-dialog-footer')!.innerHTML = footerHtml;
 
   // Source legend
   const legend = document.getElementById('source-legend')!;
   let legendHtml = '';
   if (lineCoverage) {
-    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
+    legendHtml += '<div class="source-legend__row source-legend__row--line">' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>';
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>' +
+      '</div>';
   }
   if (branchCoverage) {
-    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-branch"></span>Missed branch</span>';
+    legendHtml += '<div class="source-legend__row source-legend__row--branch">' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-branch"></span>Missed branch</span>' +
+      '</div>';
   }
   if (methodCoverage) {
-    legendHtml += '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>';
+    legendHtml += '<div class="source-legend__row source-legend__row--method">' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>' +
+      '</div>';
   }
   legend.innerHTML = legendHtml;
 }

@@ -97,12 +97,17 @@ describe('renderPage', () => {
     expect(footer.innerHTML).toContain('using RSpec');
     expect(footer.querySelector('abbr.timeago')).not.toBeNull();
 
+    const sourceFooter = document.getElementById('source-dialog-footer')!;
+    expect(sourceFooter.innerHTML).toBe(footer.innerHTML);
+
     const legend = document.getElementById('source-legend')!;
     expect(legend.textContent).toContain('Covered');
     expect(legend.textContent).toContain('Skipped');
     expect(legend.textContent).toContain('Missed line');
     expect(legend.textContent).not.toContain('Missed branch');
     expect(legend.textContent).not.toContain('Missed method');
+    expect(legend.querySelectorAll('.source-legend__row')).toHaveLength(1);
+    expect(legend.querySelector('.source-legend__row--line')!.textContent).toContain('Covered');
   });
 
   test('renders branch and method coverage with groups', async () => {
@@ -137,6 +142,9 @@ describe('renderPage', () => {
     const legend = document.getElementById('source-legend')!;
     expect(legend.textContent).toContain('Missed branch');
     expect(legend.textContent).toContain('Missed method');
+    expect(legend.querySelectorAll('.source-legend__row')).toHaveLength(3);
+    expect(legend.querySelector('.source-legend__row--branch')!.textContent).toContain('Missed branch');
+    expect(legend.querySelector('.source-legend__row--method')!.textContent).toContain('Missed method');
   });
 
   test('falls back to a 100% favicon band when the primary stat is missing', async () => {
