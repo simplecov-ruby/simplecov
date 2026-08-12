@@ -270,5 +270,6 @@ require_relative "simplecov/report_deferral"
 require_relative "simplecov/parallel_coordination"
 
 # Load default config
-# simplecov:disable — env-var only set by aruba feature tests
+# simplecov:disable — env-var never set in the dogfooded test process
+# (sandbox fixture subprocesses set it via simplecov/no_defaults)
 require_relative "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]

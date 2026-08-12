@@ -34,28 +34,6 @@ rescue LoadError
   end
 end
 
-begin
-  require "cucumber/rake/task"
-  # The serial task stays around for debugging a single flow without
-  # worker interleaving.
-  Cucumber::Rake::Task.new(:"cucumber:serial")
-rescue LoadError
-  # Cucumber isn't installed (e.g. on JRuby, which only runs `rake spec`).
-end
-
-# The suite's cost is almost entirely subprocess and browser wall clock,
-# so it parallelizes nearly linearly: `parallel_cucumber` splits the
-# feature files across CPU-count workers, each in its own Aruba sandbox
-# (see features/support/env.rb).
-desc "Run Cucumber features across parallel workers"
-task :cucumber do
-  if Rake::Task.task_defined?(:"cucumber:serial")
-    sh "bundle exec parallel_cucumber --serialize-stdout features"
-  else
-    warn "Cucumber is disabled"
-  end
-end
-
 # The frontend's tests run under bun's built-in runner; bunfig.toml enforces
 # 100% line and function coverage of html_frontend/src, the JS counterpart of
 # the 100% dogfood coverage the RSpec suite enforces on lib/. Follows the
@@ -91,8 +69,8 @@ rescue LoadError
   warn "Steep is disabled"
 end
 
-task test: %i[spec frontend:test cucumber]
-task default: %i[rubocop rbs steep spec frontend:test cucumber]
+task test: %i[spec frontend:test]
+task default: %i[rubocop rbs steep spec frontend:test]
 
 # JS: esbuild bundles TypeScript + highlight.js and minifies
 def frontend_esbuild(frontend)

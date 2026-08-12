@@ -3,35 +3,35 @@
 source "https://rubygems.org"
 
 group :development do
+  # rspec drives this suite, rake is its entry point, json_schemer checks the
+  # JSON formatter against its schema, and test-unit backs the return-code
+  # fixtures in spec/fixtures/frameworks.
+  #
+  # Cucumber and Minitest are only ever run from a sandbox fixture project,
+  # so they belong to that project's Gemfile rather than this one. They sit
+  # in optional groups there, because bundler materializes every gem a
+  # Gemfile requires before running anything at all, and a plain dependency
+  # would force every spec that drives the fixture to install them too.
   gem "json_schemer"
   gem "rake"
   gem "rspec"
   gem "test-unit"
 
-  # The cucumber feature suite and its browser-driven HTML report tests run
-  # only on MRI; JRuby runs `rake spec` only, so skip the whole stack there.
-  # This also keeps rdoc 8 (and its rbs dependency, whose native extension
-  # fails to build on JRuby) out of the resolution, since aruba pulls it in
-  # transitively via irb. The Rakefile guards `require "cucumber/rake/task"`
-  # with a matching rescue so `rake spec` still loads without these gems.
+  # RBS's native extension fails to build on JRuby, so the type-checking
+  # stack stays off there; JRuby runs `rake spec` only. The Rakefile's rbs
+  # and steep tasks rescue the missing require with a warning, and `rake
+  # spec` falls back to a serial run without parallel_tests (the sandbox
+  # specs it fans out don't run on JRuby anyway).
   unless RUBY_ENGINE == "jruby"
-    gem "aruba", ">= 2.0"
-    gem "capybara"
-    gem "cucumber"
-    gem "cuprite"
-    gem "nokogiri"
-    # Fans the cucumber suite out across worker processes (`rake cucumber`).
+    # Fans `rake spec` out across worker processes.
     gem "parallel_tests"
-    gem "rackup"
     gem "rbs", "~> 4.0.0"
     gem "steep", ">= 1.10", require: false
-    # Explicitly add webrick because it has been removed from stdlib in Ruby 3.0
-    gem "webrick"
   end
 
   if RUBY_VERSION > "3.2"
     gem "rubocop"
-    gem "rubocop-capybara"
+    gem "rubocop-minitest"
     gem "rubocop-performance"
     gem "rubocop-rake"
     gem "rubocop-rspec"

@@ -1,5 +1,4 @@
 plugins:
-  - rubocop-capybara
   - rubocop-performance
   - rubocop-rake
   - rubocop-rspec
@@ -40,7 +39,6 @@ Layout/SpaceInsideHashLiteralBraces:
 Lint/AmbiguousRegexpLiteral:
   Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
   Exclude:
-    - "features/**/*_steps.rb"
     - "spec/**/*_steps.rb"
     - "tmp/**/*_steps.rb"
 
@@ -52,7 +50,6 @@ Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:
     - "spec/**/*.rb"
-    - "features/step_definitions/**/*.rb"
 
 Metrics/ParameterLists:
   Description: Avoid parameter lists longer than three or four parameters.
@@ -89,6 +86,8 @@ RSpec/ExpectActual:
 RSpec/DescribeClass:
   Exclude:
     - "spec/fixtures/**/*"
+    # End-to-end sandbox specs describe user-visible behaviors, not classes.
+    - "spec/sandbox/**/*"
 
 RSpec/ExampleLength:
   Max: 20 # TODO: Lower to 5
