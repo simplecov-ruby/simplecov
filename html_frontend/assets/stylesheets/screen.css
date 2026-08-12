@@ -327,6 +327,10 @@ strong, b { font-weight: 600; }
   margin: 0 auto;
 }
 
+/* Navigation on the left, display controls on the right. Both start at the
+   same top edge, which is what keeps the controls from jumping when the
+   source dialog opens over them, so the two groups are told apart by the
+   gutter between them rather than by sitting at different heights. */
 .tab-bar {
   display: flex;
   align-items: flex-start;
@@ -344,13 +348,40 @@ abbr.timeago {
 
 /* --- Tabs -------------------------------------------------- */
 
+/* Too many groups to fit and the strip scrolls, which otherwise guillotines
+   whichever tab straddles the right edge and leaves a hard vertical cut
+   against the controls. Fade the last stretch instead, so a tab that runs
+   past the edge dissolves into the gutter. The matching trailing padding
+   keeps the final tab clear of the fade when everything already fits, so
+   nothing is dimmed that isn't actually overflowing. */
 .group_tabs {
   display: flex;
   align-self: flex-end;
   gap: var(--sp-1);
   overflow-x: auto;
+  padding-right: var(--sp-6);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--sp-6)), transparent);
 }
 
+/* The leading edge cannot use the same trailing-padding trick: padding there
+   would push the first tab off the panel's flush left corner. So it fades
+   only once the strip has actually scrolled, which tab_scroll.ts reports,
+   and then says the same thing the trailing fade does, that tabs continue
+   past the edge. */
+.group_tabs.is-scrolled {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--sp-6),
+    #000 calc(100% - var(--sp-6)),
+    transparent
+  );
+}
+
+/* Every tab carries an outline, so an unselected group reads as a tab rather
+   than as loose text floating above the panel. The selected one sets itself
+   apart by filling with the panel's own colour and dropping its bottom
+   border, merging into the panel across the 1px the tab bar overlaps it. */
 .group_tabs li a {
   display: block;
   padding: var(--sp-2) var(--sp-4);
@@ -358,16 +389,17 @@ abbr.timeago {
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-bottom: none;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .group_tabs li a:hover {
   color: var(--text);
   background: var(--surface-alt);
+  border-color: var(--border-strong);
   text-decoration: none;
 }
 
@@ -1068,9 +1100,16 @@ table.file_list .totals-row td {
   margin-right: var(--source-close-slot);
 }
 
+/* The pill shape marks these as controls, the same as the filter input. This
+   padding puts them at exactly --source-close-size tall, so they match the
+   dialog's close button and sit level with it there and with the tab tops
+   here. They stay unfilled, taking the same outline-on-page-background the
+   unselected tabs use rather than the panel white, so the bar reads as one
+   family of chips and the filled shapes stay meaningful: the selected tab,
+   and a toggle that is switched on. */
 .toolbar-toggle {
   appearance: none;
-  background: var(--surface);
+  background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1084,6 +1123,7 @@ table.file_list .totals-row td {
 
 .toolbar-toggle:hover {
   color: var(--text);
+  background: var(--surface);
   border-color: var(--border-strong);
 }
 
