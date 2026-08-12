@@ -8,3 +8,8 @@ Command to generate stripped down rails apps:
 ```
 rails new --skip-action-mailer --skip-action-mailbox --skip-action-text --skip-active-storage --skip-action-cable --skip-javascript --skip-turbolinks --skip-sprockets --skip-git --skip-keep --skip-listen some_name
 ```
+
+The fixtures exercise both of Rails' common test stacks:
+
+- `rspec_rails` runs a conventional RSpec Rails suite.
+- `minitest_rails` runs Rails' built-in Minitest suite with process parallelization.
