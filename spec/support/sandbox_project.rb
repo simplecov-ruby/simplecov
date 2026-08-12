@@ -245,8 +245,15 @@ private
   def collect_command_result(command, stdout, wait_thread, timeout)
     output = +""
     reader = Thread.new { stdout.each_line { |line| output << line } }
+    # Unwinding from the timeout below closes the stream this thread is
+    # blocked on, which raises IOError inside it. That is expected teardown
+    # rather than a fault worth announcing, and left to report itself it
+    # reaches the suite's warning capture and fails the build with a stack
+    # trace instead of the timeout message that explains what went wrong.
+    reader.report_on_exception = false
     unless wait_thread.join(timeout)
       Process.kill("KILL", wait_thread.pid)
+      reader.kill
       raise "Command `#{command}` timed out after #{timeout}s. Output so far:\n#{output}"
     end
     reader.join
