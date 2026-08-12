@@ -1,0 +1,77 @@
+# frozen_string_literal: true
+
+require "json"
+require "rake"
+
+require_relative "support/coverage_cases"
+
+desc "Generate and verify the screenshot-ready Rails coverage report"
+task :report do
+  sh "bundle exec rspec"
+
+  report_path = File.expand_path("coverage/coverage.json", __dir__)
+  report = JSON.parse(File.read(report_path))
+  meta = report.fetch("meta")
+  coverage = report.fetch("coverage")
+  expected_paths = StorefrontFixture::FILES.map(&:path).sort
+
+  abort "Expected the Rails profile to report exactly #{expected_paths.length} fixture files." unless coverage.keys.sort == expected_paths
+  abort "Expected line, branch, and method coverage to be enabled." unless %w[line branch method].all? { |type| meta.fetch("#{type}_coverage") }
+
+  expected_groups = %w[Channels Controllers Helpers Jobs Libraries Mailers Models]
+  files_per_group = 2
+  groups = report.fetch("groups")
+  abort "Expected every Rails profile group to appear as a report tab." unless groups.keys.sort == expected_groups
+  abort "Expected #{files_per_group} fixture files in every Rails profile group." unless groups.values.all? { |group| group.fetch("files").length == files_per_group }
+
+  percentages = coverage.transform_values do |file|
+    %w[lines branches methods].map { |type| file.fetch("#{type}_covered_percent") }
+  end
+  # The fixture leaves one file out of the requires so the report shows a 0%
+  # row, and that file alone reads the same across every criterion.
+  never_required = StorefrontFixture::FILES.map(&:path) - StorefrontFixture::REQUIRED_PATHS
+  mismatched = percentages.reject { |path, values| never_required.include?(path) || values.uniq.length > 1 }
+  abort "Expected each exercised file to show distinct coverage criteria: #{mismatched.keys.join(', ')}" unless mismatched.empty?
+
+  showcase_paths = [
+    "app/channels/application_cable/channel.rb",
+    "app/channels/notifications_channel.rb",
+    "app/controllers/application_controller.rb",
+    "app/controllers/orders_controller.rb",
+    "app/helpers/orders_helper.rb"
+  ]
+  incomplete_showcases = showcase_paths.reject do |path|
+    file = coverage.fetch(path)
+    lines = file.fetch("lines")
+
+    lines.any? { |value| value.is_a?(Numeric) && value.positive? } &&
+      lines.include?(0) &&
+      lines.include?("ignored") &&
+      file.fetch("covered_branches").positive? &&
+      file.fetch("missed_branches").positive? &&
+      file.fetch("covered_methods").positive? &&
+      file.fetch("missed_methods").positive?
+  end
+  showcase_error = "Expected showcase files to include covered, missed, and skipped lines " \
+                   "plus branch and method markers: #{incomplete_showcases.join(', ')}"
+  abort showcase_error unless incomplete_showcases.empty?
+
+  line_percentages = percentages.values.map(&:first)
+  required_ranges = [
+    line_percentages.include?(100.0),
+    line_percentages.any? { |value| value >= 90.0 && value < 100.0 },
+    line_percentages.any? { |value| value >= 70.0 && value < 80.0 },
+    line_percentages.any? { |value| value >= 45.0 && value < 55.0 },
+    line_percentages.include?(0.0)
+  ]
+  abort "Expected a screenshot-friendly spread of line coverage percentages." unless required_ranges.all?
+
+  source_lengths = StorefrontFixture::FILES.to_h { |entry| [entry.path, entry.source.lines.length] }
+  abort "Expected each Rails-like source file to stay close to one screen." unless source_lengths.values.all? { |length| length.between?(18, 32) }
+
+  puts "Verified #{expected_paths.length} Rails-style files across #{expected_groups.length} tabs, " \
+       "including #{showcase_paths.length} source-view coverage showcases."
+  puts "Open #{File.expand_path('coverage/index.html', __dir__)}"
+end
+
+task default: :report
