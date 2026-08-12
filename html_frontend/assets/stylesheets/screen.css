@@ -186,7 +186,7 @@
    swaps it for blue (covered) vs orange/vermillion (missed) — the classic
    colorblind-safe pairing — while leaving skipped (yellow), missed-branch
    (orange-brown) and missed-method (purple) as-is, since those already read as
-   distinct hues and now also carry non-color symbols (see li::after below).
+   distinct hues.
    Only the covered/missed and the green/red band tokens change, so the rest of
    the theme is untouched. The blocks are ordered after the light/dark token
    definitions so they win on equal specificity; the dark variants raise
@@ -832,20 +832,14 @@ dialog.source-dialog[open] {
   white-space: nowrap;
 }
 
-/* The swatch carries the same glyph the source gutter uses, so the legend
-   teaches the non-color mapping and reads without colour. */
+/* A chip of the exact background and line-number colours the source view
+   paints each status with, so the legend is a sample of the thing itself. */
 .source-legend__swatch {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: 16px;
   height: 16px;
   border-radius: 3px;
   border: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .source-legend__swatch--covered       { background: var(--covered-bg); border-color: var(--covered-line-num-bg); color: var(--green); }
@@ -853,12 +847,6 @@ dialog.source-dialog[open] {
 .source-legend__swatch--skipped       { background: var(--skipped-bg); border-color: var(--skipped-line-num-bg); color: var(--text-secondary); }
 .source-legend__swatch--missed-branch { background: var(--missed-branch-bg); border-color: var(--missed-branch-line-num-bg); color: var(--missed-branch-text); }
 .source-legend__swatch--missed-method { background: var(--missed-method-bg); border-color: var(--missed-method-line-num-bg); color: var(--missed-method-text); }
-
-.source-legend__swatch--covered::after       { content: "+"; }
-.source-legend__swatch--missed::after        { content: "\2212"; }
-.source-legend__swatch--skipped::after       { content: "\007E"; }
-.source-legend__swatch--missed-branch::after { content: "\00B1"; }
-.source-legend__swatch--missed-method::after { content: "\0192"; }
 
 /* The colorblind and dark toggles, repeated in the dialog header so the mode
    can be changed while a source file is open (the modal covers the report's
@@ -1064,31 +1052,6 @@ table.file_list .totals-row td {
 .source_table .skipped::before       { background-color: var(--skipped-line-num-bg); }
 .source_table .missed-branch::before { background-color: var(--missed-branch-line-num-bg); }
 .source_table .missed-method::before { background-color: var(--missed-method-line-num-bg); }
-
-/* Non-color coverage markers. A left gutter glyph states each line's status
-   without relying on colour at all, so the report is legible in greyscale, to
-   colorblind viewers, and in high-contrast modes. `li::before` is the line
-   number, so the marker rides the spare `::after` pseudo, ordered ahead of
-   everything else in the row. Requested on issue #534. */
-.source_table pre li::after {
-  order: -1;
-  content: "";
-  flex-shrink: 0;
-  width: 1.6em;
-  text-align: center;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--source-line-num-bg);
-  border-right: 1px solid var(--source-border);
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.source_table .covered::after       { content: "+"; color: var(--green); background: var(--covered-line-num-bg); }
-.source_table .missed::after        { content: "\2212"; color: var(--red); background: var(--missed-line-num-bg); } /* minus sign */
-.source_table .skipped::after       { content: "\007E"; background: var(--skipped-line-num-bg); } /* tilde: ignored */
-.source_table .missed-branch::after { content: "\00B1"; color: var(--missed-branch-text); background: var(--missed-branch-line-num-bg); } /* plus-minus: line ran, a branch didn't */
-.source_table .missed-method::after { content: "\0192"; color: var(--missed-method-text); background: var(--missed-method-line-num-bg); } /* florin f: an uncalled method */
 
 /* --- Toolbar toggles (colorblind + dark) ------------------- */
 
