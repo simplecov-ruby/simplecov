@@ -19,14 +19,17 @@ export function renderCoverageCells(pct: number, covered: number, total: number,
            `<td class="cell--numerator strong t-totals__${type}-num">${fmtNum(covered)}/</td>` +
            `<td class="cell--denominator strong t-totals__${type}-den">${fmtNum(total)}</td>`;
   }
+  // Every sortable cell carries data-order: the displayed counts are
+  // comma-grouped, and the sorter's Number.parseFloat would stop at the
+  // first separator and rank "1,250" below "999".
   const order = ` data-order="${fmtPct(pct)}"`;
   return `<td class="cell--coverage cell--${type}-pct ${css}"${order}>${barAndPct}</td>` +
-         `<td class="cell--numerator">${fmtNum(covered)}/</td>` +
-         `<td class="cell--denominator">${fmtNum(total)}</td>`;
+         `<td class="cell--numerator" data-order="${covered}">${fmtNum(covered)}/</td>` +
+         `<td class="cell--denominator" data-order="${total}">${fmtNum(total)}</td>`;
 }
 
 export function renderHeaderCells(label: string, type: string, coveredLabel: string, totalLabel: string): string {
-  return `<th class="cell--coverage">
+  return `<th class="cell--coverage" data-sort-key="${type}-percent">
       <div class="th-with-filter">
         <span class="th-label">${label}</span>
         <div class="col-filter__coverage">
@@ -35,8 +38,8 @@ export function renderHeaderCells(label: string, type: string, coveredLabel: str
         </div>
       </div>
     </th>
-    <th class="cell--numerator">${coveredLabel}</th>
-    <th class="cell--denominator">${totalLabel}</th>`;
+    <th class="cell--numerator" data-sort-key="${type}-covered">${coveredLabel}</th>
+    <th class="cell--denominator" data-sort-key="${type}-total">${totalLabel}</th>`;
 }
 
 interface TypeSummary {

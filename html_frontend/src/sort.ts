@@ -3,13 +3,41 @@
 
 import { $$ } from './dom';
 import { applyRowWindow } from './row_window';
+import { readPreference, writePreference } from './prefs';
 
 interface SortEntry {
   colIndex: number;
   direction: 'asc' | 'desc';
 }
 
+interface SortPreference {
+  column: string;
+  direction: 'asc' | 'desc';
+}
+
 const sortState = new WeakMap<Element, SortEntry>();
+const SORT_STORAGE_KEY = 'simplecov-sort';
+
+// A stale or malformed value is ignored so reports with a different set of
+// coverage criteria still get their normal default. Storage itself is read
+// and written through the shared guard the display modes use.
+function readSortPreference(): SortPreference | null {
+  const raw = readPreference(SORT_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const value = JSON.parse(raw) as Partial<SortPreference>;
+    if (typeof value.column !== 'string' || !value.column) return null;
+    if (value.direction !== 'asc' && value.direction !== 'desc') return null;
+    return { column: value.column, direction: value.direction };
+  } catch {
+    return null;
+  }
+}
+
+function writeSortPreference(preference: SortPreference): void {
+  writePreference(SORT_STORAGE_KEY, JSON.stringify(preference));
+}
 
 // Actual child index of the `index`-th visible cell in a row. The coverage
 // filter hides whole columns, so this mapping is uniform across rows and is
@@ -67,6 +95,23 @@ function compareValues(a: number | string, b: number | string): number {
   return collator.compare(String(a), String(b));
 }
 
+// Sort ties by file name so applying a saved preference to the report's
+// original row order produces exactly the same result as the user's click on
+// an already-sorted table. The direction applies to the composite key, which
+// keeps the same-column reversal optimization valid.
+function orderRows(rows: Element[], childIndex: number | null, dir: 'asc' | 'desc'): Element[] {
+  const decorated = rows.map((row) => ({
+    row,
+    value: cachedSortValue(row, childIndex),
+    filename: cachedSortValue(row, 0)
+  }));
+  const factor = dir === 'asc' ? 1 : -1;
+  decorated.sort((a, b) => factor * (
+    compareValues(a.value, b.value) || compareValues(a.filename, b.filename)
+  ));
+  return decorated.map(({ row }) => row);
+}
+
 // Record the active sort in state and reflect it on the header indicators.
 function markSorted(table: Element, colIndex: number, dir: 'asc' | 'desc'): void {
   sortState.set(table, { colIndex, direction: dir });
@@ -87,11 +132,8 @@ function reorderRows(tbody: Element, rows: Element[]): void {
   tbody.appendChild(fragment);
 }
 
-function performSort(table: Element, colIndex: number): void {
+function performSort(table: Element, colIndex: number, dir: 'asc' | 'desc'): void {
   const state = sortState.get(table);
-
-  const dir: 'asc' | 'desc' =
-    state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
 
   const tbody = table.querySelector('tbody')!;
   let rows = Array.from(tbody.querySelectorAll('tr.t-file'));
@@ -100,20 +142,13 @@ function performSort(table: Element, colIndex: number): void {
     return;
   }
 
-  if (state && state.colIndex === colIndex) {
-    // Same column: the rows are already ordered by it, so flipping the
-    // direction is a pure reversal — no value extraction, no comparisons.
+  if (state && state.colIndex === colIndex && state.direction !== dir) {
+    // Same column: both the primary value and filename tie-breaker reverse,
+    // so flipping the direction is a pure reversal.
     rows.reverse();
   } else {
     const childIndex = visibleChildIndex(rows[0], colIndex);
-    const decorated = rows.map((row) => ({
-      row,
-      value: cachedSortValue(row, childIndex)
-    }));
-
-    const factor = dir === 'asc' ? 1 : -1;
-    decorated.sort((a, b) => factor * compareValues(a.value, b.value));
-    rows = decorated.map(({ row }) => row);
+    rows = orderRows(rows, childIndex, dir);
   }
 
   reorderRows(tbody, rows);
@@ -160,17 +195,24 @@ function hideSortOverlay(): void {
 // Sort on a header click. Small tables sort synchronously (instant); large ones
 // show the overlay first and defer the work two frames, so the overlay is
 // painted and absorbs stray clicks while the main thread blocks on the sort.
-function sortTable(table: Element, colIndex: number): void {
+function sortTable(table: Element, header: Element): void {
+  const colIndex = thToTdIndex(table, header);
+  const state = sortState.get(table);
+  const direction: 'asc' | 'desc' =
+    state && state.colIndex === colIndex && state.direction === 'asc' ? 'desc' : 'asc';
+  const column = header.getAttribute('data-sort-key');
+  if (column) writeSortPreference({ column, direction });
+
   const rowCount = table.querySelectorAll('tbody tr.t-file').length;
   if (rowCount < SORT_OVERLAY_THRESHOLD) {
-    performSort(table, colIndex);
+    performSort(table, colIndex, direction);
     return;
   }
 
   showSortOverlay();
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
-      performSort(table, colIndex);
+      performSort(table, colIndex, direction);
       hideSortOverlay();
     })
   );
@@ -207,35 +249,35 @@ function primarySortColumn(row: Element, primaryCoverage?: string): number | nul
 // sort state / indicator on that column so a later click on it toggles as
 // usual. Runs during the initial render, while the loading overlay is shown,
 // so it doesn't block user interaction. See #1171.
-function applyDefaultSort(table: Element, primaryCoverage?: string): void {
+function applyInitialSort(table: Element, primaryCoverage: string | undefined, preference: SortPreference | null): void {
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
 
   const rows = Array.from(tbody.querySelectorAll('tr.t-file'));
   if (rows.length === 0) return;
 
-  const colIndex = primarySortColumn(rows[0], primaryCoverage);
+  const preferredHeader = preference && $$('thead tr:first-child th', table)
+    .find((header) => header.getAttribute('data-sort-key') === preference.column);
+  const colIndex = preferredHeader
+    ? thToTdIndex(table, preferredHeader)
+    : primarySortColumn(rows[0], primaryCoverage);
   if (colIndex === null) return;
+  const direction = preferredHeader ? preference!.direction : 'asc';
 
-  const decorated = rows.map((row) => ({
-    row,
-    value: cachedSortValue(row, colIndex)
-  }));
-  decorated.sort((a, b) => compareValues(a.value, b.value));
-
-  reorderRows(tbody, decorated.map(({ row }) => row));
-  markSorted(table, colIndex, 'asc');
+  reorderRows(tbody, orderRows(rows, colIndex, direction));
+  markSorted(table, colIndex, direction);
 }
 
 export function setupTableSorting(primaryCoverage?: string): void {
+  const preference = readSortPreference();
   $$('table.file_list').forEach(table => {
     $$('thead tr:first-child th', table).forEach((th) => {
       th.classList.add('sorting');
       (th as HTMLElement).style.cursor = 'pointer';
-      th.addEventListener('click', () => sortTable(table, thToTdIndex(table, th)));
+      th.addEventListener('click', () => sortTable(table, th));
     });
 
-    applyDefaultSort(table, primaryCoverage);
+    applyInitialSort(table, primaryCoverage, preference);
     // Window before the first paint so huge reports never lay out in full.
     applyRowWindow(table);
   });
