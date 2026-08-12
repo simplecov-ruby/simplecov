@@ -12,11 +12,7 @@ RSpec.describe "custom project root", :sandbox do
 
   it "keeps coverage results that fall inside the configured root" do
     install_dependencies
-    write_file(".simplecov", <<~RUBY)
-      SimpleCov.start do
-        root __dir__
-      end
-    RUBY
+    write_file(".simplecov", "SimpleCov.root __dir__")
 
     result = run_command_and_expect_success("bin/rspec_binstub_that_chdirs extra/spec/extra_spec.rb")
     expect_coverage_report_generated(result)

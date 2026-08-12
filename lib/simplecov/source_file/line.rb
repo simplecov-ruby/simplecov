@@ -55,8 +55,8 @@ module SimpleCov
         @skipped = true
       end
 
-      # Returns true if this line was skipped, false otherwise. Lines are skipped if they are wrapped with
-      # # :nocov: comment lines.
+      # Returns true if this line was skipped, false otherwise. Lines are skipped when they sit inside a
+      # `# simplecov:disable` / `# simplecov:enable` block.
       def skipped?
         skipped
       end

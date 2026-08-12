@@ -31,7 +31,7 @@ module SimpleCov
         }
       end
 
-      # Files added via track_files but never loaded have no branch/method
+      # Files tracked on disk but never loaded have no branch/method
       # data. Report 0% instead of the empty-set default of 100% (see #902).
       def branch_statistics
         sf = @source_file

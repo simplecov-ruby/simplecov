@@ -40,15 +40,17 @@ config_path = Pathname.new(SimpleCov.root)
 loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
-    # `.simplecov` is a configuration file; SimpleCov.start calls inside
-    # it draw a deprecation warning, and tracking still begins for
-    # backward compatibility. See `SimpleCov.with_dot_simplecov_autoload`
-    # and issue #581.
+    # `.simplecov` is a configuration file; a SimpleCov.start call inside
+    # it raises a ConfigurationError, which propagates rather than being
+    # folded into the generic load warning below. See
+    # `SimpleCov.with_dot_simplecov_autoload` and issue #581.
     SimpleCov.with_dot_simplecov_autoload do
       load filename.to_s
+      # simplecov:disable — the rescue arms only fire when .simplecov is
+      # unreadable or raises during load
+    rescue SimpleCov::ConfigurationError
+      raise
     rescue LoadError, StandardError => e
-      # simplecov:disable — only fires when .simplecov is unreadable
-      # or raises during load
       warn "Warning: Error occurred while trying to load #{filename}. " \
            "Error message: #{e.message}"
       # simplecov:enable

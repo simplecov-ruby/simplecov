@@ -14,7 +14,7 @@ RSpec.describe "expected coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         expected_coverage 88.09
       end
     RUBY
@@ -27,7 +27,7 @@ RSpec.describe "expected coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         expected_coverage 90
       end
     RUBY
@@ -42,7 +42,7 @@ RSpec.describe "expected coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         expected_coverage 80
       end
     RUBY
@@ -58,7 +58,7 @@ RSpec.describe "expected coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         maximum_coverage 85
       end
     RUBY

@@ -5,8 +5,7 @@ module SimpleCov
     # Builds the `SourceFile::Branch` objects for a source file from
     # the raw branch data Ruby's Coverage library reports. Applies the
     # `ignore_branches :eval_generated` / `:implicit_else` filters and
-    # marks branches inside `# simplecov:disable` / `# :nocov:` chunks
-    # as skipped.
+    # marks branches inside `# simplecov:disable` chunks as skipped.
     class BranchBuilder
       def initialize(source_file)
         @source_file = source_file

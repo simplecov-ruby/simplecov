@@ -12,7 +12,7 @@ RSpec.describe "minimum coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         minimum_coverage 90
       end
     RUBY
@@ -27,7 +27,7 @@ RSpec.describe "minimum coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         minimum_coverage 88.10
       end
     RUBY
@@ -42,7 +42,7 @@ RSpec.describe "minimum coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         minimum_coverage 88.09
       end
     RUBY
@@ -55,7 +55,7 @@ RSpec.describe "minimum coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         enable_coverage :branch
         minimum_coverage line: 90, branch: 80
       end
@@ -72,7 +72,7 @@ RSpec.describe "minimum coverage enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         enable_coverage :branch
         primary_coverage :branch
         minimum_coverage 80

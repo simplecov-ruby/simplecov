@@ -32,7 +32,7 @@ module SimpleCov
     end
 
     # `string_filter` selects the semantics of bare String arguments —
-    # StringFilter's segment-substring match for `add_filter`/`skip`,
+    # StringFilter's segment-substring match for `skip`,
     # GlobFilter for `cover` — and threads through Array elements so a
     # list gets the same treatment as its members.
     def self.build_filter(filter_argument, string_filter: SimpleCov::StringFilter)

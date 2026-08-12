@@ -516,7 +516,7 @@ RSpec.describe SimpleCov::SourceFile do
 
   context "when a file with more complex skipping" do
     subject(:source_file) do
-      described_class.new(source_fixture("nocov_complex.rb"), CoverageFixtures::NOCOV_COMPLEX_RB)
+      described_class.new(source_fixture("skipping_complex.rb"), CoverageFixtures::SKIPPING_COMPLEX_RB)
     end
 
     describe "line coverage" do
@@ -855,35 +855,9 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "when a file using the deprecated # :nocov: directive" do
+  context "when a file entirely ignored with a single # simplecov:disable" do
     subject(:source_file) do
-      described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
-    end
-
-    before { SimpleCov::SourceFile::SkipChunks.nocov_warned.clear }
-
-    it "warns once per file with the recommended replacement" do
-      stderr = capture_stderr { source_file.lines }
-
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("# :nocov:")
-      expect(stderr).to include("# simplecov:disable")
-      expect(stderr).to include("# simplecov:enable")
-      expect(stderr).to include(source_fixture("single_nocov.rb"))
-    end
-
-    it "deduplicates the warning for the same file across SourceFile instances" do
-      capture_stderr { source_file.lines }
-      another = described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
-      stderr = capture_stderr { another.lines }
-
-      expect(stderr).to be_empty
-    end
-  end
-
-  context "when a file entirely ignored with a single # :nocov:" do
-    subject(:source_file) do
-      described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)
+      described_class.new(source_fixture("single_disable.rb"), CoverageFixtures::SINGLE_DISABLE_RB)
     end
 
     describe "line coverage" do
@@ -914,9 +888,9 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "when a file with an uneven usage of # :nocov:s" do
+  context "when a file with an unclosed # simplecov:disable" do
     subject(:source_file) do
-      described_class.new(source_fixture("uneven_nocovs.rb"), CoverageFixtures::UNEVEN_NOCOVS_RB)
+      described_class.new(source_fixture("uneven_disables.rb"), CoverageFixtures::UNEVEN_DISABLES_RB)
     end
 
     describe "line coverage" do
@@ -1197,32 +1171,6 @@ RSpec.describe SimpleCov::SourceFile do
       end
     end
 
-    describe "deprecated :nocov: block around a method" do
-      subject(:source_file) do
-        build(
-          {
-            "lines" => [nil, nil, 0, nil, nil],
-            "branches" => {},
-            "methods" => {["Demo", :hidden, 2, 0, 4, 3] => 0}
-          },
-          [
-            "# :nocov:\n", # 1
-            "def hidden\n", # 2
-            "  :hi\n",      # 3
-            "end\n",        # 4
-            "# :nocov:\n"   # 5
-          ]
-        )
-      end
-
-      before { SimpleCov::SourceFile::SkipChunks.nocov_warned.add("dummy.rb") }
-
-      it "still excludes the method from method totals" do
-        expect(source_file.methods.map(&:skipped?)).to eq [true]
-        expect(source_file.missed_methods).to eq []
-      end
-    end
-
     describe "block disable of branch coverage" do
       subject(:source_file) do
         build(
@@ -1393,25 +1341,6 @@ RSpec.describe SimpleCov::SourceFile do
       expect(source_file.lines_of_code).to eq(0)
       expect(source_file.covered_percent).to be_nil
       expect(source_file.covered_strength).to be_nil
-    end
-  end
-
-  describe "deprecated percent accessors" do
-    let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
-
-    before { allow(SimpleCov::Deprecation).to receive(:warn) }
-
-    it "warns and delegates branches_coverage_percent to covered_percent(:branch)" do
-      allow(source_file).to receive(:covered_percent).with(:branch).and_return(42.0)
-      expect(source_file.branches_coverage_percent).to eq(42.0)
-      expect(SimpleCov::Deprecation).to have_received(:warn).with(/branches_coverage_percent` is deprecated/)
-    end
-
-    it "warns and delegates methods_coverage_percent to covered_percent(:method)" do
-      allow(source_file).to receive(:covered_percent).with(:method).and_return(50.0)
-      expect(source_file.methods_coverage_percent).to eq(50.0)
-      expect(SimpleCov::Deprecation).to have_received(:warn)
-        .with(/`SimpleCov::SourceFile#methods_coverage_percent` is deprecated/)
     end
   end
 

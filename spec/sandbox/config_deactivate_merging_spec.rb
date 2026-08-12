@@ -3,7 +3,7 @@
 require "helper"
 require "support/sandbox_project"
 
-# With use_merging false no resultset is stored, so each suite run
+# With merging false no resultset is stored, so each suite run
 # overwrites the report with its own results instead of merging into
 # the previous suite's.
 RSpec.describe "deactivated merging", :sandbox do
@@ -22,7 +22,7 @@ RSpec.describe "deactivated merging", :sandbox do
     config = <<~RUBY
       require 'simplecov'
       SimpleCov.start do
-        use_merging false
+        merging false
       end
     RUBY
     configure_simplecov(:test_unit, config)

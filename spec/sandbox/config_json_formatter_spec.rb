@@ -16,7 +16,7 @@ RSpec.describe "JSON formatter", :sandbox do
         puts SimpleCov.result.format!
       end
       SimpleCov.start do
-        add_group 'Libs', 'lib/faked_project/'
+        group 'Libs', 'lib/faked_project/'
       end
     RUBY
 

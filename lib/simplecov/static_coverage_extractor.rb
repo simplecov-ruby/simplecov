@@ -12,7 +12,7 @@ module SimpleCov
   # Static enumeration of the branches and methods Ruby's `Coverage` library
   # WOULD have reported if a file had been loaded with `branches: true` /
   # `methods: true`. Used by `SimulateCoverage` to backfill data for files
-  # added via `cover` / `track_files` that were never `require`'d during the
+  # added via `cover` that were never `require`'d during the
   # run — so unloaded files contribute to the branch/method denominators
   # symmetrically with their line coverage, instead of vanishing from the
   # totals (see #1059).

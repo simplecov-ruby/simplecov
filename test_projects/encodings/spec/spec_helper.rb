@@ -3,7 +3,7 @@
 require "simplecov"
 
 SimpleCov.start do
-  track_files "lib/euc_jp_not_declared_tracked.rb"
+  cover "lib/*.rb"
 end
 
 require_relative "../lib/utf8.rb"

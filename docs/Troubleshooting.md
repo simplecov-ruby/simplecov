@@ -142,8 +142,8 @@ different totals from the same suite. Two ways to make the report deterministic:
 - Stick with the `rails` profile, which folds `{app,lib}/**/*.rb` into the report at 0% on every run regardless of
   `eager_load`. (The profile resolves the glob relative to `SimpleCov.root`, not the test runner's cwd.) Outside the
   profile, the equivalent is `cover "{app,lib}/**/*.rb"` — see the
-  [legacy-API migration table](Configuration.md#migrating-from-the-legacy-configuration-api) for the relationship with the older
-  `track_files`.
+  [legacy-API migration table](Configuration.md#migrating-from-the-legacy-configuration-api) for the relationship with the
+  removed `track_files`.
 
 ### Missing coverage
 
@@ -178,6 +178,42 @@ MyCode is being loaded!
 ```
 
 If `MyCode is being loaded!` prints first, the file was loaded before SimpleCov started — that's your problem.
+
+### Upgrading from 1.x
+
+Everything deprecated during the 1.x line was removed in 2.0. Each removal has a one-to-one replacement, and 1.1
+named it in the deprecation warning the old spelling emitted, so a 1.1 run with warnings visible is the fastest way
+to find the call sites you still need to change.
+
+| Removed                                              | Use instead                                              |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| `SimpleCov.add_filter`                               | `SimpleCov.skip`                                          |
+| `SimpleCov.add_group`                                | `SimpleCov.group`                                         |
+| `SimpleCov.track_files`                              | `SimpleCov.cover`                                         |
+| `SimpleCov.use_merging`                              | `SimpleCov.merging`                                       |
+| `SimpleCov.enable_for_subprocesses`                  | `SimpleCov.merge_subprocesses`                            |
+| `SimpleCov.enable_coverage_for_eval`                 | `SimpleCov.enable_coverage :eval`                         |
+| `SimpleCov.print_error_status` (reader and writer)   | `SimpleCov.print_errors`                                  |
+| `SimpleCov.minimum_coverage_by_file`                 | `coverage(:line) { minimum_per_file N }`                  |
+| `SimpleCov.minimum_coverage_by_group`                | `coverage(:line) { minimum_per_group N, only: "Models" }` |
+| `SimpleCov.nocov_token` / `SimpleCov.skip_token`     | `# simplecov:disable` / `# simplecov:enable`              |
+| `# :nocov:` comment blocks                           | `# simplecov:disable` / `# simplecov:enable`              |
+| `SourceFile#branches_coverage_percent`               | `SourceFile#covered_percent(:branch)`                     |
+| `SourceFile#methods_coverage_percent`                | `SourceFile#covered_percent(:method)`                     |
+
+Two removals need more than a rename:
+
+- **`SimpleCov.start` in `.simplecov`** now raises a `SimpleCov::ConfigurationError` instead of warning and starting
+  anyway. Keep configuration in `.simplecov` and move the `SimpleCov.start` call into `spec_helper.rb` /
+  `test_helper.rb`. See [#581](https://github.com/simplecov-ruby/simplecov/issues/581).
+- **`# :nocov:` blocks** are ordinary comments now, so code they used to exclude counts against your coverage until
+  you replace the markers. The replacement can be scoped per criterion (`# simplecov:disable branch`), which the
+  all-or-nothing `:nocov:` toggle could not do.
+
+`track_files` is the one rename that also changes behavior: `cover` restricts the report to the matching set as well
+as pulling in unloaded files. Pass every directory you want reported to keep the old additive behavior, e.g.
+`cover "lib/**/*.rb", "app/**/*.rb"`. The bundled `rails` profile keeps the additive semantics internally, so
+`SimpleCov.start "rails"` is unaffected.
 
 ### Upgrading from 0.x
 

@@ -3,7 +3,7 @@ module SimpleCov
     # Builds the `SourceFile::Method` objects for a source file from
     # the raw method-coverage data. Applies the
     # `ignore_methods :eval_generated` filter and marks methods inside
-    # `# simplecov:disable` / `# :nocov:` chunks as skipped.
+    # `# simplecov:disable` chunks as skipped.
     class MethodBuilder
       @source_file: untyped
 

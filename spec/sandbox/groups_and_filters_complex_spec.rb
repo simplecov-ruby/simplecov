@@ -35,16 +35,16 @@ RSpec.describe "complex groups and filters", :sandbox do
       configure_simplecov(:rspec, <<~RUBY)
         require 'simplecov'
         SimpleCov.start do
-          add_group 'By block' do |src_file|
+          group 'By block' do |src_file|
             src_file.filename =~ /MaGiC/i
           end
-          add_group 'By string', 'faked_project/meta_magic'
-          add_group 'By array', ['faked_project/meta_magic']
+          group 'By string', 'faked_project/meta_magic'
+          group 'By array', ['faked_project/meta_magic']
 
-          add_filter 'faked_project.rb'
+          skip 'faked_project.rb'
           # Remove all files that include "describe" in their source
-          add_filter {|src_file| src_file.lines.any? {|line| line.src =~ /describe/ } }
-          add_filter {|src_file| src_file.covered_percent < 100 }
+          skip {|src_file| src_file.lines.any? {|line| line.src =~ /describe/ } }
+          skip {|src_file| src_file.covered_percent < 100 }
         end
       RUBY
     end
@@ -65,25 +65,25 @@ RSpec.describe "complex groups and filters", :sandbox do
       configure_simplecov(:rspec, <<~RUBY)
         require 'simplecov'
         SimpleCov.start do
-          add_group '<group' do |src_file|
+          group '<group' do |src_file|
             src_file.filename =~ /MaGiC/i
           end
-          add_group '>group' do |src_file|
+          group '>group' do |src_file|
             src_file.filename =~ /framework_specific/i
           end
-          add_group 'By/group' do |src_file|
+          group 'By/group' do |src_file|
             src_file.filename =~ /MaGiC/i
           end
-          add_group 'By_2f_group' do |src_file|
+          group 'By_2f_group' do |src_file|
             src_file.filename =~ /framework_specific/i
           end
-          add_group 'All Files' do |src_file|
+          group 'All Files' do |src_file|
             src_file.filename =~ /framework_specific/i
           end
 
-          add_filter 'faked_project.rb'
-          add_filter {|src_file| src_file.lines.any? {|line| line.src =~ /describe/ } }
-          add_filter {|src_file| src_file.covered_percent < 100 }
+          skip 'faked_project.rb'
+          skip {|src_file| src_file.lines.any? {|line| line.src =~ /describe/ } }
+          skip {|src_file| src_file.covered_percent < 100 }
         end
       RUBY
     end
@@ -115,15 +115,15 @@ RSpec.describe "complex groups and filters", :sandbox do
       configure_simplecov(:test_unit, <<~RUBY)
         require 'simplecov'
         SimpleCov.start do
-          add_group 'By block' do |src_file|
+          group 'By block' do |src_file|
             src_file.filename =~ /MaGiC/i
           end
-          add_group 'By string', 'faked_project/meta_magic'
+          group 'By string', 'faked_project/meta_magic'
 
-          add_filter 'faked_project.rb'
+          skip 'faked_project.rb'
           # Remove all files that include "TestCase" in their source
-          add_filter {|src_file| src_file.lines.any? {|line| line.src =~ /TestCase/ } }
-          add_filter {|src_file| src_file.covered_percent < 100 }
+          skip {|src_file| src_file.lines.any? {|line| line.src =~ /TestCase/ } }
+          skip {|src_file| src_file.covered_percent < 100 }
         end
       RUBY
     end

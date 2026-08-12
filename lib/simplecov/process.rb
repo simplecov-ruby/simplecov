@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Hooks `Process._fork` (Ruby 3.1+) so child processes inherit SimpleCov's
-# coverage tracking when `SimpleCov.enable_for_subprocesses?` is set.
+# coverage tracking when `SimpleCov.enabled_for_subprocesses?` is set.
 #
 # `Process._fork` is the official extension point: `Kernel#fork`,
 # `Process.fork`, `IO.popen("-")`, and similar all funnel through it.

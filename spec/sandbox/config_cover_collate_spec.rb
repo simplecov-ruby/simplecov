@@ -3,20 +3,20 @@
 require "helper"
 require "support/sandbox_project"
 
-# Files matched by `track_files` but never loaded are simulated once, at
+# Files matched by `cover` but never loaded are simulated once, at
 # the merge, rather than by every process that writes a resultset. The
 # processes that ran the suite record which files they were told to
 # track, so a separate `SimpleCov.collate` step still reports the ones
-# nobody loaded even though it never saw the `track_files` configuration
+# nobody loaded even though it never saw the `cover` configuration
 # itself.
-RSpec.describe "tracked files across merges and collation", :sandbox do
+RSpec.describe "cover across merges and collation", :sandbox do
   before { setup_project("faked_project") }
 
   let(:tracking_config) do
     <<~RUBY
       require 'simplecov'
       SimpleCov.start do
-        track_files "lib/**/*.rb"
+        cover "lib/**/*.rb"
       end
     RUBY
   end
@@ -40,10 +40,10 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
   end
 
   # The same injection, reached through `merged_result` rather than
-  # `collate`: two suites merging in-process, where the tracked files
+  # `collate`: two suites merging in-process, where the cover
   # must survive the merge exactly once rather than being simulated by
   # each suite in turn.
-  it "keeps never-loaded tracked files when two suites merge in one process" do
+  it "keeps never-loaded cover when two suites merge in one process" do
     configure_simplecov(:test_unit, tracking_config)
     configure_simplecov(:rspec, tracking_config)
 
@@ -61,7 +61,7 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
     expect_tracked_file_percents(data, framework_specific: 87.50)
   end
 
-  it "keeps never-loaded tracked files when resultsets are collated by a separate step" do
+  it "keeps never-loaded cover when resultsets are collated by a separate step" do
     configure_simplecov(:test_unit, tracking_config)
 
     expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part1"))
@@ -71,7 +71,7 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
 
     # The `collate` rake task calls `SimpleCov.collate` with no
     # configuration block, and the project has no `.simplecov`, so this
-    # process knows nothing about `track_files`. untested_class.rb
+    # process knows nothing about `cover`. untested_class.rb
     # reaches the report only because the resultsets carry the paths
     # their processes were told to track.
     result = run_command_and_expect_success("bundle exec rake collate")

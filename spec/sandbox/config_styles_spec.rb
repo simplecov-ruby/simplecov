@@ -3,15 +3,12 @@
 require "helper"
 require "support/sandbox_project"
 
-# There are several equivalent ways to configure SimpleCov: inside the
-# start block (plain, parameterized, or closing over outer variables),
-# explicitly on SimpleCov before or after start, or via configure blocks.
-# Each style must apply the same filter and command name.
+# There are several equivalent ways to configure SimpleCov from a test
+# helper: inside the start block (plain, parameterized, or closing over outer
+# variables), explicitly on SimpleCov before or after start, or via configure
+# blocks. Each style must apply the same filter and command name.
 RSpec.describe "configuration styles", :sandbox do
-  before do
-    setup_project("faked_project")
-    configure_simplecov(:test_unit, "require 'simplecov'")
-  end
+  before { setup_project("faked_project") }
 
   # The cucumber scenarios read "4 files" and "using Config Test Runner"
   # off the rendered page; the file list and footer are built from these
@@ -25,9 +22,10 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies config inside the start block" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.start do
-        add_filter 'test'
+        skip 'test'
         command_name 'Config Test Runner'
       end
     RUBY
@@ -35,10 +33,11 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies config in a parameterized start block using an instance variable" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       @filter = 'test'
       SimpleCov.start do |config|
-        config.add_filter @filter
+        config.skip @filter
         config.command_name 'Config Test Runner'
       end
     RUBY
@@ -46,10 +45,11 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies config in a start block closing over a local variable" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       filter = 'test'
       SimpleCov.start do
-        add_filter filter
+        skip filter
         command_name 'Config Test Runner'
       end
     RUBY
@@ -57,7 +57,8 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies config set explicitly before the start call" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
       SimpleCov.start
@@ -66,7 +67,8 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies config set explicitly after the start call" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.start
       SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
@@ -75,10 +77,11 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies a configure block after start" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.start
       SimpleCov.configure do
-        add_filter 'test'
+        skip 'test'
         command_name 'Config Test Runner'
       end
     RUBY
@@ -86,9 +89,10 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies a configure block before start" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.configure do
-        add_filter 'test'
+        skip 'test'
         command_name 'Config Test Runner'
       end
       SimpleCov.start
@@ -97,12 +101,13 @@ RSpec.describe "configuration styles", :sandbox do
   end
 
   it "applies mixed configure and start block config" do
-    write_file(".simplecov", <<~RUBY)
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.configure do
         command_name 'Config Test Runner'
       end
       SimpleCov.start do
-        add_filter 'test'
+        skip 'test'
       end
     RUBY
     expect_config_applied

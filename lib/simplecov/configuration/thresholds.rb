@@ -3,8 +3,8 @@
 module SimpleCov
   # Coverage threshold configuration: `minimum_coverage`,
   # `maximum_coverage`, `expected_coverage`, `maximum_coverage_drop`,
-  # `minimum_coverage_by_file`, `minimum_coverage_by_group`,
-  # `refuse_coverage_drop`, and friends.
+  # `refuse_coverage_drop`, and the per-file / per-group threshold stores
+  # the `coverage` block writes into.
   module Configuration
     #
     # Defines the minimum overall coverage required for the testsuite to pass.
@@ -57,46 +57,21 @@ module SimpleCov
       @maximum_coverage_drop = normalized_threshold(coverage_drop, "maximum_coverage_drop")
     end
 
-    #
-    # Defines the minimum coverage per file required for the testsuite
-    # to pass. Accepts a Numeric (global threshold on the primary
-    # criterion), a Symbol-keyed Hash (per-criterion globals), or a
-    # Hash mixing Symbol keys with String / Regexp keys to declare
-    # per-path overrides. See README and #575.
-    #
-    def minimum_coverage_by_file(coverage = nil)
-      return @minimum_coverage_by_file ||= {} unless coverage
-
-      coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
-      defaults, overrides = partition_per_file_thresholds(coverage)
-
-      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_file` is deprecated. " \
-                                  "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}")
-
-      raise_on_invalid_coverage(defaults, "minimum_coverage_by_file")
-      overrides.each_value { |criteria| raise_on_invalid_coverage(criteria, "minimum_coverage_by_file") }
-
-      @minimum_coverage_by_file = defaults
-      @minimum_coverage_by_file_overrides = overrides
+    # @api private — per-criterion per-file minimums, written by the
+    # `coverage` block's `minimum_per_file` verb and read by the checks.
+    def minimum_coverage_by_file
+      @minimum_coverage_by_file ||= {}
     end
 
-    # Returns the per-path overrides set via `minimum_coverage_by_file`.
+    # @api private — per-path overrides set via `minimum_per_file only:`.
     def minimum_coverage_by_file_overrides
       @minimum_coverage_by_file_overrides ||= {}
     end
 
-    #
-    # Defines the minimum coverage per group required for the testsuite
-    # to pass. Default is 0% (disabled).
-    #
-    def minimum_coverage_by_group(coverage = nil)
-      return @minimum_coverage_by_group ||= {} unless coverage
-
-      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
-                                  "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
-      @minimum_coverage_by_group = coverage.to_h do |group_name, group_coverage|
-        [GroupNames.normalize(group_name), normalized_threshold(group_coverage, "minimum_coverage_by_group")]
-      end
+    # @api private — per-group minimums, written by the `coverage` block's
+    # `minimum_per_group` verb and read by the checks.
+    def minimum_coverage_by_group
+      @minimum_coverage_by_group ||= {}
     end
 
     #
@@ -118,62 +93,8 @@ module SimpleCov
       coverage
     end
 
-    # Split a `minimum_coverage_by_file` argument into Symbol-keyed
-    # criterion defaults and String/Regexp-keyed per-path overrides;
-    # normalize Numeric override values to `{primary_coverage => N}`
-    # so downstream code only has one shape to handle.
-    def partition_per_file_thresholds(coverage)
-      coverage.each_key { |key| validate_per_file_key(key) }
-      pairs = coverage.partition { |key, _| key.is_a?(Symbol) }
-      # The assertions restate what the partition predicate guarantees:
-      # Symbol keys carry per-criterion Numeric defaults, the rest are paths.
-      defaults = pairs[0].to_h #: coverage_thresholds
-      raw = pairs[1].to_h #: Hash[String | Regexp, Numeric | coverage_thresholds]
-      overrides = raw.transform_values { |value| value.is_a?(Numeric) ? {primary_coverage => value} : value }
-      [defaults, overrides]
-    end
-
-    def validate_per_file_key(key)
-      return if key.is_a?(Symbol) || key.is_a?(String) || key.is_a?(Regexp)
-
-      raise SimpleCov::ConfigurationError,
-            "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got #{key.inspect}"
-    end
-
     def minimum_possible_coverage_exceeded(coverage_option)
       warn "The coverage you set for #{coverage_option} is greater than 100%"
-    end
-
-    # Render the `coverage` configuration equivalent to a (deprecated)
-    # `minimum_coverage_by_file` argument so the deprecation warning can be
-    # copy-pasted verbatim into the user's config.
-    def per_file_coverage_replacement(defaults, overrides)
-      by_criterion = {} #: Hash[Symbol, Array[String]]
-      defaults.each { |criterion, percent| (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}" }
-      overrides.each do |target, criteria|
-        criteria.each do |criterion, percent|
-          (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}, only: #{target.inspect}"
-        end
-      end
-      render_coverage_blocks(by_criterion)
-    end
-
-    # Same, for a (deprecated) `minimum_coverage_by_group` argument.
-    def per_group_coverage_replacement(coverage)
-      by_criterion = {} #: Hash[Symbol, Array[String]]
-      coverage.each do |group_name, thresholds|
-        normalized = (thresholds.is_a?(Numeric) ? {primary_coverage => thresholds} : thresholds) #: coverage_thresholds
-        normalized.each do |criterion, percent|
-          (by_criterion[criterion] ||= []) << "minimum_per_group #{percent}, only: #{group_name.inspect}"
-        end
-      end
-      render_coverage_blocks(by_criterion)
-    end
-
-    def render_coverage_blocks(by_criterion)
-      by_criterion.map do |criterion, statements|
-        "  coverage(#{criterion.inspect}) { #{statements.join('; ')} }"
-      end.join("\n")
     end
   end
 end

@@ -53,8 +53,8 @@ RSpec.describe "coverage for subprocesses", :sandbox do
     write_file(".simplecov", <<~RUBY)
       SimpleCov.merge_subprocesses true
       SimpleCov.command_name "parent process name"
-      SimpleCov.add_filter /command/
-      SimpleCov.add_filter /spawn/
+      SimpleCov.skip /command/
+      SimpleCov.skip /spawn/
     RUBY
   end
 

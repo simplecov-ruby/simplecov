@@ -65,11 +65,11 @@ SimpleCov.start
 
 This is recommended whenever you merge frameworks that rely on each other, like Cucumber and RSpec.
 
-> [!NOTE]
-> Calling `SimpleCov.start` directly from `.simplecov` is deprecated. Tracking still begins for backward
-> compatibility, but a one-time deprecation warning fires; a future release will require the explicit `SimpleCov.start`
-> from a test helper. Migrating prevents a long-standing bug where `.simplecov` auto-loaded in a Rakefile or Rails'
-> `Bundler.require` would leave an empty parent-process report that overwrites the test subprocess's good one. See
+> [!IMPORTANT]
+> Calling `SimpleCov.start` from `.simplecov` raises a `SimpleCov::ConfigurationError`. `.simplecov` is configuration
+> only, and the start call belongs in your test helper. That split prevents a long-standing bug where `.simplecov`
+> auto-loaded in a Rakefile or Rails' `Bundler.require` would leave an empty parent-process report that overwrites the
+> test subprocess's good one. Releases before 2.0 warned and started tracking anyway. See
 > [#581](https://github.com/simplecov-ruby/simplecov/issues/581).
 
 ### Changing the report location
@@ -106,18 +106,18 @@ COVERAGE=true rake test
 
 ### Migrating from the legacy configuration API
 
-The configuration API was redesigned to use a smaller set of consistent verbs. The legacy methods continue to work but
-emit deprecation warnings that name their replacement; the table below is the canonical migration map.
+The configuration API was redesigned to use a smaller set of consistent verbs. The legacy methods were deprecated
+through the 1.x line and removed in 2.0, so the table below is the canonical migration map.
 
-| Legacy                              | New                              | Notes                                                                                                                  |
+| Removed                              | New                              | Notes                                                                                                                  |
 |-------------------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------|
 | `add_filter "lib/legacy"`           | `skip "lib/legacy"`              | Identical matcher grammar (string = path-segment substring; Regexp; block; Array). No behavior change.                 |
 | `add_group "Models", "app/models"`  | `group "Models", "app/models"`   | Identical matcher grammar. No behavior change.                                                                         |
-| `track_files "lib/**/*.rb"`         | `cover "lib/**/*.rb"`            | `cover` includes unloaded files (the legacy `track_files` behavior) **and** restricts the report to the matching set. To keep the old additive-only behavior, pass every directory you want reported: `cover "lib/**/*.rb", "app/**/*.rb"`. |
+| `track_files "lib/**/*.rb"`         | `cover "lib/**/*.rb"`            | `cover` includes unloaded files (the old `track_files` behavior) **and** restricts the report to the matching set. To keep the old additive-only behavior, pass every directory you want reported: `cover "lib/**/*.rb", "app/**/*.rb"`. |
 | `use_merging false`                 | `merging false`                  | Same value, same behavior.                                                                                             |
 | `enable_for_subprocesses true`      | `merge_subprocesses true`        | Same value, same behavior.                                                                                             |
 | `enable_coverage_for_eval`          | `enable_coverage :eval`          | Eval coverage now folds into the same call you use to enable `:line`/`:branch`/`:method`: `enable_coverage :branch, :eval`. |
-| `print_error_status` (reader)       | `print_errors`                   | Reader only. The `print_error_status=` writer still works without a warning, but `print_errors true`/`print_errors false` is the new spelling. |
+| `print_error_status` (reader)       | `print_errors`                   | The `print_error_status=` writer is gone too. Use `print_errors true` / `print_errors false`. |
 | `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` | `coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: 'app/x.rb' }` | The `coverage` block fixes the criterion, so per-path overrides are plain percentages with an `only:` target instead of a hash mixing Symbol / String / Regexp keys. See [Per-criterion thresholds](#per-criterion-thresholds-with-coverage). |
 | `minimum_coverage_by_group 'Models' => { line: 90 }` | `coverage(:line) { minimum_per_group 90, only: 'Models' }` | Same uniform shape as `minimum_per_file`. |
 
@@ -125,7 +125,7 @@ Brand-new in the redesigned API (no legacy method to migrate from):
 
 | Method                              | Purpose                                                                                                                  |
 |-------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `cover "lib/**/*.rb"`               | Positive scope (allowlist). Multiple calls union; strings are globs. See above for the relationship with `track_files`.  |
+| `cover "lib/**/*.rb"`               | Positive scope (allowlist). Multiple calls union; strings are globs. See above for the relationship with the removed `track_files`. |
 | `no_default_skips`                  | Clear every previously-installed filter — defaults and anything earlier in the block — so subsequent `skip`s start clean.|
 | `formatter false` / `formatters []` | Opt out of formatting entirely. Workers in big parallel CI runs only need their `.resultset.json` for a final `SimpleCov.collate` step; skipping the formatter saves the per-job HTML / multi-formatter overhead. See [#964](https://github.com/simplecov-ruby/simplecov/issues/964). |
 | `parallel_tests true` / `false`     | Force on / off the auto-require of the `parallel_tests` gem. Default (unset) auto-detects from `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` and silently skips if the gem isn't installed. Set explicitly when you use those env vars for unrelated subprocess coordination. See [#1018](https://github.com/simplecov-ruby/simplecov/issues/1018). |
@@ -432,10 +432,10 @@ Inline directives (trailing real code) only affect the line they sit on. Block d
 remain in effect until the matching `# simplecov:enable` for the same category — or end of file if never closed.
 Directive markers inside string literals or heredocs are ignored.
 
-> [!WARNING]
-> The older `# :nocov:` toggle still works but is **deprecated** and will be removed in a future release. Each file
-> that uses it emits a one-time deprecation warning pointing at the recommended `# simplecov:disable` /
-> `# simplecov:enable` replacement. The configurable token name (`SimpleCov.nocov_token`) is similarly deprecated.
+> [!IMPORTANT]
+> The older `# :nocov:` toggle was removed in 2.0, along with the configurable token name (`SimpleCov.nocov_token` /
+> `SimpleCov.skip_token`). A `# :nocov:` comment is now an ordinary comment and skips nothing. Replace each pair with
+> `# simplecov:disable` / `# simplecov:enable`.
 
 > [!NOTE]
 > You shouldn't have to skip private methods that are included in your coverage. If you appropriately test the public
@@ -443,8 +443,7 @@ Directive markers inside string literals or heredocs are ignored.
 
 ### How `cover` and `skip` interact
 
-`cover` and `skip` operate on different sides of the same chain. `skip` (and its deprecated `add_filter` alias) drops
-matching files from the report. `cover` declares a positive scope that restricts the final report to files matching at
+`cover` and `skip` operate on different sides of the same chain. `skip` drops matching files from the report. `cover` declares a positive scope that restricts the final report to files matching at
 least one `cover` matcher.
 
 Order: `skip` runs first, then `cover`. A file matched by any `skip` filter is dropped before `cover` is consulted, so
@@ -670,10 +669,9 @@ SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
 `expected_coverage` floors the actual percentage to two decimal places, so an actual of 95.4287 still passes at
 `expected_coverage 95.42`.
 
-> [!NOTE]
-> `minimum_coverage_by_file` and `minimum_coverage_by_group` are **deprecated** in favor of the `coverage` block's
-> `minimum_per_file` / `minimum_per_group`. They still work but emit a deprecation warning. For example, replace
-> `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` with:
+> [!IMPORTANT]
+> `minimum_coverage_by_file` and `minimum_coverage_by_group` were removed in 2.0 in favor of the `coverage` block's
+> `minimum_per_file` / `minimum_per_group`. Replace `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` with:
 >
 > ```ruby
 > coverage :line do

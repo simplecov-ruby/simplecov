@@ -60,7 +60,7 @@ module SimpleCov
         @skipped = true
       end
 
-      # Returns true if the branch was marked skipped by virtue of nocov comments.
+      # Returns true if the branch was marked skipped by a `# simplecov:disable` directive.
       def skipped?
         @skipped
       end

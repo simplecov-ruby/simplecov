@@ -1,6 +1,7 @@
 module SimpleCov
   # Classifies whether lines are relevant for code coverage analysis.
-  # Comments & whitespace lines, and :nocov: token blocks, are considered not relevant.
+  # Comments and whitespace lines, and lines inside a `# simplecov:disable`
+  # block, are considered not relevant.
   class LinesClassifier
     RELEVANT: 0
 
@@ -12,17 +13,13 @@ module SimpleCov
 
     WHITESPACE_OR_COMMENT_LINE: untyped
 
-    def self.no_cov_line: () -> untyped
-
-    def self.no_cov_line?: (untyped line) -> untyped
-
     def self.whitespace_line?: (untyped line) -> untyped
 
     def classify: (untyped lines) -> untyped
 
     private
 
-    def classify_line: (untyped line, untyped line_number, untyped directive_disabled, Array[bool] skip_state) -> untyped
+    def classify_line: (untyped line, untyped line_number, untyped directive_disabled) -> untyped
 
     def directive_disabled_line_set: (untyped lines) -> untyped
   end

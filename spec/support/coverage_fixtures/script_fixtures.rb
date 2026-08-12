@@ -9,7 +9,7 @@ module CoverageFixtures
 
   NEVER_RB = {"lines" => [nil, nil], "branches" => {}}.freeze
 
-  NOCOV_COMPLEX_RB = {
+  SKIPPING_COMPLEX_RB = {
     "lines" => [
       nil, nil, 1, 1, nil, 1, nil, nil, nil, 1, nil, nil, 1, nil,
       nil, 0, nil, 1, nil, 0, nil, nil, 1, nil, nil, nil, nil
@@ -26,7 +26,7 @@ module CoverageFixtures
     }
   }.freeze
 
-  SINGLE_NOCOV_RB = {
+  SINGLE_DISABLE_RB = {
     "lines" => [nil, 1, 1, 1, 0, 1, 0, 1, 1, nil, 0, nil, nil, nil],
     "branches" => {
       [:if, 0, 8, 4, 11, 10] => {[:then, 1, 9, 6, 9, 10] => 1, [:else, 2, 11, 6, 11, 10] => 0},
@@ -35,7 +35,7 @@ module CoverageFixtures
     }
   }.freeze
 
-  UNEVEN_NOCOVS_RB = {
+  UNEVEN_DISABLES_RB = {
     "lines" => [1, 1, nil, 1, 0, 1, 0, nil, 1, 1, nil, nil, 0, nil, nil, nil],
     "branches" => {
       [:if, 0, 9, 4, 13, 10] => {[:then, 1, 10, 6, 10, 10] => 1, [:else, 2, 13, 6, 13, 10] => 0},

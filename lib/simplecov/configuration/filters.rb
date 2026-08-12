@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # Inclusion and exclusion methods: `cover` and `skip`, plus the deprecated
-  # `track_files` and `add_filter` aliases.
+  # Inclusion and exclusion methods: `cover` and `skip`.
   module Configuration
     attr_writer :filters
 
@@ -13,15 +12,12 @@ module SimpleCov
     # doesn't match at least one of them.
     #
     # Strings are interpreted as shell globs (e.g. "lib/**/*.rb"), not
-    # substring matches — this is a deliberate departure from the legacy
-    # `add_filter` semantics and matches the way `track_files` already
-    # interprets its argument.
+    # substring matches — a deliberate departure from `skip`, which reads a
+    # String as a path-segment substring.
     #
     # When the matcher is a string-glob, `cover` also expands the glob on
     # disk so files that exist but were never required during the run still
-    # appear in the report (at 0% coverage). This is the "include unloaded
-    # files" half of the legacy `track_files` behavior, rolled into the
-    # same call.
+    # appear in the report (at 0% coverage).
     #
     #     SimpleCov.start do
     #       cover "lib/**/*.rb", "app/**/*.rb"
@@ -52,37 +48,15 @@ module SimpleCov
       collect_cover_globs(cover_filters)
     end
 
-    # DEPRECATED: prefer `cover`, which both includes unloaded files (the
-    # historical `track_files` behavior) and restricts the report to the
-    # matching set.
-    def track_files(glob)
-      SimpleCov::Deprecation.warn("`SimpleCov.track_files` is deprecated. " \
-                                  "#{track_files_replacement_hint(glob)}")
-      @tracked_files = glob
-    end
-
-    # `track_files(nil)` is the documented way to clear a previously-set
-    # glob, but `cover(nil)` raises `ConfigurationError`, so don't point
-    # users at it. The `cover` API has no direct equivalent for "reset
-    # the inclusion list" — point users at the `@cover_filters` reset.
-    def track_files_replacement_hint(glob)
-      if glob.nil?
-        "Replace with `SimpleCov.cover_filters.clear` — clearing the inclusion list."
-      else
-        "Replace with `SimpleCov.cover #{glob.inspect}` — `cover` includes unloaded files on disk " \
-          "(the historical `track_files` behavior) and also restricts the report to the matching set. " \
-          "If you want to keep additional files outside #{glob.inspect} in the report, pass every " \
-          "directory you care about, e.g. `cover #{glob.inspect}, \"app/**/*.rb\"`."
-      end
-    end
-
-    # Returns the glob used to include files that were not explicitly required.
+    # @api private — the additive disk-discovery glob. `cover` is the
+    # public way to pull unloaded files into the report; this remains for
+    # the bundled `rails` profile, which sets the ivar directly to keep
+    # discovery additive without also restricting the report's universe.
     def tracked_files
       @tracked_files if defined?(@tracked_files)
     end
 
-    # Returns the list of configured exclusion filters added via `skip`
-    # (or the deprecated `add_filter`).
+    # Returns the list of configured exclusion filters added via `skip`.
     def filters
       @filters ||= []
     end
@@ -95,14 +69,6 @@ module SimpleCov
     #
     def skip(filter_argument = nil, &)
       filters << parse_filter(filter_argument, &)
-    end
-
-    # DEPRECATED: alias for `skip`. Same matcher grammar, identical behavior.
-    def add_filter(filter_argument = nil, &block)
-      example = block ? "`SimpleCov.skip { ... }`" : "`SimpleCov.skip #{filter_argument.inspect}`"
-      SimpleCov::Deprecation.warn("`SimpleCov.add_filter` is deprecated. " \
-                                  "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}.")
-      skip(filter_argument, &block)
     end
 
     # Remove any filters whose `filter_argument` equals the given value.
@@ -139,8 +105,8 @@ module SimpleCov
     end
 
     # Build a filter for a `cover` argument. Strings are treated as
-    # globs (not substrings — that's `skip`/`add_filter`'s semantics);
-    # everything else dispatches exactly like `add_filter`.
+    # globs (not substrings — that's `skip`'s semantics); everything else
+    # dispatches exactly like `skip`.
     def build_cover_filter(arg)
       SimpleCov::Filter.build_filter(arg, string_filter: SimpleCov::GlobFilter)
     rescue SimpleCov::ConfigurationError

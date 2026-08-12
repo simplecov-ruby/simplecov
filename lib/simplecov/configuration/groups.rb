@@ -24,19 +24,5 @@ module SimpleCov
       GroupNames.validate!([group_name])
       groups[group_name] = parse_filter(filter_argument, &)
     end
-
-    # DEPRECATED: alias for `group`. Same arguments, same behavior.
-    def add_group(group_name, filter_argument = nil, &block)
-      example = if block
-                  "`SimpleCov.group #{group_name.inspect} { ... }`"
-                else
-                  "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`"
-                end
-      SimpleCov::Deprecation.warn(
-        "`SimpleCov.add_group` is deprecated. " \
-        "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
-      )
-      group(group_name, filter_argument, &block)
-    end
   end
 end

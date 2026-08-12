@@ -78,6 +78,15 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.coverage_for_eval_enabled?).to be false
       end
 
+      it "leaves eval coverage off and warns when the runtime does not support it" do
+        allow(config).to receive(:coverage_for_eval_supported?).and_return(false)
+
+        stderr = capture_stderr { config.coverage :eval }
+
+        expect(config.coverage_for_eval_enabled?).to be false
+        expect(stderr).to include("Coverage for eval is not available")
+      end
+
       # `coverage :eval` alone is supported, so the old "Unsupported
       # coverage criterion eval" message was misleading. The refusal is
       # about thresholds specifically.
@@ -161,6 +170,11 @@ RSpec.describe SimpleCov::Configuration do
         expect { config.coverage(:line) { minimum_per_file 100, only: :line } }
           .to raise_error(SimpleCov::ConfigurationError, /must be a String path or Regexp/)
       end
+
+      it "starts with empty defaults and overrides" do
+        expect(config.minimum_coverage_by_file).to eq({})
+        expect(config.minimum_coverage_by_file_overrides).to eq({})
+      end
     end
 
     describe "per-group thresholds" do
@@ -177,6 +191,15 @@ RSpec.describe SimpleCov::Configuration do
         config.coverage(:line) { minimum_per_group 95, only: :Models }
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95})
       end
+
+      it "starts empty" do
+        expect(config.minimum_coverage_by_group).to eq({})
+      end
+
+      it "raises when the criterion is not enabled" do
+        expect { config.coverage(:branch, enabled: false) { minimum_per_group 90, only: "Models" } }
+          .to raise_error(/branch.*disabled/i)
+      end
     end
   end
 
@@ -189,14 +212,6 @@ RSpec.describe SimpleCov::Configuration do
 
     context "when set via #print_errors" do
       before { config.print_errors false }
-
-      it "reads back the assigned value" do
-        expect(config.print_errors).to be false
-      end
-    end
-
-    context "when set via the legacy attr_writer" do
-      before { config.print_error_status = false }
 
       it "reads back the assigned value" do
         expect(config.print_errors).to be false
@@ -218,26 +233,6 @@ RSpec.describe SimpleCov::Configuration do
       config.source_in_json false
       config.source_in_json true
       expect(config.source_in_json).to be true
-    end
-  end
-
-  describe "#print_error_status (deprecated)" do
-    it "warns when read and still returns the value" do
-      config.print_error_status = false
-      value = nil
-      stderr = capture_stderr { value = config.print_error_status }
-
-      expect(value).to be false
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("`SimpleCov.print_error_status`")
-      expect(stderr).to include("`SimpleCov.print_errors`")
-    end
-
-    it "returns the default (true) when nothing has been assigned" do
-      value = nil
-      capture_stderr { value = config.print_error_status }
-
-      expect(value).to be true
     end
   end
 
@@ -285,55 +280,6 @@ RSpec.describe SimpleCov::Configuration do
     it "does not raise when root is the filesystem root" do
       config.root("/")
       expect { config.project_name }.not_to raise_error
-    end
-  end
-
-  describe "#nocov_token" do
-    it "warns of deprecation when called as a getter" do
-      stderr = capture_stderr { config.nocov_token }
-
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("`SimpleCov.nocov_token`")
-      expect(stderr).to include("`# simplecov:disable`")
-      expect(stderr).to include("`# simplecov:enable`")
-    end
-
-    it "warns of deprecation when called as a setter" do
-      stderr = capture_stderr { config.nocov_token("skippit") }
-
-      expect(stderr).to include("[DEPRECATION]")
-    end
-
-    it "still returns the configured token (after the deprecation warning)" do
-      capture_stderr { config.nocov_token("skippit") }
-      value = nil
-      stderr = capture_stderr { value = config.nocov_token }
-
-      expect(value).to eq "skippit"
-      expect(stderr).to include("[DEPRECATION]") # the read still warns
-    end
-
-    it "is aliased as #skip_token, which also warns" do
-      stderr = capture_stderr { config.skip_token("skippit") }
-
-      expect(stderr).to include("[DEPRECATION]")
-      expect(config.current_nocov_token).to eq "skippit"
-    end
-  end
-
-  describe "#current_nocov_token" do
-    it "returns the configured token without emitting a deprecation warning" do
-      value = nil
-      stderr = capture_stderr { value = config.current_nocov_token }
-
-      expect(value).to eq "nocov"
-      expect(stderr).to be_empty
-    end
-
-    it "honours a value previously set via #nocov_token" do
-      capture_stderr { config.nocov_token("skippit") }
-
-      expect(config.current_nocov_token).to eq "skippit"
     end
   end
 
@@ -397,22 +343,16 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  describe "#tracked_files (deprecated)" do
-    context "when configured" do
+  describe "#tracked_files" do
+    # The bundled `rails` profile writes the ivar directly; nothing in the
+    # public API sets it, which is the point of keeping the reader private.
+    context "when a profile has set the discovery glob" do
       let(:glob) { "{app,lib}/**/*.rb" }
 
-      before { capture_stderr { config.track_files(glob) } }
+      before { config.instance_variable_set(:@tracked_files, glob) }
 
       it "returns the configured glob" do
         expect(config.tracked_files).to eq glob
-      end
-
-      context "when configured again with nil" do
-        before { capture_stderr { config.track_files(nil) } }
-
-        it "returns nil" do
-          expect(config.tracked_files).to be_nil
-        end
       end
     end
 
@@ -420,24 +360,6 @@ RSpec.describe SimpleCov::Configuration do
       it "returns nil" do
         expect(config.tracked_files).to be_nil
       end
-    end
-
-    it "warns and names `cover` as the replacement when called" do
-      stderr = capture_stderr { config.track_files("lib/**/*.rb") }
-
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("`SimpleCov.track_files`")
-      expect(stderr).to include("`SimpleCov.cover \"lib/**/*.rb\"`")
-    end
-
-    # `track_files(nil)` clears the legacy glob, but `cover(nil)` raises —
-    # don't point users at an invalid call. Copilot review on #1188.
-    it "suggests cover_filters.clear when called with nil to clear the glob" do
-      stderr = capture_stderr { config.track_files(nil) }
-
-      expect(stderr).to include("[DEPRECATION]")
-      expect(stderr).to include("`SimpleCov.cover_filters.clear`")
-      expect(stderr).not_to include("`SimpleCov.cover nil`")
     end
 
     describe "#cover" do
@@ -507,7 +429,7 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#skip" do
-      it "is a non-warning alias for add_filter" do
+      it "appends one exclusion filter per call, without warning" do
         config.skip "lib/legacy"
         stderr = capture_stderr { config.skip "lib/another" }
 
@@ -516,29 +438,8 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#add_filter (deprecated)" do
-      it "warns and names `skip` as the replacement" do
-        stderr = capture_stderr { config.add_filter "lib/legacy" }
-
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`SimpleCov.add_filter`")
-        expect(stderr).to include("`SimpleCov.skip \"lib/legacy\"`")
-        expect(config.filters.size).to eq 1
-      end
-
-      # The default warning interpolates `filter_argument.inspect`, which is
-      # `nil` for the block form (`add_filter { ... }`); suggest the block
-      # form spelling instead. Copilot review on #1188.
-      it "suggests the block form when a block was given" do
-        stderr = capture_stderr { config.add_filter { |sf| sf.filename.include?("legacy") } }
-
-        expect(stderr).to include("`SimpleCov.skip { ... }`")
-        expect(stderr).not_to include("nil")
-      end
-    end
-
     describe "#group" do
-      it "is a non-warning alias for add_group" do
+      it "defines a group without warning" do
         stderr = capture_stderr { config.group "Models", "app/models" }
 
         expect(stderr).to be_empty
@@ -593,33 +494,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#add_group (deprecated)" do
-      it "warns and names `group` as the replacement" do
-        stderr = capture_stderr { config.add_group "Models", "app/models" }
-
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`SimpleCov.add_group`")
-        expect(stderr).to include("`SimpleCov.group \"Models\", \"app/models\"`")
-        expect(config.groups.keys).to eq ["Models"]
-      end
-
-      # `add_group "Name" { ... }` would otherwise display as
-      # `SimpleCov.group "Name", nil`, dropping the block. Copilot review on #1188.
-      it "suggests the block form when a block was given" do
-        stderr = capture_stderr { config.add_group("Other") { |sf| sf.filename.include?("xyz") } }
-
-        expect(stderr).to include("`SimpleCov.group \"Other\" { ... }`")
-        expect(stderr).not_to include('"Other", nil')
-      end
-
-      it "rejects the reserved Ungrouped name" do
-        expect do
-          capture_stderr { config.add_group "Ungrouped", // }
-        end.to raise_error(SimpleCov::ConfigurationError, /reserved/)
-        expect(config.groups).to be_empty
-      end
-    end
-
     describe "#no_default_skips" do
       it "clears every previously installed filter" do
         config.skip "lib/legacy"
@@ -631,10 +505,10 @@ RSpec.describe SimpleCov::Configuration do
 
     describe "#merging" do
       around do |example|
-        previous = config.instance_variable_get(:@use_merging)
-        config.instance_variable_set(:@use_merging, nil)
+        previous = config.instance_variable_get(:@merging)
+        config.instance_variable_set(:@merging, nil)
         example.run
-        config.instance_variable_set(:@use_merging, previous)
+        config.instance_variable_set(:@merging, previous)
       end
 
       it "defaults to true" do
@@ -809,31 +683,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#use_merging (deprecated)" do
-      around do |example|
-        previous = config.instance_variable_get(:@use_merging)
-        config.instance_variable_set(:@use_merging, nil)
-        example.run
-        config.instance_variable_set(:@use_merging, previous)
-      end
-
-      it "warns and names `merging` as the replacement" do
-        stderr = capture_stderr { config.use_merging(false) }
-
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`SimpleCov.use_merging`")
-        expect(stderr).to include("`SimpleCov.merging`")
-        expect(config.instance_variable_get(:@use_merging)).to be false
-      end
-
-      it "returns the stored value like `merging` does" do
-        result = nil
-        capture_stderr { result = config.use_merging(false) }
-
-        expect(result).to be false
-      end
-    end
-
     describe "#merge_subprocesses" do
       it "returns false by default" do
         expect(config.merge_subprocesses).to be false
@@ -871,25 +720,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#enable_for_subprocesses (deprecated)" do
-      it "warns and names `merge_subprocesses` as the replacement" do
-        stderr = capture_stderr { config.enable_for_subprocesses(true) }
-
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`SimpleCov.enable_for_subprocesses`")
-        expect(stderr).to include("`SimpleCov.merge_subprocesses`")
-        expect(config.merge_subprocesses).to be true
-      end
-
-      it "returns the existing value when called with no argument after being set" do
-        config.merge_subprocesses true
-        value = nil
-        capture_stderr { value = config.enable_for_subprocesses }
-
-        expect(value).to be true
-      end
-    end
-
     describe "#enable_coverage with :eval" do
       context "when the runtime supports eval coverage" do
         before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
@@ -906,19 +736,6 @@ RSpec.describe SimpleCov::Configuration do
           expect(config.coverage_criteria).to include :branch
           expect(config.coverage_for_eval_enabled?).to be true
         end
-      end
-    end
-
-    describe "#enable_coverage_for_eval (deprecated)" do
-      before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
-
-      it "warns and still toggles the flag" do
-        stderr = capture_stderr { config.enable_coverage_for_eval }
-
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`SimpleCov.enable_coverage_for_eval`")
-        expect(stderr).to include("`SimpleCov.enable_coverage :eval`")
-        expect(config.coverage_for_eval_enabled?).to be true
       end
     end
 
@@ -993,179 +810,6 @@ RSpec.describe SimpleCov::Configuration do
 
     describe "#minimum_coverage" do
       it_behaves_like "setting coverage expectations", :minimum_coverage
-    end
-
-    describe "#minimum_coverage_by_file" do
-      # Deprecated: every call warns via SimpleCov::Deprecation. Silence it
-      # here (the dedicated example below asserts the warning) so it doesn't
-      # trip the suite's app-warning guard. The methods are still exercised,
-      # so they stay covered.
-      before { allow(SimpleCov::Deprecation).to receive(:warn) }
-
-      it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
-
-      it "warns with the equivalent `coverage` configuration built from the real arguments" do
-        config.minimum_coverage_by_file line: 70, "app/x.rb" => 100
-        expect(SimpleCov::Deprecation).to have_received(:warn).with(
-          a_string_including(
-            "`SimpleCov.minimum_coverage_by_file` is deprecated",
-            'coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: "app/x.rb" }'
-          )
-        )
-      end
-
-      context "with per-path overrides" do
-        after { config.clear_coverage_criteria }
-
-        it "splits Symbol-keyed defaults from String-keyed overrides" do
-          config.minimum_coverage_by_file line: 70, "app/critical.rb" => 100
-
-          expect(config.minimum_coverage_by_file).to eq line: 70
-          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
-        end
-
-        it "normalizes a Numeric override into the primary criterion" do
-          config.minimum_coverage_by_file "app/critical.rb" => 100
-
-          expect(config.minimum_coverage_by_file).to eq({})
-          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
-        end
-
-        it "accepts a per-criterion Hash as an override value" do
-          config.enable_coverage :branch
-          config.minimum_coverage_by_file "app/critical.rb" => {line: 100, branch: 90}
-
-          expect(config.minimum_coverage_by_file_overrides)
-            .to eq("app/critical.rb" => {line: 100, branch: 90})
-        end
-
-        it "accepts Regexp keys" do
-          config.minimum_coverage_by_file(%r{\Aapp/mailers/} => 100)
-
-          expect(config.minimum_coverage_by_file_overrides).to eq(%r{\Aapp/mailers/} => {line: 100})
-        end
-
-        it "preserves the declaration order of overrides" do
-          config.minimum_coverage_by_file(
-            "lib/" => 80,
-            "lib/critical.rb" => 100,
-            %r{spec/} => 50
-          )
-
-          expect(config.minimum_coverage_by_file_overrides.keys)
-            .to eq(["lib/", "lib/critical.rb", %r{spec/}])
-        end
-
-        it "raises when an override value uses an unsupported criterion" do
-          expect do
-            config.minimum_coverage_by_file "app/critical.rb" => {unknown: 100}
-          end.to raise_error(/unsupported.*unknown/i)
-        end
-
-        it "raises when a key is neither Symbol nor String nor Regexp" do
-          expect do
-            config.minimum_coverage_by_file 42 => 100
-          end.to raise_error(SimpleCov::ConfigurationError, /must be Symbol/)
-        end
-      end
-
-      describe "#minimum_coverage_by_file_overrides" do
-        it "defaults to an empty Hash" do
-          expect(config.minimum_coverage_by_file_overrides).to eq({})
-        end
-      end
-    end
-
-    describe "#minimum_coverage_by_group" do
-      # Deprecated: every call warns via SimpleCov::Deprecation, and an
-      # over-100% value warns via the config itself. Silence both here (the
-      # dedicated examples below assert each) so they don't trip the suite's
-      # app-warning guard. The method is still exercised, so it stays covered.
-      before do
-        allow(config).to receive(:warn)
-        allow(SimpleCov::Deprecation).to receive(:warn)
-      end
-
-      after do
-        config.clear_coverage_criteria
-      end
-
-      it "does not warn that coverage exceeds 100% for a valid value" do
-        config.minimum_coverage_by_group({"Test Group 1" => 100.00})
-        expect(config).not_to have_received(:warn).with(/is greater than 100%/)
-      end
-
-      it "warns you about your usage" do
-        config.minimum_coverage_by_group({"Test Group 1" => 100.01})
-        expect(config).to have_received(:warn)
-          .with("The coverage you set for minimum_coverage_by_group is greater than 100%")
-      end
-
-      it "normalizes Symbol group names to Strings like `group` does" do
-        config.minimum_coverage_by_group({Models: 80})
-        expect(config.minimum_coverage_by_group).to eq("Models" => {line: 80})
-      end
-
-      it "warns with the equivalent `coverage` configuration built from the real arguments" do
-        config.minimum_coverage_by_group({"Models" => 80})
-        expect(SimpleCov::Deprecation).to have_received(:warn).with(
-          a_string_including(
-            "`SimpleCov.minimum_coverage_by_group` is deprecated",
-            'coverage(:line) { minimum_per_group 80, only: "Models" }'
-          )
-        )
-      end
-
-      it "sets the right coverage value when called with a number" do
-        config.minimum_coverage_by_group({"Test Group 1" => 80})
-
-        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {line: 80}})
-      end
-
-      it "sets the right coverage when called with a hash of just line" do
-        config.minimum_coverage_by_group({"Test Group 1" => {line: 85.0}})
-
-        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {line: 85.0}})
-      end
-
-      it "sets the right coverage when called with a hash of just branch" do
-        config.enable_coverage :branch
-        config.minimum_coverage_by_group({"Test Group 1" => {branch: 85.0}})
-
-        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 85.0}})
-      end
-
-      it "sets the right coverage when called with both line and branch" do
-        config.enable_coverage :branch
-        config.minimum_coverage_by_group({"Test Group 1" => {branch: 85.0, line: 95.4}})
-
-        expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 85.0, line: 95.4}})
-      end
-
-      it "raises when trying to set branch coverage but not enabled" do
-        expect do
-          config.minimum_coverage_by_group({"Test Group 1" => {branch: 42}})
-        end.to raise_error(/branch.*disabled/i)
-      end
-
-      it "raises when unknown coverage criteria provided" do
-        expect do
-          config.minimum_coverage_by_group({"Test Group 1" => {unknown: 42}})
-        end.to raise_error(/unsupported.*unknown/i)
-      end
-
-      context "when primary coverage is set" do
-        before do
-          config.enable_coverage :branch
-          config.primary_coverage :branch
-        end
-
-        it "sets the right coverage value when called with a number" do
-          config.minimum_coverage_by_group({"Test Group 1" => 80})
-
-          expect(config.minimum_coverage_by_group).to eq({"Test Group 1" => {branch: 80}})
-        end
-      end
     end
 
     describe "#maximum_coverage" do
@@ -1490,25 +1134,6 @@ RSpec.describe SimpleCov::Configuration do
         config.enable_coverage :method
 
         expect(config.coverage_criteria).to contain_exactly :line, :method
-      end
-    end
-
-    describe "#enable_for_subprocesses (deprecated, still functional)" do
-      it "returns false by default" do
-        capture_stderr { expect(config.enable_for_subprocesses).to be false }
-      end
-
-      it "can be set to true (deprecation warning notwithstanding)" do
-        capture_stderr { config.enable_for_subprocesses true }
-        expect(config.merge_subprocesses).to be true
-      end
-
-      it "can be enabled and then disabled again" do
-        capture_stderr do
-          config.enable_for_subprocesses true
-          config.enable_for_subprocesses false
-        end
-        expect(config.merge_subprocesses).to be false
       end
     end
 
@@ -1971,42 +1596,6 @@ RSpec.describe SimpleCov::Configuration do
           .to raise_error(NameError, /unknown_configuration_command/) do |error|
             expect(error.backtrace.first).to include("configuration_spec.rb:#{source_line}")
           end
-      end
-    end
-
-    describe "#use_merging (deprecated, still functional)" do
-      around do |example|
-        previous = config.instance_variable_get(:@use_merging)
-        config.instance_variable_set(:@use_merging, nil)
-        example.run
-        config.instance_variable_set(:@use_merging, previous)
-      end
-
-      it "stores the explicit value when given true" do
-        capture_stderr { config.use_merging(true) }
-        expect(config.instance_variable_get(:@use_merging)).to be true
-      end
-
-      it "stores the explicit value when given false" do
-        capture_stderr { config.use_merging(false) }
-        expect(config.instance_variable_get(:@use_merging)).to be false
-      end
-
-      it "defaults to true when never set" do
-        capture_stderr { expect(config.use_merging).to be true }
-      end
-    end
-
-    describe "#enable_coverage_for_eval (deprecated, still functional)" do
-      context "when the runtime does not support eval coverage" do
-        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(false) }
-
-        it "leaves the flag false and warns about unsupported runtime" do
-          stderr = capture_stderr { config.enable_coverage_for_eval }
-
-          expect(config.coverage_for_eval_enabled?).to be false
-          expect(stderr).to include("Coverage for eval is not available")
-        end
       end
     end
 

@@ -3,7 +3,7 @@
 require_relative "simulate_coverage"
 
 module SimpleCov
-  # Fills in coverage for files that were tracked (via `cover` / `track_files`)
+  # Fills in coverage for files that were tracked (via `cover`)
   # but never loaded, so they count toward the denominators instead of being
   # absent from the report entirely.
   #

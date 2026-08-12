@@ -78,7 +78,7 @@ RSpec.describe SimpleCov::Result do
         end
 
         # Recorded so a merge in another process can inject the files nobody
-        # loaded without needing this process's `cover` / `track_files` config.
+        # loaded without needing this process's `cover` config.
         # Omitted when empty so a run that tracks nothing writes the shape it
         # always has. See #1250.
         it "omits tracked_files when nothing was tracked" do

@@ -14,17 +14,9 @@ module SimpleCov
       @coverage_for_eval_enabled ||= false
     end
 
-    # DEPRECATED: prefer `enable_coverage :eval`.
-    def enable_coverage_for_eval
-      SimpleCov::Deprecation.warn("`SimpleCov.enable_coverage_for_eval` is deprecated. " \
-                                  "Replace with `SimpleCov.enable_coverage :eval`.")
-      enable_eval_coverage
-    end
-
   private
 
-    # Shared implementation backing both `enable_coverage :eval` and
-    # the deprecated `enable_coverage_for_eval`.
+    # Implementation backing `enable_coverage :eval`.
     def enable_eval_coverage
       if coverage_for_eval_supported?
         @coverage_for_eval_enabled = true

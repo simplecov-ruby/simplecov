@@ -17,7 +17,7 @@ module SimpleCov
     attr_reader :original_result
     # Every path the producing process was told to track, loaded or not. Carried
     # into the resultset so a merge elsewhere can inject the ones nobody loaded
-    # without needing that process's `cover` / `track_files` config. See #1250.
+    # without needing that process's `cover` config. See #1250.
     attr_reader :tracked_files
     # Invocation and top-level worker identities used only for parallel-result
     # coordination. They do not change which fresh suites are merged.

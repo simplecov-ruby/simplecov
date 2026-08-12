@@ -19,7 +19,7 @@ RSpec.describe "minitest integration", :sandbox do
     configure_simplecov(:minitest, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter "test_helper.rb"
+        skip "test_helper.rb"
       end
     RUBY
 

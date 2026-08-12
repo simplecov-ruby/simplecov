@@ -78,11 +78,11 @@ module SimpleCov
     # the full DSL, or:
     #
     #     SimpleCov.start
-    #     SimpleCov.start 'rails'                # using a profile
-    #     SimpleCov.start { add_filter 'test' }  # with a config block
+    #     SimpleCov.start 'rails'            # using a profile
+    #     SimpleCov.start { skip 'test' }    # with a config block
     #
     def start(profile = nil, &)
-      warn_about_start_in_dot_simplecov if @autoloading_dot_simplecov
+      raise_on_start_in_dot_simplecov if @autoloading_dot_simplecov
 
       initial_setup(profile, &)
       start_tracking
@@ -91,11 +91,9 @@ module SimpleCov
 
     # @api private
     #
-    # Mark the duration of a `.simplecov` auto-load so any `SimpleCov.start`
-    # call inside the file can warn about the impending migration to a
-    # config-only file. Tracking still begins for backward compatibility;
-    # the warning is the cue to move `SimpleCov.start` into a test helper.
-    # See #581.
+    # Mark the duration of a `.simplecov` auto-load so a `SimpleCov.start`
+    # call inside the file can be rejected. `.simplecov` is configuration
+    # only. See #581.
     def with_dot_simplecov_autoload
       # Read in the ensure clause, where flow analysis cannot see the
       # assignment above; anchor the type here.
@@ -107,16 +105,12 @@ module SimpleCov
       @autoloading_dot_simplecov = previous
     end
 
-    def warn_about_start_in_dot_simplecov
-      return if @dot_simplecov_start_warned
-
-      @dot_simplecov_start_warned = true
-      warn "[DEPRECATION] Calling `SimpleCov.start` from `.simplecov` is deprecated and will " \
-           "be removed in a future release. `.simplecov` should contain configuration only; " \
-           "move the `SimpleCov.start` call into your `spec_helper.rb` / `test_helper.rb`. " \
-           "Coverage tracking still begins for backward compatibility, but a future release " \
-           "will require the explicit `SimpleCov.start` from a test helper. " \
-           "See https://github.com/simplecov-ruby/simplecov/issues/581."
+    def raise_on_start_in_dot_simplecov
+      raise SimpleCov::ConfigurationError,
+            "`.simplecov` contains configuration only. Move the `SimpleCov.start` call " \
+            "into your `spec_helper.rb` / `test_helper.rb` and leave the configuration " \
+            "here (SimpleCov loads `.simplecov` before your test helper runs). " \
+            "See https://github.com/simplecov-ruby/simplecov/issues/581."
     end
 
     #
@@ -153,7 +147,7 @@ module SimpleCov
       require "coverage"
       warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
-      # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
+      # simplecov:disable — fork-hook is enabled via SimpleCov.merge_subprocesses, off by default
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:_fork)
       # simplecov:enable
@@ -227,7 +221,6 @@ end
 # requires are down here for a load order reason I'm not sure what it is about
 require "forwardable"
 require_relative "simplecov/color"
-require_relative "simplecov/deprecation"
 require_relative "simplecov/group_names"
 require_relative "simplecov/configuration"
 SimpleCov.extend SimpleCov::Configuration

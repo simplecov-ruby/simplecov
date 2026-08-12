@@ -174,7 +174,7 @@ module SimpleCov
     # Every path this process was told to track, whether or not it loaded them.
     # Recorded on the result (and from there into the resultset) so that a merge
     # in another process can inject the ones nobody loaded without needing this
-    # process's `cover` / `track_files` configuration. A standalone `collate`
+    # process's `cover` configuration. A standalone `collate`
     # never ran `SimpleCov.start` and so has none of its own. See #1250.
     def tracked_file_paths
       UnloadedFileInjector.discover(
@@ -183,9 +183,10 @@ module SimpleCov
     end
 
     # Globs to expand on disk when injecting unloaded files into the
-    # result. Combines the legacy `track_files` glob (additive only)
-    # with every string glob declared via `cover` (also restrictive,
-    # but the restriction lives in `Result#apply_cover_filters!`).
+    # result. Combines the profile-set additive glob (see
+    # `Configuration#tracked_files`) with every string glob declared via
+    # `cover` (also restrictive, but the restriction lives in
+    # `Result#apply_cover_filters!`).
     def unloaded_file_discovery_globs
       [tracked_files, *cover_globs].compact
     end

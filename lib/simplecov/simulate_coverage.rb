@@ -17,8 +17,8 @@ module SimpleCov
     #
     # The line classification comes from `Coverage.line_stub` — the same
     # classification the runtime would have produced if the file had been
-    # required — overlaid with SimpleCov's `# :nocov:` toggles and
-    # `# simplecov:disable line` directive ranges, which `Coverage` doesn't
+    # required — overlaid with SimpleCov's `# simplecov:disable line`
+    # directive ranges, which `Coverage` doesn't
     # know about. This keeps "relevant lines" identical whether a file was
     # loaded or just tracked, fixing the multi-line statement discrepancy
     # in https://github.com/simplecov-ruby/simplecov/issues/654.
@@ -27,7 +27,7 @@ module SimpleCov
     # `StaticCoverageExtractor`, which uses Prism). Earlier behavior left
     # both as empty hashes, which made unloaded files invisible to the
     # branch/method denominators while their lines DID count — so a
-    # `track_files`/`cover` glob that picked up files without specs
+    # `cover` glob that picked up files without specs
     # silently inflated branch% relative to line%. See
     # https://github.com/simplecov-ruby/simplecov/issues/1059. When Prism
     # isn't loadable (Ruby < 3.3 without the prism gem) or the file
@@ -67,7 +67,7 @@ module SimpleCov
       {"branches" => synthesized["branches"], "methods" => synthesized["methods"]}
     end
 
-    # SystemCallError, not just ENOENT: a `track_files` glob can sweep
+    # SystemCallError, not just ENOENT: a discovery glob can sweep
     # up an unreadable file or a directory named like a Ruby file
     # (EACCES, EISDIR), and simulation must degrade to "empty file"
     # rather than crash the merge or report step.
@@ -78,8 +78,8 @@ module SimpleCov
     end
 
     # Combine `Coverage.line_stub` (which gets multi-line statements right)
-    # with `LinesClassifier` (which knows about `# :nocov:` toggles and
-    # `# simplecov:disable line` ranges). Returns nil — and the caller
+    # with `LinesClassifier` (which knows about `# simplecov:disable line`
+    # ranges). Returns nil — and the caller
     # falls back to `LinesClassifier` alone — when `Coverage` can't read
     # or parse the file, or when the runtime doesn't expose `line_stub`
     # (JRuby and TruffleRuby).

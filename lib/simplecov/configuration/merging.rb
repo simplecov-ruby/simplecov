@@ -11,15 +11,15 @@ module SimpleCov
     # Defaults to false.
     #
     def merge_subprocesses(value = nil)
-      return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
+      return @merge_subprocesses if defined?(@merge_subprocesses) && value.nil?
 
-      @enable_for_subprocesses = value || false
+      @merge_subprocesses = value || false
     end
 
     # @api private — predicate used by `start_tracking` to decide
     # whether to install the fork hook.
     def enabled_for_subprocesses?
-      defined?(@enable_for_subprocesses) ? @enable_for_subprocesses : false
+      defined?(@merge_subprocesses) ? @merge_subprocesses : false
     end
 
     #
@@ -34,22 +34,15 @@ module SimpleCov
       @parallel_tests = value
     end
 
-    # DEPRECATED: alias for `merge_subprocesses`. Same value/behavior.
-    def enable_for_subprocesses(value = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.enable_for_subprocesses` is deprecated. " \
-                                  "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior).")
-      merge_subprocesses(value)
-    end
-
     #
     # Get or set whether to merge results from multiple test suites
     # (test:units, test:functionals, cucumber, ...) into a single
     # coverage report. Defaults to true.
     #
     def merging(use = nil)
-      @use_merging = use unless use.nil?
-      @use_merging = true unless defined?(@use_merging) && @use_merging == false
-      @use_merging
+      @merging = use unless use.nil?
+      @merging = true unless defined?(@merging) && @merging == false
+      @merging
     end
 
     #
@@ -82,17 +75,6 @@ module SimpleCov
     # @api private
     def merge_finalization_owner?
       collating_result? || (finalize_merge? && final_result_process?)
-    end
-
-    # DEPRECATED: alias for `merging`. Same value, same behavior.
-    # Delegating (rather than duplicating the body) also fixes the
-    # return value: this used to return nil where `merging` returns
-    # false, because the final expression was the skipped guard
-    # assignment rather than the stored value.
-    def use_merging(use = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.use_merging` is deprecated. " \
-                                  "Replace with `SimpleCov.merging` (same value, same behavior).")
-      merging(use)
     end
 
     #

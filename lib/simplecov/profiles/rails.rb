@@ -14,12 +14,11 @@ SimpleCov.profiles.define "rails" do
   group "Jobs", %w[app/jobs app/workers]
   group "Libraries", "lib/"
 
-  # Preserve the legacy `track_files` semantics (additive disk-discovery
-  # without restricting the report's universe): write the ivar directly
-  # so loading the profile doesn't emit the public-API deprecation. Users
-  # migrating their own configs should prefer `cover "{app,lib}/**/*.rb"`,
-  # which both injects unloaded files and scopes the report to the match
-  # set — usually the intended behavior for a Rails project.
+  # Additive disk-discovery without restricting the report's universe:
+  # write the ivar directly, since `cover "{app,lib}/**/*.rb"` would also
+  # scope the report to that match set and drop everything else a Rails
+  # app happens to load. Users who want that scoping should say `cover`
+  # in their own config.
   @tracked_files = "{app,lib}/**/*.rb"
 
   # `parallelize(workers: ...)` forks worker processes that each run a

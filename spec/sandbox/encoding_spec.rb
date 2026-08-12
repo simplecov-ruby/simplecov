@@ -47,7 +47,7 @@ RSpec.describe "source file encodings", :sandbox do
 
   it "falls back to replacement characters for a tracked-only undeclared EUC-JP source" do
     # An EUC-JP file without a magic comment can't be decoded correctly
-    # when it is only ever seen via track_files — no way around it.
+    # when it is only ever seen via cover — no way around it.
     tracked = source_text("lib/euc_jp_not_declared_tracked.rb")
     expect(tracked).to include("�")
     expect(tracked).to include("NoDeclare")

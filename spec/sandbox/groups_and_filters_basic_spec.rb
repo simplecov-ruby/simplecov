@@ -52,8 +52,8 @@ RSpec.describe "groups and filters", :sandbox do
       configure_simplecov(:rspec, <<~RUBY)
         require 'simplecov'
         SimpleCov.start do
-          add_group 'Libs', 'lib/faked_project/'
-          add_filter '/spec/'
+          group 'Libs', 'lib/faked_project/'
+          skip '/spec/'
         end
       RUBY
     end
@@ -68,8 +68,8 @@ RSpec.describe "groups and filters", :sandbox do
       configure_simplecov(:test_unit, <<~RUBY)
         require 'simplecov'
         SimpleCov.start do
-          add_group 'Libs', 'lib/faked_project/'
-          add_filter '/test/'
+          group 'Libs', 'lib/faked_project/'
+          skip '/test/'
         end
       RUBY
     end

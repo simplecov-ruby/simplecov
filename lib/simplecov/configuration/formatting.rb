@@ -3,10 +3,10 @@
 require_relative "../formatter/multi_formatter"
 
 module SimpleCov
-  # Formatter selection (`formatter` / `formatters`), reporting toggles
-  # (`print_errors`), and the deprecated `# :nocov:` token hook.
+  # Formatter selection (`formatter` / `formatters`) and reporting toggles
+  # (`print_errors`, `source_in_json`).
   module Configuration
-    attr_writer :formatter, :print_error_status
+    attr_writer :formatter
 
     #
     # Gets or sets the configured formatter. Accepts a formatter class
@@ -79,9 +79,9 @@ module SimpleCov
     # SimpleCov entirely when parsing tooling output (see issue #1155).
     #
     def print_errors(value = :__no_arg__)
-      return defined?(@print_error_status) ? @print_error_status : true if value == :__no_arg__
+      return defined?(@print_errors) ? @print_errors : true if value == :__no_arg__
 
-      @print_error_status = value
+      @print_errors = value
     end
 
     #
@@ -104,35 +104,6 @@ module SimpleCov
       return defined?(@source_in_json) ? @source_in_json : true if value == :__no_arg__
 
       @source_in_json = value
-    end
-
-    # DEPRECATED: alias for `print_errors`. Same value, same behavior.
-    def print_error_status
-      SimpleCov::Deprecation.warn("`SimpleCov.print_error_status` is deprecated. " \
-                                  "Replace with `SimpleCov.print_errors` (same value).")
-      defined?(@print_error_status) ? @print_error_status : true
-    end
-
-    #
-    # DEPRECATED: configure `# :nocov:` token override. Prefer
-    # `# simplecov:disable` / `# simplecov:enable` block comments (see
-    # SimpleCov::Directive). The `# :nocov:` toggle and this hook will
-    # be removed in a future release.
-    #
-    def nocov_token(nocov_token = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
-                                  "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.")
-      current_nocov_token(nocov_token)
-    end
-    alias skip_token nocov_token
-
-    # Internal accessor used by SimpleCov to recognise `# :nocov:`
-    # markers without emitting the public-API deprecation warning. Will
-    # be removed alongside the deprecated `nocov_token` setter.
-    def current_nocov_token(value = nil)
-      return @nocov_token if defined?(@nocov_token) && value.nil?
-
-      @nocov_token = value || "nocov"
     end
   end
 end

@@ -12,8 +12,8 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage_by_file 75.01
+        skip 'test.rb'
+        coverage(:line) { minimum_per_file 75.01 }
       end
     RUBY
 
@@ -30,8 +30,8 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage_by_file 75
+        skip 'test.rb'
+        coverage(:line) { minimum_per_file 75 }
       end
     RUBY
 
@@ -43,9 +43,9 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        enable_coverage :branch
-        minimum_coverage_by_file line: 90, branch: 70
+        skip 'test.rb'
+        coverage(:line) { minimum_per_file 90 }
+        coverage(:branch) { minimum_per_file 70 }
       end
     RUBY
 
@@ -66,10 +66,8 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        enable_coverage :branch
-        primary_coverage :branch
-        minimum_coverage_by_file 70
+        skip 'test.rb'
+        coverage(:branch, primary: true) { minimum_per_file 70 }
       end
     RUBY
 
@@ -87,8 +85,11 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage_by_file line: 70, 'lib/faked_project/framework_specific.rb' => 100
+        skip 'test.rb'
+        coverage :line do
+          minimum_per_file 70
+          minimum_per_file 100, only: 'lib/faked_project/framework_specific.rb'
+        end
       end
     RUBY
 
@@ -108,8 +109,11 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage_by_file line: 70, 'lib/faked_project/' => 90
+        skip 'test.rb'
+        coverage :line do
+          minimum_per_file 70
+          minimum_per_file 90, only: 'lib/faked_project/'
+        end
       end
     RUBY
 
@@ -126,8 +130,11 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage_by_file line: 70, 'lib/nonexistent.rb' => 100
+        skip 'test.rb'
+        coverage :line do
+          minimum_per_file 70
+          minimum_per_file 100, only: 'lib/nonexistent.rb'
+        end
       end
     RUBY
 

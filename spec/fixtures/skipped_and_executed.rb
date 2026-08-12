@@ -1,5 +1,5 @@
 # So much skipping
-# :nocov:
+# simplecov:disable
 class Foo
   def bar(arg)
     if arg == 42
@@ -9,4 +9,4 @@ class Foo
     end
   end
 end
-# :nocov:
+# simplecov:enable

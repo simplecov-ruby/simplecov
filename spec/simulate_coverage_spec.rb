@@ -21,7 +21,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       expect(result.keys).to contain_exactly("lines", "branches", "methods")
     end
 
-    # A track_files glob can sweep up entries that exist but can't be
+    # A discovery glob can sweep up entries that exist but can't be
     # read as files (a directory named like a Ruby file, permission
     # denied). Rescuing only ENOENT crashed the merge or report step on
     # those; they must degrade to "empty file" like a missing one.
@@ -92,29 +92,6 @@ RSpec.describe SimpleCov::SimulateCoverage do
           # were required — the def + first assignment line are relevant,
           # the chained calls and `end` are not.
           expect(described_class.call(path)["lines"]).to eq([0, 0, nil, nil, nil])
-        end
-      end
-    end
-
-    # Coverage.line_stub doesn't understand SimpleCov's `# :nocov:` toggles,
-    # so the overlay step must demote those lines to nil.
-    context "with a :nocov: block", if: has_line_stub do
-      let(:source) { <<~RUBY }
-        def shown
-          1
-        end
-        # :nocov:
-        def hidden
-          2
-        end
-        # :nocov:
-      RUBY
-
-      it "demotes the :nocov: lines (and the toggles themselves) to nil" do
-        with_tmp_source(source) do |path|
-          # `def shown` + `1` + `end` for the visible method are relevant;
-          # everything from the opening :nocov: through the closing one is nil.
-          expect(described_class.call(path)["lines"]).to eq([0, 0, nil, nil, nil, nil, nil, nil])
         end
       end
     end

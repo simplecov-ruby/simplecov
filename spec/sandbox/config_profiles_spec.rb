@@ -7,10 +7,7 @@ require "support/sandbox_project"
 # loaded at once — inside a start block, or by passing the profile name
 # straight to SimpleCov.start.
 RSpec.describe "configuration profiles", :sandbox do
-  before do
-    setup_project("faked_project")
-    configure_simplecov(:test_unit, "require 'simplecov'")
-  end
+  before { setup_project("faked_project") }
 
   def expect_profile_applied(command_name)
     result = run_command_and_expect_success("bundle exec rake test")
@@ -25,7 +22,9 @@ RSpec.describe "configuration profiles", :sandbox do
       SimpleCov.profiles.define 'custom_command' do
         command_name "Profile Command"
       end
-
+    RUBY
+    configure_simplecov(:test_unit, <<~RUBY)
+      require 'simplecov'
       SimpleCov.start do
         load_profile 'test_frameworks'
         load_profile 'custom_command'
@@ -40,9 +39,8 @@ RSpec.describe "configuration profiles", :sandbox do
         load_profile 'test_frameworks'
         command_name "My Profile"
       end
-
-      SimpleCov.start 'my_profile'
     RUBY
+    configure_simplecov(:test_unit, "require 'simplecov'\nSimpleCov.start 'my_profile'")
     expect_profile_applied("My Profile")
   end
 end

@@ -1,3 +1,11 @@
+Unreleased
+==========
+
+## Breaking Changes
+* Every API deprecated during the 1.x line is gone. `SimpleCov.add_filter`, `add_group`, `track_files`, `use_merging`, `enable_for_subprocesses`, `enable_coverage_for_eval`, `print_error_status` (both the reader and the `print_error_status=` writer), `minimum_coverage_by_file`, `minimum_coverage_by_group`, `nocov_token`, `skip_token`, `SourceFile#branches_coverage_percent`, and `SourceFile#methods_coverage_percent` were all removed, along with the `SimpleCov::Deprecation` warning machinery itself. Each one has a one-to-one replacement that 1.1 named in the warning it emitted, so running your suite on 1.1 with warnings visible lists every call site to change. The upgrade table lives in the [Troubleshooting guide](Troubleshooting.md#upgrading-from-1x). The one rename that also changes behavior is `track_files` to `cover`, which restricts the report to the matching set as well as pulling in unloaded files. The bundled `rails` profile keeps the additive discovery semantics internally, so `SimpleCov.start "rails"` is unaffected.
+* `# :nocov:` comment blocks no longer skip anything. They are ordinary comments now, so code they used to exclude counts against your coverage until the markers are replaced with `# simplecov:disable` / `# simplecov:enable`, which can also be scoped per criterion (`# simplecov:disable branch`) as the all-or-nothing toggle could not. The configurable token name went with it.
+* `SimpleCov.start` called from `.simplecov` raises a `SimpleCov::ConfigurationError` instead of warning and starting tracking anyway. `.simplecov` is configuration only, and the start call belongs in `spec_helper.rb` / `test_helper.rb`. Splitting the two prevents the long-standing bug where a `.simplecov` auto-loaded by a Rakefile or by Rails' `Bundler.require` leaves an empty parent-process report that overwrites the test subprocess's good one. See #581.
+
 1.1.1 (2026-08-12)
 ==================
 

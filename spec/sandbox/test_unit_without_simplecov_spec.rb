@@ -18,7 +18,7 @@ RSpec.describe "test/unit without simplecov", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.configure do
-        add_filter 'somefilter'
+        skip 'somefilter'
       end
     RUBY
 

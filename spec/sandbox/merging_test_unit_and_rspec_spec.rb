@@ -13,8 +13,8 @@ RSpec.describe "merging test_unit and rspec results", :sandbox do
     config = <<~RUBY
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
-        add_filter 'spec.rb'
+        skip 'test.rb'
+        skip 'spec.rb'
       end
     RUBY
     configure_simplecov(:test_unit, config)

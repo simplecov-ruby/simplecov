@@ -18,7 +18,7 @@ module SimpleCov
         !skipped? && coverage.positive?
       end
 
-      # Criterion-level skips (nocov chunks, `# simplecov:disable` /
+      # Criterion-level skips (`# simplecov:disable` /
       # `# simplecov:disable method` regions) arrive via `skipped!` from
       # MethodBuilder. Deliberately NOT derived from the lines' skip
       # state: a line-only directive around a def must not remove the

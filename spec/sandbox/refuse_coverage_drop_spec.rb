@@ -28,7 +28,7 @@ RSpec.describe "refuse coverage drop enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         refuse_coverage_drop
       end
     RUBY
@@ -51,7 +51,7 @@ RSpec.describe "refuse coverage drop enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
       end
     RUBY
 

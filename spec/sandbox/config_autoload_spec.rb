@@ -5,18 +5,19 @@ require "support/sandbox_project"
 
 # A `.simplecov` file in the project root is picked up automatically on
 # `require "simplecov"`, so multiple test suites share one configuration
-# without repeating it in every test helper.
+# without repeating it in every test helper. Each helper still calls
+# `SimpleCov.start` itself, which `.simplecov` is not allowed to do.
 RSpec.describe "config autoload via .simplecov", :sandbox do
   before do
     setup_project("faked_project")
     write_file(".simplecov", <<~RUBY)
-      SimpleCov.start do
-        add_filter 'test.rb'
-        add_filter 'spec.rb'
+      SimpleCov.configure do
+        skip 'test.rb'
+        skip 'spec.rb'
       end
     RUBY
-    configure_simplecov(:test_unit, "require 'simplecov'")
-    configure_simplecov(:rspec, "require 'simplecov'")
+    configure_simplecov(:test_unit, "require 'simplecov'\nSimpleCov.start")
+    configure_simplecov(:rspec, "require 'simplecov'\nSimpleCov.start")
   end
 
   def html_file_percents(data)

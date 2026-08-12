@@ -124,54 +124,35 @@ RSpec.describe SimpleCov do
       expect(described_class).to have_received(:install_at_exit_hook)
     end
 
-    # See issue #581 for the rationale: `.simplecov` should be config only.
-    # The autoload wrapper sets this flag so any legacy `SimpleCov.start`
-    # call inside the file warns and applies configuration without starting
-    # Coverage.
+    # See issue #581 for the rationale: `.simplecov` is config only. The
+    # autoload wrapper sets this flag so a `SimpleCov.start` call inside the
+    # file is rejected rather than starting Coverage from the wrong place.
     context "when loaded by the .simplecov autoloader" do
       around do |example|
         previous = described_class.instance_variable_get(:@autoloading_dot_simplecov)
-        warned = described_class.instance_variable_get(:@dot_simplecov_start_warned)
-        described_class.instance_variable_set(:@dot_simplecov_start_warned, nil)
         described_class.with_dot_simplecov_autoload { example.run }
         described_class.instance_variable_set(:@autoloading_dot_simplecov, previous)
-        described_class.instance_variable_set(:@dot_simplecov_start_warned, warned)
       end
 
-      it "still applies configuration AND starts tracking (soft deprecation for backward compatibility)" do
-        # The deprecation is advisory: existing setups keep working while
-        # the warning nudges users toward moving `SimpleCov.start` into a
-        # test helper. A future release will tighten this into a hard
-        # intercept. See issue #581.
+      it "raises pointing at the migration path, without starting tracking" do
         allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
                                                    install_at_exit_hook: nil)
-        allow(described_class).to receive(:warn) # suppress deprecation noise in test output
-        block = proc {}
 
-        described_class.start("rails", &block)
-
-        expect(described_class).to have_received(:initial_setup)
-        expect(described_class).to have_received(:start_tracking)
-        expect(described_class).to have_received(:install_at_exit_hook)
+        expect { described_class.start }
+          .to raise_error(SimpleCov::ConfigurationError, /`\.simplecov` contains configuration only/)
+        expect(described_class).not_to have_received(:start_tracking)
       end
 
-      it "emits a one-time deprecation warning pointing at the migration path" do
-        allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                   install_at_exit_hook: nil)
-        stderr = capture_stderr { described_class.start }
-        expect(stderr).to include("[DEPRECATION]")
-        expect(stderr).to include("`.simplecov`")
-        expect(stderr).to include("spec_helper.rb")
-        expect(stderr).to include("581")
-      end
+      it "names the test helper and the issue in the message" do
+        message = nil
+        begin
+          described_class.start
+        rescue SimpleCov::ConfigurationError => e
+          message = e.message
+        end
 
-      it "doesn't repeat the warning on subsequent calls" do
-        allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                   install_at_exit_hook: nil)
-        first  = capture_stderr { described_class.start }
-        second = capture_stderr { described_class.start }
-        expect(first).to include("[DEPRECATION]")
-        expect(second).to be_empty
+        expect(message).to include("spec_helper.rb")
+        expect(message).to include("581")
       end
     end
   end
@@ -335,8 +316,8 @@ RSpec.describe SimpleCov do
       end
     end
 
-    it "still honors the legacy track_files glob" do
-      capture_stderr { described_class.track_files("spec/fixtures/sample.rb") }
+    it "honors the profile-set discovery glob" do
+      described_class.instance_variable_set(:@tracked_files, "spec/fixtures/sample.rb")
       sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
       _result, not_loaded = inject_tracked({})
       expect(not_loaded).to include(sample)

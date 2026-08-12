@@ -3,16 +3,16 @@
 require "helper"
 require "support/sandbox_project"
 
-# `track_files` adds files that were never required to the report, at 0%
+# `cover` adds files that were never required to the report, at 0%
 # coverage, so unrequired code can't silently escape the totals.
-RSpec.describe "tracked files", :sandbox do
+RSpec.describe "cover", :sandbox do
   before { setup_project("faked_project") }
 
-  it "reports files matched by track_files even when they were never loaded" do
+  it "reports files matched by cover even when they were never loaded" do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        track_files "lib/**/*.rb"
+        cover "lib/**/*.rb"
       end
     RUBY
 

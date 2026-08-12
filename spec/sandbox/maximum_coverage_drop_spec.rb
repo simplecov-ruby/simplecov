@@ -66,7 +66,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         maximum_coverage_drop 3.14
       end
     RUBY
@@ -88,7 +88,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
       end
     RUBY
 
@@ -109,8 +109,8 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_group 'Libs', 'lib/faked_project/'
-        add_filter '/spec/'
+        group 'Libs', 'lib/faked_project/'
+        skip '/spec/'
         maximum_coverage_drop 0
       end
     RUBY
@@ -129,7 +129,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         maximum_coverage_drop 0
       end
     RUBY
@@ -145,8 +145,8 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_group 'Libs', 'lib/faked_project/'
-        add_filter '/spec/'
+        group 'Libs', 'lib/faked_project/'
+        skip '/spec/'
         maximum_coverage_drop 0
       end
     RUBY
@@ -165,7 +165,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     arrange_branch_drop(<<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         enable_coverage :branch
         maximum_coverage_drop line: 0, branch: 0
       end
@@ -184,7 +184,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     arrange_branch_drop(<<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         enable_coverage :branch
         primary_coverage :branch
         maximum_coverage_drop 0
@@ -203,7 +203,7 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     arrange_branch_drop(<<~RUBY)
       require 'simplecov'
       SimpleCov.start do
-        add_filter 'test.rb'
+        skip 'test.rb'
         enable_coverage :branch
         primary_coverage :branch
         maximum_coverage_drop line: 0, branch: 0

@@ -1,24 +1,24 @@
 # So much skippping
 # rubocop:disable Metrics/MethodLength, Lint/Void
-module NoCovComplex
+module SkippingComplex
   def self.call(arg)
-    # :nocov:
+    # simplecov:disable
     if arg == 42
       0
-    # :nocov:
+    # simplecov:enable
     else
       puts "yolo"
     end
 
     arg += 1 if arg.odd?
 
-    # :nocov:
+    # simplecov:disable
     arg -= 1 while arg > 40
 
     case arg
     when 1..20
       :nope
-    # :nocov:
+    # simplecov:enable
     when 30..40
       :yas
     end

@@ -18,7 +18,7 @@ RSpec.describe "custom formatters", :sandbox do
         puts SimpleCov.result.format!
       end
       SimpleCov.start do
-        add_group 'Libs', 'lib/faked_project/'
+        group 'Libs', 'lib/faked_project/'
       end
     RUBY
 
@@ -44,7 +44,7 @@ RSpec.describe "custom formatters", :sandbox do
         puts SimpleCov.result.format!.join
       end
       SimpleCov.start do
-        add_group 'Libs', 'lib/faked_project/'
+        group 'Libs', 'lib/faked_project/'
       end
     RUBY
 

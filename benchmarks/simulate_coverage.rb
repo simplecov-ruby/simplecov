@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # What it costs to simulate coverage for tracked-but-unloaded files — the
-# work `SimpleCov.result` does at exit for every file a `track_files` /
+# work `SimpleCov.result` does at exit for every file a
 # `cover` glob matched that the process never loaded.
 #
 # This is per process, so a parallel run pays it once per worker, and each

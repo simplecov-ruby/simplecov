@@ -5,8 +5,8 @@ module SimpleCov
     # Builds the `SourceFile::Line` objects for a source file from the
     # raw line-coverage array. Each line carries its source text, its
     # 1-based line number, and the Coverage hit count (or nil for
-    # never-counted lines). Applies `# simplecov:disable` /
-    # `# :nocov:` block ranges via `skipped!`.
+    # never-counted lines). Applies `# simplecov:disable` block ranges
+    # via `skipped!`.
     class LineBuilder
       def initialize(source_file)
         @source_file = source_file

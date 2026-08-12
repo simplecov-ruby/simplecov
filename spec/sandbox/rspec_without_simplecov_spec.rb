@@ -18,7 +18,7 @@ RSpec.describe "rspec without simplecov", :sandbox do
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
       SimpleCov.configure do
-        add_filter 'somefilter'
+        skip 'somefilter'
       end
     RUBY
 

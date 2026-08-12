@@ -4,8 +4,7 @@ module SimpleCov
   type criterion = :line | :branch | :method
   type line_coverage_alternatives = Hash[criterion | :oneshot_line, :line | :oneshot_line]
 
-  # Anything accepted by `skip` / `group` (and the deprecated
-  # `add_filter` / `add_group`): a path-segment substring, a Regexp, a
+  # Anything accepted by `skip` / `group`: a path-segment substring, a Regexp, a
   # prebuilt Filter, a predicate on the SourceFile, or an Array of those.
   type filter_arg = String | Regexp | Filter[untyped] | ^(SourceFile source_file) -> boolish | Array[filter_arg]
 
@@ -78,7 +77,8 @@ module SimpleCov
 
   def self.with_dot_simplecov_autoload: [T] () { () -> T } -> T
 
-  def self.warn_about_start_in_dot_simplecov: () -> void
+  # Refuses a `SimpleCov.start` call made while `.simplecov` is loading.
+  def self.raise_on_start_in_dot_simplecov: () -> bot
 
   # Install the at_exit hook that formats results and runs exit-code
   # checks. Idempotent; `SimpleCov.start` calls this automatically.
@@ -165,7 +165,7 @@ module SimpleCov
   # Every path this process was told to track, whether or not it loaded them.
   # Recorded on the result (and from there into the resultset) so that a merge
   # in another process can inject the ones nobody loaded without needing this
-  # process's `cover` / `track_files` configuration.
+  # process's `cover` configuration.
   def self.tracked_file_paths: () -> Array[String]
 
   # Add simulated coverage for each of `candidate_paths` the result doesn't
@@ -344,9 +344,6 @@ module SimpleCov
 
     def coverage_for_eval_enabled?: () -> bool
 
-    # DEPRECATED: use `enable_coverage :eval` instead.
-    def enable_coverage_for_eval: () -> void
-
     private
 
     def enable_eval_coverage: () -> void
@@ -444,8 +441,7 @@ end
 
 # ----- configuration/filters -----
 
-# Inclusion / exclusion / grouping methods: `cover`, `skip`, `group`,
-# plus the deprecated `track_files` / `add_filter` / `add_group` aliases.
+# Inclusion / exclusion / grouping methods: `cover`, `skip`, and `group`.
 module SimpleCov
   module Configuration
     attr_writer filters: Array[Filter[untyped]]
@@ -466,24 +462,16 @@ module SimpleCov
     # The string globs passed to `cover`, driving unloaded-file discovery.
     def cover_globs: () -> Array[String]
 
-    # DEPRECATED: use `cover` instead.
-    def track_files: (String? glob) -> String?
-
-    def track_files_replacement_hint: (String? glob) -> String
-
-    # The glob used to include files that were not explicitly required.
+    # @api private - the additive disk-discovery glob used by the
+    # bundled `rails` profile.
     def tracked_files: () -> String?
 
-    # The configured exclusion filters added via `skip` (or the
-    # deprecated `add_filter`).
+    # The configured exclusion filters added via `skip`.
     def filters: () -> Array[Filter[untyped]]
 
     # Drop matching files from the coverage report. The inverse of
     # `cover`. Strings match at path-segment boundaries.
     def skip: (?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Array[Filter[untyped]]
-
-    # DEPRECATED: use `skip` instead (same arguments, same behavior).
-    def add_filter: (?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Array[Filter[untyped]]
 
     # Remove any filters whose `filter_argument` equals the given
     # value. Returns true when at least one filter was removed.
@@ -499,9 +487,6 @@ module SimpleCov
     # Define a display group for files. Same matcher grammar as `skip`,
     # but bins matches under `group_name` instead of dropping them.
     def group: (String group_name, ?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
-
-    # DEPRECATED: use `group` instead (same arguments, same behavior).
-    def add_group: (String group_name, ?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
 
     # Drop every previously installed filter (defaults included) so
     # subsequent `skip` calls start from a clean slate.
@@ -520,20 +505,16 @@ end
 # ----- configuration/formatting -----
 
 # Formatter selection (`formatter` / `formatters`), reporting toggles
-# (`print_errors`, `color`, `source_in_json`), and the deprecated
-# `# :nocov:` token hook.
+# (`print_errors`, `color`, `source_in_json`).
 module SimpleCov
   module Configuration
     # A formatter is a Class whose instances respond to `format(result)`
     # (including the anonymous Class built by `MultiFormatter.new`).
     attr_writer formatter: Class?
 
-    attr_writer print_error_status: bool
-
     @color: bool | :auto
+    @print_errors: bool
     @source_in_json: bool
-    @nocov_token: String
-
     # Gets or sets the configured formatter. Pass `false` (or `nil`) to
     # opt out of formatting entirely (see #964).
     def formatter: (?(Class | false | :__no_arg__)? formatter) -> Class?
@@ -559,17 +540,6 @@ module SimpleCov
     # file. Defaults to true.
     def source_in_json: (?(bool | :__no_arg__) value) -> bool
 
-    # DEPRECATED: use `print_errors` instead (same value).
-    def print_error_status: () -> bool
-
-    # DEPRECATED: use `# simplecov:disable` / `# simplecov:enable`
-    # directive comments instead of `# :nocov:` toggles.
-    def nocov_token: (?String? nocov_token) -> String
-
-    # DEPRECATED: alias for `nocov_token`.
-    alias skip_token nocov_token
-
-    def current_nocov_token: (?String? value) -> String
   end
 end
 
@@ -623,9 +593,9 @@ module SimpleCov
     # `defined?`-guarded module state. Declared non-nil where every
     # read is guarded, so readers don't have to refute a nil that
     # cannot be observed.
-    @enable_for_subprocesses: bool
+    @merge_subprocesses: bool
     @parallel_tests: bool?
-    @use_merging: bool
+    @merging: bool
     @finalize_merge: bool
     @finalize_merge_explicit: bool
     @finalize_merge_inference_warned: bool
@@ -644,9 +614,6 @@ module SimpleCov
     # means auto-detect. See #1018.
     def parallel_tests: (?(:__no_arg__ | bool)? value) -> bool?
 
-    # DEPRECATED: use `merge_subprocesses` instead (same value).
-    def enable_for_subprocesses: (?bool? value) -> bool
-
     # Get or set whether to merge results from multiple test suites
     # into a single coverage report. Defaults to true.
     def merging: (?bool? use) -> bool
@@ -662,10 +629,6 @@ module SimpleCov
     def finalize_merge?: () -> bool
 
     def merge_finalization_owner?: () -> boolish
-
-    # DEPRECATED: use `merging` instead (same value, same behavior).
-    # Returns nil when merging had already been disabled.
-    def use_merging: (?bool? use) -> bool
 
     # The maximum age (in seconds) of a resultset to still be included
     # in merged results. Defaults to 600.
@@ -703,7 +666,7 @@ end
 
 # Coverage threshold configuration: `minimum_coverage`,
 # `maximum_coverage`, `expected_coverage`, `maximum_coverage_drop`,
-# `refuse_coverage_drop`, and the deprecated by-file / by-group forms.
+# `refuse_coverage_drop`, and the per-file / per-group threshold stores.
 module SimpleCov
   module Configuration
     # Thresholds are stored per criterion; a bare Numeric argument is
@@ -739,19 +702,17 @@ module SimpleCov
     # pass. Default: none (100%, disabled).
     def maximum_coverage_drop: (?(Numeric | coverage_thresholds)? coverage_drop) -> coverage_thresholds
 
-    # DEPRECATED: use `coverage(criterion) { minimum_per_file ... }`.
-    # Symbol keys declare per-criterion defaults; String / Regexp keys
-    # declare per-path overrides.
+    # @api private - per-file minimums written by
+    # `coverage(criterion) { minimum_per_file ... }`.
     def minimum_coverage_by_file: () -> coverage_thresholds
-                                | ((Numeric | Hash[Symbol | String | Regexp, Numeric | coverage_thresholds]) coverage) -> Hash[String | Regexp, coverage_thresholds]
 
-    # The per-path overrides set via `minimum_coverage_by_file` (or
-    # `coverage(criterion) { minimum_per_file N, only: ... }`).
+    # @api private - the per-path overrides set via
+    # `coverage(criterion) { minimum_per_file N, only: ... }`.
     def minimum_coverage_by_file_overrides: () -> Hash[String | Regexp, coverage_thresholds]
 
-    # DEPRECATED: use `coverage(criterion) { minimum_per_group ... }`.
+    # @api private - per-group minimums written by
+    # `coverage(criterion) { minimum_per_group ... }`.
     def minimum_coverage_by_group: () -> Hash[String, coverage_thresholds]
-                                 | (Hash[String, Numeric | coverage_thresholds] coverage) -> Hash[String, coverage_thresholds]
 
     # Refuse any coverage drop for the given criteria (all enabled
     # criteria when none are given). Coverage may only increase.
@@ -762,17 +723,8 @@ module SimpleCov
     # Shared normalize-and-validate step behind every threshold setter.
     def normalized_threshold: ((Numeric | coverage_thresholds) coverage, String setting) -> coverage_thresholds
 
-    def partition_per_file_thresholds: (Hash[Symbol | String | Regexp, Numeric | coverage_thresholds] coverage) -> [coverage_thresholds, Hash[String | Regexp, coverage_thresholds]]
-
-    def validate_per_file_key: ((Symbol | String | Regexp) key) -> void
-
     def minimum_possible_coverage_exceeded: (String coverage_option) -> void
 
-    def per_file_coverage_replacement: (coverage_thresholds defaults, Hash[String | Regexp, coverage_thresholds] overrides) -> String
-
-    def per_group_coverage_replacement: (Hash[String, Numeric | coverage_thresholds] coverage) -> String
-
-    def render_coverage_blocks: (Hash[Symbol, Array[String]] by_criterion) -> String
   end
 end
 
@@ -979,8 +931,6 @@ module SimpleCov
 
     def branches: () -> Array[Branch]
     def no_branches?: () -> bool
-    # DEPRECATED: use `covered_percent(:branch)`.
-    def branches_coverage_percent: () -> Float?
     # All relevant (covered + missed) branches, not a count.
     def total_branches: () -> Array[Branch]
     # line number => Array of [branch type, hit count] pairs.
@@ -993,11 +943,8 @@ module SimpleCov
     def methods: () -> Array[Method]
     def covered_methods: () -> Array[Method]
     def missed_methods: () -> Array[Method]
-    # DEPRECATED: use `covered_percent(:method)`.
-    def methods_coverage_percent: () -> Float?
 
-    # Whether this file was added via `cover` / `track_files` but never
-    # loaded during the run.
+    # Whether this file was tracked on disk but never loaded during the run.
     def not_loaded?: () -> bool
   end
 end
@@ -1750,28 +1697,3 @@ module SimpleCov
   end
 end
 
-# ----- deprecation -----
-
-module SimpleCov
-  # Emits legacy-API deprecation warnings, deduplicated by the source
-  # location that triggered them (see issue #1204).
-  module Deprecation
-    # Warns about a deprecated API at most once per call-site location.
-    # `message` is the notice without the `[DEPRECATION]` tag or location
-    # prefix; `location` defaults to the caller of the deprecated method.
-    def self?.warn: (String message, ?location: String?) -> void
-
-    # Dedup keys (locations, or messages when no backtrace is available)
-    # already emitted by this process. Declared on both the instance and
-    # singleton sides because `module_function` bodies type-check as
-    # instance methods while runtime state lives on the module itself.
-    @emitted: Set[String]?
-
-    self.@emitted: Set[String]?
-
-    def self?.emitted: () -> Set[String]
-
-    # @api private — reset emitted state between tests.
-    def self?.reset!: () -> void
-  end
-end

@@ -121,13 +121,6 @@ module SimpleCov
       total_branches.empty?
     end
 
-    # DEPRECATED: use `covered_percent(:branch)`.
-    def branches_coverage_percent
-      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
-                                  "Use `covered_percent(:branch)`.")
-      covered_percent(:branch)
-    end
-
     # Return the relevant branches to source file
     def total_branches
       @total_branches ||= covered_branches + missed_branches
@@ -174,14 +167,7 @@ module SimpleCov
       @missed_methods ||= methods.select(&:missed?)
     end
 
-    # DEPRECATED: use `covered_percent(:method)`.
-    def methods_coverage_percent
-      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
-                                  "Use `covered_percent(:method)`.")
-      covered_percent(:method)
-    end
-
-    # Whether this file was added via track_files but never loaded/required.
+    # Whether this file was tracked on disk but never loaded/required.
     def not_loaded?
       !@loaded
     end

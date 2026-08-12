@@ -1,4 +1,4 @@
 # Not relevant
-# :nocov:
+# simplecov:disable
 # Hash.new
-# :nocov:
+# simplecov:enable

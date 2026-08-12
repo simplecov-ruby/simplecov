@@ -7,13 +7,13 @@ RSpec.describe SimpleCov::Profiles do
 
   describe "#define" do
     it "stores a profile by symbolic name" do
-      profiles.define("foo") { add_filter "x" }
+      profiles.define("foo") { skip "x" }
       expect(profiles[:foo]).to be_a(Proc)
     end
 
     it "raises when defining a duplicate name" do
-      profiles.define("foo") { add_filter "x" }
-      expect { profiles.define("foo") { add_filter "y" } }
+      profiles.define("foo") { skip "x" }
+      expect { profiles.define("foo") { skip "y" } }
         .to raise_error(SimpleCov::ConfigurationError, /already defined/)
     end
   end

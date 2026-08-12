@@ -56,8 +56,8 @@ RSpec.describe "return codes" do # rubocop:disable RSpec/DescribeClass
         end
       end
 
-      context "when print_error_status is disabled" do
-        let(:env) { super().merge("PRINT_ERROR_STATUS" => "false") }
+      context "when print_errors is disabled" do
+        let(:env) { super().merge("PRINT_ERRORS" => "false") }
 
         it "has a non-zero exit status" do
           expect(status.exitstatus).not_to be_zero

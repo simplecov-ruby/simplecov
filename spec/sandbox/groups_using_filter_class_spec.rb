@@ -37,8 +37,8 @@ RSpec.describe "groups using a custom filter class", :sandbox do
           end
         end
         SimpleCov.start do
-          add_group 'By filter class', CoverageFilter.new(90)
-          add_group 'By string', 'faked_project/meta_magic'
+          group 'By filter class', CoverageFilter.new(90)
+          group 'By string', 'faked_project/meta_magic'
         end
       RUBY
     end
