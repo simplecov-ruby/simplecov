@@ -23,7 +23,23 @@ end
 Rake::Task[:build].prerequisites.unshift :fix_permissions
 
 require "rspec/core/rake_task"
-RSpec::Core::RakeTask.new(:spec)
+RSpec::Core::RakeTask.new(:"spec:serial")
+
+# `rake spec` fans the suite out across CPU-count workers: the sandbox
+# specs spend nearly all their time waiting on fixture subprocesses, so
+# the suite parallelizes almost linearly. The dogfood coverage check
+# merges every worker's slice and enforces its thresholds on the union
+# (see spec/support/dogfood_report.rb). Falls back to the serial task
+# where parallel_tests isn't installed (JRuby, whose Gemfile group skips
+# it and whose platform envelope excludes the sandbox specs anyway).
+desc "Run the RSpec suite across parallel workers"
+task :spec do
+  require "parallel_tests"
+  rm_rf "tmp/dogfood-partials"
+  sh "bundle exec parallel_rspec --serialize-stdout spec"
+rescue LoadError
+  Rake::Task[:"spec:serial"].invoke
+end
 
 begin
   require "rubocop/rake_task"

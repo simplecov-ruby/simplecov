@@ -30,7 +30,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
   # Prevent stale coverage.json from prior tests from triggering the
   # concurrent-overwrite warning.
   before do
-    FileUtils.rm_f("tmp/coverage/coverage.json")
+    FileUtils.rm_f(File.join(SimpleCov.coverage_path, "coverage.json"))
     SimpleCov.process_start_time = Time.now
     allow(Open3).to receive(:capture2e)
       .and_return(["#{STUB_COMMIT}\n", instance_double(Process::Status, success?: true)])
@@ -45,7 +45,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       Dir.mktmpdir do |dir|
         described_class.new(silent: true, output_dir: dir).format(result)
         expect(File.exist?(File.join(dir, described_class::FILENAME))).to be true
-        expect(File.exist?("tmp/coverage/coverage.json")).to be false
+        expect(File.exist?(File.join(SimpleCov.coverage_path, "coverage.json"))).to be false
       end
     end
 
@@ -60,7 +60,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
   it "atomically replaces a read-only coverage.json" do
     formatter.format(result)
-    path = File.join("tmp/coverage", described_class::FILENAME)
+    path = File.join(SimpleCov.coverage_path, described_class::FILENAME)
     File.chmod(0o400, path)
 
     expect { formatter.format(result) }.not_to raise_error
@@ -474,11 +474,11 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "when an existing coverage.json was written after this process started" do
-      let(:coverage_path) { "tmp/coverage/coverage.json" }
+      let(:coverage_path) { File.join(SimpleCov.coverage_path, "coverage.json") }
       let(:future_timestamp) { (Time.now + 3600).iso8601 }
 
       before do
-        FileUtils.mkdir_p("tmp/coverage")
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
         File.write(coverage_path, JSON.generate(meta: {timestamp: future_timestamp}))
       end
 
@@ -506,9 +506,9 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       let(:future_timestamp) { (Time.now + 3600).iso8601 }
 
       before do
-        FileUtils.mkdir_p("tmp/coverage")
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
         File.write(
-          "tmp/coverage/coverage.json",
+          File.join(SimpleCov.coverage_path, "coverage.json"),
           JSON.generate(meta: {timestamp: future_timestamp, command_name: result.command_name})
         )
       end
@@ -520,9 +520,10 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
     context "when an existing coverage.json predates this process" do
       before do
-        FileUtils.mkdir_p("tmp/coverage")
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
         past_timestamp = (Time.now - 3600).iso8601
-        File.write("tmp/coverage/coverage.json", JSON.generate(meta: {timestamp: past_timestamp}))
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"),
+                   JSON.generate(meta: {timestamp: past_timestamp}))
       end
 
       it "does not warn" do
@@ -532,8 +533,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
     context "when the existing coverage.json is malformed" do
       before do
-        FileUtils.mkdir_p("tmp/coverage")
-        File.write("tmp/coverage/coverage.json", "not-json")
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"), "not-json")
       end
 
       it "does not warn or raise" do
@@ -543,8 +544,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
     context "when the existing coverage.json has no meta timestamp" do
       before do
-        FileUtils.mkdir_p("tmp/coverage")
-        File.write("tmp/coverage/coverage.json", JSON.generate(meta: {command_name: "Other"}))
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"), JSON.generate(meta: {command_name: "Other"}))
       end
 
       it "does not warn" do
@@ -612,7 +613,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
   end
 
   def json_output
-    JSON.parse(File.read("tmp/coverage/coverage.json"))
+    JSON.parse(File.read(File.join(SimpleCov.coverage_path, "coverage.json")))
   end
 
   def json_result(filename)

@@ -26,6 +26,17 @@ unless DOGFOOD_DISABLED
   Coverage.start(start_args)
 end
 
+# `rake spec` fans this suite out through parallel_rspec. Everything
+# inside a worker, though — command guessing, final-result detection,
+# the sandbox harness, and the subprocesses specs spawn — assumes a
+# non-parallel environment. Capture the worker's identity for the few
+# helpers that coordinate across workers (per-worker tmp paths, the
+# dogfood report's store-and-merge), then scrub the variables so each
+# worker is indistinguishable from a serial run on the inside.
+SPEC_PARALLEL_WORKER = ENV.fetch("TEST_ENV_NUMBER", nil)
+SPEC_PARALLEL_PID_FILE = ENV.fetch("PARALLEL_PID_FILE", nil)
+%w[TEST_ENV_NUMBER PARALLEL_TEST_GROUPS PARALLEL_PID_FILE].each { |variable| ENV.delete(variable) }
+
 require "rspec"
 require "stringio"
 require "open3"
@@ -51,7 +62,9 @@ end
 # `Result.new`, so removing the default here is safe.
 SimpleCov.remove_filter %r{\A(test|features|spec|autotest)/}
 
-SimpleCov.coverage_dir("tmp/coverage")
+# Suffixed with the parallel worker number so `rake spec`'s workers
+# can't trample each other's caches.
+SimpleCov.coverage_dir("tmp/coverage#{SPEC_PARALLEL_WORKER}")
 
 unless DOGFOOD_DISABLED
   # `start_tracking` (not `start`) handles bookkeeping (pid,
@@ -63,88 +76,10 @@ unless DOGFOOD_DISABLED
   # `spec/fixtures/*` paths.
   SimpleCov.start_tracking
 
-  DOGFOOD_OUTPUT_DIR = "tmp/dogfood"
-
-  # Per-engine thresholds. CRuby is the primary target and is held to
-  # 100% on every criterion. JRuby and TruffleRuby `skip` specs that
-  # exercise branch / method coverage paths their Coverage module
-  # doesn't support, so the lib/ lines those specs would have hit stay
-  # uncovered there — set the line threshold a hair below today's
-  # actual to act as a regression guard rather than a strict ceiling.
-  # (Files that are wholly unreachable on an engine are filtered out
-  # below instead, so they don't drag this number down.)
-  # Engines absent from this hash get an informational report only,
-  # no threshold enforcement.
-  DOGFOOD_THRESHOLDS = {
-    "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
-    "jruby" => {line: 96.5},
-    "truffleruby" => {line: 97.5}
-  }.freeze
+  require "support/dogfood_report"
 
   RSpec.configure do |config|
-    config.after(:suite) do
-      extra_filters = %w[/spec/ /features/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
-      # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
-      # (JRuby, TruffleRuby, CRuby on Windows) its worker lines are unreachable
-      # rather than untested. Drop the file on those engines instead of
-      # lowering the bar for every other file; CRuby still holds it to 100%.
-      extra_filters << SimpleCov::StringFilter.new("parallel_result_merger.rb") unless FORK_SUPPORTED
-      raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
-      adapted = SimpleCov::ResultAdapter.call(raw)
-
-      # Enabling :branch / :method is what teaches FileList / Result
-      # to surface those data in coverage_statistics. We enable here
-      # (rather than in SimpleCov.start) to avoid leaking the
-      # multi-criterion output shape into formatter specs that assert
-      # against line-only fixtures.
-      SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
-      SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
-      filter_config = SimpleCov::Result::FilterConfig.new(filters: SimpleCov.filters + extra_filters, groups: {})
-      result = SimpleCov::Result.new(adapted, filter_config: filter_config)
-
-      # Leading newline so the formatter's message doesn't fuse onto
-      # RSpec's progress-formatter dots when run via `rake spec` / `rspec`.
-      # Route through the real STDERR rather than `$stderr` so the
-      # formatter's `warn`-based status line and any threshold-violation
-      # output survive the FailOnWarnings capture that's installed for
-      # the suite (`spec/support/fail_rspec_on_ruby_warning.rb` swaps
-      # `$stderr` to a StringIO). Without this, the dogfood report (a
-      # contributor-facing health check, not a Ruby warning) would be
-      # silently dumped into `tmp/warnings.txt`.
-      previous_stderr = $stderr
-      $stderr = STDERR
-      $stdout.puts
-
-      begin
-        SimpleCov::Formatter::HTMLFormatter.new(output_dir: DOGFOOD_OUTPUT_DIR).format(result)
-
-        # Route shortfalls through the same ExitCodeHandling path production
-        # uses, so contributors see the dogfood report in exactly the format
-        # end users see when minimum_coverage trips: per-criterion violation
-        # lines, lowest-coverage files, and the "SimpleCov failed with exit"
-        # summary. ExitCodeHandling.call just needs an object that responds
-        # to the four limit readers — building a local Data keeps this
-        # helper's coupling to internal API minimal.
-        limits = Data.define(
-          :minimum_coverage, :minimum_coverage_by_file, :minimum_coverage_by_file_overrides,
-          :minimum_coverage_by_group, :maximum_coverage, :maximum_coverage_drop
-        ).new(
-          minimum_coverage: DOGFOOD_THRESHOLDS[RUBY_ENGINE] || {},
-          minimum_coverage_by_file: {},
-          minimum_coverage_by_file_overrides: {},
-          minimum_coverage_by_group: {},
-          maximum_coverage: {},
-          maximum_coverage_drop: {}
-        )
-        exit_status = SimpleCov::ExitCodes::ExitCodeHandling.call(result, coverage_limits: limits)
-        next unless exit_status.positive?
-
-        warn "SimpleCov failed with exit #{exit_status} due to a coverage related error"
-        Kernel.exit(exit_status)
-      ensure
-        $stderr = previous_stderr
-      end
-    end
+    config.after(:suite) { DogfoodReport.generate }
   end
 end
 
