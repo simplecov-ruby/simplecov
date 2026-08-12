@@ -12,20 +12,36 @@ The bundled HTML formatter produces a self-contained report with file-list and
 source-file views. Its Light/Dark and Colorblind controls apply to both views
 and remember their settings in the browser.
 
+#### Light mode
+
+| File list | Source file |
+|---|---|
+| ![SimpleCov file list in light mode](https://github.com/user-attachments/assets/19cbbf09-e42e-49c2-9adc-2427f321cb7f) | ![SimpleCov source file in light mode](https://github.com/user-attachments/assets/c168597d-a82c-453a-825b-3fb229979c5e) |
+
 #### Dark mode
 
 | File list | Source file |
 |---|---|
-| ![SimpleCov file list in dark mode](https://github.com/user-attachments/assets/2e7b365f-e430-4188-9c14-bcaa34d1ec7d) | ![SimpleCov source file in dark mode](https://github.com/user-attachments/assets/64432b66-e831-4d5a-9017-a5fd7e0dff94) |
+| ![SimpleCov file list in dark mode](https://github.com/user-attachments/assets/2d28e785-397b-4d60-8356-74dab76ce2b7) | ![SimpleCov source file in dark mode](https://github.com/user-attachments/assets/fef35405-ea86-48a1-93e0-0e6d61b27bc4) |
 
 #### Colorblind mode
 
-Colorblind mode uses a blue/orange palette and keeps the report's non-color
-coverage markers, so coverage states do not depend on color alone.
+Colorblind mode swaps covered and missed for blue and orange, the pairing
+red/green colour vision cannot separate, and applies the same swap to the
+coverage bands.
 
 | File list | Source file |
 |---|---|
-| ![SimpleCov file list in light colorblind mode](https://github.com/user-attachments/assets/0fdbfbd5-b6b7-41cd-ae60-e1283740c7f3) | ![SimpleCov source file in light colorblind mode](https://github.com/user-attachments/assets/737bff3a-1978-462c-9ae4-7209320fa95d) |
+| ![SimpleCov file list in light colorblind mode](https://github.com/user-attachments/assets/dc8ab29a-1709-49be-9779-c002b8401eb2) | ![SimpleCov source file in light colorblind mode](https://github.com/user-attachments/assets/bd30476c-c95c-4262-9096-d57de1e78f63) |
+
+#### Both together
+
+The two controls are independent, so colorblind mode carries its blue/orange
+palette into dark mode as well.
+
+| File list | Source file |
+|---|---|
+| ![SimpleCov file list in dark colorblind mode](https://github.com/user-attachments/assets/6c73456f-c767-45c8-8f02-14da8ad9fd2e) | ![SimpleCov source file in dark colorblind mode](https://github.com/user-attachments/assets/c5018cf0-cf17-440e-9884-7258597e81b7) |
 
 ### Using your own formatter
 
