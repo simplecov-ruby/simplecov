@@ -3,7 +3,7 @@
 $LOAD_PATH.push File.expand_path("lib", __dir__)
 
 # Why oh why oh what is this?
-# See the cuke that is setting this.
+# See spec/sandbox/minitest_basic_spec.rb, which sets the variable.
 # Basically to really reproduce #877 we needed a gemspec that doesn't
 # (indirectly) define a SimpleCov module... so this is the workaround.
 version =
