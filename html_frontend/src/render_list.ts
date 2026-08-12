@@ -34,7 +34,7 @@ function renderFileListHead(args: FileListArgs): string {
     `<span class="group_name hide">${escapeHTML(title)}</span>`,
     `<span class="covered_percent hide"><span class="${pctClass(primaryPercent)}">${fmtPct(primaryPercent)}%</span></span>`,
     '<div class="file_list--responsive"><table class="file_list"><thead><tr>',
-    `<th class="cell--left"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths…"></div></th>`
+    `<th class="cell--left" data-sort-key="file"><div class="th-with-filter"><span class="th-label">File Name</span><input type="search" class="col-filter col-filter--name" placeholder="Filter paths…"></div></th>`
   ];
   if (lineStats) html.push(renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines'));
   if (branchCoverage) html.push(renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches'));

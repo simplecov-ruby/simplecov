@@ -33,8 +33,10 @@ describe('renderCoverageCells', () => {
   test('file-row cells expose data-order for the sorter and group digits', () => {
     const html = renderCoverageCells(100, 1250, 1250, 'branch', false);
     expect(html).toContain('cell--branch-pct green" data-order="100.00"');
-    expect(html).toContain('cell--numerator">1,250/');
-    expect(html).toContain('cell--denominator">1,250');
+    // The counts display grouped but sort ungrouped: the sorter parses
+    // data-order, where "1,250" would read as 1 and rank below 999.
+    expect(html).toContain('cell--numerator" data-order="1250">1,250/');
+    expect(html).toContain('cell--denominator" data-order="1250">1,250');
   });
 });
 
@@ -44,8 +46,9 @@ describe('renderHeaderCells', () => {
     expect(html).toContain('<span class="th-label">Line Coverage</span>');
     expect(html).toContain('col-filter__op" data-type="line"');
     expect(html).toContain('col-filter__value" min="0" max="100" data-type="line"');
-    expect(html).toContain('cell--numerator">Covered');
-    expect(html).toContain('cell--denominator">Lines');
+    expect(html).toContain('data-sort-key="line-percent"');
+    expect(html).toContain('cell--numerator" data-sort-key="line-covered">Covered');
+    expect(html).toContain('cell--denominator" data-sort-key="line-total">Lines');
   });
 });
 

@@ -6,31 +6,12 @@ import { hasFocusedRow, setFocusedRow, moveFocus, openFocusedRow } from './navig
 import { dialogIsOpen, navigateToActiveTab } from './dialog';
 import { jumpToMissedLine } from './events';
 import { updateFavicon } from './page';
+import { readPreference, writePreference } from './prefs';
 
 // --- Preferences (localStorage) -------------------------------
 
 const THEME_STORAGE_KEY = 'simplecov-dark-mode';
 const COLORBLIND_STORAGE_KEY = 'simplecov-colorblind-mode';
-
-// localStorage can throw in locked-down contexts (Safari private mode,
-// sandboxed iframes, browsers with storage disabled). The head-script
-// preflight already guards against this; mirror the guard here so the
-// toggle clicks and the prefers-color-scheme listener don't blow up.
-function readPreference(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writePreference(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // No-op: same locked-down contexts as the preflight try/catch.
-  }
-}
 
 function getThemePreference(): string | null {
   return readPreference(THEME_STORAGE_KEY);

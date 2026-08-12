@@ -2,13 +2,16 @@
 // primary-coverage sort, direction toggling, sort-value extraction and
 // caching, colspan-aware header mapping, and the slow-sort overlay that
 // large tables show while the main thread blocks.
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { setupTableSorting } from '../src/sort';
+import { renderCoverageCells } from '../src/render_cells';
 
 // File / Line Coverage (3 cols) / Branch Coverage (3 cols), like the real
 // report. The rightmost cell of each coverage group holds the totals count,
 // so clicking a group header sorts by that numeric cell.
-const HEADERS = '<th>File</th><th colspan="3">Line</th><th colspan="3">Branch</th>';
+const HEADERS = '<th data-sort-key="file">File</th>' +
+  '<th colspan="3" data-sort-key="line-total">Line</th>' +
+  '<th colspan="3" data-sort-key="branch-total">Branch</th>';
 
 function coverageRow(name: string, linePct: string, lines: number, branchPct: string, branches: number): string {
   return (
@@ -22,6 +25,26 @@ const ROWS = [
   coverageRow('lib/c.rb', '50.00', 4, '100.00', 9),
   coverageRow('lib/a.rb', '100.00', 10, '25.00', 2),
   coverageRow('lib/b.rb', '75.00', 2, '50.00', 4)
+];
+
+const CRITERION_HEADERS = '<th data-sort-key="file">File</th>' +
+  '<th data-sort-key="line-percent">Line %</th>' +
+  '<th data-sort-key="line-covered">Covered Lines</th>' +
+  '<th data-sort-key="line-total">Lines</th>' +
+  '<th data-sort-key="branch-percent">Branch %</th>' +
+  '<th data-sort-key="branch-covered">Covered Branches</th>' +
+  '<th data-sort-key="branch-total">Branches</th>';
+
+function tiedBranchRow(name: string, linePct: number, coveredBranches: number): string {
+  return `<tr class="t-file"><td>${name}</td>` +
+    `<td class="cell--line-pct" data-order="${linePct}">${linePct}%</td><td>1/</td><td>2</td>` +
+    `<td class="cell--branch-pct" data-order="50">50%</td><td>${coveredBranches}/</td><td>4</td></tr>`;
+}
+
+const TIED_BRANCH_ROWS = [
+  tiedBranchRow('lib/a.rb', 100, 1),
+  tiedBranchRow('lib/z.rb', 50, 1),
+  tiedBranchRow('lib/m.rb', 75, 2)
 ];
 
 function buildTable(headers: string, rows: string[]): HTMLTableElement {
@@ -46,6 +69,9 @@ function headerAt(table: Element, index: number): HTMLElement {
 function click(el: Element): void {
   el.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
 }
+
+beforeEach(() => localStorage.clear());
+afterEach(() => localStorage.clear());
 
 describe('default sort', () => {
   test('sorts by the primary coverage column ascending and marks its header', () => {
@@ -118,6 +144,78 @@ describe('click sorting', () => {
     expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
   });
 
+  test('restores the selected column and direction after a reload', () => {
+    let table = buildTable(HEADERS, ROWS);
+    setupTableSorting('line');
+
+    click(headerAt(table, 2));
+    click(headerAt(table, 2));
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
+    expect(localStorage.getItem('simplecov-sort')).toBe('{"column":"branch-total","direction":"desc"}');
+
+    table = buildTable(HEADERS, ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
+    expect(headerAt(table, 2).classList.contains('sorting_desc')).toBe(true);
+  });
+
+  test('preserves Covered Branches tie order across reloads in both directions', () => {
+    let table = buildTable(CRITERION_HEADERS, TIED_BRANCH_ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(['lib/z.rb', 'lib/m.rb', 'lib/a.rb']);
+
+    // Two files have one covered branch. The click must not inherit their
+    // order from the prior line sort because a reload starts from source order.
+    click(headerAt(table, 5));
+    const ascending = names(table);
+    expect(ascending).toEqual(['lib/a.rb', 'lib/z.rb', 'lib/m.rb']);
+
+    table = buildTable(CRITERION_HEADERS, TIED_BRANCH_ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(ascending);
+
+    click(headerAt(table, 5));
+    const descending = names(table);
+    expect(descending).toEqual(['lib/m.rb', 'lib/z.rb', 'lib/a.rb']);
+
+    table = buildTable(CRITERION_HEADERS, TIED_BRANCH_ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(descending);
+  });
+
+  test('falls back for stale or malformed preferences', () => {
+    localStorage.setItem('simplecov-sort', '{"column":"method-total","direction":"desc"}');
+    let table = buildTable(HEADERS, ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
+
+    for (const preference of ['not json', '{}', '{"column":"file","direction":"sideways"}']) {
+      localStorage.setItem('simplecov-sort', preference);
+      table = buildTable(HEADERS, ROWS);
+      setupTableSorting('branch');
+      expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
+    }
+  });
+
+  test('keeps sorting when localStorage is unavailable', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')!;
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('storage disabled');
+      }
+    });
+
+    try {
+      const table = buildTable(HEADERS, ROWS);
+      setupTableSorting('line');
+      click(headerAt(table, 0));
+      expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
+    } finally {
+      Object.defineProperty(window, 'localStorage', descriptor);
+    }
+  });
+
   test('rows missing the sorted cell and hidden cells are tolerated', () => {
     const table = buildTable('<th>File</th><th>A</th><th>B</th><th>C</th><th>D</th>', [
       '<tr class="t-file"><td>lib/full.rb</td><td style="display: none">skip</td><td data-order="2">2</td><td>x</td><td>y</td></tr>',
@@ -125,16 +223,36 @@ describe('click sorting', () => {
     ]);
     setupTableSorting();
 
-    // Column 3 resolves through the hidden cell to child index 4; the short
-    // row has no such cell and sorts as the empty string.
+    // The structurally short first row cannot resolve column 3, so every row
+    // gets the empty primary value and the filename tie-breaker decides.
     click(headerAt(table, 3));
-    expect(names(table)).toEqual(['lib/short.rb', 'lib/full.rb']);
+    expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
 
     // A column index beyond every visible cell sorts nothing but still
     // flips the header indicator.
     click(headerAt(table, 4));
     expect(headerAt(table, 4).classList.contains('sorting_asc')).toBe(true);
-    expect(names(table)).toEqual(['lib/short.rb', 'lib/full.rb']);
+    expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
+  });
+
+  // The count columns display their numbers comma-grouped, so sorting them
+  // by cell text would parse "1,250" as 1 and file it below "999". Built
+  // from the real cell renderer so the markup and the sorter stay in step.
+  test('sorts the rendered count columns numerically, not by grouped text', () => {
+    const countRow = (name: string, covered: number, total: number): string =>
+      `<tr class="t-file"><td>${name}</td>${renderCoverageCells(100, covered, total, 'line', false)}</tr>`;
+    const table = buildTable(
+      '<th data-sort-key="file">File</th><th data-sort-key="line-percent">Line %</th>' +
+      '<th data-sort-key="line-covered">Covered</th><th data-sort-key="line-total">Lines</th>',
+      [countRow('lib/big.rb', 1250, 1250), countRow('lib/small.rb', 999, 999)]
+    );
+    setupTableSorting();
+
+    click(headerAt(table, 3));
+    expect(names(table)).toEqual(['lib/small.rb', 'lib/big.rb']);
+
+    click(headerAt(table, 2));
+    expect(names(table)).toEqual(['lib/small.rb', 'lib/big.rb']);
   });
 
   test('a header detached after wiring falls through to the column count', () => {

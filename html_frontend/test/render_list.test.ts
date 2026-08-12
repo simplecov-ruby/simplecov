@@ -66,6 +66,7 @@ describe('renderFileList', () => {
       (el) => el.textContent
     );
     expect(headers).toEqual(['File Name', 'Line Coverage', 'Branch Coverage', 'Method Coverage']);
+    expect(container.querySelector('thead th')!.getAttribute('data-sort-key')).toBe('file');
 
     expect(container.querySelector('.t-file-count')!.textContent).toBe('3 files');
     expect(container.querySelector('.t-totals__line-num')!.textContent).toBe('8/');
