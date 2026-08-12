@@ -33,9 +33,12 @@ To fetch & test the library for development, do:
     $ bundle
     $ bundle exec rake
 
-To run the cucumber tests make sure:
-* chrome/chromium is installed
-* you can successfully install the sqlite gem (so you have the appropriate dev headers)
+The HTML report frontend is written in TypeScript and tested with [Bun](https://bun.sh).
+Install Bun to run those tests (the rake task skips them with a warning otherwise):
+
+    $ cd html_frontend
+    $ bun install
+    $ bun test
 
 If you want to contribute, please:
 
@@ -47,9 +50,14 @@ If you want to contribute, please:
 
 ## Running Individual Tests
 
-This project uses RSpec and Cucumber. Individual tests can be run like this:
+The Ruby suite uses RSpec (including the end-to-end sandbox specs in
+`spec/sandbox`, which drive the fixture projects in `test_projects`), and the
+frontend suite uses `bun test`. Individual tests can be run like this:
 
 ```bash
-bundle exec rspec path/to/test.rb
-bundle exec cucumber path/to/test.feature
+bundle exec rspec path/to/test_spec.rb
+cd html_frontend && bun test test/format.test.ts
 ```
+
+Note: single-file rspec runs fail the 100% self-coverage check by design.
+Set `SIMPLECOV_NO_DOGFOOD=1` to skip it when running a subset.

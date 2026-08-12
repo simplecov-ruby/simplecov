@@ -34,13 +34,9 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
 
+      # The sandbox specs skip themselves on alternative Ruby implementations
+      # and on Windows (see spec/support/sandbox_project.rb), and the frontend
+      # tests skip when bun isn't installed, so every matrix entry runs the
+      # same task.
       - name: Run tests
         run: bundle exec rake test
-        if: "!contains(matrix.ruby-version, 'jruby') && matrix.ruby-version != 'truffleruby-head' && matrix.os != 'windows-latest'"
-
-      # Run only `rake spec` on truffleruby, jruby, and Windows. `rake` runs
-      # cucumber which requires headless Chrome via cuprite/ferrum, which is
-      # unreliable on alternative Ruby implementations and on Windows runners.
-      - name: Run specs only
-        run: bundle exec rake spec
-        if: "contains(matrix.ruby-version, 'jruby') || matrix.ruby-version == 'truffleruby-head' || matrix.os == 'windows-latest'"

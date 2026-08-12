@@ -2,16 +2,27 @@
 
 source "https://rubygems.org"
 
-# Test frameworks the cucumber scenarios run against this project.
-gem "cucumber"
-gem "minitest"
+# Test frameworks the sandbox specs run against this project.
 gem "rake"
 gem "rspec"
 gem "test-unit"
 
-# When the cucumber tests run, this project gets copied to tmp/aruba/project,
-# so the path to the simplecov gemspec sits one level deeper than during
-# normal in-place development.
+# Cucumber and Minitest are each driven by a single spec, while the rest of
+# the sandbox suite runs this project through rspec, rake, or test-unit.
+# Bundler skips optional groups when it materializes a bundle, so parking
+# these two here keeps every other `bundle exec` working without them
+# installed at all. Their specs opt back in through BUNDLE_WITH.
+group :cucumber, optional: true do
+  gem "cucumber"
+end
+
+group :minitest, optional: true do
+  gem "minitest"
+end
+
+# When the sandbox specs run, this project gets copied to
+# tmp/sandbox-<pid>/project, so the path to the simplecov gemspec sits one
+# level deeper than during normal in-place development.
 if File.exist?("../../simplecov.gemspec")
   gem "simplecov", path: "../.."
 else
