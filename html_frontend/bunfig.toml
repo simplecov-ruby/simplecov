@@ -1,0 +1,11 @@
+[test]
+preload = ["./test/setup.ts"]
+
+# Enforce 100% line and function coverage of the viewer modules on every
+# `bun test` run, mirroring the 100% dogfood coverage the RSpec suite
+# enforces on the Ruby side. The threshold applies to the files a run
+# loads; the full suite loads every src module via app.test.ts, so a
+# whole-suite run enforces the entire frontend.
+coverage = true
+coverageThreshold = 1.0
+coverageSkipTestFiles = true

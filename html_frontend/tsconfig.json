@@ -3,7 +3,8 @@
     "target": "ES2015",
     "lib": ["ES2023", "DOM"],
     "strict": true,
+    "types": ["bun"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

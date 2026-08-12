@@ -22,5 +22,8 @@ jobs:
 
       - run: bun run typecheck
 
+      # bunfig.toml enforces 100% line and function coverage of src/
+      - run: bun test
+
       - run: bundle exec rake assets:check
         working-directory: ${{ github.workspace }}

@@ -56,6 +56,22 @@ task :cucumber do
   end
 end
 
+# The frontend's tests run under bun's built-in runner; bunfig.toml enforces
+# 100% line and function coverage of html_frontend/src, the JS counterpart of
+# the 100% dogfood coverage the RSpec suite enforces on lib/. Follows the
+# rubocop pattern of degrading with a warning where the tool (here bun)
+# isn't installed, e.g. on the CI workers that only run the Ruby suites.
+namespace :frontend do
+  desc "Run the frontend TypeScript tests with bun (100% coverage enforced)"
+  task :test do
+    if system("bun", "--version", out: File::NULL, err: File::NULL)
+      Dir.chdir(File.expand_path("html_frontend", __dir__)) { sh "bun", "test" }
+    else
+      warn "Frontend tests are disabled (bun is not installed)"
+    end
+  end
+end
+
 desc "Validate the RBS type signatures in sig/"
 task :rbs do
   require "rbs"
@@ -75,8 +91,8 @@ rescue LoadError
   warn "Steep is disabled"
 end
 
-task test: %i[spec cucumber]
-task default: %i[rubocop rbs steep spec cucumber]
+task test: %i[spec frontend:test cucumber]
+task default: %i[rubocop rbs steep spec frontend:test cucumber]
 
 # JS: esbuild bundles TypeScript + highlight.js and minifies
 def frontend_esbuild(frontend)
