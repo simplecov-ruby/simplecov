@@ -10,6 +10,7 @@ import { scheduleEqualizeBarWidths, equalizeBarWidths } from './bar_width';
 import { setupSourceDialog, navigateToHash } from './dialog';
 import { setupEventDelegation } from './events';
 import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
+import { setupTabScrollFade } from './tab_scroll';
 
 // Timeago — schedule the next update for exactly when the text would change.
 function scheduleTimeago(): void {
@@ -87,6 +88,7 @@ async function init(): Promise<void> {
   setupSourceDialog();
   setupEventDelegation();
   setupTabs();
+  setupTabScrollFade();
 
   // Equalize bar column widths
   window.addEventListener('resize', scheduleEqualizeBarWidths);
