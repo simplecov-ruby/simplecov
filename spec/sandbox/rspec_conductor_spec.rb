@@ -29,6 +29,20 @@ RSpec.describe "rspec-conductor integration", :sandbox do
     install_dependencies
   end
 
+  # Command success need not mean the artifacts are already on disk: the
+  # server stops forwarding a worker's output the moment its run summary
+  # arrives, and its shutdown ordering around at_exit is not ours to
+  # control. The sibling wait configured below runs inside the command
+  # though, so by the time it returns the reporter has either written the
+  # report or given up, and this only has to cover the gap between its last
+  # write and the server's own exit. `.last_run.json` lands last in the
+  # at_exit sequence (after the HTML report and the resultset), so its
+  # appearance means everything the assertions read is on disk.
+  def wait_for_file(relative_path, timeout: 30)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+    sleep 0.1 until file_exist?(relative_path) || Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+  end
+
   def expect_report_files
     expect(file_exist?("coverage/index.html")).to be(true)
     expect(file_exist?("coverage/.resultset.json")).to be(true)
@@ -48,16 +62,53 @@ RSpec.describe "rspec-conductor integration", :sandbox do
     )
   end
 
-  def configure_plain_coverage
+  # Every example raises how long the reporting worker waits for its
+  # sibling's resultset. A saturated CI runner routinely leaves that sibling
+  # writing well past the 60 second default, and expiry is not a slow report
+  # but no report at all: SimpleCov skips result processing outright once the
+  # wait gives up (see `ready_to_process_results?`), so the artifacts these
+  # examples read never appear and waiting on them cannot help.
+  def configure_conductor_coverage(*settings)
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
-      SimpleCov.start
+      SimpleCov.start do
+        parallel_wait_timeout 120
+        #{settings.join("\n    ")}
+      end
     RUBY
   end
 
+  # That wait runs inside the command rather than after it, because the
+  # server waits on worker exit, so the command budget has to clear the 120
+  # second wait with room for the merge and the report on top.
+  #
+  # A worker starved or killed outright on a saturated runner never writes
+  # its resultset at all, and no wait can conjure one: the reporting worker
+  # abandons the merged report rather than publish partial totals, which is
+  # the runner's doing rather than SimpleCov's. It is rare and it is not
+  # sticky, so give the run one clean attempt more, and say what the
+  # resultset actually held if a second worker goes missing too.
+  def run_conductor(*flags)
+    command = "bundle exec rspec-conductor --workers 2 #{flags.join(' ')} spec".squeeze(" ")
+    2.times do
+      FileUtils.rm_rf(File.join(sandbox_dir, "coverage"))
+      run_command_and_expect_success(command, timeout: 240)
+      wait_for_file("coverage/.last_run.json")
+      return if file_exist?("coverage/index.html")
+    end
+
+    raise "`#{command}` merged no report in two runs. Resultset held: #{conductor_worker_summary}"
+  end
+
+  def conductor_worker_summary
+    return "no resultset at all" unless file_exist?("coverage/.resultset.json")
+
+    resultset_json.map { |name, data| "#{name} (#{data.fetch('coverage', {}).size} files)" }.join(", ")
+  end
+
   it "produces the normal-run results through rspec-conductor" do
-    configure_plain_coverage
-    run_command_and_expect_success("bundle exec rspec-conductor --workers 2 spec", timeout: 120)
+    configure_conductor_coverage
+    run_conductor
     expect_report_files
     expect_line_results(html_report_data)
   end
@@ -66,21 +117,16 @@ RSpec.describe "rspec-conductor integration", :sandbox do
   # parallel_tests. With --first-is-1 it is "1" instead, and the workers
   # count 1..N. Both spellings must resolve to a single reporting worker.
   it "merges just the same with --first-is-1" do
-    configure_plain_coverage
-    run_command_and_expect_success("bundle exec rspec-conductor --workers 2 --first-is-1 spec", timeout: 120)
+    configure_conductor_coverage
+    run_conductor("--first-is-1")
     expect_report_files
     expect_line_results(html_report_data)
   end
 
   it "reports branch coverage" do
-    configure_simplecov(:rspec, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        enable_coverage :branch
-      end
-    RUBY
+    configure_conductor_coverage("enable_coverage :branch")
 
-    run_command_and_expect_success("bundle exec rspec-conductor --workers 2 spec", timeout: 120)
+    run_conductor
     expect_report_files
 
     data = html_report_data
@@ -108,14 +154,10 @@ RSpec.describe "rspec-conductor integration", :sandbox do
   # against the merged result, where any single worker's slice would
   # have failed and left the file unwritten.
   it "enforces coverage thresholds against the merged result, not per worker" do
-    configure_simplecov(:rspec, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        minimum_coverage 81.48
-      end
-    RUBY
+    configure_conductor_coverage("minimum_coverage 81.48")
 
-    run_command_and_expect_success("bundle exec rspec-conductor --workers 2 spec", timeout: 120)
+    run_conductor
+    wait_for_file("coverage/.last_run.json")
     expect(read_file("coverage/.last_run.json")).to include("81.48")
     expect_line_results(html_report_data)
   end
