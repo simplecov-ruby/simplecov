@@ -67,7 +67,7 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
     let(:formatter)  { SimpleCov::Formatter::JSONFormatter.new(silent: true) }
 
     before do
-      FileUtils.rm_f("tmp/coverage/coverage.json")
+      FileUtils.rm_f(File.join(SimpleCov.coverage_path, "coverage.json"))
       SimpleCov.process_start_time = Time.now
     end
 
@@ -76,7 +76,7 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
     def emit(result)
       result.created_at = Time.new(2024, 1, 1, 0, 0, 0, "+00:00")
       formatter.format(result)
-      JSON.parse(File.read("tmp/coverage/coverage.json"))
+      JSON.parse(File.read(File.join(SimpleCov.coverage_path, "coverage.json")))
     end
 
     it "validates a minimal line-coverage result" do

@@ -65,10 +65,14 @@ private
   def write_other_warnings_to_tmp(other_warnings)
     output_dir = File.join(@app_root, "tmp")
     FileUtils.mkdir_p(output_dir)
-    output_file = File.join(output_dir, "warnings.txt")
-    File.write(output_file, other_warnings.join("\n") << "\n")
+    # Suffixed with the parallel worker number (captured in spec/helper.rb
+    # before the env scrub) so `rake spec`'s parallel workers don't
+    # overwrite each other's captures.
+    worker = defined?(SPEC_PARALLEL_WORKER) ? SPEC_PARALLEL_WORKER : nil
+    filename = "warnings#{worker}.txt"
+    File.write(File.join(output_dir, filename), other_warnings.join("\n") << "\n")
     puts
-    puts "Non-app warnings written to tmp/warnings.txt"
+    puts "Non-app warnings written to tmp/#{filename}"
     puts
   end
 

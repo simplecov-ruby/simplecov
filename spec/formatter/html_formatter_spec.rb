@@ -244,7 +244,8 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     it "emits the HTML report's entry point" do
       stderr = capture_stderr { loud_formatter.format(make_result) }
 
-      expect(stderr.lines.first.chomp).to eq("Coverage report generated for RSpec to tmp/coverage/index.html")
+      expected = "Coverage report generated for RSpec to #{SimpleCov.coverage_dir}/index.html"
+      expect(stderr.lines.first.chomp).to eq(expected)
     end
   end
 

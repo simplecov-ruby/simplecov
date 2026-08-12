@@ -6,7 +6,7 @@ RSpec.describe SimpleCov::LastRun do
   subject(:last_run) { described_class }
 
   it "defines a last_run_path" do
-    expect(last_run.last_run_path).to include "tmp/coverage/.last_run.json"
+    expect(last_run.last_run_path).to include "#{SimpleCov.coverage_dir}/.last_run.json"
   end
 
   it "writes json to its last_run_path that can be parsed again" do

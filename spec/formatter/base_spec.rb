@@ -58,7 +58,7 @@ RSpec.describe SimpleCov::Formatter::Base do
     result = result_with(line: statistics(8, 2), branch: statistics(7, 3), method: statistics(9, 1))
 
     expect(formatter.send(:output_message, result)).to eq(<<~TEXT.chomp)
-      Coverage report generated for RSpec to tmp/coverage
+      Coverage report generated for RSpec to #{SimpleCov.coverage_dir}
       Line coverage: 8 / 10 (80.00%)
       Branch coverage: 7 / 10 (70.00%)
       Method coverage: 9 / 10 (90.00%)
@@ -70,7 +70,7 @@ RSpec.describe SimpleCov::Formatter::Base do
     result = result_with(line: zero, branch: zero, method: zero)
 
     expect(formatter.send(:output_message, result)).to eq(<<~TEXT.chomp)
-      Coverage report generated for RSpec to tmp/coverage
+      Coverage report generated for RSpec to #{SimpleCov.coverage_dir}
       Line coverage: 0 / 0 (100.00%)
     TEXT
   end
