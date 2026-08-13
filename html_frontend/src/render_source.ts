@@ -57,9 +57,20 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
   return set;
 }
 
+// The highlight.js language each source file is marked up as. Anything not
+// listed is Ruby, which is what all but the template files are. A template
+// tagged `ruby` would have its markup fed to the Ruby grammar, which mostly
+// declines to match it and leaves the whole view unhighlighted.
+const LANGUAGES: Record<string, string> = { erb: 'erb' };
+
+export function languageFor(filename: string): string {
+  return LANGUAGES[filename.split('.').pop()!.toLowerCase()] || 'ruby';
+}
+
 interface SourceLineArgs {
   index: number;
   source: string;
+  language: string;
   lineCov: number | null | 'ignored' | undefined;
   status: string;
   branchCoverage: boolean;
@@ -70,7 +81,7 @@ interface SourceLineArgs {
 }
 
 function renderSourceLine(args: SourceLineArgs): string {
-  const { index, source, lineCov, status, branchCoverage, lineBranches, testCount } = args;
+  const { index, source, language, lineCov, status, branchCoverage, lineBranches, testCount } = args;
   const lineNum = index + 1;
   const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
   const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
@@ -100,7 +111,7 @@ function renderSourceLine(args: SourceLineArgs): string {
     }
   }
 
-  lineHtml.push(`<code class="ruby">${escapeHTML(source)}</code></li>`);
+  lineHtml.push(`<code class="${language}">${escapeHTML(source)}</code></li>`);
   return lineHtml.join('');
 }
 
@@ -125,6 +136,7 @@ export function renderSourceFile(
 
   const branchesReport = buildBranchesReport(data.branches);
   const missedMethodLineSet = buildMissedMethodLines(data.methods);
+  const language = languageFor(filename);
   const contextIndex: FileContextIndex | null =
     contexts ? decodeFileContexts(data.contexts, data.source.length) : null;
   let outsideLines = 0;
@@ -153,6 +165,7 @@ export function renderSourceFile(
     lineRows.push(renderSourceLine({
       index: i,
       source: data.source[i],
+      language,
       lineCov,
       status,
       branchCoverage,

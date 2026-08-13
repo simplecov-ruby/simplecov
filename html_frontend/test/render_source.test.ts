@@ -3,13 +3,14 @@
 // toggle list — ported from the cucumber source-view assertions.
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { fileId, precomputeFileIds } from '../src/format';
-import { renderSourceFile } from '../src/render_source';
+import { languageFor, renderSourceFile } from '../src/render_source';
 import type { FileCoverage } from '../src/types';
 
 const FILE = 'lib/<source>.rb'; // markup-significant name to prove escaping
+const TEMPLATE = 'app/views/foos/show.html.erb';
 
 beforeAll(async () => {
-  await precomputeFileIds([FILE]);
+  await precomputeFileIds([FILE, TEMPLATE]);
 });
 
 function render(
@@ -117,6 +118,21 @@ describe('renderSourceFile', () => {
     });
     expect(el.querySelector('.t-missed-method-toggle')).toBeNull();
     expect(el.querySelector('.t-missed-method-list')).toBeNull();
+  });
+
+  test("tags each line with the file's highlighting language", () => {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(TEMPLATE, { source: ['<h1><%= @foo %></h1>'], lines: [1] }, true, false, false);
+    expect(el.querySelector('code.erb')!.textContent).toBe('<h1><%= @foo %></h1>');
+  });
+});
+
+describe('languageFor', () => {
+  test('marks templates as their own language and everything else as Ruby', () => {
+    expect(languageFor('app/views/foos/show.html.erb')).toBe('erb');
+    expect(languageFor('app/views/foos/SHOW.HTML.ERB')).toBe('erb');
+    expect(languageFor('lib/simplecov.rb')).toBe('ruby');
+    expect(languageFor('Rakefile')).toBe('ruby');
   });
 });
 

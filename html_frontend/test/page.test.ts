@@ -174,6 +174,26 @@ describe('materializeSourceFile', () => {
     // Unknown ids resolve to nothing.
     expect(materializeSourceFile('ffffffff')).toBeNull();
   });
+
+  test('highlights a template as markup with Ruby inside it', async () => {
+    const template = 'app/views/foos/show.html.erb';
+    const data = coverageData();
+    data.coverage[template] = {
+      lines: [1, 1],
+      source: ['<h1 class="title">Foo</h1>', '<%= @foo.bar %>'],
+      lines_covered_percent: 100.0,
+      covered_lines: 2,
+      missed_lines: 0,
+      total_lines: 2
+    };
+    await boot(data);
+
+    const code = materializeSourceFile(fileId(template))!.querySelectorAll('pre code.erb');
+    // The markup line goes through the xml grammar and the tag line through
+    // ruby, which is the whole point of registering the bridge language.
+    expect(code[0].innerHTML).toContain('hljs-tag');
+    expect(code[1].innerHTML).toContain('hljs-');
+  });
 });
 
 describe('renderPage with recorded contexts', () => {
