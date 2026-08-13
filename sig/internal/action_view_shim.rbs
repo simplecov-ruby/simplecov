@@ -1,0 +1,13 @@
+# Minimal declarations for ActionView, which SimpleCov never depends on
+# but compiles templates through when a project opts into `cover_views`.
+# Covers only the API surface `ViewCoverage::TemplateCompiler` touches.
+# Repository-only (sig/internal is excluded from the gem), so consumers
+# who type ActionView themselves see no conflict.
+module ActionView
+  class Template
+    def self.new: (String source, String identifier, untyped handler,
+                   locals: Array[Symbol], ?format: Symbol?) -> Template
+
+    def self.handler_for_extension: (String extension) -> untyped
+  end
+end

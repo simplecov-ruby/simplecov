@@ -366,6 +366,31 @@ module SimpleCov
   end
 end
 
+# ----- configuration/view_coverage -----
+
+# `cover_views`, the opt-in that brings ActionView templates into the
+# report. Named for the `cover` family: like `cover`, it says which
+# files belong in the report and carries no thresholds of its own.
+module SimpleCov
+  module Configuration
+    DEFAULT_VIEW_GLOBS: Array[String]
+
+    @view_globs: Array[String]?
+
+    # Report coverage for ActionView templates, defaulting to a Rails
+    # app's ERB views. Enables eval coverage, which is what measures a
+    # template the suite renders.
+    def cover_views: (*(String | Array[String?] | nil) globs) -> Array[String]
+
+    # The configured template globs, or nil when `cover_views` was never
+    # called.
+    def view_globs: () -> Array[String]?
+
+    # Whether templates should be measured: asked for, and measurable.
+    def view_coverage?: () -> bool
+  end
+end
+
 # ----- configuration/coverage -----
 
 # The criterion-first `coverage` configuration method: naming a

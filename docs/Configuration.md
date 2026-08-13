@@ -286,7 +286,42 @@ SimpleCov.start do
 end
 ```
 
-This is typically useful for ERB. Set `ERB#filename=` so SimpleCov can trace the original `.erb` source file.
+This is typically useful for ERB. Set `ERB#filename=` so SimpleCov can trace the original `.erb` source file. In a
+Rails application, use [`cover_views`](#view-coverage) instead, which handles that wiring for you.
+
+### View coverage
+
+`cover_views` brings ActionView templates into the report:
+
+```ruby
+SimpleCov.start "rails" do
+  cover_views
+end
+```
+
+It defaults to `app/views/**/*.erb`. Pass globs of your own (expanded against `SimpleCov.root`) for templates that live
+somewhere else:
+
+```ruby
+cover_views "app/views/**/*.erb", "app/components/**/*.erb"
+```
+
+Templates are measured through eval coverage, which `cover_views` enables, so this needs CRuby 3.2 or later. No
+`ERB#filename=` wiring is required: ActionView already compiles each template with the template's own path as the eval
+identifier, at an offset that cancels the wrapper it generates, so the coverage data lands on the `.erb` file at the
+template's own line numbers.
+
+Templates that no test renders are never compiled, and so would be missing from the report entirely rather than
+reported as untested. To avoid a report that flatters exactly the views nobody covered, SimpleCov compiles them at the
+end of the run, without rendering them, which lists them at 0%.
+
+Templates are ordinary files in the report: `skip` excludes them, and the `rails` profile files them under a `Views`
+group.
+
+Two things to expect the first time you turn this on. Overall coverage usually drops, because untested views are being
+counted for the first time. And because eval coverage is now on, macros that evaluate code with `__FILE__` and
+`__LINE__` (Rails' `delegate`, and anything else built on `class_eval`) start reporting methods and branches at the
+line of the macro call. `ignore_methods :eval_generated` and `ignore_branches :eval_generated` drop those.
 
 ### Primary coverage
 
