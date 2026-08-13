@@ -909,6 +909,60 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#cover_views" do
+      context "when the runtime supports eval coverage" do
+        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
+
+        it "defaults to a Rails app's ERB views" do
+          expect(config.cover_views).to eq(["app/views/**/*.erb"])
+        end
+
+        it "takes globs of its own" do
+          config.cover_views "app/views/**/*.erb", "app/components/**/*.erb"
+
+          expect(config.view_globs).to eq(["app/views/**/*.erb", "app/components/**/*.erb"])
+        end
+
+        it "flattens and compacts what it is given" do
+          config.cover_views ["app/views/**/*.erb", nil]
+
+          expect(config.view_globs).to eq(["app/views/**/*.erb"])
+        end
+
+        it "enables eval coverage, which is what measures a rendered template" do
+          config.cover_views
+
+          expect(config.coverage_for_eval_enabled?).to be true
+          expect(config.view_coverage?).to be true
+        end
+
+        it "hands out a fresh copy of the default, not the frozen constant" do
+          config.cover_views << "app/components/**/*.erb"
+
+          expect(SimpleCov::Configuration::DEFAULT_VIEW_GLOBS).to eq(["app/views/**/*.erb"])
+        end
+      end
+
+      context "when the runtime has no eval coverage" do
+        before { allow(config).to receive(:coverage_for_eval_supported?).and_return(false) }
+
+        # Templates would come back empty rather than at 0%, so the report is
+        # better off without them than with a wall of zeroes that means
+        # "unmeasurable" instead of "untested".
+        it "warns and leaves view coverage off" do
+          stderr = capture_stderr { config.cover_views }
+
+          expect(stderr).to include("Coverage for eval is not available")
+          expect(config.view_coverage?).to be false
+        end
+      end
+
+      it "is off until asked for" do
+        expect(config.view_globs).to be_nil
+        expect(config.view_coverage?).to be false
+      end
+    end
+
     describe "#enable_coverage_for_eval (deprecated)" do
       before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
 

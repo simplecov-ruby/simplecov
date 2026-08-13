@@ -4,6 +4,9 @@
 # `SimpleCov::Result`, applies filters and groups, drives merging
 # across test suites via `SimpleCov::ResultMerger`, and exposes the
 # `collate` entry point for stitching disparate resultsets together.
+#
+# rubocop:disable Metrics/ModuleLength -- one façade over one pipeline, and
+# every step of it reads better next to the ones on either side.
 module SimpleCov
   class << self
     #
@@ -200,6 +203,11 @@ module SimpleCov
     # so injecting here means each worker simulates nearly the whole project
     # and all but one of those passes is merged away. See #1250.
     def process_coverage_result(report:, inject_unloaded: true)
+      # Templates nobody rendered are compiled into the running Coverage so
+      # they arrive at 0% below rather than being absent. Needs a live Coverage
+      # and ActionView, which rules out the merge point that does the same job
+      # for unloaded `.rb` files.
+      SimpleCov::ViewCoverage.compile_unrendered
       raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
       adapted = SimpleCov::ResultAdapter.call(raw)
       # What this process was told to track and did not load. Subtracting what
@@ -216,3 +224,4 @@ module SimpleCov
     end
   end
 end
+# rubocop:enable Metrics/ModuleLength

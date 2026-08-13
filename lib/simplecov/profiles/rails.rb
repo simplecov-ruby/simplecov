@@ -11,6 +11,9 @@ SimpleCov.profiles.define "rails" do
   group "Models", "app/models"
   group "Mailers", "app/mailers"
   group "Helpers", "app/helpers"
+  # Empty unless the project opts into `cover_views`, the same way Channels
+  # and Mailers sit empty in an app that has none.
+  group "Views", "app/views"
   group "Jobs", %w[app/jobs app/workers]
   group "Libraries", "lib/"
 
