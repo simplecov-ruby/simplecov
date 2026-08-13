@@ -8,11 +8,11 @@ module SimpleCov
   # turns on, because a template is code the runtime evaluates rather than
   # code it loads.
   module Configuration
-    DEFAULT_VIEW_GLOBS = %w[app/views/**/*.erb].freeze
+    DEFAULT_VIEW_GLOBS = %w[app/views/**/*.{erb,haml,slim}].freeze
 
     #
     # Report coverage for ActionView templates, defaulting to a Rails app's
-    # ERB views:
+    # views in every template language SimpleCov knows how to compile:
     #
     #   SimpleCov.start "rails" do
     #     cover_views
@@ -22,6 +22,10 @@ module SimpleCov
     # live elsewhere:
     #
     #   cover_views "app/views/**/*.erb", "app/components/**/*.erb"
+    #
+    # A glob may name an extension no handler is registered for, which the
+    # default one does whenever a project has no Haml or Slim. Those files
+    # are left out rather than reported as empty.
     #
     # Templates the suite renders are measured through eval coverage, which
     # this enables. Templates it never renders are compiled at the end of the

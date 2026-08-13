@@ -131,6 +131,8 @@ describe('languageFor', () => {
   test('marks templates as their own language and everything else as Ruby', () => {
     expect(languageFor('app/views/foos/show.html.erb')).toBe('erb');
     expect(languageFor('app/views/foos/SHOW.HTML.ERB')).toBe('erb');
+    expect(languageFor('app/views/foos/show.html.haml')).toBe('haml');
+    expect(languageFor('app/views/foos/show.html.slim')).toBe('slim');
     expect(languageFor('lib/simplecov.rb')).toBe('ruby');
     expect(languageFor('Rakefile')).toBe('ruby');
   });

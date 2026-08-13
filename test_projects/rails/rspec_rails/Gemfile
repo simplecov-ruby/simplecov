@@ -38,6 +38,16 @@ group :development do
   gem "spring"
 end
 
+# Haml and Slim are driven by a single sandbox spec, which is the only run
+# that needs them installed. Bundler skips optional groups when it
+# materializes a bundle, so parking them here keeps every other `bundle exec`
+# in this project working without them. That spec opts back in through
+# BUNDLE_WITH.
+group :templates, optional: true do
+  gem "haml"
+  gem "slim"
+end
+
 group :test do
   # Adds support for Capybara system testing and selenium driver
   gem "capybara", ">= 3.26"

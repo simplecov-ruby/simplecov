@@ -56,6 +56,12 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
       expect(described_class).to have_received(:build_template).with(path, "<p>hi</p>\n")
     end
 
+    it "skips a template language nothing is registered to handle" do
+      allow(described_class).to receive(:build_template).and_return(nil)
+
+      expect(described_class.call(path)).to be false
+    end
+
     it "reports the template and carries on when it doesn't compile" do
       allow(template).to receive(:compile).and_raise(ArgumentError, "broken")
 

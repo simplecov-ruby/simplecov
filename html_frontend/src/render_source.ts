@@ -61,7 +61,7 @@ function buildMissedMethodLines(methods: MethodEntry[] | undefined): Set<number>
 // listed is Ruby, which is what all but the template files are. A template
 // tagged `ruby` would have its markup fed to the Ruby grammar, which mostly
 // declines to match it and leaves the whole view unhighlighted.
-const LANGUAGES: Record<string, string> = { erb: 'erb' };
+const LANGUAGES: Record<string, string> = { erb: 'erb', haml: 'haml', slim: 'slim' };
 
 export function languageFor(filename: string): string {
   return LANGUAGES[filename.split('.').pop()!.toLowerCase()] || 'ruby';

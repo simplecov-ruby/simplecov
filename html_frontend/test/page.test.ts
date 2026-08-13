@@ -189,10 +189,31 @@ describe('materializeSourceFile', () => {
     await boot(data);
 
     const code = materializeSourceFile(fileId(template))!.querySelectorAll('pre code.erb');
-    // The markup line goes through the xml grammar and the tag line through
+    // The markup line is marked up as a tag and the tag line goes through
     // ruby, which is the whole point of registering the bridge language.
-    expect(code[0].innerHTML).toContain('hljs-tag');
-    expect(code[1].innerHTML).toContain('hljs-');
+    expect(code[0].innerHTML).toContain('hljs-name');
+    expect(code[1].innerHTML).toContain('language-ruby');
+  });
+
+  test.each([
+    ['app/views/foos/show.html.haml', ['%h1= @foo.bar', '- if @admin'], 'haml'],
+    ['app/views/foos/show.html.slim', ['h1 = @foo.bar', '- if @admin'], 'slim']
+  ])('highlights %s with its own grammar', async (template, source, language) => {
+    const data = coverageData();
+    data.coverage[template] = {
+      lines: [1, 1],
+      source,
+      lines_covered_percent: 100.0,
+      covered_lines: 2,
+      missed_lines: 0,
+      total_lines: 2
+    };
+    await boot(data);
+
+    const code = materializeSourceFile(fileId(template))!.querySelectorAll(`pre code.${language}`);
+    expect(code).toHaveLength(2);
+    // The control line is Ruby in both, which is where a template's code is.
+    expect(code[1].innerHTML).toContain('language-ruby');
   });
 });
 

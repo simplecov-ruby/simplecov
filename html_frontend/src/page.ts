@@ -3,7 +3,9 @@
 
 import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
+import haml from 'highlight.js/lib/languages/haml';
 import erb from './erb';
+import slim from './slim';
 import { $$, escapeHTML } from './dom';
 import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
@@ -18,6 +20,8 @@ hljs.registerLanguage('ruby', ruby);
 // leaves the whole file unhighlighted. Registered by name because that is how
 // highlight.js resolves the sub-language `erb` delegates its tags to.
 hljs.registerLanguage('erb', erb);
+hljs.registerLanguage('haml', haml);
+hljs.registerLanguage('slim', slim);
 
 // The favicon is a solid square in the coverage band's colour, drawn at
 // render time from the live palette so it matches the active theme.

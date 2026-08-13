@@ -38,7 +38,10 @@ module SimpleCov
       # bigger problems than its coverage, but the report is not the place to
       # discover that and a broken view must not take the whole run down.
       def call(path)
-        build_template(path, File.binread(path)).send(:compile, Module.new)
+        template = build_template(path, File.binread(path))
+        return false unless template
+
+        template.send(:compile, Module.new)
         true
       rescue StandardError, ScriptError => e
         warn "[SimpleCov]: Skipping #{path}, which did not compile (#{e.class})"
@@ -57,19 +60,23 @@ module SimpleCov
         segments.fetch(-2).to_sym
       end
 
-      # The single place ActionView is named. `handler_for_extension` is the
-      # same lookup the resolver performs, so a project that has registered
-      # its own handler for an extension gets that handler here too.
+      # The single place ActionView is named. The handler lookup is the one
+      # the resolver performs, so a template language the project has
+      # registered a handler for (Haml, Slim, or its own) compiles here the
+      # way it does when rendered. Nil when nothing is registered for the
+      # extension, which is how a default glob naming `.haml` behaves in a
+      # project that has no Haml: ActionView would hand back the raw handler
+      # and the template would report as a file of static text.
       #
       # simplecov:disable — needs ActionView, which the dogfood suite doesn't
       # load; covered by the rails sandbox specs, which run in a subprocess
       def build_template(path, source)
         extension = File.extname(path).delete_prefix(".")
+        handler = ::ActionView::Template.registered_template_handler(extension)
+        return nil unless handler
+
         no_locals = [] #: Array[Symbol]
-        ::ActionView::Template.new(
-          source, path, ::ActionView::Template.handler_for_extension(extension),
-          locals: no_locals, format: format_for(path)
-        )
+        ::ActionView::Template.new(source, path, handler, locals: no_locals, format: format_for(path))
       end
       # simplecov:enable
     end
