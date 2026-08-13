@@ -3,6 +3,7 @@
 
 import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
+import erb from './erb';
 import { $$, escapeHTML } from './dom';
 import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
@@ -12,6 +13,11 @@ import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './
 import type { CoverageData, FileCoverage } from './types';
 
 hljs.registerLanguage('ruby', ruby);
+// A `.erb` view is markup with Ruby inside it, so it gets its own grammar
+// rather than being fed to the Ruby one, which declines to match markup and
+// leaves the whole file unhighlighted. Registered by name because that is how
+// highlight.js resolves the sub-language `erb` delegates its tags to.
+hljs.registerLanguage('erb', erb);
 
 // The favicon is a solid square in the coverage band's colour, drawn at
 // render time from the live palette so it matches the active theme.

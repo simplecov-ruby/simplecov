@@ -315,8 +315,9 @@ Templates that no test renders are never compiled, and so would be missing from 
 reported as untested. To avoid a report that flatters exactly the views nobody covered, SimpleCov compiles them at the
 end of the run, without rendering them, which lists them at 0%.
 
-Templates are ordinary files in the report: `skip` excludes them, and the `rails` profile files them under a `Views`
-group.
+Templates are ordinary files in the report: `skip` excludes them, the `rails` profile files them under a `Views`
+group, and the source view highlights them as ERB, so the markup reads as markup and the code between the tags as
+Ruby.
 
 Two things to expect the first time you turn this on. Overall coverage usually drops, because untested views are being
 counted for the first time. And because eval coverage is now on, macros that evaluate code with `__FILE__` and
