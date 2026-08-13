@@ -913,8 +913,8 @@ RSpec.describe SimpleCov::Configuration do
       context "when the runtime supports eval coverage" do
         before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
 
-        it "defaults to a Rails app's ERB views" do
-          expect(config.cover_views).to eq(["app/views/**/*.erb"])
+        it "defaults to a Rails app's views in every language it can compile" do
+          expect(config.cover_views).to eq(["app/views/**/*.{erb,haml,slim}"])
         end
 
         it "takes globs of its own" do
@@ -939,7 +939,7 @@ RSpec.describe SimpleCov::Configuration do
         it "hands out a fresh copy of the default, not the frozen constant" do
           config.cover_views << "app/components/**/*.erb"
 
-          expect(SimpleCov::Configuration::DEFAULT_VIEW_GLOBS).to eq(["app/views/**/*.erb"])
+          expect(SimpleCov::Configuration::DEFAULT_VIEW_GLOBS).to eq(["app/views/**/*.{erb,haml,slim}"])
         end
       end
 

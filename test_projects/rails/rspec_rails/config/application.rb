@@ -20,6 +20,18 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# Haml and Slim sit in an optional Gemfile group, which `Rails.groups` does not
+# name, so `Bundler.require` above leaves them out even when the group has been
+# installed. Their railties have to load before the application initializes for
+# ActionView to know their handlers, and the spec that drives them
+# (spec/sandbox/rails_template_languages_spec.rb) is the only run where they
+# are installed at all.
+%w[haml slim].each do |template_language|
+  require template_language
+rescue LoadError
+  nil
+end
+
 module RspecRails
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.

@@ -299,8 +299,8 @@ SimpleCov.start "rails" do
 end
 ```
 
-It defaults to `app/views/**/*.erb`. Pass globs of your own (expanded against `SimpleCov.root`) for templates that live
-somewhere else:
+It defaults to `app/views/**/*.{erb,haml,slim}`. Pass globs of your own (expanded against `SimpleCov.root`) for
+templates that live somewhere else:
 
 ```ruby
 cover_views "app/views/**/*.erb", "app/components/**/*.erb"
@@ -308,16 +308,22 @@ cover_views "app/views/**/*.erb", "app/components/**/*.erb"
 
 Templates are measured through eval coverage, which `cover_views` enables, so this needs CRuby 3.2 or later. No
 `ERB#filename=` wiring is required: ActionView already compiles each template with the template's own path as the eval
-identifier, at an offset that cancels the wrapper it generates, so the coverage data lands on the `.erb` file at the
-template's own line numbers.
+identifier, at an offset that cancels the wrapper it generates, so the coverage data lands on the template file at its
+own line numbers.
+
+Every template language with a registered ActionView handler works the same way, because the handler generates Ruby
+that keeps the template's line structure and the compile goes through the same path a render does. Haml and Slim need
+nothing beyond their gems being loaded, and a language your project registers a handler for itself is covered by
+naming its extension in a glob. Extensions with no handler registered are left out of the report rather than reported
+as untested, which is what keeps the default glob's `.haml` and `.slim` harmless in a project that has neither.
 
 Templates that no test renders are never compiled, and so would be missing from the report entirely rather than
 reported as untested. To avoid a report that flatters exactly the views nobody covered, SimpleCov compiles them at the
 end of the run, without rendering them, which lists them at 0%.
 
 Templates are ordinary files in the report: `skip` excludes them, the `rails` profile files them under a `Views`
-group, and the source view highlights them as ERB, so the markup reads as markup and the code between the tags as
-Ruby.
+group, and the source view highlights each one in its own language, so the markup reads as markup and the code in it
+as Ruby.
 
 Two things to expect the first time you turn this on. Overall coverage usually drops, because untested views are being
 counted for the first time. And because eval coverage is now on, macros that evaluate code with `__FILE__` and
