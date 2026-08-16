@@ -1,0 +1,32 @@
+module SimpleCov
+  class ContextMap
+    # Accumulates the context maps of every result a merge absorbs, under the
+    # all-or-nothing rule: the merged result carries the union when every
+    # merged result recorded a map, and no map at all otherwise.
+    class Union
+      @map: ContextMap
+      @complete: bool
+
+      attr_reader carrying: Integer
+      attr_reader entries: Integer
+
+      def collector: () -> ^(Hash[String, untyped] surviving) -> void
+
+      def absorb_resultset: (Hash[String, untyped] resultset) -> void
+
+      def absorb_entry: (Hash[String, untyped] data) -> void
+
+      # Fold another union in (parallel merge workers ship one back each).
+      def absorb_union: (Union other) -> self
+
+      def complete?: () -> bool
+
+      # The union when every absorbed result carried a map, nil otherwise.
+      def map: () -> ContextMap?
+
+      def partial_map: () -> ContextMap
+
+      def warn_about_partial_maps: () -> void
+    end
+  end
+end

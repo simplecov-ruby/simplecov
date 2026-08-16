@@ -120,6 +120,25 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(tracked_files).to eq(Set["tracked0.rb", "tracked1.rb", "tracked2.rb"])
     end
 
+    # The context-map union comes back the same way, so the all-or-nothing rule
+    # is judged over the whole run rather than per worker slice.
+    it "unions the test maps every worker saw", if: FORK_SUPPORTED do
+      # Expanded so the `covering` lookup (which expands its argument)
+      # matches the recorded key on Windows drives too.
+      lib_file = File.expand_path("/proj/lib/thing.rb")
+      context_maps = SimpleCov::ContextMap::Union.new
+      mapped = Array.new(3) do |index|
+        map = SimpleCov::ContextMap.new
+        map.record("spec/w#{index}_spec.rb:1", lib_file => 1 << index)
+        write_resultset("m#{index}", {}, contexts: map.to_h)
+      end
+
+      described_class.absorb_results(mapped, processes: 3, ignore_timeout: true, context_maps: context_maps)
+
+      expect(context_maps.map.covering(lib_file, 2)).to eq(["spec/w1_spec.rb:1"])
+      expect(context_maps.map.contexts.size).to eq(3)
+    end
+
     it "returns nil when a single process was requested" do
       expect(described_class.absorb_results(paths, processes: 1)).to be_nil
     end
@@ -161,11 +180,16 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
     after { pipe.each { |io| io.close unless io.closed? } }
 
-    it "writes the merged pair with its tracked files and reports success" do
+    it "writes the merged pair with its tracked files and context-map union, and reports success" do
       reader, writer = pipe
 
       expect(described_class.run_worker(paths, writer, ignore_timeout: true)).to eq(0)
-      expect(Marshal.load(reader)).to eq([serial, []]) # rubocop:disable Security/MarshalLoad
+
+      pair, tracked, context_maps = Marshal.load(reader) # rubocop:disable Security/MarshalLoad
+      expect(pair).to eq(serial)
+      expect(tracked).to eq([])
+      expect(context_maps).to be_a(SimpleCov::ContextMap::Union)
+      expect(context_maps.entries).to eq(paths.size)
     end
 
     it "reports failure and warns when the merged pair cannot be shipped back" do
@@ -298,13 +322,46 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
+  # Exercised directly (not only through forked workers) so the payload
+  # format keeps its coverage on the runtimes that cannot fork at all.
+  describe "WorkerPayload" do
+    let(:worker_payload) { SimpleCov::ParallelResultMerger::WorkerPayload }
+
+    it "builds the pair with the slice's tracked files and context-map union" do
+      map = SimpleCov::ContextMap.new
+      map.record("spec/a_spec.rb:1", File.expand_path("/proj/lib/thing.rb") => 0b1)
+      slice = [write_resultset("mapped", {}, tracked_files: ["tracked.rb"], contexts: map.to_h)]
+
+      pair, tracked, context_maps = worker_payload.build(slice, ignore_timeout: true)
+
+      expect(pair.first).to eq(["mapped"])
+      expect(tracked).to eq(["tracked.rb"])
+      expect(context_maps.map.contexts).to eq(["spec/a_spec.rb:1"])
+    end
+
+    it "folds a payload into the parent's accumulators and exposes its pair" do
+      union = SimpleCov::ContextMap::Union.new
+      union.absorb_entry("contexts" => SimpleCov::ContextMap.new.to_h)
+      tracked_files = Set.new
+      context_maps = SimpleCov::ContextMap::Union.new
+      payload = [:pair, ["tracked.rb"], union]
+
+      worker_payload.absorb(payload, tracked_files, context_maps)
+
+      expect(tracked_files).to eq(Set["tracked.rb"])
+      expect(context_maps.carrying).to eq(1)
+      expect(worker_payload.pair(payload)).to eq(:pair)
+    end
+  end
+
 private
 
-  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil)
+  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil, contexts: nil)
     timestamp = Time.now.to_i - (outdated ? SimpleCov.merge_timeout * 2 : 0)
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
     entry = {"coverage" => coverage, "timestamp" => timestamp}
     entry["tracked_files"] = tracked_files if tracked_files
+    entry["contexts"] = contexts if contexts
     File.write(path, JSON.generate(command_name => entry))
     path
   end

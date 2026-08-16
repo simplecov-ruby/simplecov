@@ -306,6 +306,57 @@ SimpleCov.primary_coverage :branch
 
 Coverage must first be enabled for non-default types.
 
+## Tracking which test covers each line
+
+Coverage is normally a union over the whole suite. `track_tests` records the other half of the data: which test
+executed each covered line. It is opt-in because it has a real cost. Coverage is sampled around every test, and the
+recorded map takes space in `.resultset.json`.
+
+```ruby
+SimpleCov.start do
+  track_tests
+end
+```
+
+RSpec examples and Minitest tests are wrapped automatically, in any load order. Under minitest 5 the bundled minitest
+plugin installs the wrapper, and under minitest 6 (whose autorun no longer discovers plugins) SimpleCov installs it
+the moment `Minitest::Test` is defined. Each test is identified by the location of its definition, such as
+`spec/user_spec.rb:42` or `test/user_test.rb:17`, relative to `SimpleCov.root`. Any other runner can wrap its own
+units of work with the same primitive the built-in integrations use:
+
+```ruby
+SimpleCov.track_test("test/legacy_suite.rb:12") do
+  run_the_test
+end
+```
+
+The recorded map rides along in `.resultset.json` under a versioned `contexts` key beside the coverage, and is
+exposed on the result:
+
+```ruby
+result = SimpleCov::ResultMerger.merged_result
+result.contexts.covering("lib/simplecov/result.rb", 42)
+# => ["spec/result_spec.rb:42", "spec/result_spec.rb:57"]
+```
+
+The data layer speaks of contexts rather than tests because the mechanism is general (coverage.py calls the same
+idea dynamic contexts, and a future Coverage library feature would likely use the same word). Under `track_tests`
+every context is one test. `covering` accepts absolute or project-relative paths and answers with the sorted ids,
+and `contexts` lists every recorded id, including tests whose runs covered nothing new.
+
+When results are merged, across suites, parallel workers, or `simplecov collate`, the maps are merged by the same
+rule everywhere: the merged result carries the union of the maps when every merged result recorded one, and no map at
+all otherwise. A partial map would present one worker's tests as the whole run's, so mixing tracked and untracked
+results drops the map and says so on stderr. `Result#contexts` is nil in that case.
+
+Three constraints follow from how the map is recorded. It needs per-line execution counts, so `track_tests` raises at
+startup under `enable_coverage :oneshot_line` (a line reports only its first hit ever, which would attribute it to
+one test). Only files under `SimpleCov.root` are attributed, since diffing every loaded gem on every test is what
+would make tracking unaffordable. And tests running concurrently in threads inside one process (Minitest's
+`parallelize_me!`, Rails' `parallelize(with: :threads)`) cannot be told apart, because coverage counters are
+process-global, so such a process warns, stops recording, and stores no map rather than a misattributed one.
+Process-parallel runners are fine, since each worker records and stores its own map.
+
 ## Filters
 
 Filters remove selected files from your coverage data.

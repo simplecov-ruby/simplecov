@@ -183,6 +183,9 @@ module SimpleCov
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
       Coverage.start(**start_arguments) unless Coverage.running?
+      # Per-test tracking rides on the measurement just started (it diffs
+      # `Coverage.peek_result` around each test). See TestTracker::Accessors.
+      start_test_tracking
     end
 
     # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`,
@@ -246,6 +249,13 @@ require_relative "simplecov/formatter"
 require_relative "simplecov/last_run"
 require_relative "simplecov/report_stamp"
 require_relative "simplecov/lines_classifier"
+require_relative "simplecov/context_map"
+require_relative "simplecov/context_map/union"
+require_relative "simplecov/test_tracker/constant_watch"
+require_relative "simplecov/test_tracker"
+require_relative "simplecov/test_tracker/framework_hooks"
+require_relative "simplecov/test_tracker/accessors"
+SimpleCov.extend SimpleCov::TestTracker::Accessors
 require_relative "simplecov/result_merger"
 require_relative "simplecov/parallel_result_merger"
 require_relative "simplecov/parallel_adapters"

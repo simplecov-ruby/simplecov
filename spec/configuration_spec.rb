@@ -2052,4 +2052,50 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
   end
+
+  describe "#track_tests" do
+    after { config.clear_coverage_criteria }
+
+    it "is off by default" do
+      expect(config.track_tests?).to be false
+    end
+
+    it "enables with a bare call" do
+      config.track_tests
+
+      expect(config.track_tests?).to be true
+    end
+
+    it "turns back off with an explicit false" do
+      config.track_tests
+      config.track_tests false
+
+      expect(config.track_tests?).to be false
+    end
+
+    describe "#validate_test_tracking!" do
+      it "passes while tracking is off, whatever the criteria" do
+        config.enable_coverage :oneshot_line
+
+        expect { config.validate_test_tracking! }.not_to raise_error
+      end
+
+      it "passes with ordinary line coverage enabled" do
+        config.track_tests
+
+        expect { config.validate_test_tracking! }.not_to raise_error
+      end
+
+      # The map is built from per-line execution count deltas, which
+      # oneshot mode does not produce: a line reports only its first hit
+      # ever, so every later test's delta would miss it.
+      it "rejects tracking under oneshot line coverage" do
+        config.track_tests
+        config.enable_coverage :oneshot_line
+
+        expect { config.validate_test_tracking! }
+          .to raise_error(SimpleCov::ConfigurationError, /track_tests.*line coverage/)
+      end
+    end
+  end
 end

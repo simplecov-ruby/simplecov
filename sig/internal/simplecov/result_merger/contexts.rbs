@@ -1,0 +1,12 @@
+module SimpleCov
+  module ResultMerger
+    # The concurrent-runner half of context-map handling: what happens to
+    # two entries' maps when they share a command name and are combined.
+    # The cross-resultset half is `ContextMap::Union`.
+    module Contexts
+      # Union when both sides recorded a map, no map at all when either
+      # did not.
+      def self?.carry: (Hash[String, untyped] entry, Hash[String, untyped] existing, Hash[String, untyped] incoming) -> Hash[String, untyped]
+    end
+  end
+end
