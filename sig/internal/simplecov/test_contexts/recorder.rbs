@@ -1,0 +1,49 @@
+module SimpleCov
+  module TestContexts
+    # Samples `Coverage.peek_result` around each test and attributes the
+    # hit-count increases to it.
+    class Recorder
+      type snapshot_lines = Hash[String, Array[Integer?]]
+
+      DEFAULT_SNAPSHOT: ^() -> Hash[String, untyped]
+
+      @snapshot: ^() -> Hash[String, untyped]
+
+      @root_regex: Regexp
+
+      @table: TestTable
+
+      @files: Hash[String, Hash[Integer, Integer]]
+
+      @lock: Thread::Mutex
+
+      @active: Integer
+
+      @poisoned: bool
+
+      def initialize: (?snapshot: ^() -> Hash[String, untyped], ?root_regex: Regexp) -> void
+
+      def poisoned?: () -> bool
+
+      def record: [T] (String id, ?String name) { () -> T } -> T
+
+      def to_map: () -> Map?
+
+      private
+
+      def settle: (String id, String name, snapshot_lines? before) -> void
+
+      def enter!: () -> void
+
+      def leave!: () -> void
+
+      def poison!: () -> void
+
+      def capture: (String id, String name, snapshot_lines before) -> void
+
+      def delta_mask: (Array[Integer?]? before_lines, Array[Integer?] after_lines) -> Integer
+
+      def snapshot_lines: () -> snapshot_lines
+    end
+  end
+end

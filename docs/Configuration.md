@@ -306,6 +306,36 @@ SimpleCov.primary_coverage :branch
 
 Coverage must first be enabled for non-default types.
 
+### Per-test contexts
+
+SimpleCov can record which tests covered each line, by sampling coverage around every test and attributing the
+difference to it:
+
+```ruby
+SimpleCov.start do
+  test_contexts :per_test
+end
+```
+
+The recording is stored alongside the merged coverage in `.resultset.json` and flows into `coverage.json` and the HTML
+report, where each covered line shows how many tests exercise it and can list them. `simplecov who-covers lib/foo.rb:42`
+answers the same question from the command line. 
+
+A line that is covered but attributed to no test was executed only outside of tests, for example at load time, in suite-
+level hooks such as `before(:suite)` / `before(:context)`, or between tests. Example-scoped `before` hooks and Minitest 
+`setup` / `teardown` run inside the test's bracket, so their lines are attributed to that test.
+
+The mode is an enum rather than a boolean so coarser granularities can be added later; `:per_test` is the only supported
+value, and `nil` (the default) disables recording.
+
+Recording is not free: coverage is sampled twice around every test. It requires line coverage with full counts, so it
+raises when only `:oneshot_line` or only `branch`/`method` coverage is enabled. RSpec and Minitest are hooked
+automatically. Test processes forked from the suite are not attributed, and when results from a process without
+recording are merged with recorded ones, the per-test data is dropped as a whole rather than kept partially (with a
+warning naming the mix). Tests running in parallel threads inside one process cannot be told apart, so recording turns
+itself off with a warning in that case. That guard only sees overlapping tests: work other threads do while a single
+test runs — a Capybara app server, an async job — lands in that test's delta and is attributed to it.
+
 ## Filters
 
 Filters remove selected files from your coverage data.

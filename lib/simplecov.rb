@@ -152,7 +152,7 @@ module SimpleCov
     def start_tracking
       require "coverage"
       warn_if_jruby_full_trace_disabled
-      validate_coverage_criteria!
+      validate_tracking_configuration!
       # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
       require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
                                               ::Process.respond_to?(:_fork)
@@ -183,6 +183,8 @@ module SimpleCov
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
       Coverage.start(**start_arguments) unless Coverage.running?
+      # Only once measuring runs may the recorder take its snapshots.
+      TestContexts.activate! if per_test_contexts?
     end
 
     # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`,
@@ -262,6 +264,7 @@ require_relative "simplecov/combine/lines_combiner"
 require_relative "simplecov/combine/coverage_accumulator"
 require_relative "simplecov/combine/results_combiner"
 require_relative "simplecov/useless_results_remover"
+require_relative "simplecov/test_contexts"
 require_relative "simplecov/simulate_coverage"
 require_relative "simplecov/unloaded_file_injector"
 require_relative "simplecov/result_processing"

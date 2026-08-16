@@ -27,7 +27,7 @@ module SimpleCov
 
     def self.warn_about_expired_results: (untyped expired_command_names) -> (nil | untyped)
 
-    def self.create_result: (untyped command_names, untyped coverage, ?tracked_files: _ToA[String]) -> (nil | untyped)
+    def self.create_result: (untyped command_names, untyped coverage, ?tracked_files: _ToA[String], ?test_contexts: TestContexts::Map?) -> (nil | untyped)
 
     def self.merge_coverage: (*untyped results) -> (::Array[::Array[""] | nil] | untyped)
 

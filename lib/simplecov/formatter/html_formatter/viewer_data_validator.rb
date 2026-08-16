@@ -24,6 +24,7 @@ module SimpleCov
             validate_meta!(meta)
             validate_statistics!(data.fetch("total"), meta, "total")
             data.fetch("coverage").each { |filename, file| validate_file!(filename, file) }
+            validate_contexts_coupling!(meta, data.fetch("coverage"))
             data.fetch("groups").each { |name, group| validate_group!(name, group, meta) }
             data
           end
@@ -41,6 +42,7 @@ module SimpleCov
               raise SimpleCov::CoverageJSON::Error, "coverage entry #{filename.inspect} must be an object"
             end
 
+            validate_file_test_contexts!(filename, file)
             source = file["source"]
             return if source.is_a?(Array) && source.all?(String)
 
@@ -49,12 +51,46 @@ module SimpleCov
                   "regenerate with source_in_json true"
           end
 
+          def validate_contexts_coupling!(meta, coverage)
+            return unless meta["test_contexts"].nil?
+
+            offender, = coverage.find { |_filename, file| !file["test_contexts"].nil? }
+            return unless offender
+
+            raise SimpleCov::CoverageJSON::Error,
+                  "coverage entry #{offender.inspect} carries test_contexts but meta.test_contexts is missing"
+          end
+
+          def validate_file_test_contexts!(filename, file)
+            contexts = file["test_contexts"]
+            return if contexts.nil?
+            return if contexts.is_a?(Hash) && contexts.each_value.all?(String)
+
+            raise SimpleCov::CoverageJSON::Error,
+                  "coverage entry #{filename.inspect}.test_contexts must map test indices to hex bitmap strings"
+          end
+
           def validate_meta!(meta)
             META_STRINGS.each { |key| validate_type!(meta, key, String, "meta") }
             Time.iso8601(meta.fetch("timestamp"))
             COVERAGE_FLAGS.each_key { |key| validate_boolean!(meta, key) }
+            validate_meta_test_contexts!(meta)
           rescue ArgumentError
             raise SimpleCov::CoverageJSON::Error, "meta.timestamp must be an ISO 8601 date-time"
+          end
+
+          def validate_meta_test_contexts!(meta)
+            contexts = meta["test_contexts"]
+            return if contexts.nil?
+
+            tests = contexts.is_a?(Hash) ? contexts["tests"] : nil
+            return if tests.is_a?(Array) && tests.all? { |test| test_entry?(test) }
+
+            raise SimpleCov::CoverageJSON::Error, "meta.test_contexts.tests must be an array of id/name string pairs"
+          end
+
+          def test_entry?(test)
+            test.is_a?(Hash) && test["id"].is_a?(String) && test["name"].is_a?(String)
           end
 
           def validate_statistics!(statistics, meta, location)

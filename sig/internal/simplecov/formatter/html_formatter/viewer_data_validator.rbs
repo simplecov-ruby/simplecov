@@ -10,6 +10,10 @@ module SimpleCov
         def self.validate_section!: (Hash[String, untyped] data, String key) -> void
         def self.validate_file!: (String filename, untyped file) -> void
         def self.validate_meta!: (Hash[String, untyped] meta) -> void
+        def self.validate_meta_test_contexts!: (Hash[String, untyped] meta) -> void
+        def self.validate_contexts_coupling!: (Hash[String, untyped] meta, Hash[String, untyped] coverage) -> void
+        def self.test_entry?: (untyped test) -> bool
+        def self.validate_file_test_contexts!: (String filename, Hash[String, untyped] file) -> void
         def self.validate_statistics!: (Hash[String, untyped] statistics, Hash[String, untyped] meta, String location) -> void
         def self.validate_group!: (String name, untyped group, Hash[String, untyped] meta) -> void
         def self.validate_type!: (Hash[String, untyped] object, String key, untyped type, String location) -> untyped

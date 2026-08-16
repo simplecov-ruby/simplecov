@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage.schema.json",
   "title": "SimpleCov coverage.json (latest)",
-  "description": "Convenience alias for the latest coverage.json schema. Mirrors schemas/coverage-v1.0.schema.json except for the $id (which is the unversioned URL). For long-lived integrations, pin to the versioned canonical (schemas/coverage-vX.Y.schema.json) so the contract you validate against does not silently shift when a new SimpleCov release bumps the schema.",
+  "description": "Convenience alias for the latest coverage.json schema. Mirrors schemas/coverage-v1.1.schema.json except for the $id (which is the unversioned URL). For long-lived integrations, pin to the versioned canonical (schemas/coverage-vX.Y.schema.json) so the contract you validate against does not silently shift when a new SimpleCov release bumps the schema.",
   "type": "object",
   "required": ["$schema", "meta", "total", "coverage", "groups", "errors"],
   "additionalProperties": false,
@@ -31,7 +31,7 @@
       "properties": {
         "schema_version": {
           "type": "string",
-          "const": "1.0",
+          "const": "1.1",
           "description": "Schema major.minor. Additive changes bump minor; breaking changes bump major. Update this `const` whenever the schema version is bumped so documents claiming a different version don't quietly validate against this contract."
         },
         "simplecov_version": {
@@ -60,7 +60,33 @@
         },
         "line_coverage": {"type": "boolean"},
         "branch_coverage": {"type": "boolean"},
-        "method_coverage": {"type": "boolean"}
+        "method_coverage": {"type": "boolean"},
+        "test_contexts": {
+          "type": "object",
+          "description": "Present only when the report was generated with per-test context recording enabled (`SimpleCov.test_contexts :per_test`): the interned table of tests that each per-file `test_contexts` map indexes into. Absent when recording was off, so documents without the feature keep validating.",
+          "required": ["granularity", "tests"],
+          "additionalProperties": false,
+          "properties": {
+            "granularity": {
+              "type": "string",
+              "const": "per_test",
+              "description": "Recording granularity. \"per_test\" is the only granularity in 1.1; future granularities extend this with a minor bump."
+            },
+            "tests": {
+              "type": "array",
+              "description": "Ordered, de-duplicated tests. Per-file `test_contexts` keys are decimal-string indices into this array.",
+              "items": {
+                "type": "object",
+                "required": ["id", "name"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {"type": "string", "description": "Rerun identity: RSpec's example id (e.g. \"./spec/user_spec.rb[1:2]\"), or \"Klass#test_method\" for Minitest."},
+                  "name": {"type": "string", "description": "Human-readable description; equals id when the framework offers nothing richer."}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "total": {"$ref": "#/definitions/totals"},
@@ -187,7 +213,13 @@
         "methods_covered_percent": {"type": "number"},
         "covered_methods": {"type": "integer", "minimum": 0},
         "missed_methods": {"type": "integer", "minimum": 0},
-        "total_methods": {"type": "integer", "minimum": 0, "description": "Count of methods: `covered_methods + missed_methods`."}
+        "total_methods": {"type": "integer", "minimum": 0, "description": "Count of methods: `covered_methods + missed_methods`."},
+        "test_contexts": {
+          "type": "object",
+          "description": "Map from test index (a decimal-string index into meta.test_contexts.tests) to a lowercase hexadecimal bitmap of the source lines that test executed in this file: bit N-1 set means line N was executed, so a test covering only line 1 has bitmap \"1\". Emitted for every file — as an empty object when no recorded test executed it — whenever meta.test_contexts is present, and never otherwise. Zero bitmaps are omitted. A line with a positive count in `lines` whose bit is set in no test's bitmap was executed only outside recorded tests: at load time, or in suite-level setup such as before hooks and factories.",
+          "propertyNames": {"pattern": "^(0|[1-9][0-9]*)$"},
+          "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]+$"}
+        }
       }
     },
     "branch": {

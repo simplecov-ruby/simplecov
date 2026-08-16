@@ -599,6 +599,160 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "who-covers subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-spec-") }
+    let(:resultset_path) { File.join(tmp, ".resultset.json") }
+    let(:abs_filename) { "/abs/project/lib/thing.rb" }
+
+    let(:contexts) do
+      {
+        "version" => 1,
+        "tests" => [
+          ["./spec/thing_spec.rb[1:1]", "Thing does one thing"],
+          ["ThingTest#test_two", "ThingTest#test_two"]
+        ],
+        # test 0 covered lines 2 and 3 (0x6), test 1 covered line 2 (0x2)
+        "files" => {abs_filename => {"0" => "6", "1" => "2"}}
+      }
+    end
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def write_resultset(entries)
+      File.write(resultset_path, JSON.dump(entries))
+    end
+
+    def recorded_entry(contexts: nil)
+      entry = {
+        "coverage" => {abs_filename => {"lines" => [nil, 2, 1, 0, 1]}},
+        "timestamp" => Time.now.to_f
+      }
+      entry["test_contexts"] = contexts if contexts
+      entry
+    end
+
+    it "names the tests covering a line" do
+      write_resultset("RSpec" => recorded_entry(contexts: contexts))
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:2")).to eq(0)
+      out = stdout.string
+      expect(out).to include(abs_filename)
+      expect(out).to include("line 2: covered by 2 tests:")
+      expect(out).to include("Thing does one thing (./spec/thing_spec.rb[1:1])")
+      expect(out).to include("    ThingTest#test_two\n")
+      expect(out).not_to include("ThingTest#test_two (")
+    end
+
+    it "answers every line of a range" do
+      write_resultset("RSpec" => recorded_entry(contexts: contexts))
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:1-5")).to eq(0)
+      out = stdout.string
+      expect(out).to include("line 1: not executable")
+      expect(out).to include("line 2: covered by 2 tests:")
+      expect(out).to include("line 3: covered by 1 test:")
+      expect(out).to include("line 4: not covered")
+      expect(out).to include("line 5: covered, but by no recorded test (executed during load or setup only)")
+    end
+
+    it "emits the per-line answers as JSON" do
+      write_resultset("RSpec" => recorded_entry(contexts: contexts))
+
+      expect(run("who-covers", "--input", resultset_path, "--json", "lib/thing.rb:2-3")).to eq(0)
+      payload = JSON.parse(stdout.string)
+      expect(payload["file"]).to eq(abs_filename)
+      expect(payload["lines"].map { |row| row["status"] }).to eq %w[covered covered]
+      expect(payload["lines"].first["tests"]).to eq [
+        {"id" => "./spec/thing_spec.rb[1:1]", "name" => "Thing does one thing"},
+        {"id" => "ThingTest#test_two", "name" => "ThingTest#test_two"}
+      ]
+    end
+
+    it "errors with guidance when the resultset carries no per-test data" do
+      write_resultset("RSpec" => recorded_entry)
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:2")).to eq(1)
+      expect(stderr.string).to include("no per-test context data for RSpec")
+      expect(stderr.string).to include("test_contexts :per_test")
+    end
+
+    it "errors naming the entries lacking data when only some carry it" do
+      write_resultset("RSpec" => recorded_entry(contexts: contexts), "Minitest" => recorded_entry)
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:2")).to eq(1)
+      expect(stderr.string).to include("no per-test context data for Minitest in")
+      expect(stderr.string).not_to include("RSpec,")
+    end
+
+    it "errors on a target without a line number" do
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb")).to eq(1)
+      expect(stderr.string).to include("expected <path>:<line>")
+    end
+
+    it "errors when no target is given at all" do
+      expect(run("who-covers", "--input", resultset_path)).to eq(1)
+      expect(stderr.string).to include("expected <path>:<line>")
+    end
+
+    it "reports lines of a file without line data as not executable" do
+      write_resultset(
+        "RSpec" => {
+          "coverage" => {abs_filename => {"branches" => {}}},
+          "timestamp" => Time.now.to_f,
+          "test_contexts" => {"version" => 1, "tests" => [], "files" => {}}
+        }
+      )
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:1")).to eq(0)
+      expect(stdout.string).to include("line 1: not executable")
+    end
+
+    it "errors on a line number below 1" do
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:0")).to eq(1)
+      expect(stderr.string).to include("line numbers start at 1")
+    end
+
+    it "errors on an empty range" do
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:5-2")).to eq(1)
+      expect(stderr.string).to include("empty line range 5-2")
+    end
+
+    it "reads line counts from a legacy-shaped entry that maps the file straight to its array" do
+      write_resultset(
+        "RSpec" => {
+          "coverage" => {abs_filename => [nil, 2, 1, 0, 1]},
+          "timestamp" => Time.now.to_f,
+          "test_contexts" => contexts
+        }
+      )
+
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:2")).to eq(0)
+      expect(stdout.string).to include("line 2: covered by 2 tests:")
+    end
+
+    it "refuses a range spanning an absurd number of lines" do
+      expect(run("who-covers", "--input", resultset_path, "lib/thing.rb:1-4000000000")).to eq(1)
+      expect(stderr.string).to include("spans more than 100000 lines")
+    end
+
+    it "errors cleanly when the input cannot be read" do
+      expect(run("who-covers", "--input", tmp, "lib/thing.rb:2")).to eq(1)
+      expect(stderr.string).to include("cannot read #{tmp}")
+    end
+
+    it "errors when the input has no results" do
+      expect(run("who-covers", "--input", File.join(tmp, "missing.json"), "lib/thing.rb:2")).to eq(1)
+      expect(stderr.string).to include("no results in")
+    end
+
+    it "errors when the file is not in the resultset" do
+      write_resultset("RSpec" => recorded_entry(contexts: contexts))
+
+      expect(run("who-covers", "--input", resultset_path, "lib/missing.rb:2")).to eq(1)
+      expect(stderr.string).to include("no coverage entry for lib/missing.rb")
+    end
+  end
+
   describe "merge subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-merge-spec-") }
     let(:a) { File.join(tmp, "a.json") }

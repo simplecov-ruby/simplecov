@@ -40,6 +40,40 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect(validate).to equal(data)
   end
 
+  it "accepts a document carrying per-test contexts" do
+    data.fetch("meta")["test_contexts"] = {
+      "granularity" => "per_test",
+      "tests" => [{"id" => "./spec/a_spec.rb[1:1]", "name" => "A does one thing"}]
+    }
+    data.dig("coverage", "lib/a.rb")["test_contexts"] = {"0" => "1"}
+
+    expect(validate).to equal(data)
+  end
+
+  it "rejects a tests table that is not id/name string pairs" do
+    data.fetch("meta")["test_contexts"] = {"granularity" => "per_test", "tests" => [{"id" => "a"}]}
+
+    expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /test_contexts\.tests/)
+  end
+
+  it "rejects a meta test_contexts that is not an object" do
+    data.fetch("meta")["test_contexts"] = "per_test"
+
+    expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /test_contexts\.tests/)
+  end
+
+  it "rejects per-file test contexts whose bitmaps are not strings" do
+    data.dig("coverage", "lib/a.rb")["test_contexts"] = {"0" => 1}
+
+    expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /hex bitmap strings/)
+  end
+
+  it "rejects per-file test contexts without the meta tests table" do
+    data.dig("coverage", "lib/a.rb")["test_contexts"] = {"0" => "1"}
+
+    expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /meta\.test_contexts is missing/)
+  end
+
   it "rejects an invalid timestamp" do
     data.fetch("meta")["timestamp"] = "not-a-time"
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /ISO 8601/)

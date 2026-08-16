@@ -1,0 +1,55 @@
+module SimpleCov
+  module TestContexts
+    # The serialized, queryable form of a per-test context recording:
+    # ordered tests table plus per-file test-index => line bitmaps.
+    class Map
+      type masks = Hash[Integer, Integer]
+
+      VERSION: Integer
+
+      INDEX_FORMAT: Regexp
+
+      MASK_FORMAT: Regexp
+
+      @files: Hash[String, masks]
+
+      @sorted_masks: Hash[String, Array[[Integer, Integer]]]
+
+      def self.from_hash: (untyped hash) -> Map?
+
+      def self.snapshot: (TestTable table, Hash[String, masks] files) -> Map
+
+      private
+
+      def self.parse_tests: (untyped raw) -> Array[TestTable::entry]?
+
+      def self.parse_files: (untyped raw, Integer test_count) -> Hash[String, masks]?
+
+      def self.parse_masks: (untyped masks, Integer test_count) -> masks?
+
+      def self.parse_mask_pair: (untyped index, untyped hex, Integer test_count) -> [Integer, Integer]?
+
+      public
+
+      attr_reader tests: Array[TestTable::entry]
+
+      def initialize: (tests: Array[TestTable::entry], files: Hash[String, masks]) -> void
+
+      def each_file: () { ([String, masks]) -> void } -> void
+
+      def tests_for: (String filename, Integer line_number) -> Array[TestTable::entry]
+
+      def bitmaps_for: (String filename) -> masks
+
+      def slice: (Array[String] filenames) -> Map
+
+      def serialized_bitmaps_for: (String filename) -> Hash[String, String]
+
+      def to_h: () -> Hash[String, untyped]
+
+      private
+
+      def serialize_masks: (masks masks) -> Hash[String, String]
+    end
+  end
+end

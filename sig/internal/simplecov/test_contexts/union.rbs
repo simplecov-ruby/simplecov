@@ -1,0 +1,43 @@
+module SimpleCov
+  module TestContexts
+    # Accumulates the recordings of every resultset entry a merge
+    # touches, under an all-or-drop rule.
+    class Union
+      @table: TestTable
+
+      @files: Hash[String, Hash[Integer, Integer]]
+
+      @incomplete: bool
+
+      @observed: bool
+
+      @warned_about_drop: bool
+
+      def initialize: () -> void
+
+      def observe: (Hash[String, untyped] resultset_entries) -> void
+
+      def absorb_entry: (untyped data) -> void
+
+      def absorb: (Map map) -> void
+
+      def mark_incomplete!: () -> void
+
+      def result: () -> Map?
+
+      def dropped_mixed?: () -> bool
+
+      def result_with_drop_warning: () -> Map?
+
+      def dump: () -> [bool, Hash[String, untyped]?]
+
+      def absorb_dump: (untyped pair) -> void
+
+      def self.carry: (Hash[String, untyped] entry, untyped existing, untyped incoming) -> Hash[String, untyped]
+
+      private
+
+      def warn_about_dropped_recording: () -> void
+    end
+  end
+end

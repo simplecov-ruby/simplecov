@@ -10,6 +10,8 @@ module SimpleCov
   # A simplecov code coverage result, initialized from the Hash Ruby's built-in coverage
   # library generates (Coverage.result).
   #
+  # rubocop:disable Metrics/ClassLength -- one data object together with
+  # its resultset-entry serialization; splitting would scatter that shape
   class Result
     extend Forwardable
 
@@ -19,9 +21,9 @@ module SimpleCov
     # into the resultset so a merge elsewhere can inject the ones nobody loaded
     # without needing that process's `cover` / `track_files` config. See #1250.
     attr_reader :tracked_files
-    # Invocation and top-level worker identities used only for parallel-result
-    # coordination. They do not change which fresh suites are merged.
-    attr_reader :run_id, :worker_id
+    # Parallel-run coordination identities, plus the per-test context
+    # recording (a TestContexts::Map, or nil).
+    attr_reader :run_id, :worker_id, :test_contexts
     # Returns all files that are applicable to this result (sans filters!) as instances of
     # SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
@@ -62,11 +64,12 @@ module SimpleCov
     # FilterConfig to opt out — useful for tests that build synthetic Results
     # and don't want the project's filters or groups applied.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   tracked_files: [], run_id: nil, worker_id: nil, report: false, filter_config: FilterConfig.new)
+                   tracked_files: [], run_id: nil, worker_id: nil, report: false, filter_config: FilterConfig.new,
+                   test_contexts: nil)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
-      initialize_coordination_metadata(tracked_files, run_id, worker_id)
+      initialize_coordination_metadata(tracked_files, run_id, worker_id, test_contexts)
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
@@ -138,6 +141,7 @@ module SimpleCov
       # Omitted when empty so a run that tracks nothing writes the shape it
       # always has, and so the key only appears where it carries information.
       data["tracked_files"] = tracked_files unless tracked_files.empty?
+      attach_test_contexts(data)
       {command_name => data}
     end
 
@@ -146,16 +150,23 @@ module SimpleCov
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]),
                                     tracked_files: data["tracked_files"] || [], run_id: data["run_id"],
-                                    worker_id: data["worker_id"])
+                                    worker_id: data["worker_id"], test_contexts: TestContexts::Map.from_hash(data["test_contexts"]))
       end
     end
 
   private
 
-    def initialize_coordination_metadata(tracked_files, run_id, worker_id)
+    def initialize_coordination_metadata(tracked_files, run_id, worker_id, test_contexts)
       @tracked_files = tracked_files.to_a
       @run_id = run_id
       @worker_id = worker_id
+      @test_contexts = test_contexts
+    end
+
+    # Written even when empty: presence tells the merge attribution was
+    # recorded, and an absent key on any entry drops the merged recording.
+    def attach_test_contexts(data)
+      data["test_contexts"] = test_contexts.slice(filenames).to_h if test_contexts
     end
 
     def warn_about_missing_source_files(missing, input_size)
@@ -210,4 +221,5 @@ module SimpleCov
       )
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

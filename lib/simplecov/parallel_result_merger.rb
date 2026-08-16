@@ -21,6 +21,8 @@ module SimpleCov
   # can redo the fold serially: reporting coverage for a subset of the
   # resultsets would silently understate it.
   #
+  # rubocop:disable Metrics/ModuleLength -- one fork/pipe/reap pipeline;
+  # splitting it would separate steps that only make sense together
   module ParallelResultMerger
   module_function
 
@@ -47,15 +49,17 @@ module SimpleCov
     #
     def merge_results(*file_paths, processes:, ignore_timeout: false)
       tracked_files = Set.new
+      contexts = TestContexts::Union.new
       pair = absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
-                                        tracked_files: tracked_files)
+                                        tracked_files: tracked_files, contexts: contexts)
       # A nil pair means nothing was fanned out at all, so the serial path
       # is exactly `ResultMerger.merge_results` — delegate rather than
       # re-implement its collector wiring.
       return ResultMerger.merge_results(*file_paths, ignore_timeout: ignore_timeout) unless pair
 
       command_names, coverage = pair
-      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files)
+      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files,
+                                                          test_contexts: contexts.result_with_drop_warning)
     end
 
     #
@@ -70,7 +74,7 @@ module SimpleCov
     #   `ResultMerger.create_result` consumes, or nil when the work could not
     #   be fanned out and the caller should merge in this process instead.
     #
-    def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new)
+    def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new, contexts: nil)
       # One worker folds the whole list anyway, and one file is a fold of
       # one — in both cases the fork and the round trip are pure overhead.
       return nil if processes < 2 || file_paths.size < 2
@@ -83,7 +87,8 @@ module SimpleCov
       # instead would answer true and send them down the fan-out.
       return nil unless Process.respond_to?(:fork)
 
-      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files)
+      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout,
+                                            tracked_files: tracked_files, contexts: contexts)
     end
 
     # Contiguous slices whose sizes differ by at most one, so no worker is
@@ -103,12 +108,15 @@ module SimpleCov
     # refusing a process we expected to get — EAGAIN at RLIMIT_NPROC, ENOMEM
     # under memory pressure. That says something is wrong with the machine
     # rather than with the merge, and quietly absorbing it would hide it.
-    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new)
+    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new, contexts: nil)
       workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
       payloads = collect(workers)
       return nil unless payloads
 
-      payloads.each { |(_pair, tracked)| tracked_files.merge(tracked) }
+      payloads.each do |(_pair, tracked, contexts_dump)|
+        tracked_files.merge(tracked)
+        contexts&.absorb_dump(contexts_dump)
+      end
       ResultMerger.merge_coverage(*payloads.map(&:first))
     end
 
@@ -165,9 +173,10 @@ module SimpleCov
     # the union across every worker to know what nothing loaded.
     def run_worker(chunk, writer, ignore_timeout:)
       tracked_files = Set.new
+      contexts = TestContexts::Union.new
       pair = ResultMerger.absorb_results(chunk, ignore_timeout: ignore_timeout,
-                                         &ResultMerger::UnloadedFiles.collector(tracked_files))
-      Marshal.dump([pair, tracked_files.to_a], writer)
+                                         &ResultMerger::MergeCollector.call(tracked_files, contexts))
+      Marshal.dump([pair, tracked_files.to_a, contexts.dump], writer)
       writer.close
       0
     rescue StandardError => e
@@ -227,4 +236,5 @@ module SimpleCov
            "merging the resultsets in this process instead."
     end
   end
+  # rubocop:enable Metrics/ModuleLength
 end

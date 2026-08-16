@@ -871,6 +871,84 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#test_contexts" do
+      it "returns nil (disabled) by default" do
+        expect(config.test_contexts).to be_nil
+      end
+
+      it "stores :per_test" do
+        config.test_contexts :per_test
+
+        expect(config.test_contexts).to eq :per_test
+      end
+
+      it "accepts nil to disable recording again" do
+        config.test_contexts :per_test
+        config.test_contexts nil
+
+        expect(config.test_contexts).to be_nil
+      end
+
+      it "rejects unknown modes" do
+        expect { config.test_contexts :per_suite }
+          .to raise_error(SimpleCov::ConfigurationError, /Unsupported test_contexts mode :per_suite/)
+      end
+    end
+
+    describe "#per_test_contexts?" do
+      it "is false by default" do
+        expect(config.per_test_contexts?).to be false
+      end
+
+      it "is true once :per_test is selected" do
+        config.test_contexts :per_test
+
+        expect(config.per_test_contexts?).to be true
+      end
+    end
+
+    describe "#validate_test_contexts!" do
+      after { config.clear_coverage_criteria }
+
+      it "passes when recording is disabled, whatever the criteria" do
+        config.enable_coverage :oneshot_line
+
+        expect { config.validate_test_contexts! }.not_to raise_error
+      end
+
+      it "passes with line coverage enabled" do
+        config.test_contexts :per_test
+
+        expect { config.validate_test_contexts! }.not_to raise_error
+      end
+
+      it "rejects oneshot line coverage" do
+        config.test_contexts :per_test
+        config.enable_coverage :oneshot_line
+
+        expect { config.validate_test_contexts! }
+          .to raise_error(SimpleCov::ConfigurationError, /oneshot_line records each line at most once/)
+      end
+
+      it "requires line coverage" do
+        config.test_contexts :per_test
+        config.disable_coverage :line
+        config.enable_coverage :branch
+
+        expect { config.validate_test_contexts! }
+          .to raise_error(SimpleCov::ConfigurationError, /line coverage is required/)
+      end
+
+      it "requires Coverage.peek_result" do
+        config.test_contexts :per_test
+        allow(Coverage).to receive(:respond_to?).and_call_original
+        allow(Coverage).to receive(:respond_to?).with(:peek_result).and_return(false)
+
+        expect { config.validate_test_contexts! }
+          .to raise_error(SimpleCov::ConfigurationError, /peek_result/)
+      end
+    end
+
     describe "#enable_for_subprocesses (deprecated)" do
       it "warns and names `merge_subprocesses` as the replacement" do
         stderr = capture_stderr { config.enable_for_subprocesses(true) }

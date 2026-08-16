@@ -135,6 +135,41 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
+  describe "per-test contexts across the fan-out" do
+    def contexts_for(id, hex)
+      {"version" => 1, "tests" => [[id, id]], "files" => {source_fixture("sample.rb") => {"0" => hex}}}
+    end
+
+    let(:recorded_paths) do
+      [
+        write_resultset("ctx0", {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, nil]}},
+                        test_contexts: contexts_for("t0", "2")),
+        write_resultset("ctx1", {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, nil]}},
+                        test_contexts: contexts_for("t1", "4")),
+        write_resultset("ctx2", {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, nil]}},
+                        test_contexts: contexts_for("t2", "4"))
+      ]
+    end
+
+    it "unions the recordings every worker saw", if: FORK_SUPPORTED do
+      result = described_class.merge_results(*recorded_paths, processes: 2, ignore_timeout: true)
+
+      map = result.test_contexts
+      expect(map.tests).to contain_exactly(%w[t0 t0], %w[t1 t1], %w[t2 t2])
+      expect(map.tests_for(source_fixture("sample.rb"), 3)).to contain_exactly(%w[t1 t1], %w[t2 t2])
+    end
+
+    it "drops the recordings with a warning when any shard lacks one", if: FORK_SUPPORTED do
+      result = nil
+      stderr = capture_stderr do
+        result = described_class.merge_results(*recorded_paths, *paths.first(1), processes: 2, ignore_timeout: true)
+      end
+
+      expect(result.test_contexts).to be_nil
+      expect(stderr).to include("the merged result drops it")
+    end
+  end
+
   describe ".chunk" do
     it "splits into contiguous slices, in order" do
       expect(described_class.chunk(%w[a b c d e f], 3)).to eq([%w[a b], %w[c d], %w[e f]])
@@ -161,11 +196,12 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
     after { pipe.each { |io| io.close unless io.closed? } }
 
-    it "writes the merged pair with its tracked files and reports success" do
+    it "writes the merged pair with its tracked files and contexts, and reports success" do
       reader, writer = pipe
 
       expect(described_class.run_worker(paths, writer, ignore_timeout: true)).to eq(0)
-      expect(Marshal.load(reader)).to eq([serial, []]) # rubocop:disable Security/MarshalLoad
+      # These shards carry no per-test contexts, so the slice's union is incomplete.
+      expect(Marshal.load(reader)).to eq([serial, [], [true, nil]]) # rubocop:disable Security/MarshalLoad
     end
 
     it "reports failure and warns when the merged pair cannot be shipped back" do
@@ -300,11 +336,12 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
 private
 
-  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil)
+  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil, test_contexts: nil)
     timestamp = Time.now.to_i - (outdated ? SimpleCov.merge_timeout * 2 : 0)
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
     entry = {"coverage" => coverage, "timestamp" => timestamp}
     entry["tracked_files"] = tracked_files if tracked_files
+    entry["test_contexts"] = test_contexts if test_contexts
     File.write(path, JSON.generate(command_name => entry))
     path
   end

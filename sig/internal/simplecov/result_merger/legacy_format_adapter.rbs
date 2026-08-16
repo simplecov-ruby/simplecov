@@ -12,6 +12,8 @@ module SimpleCov
       def self?.pre_0_18?: (untyped result) -> untyped
 
       def self?.upgrade: (untyped result) -> untyped
+
+      def self?.lines_of: (untyped file_coverage) -> untyped
     end
   end
 end

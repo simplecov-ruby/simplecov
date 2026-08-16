@@ -11,7 +11,7 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION: "1.0"
+        SCHEMA_VERSION: "1.1"
 
         SCHEMA_URL: ::String
 
@@ -24,6 +24,8 @@ module SimpleCov
         def self.format_groups: (untyped result) -> untyped
 
         def self.format_meta: (untyped result) -> untyped
+
+        def self.test_contexts_meta: (untyped result) -> Hash[Symbol, untyped]
 
         # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
         # project isn't a git checkout or git isn't on PATH. Recorded so tools

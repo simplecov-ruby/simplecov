@@ -5,7 +5,7 @@ module SimpleCov
       # in coverage.json: source code plus per-enabled-criterion arrays
       # and totals.
       class SourceFileFormatter
-        def self.call: (untyped source_file, ?include_source: bool) -> untyped
+        def self.call: (untyped source_file, ?include_source: bool, ?test_contexts: untyped) -> untyped
 
         private
 
@@ -16,6 +16,8 @@ module SimpleCov
         def self.branch_coverage_section: (untyped source_file) -> { branches: untyped, branches_covered_percent: untyped, covered_branches: untyped, missed_branches: untyped, total_branches: untyped }
 
         def self.method_coverage_section: (untyped source_file) -> { methods: untyped, methods_covered_percent: untyped, covered_methods: untyped, missed_methods: untyped, total_methods: untyped }
+
+        def self.test_contexts_section: (untyped source_file, untyped test_contexts) -> { test_contexts: Hash[String, String] }
 
         def self.format_line: (untyped line) -> ("ignored" | untyped)
 

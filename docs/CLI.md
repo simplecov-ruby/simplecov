@@ -10,17 +10,18 @@ The bundled `simplecov` CLI provides a set of subcommands. The read-only reporti
 `coverage.json` output, so you don't need to re-run your suite — any prior run that emitted JSON suffices. Paths default
 to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present.
 
-| Command            | Description                                                         |
-|--------------------|---------------------------------------------------------------------|
-| `run <command…>`   | Execute `<command>` with simplecov pre-loaded (no `test_helper` hook needed) |
-| `coverage <path>`  | Print coverage stats for a single file                              |
-| `report`           | Print the overall summary and per-group totals                      |
-| `uncovered`        | List the lowest-coverage files                                      |
-| `merge <files…>`   | Merge multiple `.resultset.json` files                              |
-| `diff <baseline>`  | Show per-file coverage delta vs a baseline                          |
-| `open`             | Open the HTML report in the default browser                         |
-| `serve`            | Serve the coverage report over HTTP                                 |
-| `clean`            | Remove the coverage report directory                                |
+| Command                    | Description                                                                  |
+|----------------------------|------------------------------------------------------------------------------|
+| `run <command…>`           | Execute `<command>` with simplecov pre-loaded (no `test_helper` hook needed) |
+| `coverage <path>`          | Print coverage stats for a single file                                       |
+| `report`                   | Print the overall summary and per-group totals                               |
+| `uncovered`                | List the lowest-coverage files                                               |
+| `who-covers <path>:<line>` | Name the tests that covered the line (needs `test_contexts :per_test`)       |
+| `merge <files…>`           | Merge multiple `.resultset.json` files                                       |
+| `diff <baseline>`          | Show per-file coverage delta vs a baseline                                   |
+| `open`                     | Open the HTML report in the default browser                                  |
+| `serve`                    | Serve the coverage report over HTTP                                          |
+| `clean`                    | Remove the coverage report directory                                         |
 
 Run `simplecov help` for the full option listing.
 
@@ -102,6 +103,28 @@ $ simplecov uncovered --criterion branch
 `--threshold N` filters to files below N% coverage (default `100`); `--top N` caps the list at N entries (default
 `10`); `--criterion line|branch|method` chooses which coverage to rank by (default `line`). `--json` emits the rows as
 a JSON array (empty when nothing is below the threshold), useful for piping into a CI gate.
+
+### `who-covers` — name the tests that covered a line
+
+`simplecov who-covers <path>:<line>` answers which tests executed a line, so you can find where a behavior is pinned
+before changing it. It reads `.resultset.json` (not `coverage.json`), and needs the suite to have run with
+[`test_contexts :per_test`](Configuration.md#per-test-contexts) so per-test recordings were stored:
+
+```sh
+$ simplecov who-covers lib/simplecov/result.rb:42
+/project/lib/simplecov/result.rb
+  line 42: covered by 2 tests:
+    SimpleCov::Result round-trips per-test contexts (./spec/result_spec.rb[1:2:5])
+    FooTest#test_to_hash
+```
+
+A `<path>:<start>-<end>` range answers every line in it. A line the merged coverage says ran but no recorded test
+claims was executed only during load or suite-level setup (a `before(:suite)` hook, a load-time factory, file load
+time) and is reported as such.
+`--json` emits the per-line answers (`covered` / `setup_only` / `uncovered` / `not_executable`) with each covering
+test's rerun id and description. `--input PATH` reads another resultset. When any merged entry lacks per-test data the
+command refuses with the entries' names rather than answering from a partial recording, mirroring how merging drops
+mixed recordings.
 
 ### `merge` — combine resultsets from parallel CI workers
 

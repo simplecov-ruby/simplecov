@@ -12,6 +12,11 @@
 module Minitest
   def self.plugin_simplecov_init(_options)
     return unless defined?(SimpleCov)
+
+    # Same ordering, per-test contexts edition: activate! could not see
+    # Minitest, so attach the test hook now.
+    SimpleCov::TestContexts::Hooks.install_minitest! if SimpleCov.per_test_contexts?
+
     return if SimpleCov.external_at_exit?
 
     SimpleCov.external_at_exit = true

@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.1.schema.json",
+  "title": "SimpleCov coverage.json",
+  "description": "Schema for the coverage.json file emitted by SimpleCov's JSONFormatter. Versioned independently of the gem. Non-breaking additions bump the minor segment of schema_version, breaking changes bump the major segment. The versioned file at schemas/coverage-vX.Y.schema.json is the canonical artifact for that version, schemas/coverage.schema.json is a convenience alias for the latest.",
+  "type": "object",
+  "required": ["$schema", "meta", "total", "coverage", "groups", "errors"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL of the JSON Schema this document conforms to. Pinned to the versioned canonical URL so documents stay validatable against the exact contract they were emitted under, even after the schema evolves."
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "simplecov_version",
+        "command_name",
+        "project_name",
+        "timestamp",
+        "root",
+        "commit",
+        "primary_coverage",
+        "line_coverage",
+        "branch_coverage",
+        "method_coverage"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.1",
+          "description": "Schema major.minor. Additive changes bump minor; breaking changes bump major. Update this `const` whenever the schema version is bumped so documents claiming a different version don't quietly validate against this contract."
+        },
+        "simplecov_version": {
+          "type": "string",
+          "description": "The version of the SimpleCov gem that produced this file."
+        },
+        "command_name": {"type": "string"},
+        "project_name": {"type": "string"},
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp with millisecond precision."
+        },
+        "root": {
+          "type": "string",
+          "description": "Absolute path to SimpleCov.root at the time of write."
+        },
+        "commit": {
+          "type": ["string", "null"],
+          "description": "Full git commit SHA of `root`'s HEAD when the report was generated, or null when the project isn't a git checkout (or git isn't available). Lets tools recover the exact source a report reflects, which matters most when `source_in_json` is false and the per-file `source` arrays are omitted."
+        },
+        "primary_coverage": {
+          "type": "string",
+          "enum": ["line", "branch", "method"],
+          "description": "The coverage criterion `SimpleCov.primary_coverage` names as primary. The HTML report sorts file lists by this criterion's coverage by default."
+        },
+        "line_coverage": {"type": "boolean"},
+        "branch_coverage": {"type": "boolean"},
+        "method_coverage": {"type": "boolean"},
+        "test_contexts": {
+          "type": "object",
+          "description": "Present only when the report was generated with per-test context recording enabled (`SimpleCov.test_contexts :per_test`): the interned table of tests that each per-file `test_contexts` map indexes into. Absent when recording was off, so documents without the feature keep validating.",
+          "required": ["granularity", "tests"],
+          "additionalProperties": false,
+          "properties": {
+            "granularity": {
+              "type": "string",
+              "const": "per_test",
+              "description": "Recording granularity. \"per_test\" is the only granularity in 1.1; future granularities extend this with a minor bump."
+            },
+            "tests": {
+              "type": "array",
+              "description": "Ordered, de-duplicated tests. Per-file `test_contexts` keys are decimal-string indices into this array.",
+              "items": {
+                "type": "object",
+                "required": ["id", "name"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {"type": "string", "description": "Rerun identity: RSpec's example id (e.g. \"./spec/user_spec.rb[1:2]\"), or \"Klass#test_method\" for Minitest."},
+                  "name": {"type": "string", "description": "Human-readable description; equals id when the framework offers nothing richer."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "total": {"$ref": "#/definitions/totals"},
+    "coverage": {
+      "type": "object",
+      "description": "Map of project-relative file paths to per-file coverage data.",
+      "additionalProperties": {"$ref": "#/definitions/source_file"}
+    },
+    "groups": {
+      "type": "object",
+      "description": "Map of group names to per-group totals plus the list of files in the group.",
+      "additionalProperties": {"$ref": "#/definitions/group"}
+    },
+    "errors": {
+      "type": "object",
+      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage, and maximum_coverage_drop. Empty object when no thresholds were violated.",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_coverage": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods.",
+          "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+        },
+        "minimum_coverage_by_file": {
+          "type": "object",
+          "description": "Keyed by project-relative filename, then by criterion (lines, branches, methods).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+          }
+        },
+        "minimum_coverage_by_group": {
+          "type": "object",
+          "description": "Keyed by group name, then by criterion (lines, branches, methods).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+          }
+        },
+        "maximum_coverage": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods. `expected` is the configured maximum, `actual` is the measured value that exceeded it.",
+          "additionalProperties": {"$ref": "#/definitions/expected_actual"}
+        },
+        "maximum_coverage_drop": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods.",
+          "additionalProperties": {"$ref": "#/definitions/maximum_actual"}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
+      "properties": {
+        "lines": {"$ref": "#/definitions/line_statistic"},
+        "branches": {"$ref": "#/definitions/coverage_statistic"},
+        "methods": {"$ref": "#/definitions/coverage_statistic"}
+      }
+    },
+    "source_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
+      "dependentRequired": {
+        "lines":                    ["lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
+        "lines_covered_percent":    ["lines", "covered_lines", "missed_lines", "omitted_lines", "total_lines"],
+        "covered_lines":            ["lines", "lines_covered_percent", "missed_lines", "omitted_lines", "total_lines"],
+        "missed_lines":             ["lines", "lines_covered_percent", "covered_lines", "omitted_lines", "total_lines"],
+        "omitted_lines":            ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "total_lines"],
+        "total_lines":              ["lines", "lines_covered_percent", "covered_lines", "missed_lines", "omitted_lines"],
+        "branches":                 ["branches_covered_percent", "covered_branches", "missed_branches", "total_branches"],
+        "branches_covered_percent": ["branches", "covered_branches", "missed_branches", "total_branches"],
+        "covered_branches":         ["branches", "branches_covered_percent", "missed_branches", "total_branches"],
+        "missed_branches":          ["branches", "branches_covered_percent", "covered_branches", "total_branches"],
+        "total_branches":           ["branches", "branches_covered_percent", "covered_branches", "missed_branches"],
+        "methods":                  ["methods_covered_percent", "covered_methods", "missed_methods", "total_methods"],
+        "methods_covered_percent":  ["methods", "covered_methods", "missed_methods", "total_methods"],
+        "covered_methods":          ["methods", "methods_covered_percent", "missed_methods", "total_methods"],
+        "missed_methods":           ["methods", "methods_covered_percent", "covered_methods", "total_methods"],
+        "total_methods":            ["methods", "methods_covered_percent", "covered_methods", "missed_methods"]
+      },
+      "properties": {
+        "lines": {
+          "type": "array",
+          "description": "Per-source-line coverage. Element index N corresponds to source line N+1. Integer hit-count, null for non-relevant (blank/comment) lines, or the string \"ignored\" for lines inside a simplecov:disable / :nocov: region. Present if and only if `meta.line_coverage` is true. When present, the five line stat fields (`lines_covered_percent`, `covered_lines`, `missed_lines`, `omitted_lines`, `total_lines`) are guaranteed to be present too.",
+          "items": {"$ref": "#/definitions/line_coverage"}
+        },
+        "source": {
+          "type": "array",
+          "description": "Source lines of the file, in order (one entry per physical line). When the per-file `lines` array is present it has the same length, but `source` is emitted independently of line coverage. Present only when SimpleCov.source_in_json is true (the default); omitted when downstream tools opt out via `source_in_json false` to keep coverage.json smaller.",
+          "items": {"type": "string"}
+        },
+        "lines_covered_percent": {"type": "number"},
+        "covered_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines that were hit at least once."},
+        "missed_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines that were never hit."},
+        "omitted_lines": {"type": "integer", "minimum": 0, "description": "Count of non-executable lines (blank lines, comments). Mirrors `total.lines.omitted` at the per-file level. Excludes lines inside simplecov:disable / :nocov: regions, which surface as `\"ignored\"` in the `lines` array."},
+        "total_lines": {"type": "integer", "minimum": 0, "description": "Count of executable lines: `covered_lines + missed_lines`. Does not include non-executable (omitted) lines or lines inside simplecov:disable / :nocov: regions, so this can be smaller than `lines.length`."},
+        "branches": {
+          "type": "array",
+          "description": "Per-branch coverage. Present if and only if `meta.branch_coverage` is true. When present, the four branch stat fields (`branches_covered_percent`, `covered_branches`, `missed_branches`, `total_branches`) are guaranteed to be present too.",
+          "items": {"$ref": "#/definitions/branch"}
+        },
+        "branches_covered_percent": {"type": "number"},
+        "covered_branches": {"type": "integer", "minimum": 0},
+        "missed_branches": {"type": "integer", "minimum": 0},
+        "total_branches": {"type": "integer", "minimum": 0, "description": "Count of branches: `covered_branches + missed_branches`."},
+        "methods": {
+          "type": "array",
+          "description": "Per-method coverage. Present if and only if `meta.method_coverage` is true. When present, the four method stat fields (`methods_covered_percent`, `covered_methods`, `missed_methods`, `total_methods`) are guaranteed to be present too.",
+          "items": {"$ref": "#/definitions/method"}
+        },
+        "methods_covered_percent": {"type": "number"},
+        "covered_methods": {"type": "integer", "minimum": 0},
+        "missed_methods": {"type": "integer", "minimum": 0},
+        "total_methods": {"type": "integer", "minimum": 0, "description": "Count of methods: `covered_methods + missed_methods`."},
+        "test_contexts": {
+          "type": "object",
+          "description": "Map from test index (a decimal-string index into meta.test_contexts.tests) to a lowercase hexadecimal bitmap of the source lines that test executed in this file: bit N-1 set means line N was executed, so a test covering only line 1 has bitmap \"1\". Emitted for every file — as an empty object when no recorded test executed it — whenever meta.test_contexts is present, and never otherwise. Zero bitmaps are omitted. A line with a positive count in `lines` whose bit is set in no test's bitmap was executed only outside recorded tests: at load time, or in suite-level setup such as before hooks and factories.",
+          "propertyNames": {"pattern": "^(0|[1-9][0-9]*)$"},
+          "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]+$"}
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "required": ["type", "start_line", "end_line", "coverage", "inline", "report_line"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Branch kind from Ruby's Coverage library (e.g. \"then\", \"else\", \"when\")."
+        },
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "coverage": {"$ref": "#/definitions/branch_method_coverage"},
+        "inline": {"type": "boolean"},
+        "report_line": {"type": "integer", "minimum": 1, "description": "Line of the conditional that owns this branch (the `if`, `case`, or `&&` line), not the start of the branch body. Useful for rendering annotations at the decision point."}
+      }
+    },
+    "method": {
+      "type": "object",
+      "required": ["name", "start_line", "end_line", "coverage"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Qualified method name, e.g. \"Foo#bar\", \"Foo.bar\", or \"Foo::Bar#baz\"."
+        },
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "coverage": {"$ref": "#/definitions/branch_method_coverage"}
+      }
+    },
+    "group": {
+      "type": "object",
+      "required": ["files"],
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["lines"]},
+        {"required": ["branches"]},
+        {"required": ["methods"]}
+      ],
+      "properties": {
+        "lines": {"$ref": "#/definitions/line_statistic"},
+        "branches": {"$ref": "#/definitions/coverage_statistic"},
+        "methods": {"$ref": "#/definitions/coverage_statistic"},
+        "files": {
+          "type": "array",
+          "description": "Project-relative paths of the files that fell into this group.",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "line_statistic": {
+      "type": "object",
+      "required": ["covered", "missed", "omitted", "total", "percent", "strength"],
+      "additionalProperties": false,
+      "properties": {
+        "covered": {"type": "integer", "minimum": 0},
+        "missed": {"type": "integer", "minimum": 0},
+        "omitted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines that cannot be covered (blank, comment, etc.). Only present on line stats."
+        },
+        "total": {"type": "integer", "minimum": 0, "description": "Executable lines: `covered + missed`. Does not include `omitted`."},
+        "percent": {"type": "number"},
+        "strength": {"type": "number", "description": "Average executions per coverable line: the sum of hit counts divided by `covered + missed`."}
+      }
+    },
+    "coverage_statistic": {
+      "type": "object",
+      "required": ["covered", "missed", "total", "percent", "strength"],
+      "additionalProperties": false,
+      "properties": {
+        "covered": {"type": "integer", "minimum": 0},
+        "missed": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 0, "description": "Total branches or methods: `covered + missed`."},
+        "percent": {"type": "number"},
+        "strength": {"type": "number", "description": "Average executions per coverable branch or method: the sum of hit counts divided by `covered + missed`."}
+      }
+    },
+    "line_coverage": {
+      "description": "Coverage value for a source line in the per-file `lines` array. Integer hit count, `null` for a non-executable line (blank or comment), or the literal string `\"ignored\"` for a line inside a simplecov:disable / :nocov: region.",
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "null"},
+        {"type": "string", "const": "ignored"}
+      ]
+    },
+    "branch_method_coverage": {
+      "description": "Coverage value for a branch or method `coverage` field. Integer hit count, or the literal string `\"ignored\"` for code inside a simplecov:disable / :nocov: region. Unlike line coverage, `null` never occurs: every branch and method maps to an executable construct.",
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "string", "const": "ignored"}
+      ]
+    },
+    "expected_actual": {
+      "type": "object",
+      "required": ["expected", "actual"],
+      "additionalProperties": false,
+      "properties": {
+        "expected": {"type": "number"},
+        "actual": {"type": "number"}
+      }
+    },
+    "maximum_actual": {
+      "type": "object",
+      "required": ["maximum", "actual"],
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {"type": "number"},
+        "actual": {"type": "number"}
+      }
+    }
+  }
+}

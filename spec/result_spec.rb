@@ -93,6 +93,25 @@ RSpec.describe SimpleCov::Result do
           expect(described_class.from_hash(tracked_result.to_hash).first.tracked_files).to eq(tracked)
         end
 
+        it "omits test_contexts when nothing was recorded" do
+          expect(result.to_hash.values.first).not_to have_key("test_contexts")
+        end
+
+        it "round-trips per-test contexts, sliced to the result's own files" do
+          map = SimpleCov::TestContexts::Map.from_hash(
+            "version" => 1,
+            "tests" => [["t1", "test one"]],
+            "files" => {source_fixture("sample.rb") => {"0" => "2"}, "/elsewhere/other.rb" => {"0" => "1"}}
+          )
+          recorded = described_class.new(original_result, command_name: "t", test_contexts: map)
+
+          stored = recorded.to_hash["t"]["test_contexts"]
+          expect(stored["files"].keys).to eq [source_fixture("sample.rb")]
+
+          restored = described_class.from_hash(recorded.to_hash).first
+          expect(restored.test_contexts.tests_for(source_fixture("sample.rb"), 2)).to eq [["t1", "test one"]]
+        end
+
         it "round-trips parallel run and worker identities" do
           identified = described_class.new(
             original_result, command_name: "t", run_id: "run-1", worker_id: "worker-2"

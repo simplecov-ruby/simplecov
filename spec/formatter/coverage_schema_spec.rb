@@ -5,12 +5,12 @@ require "json"
 require "json_schemer"
 
 # Validates that every shape JSONFormatter is expected to emit conforms to
-# the contract in schemas/coverage-v1.0.schema.json. The schema is
+# the contract in schemas/coverage-v1.1.schema.json. The schema is
 # published as the public contract for coverage.json consumers, this
 # spec catches drift between code and schema at test time so neither
 # can rot independently.
 describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
-  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.0.schema.json", __dir__) }
+  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.1.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }
   let(:alias_doc)   { JSON.parse(File.read(alias_path)) }
@@ -83,6 +83,43 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
       result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}})
       errors = validate_against_schema(emit(result))
       expect(errors).to be_empty, errors.join("\n")
+    end
+
+    context "with per-test contexts recorded" do
+      let(:document) do
+        map = SimpleCov::TestContexts::Map.from_hash(
+          "version" => 1,
+          "tests" => [["./spec/a_spec.rb[1:1]", "A does one thing"]],
+          "files" => {source_fixture("json/sample.rb") => {"0" => "1"}}
+        )
+        result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}},
+                                       test_contexts: map)
+        emit(result)
+      end
+
+      it "validates the emitted document" do
+        expect(document.dig("meta", "test_contexts", "tests"))
+          .to eq [{"id" => "./spec/a_spec.rb[1:1]", "name" => "A does one thing"}]
+        expect(document.fetch("coverage").values.first.fetch("test_contexts")).to eq("0" => "1")
+
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
+
+      it "rejects a non-hex bitmap value" do
+        document.fetch("coverage").values.first["test_contexts"] = {"0" => "XYZ"}
+        expect(validate_against_schema(document)).not_to be_empty
+      end
+
+      it "rejects a non-decimal test index" do
+        document.fetch("coverage").values.first["test_contexts"] = {"01" => "1"}
+        expect(validate_against_schema(document)).not_to be_empty
+      end
+
+      it "rejects a foreign granularity" do
+        document.dig("meta", "test_contexts")["granularity"] = "per_file"
+        expect(validate_against_schema(document)).not_to be_empty
+      end
     end
 
     it "validates a result emitted with SimpleCov.source_in_json off (no per-file `source` array)" do

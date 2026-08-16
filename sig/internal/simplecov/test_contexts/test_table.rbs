@@ -1,0 +1,17 @@
+module SimpleCov
+  module TestContexts
+    # Interns test identities into stable small integer indices and keeps
+    # the ordered table of `[rerun_id, human_name]` entries.
+    class TestTable
+      type entry = [String, String]
+
+      @indices: Hash[String, Integer]
+
+      attr_reader entries: Array[entry]
+
+      def initialize: () -> void
+
+      def intern: (String id, ?String name) -> Integer
+    end
+  end
+end

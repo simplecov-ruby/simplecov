@@ -18,7 +18,7 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION = "1.0"
+        SCHEMA_VERSION = "1.1"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 
@@ -37,8 +37,10 @@ module SimpleCov
         private
 
           def format_files(result, include_source:)
+            contexts = result.test_contexts
             result.files.to_h do |source_file|
-              [source_file.project_filename, SourceFileFormatter.call(source_file, include_source: include_source)]
+              [source_file.project_filename,
+               SourceFileFormatter.call(source_file, include_source: include_source, test_contexts: contexts)]
             end
           end
 
@@ -59,7 +61,15 @@ module SimpleCov
               root: SimpleCov.root,
               commit: git_commit,
               primary_coverage: SimpleCov.primary_coverage.to_s
-            }.merge!(coverage_flags)
+            }.merge!(coverage_flags).merge!(test_contexts_meta(result))
+          end
+
+          def test_contexts_meta(result)
+            contexts = result.test_contexts
+            return {} unless contexts
+
+            tests = contexts.tests.map { |id, name| {id: id, name: name} }
+            {test_contexts: {granularity: "per_test", tests: tests}}
           end
 
           # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the

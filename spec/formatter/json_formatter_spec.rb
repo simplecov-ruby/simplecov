@@ -213,6 +213,60 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
+    context "with per-test contexts" do
+      let(:contexts) do
+        SimpleCov::TestContexts::Map.from_hash(
+          "version" => 1,
+          "tests" => [["./spec/a_spec.rb[1:1]", "A does one thing"], %w[BTest#test_b BTest#test_b]],
+          "files" => {source_fixture("json/sample.rb") => {"0" => "3", "1" => "0"}}
+        )
+      end
+      let(:recorded_result) do
+        res = SimpleCov::Result.new(
+          {source_fixture("json/sample.rb") => {"lines" => [nil, 1, 1]}},
+          test_contexts: contexts
+        )
+        res.created_at = fixed_time
+        res
+      end
+
+      it "lists the interned tests table in meta" do
+        meta = described_class.build_hash(recorded_result, include_source: false).fetch(:meta)
+
+        expect(meta[:test_contexts]).to eq(
+          granularity: "per_test",
+          tests: [
+            {id: "./spec/a_spec.rb[1:1]", name: "A does one thing"},
+            {id: "BTest#test_b", name: "BTest#test_b"}
+          ]
+        )
+      end
+
+      it "emits each file's bitmap map, dropping zero bitmaps" do
+        coverage = described_class.build_hash(recorded_result, include_source: false).fetch(:coverage)
+
+        expect(coverage.values.first[:test_contexts]).to eq("0" => "3")
+      end
+
+      it "emits an empty map for a file no recorded test touched" do
+        untouched = SimpleCov::Result.new(
+          {source_fixture("json/sample.rb") => {"lines" => [nil, 1, 1]}},
+          test_contexts: SimpleCov::TestContexts::Map.from_hash("version" => 1, "tests" => [], "files" => {})
+        )
+        untouched.created_at = fixed_time
+
+        coverage = described_class.build_hash(untouched, include_source: false).fetch(:coverage)
+        expect(coverage.values.first[:test_contexts]).to eq({})
+      end
+
+      it "emits neither the meta nor the per-file key when recording was off" do
+        hash = described_class.build_hash(result, include_source: false)
+
+        expect(hash[:meta]).not_to have_key(:test_contexts)
+        expect(hash.fetch(:coverage).values.first).not_to have_key(:test_contexts)
+      end
+    end
+
     it "builds a fresh errors hash for every serialization" do
       allow(SimpleCov).to receive(:minimum_coverage).and_return({line: 95}, {line: 80})
 

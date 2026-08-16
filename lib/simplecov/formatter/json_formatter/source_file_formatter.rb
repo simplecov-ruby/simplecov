@@ -8,11 +8,12 @@ module SimpleCov
       # and totals.
       class SourceFileFormatter
         class << self
-          def call(source_file, include_source: true)
+          def call(source_file, include_source: true, test_contexts: nil)
             result = include_source ? format_source_code(source_file) : {} #: Hash[Symbol, untyped]
             result.merge!(line_coverage_section(source_file)) if SimpleCov.line_coverage?
             result.merge!(branch_coverage_section(source_file)) if SimpleCov.branch_coverage?
             result.merge!(method_coverage_section(source_file)) if SimpleCov.method_coverage?
+            result.merge!(test_contexts_section(source_file, test_contexts)) if test_contexts
             result
           end
 
@@ -61,6 +62,10 @@ module SimpleCov
               missed_methods: missed,
               total_methods: covered + missed
             }
+          end
+
+          def test_contexts_section(source_file, test_contexts)
+            {test_contexts: test_contexts.serialized_bitmaps_for(source_file.filename)}
           end
 
           def format_line(line)

@@ -1,0 +1,46 @@
+module SimpleCov
+  module TestContexts
+    # Installs the per-framework wrappers that funnel each test through
+    # `SimpleCov.test_context_recorder`.
+    module Hooks
+      # Prepended onto Minitest::Test (or an injected stand-in).
+      module MinitestRun : Minitest::Test
+        def run: () -> untyped
+      end
+
+      # Watches for `Minitest::Test` getting defined after SimpleCov
+      # started (Minitest 6 loads no plugins on its own). Prepended onto
+      # Object's / Minitest's singleton classes, hence the Module
+      # self-type: that is where `super` finds `Module#const_added`.
+      module MinitestConstWatcher : Module
+        def const_added: (Symbol name) -> void
+      end
+
+      self.@rspec_installed: bool
+
+      self.@minitest_installed: bool
+
+      self.@watching_minitest: bool
+
+      def self.install!: () -> void
+
+      def self.watch_for_minitest!: () -> void
+
+      def self.on_const_added: (untyped owner, Symbol name) -> void
+
+      def self.minitest_test_appeared?: (untyped owner, Symbol name) -> bool
+
+      def self.installed_any?: () -> bool
+
+      def self.installed_rspec?: () -> bool
+
+      def self.installed_minitest?: () -> bool
+
+      def self.install_rspec!: (?untyped config) -> void
+
+      def self.install_minitest!: (?untyped target) -> void
+
+      def self.reset!: () -> void
+    end
+  end
+end

@@ -122,7 +122,9 @@ SimpleCov.start do
     minimum      90                  # fail the suite below 90% line coverage
     maximum_drop 1                   # ...or when coverage drops more than 1%
   end
-end
+
+  test_contexts :per_test            # record which tests covered each line
+end                                  # (see `simplecov who-covers lib/foo.rb:42`)
 ```
 
 Every option is documented in [docs/Configuration.md](docs/Configuration.md),

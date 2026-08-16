@@ -23,6 +23,12 @@ module SimpleCov
       def upgrade(result)
         result.transform_values { |line_coverage_data| {"lines" => line_coverage_data} }
       end
+
+      # The same rule for a single file's data, for consumers that read
+      # one file out of a resultset without upgrading the whole hash.
+      def lines_of(file_coverage)
+        file_coverage.is_a?(Hash) ? file_coverage["lines"] : file_coverage
+      end
     end
   end
 end

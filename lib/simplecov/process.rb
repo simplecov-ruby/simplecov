@@ -44,6 +44,10 @@ module SimpleCov
         # the user installed, so `final_result_process?` can keep forked
         # workers from each producing the final report. See issue #1171.
         SimpleCov.mark_forked_subprocess!
+        # The child's Coverage counters restart from the parent's values,
+        # but its tests are its own: inherited per-test recordings would
+        # misattribute, so the child never records contexts.
+        SimpleCov.clear_test_context_recorder!
         # Without this, a child forked under Minitest autorun measures
         # coverage and then silently discards it: every inherited exit
         # route is dead in the child (see the method's comment). A custom

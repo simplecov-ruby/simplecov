@@ -1,0 +1,18 @@
+module SimpleCov
+  # Per-test context recording: which test covered each line.
+  module TestContexts
+    def self.activate!: () -> void
+  end
+
+  self.@test_context_recorder: TestContexts::Recorder?
+
+  def self.test_context_recorder: () -> TestContexts::Recorder?
+
+  def self.install_test_context_recorder!: () -> void
+
+  def self.clear_test_context_recorder!: () -> void
+
+  def self.test_context_payload: () -> TestContexts::Map?
+
+  def self.warn_about_missing_test_hooks: () -> nil
+end

@@ -1,0 +1,51 @@
+module SimpleCov
+  module CLI
+    # `simplecov who-covers <path>:<line>` — name the tests whose
+    # recorded contexts covered the given line(s).
+    module WhoCovers
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      TARGET_FORMAT: Regexp
+
+      MAX_RANGE_LINES: Integer
+
+      SETUP_ONLY: String
+
+      def self?.command_name: () -> String
+
+      def self?.run: (Array[String] args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.read_resultset: (Hash[Symbol, untyped] opts, untyped stderr) -> Hash[String, untyped]?
+
+      def self?.parse: (Array[String] args, stderr: untyped) -> Hash[Symbol, untyped]?
+
+      def self?.parse_target: (Hash[Symbol, untyped] opts, String? target, untyped stderr) -> Hash[Symbol, untyped]?
+
+      def self?.validate_range: (Hash[Symbol, untyped] opts, untyped stderr) -> Hash[Symbol, untyped]?
+
+      def self?.refuse: (untyped stderr, String message) -> nil
+
+      def self?.contexts_from: (Hash[String, untyped] resultset, Hash[Symbol, untyped] opts, untyped stderr) -> TestContexts::Map?
+
+      def self?.answer: (TestContexts::Map map, Hash[String, untyped] resultset, Hash[Symbol, untyped] opts, untyped stdout, untyped stderr) -> Integer
+
+      def self?.coverage_paths: (Hash[String, untyped] resultset) -> Hash[String, nil]
+
+      def self?.merged_lines: (Hash[String, untyped] resultset, String filename) -> Array[Integer?]?
+
+      def self?.line_row: (TestContexts::Map map, String filename, Array[Integer?]? lines, Integer line) -> Hash[String, untyped]
+
+      def self?.line_status: (Array[TestContexts::TestTable::entry] tests, Integer? count) -> String
+
+      def self?.emit: (Hash[String, untyped] payload, Hash[Symbol, untyped] opts, untyped stdout) -> untyped
+
+      def self?.print_row: (Hash[String, untyped] row, untyped stdout) -> untyped
+
+      def self?.print_covered_row: (Hash[String, untyped] row, untyped stdout) -> untyped
+    end
+  end
+end

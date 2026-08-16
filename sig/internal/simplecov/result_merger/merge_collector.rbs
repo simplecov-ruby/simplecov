@@ -1,0 +1,8 @@
+module SimpleCov
+  module ResultMerger
+    # The collector every merge hands `merge_valid_results`.
+    module MergeCollector
+      def self?.call: (Set[String] tracked_files, TestContexts::Union contexts) -> ^(untyped) -> void
+    end
+  end
+end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "result_merger/legacy_format_adapter"
+require_relative "result_merger/merge_collector"
 require_relative "result_merger/resultset_file"
 require_relative "result_merger/resultset_run_identity"
 require_relative "result_merger/resultset_store"
@@ -30,9 +31,11 @@ module SimpleCov
         # Tracked paths are collected as each resultset is parsed, so files are
         # still read and discarded one at a time. See #1250.
         tracked_files = Set.new
+        contexts = TestContexts::Union.new
         command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
-                                                 &UnloadedFiles.collector(tracked_files))
-        create_result(command_names, coverage, tracked_files: tracked_files)
+                                                 &MergeCollector.call(tracked_files, contexts))
+        create_result(command_names, coverage, tracked_files: tracked_files,
+                                               test_contexts: contexts.result_with_drop_warning)
       end
 
       #
@@ -112,7 +115,7 @@ module SimpleCov
              "Increase SimpleCov.merge_timeout to include them."
       end
 
-      def create_result(command_names, coverage, tracked_files: Set.new)
+      def create_result(command_names, coverage, tracked_files: Set.new, test_contexts: nil)
         return nil unless coverage
 
         command_name = command_names.reject(&:empty?).sort.join(", ")
@@ -126,7 +129,7 @@ module SimpleCov
           command_name: command_name,
           not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
           tracked_files: tracked_files.to_a,
-          report: true
+          report: true, test_contexts: test_contexts
         )
       end
 
@@ -143,8 +146,10 @@ module SimpleCov
       # for the result consisting of a join on all source result's names
       def merged_result
         tracked_files = Set.new
-        command_names, coverage = merge_valid_results(read_resultset, &UnloadedFiles.collector(tracked_files))
-        create_result(command_names, coverage, tracked_files: tracked_files)
+        contexts = TestContexts::Union.new
+        command_names, coverage = merge_valid_results(read_resultset, &MergeCollector.call(tracked_files, contexts))
+        create_result(command_names, coverage, tracked_files: tracked_files,
+                                               test_contexts: contexts.result_with_drop_warning)
       end
 
       def read_resultset
@@ -178,6 +183,7 @@ module SimpleCov
         merged = incoming.merge(
           "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
         )
+        merged = TestContexts::Union.carry(merged, existing, incoming)
         UnloadedFiles.carry_tracked(merged, existing, incoming)
       end
 

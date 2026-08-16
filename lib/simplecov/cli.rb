@@ -13,6 +13,7 @@ require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
 require_relative "cli/uncovered"
+require_relative "cli/who_covers"
 
 module SimpleCov
   # Lightweight command-line front-end. `run` dispatches a subcommand
@@ -26,6 +27,8 @@ module SimpleCov
   # present, so a project that writes its report somewhere other than
   # `coverage/` doesn't have to pass `--input` / `--report` every
   # invocation.
+  # rubocop:disable Metrics/ModuleLength -- mostly the usage text, which
+  # grows a few lines with every subcommand
   module CLI
     COMMANDS = {
       "coverage" => Coverage,
@@ -33,6 +36,7 @@ module SimpleCov
       "open" => Open,
       "report" => Report,
       "uncovered" => Uncovered,
+      "who-covers" => WhoCovers,
       "merge" => Merge,
       "diff" => Diff,
       "serve" => Serve,
@@ -103,6 +107,8 @@ module SimpleCov
           coverage <path>           Print coverage stats for the given file
           report                    Print the overall summary and group totals
           uncovered                 List the lowest-coverage files
+          who-covers <path>:<line>  Name the tests that covered the line
+                                    (needs `test_contexts :per_test`)
           merge <files...>          Merge multiple .resultset.json files
           diff <baseline>           Show per-file coverage delta vs baseline
           open                      Open the HTML report in the default browser
@@ -129,6 +135,11 @@ module SimpleCov
           --top N                   Show at most N files (default: 10)
           --criterion C             line, branch, or method (default: line)
           --json                    Emit results as a JSON array (for CI)
+
+        who-covers options:
+          <path>:<start>-<end>      Answer a whole line range
+          --input PATH              Read from PATH instead of #{default_resultset}
+          --json                    Emit the per-line answers as JSON
 
         merge options:
           --output PATH             Write merged resultset to PATH
@@ -160,4 +171,5 @@ module SimpleCov
       USAGE
     end
   end
+  # rubocop:enable Metrics/ModuleLength
 end

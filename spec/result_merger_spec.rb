@@ -69,6 +69,46 @@ RSpec.describe SimpleCov::ResultMerger do
   # wrong when the merge did not measure anything itself, which is exactly the
   # `simplecov merge` case. Fewer tables than its neighbours is what inflates
   # the percentage #1059 fixed. See #1250.
+  describe "per-test contexts in a merged result" do
+    let(:first_map) do
+      SimpleCov::TestContexts::Map.from_hash(
+        "version" => 1, "tests" => [%w[t1 t1]],
+        "files" => {source_fixture("sample.rb") => {"0" => "4"}}
+      )
+    end
+    let(:second_map) do
+      SimpleCov::TestContexts::Map.from_hash(
+        "version" => 1, "tests" => [%w[t2 t2]],
+        "files" => {source_fixture("sample.rb") => {"0" => "8"}}
+      )
+    end
+
+    it "unions the recordings when every stored result carries one" do
+      described_class.store_result(
+        SimpleCov::Result.new(first_resultset, command_name: "result1", test_contexts: first_map)
+      )
+      described_class.store_result(
+        SimpleCov::Result.new(second_resultset, command_name: "result2", test_contexts: second_map)
+      )
+
+      merged = described_class.merged_result
+      expect(merged.test_contexts.tests_for(source_fixture("sample.rb"), 3)).to eq [%w[t1 t1]]
+      expect(merged.test_contexts.tests_for(source_fixture("sample.rb"), 4)).to eq [%w[t2 t2]]
+    end
+
+    it "drops the recordings with a warning when any stored result lacks one" do
+      described_class.store_result(
+        SimpleCov::Result.new(first_resultset, command_name: "result1", test_contexts: first_map)
+      )
+      described_class.store_result(second_result)
+
+      merged = nil
+      stderr = capture_stderr { merged = described_class.merged_result }
+      expect(merged.test_contexts).to be_nil
+      expect(stderr).to include("the merged result drops it")
+    end
+  end
+
   describe "the shape of an injected file" do
     # sample.rb has methods to synthesize; resultset1.rb is four `puts` lines.
     let(:loaded) { source_fixture("resultset1.rb") }

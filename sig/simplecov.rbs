@@ -355,6 +355,37 @@ module SimpleCov
   end
 end
 
+# ----- configuration/test_contexts -----
+
+# The test-context recording mode (`test_contexts :per_test`),
+# attributing each covered line to the tests that executed it.
+# Orthogonal to the criteria set: criteria pick `Coverage.start`'s
+# arguments, context recording samples `Coverage.peek_result` around
+# each test on top of whatever is measured.
+module SimpleCov
+  module Configuration
+    # Members are nil and per_test.
+    SUPPORTED_TEST_CONTEXT_MODES: Array[Symbol?]
+
+    @test_contexts: Symbol?
+
+    # Get or set the test-context recording mode. `nil` (default)
+    # records nothing; `:per_test` records which tests covered each
+    # line. Unknown modes raise SimpleCov::ConfigurationError.
+    def test_contexts: (?Symbol? mode) -> Symbol?
+
+    def per_test_contexts?: () -> bool
+
+    def validate_tracking_configuration!: () -> void
+
+    def validate_test_contexts!: () -> void
+
+    private
+
+    def validate_line_counts_for_test_contexts!: () -> void
+  end
+end
+
 # ----- configuration/coverage -----
 
 # The criterion-first `coverage` configuration method: naming a
@@ -790,6 +821,9 @@ module SimpleCov
     attr_reader tracked_files: Array[String]
     attr_reader run_id: String?
     attr_reader worker_id: String?
+    # The per-test context recording (a SimpleCov::TestContexts::Map,
+    # an internal class), or nil when none was recorded.
+    attr_reader test_contexts: untyped
     attr_reader files: FileList
     alias source_files files
     # The writers accept the strict types; the ivars stay nilable because
@@ -813,7 +847,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?report: bool, ?filter_config: FilterConfig, ?test_contexts: untyped) -> void
 
     def filenames: () -> Array[String]
     # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
@@ -848,7 +882,8 @@ module SimpleCov
 
     private
 
-    def initialize_coordination_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id) -> void
+    def initialize_coordination_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id, untyped test_contexts) -> void
+    def attach_test_contexts: (Hash[String, untyped] data) -> void
     def warn_about_missing_source_files: (Array[String] missing, Integer input_size) -> void
     def coverage: () -> Hash[String, untyped]
     def apply_filters!: (Array[Filter[untyped]] filters) -> void

@@ -1,0 +1,14 @@
+# Minimal declarations for the test frameworks the per-test context
+# hooks integrate with. Neither gem ships RBS signatures; these declare
+# just the surface the hooks touch.
+module RSpec
+  def self.configuration: () -> untyped
+end
+
+module Minitest
+  class Test
+    def run: () -> untyped
+
+    def name: () -> untyped
+  end
+end

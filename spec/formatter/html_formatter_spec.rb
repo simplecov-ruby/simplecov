@@ -188,6 +188,21 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(meta["method_coverage"]).to be(true).or be(false)
     end
 
+    it "embeds per-test contexts in the payload when the result carries them" do
+      map = SimpleCov::TestContexts::Map.from_hash(
+        "version" => 1,
+        "tests" => [["./spec/a_spec.rb[1:1]", "A does one thing"]],
+        "files" => {fixture_path("sample.rb") => {"0" => "2"}}
+      )
+      result = SimpleCov::Result.new({fixture_path("sample.rb") => CoverageFixtures::SAMPLE_RB}, test_contexts: map)
+      formatter.format(result)
+
+      data = coverage_data
+      expect(data.dig("meta", "test_contexts", "tests"))
+        .to eq [{"id" => "./spec/a_spec.rb[1:1]", "name" => "A does one thing"}]
+      expect(data["coverage"].values.first["test_contexts"]).to eq("0" => "2")
+    end
+
     # Regression test for #741: in Nix and similar pure-build environments,
     # the gem's static assets ship at mode 0444. Earlier code copied them
     # via `FileUtils.cp_r`, which preserved the read-only mode and then
