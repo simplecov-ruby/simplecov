@@ -56,7 +56,11 @@ module SimpleCov
           return if owner.autoload?(name)
 
           if owner == ::Object && name == :Minitest
-            ::Minitest.singleton_class.prepend(MinitestConstWatcher)
+            # JRuby fires const_added for an autoload declaration before
+            # the autoload? guard above can see the entry, so the constant
+            # may not be resolvable yet. Resolving the autoload fires
+            # const_added again, so deferring here loses nothing.
+            ::Minitest.singleton_class.prepend(MinitestConstWatcher) if defined?(::Minitest)
           elsif minitest_test_appeared?(owner, name)
             @watching_minitest = false
             install_minitest!

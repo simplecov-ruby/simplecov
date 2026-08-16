@@ -210,6 +210,15 @@ RSpec.describe SimpleCov::TestContexts::Hooks do
       # rubocop:enable RSpec/RemoveConst
       FileUtils.remove_entry(dir) if dir
     end
+
+    it "stays deferred when const_added fires before the constant resolves, as JRuby's autoload declaration does" do
+      hide_const("Minitest")
+      described_class.watch_for_minitest!
+
+      described_class.on_const_added(Object, :Minitest)
+
+      expect(described_class.installed_minitest?).to be false
+    end
   end
 
   describe ".installed_any?" do
