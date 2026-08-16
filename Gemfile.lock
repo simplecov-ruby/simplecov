@@ -37,7 +37,7 @@ GEM
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
-    power_assert (3.0.1)
+    power_assert (3.1.0)
     prism (1.9.0)
     racc (1.8.1)
     racc (1.8.1-java)
