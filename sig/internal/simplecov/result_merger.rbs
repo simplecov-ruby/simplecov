@@ -27,7 +27,11 @@ module SimpleCov
 
     def self.warn_about_expired_results: (untyped expired_command_names) -> (nil | untyped)
 
-    def self.create_result: (untyped command_names, untyped coverage, ?tracked_files: _ToA[String]) -> (nil | untyped)
+    # One block over the entries each resultset contributes to the merge,
+    # feeding every merge-side accumulator in a single pass.
+    def self.entry_collector: (Set[String] tracked_files, ContextMap::Union context_maps) -> ^(Hash[String, untyped] surviving) -> void
+
+    def self.create_result: (untyped command_names, untyped coverage, ?tracked_files: _ToA[String], ?contexts: ContextMap?) -> (nil | untyped)
 
     def self.merge_coverage: (*untyped results) -> (::Array[::Array[""] | nil] | untyped)
 

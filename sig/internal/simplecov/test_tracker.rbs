@@ -1,0 +1,93 @@
+module SimpleCov
+  # Samples `Coverage.peek_result` around each test and attributes the
+  # delta — the lines whose execution count grew — to that test in a
+  # `ContextMap`. Enabled by the `track_tests` configuration.
+  class TestTracker
+    @root_regex: Regexp
+    @lock: Mutex
+    @owner: Thread?
+    @depth: Integer
+    @poisoned: bool
+
+    self.@rspec_hook_installed: bool?
+
+    attr_reader map: ContextMap
+
+    def initialize: (?root_regex: Regexp) -> void
+
+    # Run the block and record the lines it executed as covered by
+    # `test_id`; returns the block's value, recording even on raise.
+    def track: [T] (String test_id) { () -> T } -> T
+
+    # Whether attribution has been given up on (tests overlapped across
+    # threads).
+    def poisoned?: () -> bool
+
+    # The map when its attribution is trustworthy, nil once poisoned.
+    def recorded_map: () -> ContextMap?
+
+    # Install every framework integration `start_test_tracking` can wire
+    # up from inside the tracked process.
+    def self.install_framework_hooks: () -> void
+
+    # Wrap every RSpec example in a `track_test` call. Installs once per
+    # process.
+    def self.install_rspec_hook: (?untyped rspec) -> void
+
+    # @api private — test seam for the process-wide install guard.
+    def self.reset_rspec_hook!: () -> void
+
+    # Prepend the per-test wrapper into `Minitest::Test`. Idempotent.
+    def self.install_minitest_hook: (?untyped test_case) -> void
+
+    # Install the Minitest wrapper now or the moment `Minitest::Test` is
+    # defined (minitest 6 no longer auto-loads plugins).
+    def self.install_minitest_hook_when_loaded: (?Module root) -> void
+
+    def self.watch_for_minitest_test: (untyped minitest) -> void
+
+    # The constant when genuinely loaded, nil when absent or merely
+    # declared for autoload.
+    def self.loaded_const: (Module mod, Symbol name) -> untyped
+
+    def self.rspec_example_id: (untyped example) -> String
+
+    def self.minitest_test_id: (untyped test) -> String
+
+    # Prepended to `Minitest::Test`, wrapping each test method run.
+    module MinitestRun : ::Minitest::Test
+      def run: () -> untyped
+    end
+
+    # The tracker's singleton-side surface, extended onto `SimpleCov`.
+    module Accessors : Configuration
+      @test_tracker: TestTracker?
+
+      # Record the block's coverage delta as covered by `test_id`,
+      # returning the block's value; a no-op wrapper unless tracking runs.
+      def track_test: [T] (String test_id) { () -> T } -> T
+
+      # @api private — the live per-test recorder, if any.
+      def test_tracker: () -> TestTracker?
+
+      # @api private — called from `start_coverage_measurement`.
+      def start_test_tracking: () -> void
+    end
+
+    private
+
+    def enter: () -> Hash[String, untyped]?
+
+    def settle: (String test_id, Hash[String, untyped]? before) -> void
+
+    def poison: () -> void
+
+    def delta: (Hash[String, untyped] before, Hash[String, untyped] after) -> Hash[String, Integer]
+
+    def lines_in: (untyped file_coverage) -> Array[Integer?]?
+
+    def line_delta: (Array[Integer?]? before_lines, Array[Integer?]? after_lines) -> Integer
+
+    def grew?: (Integer? count, Integer? previous) -> bool
+  end
+end

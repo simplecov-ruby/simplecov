@@ -26,14 +26,15 @@ module SimpleCov
     # workers are merged into `tracked_files`.
     #
     def self?.absorb_results: (Array[String] file_paths, processes: Integer, ?ignore_timeout: bool,
-                               ?tracked_files: Set[String]) -> untyped
+                               ?tracked_files: Set[String], ?context_maps: ContextMap::Union) -> untyped
 
     # Contiguous slices whose sizes differ by at most one. There are never
     # more slices than files.
     def self?.chunk: (Array[String] file_paths, Integer processes) -> Array[Array[String]]
 
     # Raises if the OS refuses a fork; see the method comment.
-    def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool, ?tracked_files: Set[String]) -> untyped
+    def self?.fan_out: (Array[Array[String]] chunks, ignore_timeout: bool, ?tracked_files: Set[String],
+                        ?context_maps: ContextMap::Union) -> untyped
 
     def self?.spawn_workers: (Array[Array[String]] chunks, ignore_timeout: bool) -> Array[Hash[Symbol, untyped]]
 

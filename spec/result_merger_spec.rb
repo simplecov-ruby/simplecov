@@ -700,6 +700,61 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(described_class).to have_received(:synchronize_resultset)
     end
 
+    # The per-test map follows the same union-or-drop rule everywhere: the
+    # merged result carries the union when every merged entry recorded one,
+    # and no map at all otherwise — a partial map would present one suite's
+    # tests as the whole run's.
+    describe "per-test maps across the merge" do
+      def store_mapped_result(command_name, test_id, bitmap)
+        map = SimpleCov::ContextMap.new
+        map.record(test_id, source_fixture("sample.rb") => bitmap)
+        described_class.store_result(
+          SimpleCov::Result.new(
+            {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+            command_name: command_name, contexts: map
+          )
+        )
+      end
+
+      def store_unmapped_result(command_name)
+        described_class.store_result(
+          SimpleCov::Result.new(
+            {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+            command_name: command_name
+          )
+        )
+      end
+
+      it "unions the maps when every merged entry carries one" do
+        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+        store_mapped_result("Cucumber", "features/b.feature:4", 0b100)
+
+        merged = described_class.merged_result
+
+        expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
+        expect(merged.contexts.covering(source_fixture("sample.rb"), 3)).to eq(["features/b.feature:4"])
+      end
+
+      it "drops the map out loud when only some entries carry one" do
+        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+        store_unmapped_result("Cucumber")
+
+        merged = nil
+        output = capture_stderr { merged = described_class.merged_result }
+
+        expect(merged.contexts).to be_nil
+        expect(output).to include("Dropped the per-test map")
+      end
+
+      it "carries the union through merge_results, the collate path" do
+        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+
+        merged = described_class.merge_results(described_class.resultset_path, ignore_timeout: true)
+
+        expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
+      end
+    end
+
     # See https://github.com/simplecov-ruby/simplecov/issues/581. When a parent
     # process (Rakefile, Rails Bundler.require) shells out to the test runner,
     # the subprocess writes its real result to the resultset and then the
@@ -748,6 +803,43 @@ RSpec.describe SimpleCov::ResultMerger do
 
         tracked = described_class.read_resultset.fetch("RSpec").fetch("tracked_files")
         expect(tracked).to contain_exactly("/x/one.rb", "/x/shared.rb", "/x/two.rb")
+      end
+
+      # Concurrent runners' maps get the union-or-drop rule too: keeping
+      # just the later writer's map would silently drop the subprocess's.
+      it "unions the test maps both entries recorded" do
+        subprocess_map = SimpleCov::ContextMap.new
+        subprocess_map.record("test/a_test.rb:3", source_fixture("sample.rb") => 0b1)
+        subprocess = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [1, 1]}},
+          command_name: "RSpec", contexts: subprocess_map
+        )
+        subprocess.created_at = process_start + 1
+        described_class.store_result(subprocess)
+
+        parent = SimpleCov::Result.new({}, command_name: "RSpec", contexts: SimpleCov::ContextMap.new)
+        parent.created_at = process_start + 2
+        described_class.store_result(parent)
+
+        stored = described_class.read_resultset.fetch("RSpec").fetch("contexts")
+        expect(SimpleCov::ContextMap.from_hash(stored).covering(source_fixture("sample.rb"), 1))
+          .to eq(["test/a_test.rb:3"])
+      end
+
+      it "drops the test map when only one of the concurrent entries recorded one" do
+        subprocess_map = SimpleCov::ContextMap.new
+        subprocess_map.record("test/a_test.rb:3", source_fixture("sample.rb") => 0b1)
+        subprocess = SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [1, 1]}},
+          command_name: "RSpec", contexts: subprocess_map
+        )
+        subprocess.created_at = process_start + 1
+        described_class.store_result(subprocess)
+
+        parent_empty_result.created_at = process_start + 2
+        described_class.store_result(parent_empty_result)
+
+        expect(described_class.read_resultset.fetch("RSpec")).not_to have_key("contexts")
       end
 
       it "still overwrites an older entry from a previous run (older than process_start)" do

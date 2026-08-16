@@ -1,0 +1,50 @@
+module SimpleCov
+  # Records which context covered which line: an interned list of context ids
+  # and, per source file, a bitmap Integer of covered lines for each context
+  # that touched the file. Bit N set means line N+1 was executed.
+  class ContextMap
+    # Serialized format version; `.from_hash` treats any other as absent.
+    VERSION: Integer
+
+    @contexts: Array[String]
+    @indices: Hash[String, Integer]
+    @files: Hash[String, Hash[Integer, Integer]]
+
+    # Fold one test's covered lines in; interns the id even when the
+    # delta is empty.
+    def record: (String context_id, Hash[String, Integer] lines_by_file) -> self
+
+    # The ids of every recorded test that executed `line` of `path`,
+    # sorted. Accepts absolute or project-relative paths.
+    def covering: (String path, Integer line) -> Array[String]
+
+    def contexts: () -> Array[String]
+
+    def empty?: () -> bool
+
+    # Union `other` into this map, re-interning its test ids.
+    def absorb: (ContextMap other) -> self
+
+    # The serializable form; `only:` restricts the files, never the contexts.
+    def to_h: (?only: Set[String]?) -> Hash[String, untyped]
+
+    # @api private — intern `context_id`, returning its stable index.
+    def intern: (String context_id) -> Integer
+
+    # Rebuild a map from its `#to_h` form, nil for anything malformed.
+    def self.from_hash: (untyped data) -> ContextMap?
+
+    def self.build: (Array[String] contexts, Hash[untyped, untyped] files) -> ContextMap?
+
+    def self.absorb_table: (ContextMap map, Array[String] contexts, String path, Hash[untyped, untyped] table) -> boolish
+
+    def self.parse_index: (untyped index, Integer size) -> Integer?
+
+    def self.parse_bitmap: (untyped encoded) -> Integer?
+
+    # Raw internals for `absorb`; protected because they are live state.
+    def interned_contexts: () -> Array[String]
+
+    def file_tables: () -> Hash[String, Hash[Integer, Integer]]
+  end
+end

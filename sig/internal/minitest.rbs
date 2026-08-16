@@ -3,4 +3,12 @@
 # type-checking only; not shipped with the gem.
 module Minitest
   def self.after_run: () { () -> void } -> void
+
+  # The wrapper SimpleCov::TestTracker prepends needs the class and its
+  # `run` to exist for `super` to resolve against.
+  class Test
+    def run: () -> untyped
+
+    def name: () -> String
+  end
 end
