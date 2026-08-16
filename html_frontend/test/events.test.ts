@@ -4,11 +4,12 @@
 // delegation is attached exactly once, whatever ran earlier in the process.
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { installPageSkeleton, coverageData } from './fixture';
+import { installPageSkeleton, coverageData, coverageDataWithContexts } from './fixture';
 import { renderPage } from '../src/page';
 import { precomputeFileIds, fileId } from '../src/format';
 import { setupSourceDialog, navigateToHash, getDialogBody, dialogIsOpen } from '../src/dialog';
 import { setupEventDelegation, jumpToMissedLine } from '../src/events';
+import { setupTestContextsDialog, testContextsDialogIsOpen } from '../src/test_contexts_dialog';
 
 function clearHash(): void {
   window.location.hash = '';
@@ -117,6 +118,41 @@ describe('source-line clicks', () => {
 
     expect(getDialogBody().scrollTop).toBe(55);
     expect(window.location.hash).toBe('#' + id + '-L2');
+  });
+});
+
+describe('covering-tests clicks', () => {
+  async function bootWithContexts(): Promise<string> {
+    const data = coverageDataWithContexts();
+    await precomputeFileIds(Object.keys(data.coverage));
+    renderPage(data);
+    setupTestContextsDialog();
+
+    const id = fileId('lib/covered.rb');
+    window.location.hash = '#' + id;
+    navigateToHash();
+    return id;
+  }
+
+  test('a hit-count click opens the tests dialog without rewriting the hash to the line', async () => {
+    const id = await bootWithContexts();
+
+    const hits = getDialogBody().querySelector('li[data-linenumber="1"] .hits--tests')!;
+    click(hits);
+
+    expect(testContextsDialogIsOpen()).toBe(true);
+    expect(window.location.hash).toBe('#' + id);
+  });
+
+  test('a load-only hit-count click opens the tests dialog too', async () => {
+    const id = await bootWithContexts();
+
+    // line 2 is covered but no recorded test reaches it
+    const badge = getDialogBody().querySelector('li[data-linenumber="2"] .hits--contexts')!;
+    click(badge);
+
+    expect(testContextsDialogIsOpen()).toBe(true);
+    expect(window.location.hash).toBe('#' + id);
   });
 });
 

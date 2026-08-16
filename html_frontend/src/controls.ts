@@ -4,6 +4,7 @@
 import { $, $$ } from './dom';
 import { hasFocusedRow, setFocusedRow, moveFocus, openFocusedRow } from './navigation';
 import { dialogIsOpen, navigateToActiveTab } from './dialog';
+import { testContextsDialogIsOpen, closeTestContexts } from './test_contexts_dialog';
 import { jumpToMissedLine } from './events';
 import { updateFavicon } from './page';
 import { readPreference, writePreference } from './prefs';
@@ -103,7 +104,10 @@ function focusActiveFilter(): void {
 }
 
 function handleEscape(e: KeyboardEvent, inInput: boolean): void {
-  if (dialogIsOpen()) {
+  if (testContextsDialogIsOpen()) {
+    e.preventDefault();
+    closeTestContexts();
+  } else if (dialogIsOpen()) {
     e.preventDefault();
     navigateToActiveTab();
   } else if (inInput) {
@@ -136,6 +140,8 @@ export function handleKeydown(e: KeyboardEvent): void {
     handleEscape(e, inInput);
   } else if (inInput) {
     // Other keys are left to the focused input.
+  } else if (testContextsDialogIsOpen()) {
+    // Don't scroll the source dialog hidden behind its backdrop.
   } else if (dialogIsOpen()) {
     handleDialogKeys(e);
   } else {

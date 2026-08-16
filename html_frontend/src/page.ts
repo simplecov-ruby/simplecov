@@ -8,7 +8,7 @@ import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
-import type { CoverageData, FileCoverage } from './types';
+import type { CoverageData, FileCoverage, TestContextEntry } from './types';
 
 hljs.registerLanguage('ruby', ruby);
 
@@ -49,8 +49,22 @@ interface RenderState {
   lineCoverage: boolean;
   branchCoverage: boolean;
   methodCoverage: boolean;
+  testEntries: TestContextEntry[] | null;
 }
 let renderState: RenderState | null = null;
+
+export function testContextsFor(sourceFileId: string): {
+  filename: string;
+  contexts: Record<string, string>;
+  tests: TestContextEntry[];
+} | null {
+  if (!renderState || !renderState.testEntries) return null;
+  const filename = renderState.idToFilename[sourceFileId];
+  if (!filename) return null;
+  const contexts = renderState.coverage[filename]?.test_contexts;
+  if (!contexts) return null;
+  return { filename, contexts, tests: renderState.testEntries };
+}
 
 export function renderPage(data: CoverageData): void {
   const meta = data.meta;
@@ -108,7 +122,10 @@ export function renderPage(data: CoverageData): void {
   // materializer can resolve an id back to its FileCoverage in O(1).
   const idToFilename: Record<string, string> = {};
   for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
-  renderState = { idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage };
+  renderState = {
+    idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage,
+    testEntries: meta.test_contexts ? meta.test_contexts.tests : null
+  };
 
   // Footer
   const timestamp = new Date(meta.timestamp);

@@ -12,6 +12,7 @@ export interface CoverageData {
     line_coverage: boolean;
     branch_coverage: boolean;
     method_coverage: boolean;
+    test_contexts?: TestContextsMeta;
   };
   total: StatGroup;
   coverage: Record<string, FileCoverage>;
@@ -19,6 +20,16 @@ export interface CoverageData {
 }
 
 export type CoverageType = 'line' | 'branch' | 'method';
+
+export interface TestContextEntry {
+  id: string;
+  name: string;
+}
+
+export interface TestContextsMeta {
+  granularity: 'per_test';
+  tests: TestContextEntry[];
+}
 
 export interface StatGroup {
   lines?: CoverageStat;
@@ -51,6 +62,12 @@ export interface FileCoverage {
   covered_methods?: number;
   missed_methods?: number;
   total_methods?: number;
+  /**
+   * Test index (decimal string into meta.test_contexts.tests) -> lowercase
+   * hex bitmap; bit N-1 set = line N covered by that test. Present on every
+   * file if and only if the report recorded per-test contexts.
+   */
+  test_contexts?: Record<string, string>;
 }
 
 export interface BranchEntry {

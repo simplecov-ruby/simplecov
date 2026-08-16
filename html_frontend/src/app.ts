@@ -8,6 +8,7 @@ import { setupTableSorting } from './sort';
 import { setupColumnFilters } from './filter';
 import { scheduleEqualizeBarWidths, equalizeBarWidths } from './bar_width';
 import { setupSourceDialog, navigateToHash } from './dialog';
+import { setupTestContextsDialog } from './test_contexts_dialog';
 import { setupEventDelegation } from './events';
 import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
 import { setupTabScrollFade } from './tab_scroll';
@@ -86,6 +87,7 @@ async function init(): Promise<void> {
   setupColumnFilters();
   document.addEventListener('keydown', handleKeydown);
   setupSourceDialog();
+  setupTestContextsDialog();
   setupEventDelegation();
   setupTabs();
   setupTabScrollFade();

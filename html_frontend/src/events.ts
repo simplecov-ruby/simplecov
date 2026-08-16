@@ -3,6 +3,7 @@
 
 import { $$, on } from './dom';
 import { navigateToHash, getDialogBody } from './dialog';
+import { openTestContexts } from './test_contexts_dialog';
 
 function getMissedLines(): HTMLElement[] {
   return $$('.source-dialog .source_table li.missed, .source-dialog .source_table li.missed-branch, .source-dialog .source_table li.missed-method') as HTMLElement[];
@@ -43,11 +44,17 @@ export function setupEventDelegation(): void {
     if (link) window.location.hash = link.getAttribute('href')!.substring(1);
   });
 
+  // A click on a line's hit-count badge opens the covering-tests dialog;
+  // anywhere else on the line rewrites the hash to that line.
   on(document, 'click', '.source-dialog .source_table li[data-linenumber]', function (e: Event) {
     e.preventDefault();
-    getDialogBody().scrollTop = (this as HTMLElement).offsetTop;
     const linenumber = (this as HTMLElement).dataset.linenumber;
-    const sourceFileId = window.location.hash.substring(1).replace(/-L.*/, '');
+    const sourceFileId = this.closest('.source_table')!.id;
+    if ((e.target as Element).closest('.hits--contexts')) {
+      openTestContexts(sourceFileId, Number(linenumber));
+      return;
+    }
+    getDialogBody().scrollTop = (this as HTMLElement).offsetTop;
     window.location.replace(window.location.href.replace(/#.*/, '#' + sourceFileId + '-L' + linenumber));
   });
 

@@ -42,6 +42,14 @@ export const PAGE_BODY_HTML = `
       <div class="source-dialog__body" id="source-dialog-body" tabindex="0"></div>
       <div class="source-dialog__footer" id="source-dialog-footer"></div>
     </dialog>
+
+    <dialog id="test-contexts-dialog" class="test-contexts-dialog">
+      <div class="test-contexts-dialog__header">
+        <h3 id="test-contexts-dialog-title"></h3>
+        <button class="test-contexts-dialog__close" aria-label="Close" title="Close">&times;</button>
+      </div>
+      <div class="test-contexts-dialog__body" id="test-contexts-dialog-body"></div>
+    </dialog>
 `;
 
 export function installPageSkeleton(): void {
@@ -86,4 +94,13 @@ export function coverageData(): CoverageData {
     },
     groups: {}
   };
+}
+
+// coverageData() plus a minimal per-test recording: one test ("t0") covering
+// line 1 of each file, leaving every other covered line load/setup-only.
+export function coverageDataWithContexts(): CoverageData {
+  const data = coverageData();
+  data.meta.test_contexts = {granularity: 'per_test', tests: [{id: 't0', name: 't0'}]};
+  for (const file of Object.values(data.coverage)) file.test_contexts = {'0': '1'};
+  return data;
 }

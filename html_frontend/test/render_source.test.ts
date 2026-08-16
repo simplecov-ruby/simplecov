@@ -119,3 +119,44 @@ describe('renderSourceFile', () => {
     expect(el.querySelector('.t-missed-method-list')).toBeNull();
   });
 });
+
+describe('per-test context badges', () => {
+  const contextsData: FileCoverage = {
+    source: ['a', 'b', 'c', 'd'],
+    lines: [2, 1, 0, null],
+    covered_lines: 2,
+    total_lines: 3,
+    // both tests cover line 1; nothing recorded covers line 2
+    test_contexts: {'0': '1', '1': '1'}
+  };
+
+  test('marks every covered line hit-count badge, telling tests and load apart', () => {
+    const el = render(contextsData, true, false, false);
+
+    const line1 = el.querySelector('li[data-linenumber="1"]')!;
+    expect(line1.classList.contains('covered')).toBe(true);
+    const hits1 = line1.querySelector('.hits')!;
+    expect(hits1.classList.contains('hits--contexts')).toBe(true);
+    expect(hits1.classList.contains('hits--tests')).toBe(true);
+    expect(hits1.getAttribute('data-content')).toBe('2');
+
+    // A load/setup-only line keeps the clickable badge but no tests marker.
+    const line2 = el.querySelector('li[data-linenumber="2"]')!;
+    expect(line2.classList.contains('covered')).toBe(true);
+    const hits2 = line2.querySelector('.hits')!;
+    expect(hits2.classList.contains('hits--contexts')).toBe(true);
+    expect(hits2.classList.contains('hits--tests')).toBe(false);
+    expect(hits2.getAttribute('data-content')).toBe('1');
+
+    expect(el.querySelector('li[data-linenumber="3"] .hits--contexts')).toBeNull();
+    expect(el.querySelector('li[data-linenumber="4"] .hits--contexts')).toBeNull();
+  });
+
+  test('renders identically to before when no contexts were recorded', () => {
+    const without: FileCoverage = {
+      source: contextsData.source, lines: contextsData.lines, covered_lines: 2, total_lines: 3
+    };
+    const html = renderSourceFile(FILE, without, true, false, false);
+    expect(html).not.toContain('hits--contexts');
+  });
+});

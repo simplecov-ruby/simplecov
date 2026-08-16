@@ -1038,6 +1038,104 @@ table.file_list .totals-row td {
   content: attr(data-content);
 }
 
+/* With per-test contexts recorded, every covered line's hit-count badge
+   opens the tests dialog; an icon marks lines with covering tests. */
+.source_table pre .hits--contexts {
+  cursor: pointer;
+}
+
+.source_table pre .hits--contexts:hover {
+  text-decoration: underline;
+}
+
+.source_table pre .hits--tests::before {
+  content: "\1F4C4"; /* page: there is a list of covering tests to open */
+  margin-right: var(--sp-1);
+  font-size: 12px;
+}
+
+/* Per-line tests dialog (nests above the source dialog). The global
+   reset zeroes every margin, killing the UA stylesheet's `margin: auto`
+   that normally centers a modal dialog — so center it explicitly. */
+dialog.test-contexts-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0;
+  background: var(--surface);
+  color: var(--text);
+  min-width: min(480px, 90vw);
+  max-width: min(720px, 90vw);
+  max-height: 70vh;
+}
+
+dialog.test-contexts-dialog::backdrop {
+  background: var(--overlay-bg);
+}
+
+.test-contexts-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.test-contexts-dialog__header h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.test-contexts-dialog__close {
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.test-contexts-dialog__close:hover { color: var(--text); }
+
+.test-contexts-dialog__body {
+  padding: var(--sp-4) var(--sp-6);
+  overflow: auto;
+  max-height: calc(70vh - 60px);
+  font-size: 14px;
+}
+
+.test-contexts-dialog__body ol {
+  margin: var(--sp-2) 0 0;
+  padding-left: var(--sp-6);
+}
+
+.test-contexts-dialog__body li {
+  margin-bottom: var(--sp-2);
+  overflow-wrap: anywhere;
+}
+
+.test-contexts-dialog__summary {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.test-contexts-dialog__id {
+  display: block;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 /* Coverage line status */
 .source_table .covered       { background-color: var(--covered-bg); }
 .source_table .missed        { background-color: var(--missed-bg); }

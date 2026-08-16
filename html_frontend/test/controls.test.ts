@@ -2,11 +2,12 @@
 // preference tracking) and the global keyboard dispatch for filter focus,
 // escape, dialog jumps, and file-list navigation.
 import { afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
-import { installPageSkeleton, coverageData } from './fixture';
+import { installPageSkeleton, coverageData, coverageDataWithContexts } from './fixture';
 import { initDarkMode, initColorblindMode, handleKeydown } from '../src/controls';
 import { renderPage } from '../src/page';
 import { precomputeFileIds, fileId } from '../src/format';
 import { setupSourceDialog, navigateToHash, dialogIsOpen, getDialogBody } from '../src/dialog';
+import { setupTestContextsDialog, openTestContexts, testContextsDialogIsOpen } from '../src/test_contexts_dialog';
 import { setFocusedRow, hasFocusedRow } from '../src/navigation';
 import { invalidateFileRowCache } from '../src/file_rows';
 
@@ -199,6 +200,41 @@ describe('handleKeydown', () => {
     expect(window.location.hash).toBe('#_g-total');
     navigateToHash(); // actually close, as the hashchange listener would
     expect(dialogIsOpen()).toBe(false);
+  });
+
+  test('Escape closes the nested tests dialog first, then the source dialog', async () => {
+    await boot();
+    renderPage(coverageDataWithContexts());
+    setupTestContextsDialog();
+
+    window.location.hash = '#' + fileId('lib/covered.rb');
+    navigateToHash();
+    expect(dialogIsOpen()).toBe(true);
+    openTestContexts(fileId('lib/covered.rb'), 1);
+    expect(testContextsDialogIsOpen()).toBe(true);
+
+    const first = keydown(document.body, 'Escape');
+    expect(first.defaultPrevented).toBe(true);
+    expect(testContextsDialogIsOpen()).toBe(false);
+    expect(dialogIsOpen()).toBe(true);
+
+    keydown(document.body, 'Escape');
+    expect(window.location.hash).toBe('#_g-total');
+  });
+
+  test("'n' does not act on the source dialog beneath the open tests dialog", async () => {
+    await boot();
+    renderPage(coverageDataWithContexts());
+    setupTestContextsDialog();
+
+    window.location.hash = '#' + fileId('lib/covered.rb');
+    navigateToHash();
+    openTestContexts(fileId('lib/covered.rb'), 1);
+    expect(testContextsDialogIsOpen()).toBe(true);
+
+    const event = keydown(document.body, 'n');
+    expect(event.defaultPrevented).toBe(false);
+    expect(testContextsDialogIsOpen()).toBe(true);
   });
 
   test('Escape blurs a focused input', async () => {

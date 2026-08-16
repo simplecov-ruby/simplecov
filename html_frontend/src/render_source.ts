@@ -4,6 +4,7 @@
 import { escapeHTML } from './dom';
 import { fileId } from './format';
 import { renderCoverageSummary } from './render_cells';
+import { testCountsPerLine } from './test_contexts';
 import type { FileCoverage, BranchEntry, MethodEntry } from './types';
 
 interface LineStatusArgs {
@@ -63,16 +64,22 @@ interface SourceLineArgs {
   status: string;
   branchCoverage: boolean;
   lineBranches?: [string, number][];
+  testCount?: number;
 }
 
 function renderSourceLine(args: SourceLineArgs): string {
-  const { index, source, lineCov, status, branchCoverage, lineBranches } = args;
+  const { index, source, lineCov, status, branchCoverage, lineBranches, testCount } = args;
   const lineNum = index + 1;
   const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
   const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
 
   if (typeof lineCov === 'number' && lineCov > 0) {
-    lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
+    let classes = 'hits';
+    if (testCount !== undefined) {
+      classes += ' hits--contexts';
+      if (testCount > 0) classes += ' hits--tests';
+    }
+    lineHtml.push(`<span class="${classes}" data-content="${lineCov}"></span>`);
   } else if (lineCov === 'ignored') {
     lineHtml.push('<span class="hits" data-content="skipped"></span>');
   }
@@ -108,6 +115,7 @@ export function renderSourceFile(
 
   const branchesReport = buildBranchesReport(data.branches);
   const missedMethodLineSet = buildMissedMethodLines(data.methods);
+  const testCounts = data.test_contexts ? testCountsPerLine(data.test_contexts, data.source.length) : null;
 
   const html = [
     `<div class="source_table" id="${id}">`,
@@ -142,7 +150,8 @@ export function renderSourceFile(
       lineCov,
       status,
       branchCoverage,
-      lineBranches: branchCoverage ? branchesReport[i + 1] : undefined
+      lineBranches: branchCoverage ? branchesReport[i + 1] : undefined,
+      testCount: testCounts ? testCounts[i] : undefined
     }));
   }
   html.push('</ol></pre></div>');
