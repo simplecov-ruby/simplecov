@@ -4,6 +4,7 @@ require_relative "result_merger/legacy_format_adapter"
 require_relative "result_merger/resultset_file"
 require_relative "result_merger/resultset_run_identity"
 require_relative "result_merger/resultset_store"
+require_relative "result_merger/contexts"
 require_relative "result_merger/unloaded_files"
 
 module SimpleCov
@@ -27,12 +28,22 @@ module SimpleCov
       end
 
       def merge_results(*file_paths, ignore_timeout: false)
-        # Tracked paths are collected as each resultset is parsed, so files are
-        # still read and discarded one at a time. See #1250.
+        # Tracked paths and test maps are collected as each resultset is
+        # parsed, so files are still read and discarded one at a time.
+        # See #1250.
         tracked_files = Set.new
+        context_maps = ContextMap::Union.new
         command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
-                                                 &UnloadedFiles.collector(tracked_files))
-        create_result(command_names, coverage, tracked_files: tracked_files)
+                                                 &entry_collector(tracked_files, context_maps))
+        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
+      end
+
+      # One block over the entries each resultset contributes to the merge,
+      # feeding every merge-side accumulator in a single pass: the tracked
+      # paths (see #1250) and the per-test map union.
+      def entry_collector(tracked_files, context_maps)
+        collectors = [UnloadedFiles.collector(tracked_files), context_maps.collector]
+        ->(surviving) { collectors.each { |collector| collector.call(surviving) } }
       end
 
       #
@@ -112,7 +123,7 @@ module SimpleCov
              "Increase SimpleCov.merge_timeout to include them."
       end
 
-      def create_result(command_names, coverage, tracked_files: Set.new)
+      def create_result(command_names, coverage, tracked_files: Set.new, contexts: nil)
         return nil unless coverage
 
         command_name = command_names.reject(&:empty?).sort.join(", ")
@@ -123,10 +134,9 @@ module SimpleCov
         # `process_coverage_result` stay quiet to avoid one warning per worker.
         SimpleCov::Result.new(
           coverage,
-          command_name: command_name,
+          command_name: command_name, contexts: contexts, report: true,
           not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
-          tracked_files: tracked_files.to_a,
-          report: true
+          tracked_files: tracked_files.to_a
         )
       end
 
@@ -143,8 +153,9 @@ module SimpleCov
       # for the result consisting of a join on all source result's names
       def merged_result
         tracked_files = Set.new
-        command_names, coverage = merge_valid_results(read_resultset, &UnloadedFiles.collector(tracked_files))
-        create_result(command_names, coverage, tracked_files: tracked_files)
+        context_maps = ContextMap::Union.new
+        command_names, coverage = merge_valid_results(read_resultset, &entry_collector(tracked_files, context_maps))
+        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
       end
 
       def read_resultset
@@ -178,6 +189,7 @@ module SimpleCov
         merged = incoming.merge(
           "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
         )
+        merged = Contexts.carry(merged, existing, incoming)
         UnloadedFiles.carry_tracked(merged, existing, incoming)
       end
 

@@ -2,7 +2,9 @@
 
 require "digest/sha1"
 require "forwardable"
+require_relative "result/filter_config"
 require_relative "result/missing_source_files_reporter"
+require_relative "result/serialization"
 require_relative "result/source_file_builder"
 
 module SimpleCov
@@ -12,6 +14,7 @@ module SimpleCov
   #
   class Result
     extend Forwardable
+    include Serialization
 
     # Returns the original Coverage.result used for this instance of SimpleCov::Result
     attr_reader :original_result
@@ -26,6 +29,10 @@ module SimpleCov
     # SimpleCov::SourceFile. Aliased as :source_files
     attr_reader :files
     alias source_files files
+    # The `ContextMap` recorded under `track_tests` (each context is one
+    # test), or nil when this result carries none — tracking was off, or a
+    # merge dropped the map because not every merged result recorded one.
+    attr_reader :contexts
     # Explicitly set the Time this result has been created
     attr_writer :created_at
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
@@ -38,22 +45,6 @@ module SimpleCov
                    :coverage_statistics, :coverage_statistics_by_file
     def_delegator :files, :lines_of_code, :total_lines
 
-    # Bundles the filter and grouping configuration a Result applies to its
-    # source files after building them. Each field defaults to the SimpleCov
-    # singleton's configuration, so ordinary callers never construct one;
-    # tests pass a custom instance to opt out of (or extend) the project's
-    # filters or groups (e.g. `filters: []` to keep every file). Grouping the
-    # three together keeps Result#initialize's parameter list small.
-    class FilterConfig
-      attr_reader :filters, :cover_filters, :groups
-
-      def initialize(filters: SimpleCov.filters, cover_filters: SimpleCov.cover_filters, groups: SimpleCov.groups)
-        @filters = filters
-        @cover_filters = cover_filters
-        @groups = groups
-      end
-    end
-
     # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
     # coverage data).
     #
@@ -62,11 +53,12 @@ module SimpleCov
     # FilterConfig to opt out — useful for tests that build synthetic Results
     # and don't want the project's filters or groups applied.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   tracked_files: [], run_id: nil, worker_id: nil, report: false, filter_config: FilterConfig.new)
+                   tracked_files: [], run_id: nil, worker_id: nil, contexts: nil, report: false,
+                   filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
-      initialize_coordination_metadata(tracked_files, run_id, worker_id)
+      initialize_resultset_metadata(tracked_files, run_id, worker_id, contexts)
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
@@ -130,32 +122,22 @@ module SimpleCov
       @command_name ||= SimpleCov.command_name
     end
 
-    # Returns a hash representation of this Result that can be used for marshalling it into JSON
-    def to_hash
-      data = {"coverage" => coverage, "timestamp" => created_at.to_f} #: Hash[String, untyped]
-      data["run_id"] = run_id if run_id
-      data["worker_id"] = worker_id if worker_id
-      # Omitted when empty so a run that tracks nothing writes the shape it
-      # always has, and so the key only appears where it carries information.
-      data["tracked_files"] = tracked_files unless tracked_files.empty?
-      {command_name => data}
-    end
-
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]),
                                     tracked_files: data["tracked_files"] || [], run_id: data["run_id"],
-                                    worker_id: data["worker_id"])
+                                    worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]))
       end
     end
 
   private
 
-    def initialize_coordination_metadata(tracked_files, run_id, worker_id)
+    def initialize_resultset_metadata(tracked_files, run_id, worker_id, contexts)
       @tracked_files = tracked_files.to_a
       @run_id = run_id
       @worker_id = worker_id
+      @contexts = contexts
     end
 
     def warn_about_missing_source_files(missing, input_size)
@@ -177,17 +159,6 @@ module SimpleCov
         input_size: input_size,
         every_entry_dropped: @files.empty? && missing.size == input_size
       ).warn!
-    end
-
-    # A live result's criterion keys are Symbols (`:lines`, `:branches`),
-    # while entries parsed back from `.resultset.json` carry Strings, and
-    # the combiners read only String keys. Serialize with String keys so a
-    # live result merged against a stored entry contributes its counts
-    # instead of being silently dropped for every shared file.
-    def coverage
-      original_result.slice(*filenames).transform_values do |file_coverage|
-        file_coverage.transform_keys(&:to_s)
-      end
     end
 
     # Applies the given filter chain to `@files`, dropping each source

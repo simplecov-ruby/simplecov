@@ -210,7 +210,7 @@ module SimpleCov
       tracked = tracked_file_paths - adapted.keys
       result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
       @result = SimpleCov::Result.new(
-        result, not_loaded_files: not_loaded, tracked_files: tracked,
+        result, not_loaded_files: not_loaded, tracked_files: tracked, contexts: test_tracker&.recorded_map,
                 run_id: SimpleCov.run_id, worker_id: SimpleCov.worker_id, report: report
       )
     end

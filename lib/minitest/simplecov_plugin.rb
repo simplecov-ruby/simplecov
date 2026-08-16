@@ -12,6 +12,15 @@
 module Minitest
   def self.plugin_simplecov_init(_options)
     return unless defined?(SimpleCov)
+
+    # Per-test tracking wraps each test method run. Installed here for the
+    # same ordering reason as the at_exit switch below: by plugin time both
+    # Minitest and the user's `SimpleCov.start` configuration exist,
+    # whichever loaded first. The respond_to? guard covers a process where
+    # only simplecov's version file was loaded (see issue #877), which
+    # defines the SimpleCov constant without any of its configuration.
+    SimpleCov::TestTracker.install_minitest_hook if SimpleCov.respond_to?(:track_tests?) && SimpleCov.track_tests?
+
     return if SimpleCov.external_at_exit?
 
     SimpleCov.external_at_exit = true

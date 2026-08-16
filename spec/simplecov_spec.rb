@@ -283,6 +283,27 @@ RSpec.describe SimpleCov do
 
       expect(described_class.result.tracked_files).to include(other)
     end
+
+    # The Accessors specs cover this too; asserting the public contract
+    # here as well keeps the no-tracker path exercised from more than one
+    # spec file, so a parallel run records it in more than one worker.
+    it "runs a track_test block untouched when tracking never started" do
+      expect(described_class.test_tracker).to be_nil
+      expect(described_class.track_test("spec/a_spec.rb:1") { :ran }).to eq(:ran)
+    end
+
+    it "records the live per-test map on the result slice, unless the tracker distrusts it" do
+      map = SimpleCov::ContextMap.new
+      tracker = instance_double(SimpleCov::TestTracker, recorded_map: map)
+      described_class.instance_variable_set(:@test_tracker, tracker)
+      allow(Coverage).to receive_messages(running?: true, result: {})
+
+      described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+      expect(described_class.result.contexts).to be(map)
+    ensure
+      described_class.remove_instance_variable(:@test_tracker)
+    end
   end
 
   describe ".inject_unloaded_files" do

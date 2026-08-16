@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "parallel_result_merger/worker_payload"
+
 module SimpleCov
   #
   # Folds a list of resultset files into one merged coverage table across
@@ -47,30 +49,32 @@ module SimpleCov
     #
     def merge_results(*file_paths, processes:, ignore_timeout: false)
       tracked_files = Set.new
+      context_maps = ContextMap::Union.new
       pair = absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
-                                        tracked_files: tracked_files)
+                                        tracked_files: tracked_files, context_maps: context_maps)
       # A nil pair means nothing was fanned out at all, so the serial path
       # is exactly `ResultMerger.merge_results` — delegate rather than
       # re-implement its collector wiring.
       return ResultMerger.merge_results(*file_paths, ignore_timeout: ignore_timeout) unless pair
 
       command_names, coverage = pair
-      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files)
+      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
     end
 
     #
     # `ResultMerger.absorb_results` across at most `processes` forked
     # workers: same arguments, same `[command_names, coverage]` return.
     #
-    # The tracked paths a worker's slice carried come back with its payload
-    # rather than through a collector block, since the block a serial absorb
-    # takes would be mutating a Set in the wrong process.
+    # The tracked paths and context-map union a worker's slice carried come back
+    # with its payload rather than through a collector block, since the block
+    # a serial absorb takes would be mutating state in the wrong process.
     #
     # @return [Array(Array<String>, Hash), nil] the pair
     #   `ResultMerger.create_result` consumes, or nil when the work could not
     #   be fanned out and the caller should merge in this process instead.
     #
-    def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new)
+    def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new,
+                       context_maps: ContextMap::Union.new)
       # One worker folds the whole list anyway, and one file is a fold of
       # one — in both cases the fork and the round trip are pure overhead.
       return nil if processes < 2 || file_paths.size < 2
@@ -83,7 +87,8 @@ module SimpleCov
       # instead would answer true and send them down the fan-out.
       return nil unless Process.respond_to?(:fork)
 
-      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files)
+      fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files,
+                                            context_maps: context_maps)
     end
 
     # Contiguous slices whose sizes differ by at most one, so no worker is
@@ -103,13 +108,13 @@ module SimpleCov
     # refusing a process we expected to get — EAGAIN at RLIMIT_NPROC, ENOMEM
     # under memory pressure. That says something is wrong with the machine
     # rather than with the merge, and quietly absorbing it would hide it.
-    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new)
+    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new, context_maps: ContextMap::Union.new)
       workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
       payloads = collect(workers)
       return nil unless payloads
 
-      payloads.each { |(_pair, tracked)| tracked_files.merge(tracked) }
-      ResultMerger.merge_coverage(*payloads.map(&:first))
+      payloads.each { |payload| WorkerPayload.absorb(payload, tracked_files, context_maps) }
+      ResultMerger.merge_coverage(*payloads.map { |payload| WorkerPayload.pair(payload) })
     end
 
     def spawn_workers(chunks, ignore_timeout:)
@@ -161,13 +166,10 @@ module SimpleCov
     # status the child should terminate with. Kept free of the exit itself so
     # it can be exercised in-process.
     #
-    # The slice's tracked paths travel with the pair because the parent needs
-    # the union across every worker to know what nothing loaded.
+    # The slice's tracked paths and context-map union travel with the pair —
+    # see `WorkerPayload` for why the parent needs them.
     def run_worker(chunk, writer, ignore_timeout:)
-      tracked_files = Set.new
-      pair = ResultMerger.absorb_results(chunk, ignore_timeout: ignore_timeout,
-                                         &ResultMerger::UnloadedFiles.collector(tracked_files))
-      Marshal.dump([pair, tracked_files.to_a], writer)
+      Marshal.dump(WorkerPayload.build(chunk, ignore_timeout: ignore_timeout), writer)
       writer.close
       0
     rescue StandardError => e

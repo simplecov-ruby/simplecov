@@ -124,6 +124,33 @@ RSpec.describe SimpleCov::Result do
           expect(described_class.from_hash(timestamped.to_hash).first.created_at.to_f).to eq(100.75)
         end
 
+        it "omits contexts when no per-test map was recorded" do
+          expect(result.to_hash.values.first).not_to have_key("contexts")
+          expect(described_class.from_hash(result.to_hash).first.contexts).to be_nil
+        end
+
+        it "round-trips the per-test map, restricted to this result's own files" do
+          map = SimpleCov::ContextMap.new
+          map.record("spec/sample_spec.rb:3", source_fixture("sample.rb") => 0b10)
+          map.record("spec/other_spec.rb:9", "/somewhere/else/entirely.rb" => 0b1)
+          mapped = described_class.new(original_result, command_name: "t", contexts: map)
+
+          dumped = mapped.to_hash["t"]["contexts"]
+          expect(dumped["files"].keys).to eq([source_fixture("sample.rb")])
+
+          restored = described_class.from_hash(mapped.to_hash).first.contexts
+          expect(restored.covering(source_fixture("sample.rb"), 2)).to eq(["spec/sample_spec.rb:3"])
+          expect(restored.contexts).to eq(["spec/sample_spec.rb:3", "spec/other_spec.rb:9"])
+        end
+
+        # Presence of the key (even for an empty map) is what lets a merge
+        # tell "tracked and covered nothing" from "never tracked".
+        it "serializes an empty map rather than omitting it" do
+          mapped = described_class.new(original_result, command_name: "t", contexts: SimpleCov::ContextMap.new)
+
+          expect(mapped.to_hash["t"]["contexts"]).to eq("version" => 1, "contexts" => [], "files" => {})
+        end
+
         context "when loaded back with from_hash" do
           let(:dumped_result) do
             described_class.from_hash(result.to_hash).first

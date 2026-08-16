@@ -48,6 +48,17 @@ module SimpleCov
 
   def self.worker_id: () -> String
 
+  # Record the block's coverage delta as covered by `test_id`, returning
+  # the block's value. The public seam frameworks hang per-test tracking
+  # on; a no-op wrapper unless `track_tests` is enabled and tracking runs.
+  def self.track_test: [T] (String test_id) { () -> T } -> T
+
+  # @api private — the live per-test recorder, if any.
+  def self.test_tracker: () -> TestTracker?
+
+  # @api private — called from `start_coverage_measurement`.
+  def self.start_test_tracking: () -> void
+
   # Should something external (e.g. the Minitest plugin) own the
   # at_exit behavior instead of SimpleCov's own hook?
   attr_accessor self.external_at_exit: bool?
@@ -613,6 +624,25 @@ module SimpleCov
   end
 end
 
+# ----- configuration/test_tracking -----
+
+# Opt-in recording of which test covered each line: `track_tests`.
+module SimpleCov
+  module Configuration
+    @track_tests: bool
+
+    # Enable (or disable, with `track_tests false`) recording of which
+    # test covered which line. Off by default.
+    def track_tests: (?bool? enabled) -> bool
+
+    def track_tests?: () -> bool
+
+    # @api private — called from `SimpleCov.start_tracking`; rejects
+    # arrangements that cannot produce per-line count deltas.
+    def validate_test_tracking!: () -> void
+  end
+end
+
 # ----- configuration/merging -----
 
 # Result merging and subprocess / parallel-test coordination:
@@ -783,6 +813,7 @@ module SimpleCov
   # produces: filename => per-criterion coverage data.
   class Result
     extend Forwardable
+    include Serialization
 
     attr_reader original_result: Hash[String, untyped]
 
@@ -792,6 +823,9 @@ module SimpleCov
     attr_reader worker_id: String?
     attr_reader files: FileList
     alias source_files files
+    # The per-test coverage map recorded under `track_tests`, or nil when
+    # this result carries none.
+    attr_reader contexts: ContextMap?
     # The writers accept the strict types; the ivars stay nilable because
     # both default to nil and are lazily backfilled by the readers.
     attr_writer created_at (): Time
@@ -813,7 +847,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?contexts: ContextMap?, ?report: bool, ?filter_config: FilterConfig) -> void
 
     def filenames: () -> Array[String]
     # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
@@ -825,7 +859,6 @@ module SimpleCov
     def format!: () -> untyped
     def created_at: () -> Time
     def command_name: () -> String
-    def to_hash: () -> Hash[String, Hash[String, untyped]]
     def self.from_hash: (Hash[String, untyped] hash) -> Array[Result]
 
     # Delegated to #files (see FileList).
@@ -848,11 +881,45 @@ module SimpleCov
 
     private
 
-    def initialize_coordination_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id) -> void
+    def initialize_resultset_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id, ContextMap? contexts) -> void
     def warn_about_missing_source_files: (Array[String] missing, Integer input_size) -> void
-    def coverage: () -> Hash[String, untyped]
     def apply_filters!: (Array[Filter[untyped]] filters) -> void
     def apply_cover_filters!: (Array[Filter[untyped]] cover_filters) -> void
+  end
+
+  class Result
+    # What serialization reads off the including Result. A self-type
+    # interface rather than `: Result` itself, which RBS rejects as
+    # recursive ancestry (Result includes Serialization).
+    interface _SerializableResult
+      def original_result: () -> Hash[String, untyped]
+
+      def created_at: () -> Time
+
+      def command_name: () -> String
+
+      def run_id: () -> String?
+
+      def worker_id: () -> String?
+
+      def tracked_files: () -> Array[String]
+
+      def contexts: () -> ContextMap?
+
+      def filenames: () -> Array[String]
+    end
+
+    # The Result half of the `.resultset.json` entry format: how a Result
+    # serializes itself into an entry.
+    module Serialization : _SerializableResult
+      def to_hash: () -> Hash[String, Hash[String, untyped]]
+
+      private
+
+      def append_contexts: (Hash[String, untyped] data) -> void
+
+      def coverage: () -> Hash[String, untyped]
+    end
   end
 end
 
