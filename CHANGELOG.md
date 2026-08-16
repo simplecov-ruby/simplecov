@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream:docs/Changelog.md
-=======
 Unreleased
 ==========
 
@@ -9,7 +7,6 @@ Unreleased
 * The changelog is back at `CHANGELOG.md` in the project root, where the convention documented at [keepachangelog.com](https://keepachangelog.com) puts it and where humans and tooling look for it. Moving it under `docs/` was never what kept it out of the packaged gem: `gem.files` lists what ships, so the file stays unpackaged where it is. The gem's `changelog_uri` metadata follows it back, and the pre-0.18 entries stay at `docs/Changelog.old.md`. See #1272.
 * `cover_views` reaches Haml and Slim, and its default glob is now `app/views/**/*.{erb,haml,slim}`. Nothing was needed to measure them beyond looking the handler up the way ActionView's own resolver does: both generate Ruby that keeps the template's line structure, so hits land on the lines their authors wrote. The same goes for any other language a project has registered a handler for, which needs only its extension named in a glob. An extension with no registered handler is now left out of the report instead of being compiled through ActionView's raw handler, which would have reported a project that has no Haml a file of static text for every `.haml` its default glob happened to match. The source view highlights Haml and Slim as themselves, the second through a small grammar of SimpleCov's own since highlight.js ships none.
 
->>>>>>> Stashed changes:CHANGELOG.md
 1.1.1 (2026-08-12)
 ==================
 
