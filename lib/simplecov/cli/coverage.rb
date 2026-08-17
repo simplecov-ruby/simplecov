@@ -47,14 +47,10 @@ module SimpleCov
         CoverageFile.report_invalid(stderr, "coverage", opts[:input], "entry for #{opts[:path]} must be an object")
       end
 
-      # Match either the absolute path, the literal string passed, or
-      # any coverage entry whose absolute filename ends with "/<path>".
-      # That covers the three natural ways a user types a path: relative
-      # to project root ("app/foo.rb"), absolute, or basename-only.
+      # Path matching lives in CoverageFile so the tests subcommand
+      # resolves file arguments identically.
       def lookup(coverage_hash, path)
-        absolute = File.expand_path(path)
-        suffix   = "/#{path}"
-        coverage_hash.find { |fname, _| fname == absolute || fname == path || fname.end_with?(suffix) }
+        CoverageFile.lookup(coverage_hash, path)
       end
 
       def emit(match, opts, stdout)

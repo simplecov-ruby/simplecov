@@ -153,7 +153,8 @@ RSpec.describe SimpleCov::CLI do
       ["report", ->(bad, _good) { ["report", "--input", bad] }],
       ["uncovered", ->(bad, _good) { ["uncovered", "--input", bad] }],
       ["diff baseline", ->(bad, good) { ["diff", "--input", good, bad] }],
-      ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }]
+      ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }],
+      ["tests", ->(bad, _good) { ["tests", "--input", bad] }]
     ].each do |description, argv_for|
       it "handles malformed JSON for #{description}" do
         argv = argv_for.call(invalid, valid)
@@ -466,6 +467,126 @@ RSpec.describe SimpleCov::CLI do
       it_behaves_like "a --no-color subcommand" do
         let(:no_color_argv) { ["report", "--input", json_path, "--no-color"] }
       end
+    end
+  end
+
+  describe "tests subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-tests-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+    let(:result_file) { "/abs/project/lib/result.rb" }
+    let(:quiet_file) { "/abs/project/lib/quiet.rb" }
+
+    # Two contexts: index 0 covers lines 2 and 3 of result.rb, index 1
+    # covers line 3 only. quiet.rb was covered by no recorded context.
+    let(:payload) do
+      {
+        "contexts" => ["spec/result_spec.rb:42", "spec/result_spec.rb:57"],
+        "coverage" => {
+          result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
+          quiet_file => {"lines" => [1, nil]}
+        }
+      }
+    end
+
+    before { File.write(json_path, JSON.dump(payload)) }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    it "lists every recorded test, sorted, with a bare invocation" do
+      expect(run("tests", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb:42\nspec/result_spec.rb:57\n")
+    end
+
+    it "narrows to the tests touching a file" do
+      expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb:42\nspec/result_spec.rb:57\n")
+    end
+
+    it "narrows to the tests covering one line" do
+      expect(run("tests", "--input", json_path, "lib/result.rb:2")).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb:42\n")
+    end
+
+    it "answers an empty list, with a stderr note, for a line no test covers" do
+      expect(run("tests", "--input", json_path, "lib/result.rb:4")).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov tests: no recorded test covers lib/result.rb:4\n")
+    end
+
+    it "answers an empty list for a covered file no recorded context touched" do
+      expect(run("tests", "--input", json_path, "lib/quiet.rb")).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov tests: no recorded test covers lib/quiet.rb\n")
+    end
+
+    it "emits JSON arrays under --json, empty results included" do
+      expect(run("tests", "--input", json_path, "--json", "lib/result.rb:3")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq(["spec/result_spec.rb:42", "spec/result_spec.rb:57"])
+
+      stdout.truncate(0) && stdout.rewind
+      expect(run("tests", "--input", json_path, "--json", "lib/result.rb:4")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq([])
+      expect(stderr.string).to be_empty
+    end
+
+    it "notes an empty recording on stderr for a bare invocation" do
+      File.write(json_path, JSON.dump(payload.merge("contexts" => [])))
+      expect(run("tests", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov tests: no tests recorded\n")
+    end
+
+    it "explains what to enable when the document carries no contexts" do
+      File.write(json_path, JSON.dump({"coverage" => {}}))
+      expect(run("tests", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("no test contexts recorded")
+      expect(stderr.string).to include("track_tests")
+    end
+
+    # A found-but-wrong-typed entry is malformed input, not a missing
+    # file — the same distinction the coverage subcommand draws.
+    it "reports a wrong-typed entry as invalid input, not as missing" do
+      File.write(json_path, JSON.dump(payload.merge("coverage" => {result_file => "junk"})))
+      expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
+      expect(stderr.string).to include("entry for lib/result.rb must be an object")
+      expect(stderr.string).not_to include("no entry")
+    end
+
+    it "documents its --json in the usage text" do
+      expect(run("help")).to eq(0)
+      expect(stdout.string).to include("tests options:")
+    end
+
+    it "reports an unknown file like the coverage subcommand does" do
+      expect(run("tests", "--input", json_path, "lib/nope.rb")).to eq(1)
+      expect(stderr.string).to include("no entry for lib/nope.rb")
+    end
+
+    it "rejects a non-positive line number as a parse error" do
+      expect(run("tests", "--input", json_path, "lib/result.rb:0")).to eq(1)
+      expect(stderr.string).to include("line number must be positive")
+    end
+
+    it "treats a malformed per-file contexts table as invalid input" do
+      [{"9" => "6"}, {"x" => "6"}, {"0" => "zz"}, "junk"].each do |malformed|
+        payload["coverage"][result_file]["contexts"] = malformed
+        File.write(json_path, JSON.dump(payload))
+        stderr.truncate(0) && stderr.rewind
+        expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1), "expected 1 for #{malformed.inspect}"
+        expect(stderr.string).to include("isn't valid")
+      end
+    end
+
+    it "treats a non-object coverage section as invalid input for a file query" do
+      File.write(json_path, JSON.dump(payload.merge("coverage" => "junk")))
+      expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
+      expect(stderr.string).to include("isn't valid")
+    end
+
+    it "treats a malformed document-level contexts list as invalid input" do
+      File.write(json_path, JSON.dump(payload.merge("contexts" => "junk")))
+      expect(run("tests", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("isn't valid")
     end
   end
 

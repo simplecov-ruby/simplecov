@@ -12,6 +12,7 @@ require_relative "cli/open"
 require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
+require_relative "cli/tests"
 require_relative "cli/uncovered"
 
 module SimpleCov
@@ -33,6 +34,7 @@ module SimpleCov
       "open" => Open,
       "report" => Report,
       "uncovered" => Uncovered,
+      "tests" => Tests,
       "merge" => Merge,
       "diff" => Diff,
       "serve" => Serve,
@@ -103,6 +105,7 @@ module SimpleCov
           coverage <path>           Print coverage stats for the given file
           report                    Print the overall summary and group totals
           uncovered                 List the lowest-coverage files
+          tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
           merge <files...>          Merge multiple .resultset.json files
           diff <baseline>           Show per-file coverage delta vs baseline
           open                      Open the HTML report in the default browser
@@ -113,10 +116,9 @@ module SimpleCov
         Default paths follow SimpleCov.coverage_dir from a project's
         `.simplecov` when one is present (#{coverage_dir} for this run).
 
-        coverage / report / uncovered / diff options:
+        coverage / report / uncovered / tests / diff options:
           --input PATH              Read from PATH instead of #{default_input}
-          --no-color                Disable colorized percentages
-                                    (also honors NO_COLOR / FORCE_COLOR env)
+          --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
         coverage options:
           --json                    Print the file's JSON entry verbatim
@@ -130,12 +132,14 @@ module SimpleCov
           --criterion C             line, branch, or method (default: line)
           --json                    Emit results as a JSON array (for CI)
 
+        tests options:
+          --json                    Emit the test ids as a JSON array
+
         merge options:
           --output PATH             Write merged resultset to PATH
                                     (default: #{default_resultset})
           --honor-timeout           Drop entries older than merge_timeout
-          --dry-run                 Print what would be written without
-                                    actually writing
+          --dry-run                 Print what would be written without writing
           -q, --quiet               Suppress the success status line
 
         diff options:

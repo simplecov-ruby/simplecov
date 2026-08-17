@@ -23,6 +23,16 @@ module SimpleCov
 
     module_function
 
+      # Match either the absolute path, the literal string passed, or
+      # any coverage entry whose absolute filename ends with "/<path>".
+      # That covers the three natural ways a user types a path: relative
+      # to project root ("app/foo.rb"), absolute, or basename-only.
+      def lookup(coverage_hash, path)
+        absolute = File.expand_path(path)
+        suffix   = "/#{path}"
+        coverage_hash.find { |fname, _| fname == absolute || fname == path || fname.end_with?(suffix) }
+      end
+
       def load_document(path, command:, stderr:)
         SimpleCov::CoverageJSON.load(path)
       rescue Errno::ENOENT
