@@ -103,6 +103,27 @@ $ simplecov uncovered --criterion branch
 `10`); `--criterion line|branch|method` chooses which coverage to rank by (default `line`). `--json` emits the rows as
 a JSON array (empty when nothing is below the threshold), useful for piping into a CI gate.
 
+### `tests` — which tests cover a file or line
+
+With [`track_tests`](Configuration.md#tracking-which-test-covers-each-line) enabled, `simplecov tests` answers the
+question coverage alone cannot: not just whether a line is covered, but by which tests. Bare, it lists every recorded
+test; a path narrows to the tests touching that file; `path:line` narrows to one line:
+
+```sh
+$ simplecov tests
+spec/result_spec.rb:42
+spec/source_file_spec.rb:12
+
+$ simplecov tests lib/simplecov/result.rb:42
+spec/result_spec.rb:42
+```
+
+Output is one test id per line, sorted, with nothing else on stdout, so the list can feed a runner directly
+(`simplecov tests lib/foo.rb:42 | xargs bundle exec rspec`). An empty answer keeps stdout empty and notes it on
+stderr; `--json` emits a JSON array instead. Paths match the way `simplecov coverage` matches them: project-relative,
+absolute, or basename. The command reads `coverage.json`, so it needs a report generated after `track_tests` was
+enabled, and it will say so when the recording is missing.
+
 ### `merge` — combine resultsets from parallel CI workers
 
 CI matrices that produce one `.resultset.json` per worker can stitch them together with `simplecov merge` instead of

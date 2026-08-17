@@ -7,6 +7,8 @@ module SimpleCov
       # and diff subcommands.
       CRITERIA: ::Hash[::Symbol, ::Hash[::Symbol, ::String]]
 
+      def self?.lookup: (Hash[String, untyped] coverage_hash, String path) -> [String, untyped]?
+
       def self?.load_document: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
 
       def self?.load_coverage: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
