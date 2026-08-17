@@ -5,9 +5,11 @@ module SimpleCov
       # in coverage.json: source code plus per-enabled-criterion arrays
       # and totals.
       class SourceFileFormatter
-        def self.call: (untyped source_file, ?include_source: bool) -> untyped
+        def self.call: (untyped source_file, ?include_source: bool, ?contexts: ContextMap?) -> untyped
 
         private
+
+        def self.contexts_section: (untyped source_file, ContextMap contexts) -> Hash[Symbol, untyped]
 
         def self.format_source_code: (untyped source_file) -> { source: untyped }
 

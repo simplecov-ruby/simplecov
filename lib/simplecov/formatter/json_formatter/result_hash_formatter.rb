@@ -18,13 +18,13 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION = "1.0"
+        SCHEMA_VERSION = "1.1"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 
         class << self
           def format(result, include_source: true)
-            {
+            document = {
               :$schema => SCHEMA_URL,
               :meta => format_meta(result),
               :total => format_coverage_statistics(result.coverage_statistics),
@@ -32,13 +32,20 @@ module SimpleCov
               :groups => format_groups(result),
               :errors => ErrorsFormatter.call(result)
             }
+            # Present exactly when the result carried a complete context map
+            # (see `Result#contexts`), so consumers can tell "recorded and
+            # empty" from "not recorded" — the per-file bitmaps index into
+            # this list.
+            document[:contexts] = result.contexts.contexts if result.contexts
+            document
           end
 
         private
 
           def format_files(result, include_source:)
             result.files.to_h do |source_file|
-              [source_file.project_filename, SourceFileFormatter.call(source_file, include_source: include_source)]
+              [source_file.project_filename,
+               SourceFileFormatter.call(source_file, include_source: include_source, contexts: result.contexts)]
             end
           end
 

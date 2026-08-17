@@ -77,6 +77,23 @@ RSpec.describe SimpleCov::ContextMap do
     end
   end
 
+  describe "#serialized_bitmaps_for" do
+    it "serializes one file's table in the wire encoding, index-sorted" do
+      map.record("spec/b_spec.rb:2", {})
+      map.record("spec/a_spec.rb:1", lib_file => 0xff)
+      map.record("spec/b_spec.rb:2", lib_file => 0b1)
+
+      expect(map.serialized_bitmaps_for(lib_file)).to eq("0" => "1", "1" => "ff")
+    end
+
+    it "resolves project-relative paths and answers an empty table for an untouched file" do
+      map.record("spec/a_spec.rb:1", lib_file => 0b1)
+
+      expect(map.serialized_bitmaps_for("lib/thing.rb")).to eq("0" => "1")
+      expect(map.serialized_bitmaps_for(other_file)).to eq({})
+    end
+  end
+
   describe "#to_h and .from_hash" do
     it "round-trips through the serialized form" do
       map.record("spec/a_spec.rb:1", lib_file => 0b101)

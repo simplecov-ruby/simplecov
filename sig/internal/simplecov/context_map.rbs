@@ -28,6 +28,10 @@ module SimpleCov
     # The serializable form; `only:` restricts the files, never the contexts.
     def to_h: (?only: Set[String]?) -> Hash[String, untyped]
 
+    # One file's bitmaps in the wire encoding `to_h` writes; {} for an
+    # untouched file. coverage.json shares the encoding through this.
+    def serialized_bitmaps_for: (String path) -> Hash[String, String]
+
     # @api private — intern `context_id`, returning its stable index.
     def intern: (String context_id) -> Integer
 
@@ -41,6 +45,8 @@ module SimpleCov
     def self.parse_index: (untyped index, Integer size) -> Integer?
 
     def self.parse_bitmap: (untyped encoded) -> Integer?
+
+    def serialize_table: (Hash[Integer, Integer] table) -> Hash[String, String]
 
     # Raw internals for `absorb`; protected because they are live state.
     def interned_contexts: () -> Array[String]

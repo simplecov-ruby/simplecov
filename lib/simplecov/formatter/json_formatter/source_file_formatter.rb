@@ -8,15 +8,25 @@ module SimpleCov
       # and totals.
       class SourceFileFormatter
         class << self
-          def call(source_file, include_source: true)
+          def call(source_file, include_source: true, contexts: nil)
             result = include_source ? format_source_code(source_file) : {} #: Hash[Symbol, untyped]
             result.merge!(line_coverage_section(source_file)) if SimpleCov.line_coverage?
             result.merge!(branch_coverage_section(source_file)) if SimpleCov.branch_coverage?
             result.merge!(method_coverage_section(source_file)) if SimpleCov.method_coverage?
+            result.merge!(contexts_section(source_file, contexts)) if contexts
             result
           end
 
         private
+
+          # The file's per-context bitmaps in the map's own wire encoding.
+          # An untouched file gets no key at all: under a present
+          # document-level `contexts` array, absence already says "no
+          # recorded context executed this file".
+          def contexts_section(source_file, contexts)
+            bitmaps = contexts.serialized_bitmaps_for(source_file.filename)
+            bitmaps.empty? ? {} : {contexts: bitmaps}
+          end
 
           # No per-line encoding conversion here: SourceLoader guarantees
           # every line leaves it as valid UTF-8 (transcoding declared
