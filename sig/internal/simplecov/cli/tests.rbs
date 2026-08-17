@@ -1,0 +1,38 @@
+module SimpleCov
+  module CLI
+    # `simplecov tests [<path>[:<line>]]` — list the recorded tests from a
+    # coverage.json written under `track_tests`: all of them bare, those
+    # touching a file, or those covering one line.
+    module Tests
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.parse: (untyped args) -> untyped
+
+      def self?.split_target: (String? target) -> {path: String?, line: Integer?}
+
+      def self?.resolve: (untyped document, untyped opts, untyped stderr) -> Array[String]?
+
+      def self?.recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?
+
+      def self?.locate_entry: (untyped document, untyped opts, untyped stderr) -> untyped
+
+      def self?.context_table: (untyped entry, Array[String] contexts, untyped opts, untyped stderr) -> Hash[Integer, Integer]?
+
+      def self?.decode_table: (Hash[untyped, untyped] raw, Integer context_count) -> Hash[Integer, Integer]?
+
+      def self?.ids_from: (Hash[Integer, Integer] table, Array[String] contexts, Integer? line) -> Array[String]
+
+      def self?.emit: (Array[String] ids, untyped opts, untyped stdout, untyped stderr) -> untyped
+
+      def self?.note_empty: (untyped opts, untyped stderr) -> untyped
+
+      def self?.error_nil: (untyped stderr, String message) -> nil
+    end
+  end
+end
