@@ -344,6 +344,11 @@ idea dynamic contexts, and a future Coverage library feature would likely use th
 every context is one test. `covering` accepts absolute or project-relative paths and answers with the sorted ids,
 and `contexts` lists every recorded id, including tests whose runs covered nothing new.
 
+The map also flows into `coverage.json`, the JSON formatter's schema'd public artifact, as a document-level
+`contexts` array of ids plus per-file hex bitmaps of the lines each context executed. That is the durable form
+downstream tools should build on (the resultset is an internal cache). See
+[the coverage.json schema](Formatters.md#json-schema-for-coveragejson), version 1.1.
+
 When results are merged, across suites, parallel workers, or `simplecov collate`, the maps are merged by the same
 rule everywhere: the merged result carries the union of the maps when every merged result recorded one, and no map at
 all otherwise. A partial map would present one worker's tests as the whole run's, so mixing tracked and untracked

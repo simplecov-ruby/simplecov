@@ -10,7 +10,7 @@ require "json_schemer"
 # spec catches drift between code and schema at test time so neither
 # can rot independently.
 describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
-  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.0.schema.json", __dir__) }
+  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.1.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }
   let(:alias_doc)   { JSON.parse(File.read(alias_path)) }
@@ -18,6 +18,10 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
 
   def validate_against_schema(document)
     schemer.validate(document).map { |e| "#{e['data_pointer']}: #{e['error']}" }
+  end
+
+  def project_fixture_filename(path)
+    SimpleCov::SourceFile.new(source_fixture(path), []).project_filename
   end
 
   it "is itself a valid JSON Schema (2020-12)" do
@@ -134,6 +138,57 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
       expect(document.fetch("coverage").values.first).not_to have_key("lines")
       errors = validate_against_schema(document)
       expect(errors).to be_empty, errors.join("\n")
+    end
+
+    it "validates a result carrying a context map, at document and file level" do
+      map = SimpleCov::ContextMap.new
+      map.record("spec/sample_spec.rb:4", source_fixture("json/sample.rb") => 0b101)
+      map.record("spec/quiet_spec.rb:9", {})
+      result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}, contexts: map)
+
+      document = emit(result)
+
+      expect(document.fetch("contexts")).to eq(["spec/sample_spec.rb:4", "spec/quiet_spec.rb:9"])
+      expect(document.fetch("coverage").values.first.fetch("contexts")).to eq("0" => "5")
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+    end
+
+    # An empty map still signals "contexts were recorded" (the run tracked
+    # and nothing ran), while an untouched file simply has no bitmaps to
+    # carry.
+    it "keeps an empty context list but omits a file's empty bitmap table" do
+      map = SimpleCov::ContextMap.new
+      map.record("spec/sample_spec.rb:4", source_fixture("sample.rb") => 0b1)
+      result = SimpleCov::Result.new(
+        {
+          source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]},
+          source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}
+        },
+        contexts: map
+      )
+
+      document = emit(result)
+
+      untouched = document.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))
+      expect(untouched).not_to have_key("contexts")
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+
+      empty = emit(SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}},
+                                         contexts: SimpleCov::ContextMap.new))
+      expect(empty.fetch("contexts")).to eq([])
+      expect(validate_against_schema(empty)).to be_empty
+    end
+
+    it "omits the contexts keys entirely for a result that carries no map" do
+      result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}})
+
+      document = emit(result)
+
+      expect(document).not_to have_key("contexts")
+      expect(document.fetch("coverage").values.first).not_to have_key("contexts")
+      expect(validate_against_schema(document)).to be_empty
     end
 
     it "validates a result with method coverage enabled" do
