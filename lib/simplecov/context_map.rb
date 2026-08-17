@@ -99,12 +99,17 @@ module SimpleCov
     # which files survived filtering.
     def to_h(only: nil)
       tables = only ? @files.slice(*only.to_a) : @files
-      serialized = tables.transform_values do |table|
-        # Sorted by index: recording and merge order vary run to run, and
-        # a deterministic serialization keeps stored resultsets diffable.
-        table.sort.to_h { |index, bitmap| [index.to_s, bitmap.to_s(16)] }
-      end
+      serialized = tables.transform_values { |table| serialize_table(table) }
       {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized}
+    end
+
+    # One file's bitmaps in the wire encoding `to_h` writes — index
+    # string => hex bitmap — or an empty table when no recorded context
+    # touched the file. coverage.json shares the resultset's encoding
+    # through this, so the format has one owner. Paths resolve like
+    # `covering`'s.
+    def serialized_bitmaps_for(path)
+      serialize_table(@files[File.expand_path(path, SimpleCov.root)] || {})
     end
 
     # @api private — intern `context_id`, returning its stable index.
@@ -166,6 +171,14 @@ module SimpleCov
 
         encoded.to_i(16)
       end
+    end
+
+  private
+
+    # Sorted by index: recording and merge order vary run to run, and a
+    # deterministic serialization keeps stored resultsets diffable.
+    def serialize_table(table)
+      table.sort.to_h { |index, bitmap| [index.to_s, bitmap.to_s(16)] }
     end
 
   protected

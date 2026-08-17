@@ -115,7 +115,7 @@ commit SHA the report was generated against) lets tools recover the exact source
 generate types, or pin to a known shape. Every emitted document carries a top-level `$schema` URL pointing at the
 versioned canonical, plus a human-readable `meta.schema_version` (`"major.minor"`).
 
-The **versioned canonical** lives at [`schemas/coverage-v1.0.schema.json`](../schemas/coverage-v1.0.schema.json) and
+The **versioned canonical** lives at [`schemas/coverage-v1.1.schema.json`](../schemas/coverage-v1.1.schema.json) and
 long-lived integrations should pin to it. Once a SimpleCov release ships with a given versioned schema file, that file
 is immutable: bug fixes, additions, or shape changes ship as a new versioned file (a minor or major bump), never as a
 silent rewrite of an already-released one. Schemas may still be corrected in-place between gem releases — i.e., the
@@ -129,14 +129,18 @@ The schema version is independent of the gem version:
 - Removals or shape changes bump the **major** segment, and ship as a new `schemas/coverage-vX.0.schema.json` file so
   v1.x consumers stay valid.
 
-The current version is **1.0**. Top-level structure:
+The current version is **1.1**, which added the optional per-test context data recorded under
+[`track_tests`](Configuration.md#tracking-which-test-covers-each-line): a document-level `contexts` array of ids and,
+per file, hex bitmaps of the lines each context executed, present exactly when the formatted result carried a
+complete context map. Top-level structure:
 
 ```jsonc
 {
-  "$schema":  "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.0.schema.json",
+  "$schema":  "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v1.1.schema.json",
   "meta":     { /* schema_version, simplecov_version, command_name, project_name, timestamp, root, commit, line_coverage, branch_coverage, method_coverage */ },
   "total":    { /* aggregate stats for lines (and branches / methods when enabled) */ },
-  "coverage": { "<project-relative path>": { /* per-file lines, source, branches, methods, etc. */ } },
+  "coverage": { "<project-relative path>": { /* per-file lines, source, branches, methods, contexts, etc. */ } },
+  "contexts": [ /* recorded context ids (with track_tests: test definition locations); present only when recorded */ ],
   "groups":   { "<group name>": { /* per-group stats + files */ } },
   "errors":   { /* minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage, maximum_coverage_drop violations */ }
 }
