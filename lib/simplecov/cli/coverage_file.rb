@@ -36,7 +36,12 @@ module SimpleCov
         return [absolute, coverage_hash[absolute]] if coverage_hash.key?(absolute)
         return [path, coverage_hash[path]] if coverage_hash.key?(path)
 
-        coverage_hash.find { |fname, _| fname.end_with?("/#{path}") }
+        # A subpath can end more than one key (e.g. "models/foo.rb" under
+        # both app/ and lib/). Resolve only an unambiguous single match;
+        # leave a collision as "not found" for the caller rather than
+        # scoring whichever key happens to sit first in the hash.
+        matches = coverage_hash.select { |fname, _| fname.end_with?("/#{path}") }
+        matches.first if matches.size == 1
       end
 
       def load_document(path, command:, stderr:)
