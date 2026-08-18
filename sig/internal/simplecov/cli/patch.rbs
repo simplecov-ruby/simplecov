@@ -58,7 +58,7 @@ module SimpleCov
 
       def self?.format_row: (untyped row, untyped color) -> ::String
 
-      def self?.criterion_cells: (untyped row, untyped color) -> ::Array[::String]
+      def self?.criterion_cells: (untyped line, untyped branch, untyped color) -> ::Array[::String]
 
       def self?.criterion_cell: (untyped label, untyped stats, untyped color) -> ::String
 
@@ -67,8 +67,6 @@ module SimpleCov
       def self?.format_total: (untyped rows, untyped color) -> ::String
 
       def self?.json_rows: (untyped rows) -> ::Array[untyped]
-
-      def self?.pct_cell: (untyped percent, untyped color) -> untyped
 
       # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
       def self?.ranges: (untyped numbers) -> ::String
