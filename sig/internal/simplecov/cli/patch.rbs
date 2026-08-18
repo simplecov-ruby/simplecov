@@ -34,6 +34,8 @@ module SimpleCov
 
       def self?.parse_diff: (untyped output) -> ::Hash[::String, ::Array[::Integer]]
 
+      def self?.section_path: (untyped section) -> (::String | nil)
+
       def self?.record_hunk: (::Hash[::String, ::Array[::Integer]] changes, ::String path, untyped match) -> void
 
       def self?.diff_path: (untyped line) -> (::String | nil)

@@ -1031,6 +1031,34 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "CoverageFile.lookup" do
+    def lookup(hash, path)
+      SimpleCov::CLI::CoverageFile.lookup(hash, path)
+    end
+
+    it "matches an absolute path exactly" do
+      key = File.expand_path("some/file.rb")
+      expect(lookup({key => "V"}, "some/file.rb")).to eq([key, "V"])
+    end
+
+    it "matches the literal path exactly" do
+      expect(lookup({"lib/a.rb" => "V"}, "lib/a.rb")).to eq(["lib/a.rb", "V"])
+    end
+
+    it "falls back to a subpath suffix match" do
+      expect(lookup({"/elsewhere/lib/a.rb" => "V"}, "lib/a.rb")).to eq(["/elsewhere/lib/a.rb", "V"])
+    end
+
+    it "prefers an exact match over an earlier suffix match" do
+      hash = {"/x/vendor/lib/a.rb" => "VENDOR", File.expand_path("lib/a.rb") => "REAL"}
+      expect(lookup(hash, "lib/a.rb").last).to eq("REAL")
+    end
+
+    it "returns nil when nothing matches" do
+      expect(lookup({"other.rb" => "V"}, "missing.rb")).to be_nil
+    end
+  end
+
   describe "patch subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }
@@ -1270,6 +1298,39 @@ RSpec.describe SimpleCov::CLI do
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to match(%r{100\.00%\s+\(0/0\)\s+lines})
+    end
+
+    it "does not misread an added '++ ...' line as a file header" do
+      # under --unified=0 an added line whose text starts with '++ '
+      # renders as '+++ ...'; it must not redirect the file's later hunks
+      diff = "diff --git a/lib/real.rb b/lib/real.rb\n" \
+             "--- a/lib/real.rb\n+++ b/lib/real.rb\n" \
+             "@@ -1,0 +2 @@\n+++ b/evil.rb\n" \
+             "@@ -7 +8 @@\n-old\n+CHANGED\n"
+      expect(SimpleCov::CLI::Patch.parse_diff(diff)).to eq("lib/real.rb" => [2, 8])
+    end
+
+    it "refuses a --base that git would read as an option" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "--base", "--output=/tmp/x", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("could not run `git diff`")
+    end
+
+    it "counts a rename as all-new without --find-renames" do
+      init_repo
+      write("lib/old.rb", "a\nb\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      git("mv", "lib/old.rb", "lib/new.rb")
+      write("lib/new.rb", "a\nb\nc\n")
+      commit("rename")
+      write_report("lib/new.rb", [1, 1, 0], nil)
+
+      # --no-renames (the default) makes the move a fresh add: lines 1-3 all
+      # count, where --find-renames would score only the edited line 3
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to include("(2/3)").and include("missing 3")
     end
   end
 
