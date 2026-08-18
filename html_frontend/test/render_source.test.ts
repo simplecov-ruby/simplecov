@@ -194,13 +194,37 @@ describe('renderSourceFile with recorded contexts', () => {
     const header = (el.firstElementChild as HTMLElement).querySelector('.summary-stats')!;
     // Line 1 keeps its missed-branch color, but it too was covered by no
     // recorded test, and the summary states the attribution fact.
-    expect(header.textContent).toContain('2 lines covered outside tests');
+    const line = header.querySelector('.t-line-summary')!;
+    expect(line.textContent).toContain('0/2 relevant lines covered by tests');
+    expect(line.textContent).toContain('2/2 relevant lines covered outside tests');
   });
 
-  test('summarizes the file\'s tests in the header, counting drained lines', () => {
+  test('splits the line summary by test attribution', () => {
     const header = renderCtx(ctxData).querySelector('.summary-stats')!;
-    expect(header.textContent).toContain('Test coverage: 2 tests cover this file');
-    expect(header.textContent).toContain('1 line covered outside tests');
+    const line = header.querySelector('.t-line-summary')!;
+    expect(header.querySelector('.t-tests-summary')).toBeNull();
+    expect(line.textContent).toContain('Line coverage:');
+    expect(line.textContent).toContain('66.66%');
+    expect(line.textContent).toContain('1/3 relevant lines covered by tests');
+    expect(line.textContent).toContain('1/3 relevant lines covered outside tests');
+    expect(line.textContent).toContain('1 missed');
+    const outside = line.querySelector('.outside-tests-text')!;
+    expect(outside.textContent).toBe('1/3 relevant lines covered outside tests');
+    // Sized and weighted like the by-tests fraction beside it, not like
+    // the full-size bolded missed clause: one sentence, one voice.
+    expect(outside.className).toBe('coverage-cell__fraction outside-tests-text');
+    expect(outside.querySelector('b')).toBeNull();
+  });
+
+  test('omits the outside clause when every covered line is covered by tests', () => {
+    const all: FileCoverage = {
+      source: ['a'], lines: [1], covered_lines: 1, total_lines: 1, contexts: { '0': '1' }
+    };
+    const line = renderCtx(all).querySelector('.t-line-summary')!;
+    expect(line.textContent).toContain('100.00%');
+    expect(line.textContent).toContain('1/1 relevant lines covered by tests');
+    expect(line.textContent).not.toContain('outside');
+    expect(line.textContent).not.toContain('missed');
   });
 
   test('renders identically to today when no contexts were recorded', () => {
