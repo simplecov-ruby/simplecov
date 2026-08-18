@@ -354,8 +354,13 @@ green to a slate tint ("Covered outside tests" in the legend), which is how cove
 setup, or a helper produced stops passing for tested code at a glance. Every executed line carries a tests badge
 at its right edge; clicking it (or focusing it and pressing Enter) opens an inline panel naming the covering
 tests, the same ids in the same order `simplecov tests file:line` prints, ready to select and hand to a runner.
-The file header sums it up: how many tests cover the file, and how many covered lines none of them reached. A
-report generated without `track_tests` shows none of this.
+The file header sums it up: how many tests cover the file, and how many covered lines none of them reached.
+
+The file list carries the same distinction. Each line coverage bar splits its fill into the share recorded tests
+produced (in the usual green/yellow/red band colour) and a slate share covered only outside them, so a file whose
+100% rests mostly on load-time execution looks different from one its tests actually exercise. Sorting by line
+coverage breaks ties on that share: descending, a file 90% covered by tests ranks above one at 80% when both sit
+at 100% line coverage. A report generated without `track_tests` shows none of this.
 
 When results are merged, across suites, parallel workers, or `simplecov collate`, the maps are merged by the same
 rule everywhere: the merged result carries the union of the maps when every merged result recorded one, and no map at

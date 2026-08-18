@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { decodeFileContexts, contextIdsForLine } from '../src/contexts';
+import { decodeFileContexts, contextIdsForLine, coveredOutsideCount } from '../src/contexts';
 
 describe('decodeFileContexts', () => {
   test('decodes a single-context hex bitmap into per-line context indices', () => {
@@ -52,5 +52,28 @@ describe('contextIdsForLine', () => {
     const index = decodeFileContexts({ '0': '1' }, 2);
     expect(contextIdsForLine(index, contexts, 2)).toEqual([]);
     expect(contextIdsForLine(index, contexts, 99)).toEqual([]);
+  });
+});
+
+describe('coveredOutsideCount', () => {
+  test('counts covered relevant lines no recorded context executed', () => {
+    // 0xb = bits 0,1,3 -> lines 1, 2, 4. Line 4 is non-executable, so the
+    // recorded lines that matter are 1 and 2; lines 3 and 5 are covered
+    // with no context.
+    const lines = [1, 2, 3, null, 4, 0, 'ignored' as const];
+    expect(coveredOutsideCount({ '0': 'b' }, lines)).toBe(2);
+  });
+
+  test('unions every context before counting', () => {
+    const lines = [1, 1, 1];
+    expect(coveredOutsideCount({ '0': '1', '2': '4' }, lines)).toBe(1);
+  });
+
+  test('treats an absent table as a file no test touched', () => {
+    expect(coveredOutsideCount(undefined, [1, 0, 5, null])).toBe(2);
+  });
+
+  test('returns 0 without line data', () => {
+    expect(coveredOutsideCount({ '0': '1' }, undefined)).toBe(0);
   });
 });

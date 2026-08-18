@@ -153,12 +153,13 @@ export function renderSourceFile(
     let testCount: number | undefined;
     if (contextIndex && typeof lineCov === 'number' && lineCov > 0) {
       testCount = contextIndex.perLine[i].length;
-      // The drain: a covered line no recorded test executed loses its
-      // green. Branch and method misses stay ranked above it — they name
-      // a problem, this names an absence.
-      if (testCount === 0 && status === 'covered') {
-        status = 'outside-tests';
+      if (testCount === 0) {
+        // The count states the attribution fact for every covered line,
+        // matching the file list's grey bar share. The drain itself only
+        // claims a plain covered line: branch and method misses stay
+        // ranked above it — they name a problem, this names an absence.
         outsideLines++;
+        if (status === 'covered') status = 'outside-tests';
       }
     }
     lineRows.push(renderSourceLine({

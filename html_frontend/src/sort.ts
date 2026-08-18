@@ -68,6 +68,7 @@ function getSortValue(td: Element | null): number | string {
 // Keyed by the row's actual child index, which is stable however the sort
 // column was resolved.
 const rowValueCache = new WeakMap<Element, Map<number, number | string>>();
+const rowTiebreakCache = new WeakMap<Element, Map<number, number | null>>();
 
 function cachedSortValue(row: Element, childIndex: number | null): number | string {
   if (childIndex === null) return '';
@@ -83,6 +84,30 @@ function cachedSortValue(row: Element, childIndex: number | null): number | stri
   return value;
 }
 
+// A tracked run's coverage cells carry the by-tests percent as data-order-2,
+// the tie level between the sorted value and the filename: equal coverage
+// ranks by how much of it recorded tests produced. Cells without the
+// attribute (untracked runs, count columns) return null and tie neutrally.
+// A stored null is a valid cache hit, distinguished from a missing entry.
+function cachedTiebreakValue(row: Element, childIndex: number | null): number | null {
+  if (childIndex === null) return null;
+  let cache = rowTiebreakCache.get(row);
+  if (!cache) {
+    cache = new Map();
+    rowTiebreakCache.set(row, cache);
+  }
+  const hit = cache.get(childIndex);
+  if (hit !== undefined) return hit;
+  const order = (row.children[childIndex] ?? null)?.getAttribute('data-order-2');
+  const value = order == null ? null : Number.parseFloat(order);
+  cache.set(childIndex, value);
+  return value;
+}
+
+function compareTiebreaks(a: number | null, b: number | null): number {
+  return a === null || b === null ? 0 : a - b;
+}
+
 // A cached collator compares markedly faster than calling `String.localeCompare`
 // per comparison, which matters when sorting thousands of rows by file name.
 // Left with default options so the ordering matches the previous behavior.
@@ -95,19 +120,23 @@ function compareValues(a: number | string, b: number | string): number {
   return collator.compare(String(a), String(b));
 }
 
-// Sort ties by file name so applying a saved preference to the report's
-// original row order produces exactly the same result as the user's click on
-// an already-sorted table. The direction applies to the composite key, which
+// Sort ties by the by-tests percent (when the cell carries one), then by
+// file name, so applying a saved preference to the report's original row
+// order produces exactly the same result as the user's click on an
+// already-sorted table. The direction applies to the composite key, which
 // keeps the same-column reversal optimization valid.
 function orderRows(rows: Element[], childIndex: number | null, dir: 'asc' | 'desc'): Element[] {
   const decorated = rows.map((row) => ({
     row,
     value: cachedSortValue(row, childIndex),
+    tiebreak: cachedTiebreakValue(row, childIndex),
     filename: cachedSortValue(row, 0)
   }));
   const factor = dir === 'asc' ? 1 : -1;
   decorated.sort((a, b) => factor * (
-    compareValues(a.value, b.value) || compareValues(a.filename, b.filename)
+    compareValues(a.value, b.value) ||
+    compareTiebreaks(a.tiebreak, b.tiebreak) ||
+    compareValues(a.filename, b.filename)
   ));
   return decorated.map(({ row }) => row);
 }

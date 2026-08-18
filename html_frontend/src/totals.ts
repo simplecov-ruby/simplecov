@@ -36,11 +36,16 @@ export function updateTotalsRow(container: Element): void {
       : fmtNum(rows.length) + '/' + fmtNum(totalFiles) + label;
   }
 
+  // Tracked runs (rows carry the attribute) keep the line bar's
+  // outside-tests share accurate as rows are filtered away.
+  const tracked = rows.some((r) => (r as HTMLElement).dataset.coveredOutsideLines !== undefined);
+
   for (const type of Object.keys(dataAttrMap)) {
     const attrs = dataAttrMap[type];
     const prefix = `.t-totals__${type}`;
     if (!$(prefix + '-pct', container)) continue;
-    updateCoverageCells(container, prefix, sumData(attrs.covered), sumData(attrs.total));
+    const outside = type === 'line' && tracked ? sumData('coveredOutsideLines') : undefined;
+    updateCoverageCells(container, prefix, sumData(attrs.covered), sumData(attrs.total), outside);
   }
 }
 
@@ -48,7 +53,8 @@ function updateCoverageCells(
   container: Element,
   prefix: string,
   covered: number,
-  total: number
+  total: number,
+  outside?: number
 ): void {
   const covCell = $(prefix + '-pct', container);
   const numEl = $(prefix + '-num', container);
@@ -65,7 +71,8 @@ function updateCoverageCells(
   const p = (covered * 100.0) / total;
   const cls = pctClass(p);
   if (covCell) {
-    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
+    const outsidePct = outside === undefined ? undefined : (outside * 100.0) / total;
+    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p, outsidePct)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
     covCell.classList.remove('green', 'yellow', 'red');
     covCell.classList.add(cls);
   }
