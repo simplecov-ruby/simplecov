@@ -1,0 +1,70 @@
+# Dependabot bumps html_frontend dependencies but cannot run the compile
+# step, so its PRs carry a stale compiled artifact and typecheck's
+# `rake assets:check` rightly fails. This workflow recompiles the artifact
+# on Dependabot's own bun PRs and pushes the regenerated file back to the
+# PR branch as a follow-up commit. A later `@dependabot rebase` discards
+# that commit, but the resulting synchronize event reruns this workflow,
+# which adds it again.
+#
+# pull_request_target is what makes a writable token possible (Dependabot
+# runs of the plain pull_request event are locked to read-only), and it is
+# gated to PRs Dependabot opened from this repository's own branches. The
+# build steps run without any credentials (persist-credentials is off and
+# the token is exposed only to the final push step), so the bumped
+# dependency's code never executes with the token in reach.
+#
+# One caveat: pushes made with the workflow token do not retrigger CI, so
+# the follow-up commit shows no checks until something nudges it. Adding a
+# fine-grained personal access token (contents read/write) as an Actions
+# secret named DEPENDABOT_ASSETS_TOKEN makes the push retrigger the full
+# suite; without it, close and reopen the PR to rerun checks on the new
+# head.
+name: dependabot assets
+
+on:
+  pull_request_target:
+    paths:
+      - "html_frontend/package.json"
+      - "html_frontend/bun.lock"
+
+permissions:
+  contents: write
+
+jobs:
+  recompile:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+
+      - run: bun install --frozen-lockfile
+        working-directory: html_frontend
+
+      # A bump that breaks the frontend suite gets no artifact: typecheck
+      # should fail on it loudly instead.
+      - run: bun test
+        working-directory: html_frontend
+
+      - run: bundle exec rake assets:compile
+
+      - name: Push the recompiled artifact
+        env:
+          PUSH_TOKEN: ${{ secrets.DEPENDABOT_ASSETS_TOKEN || github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git diff --quiet -- lib/simplecov/formatter/html_formatter/public/index.html && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/simplecov/formatter/html_formatter/public/index.html
+          git commit -m "Recompile the report artifact for the bumped dependencies"
+          git push "https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:${HEAD_REF}"
