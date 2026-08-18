@@ -9,7 +9,6 @@ describe('decodeFileContexts', () => {
     expect(index.perLine[1]).toEqual([0]);
     expect(index.perLine[2]).toEqual([0]);
     expect(index.perLine[3]).toEqual([]);
-    expect(index.distinct).toBe(1);
   });
 
   test('walks multi-nibble bitmaps with the least significant nibble as lines 1-4', () => {
@@ -24,7 +23,6 @@ describe('decodeFileContexts', () => {
     // Line 3 (bit 2) is covered by both; order is ascending by index.
     expect(index.perLine[2]).toEqual([0, 1]);
     expect(index.perLine[1]).toEqual([0]);
-    expect(index.distinct).toBe(2);
   });
 
   test('ignores bits beyond the file length rather than growing the table', () => {
@@ -36,7 +34,6 @@ describe('decodeFileContexts', () => {
   test('treats an absent table as an untouched file, not as unrecorded', () => {
     const index = decodeFileContexts(undefined, 2);
     expect(index.perLine).toEqual([[], []]);
-    expect(index.distinct).toBe(0);
   });
 });
 

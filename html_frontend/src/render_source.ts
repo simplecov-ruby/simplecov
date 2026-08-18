@@ -104,18 +104,6 @@ function renderSourceLine(args: SourceLineArgs): string {
   return lineHtml.join('');
 }
 
-// The `t-tests-summary` header row: how many recorded tests touch the
-// file, and how many covered lines none of them executed.
-function renderTestsSummary(distinct: number, outsideLines: number): string {
-  const tests = distinct === 1 ? '<b>1 test</b> covers' : `<b>${distinct} tests</b> cover`;
-  let html = `<div class="t-tests-summary">\n    Test coverage: ${tests} this file`;
-  if (outsideLines > 0) {
-    const lines = outsideLines === 1 ? '1 line' : `${outsideLines} lines`;
-    html += `, <span class="outside-tests-text"><b>${lines}</b> covered outside tests</span>`;
-  }
-  return html + '\n  </div>';
-}
-
 export function renderSourceFile(
   filename: string,
   data: FileCoverage,
@@ -172,9 +160,6 @@ export function renderSourceFile(
       testCount
     }));
   }
-  const testsSummary = contextIndex
-    ? renderTestsSummary(contextIndex.distinct, outsideLines)
-    : undefined;
 
   const html = [
     `<div class="source_table" id="${id}">`,
@@ -185,7 +170,8 @@ export function renderSourceFile(
       coveredBranches, totalBranches,
       coveredMethods, totalMethods,
       lineCoverage, branchCoverage, methodCoverage, showMethodToggle,
-      testsSummary
+      coveredByTests: contextIndex ? coveredLines - outsideLines : undefined,
+      coveredOutsideTests: contextIndex ? outsideLines : undefined
     })
   ];
 
