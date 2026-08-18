@@ -25,6 +25,7 @@ module SimpleCov
             validate_statistics!(data.fetch("total"), meta, "total")
             data.fetch("coverage").each { |filename, file| validate_file!(filename, file) }
             data.fetch("groups").each { |name, group| validate_group!(name, group, meta) }
+            validate_contexts!(data)
             data
           end
 
@@ -47,6 +48,33 @@ module SimpleCov
             raise SimpleCov::CoverageJSON::Error,
                   "coverage entry #{filename.inspect} must include an array of source strings; " \
                   "regenerate with source_in_json true"
+          end
+
+          # Optional: a report without `track_tests` carries none. When
+          # present, the viewer decodes both halves, so both are checked.
+          def validate_contexts!(data)
+            contexts = data["contexts"]
+            unless contexts.nil? || (contexts.is_a?(Array) && contexts.all?(String))
+              raise SimpleCov::CoverageJSON::Error, '"contexts" must be an array of strings'
+            end
+
+            count = contexts.is_a?(Array) ? contexts.size : 0
+            data.fetch("coverage").each { |filename, file| validate_context_table!(filename, file["contexts"], count) }
+          end
+
+          # The viewer converts each key with Number() and indexes the
+          # document's context list with it, and walks each value as hex
+          # nibbles, so keys and values are held to exactly that contract.
+          def validate_context_table!(filename, table, count)
+            return if table.nil? || (table.is_a?(Hash) && table.all? { |key, value| context_entry?(key, value, count) })
+
+            raise SimpleCov::CoverageJSON::Error,
+                  "coverage entry #{filename.inspect} contexts must map recorded context indices to hex bitmaps"
+          end
+
+          def context_entry?(key, value, count)
+            key.is_a?(String) && key.match?(/\A\d+\z/) && key.to_i < count &&
+              value.is_a?(String) && value.match?(/\A\h+\z/)
           end
 
           def validate_meta!(meta)

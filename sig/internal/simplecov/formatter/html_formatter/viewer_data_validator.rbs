@@ -9,6 +9,9 @@ module SimpleCov
         def self.call: (Hash[String, untyped] data) -> Hash[String, untyped]
         def self.validate_section!: (Hash[String, untyped] data, String key) -> void
         def self.validate_file!: (String filename, untyped file) -> void
+        def self.validate_contexts!: (Hash[String, untyped] data) -> void
+        def self.validate_context_table!: (String filename, untyped table, Integer count) -> void
+        def self.context_entry?: (untyped key, untyped value, Integer count) -> bool
         def self.validate_meta!: (Hash[String, untyped] meta) -> void
         def self.validate_statistics!: (Hash[String, untyped] statistics, Hash[String, untyped] meta, String location) -> void
         def self.validate_group!: (String name, untyped group, Hash[String, untyped] meta) -> void

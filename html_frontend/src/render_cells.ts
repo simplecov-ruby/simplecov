@@ -89,6 +89,9 @@ interface CoverageSummaryArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   showMethodToggle: boolean;
+  // Pre-rendered `t-tests-summary` row, present only when the report
+  // carries recorded contexts (see render_source.ts).
+  testsSummary?: string;
 }
 
 export function renderCoverageSummary(args: CoverageSummaryArgs): string {
@@ -96,5 +99,6 @@ export function renderCoverageSummary(args: CoverageSummaryArgs): string {
     renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, suffix: 'relevant lines covered' }) +
     renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, missedClass: 'missed-branch-text' }) +
     renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
+    (args.testsSummary || '') +
     '</div>';
 }

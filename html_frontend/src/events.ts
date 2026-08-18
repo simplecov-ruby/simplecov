@@ -3,6 +3,8 @@
 
 import { $$, on } from './dom';
 import { navigateToHash, getDialogBody } from './dialog';
+import { contextsForSourceLine } from './page';
+import { toggleTestsPeek, setupTestsPeekDismissal } from './tests_peek';
 
 function getMissedLines(): HTMLElement[] {
   return $$('.source-dialog .source_table li.missed, .source-dialog .source_table li.missed-branch, .source-dialog .source_table li.missed-method') as HTMLElement[];
@@ -43,7 +45,15 @@ export function setupEventDelegation(): void {
     if (link) window.location.hash = link.getAttribute('href')!.substring(1);
   });
 
+  on(document, 'click', 'button.hits--tests', function (e: Event) {
+    e.preventDefault();
+    toggleTestsPeek(this as HTMLElement, contextsForSourceLine);
+  });
+
   on(document, 'click', '.source-dialog .source_table li[data-linenumber]', function (e: Event) {
+    // The tests badge (and the peek it opens) owns its own clicks; without
+    // this guard a badge click would also anchor and scroll the line.
+    if ((e.target as Element).closest('.hits--tests, .tests-peek')) return;
     e.preventDefault();
     getDialogBody().scrollTop = (this as HTMLElement).offsetTop;
     const linenumber = (this as HTMLElement).dataset.linenumber;
@@ -52,4 +62,5 @@ export function setupEventDelegation(): void {
   });
 
   window.addEventListener('hashchange', navigateToHash);
+  setupTestsPeekDismissal();
 }
