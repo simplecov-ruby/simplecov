@@ -28,10 +28,10 @@ RSpec.describe SimpleCov::TestTracker do
 
       tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(tracker.map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
-      expect(tracker.map.covering(lib_file, 2)).to eq([])
-      expect(tracker.map.covering(lib_file, 4)).to eq([])
-      expect(tracker.map.covering(idle_file, 1)).to eq([])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 2)).to eq([])
+      expect(tracker.recorded_map.covering(lib_file, 4)).to eq([])
+      expect(tracker.recorded_map.covering(idle_file, 1)).to eq([])
     end
 
     it "returns the block's value" do
@@ -47,7 +47,7 @@ RSpec.describe SimpleCov::TestTracker do
       )
 
       expect { tracker.track("spec/thing_spec.rb:1") { raise "boom" } }.to raise_error("boom")
-      expect(tracker.map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
     end
 
     it "skips files outside the project root" do
@@ -58,7 +58,7 @@ RSpec.describe SimpleCov::TestTracker do
 
       tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(tracker.map.covering(gem_file, 1)).to eq([])
+      expect(tracker.recorded_map.covering(gem_file, 1)).to eq([])
     end
 
     it "attributes every executed line of a file the test itself loaded" do
@@ -69,8 +69,8 @@ RSpec.describe SimpleCov::TestTracker do
 
       tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(tracker.map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
-      expect(tracker.map.covering(lib_file, 3)).to eq([])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 3)).to eq([])
     end
 
     it "reads bare line arrays, the shape a foreign lines-only Coverage.start produces" do
@@ -81,8 +81,8 @@ RSpec.describe SimpleCov::TestTracker do
 
       tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(tracker.map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
-      expect(tracker.map.covering(lib_file, 2)).to eq([])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 2)).to eq([])
     end
 
     it "has nothing to diff for a file that carries no line data at all" do
@@ -93,7 +93,7 @@ RSpec.describe SimpleCov::TestTracker do
 
       tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(tracker.map.to_h["files"]).to eq({})
+      expect(tracker.recorded_map.to_h["files"]).to eq({})
     end
 
     it "matches files with the report's own root matching by default, case differences included" do
@@ -103,7 +103,7 @@ RSpec.describe SimpleCov::TestTracker do
 
       default_tracker.track("spec/thing_spec.rb:1") { :ran }
 
-      expect(default_tracker.map.covering(file, 1)).to eq(["spec/thing_spec.rb:1"])
+      expect(default_tracker.recorded_map.covering(file, 1)).to eq(["spec/thing_spec.rb:1"])
     end
 
     it "attributes a same-thread nested track to both tests" do
@@ -118,8 +118,116 @@ RSpec.describe SimpleCov::TestTracker do
         tracker.track("spec/inner_spec.rb:2") { :ran }
       end
 
-      expect(tracker.map.covering(lib_file, 1)).to eq(["spec/outer_spec.rb:1"])
-      expect(tracker.map.covering(lib_file, 2)).to eq(["spec/inner_spec.rb:2", "spec/outer_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/outer_spec.rb:1"])
+      expect(tracker.recorded_map.covering(lib_file, 2)).to eq(["spec/inner_spec.rb:2", "spec/outer_spec.rb:1"])
+    end
+  end
+
+  # Peeking is the dominant cost of tracking, so recording settles at
+  # segment boundaries: a segment opens when a new context id arrives,
+  # closes when a different one does (or at flush), and one peek serves
+  # as both the closing of one segment and the opening of the next.
+  # In-root code that runs between two tests is attributed to the later
+  # one, which is the documented price of halving the sampling cost.
+  describe "segments" do
+    it "takes one peek per boundary, attributing the gap forward" do
+      allow(Coverage).to receive(:peek_result).and_return(
+        {lib_file => {lines: [0, 0, 0]}}, # first segment opens
+        {lib_file => {lines: [1, 0, 0]}}, # boundary: closes first, opens second
+        {lib_file => {lines: [1, 1, 1]}}  # flush closes the second
+      )
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      tracker.track("spec/second_spec.rb:2") { :ran }
+
+      map = tracker.recorded_map
+      expect(Coverage).to have_received(:peek_result).exactly(3).times
+      expect(map.covering(lib_file, 1)).to eq(["spec/first_spec.rb:1"])
+      expect(map.covering(lib_file, 2)).to eq(["spec/second_spec.rb:2"])
+      expect(map.covering(lib_file, 3)).to eq(["spec/second_spec.rb:2"])
+    end
+
+    it "defers recording to the boundary, so the raw map lags until flush" do
+      allow(Coverage).to receive(:peek_result).and_return(
+        {lib_file => {lines: [0]}},
+        {lib_file => {lines: [1]}}
+      )
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+
+      expect(tracker.map.covering(lib_file, 1)).to eq([])
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/first_spec.rb:1"])
+    end
+
+    it "keeps one segment open across consecutive tracks of the same id, with no extra peeks" do
+      allow(Coverage).to receive(:peek_result).and_return(
+        {lib_file => {lines: [0, 0]}},
+        {lib_file => {lines: [1, 1]}}
+      )
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      tracker.track("spec/first_spec.rb:1") { :ran }
+
+      map = tracker.recorded_map
+      expect(Coverage).to have_received(:peek_result).exactly(2).times
+      expect(map.covering(lib_file, 1)).to eq(["spec/first_spec.rb:1"])
+    end
+
+    it "flushes from a supplied closing snapshot without peeking, for the stopped-Coverage exit path" do
+      allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}})
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      map = tracker.recorded_map(closing: {lib_file => {lines: [1]}})
+
+      expect(Coverage).to have_received(:peek_result).once
+      expect(map.covering(lib_file, 1)).to eq(["spec/first_spec.rb:1"])
+    end
+
+    it "flushes idempotently" do
+      allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [1]}})
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      first = tracker.recorded_map.to_h
+
+      expect(tracker.recorded_map.to_h).to eq(first)
+      expect(Coverage).to have_received(:peek_result).exactly(2).times
+    end
+  end
+
+  # At :file granularity every test in a file shares one context: ids
+  # truncate to the file, consecutive same-file tests share one segment,
+  # and a whole suite pays one peek per test file instead of per test.
+  describe "file granularity" do
+    subject(:tracker) do
+      described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i, granularity: :file)
+    end
+
+    it "attributes to the test file, merging its tests into one segment" do
+      allow(Coverage).to receive(:peek_result).and_return(
+        {lib_file => {lines: [0, 0, 0]}},
+        {lib_file => {lines: [1, 1, 0]}}, # boundary to the second file
+        {lib_file => {lines: [1, 1, 1]}}  # flush
+      )
+
+      tracker.track("spec/first_spec.rb:1") { :ran }
+      tracker.track("spec/first_spec.rb:9") { :ran }
+      tracker.track("spec/second_spec.rb:2") { :ran }
+
+      map = tracker.recorded_map
+      expect(Coverage).to have_received(:peek_result).exactly(3).times
+      expect(map.covering(lib_file, 1)).to eq(["spec/first_spec.rb"])
+      expect(map.covering(lib_file, 2)).to eq(["spec/first_spec.rb"])
+      expect(map.covering(lib_file, 3)).to eq(["spec/second_spec.rb"])
+      expect(map.contexts).to eq(["spec/first_spec.rb", "spec/second_spec.rb"])
+    end
+
+    it "keeps an id it cannot truncate whole" do
+      allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+
+      tracker.track("FakeNativeTest#object_id") { :ran }
+
+      expect(tracker.recorded_map.contexts).to eq(["FakeNativeTest#object_id"])
     end
   end
 

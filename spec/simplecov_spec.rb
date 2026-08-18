@@ -294,7 +294,8 @@ RSpec.describe SimpleCov do
 
     it "records the live per-test map on the result slice, unless the tracker distrusts it" do
       map = SimpleCov::ContextMap.new
-      tracker = instance_double(SimpleCov::TestTracker, recorded_map: map)
+      tracker = instance_double(SimpleCov::TestTracker)
+      allow(tracker).to receive(:recorded_map).with(closing: anything).and_return(map)
       described_class.instance_variable_set(:@test_tracker, tracker)
       allow(Coverage).to receive_messages(running?: true, result: {})
 
