@@ -349,6 +349,14 @@ The map also flows into `coverage.json`, the JSON formatter's schema'd public ar
 downstream tools should build on (the resultset is an internal cache). See
 [the coverage.json schema](Formatters.md#json-schema-for-coveragejson), version 1.1.
 
+The HTML report renders the recording in the source view. A covered line no recorded test executed drains from
+green to a slate tint ("Covered outside tests" in the legend), which is how coverage that only load time, suite
+setup, or a helper produced stops passing for tested code at a glance. Every executed line carries a tests badge
+at its right edge; clicking it (or focusing it and pressing Enter) opens an inline panel naming the covering
+tests, the same ids in the same order `simplecov tests file:line` prints, ready to select and hand to a runner.
+The file header sums it up: how many tests cover the file, and how many covered lines none of them reached. A
+report generated without `track_tests` shows none of this.
+
 When results are merged, across suites, parallel workers, or `simplecov collate`, the maps are merged by the same
 rule everywhere: the merged result carries the union of the maps when every merged result recorded one, and no map at
 all otherwise. A partial map would present one worker's tests as the whole run's, so mixing tracked and untracked

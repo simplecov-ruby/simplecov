@@ -4,6 +4,7 @@
 import { escapeHTML } from './dom';
 import { fileId } from './format';
 import { renderCoverageSummary } from './render_cells';
+import { decodeFileContexts, type FileContextIndex } from './contexts';
 import type { FileCoverage, BranchEntry, MethodEntry } from './types';
 
 interface LineStatusArgs {
@@ -63,10 +64,13 @@ interface SourceLineArgs {
   status: string;
   branchCoverage: boolean;
   lineBranches?: [string, number][];
+  // The covering test count, present only when contexts were recorded
+  // and the line executed.
+  testCount?: number;
 }
 
 function renderSourceLine(args: SourceLineArgs): string {
-  const { index, source, lineCov, status, branchCoverage, lineBranches } = args;
+  const { index, source, lineCov, status, branchCoverage, lineBranches, testCount } = args;
   const lineNum = index + 1;
   const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
   const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
@@ -75,6 +79,18 @@ function renderSourceLine(args: SourceLineArgs): string {
     lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
   } else if (lineCov === 'ignored') {
     lineHtml.push('<span class="hits" data-content="skipped"></span>');
+  }
+
+  // A real button so the peek panel it opens is keyboard-reachable. The
+  // count is written out in words — the badge next to a bare hit number
+  // must explain itself, and the report deliberately carries no glyphs.
+  if (testCount !== undefined) {
+    const none = testCount === 0 ? ' hits--tests-none' : '';
+    const label = testCount === 1 ? '1 test' : `${testCount} tests`;
+    lineHtml.push(
+      `<button type="button" class="hits hits--tests${none}" data-content="${label}"` +
+      ` data-tests-line="${lineNum}" title="List the tests covering this line" aria-expanded="false"></button>`
+    );
   }
 
   if (branchCoverage && lineBranches) {
@@ -88,12 +104,25 @@ function renderSourceLine(args: SourceLineArgs): string {
   return lineHtml.join('');
 }
 
+// The `t-tests-summary` header row: how many recorded tests touch the
+// file, and how many covered lines none of them executed.
+function renderTestsSummary(distinct: number, outsideLines: number): string {
+  const tests = distinct === 1 ? '<b>1 test</b> covers' : `<b>${distinct} tests</b> cover`;
+  let html = `<div class="t-tests-summary">\n    Test coverage: ${tests} this file`;
+  if (outsideLines > 0) {
+    const lines = outsideLines === 1 ? '1 line' : `${outsideLines} lines`;
+    html += `, <span class="outside-tests-text"><b>${lines}</b> covered outside tests</span>`;
+  }
+  return html + '\n  </div>';
+}
+
 export function renderSourceFile(
   filename: string,
   data: FileCoverage,
   lineCoverage: boolean,
   branchCoverage: boolean,
-  methodCoverage: boolean
+  methodCoverage: boolean,
+  contexts?: string[]
 ): string {
   const id = fileId(filename);
   const coveredLines = lineCoverage ? (data.covered_lines || 0) : 0;
@@ -108,6 +137,43 @@ export function renderSourceFile(
 
   const branchesReport = buildBranchesReport(data.branches);
   const missedMethodLineSet = buildMissedMethodLines(data.methods);
+  const contextIndex: FileContextIndex | null =
+    contexts ? decodeFileContexts(data.contexts, data.source.length) : null;
+  let outsideLines = 0;
+
+  // Lines render before the header: the tests summary needs the drained
+  // line count, which only the line pass knows.
+  const lineRows: string[] = [];
+  for (let i = 0; i < data.source.length; i++) {
+    const lineCov = data.lines?.[i];
+    let status = lineStatus({
+      lineIndex: i, lineCov, branchesReport,
+      missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage
+    });
+    let testCount: number | undefined;
+    if (contextIndex && typeof lineCov === 'number' && lineCov > 0) {
+      testCount = contextIndex.perLine[i].length;
+      // The drain: a covered line no recorded test executed loses its
+      // green. Branch and method misses stay ranked above it — they name
+      // a problem, this names an absence.
+      if (testCount === 0 && status === 'covered') {
+        status = 'outside-tests';
+        outsideLines++;
+      }
+    }
+    lineRows.push(renderSourceLine({
+      index: i,
+      source: data.source[i],
+      lineCov,
+      status,
+      branchCoverage,
+      lineBranches: branchCoverage ? branchesReport[i + 1] : undefined,
+      testCount
+    }));
+  }
+  const testsSummary = contextIndex
+    ? renderTestsSummary(contextIndex.distinct, outsideLines)
+    : undefined;
 
   const html = [
     `<div class="source_table" id="${id}">`,
@@ -117,7 +183,8 @@ export function renderSourceFile(
       coveredLines, totalLines,
       coveredBranches, totalBranches,
       coveredMethods, totalMethods,
-      lineCoverage, branchCoverage, methodCoverage, showMethodToggle
+      lineCoverage, branchCoverage, methodCoverage, showMethodToggle,
+      testsSummary
     })
   ];
 
@@ -129,22 +196,7 @@ export function renderSourceFile(
     );
   }
   html.push('</div>', '<pre><ol>');
-
-  for (let i = 0; i < data.source.length; i++) {
-    const lineCov = data.lines?.[i];
-    const status = lineStatus({
-      lineIndex: i, lineCov, branchesReport,
-      missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage
-    });
-    html.push(renderSourceLine({
-      index: i,
-      source: data.source[i],
-      lineCov,
-      status,
-      branchCoverage,
-      lineBranches: branchCoverage ? branchesReport[i + 1] : undefined
-    }));
-  }
+  html.push(...lineRows);
   html.push('</ol></pre></div>');
   return html.join('');
 }

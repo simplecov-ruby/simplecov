@@ -15,6 +15,9 @@ export interface CoverageData {
   };
   total: StatGroup;
   coverage: Record<string, FileCoverage>;
+  // Recorded context ids (each one a test under `track_tests`), present
+  // only when the run recorded them. Per-file bitmaps index into this.
+  contexts?: string[];
   groups: Record<string, GroupData>;
 }
 
@@ -51,6 +54,9 @@ export interface FileCoverage {
   covered_methods?: number;
   missed_methods?: number;
   total_methods?: number;
+  // Hex bitmaps of covered lines keyed by context index; absent when no
+  // recorded context touched the file (see src/contexts.ts).
+  contexts?: Record<string, string>;
 }
 
 export interface BranchEntry {

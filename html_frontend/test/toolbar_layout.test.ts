@@ -95,18 +95,19 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__title .summary-stats', 'display')).toBe('contents');
     expect(declaration('.source-legend', 'display')).toBe('grid');
     expect(declaration('.source-legend', 'grid-column')).toBe('2 / 4');
-    expect(declaration('.source-legend', 'grid-row')).toBe('2 / 5');
+    expect(declaration('.source-legend', 'grid-row')).toBe('2 / 6');
     expect(declaration('.source-legend', 'grid-template-rows')).toBe('subgrid');
     expect(declaration('.source-legend', 'grid-template-columns')).toBe('repeat(3, auto)');
     expect(declaration('.source-legend', 'justify-content')).toBe('end');
     expect(declaration('.source-legend', 'justify-items')).toBe('start');
     expect(declaration('.source-legend__row', 'display')).toBe('contents');
+
     // Subgrid line numbers are local: header row N is legend row N - 1.
-    for (const [type, row, legendRow] of [['line', '2', '1'], ['branch', '3', '2'], ['method', '4', '3']]) {
+    for (const [type, row, legendRow] of [['line', '2', '1'], ['branch', '3', '2'], ['method', '4', '3'], ['tests', '5', '4']]) {
       expect(declaration(`.source-dialog__title .t-${type}-summary`, 'grid-row')).toBe(row);
       expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-row')).toBe(legendRow);
     }
-    for (const type of ['branch', 'method']) {
+    for (const type of ['branch', 'method', 'tests']) {
       expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-column')).toBe('3');
     }
   });
