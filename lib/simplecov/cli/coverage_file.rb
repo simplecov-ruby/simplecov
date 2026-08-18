@@ -23,14 +23,20 @@ module SimpleCov
 
     module_function
 
-      # Match either the absolute path, the literal string passed, or
-      # any coverage entry whose absolute filename ends with "/<path>".
-      # That covers the three natural ways a user types a path: relative
-      # to project root ("app/foo.rb"), absolute, or basename-only.
+      # Resolve a user-typed path to its coverage entry. An exact match —
+      # the absolute path or the literal string passed — wins over a
+      # suffix match, so a nested "vendor/lib/foo.rb" can't shadow the
+      # real "lib/foo.rb" just by sitting earlier in the report. The
+      # suffix ("/<path>") is the subpath/basename fallback; its leading
+      # slash keeps "foo.rb" from matching "barfoo.rb". Exact matches read
+      # straight off the hash (O(1)), which the patch subcommand leans on
+      # as it looks up every changed file against a large report.
       def lookup(coverage_hash, path)
         absolute = File.expand_path(path)
-        suffix   = "/#{path}"
-        coverage_hash.find { |fname, _| fname == absolute || fname == path || fname.end_with?(suffix) }
+        return [absolute, coverage_hash[absolute]] if coverage_hash.key?(absolute)
+        return [path, coverage_hash[path]] if coverage_hash.key?(path)
+
+        coverage_hash.find { |fname, _| fname.end_with?("/#{path}") }
       end
 
       def load_document(path, command:, stderr:)

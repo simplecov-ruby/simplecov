@@ -18,6 +18,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `uncovered`        | List the lowest-coverage files                                      |
 | `merge <files…>`   | Merge multiple `.resultset.json` files                              |
 | `diff <baseline>`  | Show per-file coverage delta vs a baseline                          |
+| `patch`            | Show coverage of only the lines a change touched                    |
 | `open`             | Open the HTML report in the default browser                         |
 | `serve`            | Serve the coverage report over HTTP                                 |
 | `clean`            | Remove the coverage report directory                                |
