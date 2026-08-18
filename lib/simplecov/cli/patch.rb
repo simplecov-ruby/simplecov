@@ -341,16 +341,20 @@ module SimpleCov
         below ? 1 : 0
       end
 
-      # Whether a criterion falls below the floor, measured on the exact
-      # covered/relevant ratio rather than the displayed percentage: a
-      # 19_999/20_000 patch is 99.995%, which `pct` rounds to 100.00 and
-      # would let slip past `--minimum 100` if the gate read the rounded
-      # figure. A criterion with nothing relevant never falls short.
+      # Whether a criterion falls below the floor. Cross-multiplied rather
+      # than compared as percentages so neither rounding nor float
+      # division can shift the verdict at the boundary: reading the
+      # displayed `pct` would round a 19_999/20_000 (99.995%) patch up to
+      # 100 and pass it against `--minimum 100`, while dividing
+      # (`covered / relevant * 100`) makes 23/40 compute as 57.4999… and
+      # fail an exactly-57.5% patch. `covered * 100` is exact and a
+      # representable minimum times an integer is too. A criterion with
+      # nothing relevant never falls short.
       def short?(stats, minimum)
         relevant = stats[:relevant]
         return false if relevant.zero?
 
-        (stats[:covered].to_f / relevant * 100) < minimum
+        stats[:covered] * 100 < minimum * relevant
       end
     end
     # rubocop:enable Metrics/ModuleLength
