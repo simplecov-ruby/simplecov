@@ -301,3 +301,46 @@ describe('slow-sort overlay', () => {
     expect(overlay.style.display).toBe('none');
   });
 });
+
+describe('by-tests secondary sort', () => {
+  // Real line-percent headers carry no colspan, so clicking one sorts on
+  // the pct cell itself, where data-order-2 holds the by-tests percent.
+  const TRACKED_HEADERS = '<th data-sort-key="file">File</th>' +
+    '<th data-sort-key="line-percent">Line %</th>' +
+    '<th data-sort-key="line-covered">Covered</th>' +
+    '<th data-sort-key="line-total">Lines</th>';
+
+  function trackedRow(name: string, pct: string, byTests: string): string {
+    return `<tr class="t-file"><td>${name}</td>` +
+      `<td class="cell--line-pct" data-order="${pct}" data-order-2="${byTests}">${pct}%</td>` +
+      `<td>1/</td><td>2</td></tr>`;
+  }
+
+  const TRACKED_ROWS = [
+    trackedRow('lib/a.rb', '100.00', '80.00'),
+    trackedRow('lib/b.rb', '100.00', '90.00'),
+    trackedRow('lib/c.rb', '50.00', '50.00')
+  ];
+
+  test('descending ranks the higher by-tests percent first among ties', () => {
+    const table = buildTable(TRACKED_HEADERS, TRACKED_ROWS);
+    setupTableSorting('line');
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/b.rb', 'lib/a.rb', 'lib/c.rb']);
+  });
+
+  test('ascending ranks the lower by-tests percent first among ties', () => {
+    const table = buildTable(TRACKED_HEADERS, TRACKED_ROWS);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/a.rb', 'lib/b.rb']);
+  });
+
+  test('falls through to the filename when the by-tests percents tie too', () => {
+    const table = buildTable(TRACKED_HEADERS, [
+      trackedRow('lib/z.rb', '100.00', '90.00'),
+      trackedRow('lib/a.rb', '100.00', '90.00')
+    ]);
+    setupTableSorting('line');
+    expect(names(table)).toEqual(['lib/a.rb', 'lib/z.rb']);
+  });
+});

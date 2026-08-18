@@ -135,3 +135,82 @@ describe('renderFileList', () => {
     expect(container.querySelectorAll('tbody tr.t-file')).toHaveLength(0);
   });
 });
+
+describe('renderFileList with recorded contexts', () => {
+  // 0xb = bits 0,1,3 -> lines 1, 2, 4 executed by the one context. Line 4
+  // is non-executable, so of the covered lines (1, 2, 3, 5) two are covered
+  // outside tests: 50% of the file's 4 relevant lines is by tests.
+  const trackedCoverage: FileCoverage = {
+    source: ['a', 'b', 'c', 'd', 'e'],
+    lines: [1, 1, 1, null, 1],
+    lines_covered_percent: 100,
+    covered_lines: 4,
+    total_lines: 4,
+    contexts: { '0': 'b' }
+  };
+  // No `contexts` table: an untouched file, all its covered lines outside.
+  const untouchedCoverage: FileCoverage = {
+    source: ['a', 'b'],
+    lines: [1, 0],
+    lines_covered_percent: 50,
+    covered_lines: 1,
+    total_lines: 2
+  };
+
+  function trackedList(contextsEnabled: boolean): HTMLElement {
+    return parse(
+      renderFileList({
+        containerId: 'g-total',
+        title: 'All Files',
+        filenames: [FULL, BARE],
+        stats: {
+          lines: { covered: 5, missed: 1, total: 6, percent: 83.33, strength: 1 }
+        },
+        allCoverage: { [FULL]: trackedCoverage, [BARE]: untouchedCoverage },
+        lineCoverage: true,
+        branchCoverage: false,
+        methodCoverage: false,
+        primaryCoverage: 'line',
+        contextsEnabled
+      })
+    );
+  }
+
+  test('splits each line bar and carries the by-tests sort key', () => {
+    const container = trackedList(true);
+    const row = container.querySelector('tbody tr.t-file')!;
+    expect(row.getAttribute('data-covered-outside-lines')).toBe('2');
+    const pctCell = row.querySelector('td.cell--line-pct')!;
+    expect(pctCell.getAttribute('data-order')).toBe('100.00');
+    expect(pctCell.getAttribute('data-order-2')).toBe('50.00');
+    const fills = pctCell.querySelectorAll('.coverage-bar__fill');
+    expect(fills.length).toBe(2);
+    expect(fills[0].getAttribute('style')).toBe('width: 50.00%');
+    expect(fills[1].getAttribute('style')).toBe('width: 50.00%');
+    expect(fills[1].className).toContain('coverage-bar__fill--outside');
+  });
+
+  test('counts every covered line of an untouched file as outside', () => {
+    const container = trackedList(true);
+    const row = container.querySelectorAll('tbody tr.t-file')[1]!;
+    expect(row.getAttribute('data-covered-outside-lines')).toBe('1');
+    expect(row.querySelector('td.cell--line-pct')!.getAttribute('data-order-2')).toBe('0.00');
+  });
+
+  test('aggregates the outside share into the totals bar', () => {
+    const container = trackedList(true);
+    const totalsCell = container.querySelector('.t-totals__line-pct')!;
+    const fills = totalsCell.querySelectorAll('.coverage-bar__fill');
+    expect(fills.length).toBe(2);
+    // 3 of 6 relevant lines outside tests: 50% grey, 33.33% by tests.
+    expect(fills[1].getAttribute('style')).toBe('width: 50.00%');
+    expect(fills[0].getAttribute('style')).toBe('width: 33.33%');
+  });
+
+  test('renders exactly as before when the run recorded no contexts', () => {
+    const container = trackedList(false);
+    expect(container.querySelector('[data-covered-outside-lines]')).toBeNull();
+    expect(container.querySelector('[data-order-2]')).toBeNull();
+    expect(container.querySelector('.coverage-bar__fill--outside')).toBeNull();
+  });
+});

@@ -90,7 +90,8 @@ export function renderPage(data: CoverageData): void {
       lineCoverage,
       branchCoverage,
       methodCoverage,
-      primaryCoverage
+      primaryCoverage,
+      contextsEnabled: !!data.contexts
     }),
   ];
   for (const groupName of Object.keys(data.groups)) {
@@ -105,7 +106,8 @@ export function renderPage(data: CoverageData): void {
         lineCoverage,
         branchCoverage,
         methodCoverage,
-        primaryCoverage
+        primaryCoverage,
+        contextsEnabled: !!data.contexts
       })
     );
   }

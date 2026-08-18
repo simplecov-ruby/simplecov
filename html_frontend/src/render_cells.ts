@@ -3,16 +3,27 @@
 
 import { pctClass, fmtNum, fmtPct } from './format';
 
-export function renderCoverageBar(pct: number): string {
+// Under `track_tests`, `outsidePct` splits the fill: the band-coloured
+// share covered by recorded tests, then a slate share covered only outside
+// them, so the bar mirrors the source view's drained lines. The band stays
+// a function of the overall percent — the split changes what the fill is
+// made of, not which band the file is in.
+export function renderCoverageBar(pct: number, outsidePct?: number): string {
   const css = pctClass(pct);
-  const width = fmtPct(pct);
-  return `<div class="bar-sizer"><div class="coverage-bar"><div class="coverage-bar__fill coverage-bar__fill--${css}" style="width: ${width}%"></div></div></div>`;
+  if (!outsidePct) {
+    return `<div class="bar-sizer"><div class="coverage-bar"><div class="coverage-bar__fill coverage-bar__fill--${css}" style="width: ${fmtPct(pct)}%"></div></div></div>`;
+  }
+  return '<div class="bar-sizer"><div class="coverage-bar">' +
+    `<div class="coverage-bar__fill coverage-bar__fill--${css} coverage-bar__fill--split" style="width: ${fmtPct(pct - outsidePct)}%"></div>` +
+    `<div class="coverage-bar__fill coverage-bar__fill--outside" style="width: ${fmtPct(outsidePct)}%"></div>` +
+    '</div></div>';
 }
 
-export function renderCoverageCells(pct: number, covered: number, total: number, type: string, totals: boolean): string {
+export function renderCoverageCells(pct: number, covered: number, total: number, type: string, totals: boolean, outside?: number): string {
   const css = pctClass(pct);
   const pctStr = fmtPct(pct);
-  const barAndPct = `<div class="coverage-cell">${renderCoverageBar(pct)}<span class="coverage-pct">${pctStr}%</span></div>`;
+  const outsidePct = outside === undefined || total === 0 ? undefined : (outside * 100.0) / total;
+  const barAndPct = `<div class="coverage-cell">${renderCoverageBar(pct, outsidePct)}<span class="coverage-pct">${pctStr}%</span></div>`;
 
   if (totals) {
     return `<td class="cell--coverage strong t-totals__${type}-pct ${css}">${barAndPct}</td>` +
@@ -21,8 +32,11 @@ export function renderCoverageCells(pct: number, covered: number, total: number,
   }
   // Every sortable cell carries data-order: the displayed counts are
   // comma-grouped, and the sorter's Number.parseFloat would stop at the
-  // first separator and rank "1,250" below "999".
-  const order = ` data-order="${fmtPct(pct)}"`;
+  // first separator and rank "1,250" below "999". Tracked runs add the
+  // by-tests percent as data-order-2, the sorter's tie-breaker, so equal
+  // coverage ranks by how much of it recorded tests produced.
+  const tiebreak = outsidePct === undefined ? '' : ` data-order-2="${fmtPct(pct - outsidePct)}"`;
+  const order = ` data-order="${fmtPct(pct)}"${tiebreak}`;
   return `<td class="cell--coverage cell--${type}-pct ${css}"${order}>${barAndPct}</td>` +
          `<td class="cell--numerator" data-order="${covered}">${fmtNum(covered)}/</td>` +
          `<td class="cell--denominator" data-order="${total}">${fmtNum(total)}</td>`;

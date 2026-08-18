@@ -107,3 +107,53 @@ describe('renderCoverageSummary', () => {
     expect(html).not.toContain('t-missed-method-toggle');
   });
 });
+
+describe('renderCoverageBar with recorded contexts', () => {
+  test('splits the fill into by-tests and outside-tests segments', () => {
+    expect(renderCoverageBar(100, 10)).toBe(
+      '<div class="bar-sizer"><div class="coverage-bar">' +
+        '<div class="coverage-bar__fill coverage-bar__fill--green coverage-bar__fill--split" style="width: 90.00%"></div>' +
+        '<div class="coverage-bar__fill coverage-bar__fill--outside" style="width: 10.00%"></div>' +
+        '</div></div>'
+    );
+  });
+
+  test('bands the by-tests segment by the overall percent', () => {
+    // 80% total coverage is the yellow band even though only 50% is by tests.
+    const html = renderCoverageBar(80, 30);
+    expect(html).toContain('coverage-bar__fill--yellow coverage-bar__fill--split" style="width: 50.00%"');
+    expect(html).toContain('coverage-bar__fill--outside" style="width: 30.00%"');
+  });
+
+  test('keeps the single fill when nothing was covered outside tests', () => {
+    expect(renderCoverageBar(100, 0)).toBe(renderCoverageBar(100));
+  });
+});
+
+describe('renderCoverageCells with recorded contexts', () => {
+  test('file-row cells sort primarily by percent, secondarily by-tests', () => {
+    const html = renderCoverageCells(100, 10, 10, 'line', false, 2);
+    expect(html).toContain('data-order="100.00" data-order-2="80.00"');
+    expect(html).toContain('coverage-bar__fill--green coverage-bar__fill--split" style="width: 80.00%"');
+    expect(html).toContain('coverage-bar__fill--outside" style="width: 20.00%"');
+  });
+
+  test('totals cells split the bar but stay non-sortable', () => {
+    const html = renderCoverageCells(100, 10, 10, 'line', true, 2);
+    expect(html).toContain('coverage-bar__fill--outside');
+    expect(html).not.toContain('data-order');
+  });
+
+  test('a fully test-covered file keeps the single fill and a 100 tiebreak', () => {
+    const html = renderCoverageCells(100, 10, 10, 'line', false, 0);
+    expect(html).toContain('data-order="100.00" data-order-2="100.00"');
+    expect(html).not.toContain('coverage-bar__fill--outside');
+    expect(html).not.toContain('coverage-bar__fill--split');
+  });
+
+  test('an untracked run renders exactly as before', () => {
+    const html = renderCoverageCells(100, 10, 10, 'line', false);
+    expect(html).not.toContain('data-order-2');
+    expect(html).not.toContain('coverage-bar__fill--outside');
+  });
+});
