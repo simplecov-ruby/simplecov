@@ -76,7 +76,11 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__header', 'background')).toBe(declaration('body', 'background'));
   });
 
-  test('aligns each right-justified legend row with its coverage summary', () => {
+  // The legend is one right-aligned box in the header grid; inside it,
+  // items sit in left-aligned columns, the line row across columns 1-3
+  // and every single-item row in the last column, so the trailing
+  // swatches share one edge instead of scattering with label widths.
+  test('right-aligns the legend box while its swatches align in columns', () => {
     const document = new DOMParser().parseFromString(template, 'text/html');
     const legend = document.querySelector('.source-legend')!;
     const close = document.querySelector('.source-dialog__close')!;
@@ -86,14 +90,18 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__header', 'grid-template-columns')).toBe('minmax(0, 1fr) auto auto');
     expect(declaration('.source-dialog__title', 'display')).toBe('contents');
     expect(declaration('.source-dialog__title .summary-stats', 'display')).toBe('contents');
-    expect(declaration('.source-legend', 'display')).toBe('contents');
-    expect(declaration('.source-legend__row', 'grid-column')).toBe('2 / 4');
-    expect(declaration('.source-legend__row', 'align-self')).toBe('center');
-    expect(declaration('.source-legend__row', 'justify-content')).toBe('flex-end');
+    expect(declaration('.source-legend', 'display')).toBe('grid');
+    expect(declaration('.source-legend', 'grid-column')).toBe('2 / 4');
+    expect(declaration('.source-legend', 'grid-template-columns')).toBe('repeat(3, auto)');
+    expect(declaration('.source-legend', 'justify-content')).toBe('end');
+    expect(declaration('.source-legend', 'justify-items')).toBe('start');
+    expect(declaration('.source-legend__row', 'display')).toBe('contents');
+    // The branch and method item selectors share one grouped rule; the
+    // declaration helper matches the selector adjacent to the brace.
+    expect(declaration('.source-legend__row--method .source-legend__item', 'grid-column')).toBe('3');
 
     for (const [type, row] of [['line', '2'], ['branch', '3'], ['method', '4']]) {
       expect(declaration(`.source-dialog__title .t-${type}-summary`, 'grid-row')).toBe(row);
-      expect(declaration(`.source-legend__row--${type}`, 'grid-row')).toBe(row);
     }
   });
 
@@ -111,6 +119,6 @@ describe('theme-control layout contract', () => {
   test('prints the header in document flow instead of the screen grid', () => {
     const print = printBlock();
     expect(print).toMatch(/\.source-dialog__header\s*\{[^}]*display:\s*block/);
-    expect(print).toMatch(/\.source-legend__row\s*\{[^}]*justify-content:\s*flex-start/);
+    expect(print).toMatch(/\.source-legend\s*\{[^}]*justify-content:\s*flex-start/);
   });
 });
