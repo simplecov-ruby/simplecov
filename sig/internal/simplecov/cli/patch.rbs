@@ -14,8 +14,6 @@ module SimpleCov
 
       extend CommandHelpers
 
-      EPSILON: ::Float
-
       DEFAULT_BASE: ::String
 
       HUNK_HEADER: ::Regexp
@@ -82,6 +80,8 @@ module SimpleCov
       # No --minimum is report-only (exit 0); with one, line and (when present)
       # branch patch coverage must both clear the floor.
       def self?.gate: (untyped rows, untyped minimum) -> (0 | 1)
+
+      def self?.short?: (untyped stats, untyped minimum) -> bool
     end
   end
 end

@@ -1054,6 +1054,11 @@ RSpec.describe SimpleCov::CLI do
       expect(lookup(hash, "lib/a.rb").last).to eq("REAL")
     end
 
+    it "returns nil for an ambiguous suffix match" do
+      hash = {"app/models/foo.rb" => "APP", "lib/models/foo.rb" => "LIB"}
+      expect(lookup(hash, "models/foo.rb")).to be_nil
+    end
+
     it "returns nil when nothing matches" do
       expect(lookup({"other.rb" => "V"}, "missing.rb")).to be_nil
     end
@@ -1232,7 +1237,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "reports a git failure when git cannot be launched" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
-      allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT.new("git"))
+      allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT.new("git"))
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(1)
       expect(stderr.string).to include("could not run `git diff`")
@@ -1315,6 +1320,12 @@ RSpec.describe SimpleCov::CLI do
 
       expect(run_in_repo("patch", "--base", "--output=/tmp/x", "--input", cov)).to eq(1)
       expect(stderr.string).to include("could not run `git diff`")
+    end
+
+    it "passes --minimum when nothing coverable changed" do
+      build_repo(base: "a\n", head: "a\n# note\n", line_hits: [1, nil])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(0)
     end
 
     it "counts a rename as all-new without --find-renames" do
