@@ -705,6 +705,7 @@ table.file_list .totals-row td.cell--denominator {
 }
 
 .coverage-bar {
+  display: flex;
   width: 100%;
   height: var(--bar-height);
   background: var(--bar-bg);
@@ -713,6 +714,7 @@ table.file_list .totals-row td.cell--denominator {
 }
 
 .coverage-bar__fill {
+  flex: none;
   height: 100%;
   border-radius: 6px;
 }
@@ -720,6 +722,17 @@ table.file_list .totals-row td.cell--denominator {
 .coverage-bar__fill--green { background: var(--green); }
 .coverage-bar__fill--yellow { background: var(--yellow); }
 .coverage-bar__fill--red { background: var(--red); }
+
+/* Under `track_tests` the line bar's fill splits: the band-coloured share
+   covered by recorded tests, then a slate share covered only outside them
+   (load time, suite setup, helpers), mirroring the source view's drained
+   lines. The segments butt against each other, so only the outer ends
+   keep the pill rounding. */
+.coverage-bar__fill--split { border-radius: 6px 0 0 6px; }
+.coverage-bar__fill--outside {
+  background: var(--outside-tests-text);
+  border-radius: 0 6px 6px 0;
+}
 
 
 /* --- Color utility classes --------------------------------- */

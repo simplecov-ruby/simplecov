@@ -179,6 +179,24 @@ describe('renderSourceFile with recorded contexts', () => {
     expect(lines[1].className).toBe('outside-tests');
   });
 
+  test('counts a no-test line as outside even when a branch miss outranks its color', () => {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(FILE, {
+      source: ['if a', 'end'],
+      lines: [1, 1],
+      covered_lines: 2,
+      total_lines: 2,
+      branches: [{ type: 'then', start_line: 1, end_line: 1, coverage: 0, inline: true, report_line: 1 }],
+      covered_branches: 0,
+      total_branches: 1,
+      contexts: {}
+    }, true, true, false, contexts);
+    const header = (el.firstElementChild as HTMLElement).querySelector('.summary-stats')!;
+    // Line 1 keeps its missed-branch color, but it too was covered by no
+    // recorded test, and the summary states the attribution fact.
+    expect(header.textContent).toContain('2 lines covered outside tests');
+  });
+
   test('summarizes the file\'s tests in the header, counting drained lines', () => {
     const header = renderCtx(ctxData).querySelector('.summary-stats')!;
     expect(header.textContent).toContain('Test coverage: 2 tests cover this file');

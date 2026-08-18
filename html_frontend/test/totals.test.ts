@@ -128,3 +128,31 @@ describe('updateTotalsRow', () => {
     expect(container.querySelector('.t-totals__line-pct')!.innerHTML).toContain('100.00%');
   });
 });
+
+describe('updateTotalsRow with recorded contexts', () => {
+  test('keeps the outside-tests share in the recomputed line bar', () => {
+    const container = buildContainer({
+      totalFiles: 2,
+      rows: [
+        row('data-covered-lines="4" data-relevant-lines="4" data-covered-outside-lines="1"'),
+        row('data-covered-lines="4" data-relevant-lines="4" data-covered-outside-lines="3"', true)
+      ]
+    });
+    updateTotalsRow(container);
+    const cell = container.querySelector('.t-totals__line-pct')!;
+    const fills = cell.querySelectorAll('.coverage-bar__fill');
+    expect(fills.length).toBe(2);
+    expect(fills[0].getAttribute('style')).toBe('width: 75.00%');
+    expect(fills[1].getAttribute('style')).toBe('width: 25.00%');
+  });
+
+  test('leaves untracked line bars whole', () => {
+    const container = buildContainer({
+      totalFiles: 1,
+      rows: [row('data-covered-lines="4" data-relevant-lines="4"')]
+    });
+    updateTotalsRow(container);
+    const cell = container.querySelector('.t-totals__line-pct')!;
+    expect(cell.querySelectorAll('.coverage-bar__fill').length).toBe(1);
+  });
+});

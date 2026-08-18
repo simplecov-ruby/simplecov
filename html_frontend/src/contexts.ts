@@ -44,6 +44,36 @@ export function decodeFileContexts(
   return { perLine, distinct };
 }
 
+// How many relevant covered lines (`lines[i]` a positive count) no recorded
+// context executed. This one number is the fact behind both the file list's
+// grey bar share and the source header's "covered outside tests" figure. An
+// absent table is a file no recorded context touched, so every covered line
+// counts. Works on the raw bitmaps rather than a decoded per-line index,
+// since the file list pays this for every file on load.
+export function coveredOutsideCount(
+  tables: Record<string, string> | undefined,
+  lines: (number | null | 'ignored')[] | undefined
+): number {
+  if (!lines) return 0;
+
+  // Union of every context's bitmap, one nibble per array slot, indexed
+  // from the least significant (line 1) end.
+  const union: number[] = [];
+  for (const hex of Object.values(tables || {})) {
+    for (let p = 0; p < hex.length; p++) {
+      union[p] = (union[p] || 0) | parseInt(hex[hex.length - 1 - p], 16);
+    }
+  }
+
+  let outside = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const cov = lines[i];
+    if (typeof cov !== 'number' || cov <= 0) continue;
+    if (!((union[i >> 2] || 0) & (1 << (i & 3)))) outside++;
+  }
+  return outside;
+}
+
 // The ids covering `line`, sorted — deliberately the same answer, in the
 // same order, that `simplecov tests <file>:<line>` prints.
 export function contextIdsForLine(index: FileContextIndex, contexts: string[], line: number): string[] {
