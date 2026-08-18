@@ -18,7 +18,16 @@ module SimpleCov
     # The recorded map rides along in `.resultset.json` and is exposed on
     # the result as `SimpleCov::Result#contexts`.
     #
-    def track_tests(enabled = nil)
+    TRACK_TESTS_GRANULARITIES = %i[test file].freeze
+
+    def track_tests(enabled = nil, granularity: nil)
+      if granularity && !TRACK_TESTS_GRANULARITIES.include?(granularity)
+        raise SimpleCov::ConfigurationError,
+              "Unsupported track_tests granularity #{granularity.inspect}, " \
+              "supported values are #{TRACK_TESTS_GRANULARITIES.inspect}"
+      end
+
+      @track_tests_granularity = granularity if granularity
       # A bare `track_tests` enables; only an explicit `track_tests false`
       # turns it back off.
       @track_tests = enabled.nil? || enabled
@@ -26,6 +35,16 @@ module SimpleCov
 
     def track_tests?
       defined?(@track_tests) ? !!@track_tests : false
+    end
+
+    # What one recorded context stands for: a test (`:test`, the default)
+    # or a whole test file (`:file`). File granularity is the batching
+    # lever for suites where per-test sampling costs too much: the
+    # recorder pays one coverage snapshot per test file instead of per
+    # test, and test selection needs no more than file identity anyway.
+    def track_tests_granularity
+      configured = defined?(@track_tests_granularity) ? @track_tests_granularity : nil
+      configured || :test
     end
 
     # @api private — called from `SimpleCov.start_tracking`. The map is

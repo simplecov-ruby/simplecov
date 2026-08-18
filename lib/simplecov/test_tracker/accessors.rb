@@ -34,7 +34,7 @@ module SimpleCov
         validate_test_tracking!
         return unless track_tests? && test_tracker.nil?
 
-        @test_tracker = TestTracker.new
+        @test_tracker = TestTracker.new(granularity: track_tests_granularity)
         TestTracker.install_framework_hooks
       end
     end

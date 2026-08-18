@@ -2073,6 +2073,24 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.track_tests?).to be false
     end
 
+    describe "granularity" do
+      it "defaults to per-test attribution" do
+        expect(config.track_tests_granularity).to eq(:test)
+      end
+
+      it "accepts :file for one context per test file" do
+        config.track_tests granularity: :file
+
+        expect(config.track_tests?).to be true
+        expect(config.track_tests_granularity).to eq(:file)
+      end
+
+      it "rejects anything else" do
+        expect { config.track_tests granularity: :suite }
+          .to raise_error(SimpleCov::ConfigurationError, /granularity/)
+      end
+    end
+
     describe "#validate_test_tracking!" do
       it "passes while tracking is off, whatever the criteria" do
         config.enable_coverage :oneshot_line

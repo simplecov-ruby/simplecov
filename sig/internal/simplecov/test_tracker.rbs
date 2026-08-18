@@ -3,7 +3,10 @@ module SimpleCov
   # delta — the lines whose execution count grew — to that test in a
   # `ContextMap`. Enabled by the `track_tests` configuration.
   class TestTracker
-    @root_regex: Regexp
+    @delta: Delta
+    @granularity: Symbol
+    @segment_id: String?
+    @segment_opening: Hash[String, untyped]?
     @lock: Mutex
     @owner: Thread?
     @depth: Integer
@@ -13,7 +16,7 @@ module SimpleCov
 
     attr_reader map: ContextMap
 
-    def initialize: (?root_regex: Regexp) -> void
+    def initialize: (?root_regex: Regexp, ?granularity: Symbol) -> void
 
     # Run the block and record the lines it executed as covered by
     # `test_id`; returns the block's value, recording even on raise.
@@ -24,7 +27,7 @@ module SimpleCov
     def poisoned?: () -> bool
 
     # The map when its attribution is trustworthy, nil once poisoned.
-    def recorded_map: () -> ContextMap?
+    def recorded_map: (?closing: Hash[String, untyped]?) -> ContextMap?
 
     # Install every framework integration `start_test_tracking` can wire
     # up from inside the tracked process.
@@ -76,18 +79,20 @@ module SimpleCov
 
     private
 
-    def enter: () -> Hash[String, untyped]?
+    def enter: (String id) -> (:segment | Hash[String, untyped] | nil)
 
-    def settle: (String test_id, Hash[String, untyped]? before) -> void
+    def note_entry: () -> bool
+
+    def settle: (String id, (:segment | Hash[String, untyped])? entry) -> void
+
+    def open_segment: (String id) -> void
+
+    def close_segment: (Hash[String, untyped] closing) -> void
+
+    def flush_segment: (?Hash[String, untyped]? closing) -> void
+
+    def context_id: (String test_id) -> String
 
     def poison: () -> void
-
-    def delta: (Hash[String, untyped] before, Hash[String, untyped] after) -> Hash[String, Integer]
-
-    def lines_in: (untyped file_coverage) -> Array[Integer?]?
-
-    def line_delta: (Array[Integer?]? before_lines, Array[Integer?]? after_lines) -> Integer
-
-    def grew?: (Integer? count, Integer? previous) -> bool
   end
 end

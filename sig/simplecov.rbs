@@ -630,10 +630,16 @@ end
 module SimpleCov
   module Configuration
     @track_tests: bool
+    @track_tests_granularity: Symbol?
+
+    TRACK_TESTS_GRANULARITIES: Array[Symbol]
 
     # Enable (or disable, with `track_tests false`) recording of which
     # test covered which line. Off by default.
-    def track_tests: (?bool? enabled) -> bool
+    def track_tests: (?bool? enabled, ?granularity: Symbol?) -> bool
+
+    # What one recorded context stands for: :test (default) or :file.
+    def track_tests_granularity: () -> Symbol
 
     def track_tests?: () -> bool
 

@@ -354,6 +354,27 @@ rule everywhere: the merged result carries the union of the maps when every merg
 all otherwise. A partial map would present one worker's tests as the whole run's, so mixing tracked and untracked
 results drops the map and says so on stderr. `Result#contexts` is nil in that case.
 
+Recording costs one coverage snapshot per context boundary. The snapshot copies every criterion the run measures
+for every file the process loaded, so its price scales with what you enable: with line coverage alone it is a
+millisecond or two even in a large app, while branch and method coverage make each snapshot an order of magnitude
+more expensive, since their tables dominate the copy. Two levers control the total. Run `track_tests` in a
+lines-only configuration when you can. And when per-test precision costs more than it is worth, coarsen the
+granularity:
+
+```ruby
+SimpleCov.start do
+  track_tests granularity: :file
+end
+```
+
+At `:file` granularity every test in a file shares one context (ids like `spec/user_spec.rb`, no line number), and
+because consecutive tests with the same context share a single open recording segment, the suite pays one snapshot
+per change of file in run order instead of one per test. How much that saves depends on the runner's ordering: RSpec
+runs each spec file's groups together, so the cost approaches one snapshot per file, while Minitest shuffles test
+classes globally, so a suite with many small classes still changes file often (though far less often than it changes
+test). `covering` then answers with test files rather than individual tests, which is still exactly what test
+selection needs.
+
 Three constraints follow from how the map is recorded. It needs per-line execution counts, so `track_tests` raises at
 startup under `enable_coverage :oneshot_line` (a line reports only its first hit ever, which would attribute it to
 one test). Only files under `SimpleCov.root` are attributed, since diffing every loaded gem on every test is what

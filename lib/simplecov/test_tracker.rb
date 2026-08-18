@@ -31,7 +31,7 @@ module SimpleCov
     # The `ContextMap` accumulated so far.
     attr_reader :map
 
-    def initialize(root_regex: UselessResultsRemover.root_regex)
+    def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test)
       @map = ContextMap.new
       # Only files under the project root are attributed, judged by the
       # same regex the report's own universe is rooted with, case
@@ -39,7 +39,10 @@ module SimpleCov
       # every gem included — and diffing all of them on every test is the
       # cost that would make tracking unaffordable, for map entries
       # serialization would drop anyway.
-      @root_regex = root_regex
+      @delta = Delta.new(root_regex: root_regex)
+      @granularity = granularity
+      @segment_id = nil #: String?
+      @segment_opening = nil #: Hash[String, untyped]?
       @lock = Mutex.new
       @owner = nil
       @depth = 0
@@ -47,14 +50,16 @@ module SimpleCov
     end
 
     # Run the block and record the lines it executed as covered by
-    # `test_id`. Returns the block's value. Records in an ensure block, so
-    # a failing test still maps the lines it reached on the way down.
+    # `test_id`'s context (the test itself at :test granularity, its file
+    # at :file). Returns the block's value; a failing test's lines are
+    # still attributed when its segment closes.
     def track(test_id)
-      before = enter
+      id = context_id(test_id)
+      entry = enter(id)
       begin
         yield
       ensure
-        settle(test_id, before)
+        settle(id, entry)
       end
     end
 
@@ -68,19 +73,37 @@ module SimpleCov
     # This is what result-building stores: a poisoned recording must
     # vanish like one that never happened, so the merge's all-or-nothing
     # rule drops the run's map instead of keeping a wrong one.
-    def recorded_map
-      poisoned? ? nil : @map
+    # Flushes the open segment, so the answer carries every finished
+    # track. At process exit `Coverage.result` has already stopped
+    # measurement, so result-building passes the final coverage it just
+    # took as the closing snapshot instead of peeking again.
+    def recorded_map(closing: nil)
+      return nil if poisoned?
+
+      flush_segment(closing)
+      @map
     end
 
   private
 
-    # Take the before-test snapshot, or nil when nothing may be recorded.
-    # Same-thread reentrancy is fine — a line the inner test executed was
-    # executed on the outer test's watch too, so attributing to both is
-    # the truth — but a second thread means concurrent tests, and
-    # `Coverage`'s counters are process-global: their deltas cannot be
-    # told apart, so recording shuts off rather than misattribute.
-    def enter
+    # Returns :segment for an outermost track (the segment machinery owns
+    # its peeks), a fresh opening peek for a nested one, or nil when
+    # nothing may be recorded. Same-thread reentrancy is fine — a line
+    # the inner test executed was executed on the outer test's watch too,
+    # so attributing to both is the truth — but a second thread means
+    # concurrent tests, and `Coverage`'s counters are process-global:
+    # their deltas cannot be told apart, so recording shuts off rather
+    # than misattribute.
+    def enter(id)
+      outermost = note_entry
+      return nil if @poisoned
+      return Coverage.peek_result unless outermost
+
+      open_segment(id)
+      :segment
+    end
+
+    def note_entry
       @lock.synchronize do
         if @depth.zero?
           @owner = Thread.current
@@ -88,19 +111,59 @@ module SimpleCov
           poison
         end
         @depth += 1
+        @depth == 1
       end
-      @poisoned ? nil : Coverage.peek_result
     end
 
-    # Record in any case `enter` allowed, unless the recording was
-    # poisoned while this very test ran.
-    def settle(test_id, before)
-      @map.record(test_id, delta(before, Coverage.peek_result)) if before && !@poisoned
+    # A nested track records immediately against its own opening peek;
+    # an outermost one leaves its segment open for the next boundary.
+    def settle(id, entry)
+      @map.record(id, @delta.call(entry, Coverage.peek_result)) if entry.is_a?(Hash) && !@poisoned
     ensure
       @lock.synchronize do
         @depth -= 1
         @owner = nil if @depth.zero?
       end
+    end
+
+    # Peeking is the dominant cost of tracking (the copy covers every
+    # file the process loaded, branch and method tables included), so
+    # recording settles at segment boundaries: consecutive tracks with
+    # one context id share one open segment and pay nothing in between,
+    # and a boundary's single peek closes one segment and opens the
+    # next. In-root code that runs between two segments is attributed to
+    # the later one, the documented price of the batching.
+    def open_segment(id)
+      return if @segment_id == id
+
+      boundary = Coverage.peek_result
+      close_segment(boundary)
+      @segment_id = id
+      @segment_opening = boundary
+    end
+
+    def close_segment(closing)
+      id = @segment_id
+      opening = @segment_opening
+      @map.record(id, @delta.call(opening, closing)) if id && opening
+    end
+
+    def flush_segment(closing = nil)
+      return unless @segment_id
+
+      close_segment(closing || Coverage.peek_result)
+      @segment_id = nil
+      @segment_opening = nil
+    end
+
+    # The identity a test contributes to: itself, or at :file granularity
+    # its file, read by truncating the `path:line` id at the line number.
+    # An id with no line tail (an exotic runner's fallback) stays whole.
+    def context_id(test_id)
+      return test_id unless @granularity == :file
+
+      path, sep, tail = test_id.rpartition(":")
+      sep.empty? || !tail.match?(/\A\d+\z/) ? test_id : path
     end
 
     def poison
@@ -111,58 +174,6 @@ module SimpleCov
 
       warn "[SimpleCov]: tests are running concurrently in this process (parallel threads), " \
            "so per-test coverage cannot be attributed. Dropping this process's test map."
-    end
-
-    # The per-file bitmaps of lines whose count grew between the two peeks.
-    # Files outside the root are skipped (see `initialize`); a file absent
-    # from `before` was loaded by the test itself, so everything it
-    # executed is the test's.
-    def delta(before, after)
-      changed = {} #: Hash[String, Integer]
-      after.each do |path, file_coverage|
-        next unless path.match?(@root_regex)
-
-        bitmap = line_delta(lines_in(before[path]), lines_in(file_coverage))
-        changed[path] = bitmap unless bitmap.zero?
-      end
-      changed
-    end
-
-    # A peek's per-file data is a criteria Hash when Coverage was started
-    # with a criteria hash (how SimpleCov starts it) and a bare Array under
-    # the older lines-only form (how someone else may have started it). No
-    # lines at all — a branch-only or method-only start — means nothing to
-    # diff.
-    def lines_in(file_coverage)
-      case file_coverage
-      when Hash then file_coverage[:lines]
-      when Array then file_coverage
-      end
-    end
-
-    def line_delta(before_lines, after_lines)
-      return 0 unless after_lines
-      # The overwhelmingly common case: the test never entered this file.
-      # Array equality is a fast C compare, the per-line loop is not.
-      return 0 if before_lines == after_lines
-
-      # Built as a binary string, highest line first, so the
-      # arbitrary-precision math happens once per file rather than one
-      # bignum OR per executed line. The leading zero keeps the parse
-      # valid for an all-zero delta without changing any value.
-      bits = +"0"
-      (after_lines.size - 1).downto(0) do |index|
-        bits << (grew?(after_lines[index], before_lines && before_lines[index]) ? "1" : "0")
-      end
-      Integer(bits, 2)
-    end
-
-    # A line belongs to the test when its count grew across the two peeks.
-    # `previous` is nil both for a non-executable line (whose count is nil
-    # too) and for a file the test itself loaded, where every executed
-    # line is the test's.
-    def grew?(count, previous)
-      !count.nil? && count > (previous || 0)
     end
   end
 end
