@@ -32,11 +32,6 @@ module SimpleCov
     module Patch
       extend CommandHelpers
 
-      # Below this a percentage delta is float noise; the gate compares
-      # with the same tolerance row inclusion uses so a 99.999%-covered
-      # patch is not failed against a --minimum of 100 by rounding.
-      EPSILON = 0.005
-
       # The default when `--base` is omitted; overridden in CI with the
       # target branch (or its merge-base) the change is compared against.
       DEFAULT_BASE = "main"
@@ -87,17 +82,21 @@ module SimpleCov
       # paths relative to the working directory, which is what the report
       # keys on (`project_filename`), so a run from the project root lines
       # up its paths with the report's. The rest pins the output against a
-      # user's git config so it can't skew the numbers or the parse:
-      # `--no-ext-diff` / `--no-color` (no external diff, no ANSI),
-      # `core.quotePath=false` (emit non-ASCII paths literally, not
-      # `"\303\251"`-quoted, so they still match report keys),
-      # `--inter-hunk-context=0` (never merge hunks over unchanged lines,
-      # which would score those lines as touched), and `--no-renames`
+      # user's git config so it can't skew the numbers, run code, or throw
+      # off the parse: `--no-ext-diff` / `--no-textconv` (no external diff
+      # or textconv driver — either runs a configured command and the
+      # latter also renumbers lines), `--no-color` (no ANSI),
+      # `core.quotePath=false` (emit non-ASCII paths literally, so they
+      # still match report keys), `--inter-hunk-context=0` (never merge
+      # hunks over unchanged lines, which would score those lines as
+      # touched), fixed `a/`/`b/` prefixes (so the `diff_path` strip can't
+      # be fooled by `diff.noprefix` / `diff.*Prefix`), and `--no-renames`
       # unless asked (so a moved file reads as all-new — git detects
       # renames by default, which `--find-renames` would otherwise leave
-      # unchanged). stderr is folded in and discarded so git's diagnostics
-      # for a non-git tree or bad ref don't reach the build; a non-zero
-      # exit (or a missing git) becomes nil, which `changed_lines` reports.
+      # unchanged). stdout alone is parsed; stderr is captured separately
+      # and dropped so git's diagnostics for a non-git tree or bad ref
+      # can't reach the parser. A non-zero exit (or a missing git) becomes
+      # nil, which `changed_lines` reports.
       def git_diff(base, find_renames:)
         # A git ref can never begin with "-", so refusing one keeps a
         # `--base` value from being read by git as an option instead of a
@@ -106,11 +105,12 @@ module SimpleCov
         return nil if base.start_with?("-")
 
         cmd = ["git", "-c", "core.quotePath=false", "diff", "--unified=0", "--relative",
-               "--no-color", "--no-ext-diff", "--inter-hunk-context=0"]
+               "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
+               "--src-prefix=a/", "--dst-prefix=b/"]
         cmd << (find_renames ? "--find-renames" : "--no-renames")
         cmd += ["#{base}...HEAD", "--"]
-        output, status = Open3.capture2e(*cmd)
-        status.success? ? output : nil
+        stdout, _stderr, status = Open3.capture3(*cmd)
+        status.success? ? stdout : nil
       rescue StandardError
         nil # git is not installed / not on PATH
       end
@@ -336,9 +336,21 @@ module SimpleCov
 
         line = sum_stats(rows, :line)
         branch = sum_stats(rows, :branch)
-        below = pct(line) + EPSILON < minimum
-        below ||= branch[:relevant].positive? && (pct(branch) + EPSILON < minimum)
+        below = short?(line, minimum)
+        below ||= branch[:relevant].positive? && short?(branch, minimum)
         below ? 1 : 0
+      end
+
+      # Whether a criterion falls below the floor, measured on the exact
+      # covered/relevant ratio rather than the displayed percentage: a
+      # 19_999/20_000 patch is 99.995%, which `pct` rounds to 100.00 and
+      # would let slip past `--minimum 100` if the gate read the rounded
+      # figure. A criterion with nothing relevant never falls short.
+      def short?(stats, minimum)
+        relevant = stats[:relevant]
+        return false if relevant.zero?
+
+        (stats[:covered].to_f / relevant * 100) < minimum
       end
     end
     # rubocop:enable Metrics/ModuleLength
