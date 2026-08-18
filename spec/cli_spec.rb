@@ -1315,6 +1315,16 @@ RSpec.describe SimpleCov::CLI do
       expect(SimpleCov::CLI::Patch.parse_diff(diff)).to eq("lib/real.rb" => [2, 8])
     end
 
+    it "gates on the exact ratio at the boundary" do
+      patch = SimpleCov::CLI::Patch
+      # 23/40 is exactly 57.5%, which float division renders as 57.4999…
+      expect(patch.short?({covered: 23, relevant: 40}, 57.5)).to be(false)
+      expect(patch.short?({covered: 22, relevant: 40}, 57.5)).to be(true)
+      # 19_999/20_000 = 99.995% must not round up to clear --minimum 100
+      expect(patch.short?({covered: 19_999, relevant: 20_000}, 100)).to be(true)
+      expect(patch.short?({covered: 20_000, relevant: 20_000}, 100)).to be(false)
+    end
+
     it "refuses a --base that git would read as an option" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
