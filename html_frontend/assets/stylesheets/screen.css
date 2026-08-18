@@ -797,35 +797,39 @@ dialog.source-dialog[open] {
 
 /* --- Source legend ------------------------------------------ */
 
-/* The legend is one right-aligned box whose items sit in left-aligned
-   columns: the line row fills columns 1-3, and the single-item rows all
-   take the last column, so their swatches share one edge instead of
-   scattering to wherever each label's width lands. Auto-placement packs
-   the rows, so any combination of enabled criteria stays gap-free. */
+/* The legend is one right-aligned box whose rows are the header grid's own
+   row tracks (subgrid), so each legend row sits level with the summary it
+   describes — including when a narrow dialog wraps a summary onto two
+   lines, which grows the shared track rather than letting the rows drift
+   apart. Items sit in left-aligned columns: the line row fills columns
+   1-3, and the single-item rows all take the last column, so their
+   swatches share one edge instead of scattering to wherever each label's
+   width lands. Each item is pinned to its row (subgrid numbering is
+   local: header row N is legend row N - 1), so a disabled criterion's
+   missing legend row cannot shift the ones below it. */
 .source-legend {
   grid-column: 2 / 4;
-  grid-row: 2 / 6;
-  align-self: start;
+  grid-row: 2 / 5;
   display: grid;
+  grid-template-rows: subgrid;
   grid-template-columns: repeat(3, auto);
-  gap: var(--sp-2) var(--sp-4);
+  column-gap: var(--sp-4);
   justify-content: end;
   justify-items: start;
-  align-content: start;
+  align-items: baseline;
 }
 
 .source-legend__row {
   display: contents;
 }
 
+.source-legend__row--line .source-legend__item { grid-row: 1; }
 .source-legend__row--line .source-legend__item:nth-child(1) { grid-column: 1; }
 .source-legend__row--line .source-legend__item:nth-child(2) { grid-column: 2; }
 .source-legend__row--line .source-legend__item:nth-child(3) { grid-column: 3; }
 
-.source-legend__row--branch .source-legend__item,
-.source-legend__row--method .source-legend__item {
-  grid-column: 3;
-}
+.source-legend__row--branch .source-legend__item { grid-row: 2; grid-column: 3; }
+.source-legend__row--method .source-legend__item { grid-row: 3; grid-column: 3; }
 
 .source-legend__item {
   display: flex;
