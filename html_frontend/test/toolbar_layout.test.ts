@@ -67,6 +67,10 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__close', 'height')).toBe('var(--source-close-size)');
     expect(declaration('.source-dialog__close', 'margin-left')).toBe('var(--source-close-gap)');
     expect(declaration('.toolbar', 'gap')).toBe(declaration('.source-dialog__toggles', 'gap'));
+    // The legend below can be wider than the toggles and stretch their
+    // column; pinning the toggles to its end keeps them against the close
+    // button at the exact coordinates the index toolbar reserves.
+    expect(declaration('.source-dialog__toggles', 'justify-self')).toBe('end');
     expect(closeSize).toBe('34px');
     expect(closeGap).toBe('var(--sp-4)');
   });
@@ -94,22 +98,32 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__title', 'display')).toBe('contents');
     expect(declaration('.source-dialog__title .summary-stats', 'display')).toBe('contents');
     expect(declaration('.source-legend', 'display')).toBe('grid');
-    expect(declaration('.source-legend', 'grid-column')).toBe('2 / 4');
-    expect(declaration('.source-legend', 'grid-row')).toBe('2 / 6');
+    // The legend spans only the toggles' column: spanning the close
+    // column too would widen it and push the buttons out of the position
+    // the index view puts them in.
+    expect(declaration('.source-legend', 'grid-column')).toBe('2 / 3');
+    expect(declaration('.source-legend', 'grid-row')).toBe('2 / 5');
     expect(declaration('.source-legend', 'grid-template-rows')).toBe('subgrid');
-    expect(declaration('.source-legend', 'grid-template-columns')).toBe('repeat(3, auto)');
+    expect(declaration('.source-legend', 'grid-template-columns')).toBe('repeat(4, auto)');
     expect(declaration('.source-legend', 'justify-content')).toBe('end');
     expect(declaration('.source-legend', 'justify-items')).toBe('start');
     expect(declaration('.source-legend__row', 'display')).toBe('contents');
 
     // Subgrid line numbers are local: header row N is legend row N - 1.
-    for (const [type, row, legendRow] of [['line', '2', '1'], ['branch', '3', '2'], ['method', '4', '3'], ['tests', '5', '4']]) {
+    for (const [type, row, legendRow] of [['line', '2', '1'], ['branch', '3', '2'], ['method', '4', '3']]) {
       expect(declaration(`.source-dialog__title .t-${type}-summary`, 'grid-row')).toBe(row);
       expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-row')).toBe(legendRow);
     }
-    for (const type of ['branch', 'method', 'tests']) {
-      expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-column')).toBe('3');
+    for (const type of ['branch', 'method']) {
+      expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-column')).toBe('4');
     }
+    // The line row anchors to the right edge whatever its item count (three
+    // chips untracked, four with the tracked covered split), so columns are
+    // assigned counting from its last item.
+    expect(declaration('.source-legend__row--line .source-legend__item:nth-last-child(1)', 'grid-column')).toBe('4');
+    expect(declaration('.source-legend__row--line .source-legend__item:nth-last-child(2)', 'grid-column')).toBe('3');
+    expect(declaration('.source-legend__row--line .source-legend__item:nth-last-child(3)', 'grid-column')).toBe('2');
+    expect(declaration('.source-legend__row--line .source-legend__item:nth-last-child(4)', 'grid-column')).toBe('1');
   });
 
   // Opening the dialog freezes the page behind it with overflow: hidden, which

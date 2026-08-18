@@ -812,14 +812,9 @@ dialog.source-dialog[open] {
   grid-row: 4;
 }
 
-.source-dialog__title .t-tests-summary {
-  grid-column: 1;
-  grid-row: 5;
-}
-
 .source-dialog__title > .t-missed-method-list {
   grid-column: 1 / -1;
-  grid-row: 6;
+  grid-row: 5;
 }
 
 /* --- Source legend ------------------------------------------ */
@@ -828,18 +823,22 @@ dialog.source-dialog[open] {
    row tracks (subgrid), so each legend row sits level with the summary it
    describes — including when a narrow dialog wraps a summary onto two
    lines, which grows the shared track rather than letting the rows drift
-   apart. Items sit in left-aligned columns: the line row fills columns
-   1-3, and the single-item rows all take the last column, so their
-   swatches share one edge instead of scattering to wherever each label's
-   width lands. Each item is pinned to its row (subgrid numbering is
-   local: header row N is legend row N - 1), so a disabled criterion's
-   missing legend row cannot shift the ones below it. */
+   apart. Items sit in left-aligned columns: the line row fills the
+   columns right-to-left, and the single-item rows all take the last
+   column, so their swatches share one edge instead of scattering to
+   wherever each label's width lands. Each item is pinned to its row
+   (subgrid numbering is local: header row N is legend row N - 1), so a
+   disabled criterion's missing legend row cannot shift the ones below.
+   The box spans only the toggles' column: spanning the close column too
+   would widen it and push the buttons out of the position the index view
+   puts them in, so the toggles column absorbs the legend's width and the
+   toggles pin to its end, against the close button. */
 .source-legend {
-  grid-column: 2 / 4;
-  grid-row: 2 / 6;
+  grid-column: 2 / 3;
+  grid-row: 2 / 5;
   display: grid;
   grid-template-rows: subgrid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   column-gap: var(--sp-4);
   justify-content: end;
   justify-items: start;
@@ -851,13 +850,16 @@ dialog.source-dialog[open] {
 }
 
 .source-legend__row--line .source-legend__item { grid-row: 1; }
-.source-legend__row--line .source-legend__item:nth-child(1) { grid-column: 1; }
-.source-legend__row--line .source-legend__item:nth-child(2) { grid-column: 2; }
-.source-legend__row--line .source-legend__item:nth-child(3) { grid-column: 3; }
+.source-legend__row--branch .source-legend__item { grid-row: 2; grid-column: 4; }
+.source-legend__row--method .source-legend__item { grid-row: 3; grid-column: 4; }
 
-.source-legend__row--branch .source-legend__item { grid-row: 2; grid-column: 3; }
-.source-legend__row--method .source-legend__item { grid-row: 3; grid-column: 3; }
-.source-legend__row--tests .source-legend__item { grid-row: 4; grid-column: 3; }
+/* The line row anchors to the right edge whatever its item count (three
+   chips untracked, four when tracking splits the covered chip in two), so
+   columns are assigned counting from its last item. */
+.source-legend__row--line .source-legend__item:nth-last-child(1) { grid-column: 4; }
+.source-legend__row--line .source-legend__item:nth-last-child(2) { grid-column: 3; }
+.source-legend__row--line .source-legend__item:nth-last-child(3) { grid-column: 2; }
+.source-legend__row--line .source-legend__item:nth-last-child(4) { grid-column: 1; }
 
 .source-legend__item {
   display: flex;
@@ -896,6 +898,10 @@ dialog.source-dialog[open] {
   flex-shrink: 0;
   margin-left: var(--sp-4);
   align-self: flex-start;
+  /* The legend below shares this column and can be wider; pinned to the
+     column's end, the toggles stay against the close button at the exact
+     coordinates the index toolbar reserves. */
+  justify-self: end;
 }
 
 .source-dialog__close {

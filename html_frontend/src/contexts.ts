@@ -7,8 +7,6 @@
 export interface FileContextIndex {
   // Index i holds the (ascending) context indices that executed line i+1.
   perLine: number[][];
-  // How many distinct recorded contexts touched this file at all.
-  distinct: number;
 }
 
 // Turns one file's bitmap table into a per-line index. An absent table is
@@ -20,13 +18,11 @@ export function decodeFileContexts(
   lineCount: number
 ): FileContextIndex {
   const perLine: number[][] = Array.from({ length: lineCount }, () => []);
-  let distinct = 0;
 
   // Ascending context order keeps each line's list deterministic no matter
   // the table's key order.
   const indices = Object.keys(tables || {}).map(Number).sort((a, b) => a - b);
   for (const contextIndex of indices) {
-    distinct++;
     const hex = tables![String(contextIndex)];
     // Walk nibbles from the least significant end: hex digit p (from the
     // right) carries lines p*4+1 through p*4+4.
@@ -41,7 +37,7 @@ export function decodeFileContexts(
     }
   }
 
-  return { perLine, distinct };
+  return { perLine };
 }
 
 // How many relevant covered lines (`lines[i]` a positive count) no recorded

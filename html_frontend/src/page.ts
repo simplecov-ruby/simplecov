@@ -134,9 +134,16 @@ export function renderPage(data: CoverageData): void {
   // Source legend
   const legend = document.getElementById('source-legend')!;
   let legendHtml = '';
+  // A tracked report splits the covered chip in two, renaming green to say
+  // what it then actually means and pairing it with the slate chip for
+  // coverage no recorded test produced.
   if (lineCoverage) {
+    const coveredChips = data.contexts
+      ? '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered by tests</span>' +
+        '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--outside-tests"></span>Covered outside tests</span>'
+      : '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>';
     legendHtml += '<div class="source-legend__row source-legend__row--line">' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>' +
+      coveredChips +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>' +
       '</div>';
@@ -149,11 +156,6 @@ export function renderPage(data: CoverageData): void {
   if (methodCoverage) {
     legendHtml += '<div class="source-legend__row source-legend__row--method">' +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>' +
-      '</div>';
-  }
-  if (data.contexts) {
-    legendHtml += '<div class="source-legend__row source-legend__row--tests">' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--outside-tests"></span>Covered outside tests</span>' +
       '</div>';
   }
   legend.innerHTML = legendHtml;

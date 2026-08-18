@@ -186,13 +186,27 @@ describe('renderPage with recorded contexts', () => {
 
   test('adds the drained legend row exactly when contexts are recorded', async () => {
     await boot(coverageData());
-    expect(document.getElementById('source-legend')!.textContent).not.toContain('Covered outside tests');
+    const untracked = document.getElementById('source-legend')!;
+    expect(untracked.textContent).not.toContain('Covered outside tests');
+    expect(untracked.textContent).not.toContain('Covered by tests');
 
     installPageSkeleton();
     await boot(withContexts());
     const legend = document.getElementById('source-legend')!;
     expect(legend.textContent).toContain('Covered outside tests');
     expect(legend.querySelector('.source-legend__swatch--outside-tests')).not.toBeNull();
+  });
+
+  test('splits the covered chip by test attribution inside the line row', async () => {
+    await boot(withContexts());
+    const legend = document.getElementById('source-legend')!;
+
+    expect(legend.querySelector('.source-legend__row--tests')).toBeNull();
+    const lineRow = legend.querySelector('.source-legend__row--line')!;
+    const labels = Array.from(lineRow.querySelectorAll('.source-legend__item'), (item) => item.textContent);
+    expect(labels).toEqual(['Covered by tests', 'Covered outside tests', 'Skipped', 'Missed line']);
+    expect(lineRow.querySelector('.source-legend__swatch--covered')).not.toBeNull();
+    expect(lineRow.querySelector('.source-legend__swatch--outside-tests')).not.toBeNull();
   });
 
   test('threads contexts into materialized source files', async () => {

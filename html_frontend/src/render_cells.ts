@@ -92,6 +92,29 @@ function renderTypeSummary(summary: TypeSummary): string {
   return parts;
 }
 
+// The line summary of a tracked report: the percent is still the file's
+// line coverage, but the fraction attributes it — how many relevant lines
+// recorded tests covered, then how many were covered only outside them,
+// then the missed remainder the untracked row would also report.
+function renderTrackedLineSummary(covered: number, total: number, byTests: number, outside: number): string {
+  const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
+  const missed = total - covered;
+
+  let parts = '<div class="t-line-summary">\n    Line coverage: ' +
+    `<span class="${pctClass(pct)}"><b>${fmtPct(pct)}%</b></span>` +
+    `<span class="coverage-cell__fraction"> ${byTests}/${total} relevant lines covered by tests</span>`;
+
+  if (outside > 0) {
+    parts += '<span class="coverage-cell__fraction">,</span>\n    ' +
+      `<span class="coverage-cell__fraction outside-tests-text">${outside}/${total} relevant lines covered outside tests</span>`;
+  }
+  if (missed > 0) {
+    parts += '<span class="coverage-cell__fraction">,</span>\n    ' +
+      `<span class="red"><b>${missed}</b> missed</span>`;
+  }
+  return parts + '\n  </div>';
+}
+
 interface CoverageSummaryArgs {
   coveredLines: number;
   totalLines: number;
@@ -103,16 +126,21 @@ interface CoverageSummaryArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   showMethodToggle: boolean;
-  // Pre-rendered `t-tests-summary` row, present only when the report
-  // carries recorded contexts (see render_source.ts).
-  testsSummary?: string;
+  // Present only when the report carries recorded contexts: the relevant
+  // covered lines some recorded test executed, and the remainder covered
+  // outside them (see render_source.ts). The line row then splits its
+  // fraction by that attribution instead of stating one covered count.
+  coveredByTests?: number;
+  coveredOutsideTests?: number;
 }
 
 export function renderCoverageSummary(args: CoverageSummaryArgs): string {
+  const lineSummary = args.coveredByTests === undefined || !args.lineCoverage
+    ? renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, suffix: 'relevant lines covered' })
+    : renderTrackedLineSummary(args.coveredLines, args.totalLines, args.coveredByTests, args.coveredOutsideTests || 0);
   return '<div class="summary-stats">' +
-    renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, suffix: 'relevant lines covered' }) +
+    lineSummary +
     renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, missedClass: 'missed-branch-text' }) +
     renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
-    (args.testsSummary || '') +
     '</div>';
 }

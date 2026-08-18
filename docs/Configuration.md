@@ -354,7 +354,9 @@ green to a slate tint ("Covered outside tests" in the legend), which is how cove
 setup, or a helper produced stops passing for tested code at a glance. Every executed line carries a tests badge
 at its right edge; clicking it (or focusing it and pressing Enter) opens an inline panel naming the covering
 tests, the same ids in the same order `simplecov tests file:line` prints, ready to select and hand to a runner.
-The file header sums it up: how many tests cover the file, and how many covered lines none of them reached.
+The file header's Line coverage row splits its fraction by the same attribution, "Line coverage: 100.00% 21/30
+relevant lines covered by tests, 9/30 relevant lines covered outside tests", and the legend's covered chip splits
+to match: green "Covered by tests" beside the slate "Covered outside tests".
 
 The file list carries the same distinction. Each line coverage bar splits its fill into the share recorded tests
 produced (in the usual green/yellow/red band colour) and a slate share covered only outside them, so a file whose
