@@ -9,6 +9,7 @@ require_relative "cli/coverage"
 require_relative "cli/diff"
 require_relative "cli/merge"
 require_relative "cli/open"
+require_relative "cli/patch"
 require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
@@ -37,6 +38,7 @@ module SimpleCov
       "tests" => Tests,
       "merge" => Merge,
       "diff" => Diff,
+      "patch" => Patch,
       "serve" => Serve,
       "clean" => Clean
     }.freeze
@@ -108,6 +110,7 @@ module SimpleCov
           tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
           merge <files...>          Merge multiple .resultset.json files
           diff <baseline>           Show per-file coverage delta vs baseline
+          patch                     Show coverage of the lines a change touched
           open                      Open the HTML report in the default browser
           serve                     Serve the coverage report over HTTP
           clean                     Remove the coverage report directory
@@ -116,7 +119,7 @@ module SimpleCov
         Default paths follow SimpleCov.coverage_dir from a project's
         `.simplecov` when one is present (#{coverage_dir} for this run).
 
-        coverage / report / uncovered / tests / diff options:
+        coverage / report / uncovered / tests / diff / patch options:
           --input PATH              Read from PATH instead of #{default_input}
           --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
@@ -149,6 +152,17 @@ module SimpleCov
           --json                    Emit results as a JSON array (for CI)
           --threshold N             Only show files whose absolute delta
                                     in any criterion is at least N%
+
+        patch options:
+          --base REF                Diff REF...HEAD for the touched lines
+                                    (default: main; use the PR's target
+                                    branch, or its merge-base, in CI)
+          --minimum N               Exit non-zero when patch coverage
+                                    (covered / coverable touched lines)
+                                    is below N%
+          --find-renames            Follow a renamed file instead of
+                                    counting the moved file as all-new
+          --json                    Emit results as a JSON array (for CI)
 
         open options:
           --report PATH             Open PATH instead of #{default_report}

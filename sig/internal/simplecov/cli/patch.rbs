@@ -1,0 +1,85 @@
+module SimpleCov
+  module CLI
+    # `simplecov patch [--base REF]` — report coverage over only the lines a
+    # change touched. It reads `git diff --unified=0 <base>...HEAD`, intersects
+    # the added and modified line numbers with the current report (--input),
+    # and prints line coverage (and branch coverage, when the report has it)
+    # over just those lines. `--minimum N` exits non-zero below a floor so it
+    # composes as a CI gate, and `--json` emits rows like the other read-only
+    # commands.
+    module Patch
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      EPSILON: ::Float
+
+      DEFAULT_BASE: ::String
+
+      HUNK_HEADER: ::Regexp
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (0 | 1)
+
+      def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
+
+      # nil signals "could not diff" (already reported); an empty hash is a
+      # valid result meaning the change touched no coverable lines.
+      def self?.changed_lines: (untyped base, find_renames: untyped, stderr: untyped) -> (::Hash[::String, ::Array[::Integer]] | nil)
+
+      def self?.git_diff: (untyped base, find_renames: untyped) -> (::String | nil)
+
+      def self?.report_git_error: (untyped stderr, untyped base) -> nil
+
+      def self?.parse_diff: (untyped output) -> ::Hash[::String, ::Array[::Integer]]
+
+      def self?.record_hunk: (::Hash[::String, ::Array[::Integer]] changes, ::String path, untyped match) -> void
+
+      def self?.diff_path: (untyped line) -> (::String | nil)
+
+      def self?.compute_rows: (untyped coverage, ::Hash[::String, ::Array[::Integer]] changes) -> ::Array[untyped]
+
+      def self?.build_row: (untyped path, untyped payload, untyped changed) -> { file: untyped, line: untyped, branch: untyped }
+
+      def self?.line_stats: (untyped hits, untyped changed) -> { covered: ::Integer, relevant: ::Integer, missing: ::Array[::Integer] }
+
+      def self?.branch_stats: (untyped branches, untyped changed) -> ({ covered: ::Integer, relevant: ::Integer, missing: ::Array[::Integer] } | nil)
+
+      def self?.each_touched_branch: (untyped branches, untyped changed) { (::Integer, untyped) -> void } -> void
+
+      def self?.scored?: (untyped row) -> bool
+
+      def self?.branch?: (untyped row) -> bool
+
+      def self?.emit: (untyped stdout, untyped rows, untyped opts) -> untyped
+
+      def self?.emit_text: (untyped stdout, untyped rows, untyped color) -> untyped
+
+      def self?.format_row: (untyped row, untyped color) -> ::String
+
+      def self?.criterion_cells: (untyped row, untyped color) -> ::Array[::String]
+
+      def self?.criterion_cell: (untyped label, untyped stats, untyped color) -> ::String
+
+      def self?.missing_note: (untyped row) -> ::String
+
+      def self?.format_total: (untyped rows, untyped color) -> ::String
+
+      def self?.json_rows: (untyped rows) -> ::Array[untyped]
+
+      def self?.pct_cell: (untyped percent, untyped color) -> untyped
+
+      # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
+      def self?.ranges: (untyped numbers) -> ::String
+
+      def self?.sum_stats: (untyped rows, untyped criterion) -> { covered: ::Integer, relevant: ::Integer }
+
+      def self?.pct: (untyped stats) -> ::Float
+
+      # No --minimum is report-only (exit 0); with one, line and (when present)
+      # branch patch coverage must both clear the floor.
+      def self?.gate: (untyped rows, untyped minimum) -> (0 | 1)
+    end
+  end
+end
