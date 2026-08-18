@@ -172,3 +172,50 @@ describe('jumpToMissedLine', () => {
     expect(getDialogBody().scrollTop).toBe(0);
   });
 });
+
+describe('tests badge clicks', () => {
+  async function bootWithContexts(): Promise<void> {
+    document.querySelectorAll('dialog').forEach((d) => {
+      (d as HTMLDialogElement).close();
+      d.remove();
+    });
+    installPageSkeleton();
+    const data = coverageData();
+    data.contexts = ['spec/covered_spec.rb:4'];
+    data.coverage['lib/covered.rb'].contexts = { '0': '2' };
+    await precomputeFileIds(Object.keys(data.coverage));
+    renderPage(data);
+    setupSourceDialog();
+    clearHash();
+  }
+
+  test('opens the peek without re-anchoring the line', async () => {
+    await bootWithContexts();
+    const id = fileId('lib/covered.rb');
+    window.location.hash = '#' + id;
+    navigateToHash();
+
+    const badge = getDialogBody().querySelector('button.hits--tests[data-tests-line="2"]') as HTMLElement;
+    const hashBefore = window.location.hash;
+    click(badge);
+
+    const peek = getDialogBody().querySelector('li.tests-peek')!;
+    expect(peek).not.toBeNull();
+    expect(peek.textContent).toContain('spec/covered_spec.rb:4');
+    expect(window.location.hash).toBe(hashBefore);
+
+    // A second click on the same badge closes it again.
+    click(badge);
+    expect(getDialogBody().querySelector('li.tests-peek')).toBeNull();
+  });
+
+  test('drained lines explain themselves', async () => {
+    await bootWithContexts();
+    const id = fileId('lib/covered.rb');
+    window.location.hash = '#' + id;
+    navigateToHash();
+
+    click(getDialogBody().querySelector('button.hits--tests[data-tests-line="1"]') as HTMLElement);
+    expect(getDialogBody().querySelector('li.tests-peek')!.textContent).toContain('No recorded test covers this line');
+  });
+});

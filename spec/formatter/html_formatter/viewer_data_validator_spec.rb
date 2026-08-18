@@ -74,4 +74,67 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     data.dig("groups", "App", "files") << 1
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /files must be an array of strings/)
   end
+
+  # The contexts data is optional (a report without `track_tests` has
+  # none), but when present the viewer dereferences it, so its shape is
+  # held to the same bar as the rest.
+  describe "recorded contexts" do
+    it "accepts a document carrying well-formed contexts" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"0" => "1"}
+      expect(validate).to equal(data)
+    end
+
+    it "accepts their absence" do
+      expect(validate).to equal(data)
+    end
+
+    it "rejects a non-array contexts list" do
+      data["contexts"] = "junk"
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /"contexts" must be an array of strings/)
+    end
+
+    it "rejects non-string context ids" do
+      data["contexts"] = ["spec/a_spec.rb:4", 7]
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /"contexts" must be an array of strings/)
+    end
+
+    it "rejects a wrong-shaped per-file bitmap table" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = "junk"
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+
+    it "rejects non-string bitmap values" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"0" => 1}
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+
+    # The viewer converts each key with Number() and indexes the document's
+    # context list with it, so the validator holds keys to exactly that
+    # contract rather than letting the browser crash or render "undefined".
+    it "rejects non-numeric bitmap keys" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"x" => "1"}
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+
+    it "rejects bitmap keys that index no recorded context" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"1" => "1"}
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+
+    it "rejects non-hex bitmap values" do
+      data["contexts"] = ["spec/a_spec.rb:4"]
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"0" => "0xzz"}
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+
+    it "rejects a bitmap table on a document with no context list" do
+      data.dig("coverage", "lib/a.rb")["contexts"] = {"0" => "1"}
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /must map recorded context indices/)
+    end
+  end
 end

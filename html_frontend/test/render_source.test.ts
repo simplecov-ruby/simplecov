@@ -119,3 +119,78 @@ describe('renderSourceFile', () => {
     expect(el.querySelector('.t-missed-method-list')).toBeNull();
   });
 });
+
+describe('renderSourceFile with recorded contexts', () => {
+  const contexts = ['spec/b_spec.rb:9', 'spec/a_spec.rb:12'];
+
+  function renderCtx(data: FileCoverage, ctx: string[] | undefined = contexts): HTMLElement {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(FILE, data, true, false, false, ctx);
+    return el.firstElementChild as HTMLElement;
+  }
+
+  // Line 1 covered by both contexts, line 2 covered by none (the drained
+  // case), line 3 missed, line 4 non-executable.
+  const ctxData: FileCoverage = {
+    source: ['a', 'b', 'c', '# d'],
+    lines: [1, 2, 0, null],
+    covered_lines: 2,
+    total_lines: 3,
+    contexts: { '0': '1', '1': '1' }
+  };
+
+  test('adds a tests badge to covered lines, naming the count', () => {
+    const lines = Array.from(renderCtx(ctxData).querySelectorAll('ol li'));
+    const badge = lines[0].querySelector('button.hits--tests')!;
+    expect(badge.getAttribute('data-content')).toBe('2 tests');
+    expect(badge.getAttribute('data-tests-line')).toBe('1');
+    expect(lines[2].querySelector('button.hits--tests')).toBeNull();
+    expect(lines[3].querySelector('button.hits--tests')).toBeNull();
+  });
+
+  test('drains a covered line no recorded test executed', () => {
+    const lines = Array.from(renderCtx(ctxData).querySelectorAll('ol li'));
+    expect(lines[1].className).toBe('outside-tests');
+    const badge = lines[1].querySelector('button.hits--tests')!;
+    expect(badge.getAttribute('data-content')).toBe('0 tests');
+    expect(badge.classList.contains('hits--tests-none')).toBe(true);
+  });
+
+  test('uses the singular for a single covering test', () => {
+    const one: FileCoverage = { source: ['a'], lines: [1], covered_lines: 1, total_lines: 1, contexts: { '1': '1' } };
+    const badge = renderCtx(one).querySelector('button.hits--tests')!;
+    expect(badge.getAttribute('data-content')).toBe('1 test');
+  });
+
+  test('keeps branch and method misses ranked above the drained status', () => {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(FILE, {
+      source: ['if a', 'end'],
+      lines: [1, 1],
+      covered_lines: 2,
+      total_lines: 2,
+      branches: [{ type: 'then', start_line: 1, end_line: 1, coverage: 0, inline: true, report_line: 1 }],
+      covered_branches: 0,
+      total_branches: 1,
+      contexts: {}
+    }, true, true, false, contexts);
+    const lines = Array.from((el.firstElementChild as HTMLElement).querySelectorAll('ol li'));
+    expect(lines[0].className).toBe('missed-branch');
+    expect(lines[1].className).toBe('outside-tests');
+  });
+
+  test('summarizes the file\'s tests in the header, counting drained lines', () => {
+    const header = renderCtx(ctxData).querySelector('.summary-stats')!;
+    expect(header.textContent).toContain('Test coverage: 2 tests cover this file');
+    expect(header.textContent).toContain('1 line covered outside tests');
+  });
+
+  test('renders identically to today when no contexts were recorded', () => {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(FILE, ctxData, true, false, false);
+    const rendered = el.firstElementChild as HTMLElement;
+    expect(rendered.querySelector('.hits--tests')).toBeNull();
+    expect(rendered.querySelector('.outside-tests')).toBeNull();
+    expect(rendered.querySelector('.t-tests-summary')).toBeNull();
+  });
+});

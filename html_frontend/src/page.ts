@@ -8,6 +8,7 @@ import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
+import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './contexts';
 import type { CoverageData, FileCoverage } from './types';
 
 hljs.registerLanguage('ruby', ruby);
@@ -49,8 +50,14 @@ interface RenderState {
   lineCoverage: boolean;
   branchCoverage: boolean;
   methodCoverage: boolean;
+  // The recorded context ids, or null for a report without recordings.
+  contexts: string[] | null;
 }
 let renderState: RenderState | null = null;
+
+// Per-file decoded context indices, built on first use: only opened files
+// pay the decode, and each pays it once.
+const contextIndexCache = new Map<string, FileContextIndex>();
 
 export function renderPage(data: CoverageData): void {
   const meta = data.meta;
@@ -108,7 +115,11 @@ export function renderPage(data: CoverageData): void {
   // materializer can resolve an id back to its FileCoverage in O(1).
   const idToFilename: Record<string, string> = {};
   for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
-  renderState = { idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage };
+  renderState = {
+    idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage,
+    contexts: data.contexts || null
+  };
+  contextIndexCache.clear();
 
   // Footer
   const timestamp = new Date(meta.timestamp);
@@ -138,6 +149,11 @@ export function renderPage(data: CoverageData): void {
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>' +
       '</div>';
   }
+  if (data.contexts) {
+    legendHtml += '<div class="source-legend__row source-legend__row--tests">' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--outside-tests"></span>Covered outside tests</span>' +
+      '</div>';
+  }
   legend.innerHTML = legendHtml;
 }
 
@@ -155,6 +171,7 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
     renderState.lineCoverage,
     renderState.branchCoverage,
     renderState.methodCoverage,
+    renderState.contexts || undefined,
   );
   const container = document.querySelector('.source_files')!;
   const wrapper = document.createElement('div');
@@ -164,4 +181,22 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
 
   $$('pre code', el).forEach((e) => hljs.highlightElement(e as HTMLElement));
   return el;
+}
+
+// The covering test ids for one line of a materialized source file, or
+// null when the report carries no recordings (or the id is unknown). This
+// is the peek panel's resolver; the ids come back sorted, matching the
+// CLI's answer for the same file and line.
+export function contextsForSourceLine(sourceFileId: string, line: number): string[] | null {
+  if (!renderState || !renderState.contexts) return null;
+  const filename = renderState.idToFilename[sourceFileId];
+  if (!filename) return null;
+
+  let index = contextIndexCache.get(sourceFileId);
+  if (!index) {
+    const file = renderState.coverage[filename];
+    index = decodeFileContexts(file.contexts, file.source.length);
+    contextIndexCache.set(sourceFileId, index);
+  }
+  return contextIdsForLine(index, renderState.contexts, line);
 }

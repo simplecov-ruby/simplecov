@@ -1,0 +1,107 @@
+// The inline peek panel a tests badge opens beneath its source line: one
+// open at a time, toggled by its badge, dismissed by Escape or an outside
+// click, listing the covering test ids the way the CLI prints them.
+import { beforeEach, describe, expect, test } from 'bun:test';
+import { toggleTestsPeek, closeTestsPeek, setupTestsPeekDismissal } from '../src/tests_peek';
+
+function buildSourceTable(): { table: HTMLElement; badges: HTMLElement[] } {
+  document.body.innerHTML = `
+    <div class="source_table" id="f-abc">
+      <pre><ol>
+        <li class="covered" data-linenumber="1">
+          <button type="button" class="hits hits--tests" data-content="2 tests" data-tests-line="1" aria-expanded="false"></button>
+          <code>a</code>
+        </li>
+        <li class="outside-tests" data-linenumber="2">
+          <button type="button" class="hits hits--tests hits--tests-none" data-content="0 tests" data-tests-line="2" aria-expanded="false"></button>
+          <code>b</code>
+        </li>
+      </ol></pre>
+    </div>`;
+  const table = document.getElementById('f-abc')!;
+  return { table, badges: Array.from(table.querySelectorAll('button.hits--tests')) };
+}
+
+const resolver = (sourceFileId: string, line: number): string[] | null => {
+  if (sourceFileId !== 'f-abc') return null;
+  return line === 1 ? ['spec/a_spec.rb:12', 'spec/b_spec.rb:9'] : [];
+};
+
+describe('toggleTestsPeek', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('opens a peek panel after the line, listing the sorted ids', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], resolver);
+
+    const peek = document.querySelector('li.tests-peek')!;
+    expect(peek.previousElementSibling).toBe(badges[0].closest('li'));
+    expect(peek.textContent).toContain('Covered by 2 tests');
+    const ids = Array.from(peek.querySelectorAll('code')).map((c) => c.textContent);
+    expect(ids).toEqual(['spec/a_spec.rb:12', 'spec/b_spec.rb:9']);
+    expect(badges[0].getAttribute('aria-expanded')).toBe('true');
+  });
+
+  test('explains a drained line instead of listing nothing', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[1], resolver);
+
+    const peek = document.querySelector('li.tests-peek')!;
+    expect(peek.textContent).toContain('No recorded test covers this line');
+    expect(peek.querySelector('code')).toBeNull();
+  });
+
+  test('toggles closed from the same badge and keeps one peek at a time', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], resolver);
+    toggleTestsPeek(badges[1], resolver);
+    expect(document.querySelectorAll('li.tests-peek').length).toBe(1);
+    expect(badges[0].getAttribute('aria-expanded')).toBe('false');
+
+    toggleTestsPeek(badges[1], resolver);
+    expect(document.querySelector('li.tests-peek')).toBeNull();
+    expect(badges[1].getAttribute('aria-expanded')).toBe('false');
+  });
+
+  test('escapes the ids it renders', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], () => ['<img src=x>']);
+    expect(document.querySelector('li.tests-peek img')).toBeNull();
+    expect(document.querySelector('li.tests-peek code')!.textContent).toBe('<img src=x>');
+  });
+});
+
+describe('dismissal', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    setupTestsPeekDismissal();
+  });
+
+  test('Escape closes the peek and stays inside the dialog', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], resolver);
+
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
+
+    expect(document.querySelector('li.tests-peek')).toBeNull();
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test('a click outside the peek closes it; a click inside does not', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], resolver);
+
+    document.querySelector('li.tests-peek code')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(document.querySelector('li.tests-peek')).not.toBeNull();
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(document.querySelector('li.tests-peek')).toBeNull();
+  });
+
+  test('closeTestsPeek is safe with nothing open', () => {
+    expect(() => closeTestsPeek()).not.toThrow();
+  });
+});

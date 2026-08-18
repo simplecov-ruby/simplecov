@@ -62,6 +62,9 @@
   --missed-method-bg: #e8d0ff;
   --missed-method-line-num-bg: #d4b0ff;
   --missed-method-text: #7b2d8e;
+  --outside-tests-bg: #dfe5ee;
+  --outside-tests-line-num-bg: #b6c4da;
+  --outside-tests-text: #3f5578;
 
   --source-bg: #fff;
   --source-border: #c0c5cc;
@@ -116,6 +119,9 @@
     --missed-method-bg: #1e1830;
     --missed-method-line-num-bg: #2a2044;
     --missed-method-text: #dcb8ff;
+    --outside-tests-bg: #1a2231;
+    --outside-tests-line-num-bg: #28344c;
+    --outside-tests-text: #9db2d9;
 
     --source-bg: #0d1117;
     --source-border: #3d444d;
@@ -165,6 +171,9 @@
   --missed-method-bg: #1e1830;
   --missed-method-line-num-bg: #2a2044;
   --missed-method-text: #dcb8ff;
+  --outside-tests-bg: #1a2231;
+  --outside-tests-line-num-bg: #28344c;
+  --outside-tests-text: #9db2d9;
 
   --source-bg: #0d1117;
   --source-border: #3d444d;
@@ -790,9 +799,14 @@ dialog.source-dialog[open] {
   grid-row: 4;
 }
 
+.source-dialog__title .t-tests-summary {
+  grid-column: 1;
+  grid-row: 5;
+}
+
 .source-dialog__title > .t-missed-method-list {
   grid-column: 1 / -1;
-  grid-row: 5;
+  grid-row: 6;
 }
 
 /* --- Source legend ------------------------------------------ */
@@ -809,7 +823,7 @@ dialog.source-dialog[open] {
    missing legend row cannot shift the ones below it. */
 .source-legend {
   grid-column: 2 / 4;
-  grid-row: 2 / 5;
+  grid-row: 2 / 6;
   display: grid;
   grid-template-rows: subgrid;
   grid-template-columns: repeat(3, auto);
@@ -830,6 +844,7 @@ dialog.source-dialog[open] {
 
 .source-legend__row--branch .source-legend__item { grid-row: 2; grid-column: 3; }
 .source-legend__row--method .source-legend__item { grid-row: 3; grid-column: 3; }
+.source-legend__row--tests .source-legend__item { grid-row: 4; grid-column: 3; }
 
 .source-legend__item {
   display: flex;
@@ -855,6 +870,7 @@ dialog.source-dialog[open] {
 .source-legend__swatch--skipped       { background: var(--skipped-bg); border-color: var(--skipped-line-num-bg); color: var(--text-secondary); }
 .source-legend__swatch--missed-branch { background: var(--missed-branch-bg); border-color: var(--missed-branch-line-num-bg); color: var(--missed-branch-text); }
 .source-legend__swatch--missed-method { background: var(--missed-method-bg); border-color: var(--missed-method-line-num-bg); color: var(--missed-method-text); }
+.source-legend__swatch--outside-tests { background: var(--outside-tests-bg); border-color: var(--outside-tests-line-num-bg); color: var(--outside-tests-text); }
 
 /* The colorblind and dark toggles, repeated in the dialog header so the mode
    can be changed while a source file is open (the modal covers the report's
@@ -1061,6 +1077,101 @@ table.file_list .totals-row td {
 .source_table .missed-branch::before { background-color: var(--missed-branch-line-num-bg); }
 .source_table .missed-method::before { background-color: var(--missed-method-line-num-bg); }
 
+/* --- Recorded test contexts (track_tests) ------------------------------
+
+   Everything below renders only when the report carries recordings. The
+   drained status is the feature's headline: a covered line no recorded
+   test executed loses its green for a cool slate, so coverage nothing
+   vouches for stops passing for the real thing. Near-achromatic on
+   purpose — it reads the same in the standard, colorblind, and dark
+   palettes. */
+
+.source_table .outside-tests         { background-color: var(--outside-tests-bg); }
+.source_table .outside-tests::before { background-color: var(--outside-tests-line-num-bg); }
+
+.outside-tests-text { color: var(--outside-tests-text); }
+
+/* The tests badge is a real button so the peek panel it opens is
+   keyboard-reachable, but it wears the same chrome as the hit-count
+   badge beside it; hovering or holding it open underlines the label,
+   the report's usual interactive affordance. A drained line's "0 tests"
+   takes the slate text so the badge and the tint tell one story. */
+.source_table pre button.hits--tests {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid var(--source-border);
+  cursor: pointer;
+  /* Buttons center their label vertically; the span badges beside this
+     one top-align theirs, which shows on wrapped lines. Flexing the
+     label to the start keeps the whole badge row on one baseline. */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.source_table pre button.hits--tests:hover::after,
+.source_table pre button.hits--tests[aria-expanded="true"]::after {
+  text-decoration: underline;
+}
+
+.source_table pre .hits--tests-none { color: var(--outside-tests-text); }
+
+/* The peek panel: an annotation row, not a source line, so it opts out
+   of the line counter and the flex line layout, and indents past the
+   number gutter to sit under the code it annotates. Its ids are the
+   same ids, in the same order, that `simplecov tests file:line` prints;
+   one click selects a whole id, ready to hand to a test runner. */
+.source_table pre li.tests-peek {
+  counter-increment: none;
+  display: block;
+  padding: 6px 12px 8px 58px;
+  background: var(--source-line-num-bg);
+  border-top: 1px solid var(--source-border);
+  border-bottom: 1px solid var(--source-border);
+}
+
+.source_table pre li.tests-peek::before { content: none; }
+
+/* The peek's own list items live inside the same <pre><ol> world, so
+   without this they'd be numbered and painted like source lines. */
+.source_table pre .tests-peek li {
+  counter-increment: none;
+  display: block;
+  background: transparent;
+}
+
+.source_table pre .tests-peek li::before { content: none; }
+
+.tests-peek__title {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.tests-peek__note {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.tests-peek__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 30ch;
+  column-gap: 24px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.tests-peek__list code {
+  font-size: 13px;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
 /* --- Toolbar toggles (colorblind + dark) ------------------- */
 
 .toolbar {
@@ -1213,6 +1324,9 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     --missed-method-bg: #e8d0ff;
     --missed-method-line-num-bg: #d4b0ff;
     --missed-method-text: #7b2d8e;
+    --outside-tests-bg: #dfe5ee;
+    --outside-tests-line-num-bg: #b6c4da;
+    --outside-tests-text: #3f5578;
     --source-bg: #fff;
     --source-border: #c0c5cc;
     --source-line-number: #444;

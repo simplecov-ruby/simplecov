@@ -3,7 +3,7 @@
 // the on-demand source-file materializer with its highlight.js pass.
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { installPageSkeleton, coverageData } from './fixture';
-import { renderPage, updateFavicon, materializeSourceFile } from '../src/page';
+import { renderPage, updateFavicon, materializeSourceFile, contextsForSourceLine } from '../src/page';
 import { precomputeFileIds, fileId, toHtmlId } from '../src/format';
 import type { CoverageData } from '../src/types';
 
@@ -173,5 +173,47 @@ describe('materializeSourceFile', () => {
 
     // Unknown ids resolve to nothing.
     expect(materializeSourceFile('ffffffff')).toBeNull();
+  });
+});
+
+describe('renderPage with recorded contexts', () => {
+  function withContexts() {
+    const data = coverageData();
+    data.contexts = ['spec/covered_spec.rb:4'];
+    data.coverage['lib/covered.rb'].contexts = { '0': '2' }; // line 2 only
+    return data;
+  }
+
+  test('adds the drained legend row exactly when contexts are recorded', async () => {
+    await boot(coverageData());
+    expect(document.getElementById('source-legend')!.textContent).not.toContain('Covered outside tests');
+
+    installPageSkeleton();
+    await boot(withContexts());
+    const legend = document.getElementById('source-legend')!;
+    expect(legend.textContent).toContain('Covered outside tests');
+    expect(legend.querySelector('.source-legend__swatch--outside-tests')).not.toBeNull();
+  });
+
+  test('threads contexts into materialized source files', async () => {
+    await boot(withContexts());
+    const el = materializeSourceFile(fileId('lib/covered.rb'))!;
+
+    // Line 2 carries its test badge; lines 1 and 4 are covered by nothing.
+    expect(el.querySelector('button.hits--tests[data-tests-line="2"]')!.getAttribute('data-content')).toBe('1 test');
+    expect(Array.from(el.querySelectorAll('li.outside-tests')).map((li) => li.getAttribute('data-linenumber')))
+      .toEqual(['1', '4']);
+  });
+
+  test('resolves a line\'s covering ids for the peek, and null off the map', async () => {
+    await boot(withContexts());
+    expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toEqual(['spec/covered_spec.rb:4']);
+    expect(contextsForSourceLine(fileId('lib/covered.rb'), 1)).toEqual([]);
+    expect(contextsForSourceLine('nope', 1)).toBeNull();
+  });
+
+  test('resolves nothing when the report recorded no contexts', async () => {
+    await boot(coverageData());
+    expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toBeNull();
   });
 });
