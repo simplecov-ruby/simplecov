@@ -107,8 +107,7 @@ module SimpleCov
         cmd = ["git", "-c", "core.quotePath=false", "diff", "--unified=0", "--relative",
                "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
                "--src-prefix=a/", "--dst-prefix=b/"]
-        cmd << (find_renames ? "--find-renames" : "--no-renames")
-        cmd += ["#{base}...HEAD", "--"]
+        cmd += [find_renames ? "--find-renames" : "--no-renames", "#{base}...HEAD", "--"]
         stdout, _stderr, status = Open3.capture3(*cmd)
         status.success? ? stdout : nil
       rescue StandardError
@@ -262,21 +261,24 @@ module SimpleCov
       end
 
       def format_row(row, color)
-        line = "  #{criterion_cells(row, color).join('  ')}  #{row[:file]}"
+        line = "  #{criterion_cells(row[:line], row[:branch], color).join('  ')}  #{row[:file]}"
         note = missing_note(row)
         note.empty? ? line : "#{line}  #{note}"
       end
 
-      # A "lines" cell always, a "branches" cell only when the file's touched
-      # lines actually carried a branch — a hollow 0/0 branch cell is noise.
-      def criterion_cells(row, color)
-        cells = [criterion_cell("lines", row[:line], color)]
-        cells << criterion_cell("branches", row[:branch], color) if branch?(row)
+      # A "lines" cell always, a "branches" cell only when the touched lines
+      # actually carried a branch — a hollow 0/0 branch cell is noise. Shared
+      # by the per-file row and the total, so `branch` is a stats hash or nil.
+      def criterion_cells(line, branch, color)
+        cells = [criterion_cell("lines", line, color)]
+        cells << criterion_cell("branches", branch, color) if branch.is_a?(Hash) && branch[:relevant].positive?
         cells
       end
 
       def criterion_cell(label, stats, color)
-        "#{pct_cell(pct(stats), color)} (#{stats[:covered]}/#{stats[:relevant]}) #{label}"
+        percent = pct(stats)
+        cell = SimpleCov::Color.colorize(format("%6.2f%%", percent), percent >= 100 ? :green : :red, enabled: color)
+        "#{cell} (#{stats[:covered]}/#{stats[:relevant]}) #{label}"
       end
 
       def missing_note(row)
@@ -287,11 +289,8 @@ module SimpleCov
       end
 
       def format_total(rows, color)
-        line = sum_stats(rows, :line)
-        parts = [criterion_cell("lines", line, color)]
-        branch = sum_stats(rows, :branch)
-        parts << criterion_cell("branches", branch, color) if branch[:relevant].positive?
-        "  Patch coverage: #{parts.join(', ')}"
+        cells = criterion_cells(sum_stats(rows, :line), sum_stats(rows, :branch), color)
+        "  Patch coverage: #{cells.join(', ')}"
       end
 
       def json_rows(rows)
@@ -300,11 +299,6 @@ module SimpleCov
           data[:branch] = row[:branch].merge(percent: pct(row[:branch])) if branch?(row)
           data
         end
-      end
-
-      def pct_cell(percent, color)
-        text = format("%6.2f%%", percent)
-        SimpleCov::Color.colorize(text, percent >= 100 ? :green : :red, enabled: color)
       end
 
       # Collapse a sorted line list into ranges: [41, 42, 43, 47] -> "41-43, 47".
@@ -336,8 +330,7 @@ module SimpleCov
 
         line = sum_stats(rows, :line)
         branch = sum_stats(rows, :branch)
-        below = short?(line, minimum)
-        below ||= branch[:relevant].positive? && short?(branch, minimum)
+        below = short?(line, minimum) || (branch[:relevant].positive? && short?(branch, minimum))
         below ? 1 : 0
       end
 
