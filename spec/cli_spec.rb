@@ -3,6 +3,7 @@
 require "coverage"
 require "helper"
 require "net/http"
+require "open3"
 require "simplecov/cli"
 require "socket"
 require "stringio"
@@ -1027,6 +1028,248 @@ RSpec.describe SimpleCov::CLI do
 
         let(:no_color_argv) { ["diff", "--input", current, "--no-color", baseline] }
       end
+    end
+  end
+
+  describe "patch subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
+    let(:cov) { File.join(tmp, "coverage.json") }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def git(*args)
+      output, status = Open3.capture2e("git", "-C", tmp, *args)
+      raise "git #{args.join(' ')} failed: #{output}" unless status.success?
+
+      output
+    end
+
+    # A one-file repo whose HEAD (on a `feature` branch) differs from
+    # `main`, plus a coverage.json whose `lines` array (indexed from line 1)
+    # reflects `line_hits`. HEAD lives on its own branch so `main...HEAD`
+    # resolves to the change rather than to an empty merge-base diff.
+    def build_repo(base:, head:, line_hits:, branches: nil, file: "lib/foo.rb", cover: true)
+      init_repo
+      write(file, base)
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      write(file, head)
+      commit("head")
+      write_report(file, line_hits, branches) if cover
+    end
+
+    def init_repo
+      git("init", "-q", "-b", "main")
+      git("config", "user.email", "t@example.com")
+      git("config", "user.name", "Test")
+    end
+
+    def commit(message)
+      git("add", "-A")
+      git("commit", "-qm", message)
+    end
+
+    def write_report(file, line_hits, branches)
+      payload = {"lines" => line_hits}
+      payload["branches"] = branches if branches
+      write_coverage(File.join(tmp, file) => payload)
+    end
+
+    def write(rel, content)
+      path = File.join(tmp, rel)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, content)
+    end
+
+    def write_coverage(files)
+      coverage = files.transform_values { |value| value.is_a?(Hash) ? value : {"lines" => value} }
+      File.write(cov, JSON.dump("coverage" => coverage))
+    end
+
+    def run_in_repo(*argv)
+      Dir.chdir(tmp) { run(*argv) }
+    end
+
+    it "reports coverage over only the touched lines" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("(1/2)").and include("missing 3")
+      expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+    end
+
+    it "collapses consecutive missed lines into a range" do
+      build_repo(base: "a\n", head: "a\nb\nc\nd\n", line_hits: [1, 0, 0, 0])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to include("missing 2-4")
+    end
+
+    it "excludes never-relevant touched lines from the denominator" do
+      # line 2 is a comment (nil in the lines array) -> not counted
+      build_repo(base: "a\n", head: "a\n# note\nb\n", line_hits: [1, nil, 1])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
+    end
+
+    it "exits non-zero below the --minimum floor" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
+    end
+
+    it "passes the --minimum gate when the floor is met" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "50")).to eq(0)
+    end
+
+    it "emits JSON rows under --json" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      run_in_repo("patch", "--base", "main", "--input", cov, "--json")
+      rows = JSON.parse(stdout.string)
+      expect(rows).to eq([{"file" => "lib/foo.rb",
+                           "line" => {"covered" => 1, "relevant" => 2, "missing" => [3], "percent" => 50.0}}])
+    end
+
+    it "reports branch coverage over the touched branches" do
+      build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to match(%r{50\.00%\s+\(1/2\)\s+branches})
+      expect(stdout.string).to include("branch 2")
+    end
+
+    it "fails --minimum on an uncovered touched branch even when lines are covered" do
+      build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
+    end
+
+    it "omits the branch column for a line-only report" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).not_to include("branches")
+    end
+
+    it "skips changed files the report does not track" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], file: "README.md", cover: false)
+      write_coverage(File.join(tmp, "lib/other.rb") => [1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "errors when the base ref cannot be resolved" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0])
+
+      expect(run_in_repo("patch", "--base", "does-not-exist", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("could not run `git diff`")
+    end
+
+    it "errors when the coverage input is missing" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], cover: false)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(1)
+      expect(stderr.string).to include(cov).and include("not found")
+    end
+
+    it "skips colorization when --no-color is passed, even with Color.enabled? on" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--no-color")).to eq(0)
+      expect(stdout.string).not_to be_empty
+      expect(stdout.string).not_to include("\e[")
+    end
+
+    it "follows a renamed file under --find-renames" do
+      init_repo
+      write("lib/old.rb", "a\nb\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      git("mv", "lib/old.rb", "lib/new.rb")
+      write("lib/new.rb", "a\nb\nc\n")
+      commit("rename")
+      write_report("lib/new.rb", [1, 1, 0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--find-renames")).to eq(0)
+      expect(stdout.string).to include("lib/new.rb").and include("missing 3")
+    end
+
+    it "reports a git failure when git cannot be launched" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT.new("git"))
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("could not run `git diff`")
+    end
+
+    it "ignores a pure-deletion hunk" do
+      build_repo(base: "a\nb\nc\n", head: "a\n", line_hits: [1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "skips a file the change deletes" do
+      init_repo
+      write("lib/gone.rb", "a\nb\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      File.delete(File.join(tmp, "lib/gone.rb"))
+      commit("delete")
+      write_report("lib/gone.rb", [1, 0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "drops a file whose touched lines are all never-relevant" do
+      build_repo(base: "a\n", head: "a\n# note\n", line_hits: [1, nil])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "tolerates a coverage entry that isn't an object" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1], cover: false)
+      File.write(cov, JSON.dump("coverage" => {File.join(tmp, "lib/foo.rb") => "malformed"}))
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "skips malformed and off-change branch entries" do
+      build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 branches: ["malformed", {"report_line" => 2, "coverage" => 1},
+                            {"report_line" => 99, "coverage" => 0}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to match(%r{100\.00%\s+\(1/1\)\s+branches})
+    end
+
+    it "includes branch data in --json output" do
+      build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov, "--json")
+      expect(JSON.parse(stdout.string).first["branch"])
+        .to include("covered" => 1, "relevant" => 2, "percent" => 50.0)
+    end
+
+    it "shows 100% for a line cell with no coverable touched lines" do
+      # both touched lines are never-relevant (nil), but a branch sits on one
+      build_repo(base: "a\n", head: "a\nif x\n  b\n", line_hits: [1, nil, nil],
+                 branches: [{"report_line" => 2, "coverage" => 1}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to match(%r{100\.00%\s+\(0/0\)\s+lines})
     end
   end
 
