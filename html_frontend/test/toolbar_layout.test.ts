@@ -76,11 +76,14 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__header', 'background')).toBe(declaration('body', 'background'));
   });
 
-  // The legend is one right-aligned box in the header grid; inside it,
-  // items sit in left-aligned columns, the line row across columns 1-3
-  // and every single-item row in the last column, so the trailing
-  // swatches share one edge instead of scattering with label widths.
-  test('right-aligns the legend box while its swatches align in columns', () => {
+  // The legend is one right-aligned box whose rows are the header grid's
+  // own row tracks (subgrid), so each legend row stays level with the
+  // summary it describes even when a narrow dialog wraps that summary onto
+  // two lines. Inside, items sit in left-aligned columns, the line row
+  // across columns 1-3 and every single-item row in the last column, so
+  // the trailing swatches share one edge. Each item is pinned to its row
+  // explicitly, so a disabled criterion cannot shift the ones below it.
+  test('aligns each legend row with its summary via subgrid rows and columns', () => {
     const document = new DOMParser().parseFromString(template, 'text/html');
     const legend = document.querySelector('.source-legend')!;
     const close = document.querySelector('.source-dialog__close')!;
@@ -92,16 +95,19 @@ describe('theme-control layout contract', () => {
     expect(declaration('.source-dialog__title .summary-stats', 'display')).toBe('contents');
     expect(declaration('.source-legend', 'display')).toBe('grid');
     expect(declaration('.source-legend', 'grid-column')).toBe('2 / 4');
+    expect(declaration('.source-legend', 'grid-row')).toBe('2 / 5');
+    expect(declaration('.source-legend', 'grid-template-rows')).toBe('subgrid');
     expect(declaration('.source-legend', 'grid-template-columns')).toBe('repeat(3, auto)');
     expect(declaration('.source-legend', 'justify-content')).toBe('end');
     expect(declaration('.source-legend', 'justify-items')).toBe('start');
     expect(declaration('.source-legend__row', 'display')).toBe('contents');
-    // The branch and method item selectors share one grouped rule; the
-    // declaration helper matches the selector adjacent to the brace.
-    expect(declaration('.source-legend__row--method .source-legend__item', 'grid-column')).toBe('3');
-
-    for (const [type, row] of [['line', '2'], ['branch', '3'], ['method', '4']]) {
+    // Subgrid line numbers are local: header row N is legend row N - 1.
+    for (const [type, row, legendRow] of [['line', '2', '1'], ['branch', '3', '2'], ['method', '4', '3']]) {
       expect(declaration(`.source-dialog__title .t-${type}-summary`, 'grid-row')).toBe(row);
+      expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-row')).toBe(legendRow);
+    }
+    for (const type of ['branch', 'method']) {
+      expect(declaration(`.source-legend__row--${type} .source-legend__item`, 'grid-column')).toBe('3');
     }
   });
 
