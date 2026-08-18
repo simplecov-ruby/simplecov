@@ -86,14 +86,28 @@ module SimpleCov
       # not read as the change's own work. `--relative` makes the output
       # paths relative to the working directory, which is what the report
       # keys on (`project_filename`), so a run from the project root lines
-      # up its paths with the report's. `--no-ext-diff` / `--no-color`
-      # keep a user's git config from corrupting the machine-read output.
-      # stderr is folded in and discarded so git's diagnostics for a
-      # non-git tree or bad ref don't reach the build; a non-zero exit
-      # (or a missing git) becomes nil, which `changed_lines` reports.
+      # up its paths with the report's. The rest pins the output against a
+      # user's git config so it can't skew the numbers or the parse:
+      # `--no-ext-diff` / `--no-color` (no external diff, no ANSI),
+      # `core.quotePath=false` (emit non-ASCII paths literally, not
+      # `"\303\251"`-quoted, so they still match report keys),
+      # `--inter-hunk-context=0` (never merge hunks over unchanged lines,
+      # which would score those lines as touched), and `--no-renames`
+      # unless asked (so a moved file reads as all-new — git detects
+      # renames by default, which `--find-renames` would otherwise leave
+      # unchanged). stderr is folded in and discarded so git's diagnostics
+      # for a non-git tree or bad ref don't reach the build; a non-zero
+      # exit (or a missing git) becomes nil, which `changed_lines` reports.
       def git_diff(base, find_renames:)
-        cmd = ["git", "diff", "--unified=0", "--relative", "--no-color", "--no-ext-diff"]
-        cmd << "--find-renames" if find_renames
+        # A git ref can never begin with "-", so refusing one keeps a
+        # `--base` value from being read by git as an option instead of a
+        # revision (e.g. `--output=FILE` writes to disk, `--line-prefix=`
+        # empties the diff so a `--minimum` gate passes over the change).
+        return nil if base.start_with?("-")
+
+        cmd = ["git", "-c", "core.quotePath=false", "diff", "--unified=0", "--relative",
+               "--no-color", "--no-ext-diff", "--inter-hunk-context=0"]
+        cmd << (find_renames ? "--find-renames" : "--no-renames")
         cmd += ["#{base}...HEAD", "--"]
         output, status = Open3.capture2e(*cmd)
         status.success? ? output : nil
@@ -108,19 +122,29 @@ module SimpleCov
       end
 
       # Parse `git diff --unified=0` into {new_path => [added line numbers]}.
-      # A file's added lines are read straight off its hunk headers, which
-      # under --unified=0 carry no context to filter out.
+      # Split into per-file sections first so a file's `+++` header — its
+      # first, before any hunk — is what names the path. Inside a hunk an
+      # added line is itself `+`-prefixed, so a touched line whose own text
+      # begins with `++ ` renders as `+++ ...`; reading only the section's
+      # first `+++` keeps that content line from standing in as the header
+      # and misdirecting the rest of the file's hunks.
       def parse_diff(output)
         changes = {} #: Hash[String, Array[Integer]]
-        path = nil #: String?
-        output.each_line do |line|
-          if line.start_with?("+++ ")
-            path = diff_path(line)
-          elsif path && (match = HUNK_HEADER.match(line))
-            record_hunk(changes, path, match)
+        output.split(/^(?=diff --git )/).each do |section|
+          path = section_path(section) or next
+          section.each_line do |line|
+            match = HUNK_HEADER.match(line)
+            record_hunk(changes, path, match) if match
           end
         end
         changes
+      end
+
+      # The new-file path from a diff section: its first `+++` line, which
+      # precedes the first hunk. `+++ /dev/null` (a deletion) yields nil.
+      def section_path(section)
+        header = section[/^\+\+\+ .*/]
+        header && diff_path(header)
       end
 
       def record_hunk(changes, path, match)
