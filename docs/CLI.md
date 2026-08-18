@@ -168,6 +168,40 @@ $ simplecov diff --json coverage/baseline.json
 Coverage keys with a leading `/` (from `coverage.json` files emitted before the `SourceFile#project_filename` change)
 are normalized, so a baseline from an older SimpleCov still diffs cleanly against newer reports.
 
+### `patch` — coverage of the lines a change touched
+
+`simplecov patch` answers the question `diff` does not: is the code in *this change* tested? It reads
+`git diff --unified=0 <base>...HEAD`, intersects the added and modified line numbers with the current report
+(`--input`), and prints line coverage — plus branch coverage over the branches those lines carry, when the report
+measured branches — over only that change, so a project that cannot move its overall number in one pull request can still
+require that everything it adds is covered. The `branches` column and a `branch <lines>` note appear only for files whose
+touched lines actually held a branch.
+
+```sh
+$ simplecov patch --base main
+   88.00% (22/25) lines   50.00% (1/2) branches  lib/simplecov/cli/patch.rb  missing 41-43  branch 39
+  100.00% (4/4) lines  lib/simplecov/result.rb
+  Patch coverage:  89.66% (26/29) lines, 50.00% (1/2) branches
+```
+
+`--base REF` selects the ref to diff against (defaults to `main`; in CI pass the pull request's target branch, or its
+merge-base). `--minimum N` exits non-zero when patch coverage falls below N% — line coverage, and branch coverage too
+when the report has it, must both clear the floor — so it gates a change alongside the overall thresholds even when they
+are already satisfied:
+
+```sh
+$ simplecov patch --base origin/main --minimum 100
+```
+
+`--find-renames` follows a renamed file instead of counting the moved file as entirely new, and `--json` emits the rows
+as a JSON array. Only files the report already tracks are scored — a changed file outside the configured `cover` /
+`track_files` set is out of scope — and a touched line SimpleCov considers never relevant (blank or comment) stays out of
+the denominator, so a comment-only change reports nothing to cover rather than a gap.
+
+Run it from the project root so the diff's `--relative` paths line up with the report's `project_filename` keys, and
+generate the report first: run your suite with the JSON formatter enabled, then `simplecov patch` reads
+`coverage/coverage.json`.
+
 ### `serve` and `clean`
 
 `simplecov serve` serves the coverage report over HTTP — handy on a remote box where you can't open files directly.
