@@ -1,0 +1,40 @@
+module SimpleCov
+  module CLI
+    module Patch
+      # Turn the scored rows into text or JSON on stdout, and into the
+      # `--minimum` gate's exit status.
+      module Output
+        def self?.emit: (untyped stdout, untyped rows, untyped opts) -> untyped
+
+        def self?.emit_text: (untyped stdout, untyped rows, untyped color) -> untyped
+
+        def self?.format_row: (untyped row, untyped color) -> ::String
+
+        def self?.criterion_cells: (untyped line, untyped branch, untyped color) -> ::Array[::String]
+
+        def self?.criterion_cell: (untyped label, untyped stats, untyped color) -> ::String
+
+        def self?.missing_note: (untyped row) -> ::String
+
+        def self?.format_total: (untyped rows, untyped color) -> ::String
+
+        def self?.json_rows: (untyped rows) -> ::Array[untyped]
+
+        def self?.branch?: (untyped row) -> bool
+
+        # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
+        def self?.ranges: (untyped numbers) -> ::String
+
+        def self?.sum_stats: (untyped rows, untyped criterion) -> { covered: ::Integer, relevant: ::Integer }
+
+        def self?.pct: (untyped stats) -> ::Float
+
+        # No --minimum is report-only (exit 0); with one, line and (when present)
+        # branch patch coverage must both clear the floor.
+        def self?.gate: (untyped rows, untyped minimum) -> (0 | 1)
+
+        def self?.short?: (untyped stats, untyped minimum) -> bool
+      end
+    end
+  end
+end

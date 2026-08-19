@@ -2,12 +2,8 @@
 
 module SimpleCov
   module CLI
-    # The `simplecov help` text, split out of the CLI dispatch module so
-    # that module stays within Metrics/ModuleLength. `cli` is the CLI
-    # module itself; its default-path accessors are module_function
-    # methods resolved at call time, so the printed defaults still track
-    # the active `.simplecov`. Kept a method (not a frozen constant) for
-    # that same call-time resolution.
+    # The `simplecov help` text. A method so its default paths resolve at
+    # call time against the active `.simplecov`.
     module Usage
     module_function
 
@@ -69,9 +65,9 @@ module SimpleCov
                                       in any criterion is at least N%
 
           patch options:
-            --base REF                Diff REF...HEAD for the touched lines
-                                      (default: main; use the PR's target
-                                      branch, or its merge-base, in CI)
+            --base REF                Diff against the merge-base of REF
+                                      for the touched lines (default: main;
+                                      in CI, the PR's target branch)
             --minimum N               Exit non-zero when patch coverage
                                       (covered / coverable touched lines)
                                       is below N%
