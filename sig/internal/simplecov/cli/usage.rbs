@@ -1,8 +1,7 @@
 module SimpleCov
   module CLI
-    # The `simplecov help` text, split out of CLI so the dispatch module
-    # stays within Metrics/ModuleLength. `cli` is the CLI module; its
-    # default-path accessors resolve at call time.
+    # The `simplecov help` text. A method so its default paths resolve at
+    # call time against the active `.simplecov`.
     module Usage
       def self?.text: (untyped cli) -> ::String
     end

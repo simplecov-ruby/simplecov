@@ -1,0 +1,27 @@
+module SimpleCov
+  module CLI
+    module Patch
+      # Run `git diff --unified=0 --merge-base <base>` and parse it into
+      # {new_path => [added line numbers]}.
+      module ChangedLines
+        HUNK_HEADER: ::Regexp
+
+        # nil signals "could not diff" (already reported); an empty hash is a
+        # valid result meaning the change touched no coverable lines.
+        def self?.call: (untyped base, find_renames: untyped, stderr: untyped) -> (::Hash[::String, ::Array[::Integer]] | nil)
+
+        def self?.git_diff: (untyped base, find_renames: untyped) -> (::String | nil)
+
+        def self?.report_git_error: (untyped stderr, untyped base) -> nil
+
+        def self?.parse_diff: (untyped output) -> ::Hash[::String, ::Array[::Integer]]
+
+        def self?.section_path: (untyped section) -> (::String | nil)
+
+        def self?.record_hunk: (::Hash[::String, ::Array[::Integer]] changes, ::String path, untyped match) -> void
+
+        def self?.diff_path: (untyped line) -> (::String | nil)
+      end
+    end
+  end
+end

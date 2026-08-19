@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require "json"
-require "open3"
-require "optparse"
 require_relative "command_helpers"
+require_relative "patch/changed_lines"
+require_relative "patch/output"
 
 module SimpleCov
   module CLI
@@ -14,11 +13,11 @@ module SimpleCov
     # at 40% cannot move its global number in one pull request, but it can
     # insist that every line it adds is covered.
     #
-    # It reads `git diff --unified=0 <base>...HEAD`, intersects the added
-    # and modified line numbers with the current report (--input), and
-    # prints coverage over just those lines. `--minimum N` exits non-zero
-    # below a floor, so it composes as a CI gate alongside the existing
-    # threshold checks, and `--json` emits rows the way the other
+    # It reads `git diff --unified=0 --merge-base <base>`, intersects the
+    # added and modified line numbers with the current report (--input),
+    # and prints coverage over just those lines. `--minimum N` exits
+    # non-zero below a floor, so it composes as a CI gate alongside the
+    # existing threshold checks, and `--json` emits rows the way the other
     # read-only commands do.
     #
     # Only files the report already carries are scored: a changed file
@@ -27,8 +26,6 @@ module SimpleCov
     # `LinesClassifier` considers never relevant (blank or comment) stays
     # out of the denominator the same way it stays out of the file total.
     #
-    # rubocop:disable Metrics/ModuleLength -- one cohesive command: diff
-    # parsing, coverage intersection, and rendering read top-to-bottom here.
     module Patch
       extend CommandHelpers
 
@@ -36,133 +33,40 @@ module SimpleCov
       # target branch (or its merge-base) the change is compared against.
       DEFAULT_BASE = "main"
 
-      # A `git diff --unified=0` hunk header: `@@ -old[,cnt] +new[,cnt] @@`.
-      # Only the new-file side is captured — removed lines cannot be
-      # covered, so they never enter the denominator.
-      HUNK_HEADER = /\A@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/
-
     module_function
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args, stderr)
         return 1 unless opts
 
-        changes = changed_lines(opts[:base], find_renames: opts[:find_renames], stderr: stderr)
+        changes = ChangedLines.call(opts[:base], find_renames: opts[:find_renames], stderr: stderr)
         return 1 unless changes
 
         rows = compute_rows(opts[:coverage], changes)
-        emit(stdout, rows, opts)
-        gate(rows, opts[:minimum])
+        Output.emit(stdout, rows, opts)
+        Output.gate(rows, opts[:minimum])
       end
 
       def parse(args, stderr)
-        opts, = parse_common(args, base: DEFAULT_BASE, find_renames: false, minimum: nil) do |parser, options|
+        opts, rest = parse_common(args, base: DEFAULT_BASE, find_renames: false, minimum: nil) do |parser, options|
           parser.on("--base REF") { |v| options[:base] = v }
           parser.on("--minimum N", Float) { |v| options[:minimum] = v }
           parser.on("--find-renames") { options[:find_renames] = true }
         end
+        return unless positional_ok?(rest, stderr)
+
         opts[:coverage] = CoverageFile.load_coverage(opts[:input], command: "patch", stderr: stderr) or return nil
         opts
       end
 
-      # --- git ----------------------------------------------------------
+      # A stray positional looks exactly like a ref, so a forgotten `--base`
+      # (`simplecov patch feature-x`) would otherwise diff against the
+      # default and gate the wrong change in silence.
+      def positional_ok?(rest, stderr)
+        return true if rest.empty?
 
-      # nil signals "could not diff" (already reported); an empty hash is
-      # a valid result meaning the change touched no lines at all.
-      def changed_lines(base, find_renames:, stderr:)
-        output = git_diff(base, find_renames: find_renames)
-        return report_git_error(stderr, base) unless output
-
-        parse_diff(output)
-      end
-
-      # `...HEAD` is the three-dot range: lines HEAD added since it and
-      # <base> diverged, so a base that has moved on independently does
-      # not read as the change's own work. `--relative` makes the output
-      # paths relative to the working directory, which is what the report
-      # keys on (`project_filename`), so a run from the project root lines
-      # up its paths with the report's. The rest pins the output against a
-      # user's git config so it can't skew the numbers, run code, or throw
-      # off the parse: `--no-ext-diff` / `--no-textconv` (no external diff
-      # or textconv driver — either runs a configured command and the
-      # latter also renumbers lines), `--no-color` (no ANSI),
-      # `core.quotePath=false` (emit non-ASCII paths literally, so they
-      # still match report keys), `--inter-hunk-context=0` (never merge
-      # hunks over unchanged lines, which would score those lines as
-      # touched), fixed `a/`/`b/` prefixes (so the `diff_path` strip can't
-      # be fooled by `diff.noprefix` / `diff.*Prefix`), and `--no-renames`
-      # unless asked (so a moved file reads as all-new — git detects
-      # renames by default, which `--find-renames` would otherwise leave
-      # unchanged). stdout alone is parsed; stderr is captured separately
-      # and dropped so git's diagnostics for a non-git tree or bad ref
-      # can't reach the parser. A non-zero exit (or a missing git) becomes
-      # nil, which `changed_lines` reports.
-      def git_diff(base, find_renames:)
-        # A git ref can never begin with "-", so refusing one keeps a
-        # `--base` value from being read by git as an option instead of a
-        # revision (e.g. `--output=FILE` writes to disk, `--line-prefix=`
-        # empties the diff so a `--minimum` gate passes over the change).
-        return nil if base.start_with?("-")
-
-        cmd = ["git", "-c", "core.quotePath=false", "diff", "--unified=0", "--relative",
-               "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
-               "--src-prefix=a/", "--dst-prefix=b/"]
-        cmd += [find_renames ? "--find-renames" : "--no-renames", "#{base}...HEAD", "--"]
-        stdout, _stderr, status = Open3.capture3(*cmd)
-        status.success? ? stdout : nil
-      rescue StandardError
-        nil # git is not installed / not on PATH
-      end
-
-      def report_git_error(stderr, base)
-        stderr.puts("simplecov patch: could not run `git diff` against #{base.inspect} " \
-                    "(is this a git working tree, and does the ref exist?)")
-        nil
-      end
-
-      # Parse `git diff --unified=0` into {new_path => [added line numbers]}.
-      # Split into per-file sections first so a file's `+++` header — its
-      # first, before any hunk — is what names the path. Inside a hunk an
-      # added line is itself `+`-prefixed, so a touched line whose own text
-      # begins with `++ ` renders as `+++ ...`; reading only the section's
-      # first `+++` keeps that content line from standing in as the header
-      # and misdirecting the rest of the file's hunks.
-      def parse_diff(output)
-        changes = {} #: Hash[String, Array[Integer]]
-        output.split(/^(?=diff --git )/).each do |section|
-          path = section_path(section) or next
-          section.each_line do |line|
-            match = HUNK_HEADER.match(line)
-            record_hunk(changes, path, match) if match
-          end
-        end
-        changes
-      end
-
-      # The new-file path from a diff section: its first `+++` line, which
-      # precedes the first hunk. `+++ /dev/null` (a deletion) yields nil.
-      def section_path(section)
-        header = section[/^\+\+\+ .*/]
-        header && diff_path(header)
-      end
-
-      def record_hunk(changes, path, match)
-        start = match[1].to_i
-        count = match[2] ? match[2].to_i : 1
-        return if count.zero? # a pure-deletion hunk adds nothing
-
-        (changes[path] ||= []).concat((start...(start + count)).to_a)
-      end
-
-      # "+++ b/lib/foo.rb" -> "lib/foo.rb"; a deleted file's "+++ /dev/null"
-      # -> nil so its hunks are skipped.
-      def diff_path(line)
-        raw = line[4..].to_s.chomp
-        # git's own literal token for an absent side, not this host's null
-        # device, so File::NULL (which is "NUL" on Windows) would be wrong.
-        return nil if raw == "/dev/null" # rubocop:disable Style/FileNull
-
-        raw.sub(%r{\A[ab]/}, "")
+        error(stderr, "unexpected argument #{rest.first.inspect} (did you mean `--base #{rest.first}`?)")
+        false
       end
 
       # --- coverage intersection ---------------------------------------
@@ -234,122 +138,12 @@ module SimpleCov
         end
       end
 
+      # Whether anything scored in this row: a coverable touched line, or a
+      # touched branch.
       def scored?(row)
-        row[:line][:relevant].positive? || branch?(row)
-      end
-
-      def branch?(row)
-        row[:branch].is_a?(Hash) && row[:branch][:relevant].positive?
-      end
-
-      # --- output & gate -----------------------------------------------
-
-      def emit(stdout, rows, opts)
-        if opts[:json]
-          stdout.puts(JSON.pretty_generate(json_rows(rows)))
-        else
-          emit_text(stdout, rows, SimpleCov::CLI.color_enabled?(opts, stdout))
-        end
-      end
-
-      def emit_text(stdout, rows, color)
-        return stdout.puts("simplecov patch: no coverable lines changed") if rows.empty?
-
-        rows.sort_by! { |row| [pct(row[:line]), row[:file]] }
-        rows.each { |row| stdout.puts(format_row(row, color)) }
-        stdout.puts(format_total(rows, color))
-      end
-
-      def format_row(row, color)
-        line = "  #{criterion_cells(row[:line], row[:branch], color).join('  ')}  #{row[:file]}"
-        note = missing_note(row)
-        note.empty? ? line : "#{line}  #{note}"
-      end
-
-      # A "lines" cell always, a "branches" cell only when the touched lines
-      # actually carried a branch — a hollow 0/0 branch cell is noise. Shared
-      # by the per-file row and the total, so `branch` is a stats hash or nil.
-      def criterion_cells(line, branch, color)
-        cells = [criterion_cell("lines", line, color)]
-        cells << criterion_cell("branches", branch, color) if branch.is_a?(Hash) && branch[:relevant].positive?
-        cells
-      end
-
-      def criterion_cell(label, stats, color)
-        percent = pct(stats)
-        cell = SimpleCov::Color.colorize(format("%6.2f%%", percent), percent >= 100 ? :green : :red, enabled: color)
-        "#{cell} (#{stats[:covered]}/#{stats[:relevant]}) #{label}"
-      end
-
-      def missing_note(row)
-        parts = [] #: Array[String]
-        parts << "missing #{ranges(row[:line][:missing])}" if row[:line][:missing].any?
-        parts << "branch #{ranges(row[:branch][:missing])}" if branch?(row) && row[:branch][:missing].any?
-        parts.join("  ")
-      end
-
-      def format_total(rows, color)
-        cells = criterion_cells(sum_stats(rows, :line), sum_stats(rows, :branch), color)
-        "  Patch coverage: #{cells.join(', ')}"
-      end
-
-      def json_rows(rows)
-        rows.map do |row|
-          data = {file: row[:file], line: row[:line].merge(percent: pct(row[:line]))}
-          data[:branch] = row[:branch].merge(percent: pct(row[:branch])) if branch?(row)
-          data
-        end
-      end
-
-      # Collapse a sorted line list into ranges: [41, 42, 43, 47] -> "41-43, 47".
-      def ranges(numbers)
-        numbers.slice_when { |prev, curr| curr > prev + 1 }
-               .map { |run| run.size == 1 ? run.first.to_s : "#{run.first}-#{run.last}" }
-               .join(", ")
-      end
-
-      # Sum a criterion's {covered, relevant} across rows; branch stats are nil
-      # on rows from a line-only report, so those are skipped.
-      def sum_stats(rows, criterion)
-        stats = rows.filter_map { |row| row[criterion] }
-        {covered: stats.sum { |stat| stat[:covered] }, relevant: stats.sum { |stat| stat[:relevant] }}
-      end
-
-      def pct(stats)
-        relevant = stats[:relevant]
-        return 100.0 if relevant.zero?
-
-        (stats[:covered].to_f / relevant * 100).round(2)
-      end
-
-      # No --minimum is report-only (exit 0). With one, line coverage must
-      # clear the floor and, when the report measured branches, so must the
-      # branch coverage of the touched branches.
-      def gate(rows, minimum)
-        return 0 unless minimum
-
-        line = sum_stats(rows, :line)
-        branch = sum_stats(rows, :branch)
-        below = short?(line, minimum) || (branch[:relevant].positive? && short?(branch, minimum))
-        below ? 1 : 0
-      end
-
-      # Whether a criterion falls below the floor. Cross-multiplied rather
-      # than compared as percentages so neither rounding nor float
-      # division can shift the verdict at the boundary: reading the
-      # displayed `pct` would round a 19_999/20_000 (99.995%) patch up to
-      # 100 and pass it against `--minimum 100`, while dividing
-      # (`covered / relevant * 100`) makes 23/40 compute as 57.4999… and
-      # fail an exactly-57.5% patch. `covered * 100` is exact and a
-      # representable minimum times an integer is too. A criterion with
-      # nothing relevant never falls short.
-      def short?(stats, minimum)
-        relevant = stats[:relevant]
-        return false if relevant.zero?
-
-        stats[:covered] * 100 < minimum * relevant
+        branch = row[:branch]
+        row[:line][:relevant].positive? || (branch.is_a?(Hash) && branch[:relevant].positive?)
       end
     end
-    # rubocop:enable Metrics/ModuleLength
   end
 end

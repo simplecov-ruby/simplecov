@@ -172,7 +172,7 @@ are normalized, so a baseline from an older SimpleCov still diffs cleanly agains
 ### `patch` — coverage of the lines a change touched
 
 `simplecov patch` answers the question `diff` does not: is the code in *this change* tested? It reads
-`git diff --unified=0 <base>...HEAD`, intersects the added and modified line numbers with the current report
+`git diff --unified=0 --merge-base <base>`, intersects the added and modified line numbers with the current report
 (`--input`), and prints line coverage — plus branch coverage over the branches those lines carry, when the report
 measured branches — over only that change, so a project that cannot move its overall number in one pull request can still
 require that everything it adds is covered. The `branches` column and a `branch <lines>` note appear only for files whose
@@ -185,8 +185,9 @@ $ simplecov patch --base main
   Patch coverage:  89.66% (26/29) lines, 50.00% (1/2) branches
 ```
 
-`--base REF` selects the ref to diff against (defaults to `main`; in CI pass the pull request's target branch, or its
-merge-base). `--minimum N` exits non-zero when patch coverage falls below N% — line coverage, and branch coverage too
+`--base REF` selects the ref to diff against (defaults to `main`; in CI pass the pull request's target branch). The diff
+runs against the merge-base of `REF` and the working tree, so uncommitted edits count too — running `simplecov patch`
+before committing still scores the lines just written. `--minimum N` exits non-zero when patch coverage falls below N% — line coverage, and branch coverage too
 when the report has it, must both clear the floor — so it gates a change alongside the overall thresholds even when they
 are already satisfied:
 
