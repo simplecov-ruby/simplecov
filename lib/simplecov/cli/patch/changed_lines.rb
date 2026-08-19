@@ -6,22 +6,52 @@ module SimpleCov
   module CLI
     module Patch
       # Run `git diff --unified=0` against a base and parse the result into
-      # {new_path => [added line numbers]}.
+      # `{root:, changes: {path => [added line numbers] | :all}}`, where
+      # `root` is the repository toplevel the paths are relative to and
+      # `:all` marks an untracked file, whose every line is new.
       module ChangedLines
         # A `git diff --unified=0` hunk header: `@@ -old[,cnt] +new[,cnt] @@`.
         # Only the new-file side is captured — removed lines cannot be
         # covered, so they never enter the denominator.
         HUNK_HEADER = /\A@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/
 
+        # The escapes git's C-quoting uses for paths carrying quotes,
+        # backslashes, or control characters.
+        UNQUOTE = {
+          "\\" => "\\", '"' => '"', "n" => "\n", "t" => "\t", "r" => "\r",
+          "a" => "\a", "b" => "\b", "f" => "\f", "v" => "\v"
+        }.freeze
+
       module_function
 
-        # nil signals "could not diff" (already reported); an empty hash is
+        # nil signals "could not diff" (already reported); empty changes are
         # a valid result meaning the change touched no lines at all.
+        # Everything runs against the repository toplevel rather than the
+        # cwd, because `--relative` from a subdirectory would not just
+        # reword paths — it would exclude every change outside the
+        # subdirectory from a `--minimum` gate.
         def call(base, find_renames:, stderr:)
-          output = git_diff(base, find_renames: find_renames)
-          return report_git_error(stderr, base) unless output
+          root = git_toplevel
+          return report_git_error(stderr, base, nil) unless root
 
-          parse_diff(output)
+          output, detail = git_diff(root, base, find_renames: find_renames)
+          return report_git_error(stderr, base, detail) unless output
+
+          # `scrub` keeps a non-UTF-8 content line (a latin-1 source file is
+          # enough) from blowing up the regexp parse; hunk headers are pure
+          # ASCII, so nothing the parser reads is affected.
+          changes = parse_diff(output.scrub) #: Hash[String, untyped]
+          # An untracked file can never also appear in the diff, so this
+          # overwrites nothing.
+          untracked_files(root).each { |path| changes[path] = :all }
+          {root: root, changes: changes}
+        end
+
+        def git_toplevel
+          stdout, _stderr, status = Open3.capture3("git", "rev-parse", "--show-toplevel")
+          status.success? ? stdout.chomp : nil
+        rescue StandardError
+          nil # git is not installed / not on PATH
         end
 
         # `--merge-base <base>` diffs the merge base of <base> and the
@@ -30,10 +60,7 @@ module SimpleCov
         # uncommitted edits count too, so `simplecov patch` run before a
         # commit still scores the lines just written. In CI, where the tree
         # is a clean checkout of HEAD, this is exactly the merge-base-to-HEAD
-        # range. `--relative` makes the output paths relative to the working
-        # directory, which is what the report keys on (`project_filename`),
-        # so a run from the project root lines up its paths with the
-        # report's. The rest pins the output against a user's git config so
+        # range. The rest pins the output against a user's git config so
         # it can't skew the numbers, run code, or throw off the parse:
         # `--no-ext-diff` / `--no-textconv` (no external diff or textconv
         # driver — either runs a configured command and the latter also
@@ -45,29 +72,44 @@ module SimpleCov
         # `diff.*Prefix`), and `--no-renames` unless asked (so a moved file
         # reads as all-new — git detects renames by default, which
         # `--find-renames` would otherwise leave unchanged). stdout alone is
-        # parsed; stderr is captured separately and dropped so git's
-        # diagnostics for a non-git tree or bad ref can't reach the parser. A
-        # non-zero exit (or a missing git) becomes nil, which `call` reports.
-        def git_diff(base, find_renames:)
+        # parsed; stderr is kept out of the parsed stream and its first line
+        # returned as the failure detail, so "unknown revision" or an old
+        # git's "unknown option `merge-base'" reaches the user instead of a
+        # guess. Returns [output, nil] on success, [nil, detail] on failure.
+        def git_diff(root, base, find_renames:)
           # A git ref can never begin with "-", so refusing one keeps a
           # `--base` value from being read by git as an option instead of a
           # revision (e.g. `--output=FILE` writes to disk, `--line-prefix=`
           # empties the diff so a `--minimum` gate passes over the change).
-          return nil if base.start_with?("-")
+          return [nil, "a ref cannot begin with \"-\""] if base.start_with?("-")
 
-          cmd = ["git", "-c", "core.quotePath=false", "diff", "--unified=0", "--relative",
+          cmd = ["git", "-C", root, "-c", "core.quotePath=false", "diff", "--unified=0",
                  "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
                  "--src-prefix=a/", "--dst-prefix=b/"]
           cmd += [find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
-          stdout, _stderr, status = Open3.capture3(*cmd)
-          status.success? ? stdout : nil
-        rescue StandardError
-          nil # git is not installed / not on PATH
+          stdout, stderr_text, status = Open3.capture3(*cmd)
+          status.success? ? [stdout, nil] : [nil, stderr_text.lines.first.to_s.strip]
+        rescue StandardError => e
+          [nil, e.message] # git vanished between rev-parse and here
         end
 
-        def report_git_error(stderr, base)
-          stderr.puts("simplecov patch: could not run `git diff` against #{base.inspect} " \
-                      "(is this a git working tree, and does the ref exist?)")
+        # The files git tracks nowhere: a brand-new file that was never
+        # `git add`ed appears in no diff, but its lines are this change's
+        # lines all the same, and skipping it would pass a `--minimum`
+        # gate over entirely unscored new code. Ignored files stay out via
+        # `--exclude-standard`. A failure here contributes nothing rather
+        # than failing the run, matching the pre-untracked behavior.
+        def untracked_files(root)
+          stdout, _stderr, status = Open3.capture3("git", "-C", root, "ls-files",
+                                                   "--others", "--exclude-standard", "-z")
+          status.success? ? stdout.scrub.split("\0") : []
+        rescue StandardError
+          []
+        end
+
+        def report_git_error(stderr, base, detail)
+          reason = detail.to_s.empty? ? "is this a git working tree, and does the ref exist?" : detail
+          stderr.puts("simplecov patch: could not run `git diff` against #{base.inspect} (#{reason})")
           nil
         end
 
@@ -108,12 +150,31 @@ module SimpleCov
         # "+++ b/lib/foo.rb" -> "lib/foo.rb"; a deleted file's "+++ /dev/null"
         # -> nil so its hunks are skipped.
         def diff_path(line)
-          raw = line[4..].to_s.chomp
+          raw = unquote(line[4..].to_s.chomp)
           # git's own literal token for an absent side, not this host's null
           # device, so File::NULL (which is "NUL" on Windows) would be wrong.
           return nil if raw == "/dev/null" # rubocop:disable Style/FileNull
 
           raw.sub(%r{\A[ab]/}, "")
+        end
+
+        # Undo git's C-quoting — a path carrying a quote, backslash, or
+        # control character is emitted as `"b/lib/we\"ird.rb"` even under
+        # `core.quotePath=false` (that setting only covers non-ASCII), and
+        # left quoted it matches no coverage key, silently dropping the
+        # file from the gate.
+        def unquote(raw)
+          return raw unless raw.length >= 2 && raw.start_with?('"') && raw.end_with?('"')
+
+          # Unescaped as raw bytes: an octal escape is a bare byte, and
+          # mixing one into a UTF-8 string would raise mid-gsub.
+          unquoted = raw.b[1..-2].to_s.gsub(/\\(?:[0-7]{1,3}|.)/) { |escape| unescape(escape) }
+          unquoted.force_encoding(raw.encoding).scrub
+        end
+
+        def unescape(escape)
+          body = escape[1..].to_s
+          body.match?(/\A[0-7]/) ? Integer(body, 8).chr : UNQUOTE.fetch(body, body)
         end
       end
     end

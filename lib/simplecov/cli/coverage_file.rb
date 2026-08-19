@@ -40,8 +40,53 @@ module SimpleCov
         # both app/ and lib/). Resolve only an unambiguous single match;
         # leave a collision as "not found" for the caller rather than
         # scoring whichever key happens to sit first in the hash.
-        matches = coverage_hash.select { |fname, _| fname.end_with?("/#{path}") }
+        matches = suffix_matches(coverage_hash, path)
         matches.first if matches.size == 1
+      end
+
+      # The [key, entry] pairs a subpath suffix-matches, for `lookup`'s
+      # fallback and for naming an ambiguity. The suffix's leading slash
+      # keeps "foo.rb" from matching "barfoo.rb", and hoisting it keeps
+      # the scan from allocating a string per entry.
+      def suffix_matches(coverage_hash, path)
+        suffix = "/#{path}"
+        coverage_hash.select { |fname, _| fname.end_with?(suffix) }
+      end
+
+      # The report's entries under exact, realpath-normalized keys, for
+      # programmatic resolution (the patch subcommand) where a suffix
+      # fallback could bind a path to the wrong entry. The realpath step
+      # keeps a symlinked project root (macOS's /var -> /private/var, a
+      # linked checkout) from splitting a resolved path apart from the
+      # report's keys, and building the index once keeps resolution
+      # linear in report size.
+      def exact_index(coverage_hash)
+        index = {} #: Hash[String, untyped]
+        coverage_hash.each do |key, payload|
+          index[key] ||= payload
+          index[normalize(key)] ||= payload
+        end
+        index
+      end
+
+      # The key's stable spelling on this filesystem; a key whose file (or
+      # directory) no longer exists keeps its literal spelling.
+      def normalize(key)
+        File.realdirpath(key)
+      rescue SystemCallError
+        key
+      end
+
+      # Why a path failed to resolve, in one line: an ambiguous subpath
+      # names its candidates — "no entry" would send the user hunting for
+      # a typo in a path that exists twice — and anything else is
+      # genuinely absent.
+      def not_found_message(coverage_hash, path, input)
+        matches = suffix_matches(coverage_hash, path).keys
+        return "no entry for #{path} in #{input}" if matches.size < 2
+
+        "#{path} matches #{matches.size} files in #{input}: #{matches.sort.join(', ')} " \
+          "(use a longer path to pick one)"
       end
 
       def load_document(path, command:, stderr:)

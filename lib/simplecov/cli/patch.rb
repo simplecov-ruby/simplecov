@@ -39,10 +39,10 @@ module SimpleCov
         opts = parse(args, stderr)
         return 1 unless opts
 
-        changes = ChangedLines.call(opts[:base], find_renames: opts[:find_renames], stderr: stderr)
-        return 1 unless changes
+        diffed = ChangedLines.call(opts[:base], find_renames: opts[:find_renames], stderr: stderr)
+        return 1 unless diffed
 
-        rows = compute_rows(opts[:coverage], changes)
+        rows = compute_rows(opts[:coverage], diffed, stderr)
         Output.emit(stdout, rows, opts)
         Output.gate(rows, opts[:minimum])
       end
@@ -71,19 +71,48 @@ module SimpleCov
 
       # --- coverage intersection ---------------------------------------
 
-      def compute_rows(coverage, changes)
-        changes.filter_map do |path, lines|
-          entry = CoverageFile.lookup(coverage, path)
-          next unless entry.is_a?(Array) # untracked file -> out of scope
+      # Diff paths are exact root-relative names, so they resolve exactly
+      # against the report — the suffix fallback `CoverageFile.lookup`
+      # offers interactive commands could only ever bind a changed file
+      # the report doesn't carry to some *other* file's hits and score
+      # the wrong entry.
+      def compute_rows(coverage, diffed, stderr)
+        index = CoverageFile.exact_index(coverage)
+        diffed[:changes].filter_map do |path, lines|
+          payload = index[File.expand_path(path, diffed[:root])] || index[path]
+          next unless payload.is_a?(Hash) # file the report doesn't carry -> out of scope
 
-          row = build_row(path, entry.last, lines.uniq)
+          changed = changed_for(lines, payload)
+          warn_stale(path, payload, changed, stderr)
+          row = build_row(path, payload, changed)
           row if scored?(row) # nothing coverable changed in this file
         end
       end
 
+      # An untracked file appears in no diff, so `:all` stands in for its
+      # line numbers: every line the report knows is this change's work.
+      def changed_for(lines, payload)
+        return lines.uniq unless lines == :all
+
+        hits = payload["lines"]
+        hits.is_a?(Array) ? (1..hits.length).to_a : []
+      end
+
+      # A changed line past the end of the report's lines array reads as
+      # never-relevant and silently drops out of the denominator, which is
+      # right for a fresh report and wrong for a stale one — so say which
+      # is likelier out loud instead of letting a `--minimum` gate pass
+      # vacuously over unscored new code.
+      def warn_stale(path, payload, changed, stderr)
+        hits = payload["lines"]
+        return unless hits.is_a?(Array)
+        return if changed.empty? || changed.max <= hits.length
+
+        stderr.puts("simplecov patch: #{path} changed beyond the #{hits.length}-line entry in the " \
+                    "report (is the report stale? regenerate it and rerun)")
+      end
+
       def build_row(path, payload, changed)
-        empty = {} #: Hash[String, untyped]
-        payload = empty unless payload.is_a?(Hash)
         {
           file: path,
           line: line_stats(payload["lines"], changed),

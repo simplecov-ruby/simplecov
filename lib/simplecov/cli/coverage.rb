@@ -38,7 +38,7 @@ module SimpleCov
 
         match = lookup(coverage, opts[:path])
         if match.nil?
-          stderr.puts("simplecov coverage: no entry for #{opts[:path]} in #{opts[:input]}")
+          stderr.puts("simplecov coverage: #{CoverageFile.not_found_message(coverage, opts[:path], opts[:input])}")
           return nil
         end
         # A wrong-typed entry used to escape here and crash print_human.

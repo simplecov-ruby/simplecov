@@ -200,9 +200,11 @@ as a JSON array. Only files the report already tracks are scored — a changed f
 `track_files` set is out of scope — and a touched line SimpleCov considers never relevant (blank or comment) stays out of
 the denominator, so a comment-only change reports nothing to cover rather than a gap.
 
-Run it from the project root so the diff's `--relative` paths line up with the report's `project_filename` keys, and
-generate the report first: run your suite with the JSON formatter enabled, then `simplecov patch` reads
-`coverage/coverage.json`.
+The diff is anchored at the repository root, so the command reports the same change from any subdirectory, and a
+brand-new file that was never `git add`ed counts too, with every line the report knows for it scored as new. Changed
+files resolve against the report by exact path, and when a changed line lies beyond what the report knows for its
+file, the command warns that the report looks stale instead of silently scoring nothing. Generate the report first:
+run your suite with the JSON formatter enabled, then `simplecov patch` reads `coverage/coverage.json`.
 
 ### `serve` and `clean`
 

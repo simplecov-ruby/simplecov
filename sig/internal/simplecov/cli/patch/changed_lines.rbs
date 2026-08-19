@@ -1,18 +1,26 @@
 module SimpleCov
   module CLI
     module Patch
-      # Run `git diff --unified=0 --merge-base <base>` and parse it into
-      # {new_path => [added line numbers]}.
+      # Run `git diff --unified=0 --merge-base <base>` from the repository
+      # toplevel and parse it into {root:, changes:}, where an untracked
+      # file's lines read as :all.
       module ChangedLines
         HUNK_HEADER: ::Regexp
 
-        # nil signals "could not diff" (already reported); an empty hash is a
-        # valid result meaning the change touched no coverable lines.
-        def self?.call: (untyped base, find_renames: untyped, stderr: untyped) -> (::Hash[::String, ::Array[::Integer]] | nil)
+        UNQUOTE: ::Hash[::String, ::String]
 
-        def self?.git_diff: (untyped base, find_renames: untyped) -> (::String | nil)
+        # nil signals "could not diff" (already reported); empty changes are
+        # a valid result meaning the change touched no coverable lines.
+        def self?.call: (untyped base, find_renames: untyped, stderr: untyped) -> (::Hash[::Symbol, untyped] | nil)
 
-        def self?.report_git_error: (untyped stderr, untyped base) -> nil
+        def self?.git_toplevel: () -> (::String | nil)
+
+        # [output, nil] on success, [nil, first stderr line] on failure.
+        def self?.git_diff: (::String root, untyped base, find_renames: untyped) -> [::String?, ::String?]
+
+        def self?.untracked_files: (::String root) -> ::Array[::String]
+
+        def self?.report_git_error: (untyped stderr, untyped base, ::String? detail) -> nil
 
         def self?.parse_diff: (untyped output) -> ::Hash[::String, ::Array[::Integer]]
 
@@ -21,6 +29,10 @@ module SimpleCov
         def self?.record_hunk: (::Hash[::String, ::Array[::Integer]] changes, ::String path, untyped match) -> void
 
         def self?.diff_path: (untyped line) -> (::String | nil)
+
+        def self?.unquote: (::String raw) -> ::String
+
+        def self?.unescape: (::String escape) -> ::String
       end
     end
   end

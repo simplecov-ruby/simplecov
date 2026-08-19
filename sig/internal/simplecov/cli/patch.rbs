@@ -22,7 +22,11 @@ module SimpleCov
 
       def self?.positional_ok?: (untyped rest, untyped stderr) -> bool
 
-      def self?.compute_rows: (untyped coverage, ::Hash[::String, ::Array[::Integer]] changes) -> ::Array[untyped]
+      def self?.compute_rows: (untyped coverage, ::Hash[::Symbol, untyped] diffed, untyped stderr) -> ::Array[untyped]
+
+      def self?.changed_for: (untyped lines, untyped payload) -> ::Array[::Integer]
+
+      def self?.warn_stale: (untyped path, untyped payload, ::Array[::Integer] changed, untyped stderr) -> void
 
       def self?.build_row: (untyped path, untyped payload, untyped changed) -> { file: untyped, line: untyped, branch: untyped }
 

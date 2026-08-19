@@ -257,6 +257,19 @@ RSpec.describe SimpleCov::CLI do
       expect(out).to match(%r{Branch:\s+50\.00%\s+\(1 / 2\)})
     end
 
+    it "names the candidates for an ambiguous subpath" do
+      payload = {"coverage" => {
+        "/abs/project/app/models/user.rb" => {"lines" => [1]},
+        "/abs/project/lib/models/user.rb" => {"lines" => [1]}
+      }}
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("coverage", "--input", json_path, "models/user.rb")).to eq(1)
+      expect(stderr.string).to include("matches 2 files")
+        .and include("/abs/project/app/models/user.rb")
+        .and include("/abs/project/lib/models/user.rb")
+    end
+
     it "matches a project-relative path via end_with on the absolute key" do
       expect(run("coverage", "--input", json_path, "app/models/user.rb")).to eq(0)
       expect(stdout.string).to include(abs_filename)
@@ -561,6 +574,14 @@ RSpec.describe SimpleCov::CLI do
     it "reports an unknown file like the coverage subcommand does" do
       expect(run("tests", "--input", json_path, "lib/nope.rb")).to eq(1)
       expect(stderr.string).to include("no entry for lib/nope.rb")
+    end
+
+    it "names the candidates for an ambiguous subpath" do
+      payload["coverage"][result_file.sub("/lib/", "/app/")] = {"lines" => [1]}
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("tests", "--input", json_path, "result.rb")).to eq(1)
+      expect(stderr.string).to include("matches 2 files")
     end
 
     it "rejects a non-positive line number as a parse error" do
@@ -1372,6 +1393,150 @@ RSpec.describe SimpleCov::CLI do
       run_in_repo("patch", "--base", "main", "--input", cov)
       # --merge-base includes the working tree, so line 3 is in scope
       expect(stdout.string).to include("(1/2)").and include("missing 3")
+    end
+
+    it "reports on a change whose diff carries non-UTF-8 bytes" do
+      build_repo(base: "a\n", head: "a\ns = \"caf\xE9\"\n".b, line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
+    end
+
+    it "resolves changed paths exactly instead of by suffix" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], cover: false)
+      # The report tracks only a fixture copy whose key merely ends with
+      # the changed path; a suffix match would score the fixture's hits
+      # against lib/foo.rb's line numbers.
+      write_coverage(File.join(tmp, "spec/fixtures/lib/foo.rb") => [0, 0])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+    end
+
+    it "warns when a changed line lies beyond the report's lines" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stderr.string).to include("lib/foo.rb").and include("stale")
+    end
+
+    it "scores a brand-new untracked file before it is ever added" do
+      init_repo
+      write("lib/base.rb", "a\n")
+      commit("base")
+      write("lib/brand_new.rb", "a\nb\n") # never `git add`ed
+      write_report("lib/brand_new.rb", [1, 0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("lib/brand_new.rb").and include("(1/2)").and include("missing 2")
+    end
+
+    it "fails --minimum on an uncovered untracked file" do
+      init_repo
+      write("lib/base.rb", "a\n")
+      commit("base")
+      write("lib/brand_new.rb", "a\n")
+      write_report("lib/brand_new.rb", [0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
+    end
+
+    it "relays git's own words when the base ref cannot be resolved" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0])
+
+      expect(run_in_repo("patch", "--base", "does-not-exist", "--input", cov)).to eq(1)
+      expect(stderr.string).to match(/bad revision|unknown revision/)
+    end
+
+    it "scores a path git C-quotes" do
+      skip "a quote is not a legal filename character on Windows" if Gem.win_platform?
+
+      file = 'lib/we"ird.rb'
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], file: file)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include(file).and include("missing 2")
+    end
+
+    it "reads an untracked file with a lineless report entry as nothing to cover" do
+      init_repo
+      write("lib/base.rb", "a\n")
+      commit("base")
+      write("lib/brand_new.rb", "a\n")
+      write_coverage(File.join(tmp, "lib/brand_new.rb") => {})
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to include("no coverable lines changed")
+      expect(stderr.string).to be_empty
+    end
+
+    it "scores only branches for an entry that carries no lines array" do
+      build_repo(base: "a\n", head: "a\nif x\n", line_hits: [], cover: false)
+      write_coverage(File.join(tmp, "lib/foo.rb") => {"branches" => [{"report_line" => 2, "coverage" => 1}]})
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{100\.00%\s+\(0/0\)\s+lines}).and match(%r{100\.00%\s+\(1/1\)\s+branches})
+    end
+
+    it "errors outside a git working tree" do
+      write_coverage(File.join(tmp, "lib/foo.rb") => [1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("could not run `git diff`").and include("git working tree")
+    end
+
+    it "reports a git failure during the diff itself" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      allow(Open3).to receive(:capture3).and_call_original
+      allow(Open3).to receive(:capture3)
+        .with("git", "-C", anything, "-c", any_args).and_raise(Errno::EIO, "lost the disk")
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("could not run `git diff`").and include("lost the disk")
+    end
+
+    it "keeps scoring the diff when the untracked listing fails" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      failed = instance_double(Process::Status, success?: false)
+      allow(Open3).to receive(:capture3).and_call_original
+      allow(Open3).to receive(:capture3)
+        .with("git", "-C", anything, "ls-files", any_args).and_return(["", "", failed])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
+    end
+
+    it "keeps scoring the diff when the untracked listing raises" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      allow(Open3).to receive(:capture3).and_call_original
+      allow(Open3).to receive(:capture3)
+        .with("git", "-C", anything, "ls-files", any_args).and_raise(Errno::EIO, "lost the disk")
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
+    end
+
+    it "undoes git's C-quoting escapes" do
+      unquote = SimpleCov::CLI::Patch::ChangedLines.method(:unquote)
+      expect(unquote.call(%("b/a\\tb.rb"))).to eq("b/a\tb.rb")
+      expect(unquote.call(%("b/caf\\303\\251.rb"))).to eq("b/café.rb")
+      expect(unquote.call(%("b/a\\zb.rb"))).to eq("b/azb.rb") # unknown escape keeps its letter
+      expect(unquote.call("b/plain.rb")).to eq("b/plain.rb")
+    end
+
+    it "scores changes outside the current subdirectory" do
+      init_repo
+      write("lib/foo.rb", "a\n")
+      write("app/bar.rb", "a\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      write("lib/foo.rb", "a\nb\n")
+      write("app/bar.rb", "a\nb\n")
+      commit("head")
+      write_coverage(File.join(tmp, "lib/foo.rb") => [1, 1], File.join(tmp, "app/bar.rb") => [1, 0])
+
+      Dir.chdir(File.join(tmp, "lib")) { expect(run("patch", "--base", "main", "--input", cov)).to eq(0) }
+      expect(stdout.string).to include("lib/foo.rb").and include("app/bar.rb")
     end
   end
 

@@ -9,6 +9,14 @@ module SimpleCov
 
       def self?.lookup: (Hash[String, untyped] coverage_hash, String path) -> [String, untyped]?
 
+      def self?.suffix_matches: (Hash[String, untyped] coverage_hash, String path) -> Hash[String, untyped]
+
+      def self?.not_found_message: (Hash[String, untyped] coverage_hash, String path, untyped input) -> String
+
+      def self?.exact_index: (Hash[String, untyped] coverage_hash) -> Hash[String, untyped]
+
+      def self?.normalize: (String key) -> String
+
       def self?.load_document: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
 
       def self?.load_coverage: (String path, command: String, stderr: untyped) -> Hash[String, untyped]?
