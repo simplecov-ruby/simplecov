@@ -836,9 +836,11 @@ module SimpleCov
     # both default to nil and are lazily backfilled by the readers.
     attr_writer created_at (): Time
     attr_writer command_name (): String
+    attr_writer command_names (): Array[String]
 
     @created_at: Time?
     @command_name: String?
+    @command_names: Array[String]?
     @groups_config: Hash[String, Filter[untyped]]
     @groups: Hash[String, FileList]?
 
@@ -865,6 +867,7 @@ module SimpleCov
     def format!: () -> untyped
     def created_at: () -> Time
     def command_name: () -> String
+    def command_names: () -> Array[String]
     def self.from_hash: (Hash[String, untyped] hash) -> Array[Result]
 
     # Delegated to #files (see FileList).

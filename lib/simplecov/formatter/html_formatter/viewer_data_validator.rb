@@ -79,10 +79,22 @@ module SimpleCov
 
           def validate_meta!(meta)
             META_STRINGS.each { |key| validate_type!(meta, key, String, "meta") }
+            validate_command_names!(meta)
             Time.iso8601(meta.fetch("timestamp"))
             COVERAGE_FLAGS.each_key { |key| validate_boolean!(meta, key) }
           rescue ArgumentError
             raise SimpleCov::CoverageJSON::Error, "meta.timestamp must be an ISO 8601 date-time"
+          end
+
+          # Optional: documents from before the key exists carry only the
+          # joined command_name, which the viewer falls back to. When
+          # present, the viewer counts and lists the entries, so it must
+          # be an array of strings.
+          def validate_command_names!(meta)
+            names = meta["command_names"]
+            return if names.nil? || (names.is_a?(Array) && names.all?(String))
+
+            raise SimpleCov::CoverageJSON::Error, "meta.command_names must be an array of strings"
           end
 
           def validate_statistics!(statistics, meta, location)

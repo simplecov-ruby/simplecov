@@ -5,6 +5,10 @@ export interface CoverageData {
   meta: {
     simplecov_version: string;
     command_name: string;
+    // The distinct run names behind the report, one per merged run.
+    // Optional: documents from before the key existed carry only the
+    // joined command_name.
+    command_names?: string[];
     project_name: string;
     timestamp: string;
     root: string;

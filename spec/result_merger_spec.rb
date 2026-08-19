@@ -107,6 +107,28 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
+  # A CI matrix collates one resultset per worker, and joining every
+  # run's name verbatim rendered "RSpec" a hundred times over in the
+  # report footer (or, with uniquified names, an unbounded blob).
+  # See #1284.
+  describe "the merged command name" do
+    def named(command_names)
+      described_class.send(:create_result, command_names, {})
+    end
+
+    it "dedupes repeated names" do
+      expect(named(%w[RSpec RSpec RSpec]).command_name).to eq "RSpec"
+    end
+
+    it "sorts distinct names and drops empties" do
+      expect(named(["b", "", "a", "b"]).command_name).to eq "a, b"
+    end
+
+    it "carries the distinct names for presentation" do
+      expect(named(%w[b a b]).command_names).to eq %w[a b]
+    end
+  end
+
   # An expired entry's coverage is dropped, so its tracked paths have to go
   # with it. Otherwise a file only a stale run ever tracked is simulated into
   # the merged report at 0% while the run that tracked it contributes nothing.

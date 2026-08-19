@@ -39,6 +39,11 @@
           "description": "The version of the SimpleCov gem that produced this file."
         },
         "command_name": {"type": "string"},
+        "command_names": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "The distinct run names behind the report, one entry per merged run (a single-run report carries one). `command_name` joins these with \", \"; consumers that need the components (e.g. to summarize \"A and N other runs\") should read this array rather than split the joined string, since a run name can itself contain a comma. Optional: absent from documents written before it existed."
+        },
         "project_name": {"type": "string"},
         "timestamp": {
           "type": "string",

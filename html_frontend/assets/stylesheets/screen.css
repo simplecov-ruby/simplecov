@@ -1284,6 +1284,31 @@ select:focus-visible,
   color: var(--text);
 }
 
+/* A merged report's run list folds behind a disclosure; expanded, it
+   scrolls in place instead of displacing the report (#1284). The
+   max-height on the footers themselves is the backstop for any long
+   value a pre-summarizing document still carries. */
+#footer,
+.source-dialog__footer {
+  max-height: 10em;
+  overflow-y: auto;
+}
+
+.footer-runs {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.footer-runs summary {
+  cursor: pointer;
+}
+
+.footer-runs__list {
+  display: block;
+  max-height: 6em;
+  overflow-y: auto;
+}
+
 /* --- Sorting indicators (DataTables) ----------------------- */
 
 table.file_list thead th.sorting,

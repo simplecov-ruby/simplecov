@@ -126,7 +126,10 @@ module SimpleCov
       def create_result(command_names, coverage, tracked_files: Set.new, contexts: nil)
         return nil unless coverage
 
-        command_name = command_names.reject(&:empty?).sort.join(", ")
+        # Deduped: a CI matrix collates one resultset per worker, and
+        # joining every run's name verbatim rendered "RSpec" a hundred
+        # times over in the report footer. See #1284.
+        distinct_names = command_names.reject(&:empty?).uniq.sort
         coverage, injected = UnloadedFiles.inject(coverage, tracked_files)
         # The merged result is the authoritative one users actually see, so
         # it's the one that warns about source files dropped because they no
@@ -134,10 +137,10 @@ module SimpleCov
         # `process_coverage_result` stay quiet to avoid one warning per worker.
         SimpleCov::Result.new(
           coverage,
-          command_name: command_name, contexts: contexts, report: true,
+          command_name: distinct_names.join(", "), contexts: contexts, report: true,
           not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
           tracked_files: tracked_files.to_a
-        )
+        ).tap { |result| result.command_names = distinct_names }
       end
 
       def merge_coverage(*results)
