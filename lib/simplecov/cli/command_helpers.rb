@@ -24,6 +24,27 @@ module SimpleCov
         1
       end
 
+      # `error` returns 1 for an exit status; query helpers need nil so
+      # their callers can tell "reported" from a real answer.
+      def error_nil(stderr, message)
+        error(stderr, message)
+        nil
+      end
+
+      # The document-level context list a `track_tests` recording stores.
+      # Its absence means the producing run never recorded, which
+      # deserves a pointer at the switch rather than a bare empty answer.
+      def recorded_contexts(document, opts, stderr)
+        contexts = document["contexts"]
+        if contexts.nil?
+          return error_nil(stderr, "no test contexts recorded in #{opts[:input]}. Enable `track_tests` in " \
+                                   "your `SimpleCov.start` block and rerun the suite to record them")
+        end
+        return contexts if contexts.is_a?(Array) && contexts.all?(String)
+
+        CoverageFile.report_invalid(stderr, command_name, opts[:input], '"contexts" must be an array of strings')
+      end
+
       # The --input / --json / --no-color trio every read-only
       # subcommand accepts.
       def common_options(parser, opts)

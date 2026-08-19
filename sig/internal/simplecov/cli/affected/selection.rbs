@@ -1,0 +1,32 @@
+module SimpleCov
+  module CLI
+    module Affected
+      # The selection walk: every changed file's contribution to the
+      # answer, accumulated as selected test files plus the triggers
+      # that mean the map cannot be trusted for this change.
+      module Selection
+        TEST_FILE_NAME: Regexp
+
+        def self?.build: (Array[String] changed, untyped document, Array[String] contexts, untyped opts, untyped stderr, root: String) -> Hash[Symbol, Array[String]]?
+
+        def self?.initial_state: (Array[String] changed, Array[String] contexts, Hash[String, untyped] coverage, untyped opts, untyped stderr, root: String) -> Hash[Symbol, untyped]
+
+        def self?.on_disk?: (String path, untyped state) -> bool
+
+        def self?.entry_for: (String path, untyped state) -> untyped
+
+        def self?.classify: (String path, untyped state) -> untyped
+
+        def self?.select_test_file: (String path, untyped state, ?note_deleted: bool) -> String
+
+        def self?.select_covering: (String path, untyped entry, untyped state) -> String?
+
+        def self?.covering_table: (String path, untyped entry, untyped state) -> untyped
+
+        def self?.select_context: (String id, String path, untyped state) -> untyped
+
+        def self?.test_file_of: (String id) -> String?
+      end
+    end
+  end
+end

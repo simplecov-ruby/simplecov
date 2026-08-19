@@ -16,6 +16,8 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `coverage <path>`  | Print coverage stats for a single file                              |
 | `report`           | Print the overall summary and per-group totals                      |
 | `uncovered`        | List the lowest-coverage files                                      |
+| `tests [<path>[:<line>]]` | List recorded tests for a file or line (needs `track_tests`) |
+| `affected`         | List test files touching code changed since a git ref (needs `track_tests`) |
 | `merge <files…>`   | Merge multiple `.resultset.json` files                              |
 | `diff <baseline>`  | Show per-file coverage delta vs a baseline                          |
 | `patch`            | Show coverage of only the lines a change touched                    |
@@ -124,6 +126,41 @@ Output is one test id per line, sorted, with nothing else on stdout, so the list
 stderr; `--json` emits a JSON array instead. Paths match the way `simplecov coverage` matches them: project-relative,
 absolute, or basename. The command reads `coverage.json`, so it needs a report generated after `track_tests` was
 enabled, and it will say so when the recording is missing.
+
+### `affected` — select the tests that touch changed code
+
+With [`track_tests`](Configuration.md#tracking-which-test-covers-each-line) enabled, `simplecov affected` turns the
+recording into test selection. It diffs the working tree against the merge base of a git ref (`--base`, default
+`main`) and HEAD, so uncommitted work counts as part of the change while commits that landed on the base after the
+branch point do not, and prints the test files whose recorded tests touch the changed code, one per line. `--run`
+hands them to the runner:
+
+```sh
+$ simplecov affected --base main
+spec/result_spec.rb
+spec/source_file_spec.rb
+
+$ simplecov affected --base main --run bundle exec rspec
+```
+
+Everything after `--run` is the command, the selected files are appended to it, and the exit status is the
+command's own.
+
+The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
+stale the moment something changes that no test mentions by name. Any changed file outside the tracked set falls
+back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner configuration, and any changed file
+the report has no data for at all. Changed or brand-new test files always run, whether the map knows them or not.
+The fallback is loud, with each trigger named on stderr, and on stdout it prints nothing, which composes with
+substitution (`bundle exec rspec $(simplecov affected)` runs everything when the selection cannot be trusted). With
+`--run` the command runs bare, which means the full suite for the usual runners. `--json` emits
+`{"full_suite": ..., "triggers": [...], "tests": [...]}` for tooling.
+
+Like `patch`, the diff is anchored at the repository root, so a run from a subdirectory selects over the whole change
+(with `--run` starting the runner at that root), and changed files resolve against the report by exact path, so a
+lookalike entry elsewhere in the report can never stand in for a changed file the report does not carry.
+
+This is built for the local inner loop. A wrong answer in CI is a green build on a broken change, so adopt it there
+with your eyes open. The merge-base diff needs git 2.30 or later.
 
 ### `merge` — combine resultsets from parallel CI workers
 

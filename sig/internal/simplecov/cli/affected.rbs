@@ -1,0 +1,38 @@
+module SimpleCov
+  module CLI
+    # `simplecov affected` — select the test files whose recorded tests
+    # touch the code changed since a git base ref, failing open to the
+    # full suite for any change outside the tracked set.
+    module Affected
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.parse: (untyped args) -> untyped
+
+      def self?.split_runner: (Array[String] args) -> [Array[String], Array[String]?]
+
+      def self?.precheck: (untyped opts) -> String?
+
+      def self?.respond: (Hash[Symbol, untyped] diffed, untyped document, Array[String] contexts, untyped opts, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.no_changes: (untyped opts, untyped stdout, untyped stderr) -> Integer
+
+      def self?.deliver: (untyped selection, untyped opts, untyped stdout, untyped stderr) -> Integer
+
+      def self?.emit_json: (untyped selection, bool full, untyped stdout) -> Integer
+
+      def self?.emit_text: (untyped selection, bool full, untyped stdout, untyped stderr) -> Integer
+
+      def self?.note_untouched: (untyped stderr) -> Integer
+
+      def self?.execute: (untyped selection, bool full, untyped opts, untyped stderr) -> Integer
+
+      def self?.run_command: (Array[String] command, String root, untyped stderr) -> Integer
+    end
+  end
+end

@@ -11,6 +11,14 @@ module SimpleCov
 
       def error: (untyped stderr, untyped message) -> 1
 
+      # `error` returning nil, so query helpers can tell "reported"
+      # from a real answer.
+      def error_nil: (untyped stderr, untyped message) -> nil
+
+      # The document-level context list a `track_tests` recording
+      # stores, nil after reporting its absence or malformation.
+      def recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?
+
       # The --input / --json / --no-color trio every read-only
       # subcommand accepts.
       def common_options: (untyped parser, untyped opts) -> untyped
