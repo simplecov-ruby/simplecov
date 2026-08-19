@@ -85,7 +85,7 @@ module SimpleCov
         end
 
         match = CoverageFile.lookup(coverage, opts[:path])
-        return error_nil(stderr, "no entry for #{opts[:path]} in #{opts[:input]}") unless match
+        return error_nil(stderr, CoverageFile.not_found_message(coverage, opts[:path], opts[:input])) unless match
         # A found entry of the wrong type is malformed input, not a
         # missing file — the same distinction `simplecov coverage` draws.
         return match.last if match.last.is_a?(Hash)
