@@ -1312,17 +1312,20 @@ RSpec.describe SimpleCov::CLI do
              "--- a/lib/real.rb\n+++ b/lib/real.rb\n" \
              "@@ -1,0 +2 @@\n+++ b/evil.rb\n" \
              "@@ -7 +8 @@\n-old\n+CHANGED\n"
-      expect(SimpleCov::CLI::Patch.parse_diff(diff)).to eq("lib/real.rb" => [2, 8])
+      expect(SimpleCov::CLI::Patch::ChangedLines.parse_diff(diff)).to eq("lib/real.rb" => [2, 8])
     end
 
     it "gates on the exact ratio at the boundary" do
-      patch = SimpleCov::CLI::Patch
+      patch = SimpleCov::CLI::Patch::Output
       # 23/40 is exactly 57.5%, which float division renders as 57.4999…
       expect(patch.short?({covered: 23, relevant: 40}, 57.5)).to be(false)
       expect(patch.short?({covered: 22, relevant: 40}, 57.5)).to be(true)
       # 19_999/20_000 = 99.995% must not round up to clear --minimum 100
       expect(patch.short?({covered: 19_999, relevant: 20_000}, 100)).to be(true)
       expect(patch.short?({covered: 20_000, relevant: 20_000}, 100)).to be(false)
+      # 161/250 is exactly 64.4%; `64.4 * 250` overshoots in binary float
+      expect(patch.short?({covered: 161, relevant: 250}, 64.4)).to be(false)
+      expect(patch.short?({covered: 160, relevant: 250}, 64.4)).to be(true)
     end
 
     it "refuses a --base that git would read as an option" do
@@ -1352,6 +1355,23 @@ RSpec.describe SimpleCov::CLI do
       # count, where --find-renames would score only the edited line 3
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to include("(2/3)").and include("missing 3")
+    end
+
+    it "errors on a stray positional argument" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      # a forgotten `--base` leaves the ref as a bare positional
+      expect(run_in_repo("patch", "feature", "--input", cov)).to eq(1)
+      expect(stderr.string).to include("unexpected argument").and include("feature")
+    end
+
+    it "scores uncommitted working-tree changes" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1, 0])
+      write("lib/foo.rb", "a\nb\nc\n") # a third line, not yet committed
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      # --merge-base includes the working tree, so line 3 is in scope
+      expect(stdout.string).to include("(1/2)").and include("missing 3")
     end
   end
 
