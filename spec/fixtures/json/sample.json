@@ -4,6 +4,7 @@
     "schema_version": "1.1",
     "simplecov_version": "STUB_SIMPLECOV_VERSION",
     "command_name": "STUB_COMMAND_NAME",
+    "command_names": ["STUB_COMMAND_NAME"],
     "project_name": "STUB_PROJECT_NAME",
     "timestamp": "2024-01-01T00:00:00.000+00:00",
     "root": "/STUB_WORKING_DIRECTORY",

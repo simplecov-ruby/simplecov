@@ -231,3 +231,52 @@ describe('renderPage with recorded contexts', () => {
     expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toBeNull();
   });
 });
+
+// A merged report's footer must summarize its runs, not read them all
+// aloud: a CI matrix used to enumerate every worker's name until the
+// footer filled the viewport (#1284).
+describe('footer run names', () => {
+  test('summarizes many runs behind a disclosure', async () => {
+    const data = coverageData();
+    data.meta.command_names = ['RSpec a', 'RSpec b', 'RSpec c', 'RSpec d', 'RSpec e'];
+    await boot(data);
+
+    const footer = document.getElementById('footer')!;
+    const details = footer.querySelector('details.footer-runs')!;
+    expect(details).not.toBeNull();
+    expect(details.querySelector('summary')!.textContent).toBe('RSpec a and 4 other runs');
+    expect(details.querySelector('.footer-runs__list')!.textContent)
+      .toBe('RSpec a, RSpec b, RSpec c, RSpec d, RSpec e');
+    expect(document.getElementById('source-dialog-footer')!.innerHTML).toBe(footer.innerHTML);
+  });
+
+  test('renders a few distinct runs inline, without a disclosure', async () => {
+    const data = coverageData();
+    data.meta.command_names = ['Cucumber', 'RSpec'];
+    await boot(data);
+
+    const footer = document.getElementById('footer')!;
+    expect(footer.textContent).toContain('using Cucumber, RSpec');
+    expect(footer.querySelector('details')).toBeNull();
+  });
+
+  test('escapes run names in both branches', async () => {
+    const data = coverageData();
+    data.meta.command_names = ['<b>1</b>', '<b>2</b>', '<b>3</b>', '<b>4</b>'];
+    await boot(data);
+
+    const footer = document.getElementById('footer')!;
+    expect(footer.querySelector('b')).toBeNull();
+    expect(footer.querySelector('summary')!.textContent).toBe('<b>1</b> and 3 other runs');
+  });
+
+  test('falls back to the joined command_name for documents without the array', async () => {
+    const data = coverageData();
+    delete data.meta.command_names;
+    await boot(data);
+
+    const footer = document.getElementById('footer')!;
+    expect(footer.textContent).toContain('using RSpec');
+    expect(footer.querySelector('details')).toBeNull();
+  });
+});

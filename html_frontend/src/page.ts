@@ -59,6 +59,22 @@ let renderState: RenderState | null = null;
 // pay the decode, and each pays it once.
 const contextIndexCache = new Map<string, FileContextIndex>();
 
+// How many run names the footer reads aloud before folding the full
+// list behind a disclosure. A merged CI matrix can carry hundreds of
+// distinct names, and enumerating them once filled the whole viewport
+// before the report content began (#1284).
+const FOOTER_RUN_LIMIT = 3;
+
+function runNamesHtml(meta: CoverageData['meta']): string {
+  // Older documents carry only the joined command_name; a run name can
+  // itself contain a comma, so the joined string is never split back
+  // apart into a count.
+  const names = meta.command_names && meta.command_names.length ? meta.command_names : [meta.command_name];
+  if (names.length <= FOOTER_RUN_LIMIT) return escapeHTML(names.join(', '));
+  return `<details class="footer-runs"><summary>${escapeHTML(names[0])} and ${names.length - 1} other runs</summary>` +
+    `<span class="footer-runs__list">${escapeHTML(names.join(', '))}</span></details>`;
+}
+
 export function renderPage(data: CoverageData): void {
   const meta = data.meta;
   const lineCoverage = meta.line_coverage;
@@ -127,7 +143,7 @@ export function renderPage(data: CoverageData): void {
   const timestamp = new Date(meta.timestamp);
   const footerHtml = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
     ` by <a href="https://github.com/simplecov-ruby/simplecov">simplecov</a> v${escapeHTML(meta.simplecov_version)}` +
-    ` using ${escapeHTML(meta.command_name)}`;
+    ` using ${runNamesHtml(meta)}`;
   document.getElementById('footer')!.innerHTML = footerHtml;
   document.getElementById('source-dialog-footer')!.innerHTML = footerHtml;
 

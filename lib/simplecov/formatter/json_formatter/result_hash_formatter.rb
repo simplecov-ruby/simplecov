@@ -60,7 +60,7 @@ module SimpleCov
             {
               schema_version: SCHEMA_VERSION,
               simplecov_version: SimpleCov::VERSION,
-              command_name: result.command_name,
+              command_name: result.command_name, command_names: result.command_names,
               project_name: SimpleCov.project_name,
               timestamp: result.created_at.iso8601(3),
               root: SimpleCov.root,

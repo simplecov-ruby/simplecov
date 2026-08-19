@@ -356,6 +356,19 @@ RSpec.describe SimpleCov::Result do
       end
     end
 
+    describe "#command_names" do
+      subject(:result) { described_class.new(original_result, command_name: "RSpec") }
+
+      it "defaults to just the command name for a single-run result" do
+        expect(result.command_names).to eq(["RSpec"])
+      end
+
+      it "carries the distinct run names a merge sets" do
+        result.command_names = %w[result1 result2]
+        expect(result.command_names).to eq(%w[result1 result2])
+      end
+    end
+
     describe ".from_hash" do
       let(:other_result) do
         {

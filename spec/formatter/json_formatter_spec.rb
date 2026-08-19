@@ -604,6 +604,23 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
   end
 
+  # The joined command_name stays for consumers that read it, but a
+  # merged report's viewer needs the components to summarize "using A
+  # and N other runs" without splitting a string run names could
+  # themselves contain commas in. See #1284.
+  describe "meta.command_names" do
+    it "carries the result's run names as an array" do
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("command_names")).to eq([result.command_name])
+    end
+
+    it "carries every distinct run name of a merged result" do
+      result.command_names = %w[result1 result2]
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("command_names")).to eq(%w[result1 result2])
+    end
+  end
+
   def enable_branch_coverage
     allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
   end

@@ -38,6 +38,12 @@ module SimpleCov
     # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
     attr_writer :command_name
 
+    # The distinct run names behind this result, set by a merge so
+    # presentation can say "A and N other runs" instead of reading the
+    # joined `command_name` aloud in full. Splitting that string back
+    # apart would misread a run name that itself contains a comma.
+    attr_writer :command_names
+
     def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength,
                    :covered_lines, :missed_lines,
                    :total_branches, :covered_branches, :missed_branches,
@@ -120,6 +126,11 @@ module SimpleCov
     # Delegated to SimpleCov.command_name if not set manually
     def command_name
       @command_name ||= SimpleCov.command_name
+    end
+
+    # A single run's result is its own one-entry list.
+    def command_names
+      @command_names ||= [command_name]
     end
 
     # Loads a SimpleCov::Result#to_hash dump

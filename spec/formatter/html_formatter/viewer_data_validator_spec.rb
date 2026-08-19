@@ -40,6 +40,16 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect(validate).to equal(data)
   end
 
+  it "accepts an array of run names as command_names" do
+    data["meta"]["command_names"] = %w[result1 result2]
+    expect(validate).to equal(data)
+  end
+
+  it "rejects a malformed command_names" do
+    data["meta"]["command_names"] = "junk"
+    expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /command_names must be an array of strings/)
+  end
+
   it "rejects an invalid timestamp" do
     data.fetch("meta")["timestamp"] = "not-a-time"
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /ISO 8601/)
