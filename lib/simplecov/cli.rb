@@ -14,13 +14,14 @@ require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
 require_relative "cli/tests"
+require_relative "cli/affected"
 require_relative "cli/uncovered"
 require_relative "cli/usage"
 
 module SimpleCov
   # Lightweight command-line front-end. `run` dispatches a subcommand
   # (`coverage`, `report`, `uncovered`, `merge`, `diff`, `open`, etc.) —
-  # see the `usage` text below for the full list, or run `simplecov help`.
+  # see `Usage.text` for the full list, or run `simplecov help`.
   #
   # Read-only subcommands consume JSONFormatter output (`coverage.json`),
   # which the bundled HTMLFormatter already drops alongside the HTML, so
@@ -37,6 +38,7 @@ module SimpleCov
       "report" => Report,
       "uncovered" => Uncovered,
       "tests" => Tests,
+      "affected" => Affected,
       "merge" => Merge,
       "diff" => Diff,
       "patch" => Patch,

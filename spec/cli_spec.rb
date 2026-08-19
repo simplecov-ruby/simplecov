@@ -155,7 +155,8 @@ RSpec.describe SimpleCov::CLI do
       ["uncovered", ->(bad, _good) { ["uncovered", "--input", bad] }],
       ["diff baseline", ->(bad, good) { ["diff", "--input", good, bad] }],
       ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }],
-      ["tests", ->(bad, _good) { ["tests", "--input", bad] }]
+      ["tests", ->(bad, _good) { ["tests", "--input", bad] }],
+      ["affected", ->(bad, _good) { ["affected", "--input", bad] }]
     ].each do |description, argv_for|
       it "handles malformed JSON for #{description}" do
         argv = argv_for.call(invalid, valid)
@@ -609,6 +610,392 @@ RSpec.describe SimpleCov::CLI do
       File.write(json_path, JSON.dump(payload.merge("contexts" => "junk")))
       expect(run("tests", "--input", json_path)).to eq(1)
       expect(stderr.string).to include("isn't valid")
+    end
+  end
+
+  describe "affected subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-affected-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+    let(:out_path) { File.join(tmp, "out.txt") }
+
+    # Five contexts: two ordinary path:line tests touching result.rb, a
+    # locationless Minitest fallback id touching odd.rb, a test whose
+    # file no longer exists touching stale.rb, and a slashless top-level
+    # test file. quiet.rb is covered but no recorded test executes it.
+    let(:payload) do
+      {
+        "contexts" => [
+          "spec/result_spec.rb:42",
+          "spec/source_file_spec.rb:12",
+          "OddTest#test_odd",
+          "spec/ghost_spec.rb:7",
+          "toplevel_test.rb:99"
+        ],
+        "coverage" => {
+          File.join(tmp, "lib/result.rb") => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
+          File.join(tmp, "lib/quiet.rb") => {"lines" => [1, nil]},
+          File.join(tmp, "lib/odd.rb") => {"lines" => [1], "contexts" => {"2" => "1"}},
+          File.join(tmp, "lib/stale.rb") => {"lines" => [1], "contexts" => {"3" => "1"}}
+        }
+      }
+    end
+
+    def file!(path, content = "# original\n")
+      full = File.join(tmp, path)
+      FileUtils.mkdir_p(File.dirname(full))
+      File.write(full, content)
+    end
+
+    def commit!(message)
+      system("git", "-C", tmp, "add", "-A", exception: true)
+      system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
+             "commit", "-qm", message, exception: true)
+    end
+
+    before do
+      file!("lib/result.rb")
+      file!("lib/quiet.rb")
+      file!("lib/odd.rb")
+      file!("lib/stale.rb")
+      file!("spec/result_spec.rb")
+      file!("spec/source_file_spec.rb")
+      file!("spec/helper.rb")
+      file!("Gemfile.lock")
+      file!(".gitignore", "coverage.json\nout.txt\n")
+      system("git", "-c", "init.defaultBranch=main", "init", "-q", tmp, exception: true)
+      # git 2.46+ forks a detached `git maintenance` after commits; its
+      # transient .git/objects/maintenance.lock races the after-hook's
+      # directory removal, so the fixture repo opts out.
+      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
+      system("git", "-C", tmp, "config", "gc.auto", "0", exception: true)
+      commit!("init")
+      File.write(json_path, JSON.dump(payload))
+    end
+
+    # rm_rf rather than remove_entry: it shrugs off files a lingering
+    # background git process deletes mid-walk instead of raising ENOENT.
+    after { FileUtils.rm_rf(tmp) }
+
+    def run_in_repo(*argv)
+      Dir.chdir(tmp) { run(*argv) }
+    end
+
+    it "selects the test files whose recorded tests touch the changed code" do
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    it "always selects a changed test file itself" do
+      file!("spec/result_spec.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    it "always selects a new test file the map has never seen" do
+      file!("spec/brand_new_spec.rb")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/brand_new_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    it "answers an empty selection, with a note, when no recorded test touches the change" do
+      file!("lib/quiet.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov affected: no recorded test touches the changed code\n")
+    end
+
+    it "notes when nothing differs from the base" do
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov affected: no changes against main\n")
+    end
+
+    it "still emits a JSON object when nothing differs from the base" do
+      expect(run_in_repo("affected", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq("full_suite" => false, "triggers" => [], "tests" => [])
+    end
+
+    it "drops a deleted test file the map never knew without a note" do
+      file!("spec/unrecorded_spec.rb")
+      commit!("add unrecorded spec")
+      File.delete(File.join(tmp, "spec/unrecorded_spec.rb"))
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov affected: no recorded test touches the changed code\n")
+    end
+
+    it "diffs against the ref given with --base" do
+      file!("lib/result.rb", "# changed\n")
+      commit!("change result")
+      expect(run_in_repo("affected", "--input", json_path, "--base", "HEAD~1")).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+    end
+
+    # --merge-base semantics: the base advancing after the branch point
+    # must not read as part of this change, while uncommitted work must.
+    it "ignores commits that landed on the base after the branch point" do
+      system("git", "-C", tmp, "switch", "-qc", "feature", exception: true)
+      system("git", "-C", tmp, "switch", "-q", "main", exception: true)
+      file!("lib/quiet.rb", "# changed on main\n")
+      commit!("change quiet on main")
+      system("git", "-C", tmp, "switch", "-q", "feature", exception: true)
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    it "selects across the whole change from a subdirectory" do
+      file!("lib/result.rb", "# changed\n")
+      expect(Dir.chdir(File.join(tmp, "spec")) { run("affected", "--input", json_path) }).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    it "starts the runner at the repository root" do
+      file!("lib/result.rb", "# changed\n")
+      script = "File.write(#{out_path.inspect}, Dir.pwd)"
+      status = Dir.chdir(File.join(tmp, "spec")) do
+        run("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)
+      end
+      expect(status).to eq(0)
+      expect(File.read(out_path)).to eq(File.realpath(tmp))
+    end
+
+    it "resolves changed files exactly instead of by suffix" do
+      # The report carries only a lookalike key that merely ends with the
+      # changed path; a suffix match would select that entry's tests as
+      # if they covered lib/result.rb.
+      payload["coverage"].delete(File.join(tmp, "lib/result.rb"))
+      payload["coverage"]["/elsewhere/lib/result.rb"] = {"lines" => [1], "contexts" => {"0" => "1"}}
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("lib/result.rb changed but").and include("falling back to the full suite")
+    end
+
+    it "resolves a report keyed by relative paths, from a subdirectory too" do
+      payload["coverage"] = payload["coverage"].transform_keys { |key| key.delete_prefix("#{tmp}/") }
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(Dir.chdir(File.join(tmp, "spec")) { run("affected", "--input", json_path) }).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+    end
+
+    it "errors outside a git working tree" do
+      Dir.mktmpdir("simplecov-cli-affected-plain-") do |plain|
+        expect(Dir.chdir(plain) { run("affected", "--input", json_path) }).to eq(1)
+      end
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("git working tree")
+    end
+
+    it "rejects a stray positional that looks like a forgotten --base" do
+      expect(run_in_repo("affected", "--input", json_path, "feature-x")).to eq(1)
+      expect(stdout.string).to be_empty
+      expect(stderr.string)
+        .to eq(%(simplecov affected: unexpected argument "feature-x" (did you mean `--base feature-x`?)\n))
+    end
+
+    it "refuses a base ref that would read as a git option" do
+      expect(run_in_repo("affected", "--input", json_path, "--base=--output=evil")).to eq(1)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq(%(simplecov affected: invalid base ref "--output=evil"\n))
+    end
+
+    it "falls back to the full suite when a changed file has no coverage data" do
+      file!("Gemfile.lock", "# changed\n")
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("Gemfile.lock changed but #{json_path} has no data for it")
+      expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    it "treats a changed spec helper as outside the tracked set" do
+      file!("spec/helper.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("spec/helper.rb changed but")
+      expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    it "falls back when a recorded test touching the change has no file location" do
+      file!("lib/odd.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("OddTest#test_odd").and include("no file location")
+      expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    it "falls back when the map names a test file that no longer exists" do
+      file!("lib/stale.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("spec/ghost_spec.rb no longer exists")
+      expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    it "drops a test file deleted by the change instead of falling back" do
+      File.delete(File.join(tmp, "spec/source_file_spec.rb"))
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\n")
+      expect(stderr.string).to include("skipping deleted test file spec/source_file_spec.rb")
+      expect(stderr.string).not_to include("full suite")
+    end
+
+    it "emits the selection as a JSON object under --json" do
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq(
+        "full_suite" => false, "triggers" => [], "tests" => ["spec/result_spec.rb", "spec/source_file_spec.rb"]
+      )
+    end
+
+    it "carries the triggers in the JSON fallback answer" do
+      file!("Gemfile.lock", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path, "--json")).to eq(0)
+      parsed = JSON.parse(stdout.string)
+      expect(parsed["full_suite"]).to be(true)
+      expect(parsed["tests"]).to eq([])
+      expect(parsed["triggers"].join).to include("Gemfile.lock")
+    end
+
+    it "hands the selection to the runner under --run" do
+      file!("lib/result.rb", "# changed\n")
+      script = "File.write(#{out_path.inspect}, ARGV.join(' '))"
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(0)
+      expect(File.read(out_path)).to eq("spec/result_spec.rb spec/source_file_spec.rb")
+      expect(stderr.string).to include("running 2 test files")
+    end
+
+    it "runs the command bare when falling back to the full suite" do
+      file!("Gemfile.lock", "# changed\n")
+      script = "File.write(#{out_path.inspect}, ARGV.join(' ').inspect)"
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(0)
+      expect(File.read(out_path)).to eq('""')
+      expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    it "propagates the runner's exit status" do
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", "exit 3")).to eq(3)
+    end
+
+    it "speaks of one selected file in the singular" do
+      file!("spec/result_spec.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", "exit 0")).to eq(0)
+      expect(stderr.string).to include("running 1 test file\n")
+    end
+
+    it "exits non-zero for a runner killed by a signal" do
+      skip "SIGKILL semantics are POSIX; Windows reports an exit status instead" if Gem.win_platform?
+
+      file!("lib/result.rb", "# changed\n")
+      script = "Process.kill(:KILL, Process.pid)"
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(1)
+    end
+
+    it "skips the runner when nothing is selected" do
+      file!("lib/quiet.rb", "# changed\n")
+      script = "File.write(#{out_path.inspect}, 'ran')"
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(0)
+      expect(File.exist?(out_path)).to be(false)
+      expect(stderr.string).to include("no recorded test touches the changed code")
+    end
+
+    it "reports an unrunnable command like the run subcommand does" do
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path, "--run", "definitely-not-a-command-xyz")).to eq(127)
+      # JRuby's spawn doesn't raise for a missing command; the child
+      # fails on its own, so only the 127 reaches us there.
+      expect(stderr.string).to include("definitely-not-a-command-xyz") unless RUBY_ENGINE == "jruby"
+    end
+
+    it "reports a missing command after --run" do
+      expect(run_in_repo("affected", "--input", json_path, "--run")).to eq(1)
+      expect(stderr.string).to include("missing command after --run")
+    end
+
+    it "refuses to combine --run with --json" do
+      expect(run_in_repo("affected", "--input", json_path, "--json", "--run", "true")).to eq(1)
+      expect(stderr.string).to include("--json")
+    end
+
+    it "reports a bad base ref as a git error" do
+      expect(run_in_repo("affected", "--input", json_path, "--base", "no-such-ref")).to eq(1)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to include("git diff")
+    end
+
+    it "explains what to enable when the document carries no contexts" do
+      File.write(json_path, JSON.dump({"coverage" => {}}))
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("track_tests")
+    end
+
+    it "treats a malformed per-file contexts table as invalid input" do
+      [{"9" => "6"}, "junk"].each do |malformed|
+        payload["coverage"][File.join(tmp, "lib/result.rb")]["contexts"] = malformed
+        File.write(json_path, JSON.dump(payload))
+        file!("lib/result.rb", "# changed\n")
+        stderr.truncate(0) && stderr.rewind
+        expect(run_in_repo("affected", "--input", json_path)).to eq(1), "expected 1 for #{malformed.inspect}"
+        expect(stderr.string).to include("isn't valid")
+      end
+    end
+
+    it "treats a wrong-typed entry as invalid input" do
+      payload["coverage"][File.join(tmp, "lib/result.rb")] = "junk"
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("entry for lib/result.rb must be an object")
+    end
+
+    it "treats a non-object coverage section as invalid input" do
+      File.write(json_path, JSON.dump(payload.merge("coverage" => "junk")))
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include('"coverage" must be an object')
+    end
+
+    it "reports a git failure while listing untracked files" do
+      failed = instance_double(Process::Status, success?: false)
+      allow(Open3).to receive(:capture3).and_call_original
+      allow(Open3).to receive(:capture3)
+        .with("git", "-C", anything, "ls-files", any_args).and_return(["", "boom\n", failed])
+      file!("lib/result.rb", "# changed\n")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("`git ls-files` failed: boom")
+    end
+
+    it "reports git being unrunnable" do
+      allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("cannot run git")
+    end
+
+    it "reports git vanishing between the root lookup and the diff" do
+      allow(Open3).to receive(:capture3).and_call_original
+      allow(Open3).to receive(:capture3)
+        .with("git", "-C", anything, "diff", any_args).and_raise(Errno::ENOENT, "git")
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("cannot run git")
+    end
+
+    it "documents itself in the usage text" do
+      expect(run("help")).to eq(0)
+      expect(stdout.string).to include("affected options:")
     end
   end
 
@@ -1089,7 +1476,9 @@ RSpec.describe SimpleCov::CLI do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }
 
-    after { FileUtils.remove_entry(tmp) }
+    # rm_rf rather than remove_entry: it shrugs off files a lingering
+    # background git process deletes mid-walk instead of raising ENOENT.
+    after { FileUtils.rm_rf(tmp) }
 
     def git(*args)
       output, status = Open3.capture2e("git", "-C", tmp, *args)
@@ -1116,6 +1505,11 @@ RSpec.describe SimpleCov::CLI do
       git("init", "-q", "-b", "main")
       git("config", "user.email", "t@example.com")
       git("config", "user.name", "Test")
+      # git 2.46+ forks a detached `git maintenance` after commits; its
+      # transient .git/objects/maintenance.lock races the after-hook's
+      # directory removal, so the fixture repo opts out.
+      git("config", "maintenance.auto", "false")
+      git("config", "gc.auto", "0")
     end
 
     def commit(message)

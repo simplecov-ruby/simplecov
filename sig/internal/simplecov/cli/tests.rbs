@@ -18,8 +18,6 @@ module SimpleCov
 
       def self?.resolve: (untyped document, untyped opts, untyped stderr) -> Array[String]?
 
-      def self?.recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?
-
       def self?.locate_entry: (untyped document, untyped opts, untyped stderr) -> untyped
 
       def self?.context_table: (untyped entry, Array[String] contexts, untyped opts, untyped stderr) -> Hash[Integer, Integer]?
@@ -31,8 +29,6 @@ module SimpleCov
       def self?.emit: (Array[String] ids, untyped opts, untyped stdout, untyped stderr) -> untyped
 
       def self?.note_empty: (untyped opts, untyped stderr) -> untyped
-
-      def self?.error_nil: (untyped stderr, String message) -> nil
     end
   end
 end

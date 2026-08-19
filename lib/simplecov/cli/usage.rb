@@ -19,6 +19,7 @@ module SimpleCov
             report                    Print the overall summary and group totals
             uncovered                 List the lowest-coverage files
             tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
+            affected                  List test files touching code changed since a git ref (needs track_tests)
             merge <files...>          Merge multiple .resultset.json files
             diff <baseline>           Show per-file coverage delta vs baseline
             patch                     Show coverage of the lines a change touched
@@ -30,7 +31,7 @@ module SimpleCov
           Default paths follow SimpleCov.coverage_dir from a project's
           `.simplecov` when one is present (#{cli.coverage_dir} for this run).
 
-          coverage / report / uncovered / tests / diff / patch options:
+          coverage / report / uncovered / tests / affected / diff / patch options:
             --input PATH              Read from PATH instead of #{cli.default_input}
             --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
@@ -48,6 +49,15 @@ module SimpleCov
 
           tests options:
             --json                    Emit the test ids as a JSON array
+
+          affected options:
+            --base REF                Diff the working tree against the merge
+                                      base of REF and HEAD (default: main)
+            --run <command...>        Run <command> (everything after --run) with the
+                                      selected test files appended, or bare when
+                                      falling back to the full suite; exits with
+                                      the command's own status
+            --json                    Emit {full_suite, triggers, tests} as a JSON object
 
           merge options:
             --output PATH             Write merged resultset to PATH

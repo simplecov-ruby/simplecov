@@ -64,20 +64,6 @@ module SimpleCov
         table && ids_from(table, contexts, opts[:line])
       end
 
-      # The document-level context list. Its absence means the producing
-      # run never recorded, which deserves a pointer at the switch rather
-      # than a bare empty answer.
-      def recorded_contexts(document, opts, stderr)
-        contexts = document["contexts"]
-        if contexts.nil?
-          return error_nil(stderr, "no test contexts recorded in #{opts[:input]}. Enable `track_tests` in " \
-                                   "your `SimpleCov.start` block and rerun the suite to record them")
-        end
-        return contexts if contexts.is_a?(Array) && contexts.all?(String)
-
-        CoverageFile.report_invalid(stderr, "tests", opts[:input], '"contexts" must be an array of strings')
-      end
-
       def locate_entry(document, opts, stderr)
         coverage = document["coverage"]
         unless coverage.is_a?(Hash)
@@ -137,13 +123,6 @@ module SimpleCov
         return stderr.puts("simplecov tests: no recorded test covers #{opts[:target]}") if opts[:target]
 
         stderr.puts("simplecov tests: no tests recorded")
-      end
-
-      # `error` returns 1 for `run`'s exit status; the query helpers need
-      # nil so their callers can tell "reported" from a real answer.
-      def error_nil(stderr, message)
-        error(stderr, message)
-        nil
       end
     end
   end
