@@ -1,0 +1,26 @@
+module SimpleCov
+  module CLI
+    module Watch
+      # The /events SSE endpoint and the reload-injecting index route.
+      class LiveReport
+        RELOAD_SCRIPT: String
+
+        @dir: String
+        @queues: Array[Thread::Queue]
+        @lock: Mutex
+
+        def initialize: (String dir) -> void
+
+        def routes: () -> Hash[String, untyped]
+
+        def broadcast: (?String event) -> untyped
+
+        def stream: (untyped client) -> untyped
+
+        def forward: (untyped client, Thread::Queue queue) -> untyped
+
+        def page: (untyped client) -> untyped
+      end
+    end
+  end
+end

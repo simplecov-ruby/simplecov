@@ -707,6 +707,9 @@ module SimpleCov
     # in merged results. Defaults to 600.
     def merge_timeout: (?Integer? seconds) -> Integer
 
+    # A numeric SIMPLECOV_MERGE_TIMEOUT from the environment, or nil.
+    def env_merge_timeout: () -> Integer?
+
     # How long (in seconds) the reporting process waits for remaining
     # parallel-test workers to write their resultsets before it
     # proceeds with a partial merge. Defaults to 60. See #1171.

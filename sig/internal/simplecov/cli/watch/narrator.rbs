@@ -1,0 +1,29 @@
+module SimpleCov
+  module CLI
+    module Watch
+      # The session's stdout voice.
+      class Narrator
+        @stdout: untyped
+        @root: String
+
+        def initialize: (untyped stdout, String root) -> void
+
+        def banner: (untyped server, Integer count) -> untyped
+
+        def change: (Array[String] changed, Hash[Symbol, untyped] plan) -> untyped
+
+        def result: (Float? before, Float? after) -> untyped
+
+        def failed_refresh: () -> untyped
+
+        def stopping: () -> untyped
+
+        private
+
+        def name: (Array[String] changed) -> String
+
+        def action: (Array[String]? tests) -> String
+      end
+    end
+  end
+end

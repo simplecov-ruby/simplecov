@@ -23,6 +23,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `patch`            | Show coverage of only the lines a change touched                    |
 | `open`             | Open the HTML report in the default browser                         |
 | `serve`            | Serve the coverage report over HTTP                                 |
+| `watch <command…>` | Re-run `<command>` on save and live-reload the served report        |
 | `clean`            | Remove the coverage report directory                                |
 
 Run `simplecov help` for the full option listing.
@@ -242,6 +243,31 @@ brand-new file that was never `git add`ed counts too, with every line the report
 files resolve against the report by exact path, and when a changed line lies beyond what the report knows for its
 file, the command warns that the report looks stale instead of silently scoring nothing. Generate the report first:
 run your suite with the JSON formatter enabled, then `simplecov patch` reads `coverage/coverage.json`.
+
+### `watch` — the coverage inner loop
+
+`simplecov watch <command...>` serves the report the way `serve` does, watches the tracked files for saves, re-runs
+the given command when something changes, and pushes a reload to the open report tab over server-sent events when the
+report regenerates:
+
+```sh
+$ simplecov watch bundle exec rspec
+watching 214 files, serving http://127.0.0.1:53422/
+lib/simplecov/result.rb changed, running 3 files... 100.00% (+0.40%)
+```
+
+With a [`track_tests`](Configuration.md#tracking-which-test-covers-each-line) recording in the report, a save re-runs
+only the tests that touch the changed files, by the same selection walk `simplecov affected` uses and with the same
+fail-open rule: any change the map cannot be trusted for runs the full command. Without a recording, every save runs
+the full command. The watched set is the report's own (its tracked files plus the recorded tests' files), polled by
+mtime with no filesystem-event dependency, which also keeps writes to the coverage directory from triggering runs.
+
+The command is the project's own test invocation and must generate the report, so a project with no
+`SimpleCov.start` hook composes `simplecov watch simplecov run bundle exec rake test`. Child runs get a day-long
+merge window through the `SIMPLECOV_MERGE_TIMEOUT` environment variable, so subset re-runs keep merging into a whole
+report across a long session. `--port` and `--host` bind like `serve`, and `--interval SECONDS` tunes the poll
+(default 0.5). The report on disk stays byte-identical to a plain run's; the reload listener joins it only on the
+way out of the server.
 
 ### `serve` and `clean`
 

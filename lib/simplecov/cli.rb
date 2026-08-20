@@ -17,6 +17,7 @@ require_relative "cli/tests"
 require_relative "cli/affected"
 require_relative "cli/uncovered"
 require_relative "cli/usage"
+require_relative "cli/watch"
 
 module SimpleCov
   # Lightweight command-line front-end. `run` dispatches a subcommand
@@ -43,6 +44,7 @@ module SimpleCov
       "diff" => Diff,
       "patch" => Patch,
       "serve" => Serve,
+      "watch" => Watch,
       "clean" => Clean
     }.freeze
 

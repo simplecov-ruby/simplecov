@@ -7,6 +7,7 @@ require "open3"
 require "simplecov/cli"
 require "socket"
 require "stringio"
+require "timeout"
 require "tmpdir"
 
 RSpec.describe SimpleCov::CLI do
@@ -2081,6 +2082,31 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
+    # The routes seam `simplecov watch` mounts its /events endpoint and
+    # reload-injecting index route on.
+    it "hands a matching path to its route instead of the file tree" do
+      FileUtils.mkdir_p(tmp)
+      File.write(File.join(tmp, "index.html"), "plain")
+      handler = described_class::Serve::StaticFileHandler
+      routes = {"/events" => ->(client) { handler.respond(client, 200, "routed") }}
+
+      server = TCPServer.new("127.0.0.1", 0)
+      thread = Thread.new { handler.handle_connection(server.accept, tmp, routes) }
+      sock = TCPSocket.new("127.0.0.1", server.addr[1])
+      sock.write("GET /events?tab=1 HTTP/1.1\r\nHost: x\r\n\r\n")
+      expect(sock.read).to include("routed")
+      thread.join(2)
+
+      thread = Thread.new { handler.handle_connection(server.accept, tmp, routes) }
+      sock = TCPSocket.new("127.0.0.1", server.addr[1])
+      sock.write("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n")
+      expect(sock.read).to include("plain")
+    ensure
+      sock&.close
+      thread&.join(2)
+      server&.close
+    end
+
     # A malformed request line used to raise inside the wide rescue and
     # close the connection with an empty response; the 400 status text
     # was defined but unreachable.
@@ -2192,6 +2218,317 @@ RSpec.describe SimpleCov::CLI do
         idle&.close
         thread.raise(Interrupt) if thread.alive?
         thread.join(2)
+      end
+    end
+  end
+
+  describe "watch subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-watch-spec-") }
+    let(:coverage_dir) { File.join(tmp, "coverage") }
+    let(:json_path) { File.join(coverage_dir, "coverage.json") }
+    let(:log_path) { File.join(tmp, "runs.log") }
+    let(:code_path) { File.join(tmp, "lib/code.rb") }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    def write_report(percent: 90.0, contexts: ["spec/code_spec.rb:1"], tables: {"0" => "1"})
+      FileUtils.mkdir_p(coverage_dir)
+      document = {"coverage" => {code_path => {"lines" => [1], "contexts" => tables}}}
+      document["total"] = {"lines" => {"percent" => percent}} if percent
+      document["contexts"] = contexts if contexts
+      File.write(json_path, JSON.dump(document))
+      File.write(File.join(coverage_dir, "index.html"), "<html>report</html>")
+    end
+
+    # A stand-in suite: logs its arguments and merge window, then
+    # regenerates the report at a new percentage, like a real run would.
+    def fake_suite(percent: 95.0)
+      total = percent ? %(document["total"] = {"lines" => {"percent" => #{percent}}}) : %(document.delete("total"))
+      script = File.join(tmp, "suite.rb")
+      File.write(script, <<~RUBY)
+        require "json"
+        line = "args=\#{ARGV.join(',')} window=\#{ENV['SIMPLECOV_MERGE_TIMEOUT']}"
+        File.open(#{log_path.inspect}, "a") { |log| log.puts(line) }
+        document = JSON.parse(File.read(#{json_path.inspect}))
+        #{total}
+        File.write(#{json_path.inspect}, JSON.dump(document))
+      RUBY
+      [RbConfig.ruby, script]
+    end
+
+    def announced_port
+      %r{serving http://127\.0\.0\.1:(\d+)/}
+    end
+
+    def start_watch(*argv)
+      thread = Thread.new { Dir.chdir(tmp) { run("watch", "--interval", "0.05", *argv) } }
+      wait_for { stdout.string.match?(announced_port) }
+      [thread, stdout.string[announced_port, 1].to_i]
+    end
+
+    def stop_watch(thread)
+      thread.raise(Interrupt) if thread.alive?
+      thread.join(5)
+    end
+
+    def wait_for
+      Timeout.timeout(10) do
+        sleep(0.05) until yield
+      end
+    end
+
+    def touch_code
+      FileUtils.mkdir_p(File.dirname(code_path))
+      File.write(code_path, "# changed #{rand}\n")
+      FileUtils.touch(code_path, mtime: Time.now + 2)
+    end
+
+    before do
+      # Decoupled from the process-wide memoized discovery, like the
+      # serve specs, so suite order can't hand watch a stale directory.
+      allow(described_class).to receive(:coverage_dir).and_return(coverage_dir)
+      FileUtils.mkdir_p(File.dirname(code_path))
+      File.write(code_path, "# original\n")
+      FileUtils.mkdir_p(File.join(tmp, "spec"))
+      File.write(File.join(tmp, "spec/code_spec.rb"), "# spec\n")
+    end
+
+    it "reruns the recorded tests for a changed file and reloads the report" do
+      write_report
+      thread, port = start_watch(*fake_suite)
+      begin
+        events = TCPSocket.new("127.0.0.1", port)
+        events.write("GET /events HTTP/1.1\r\nHost: x\r\n\r\n")
+        wait_for { events.readline.strip.empty? } # drain response headers
+
+        touch_code
+        wait_for { File.exist?(log_path) }
+        expect(File.read(log_path)).to include("args=spec/code_spec.rb window=86400")
+        expect(Timeout.timeout(10) { events.readline }).to include("data: reload")
+        wait_for { stdout.string.include?("lib/code.rb changed, running 1 file... 95.00% (+5.00%)") }
+      ensure
+        events&.close
+        stop_watch(thread)
+      end
+      expect(stdout.string).to include("watching 2 files, serving http://127.0.0.1:#{port}/")
+    end
+
+    it "serves the report with the reload listener injected" do
+      write_report
+      thread, port = start_watch(*fake_suite)
+      begin
+        response = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/"))
+        expect(response.code).to eq("200")
+        expect(response.body).to include("<html>report</html>").and include("EventSource('/events')")
+        expect(File.read(File.join(coverage_dir, "index.html"))).to eq("<html>report</html>")
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "runs the full command when the report carries no test map" do
+      write_report(contexts: nil, tables: nil)
+      thread, = start_watch(*fake_suite)
+      begin
+        touch_code
+        wait_for { File.exist?(log_path) }
+        expect(File.read(log_path)).to include("args= ")
+        wait_for { stdout.string.include?("running the full suite") }
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "notes a change no recorded test touches without running anything" do
+      write_report(tables: {})
+      thread, = start_watch(*fake_suite)
+      begin
+        touch_code
+        wait_for { stdout.string.include?("no recorded test touches it") }
+        expect(File.exist?(log_path)).to be(false)
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "builds the initial report by running the command once when it is missing" do
+      FileUtils.mkdir_p(coverage_dir)
+      File.write(File.join(coverage_dir, "index.html"), "<html>report</html>")
+      command = fake_suite
+      File.write(File.join(tmp, "suite.rb"), <<~RUBY + File.read(File.join(tmp, "suite.rb")))
+        require "json"
+        require "fileutils"
+        FileUtils.mkdir_p(#{coverage_dir.inspect})
+        File.write(#{json_path.inspect}, JSON.dump(
+          "total" => {"lines" => {"percent" => 90.0}},
+          "coverage" => {#{code_path.inspect} => {"lines" => [1]}}
+        ))
+      RUBY
+      thread, = start_watch(*command)
+      stop_watch(thread)
+      expect(File.read(log_path)).to include("args= ")
+      expect(stdout.string).to include("watching 1 file, serving")
+    end
+
+    it "reports the new percentage without a delta when the report had no baseline" do
+      write_report(percent: nil, contexts: nil, tables: nil)
+      thread, = start_watch(*fake_suite)
+      begin
+        touch_code
+        wait_for { stdout.string.include?("running the full suite... 95.00%\n") }
+        expect(stdout.string).not_to include("(+")
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "ends the result line bare when the regenerated report has no totals" do
+      write_report(contexts: nil, tables: nil)
+      thread, = start_watch(*fake_suite(percent: nil))
+      begin
+        touch_code
+        wait_for { stdout.string.include?("running the full suite...\n") }
+        expect(stdout.string).not_to include("%\n")
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "says so when the run leaves the report unreadable" do
+      write_report(contexts: nil, tables: nil)
+      breaker = File.join(tmp, "break.rb")
+      File.write(breaker, "File.write(#{json_path.inspect}, '{')")
+      thread, = start_watch(RbConfig.ruby, breaker)
+      begin
+        touch_code
+        wait_for { stdout.string.include?("the report did not regenerate") }
+        expect(stderr.string).to include("isn't valid JSON")
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "collects an editor's save burst into one run" do
+      session = described_class::Watch::Session.new(command: ["true"], dir: coverage_dir,
+                                                    interval: 0.01, stdout: stdout, stderr: stderr)
+      scripted = Struct.new(:sequence) { def changes = sequence.shift || [] }
+      session.instance_variable_set(:@poller, scripted.new([["a.rb"], ["b.rb"], []]))
+      expect(session.send(:settled_changes)).to eq(["a.rb", "b.rb"])
+    end
+
+    it "errors without a command" do
+      expect(run("watch")).to eq(1)
+      expect(stderr.string).to include("missing command")
+    end
+
+    it "errors when the port is already taken" do
+      write_report
+      blocker = TCPServer.new("127.0.0.1", 0)
+      begin
+        expect(Dir.chdir(tmp) { run("watch", "--port", blocker.addr[1].to_s, "ruby", "-e", "1") }).to eq(1)
+        expect(stderr.string).to include("simplecov watch: cannot bind")
+      ensure
+        blocker.close
+      end
+    end
+
+    it "exits non-zero when the initial run produces no report" do
+      expect(Dir.chdir(tmp) { run("watch", RbConfig.ruby, "-e", "0") }).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+
+    it "leaves the runner's own flags alone" do
+      opts, command = described_class::Watch.parse(["--interval", "1", "bundle", "exec", "rspec", "--seed", "1"])
+      expect(opts[:interval]).to eq(1.0)
+      expect(command).to eq(["bundle", "exec", "rspec", "--seed", "1"])
+    end
+
+    describe SimpleCov::CLI::Watch::Poller do
+      let(:poller) { described_class.new }
+      let(:file) { File.join(tmp, "a.rb") }
+
+      it "reports nothing while mtimes hold still" do
+        File.write(file, "a")
+        poller.watch([file])
+        expect(poller.changes).to eq([])
+      end
+
+      it "reports a touched file once per change" do
+        File.write(file, "a")
+        poller.watch([file])
+        FileUtils.touch(file, mtime: Time.now + 2)
+        expect(poller.changes).to eq([file])
+        expect(poller.changes).to eq([])
+      end
+
+      it "reports a vanished file and an appearing one" do
+        File.write(file, "a")
+        poller.watch([file])
+        File.delete(file)
+        expect(poller.changes).to eq([file])
+        File.write(file, "b")
+        expect(poller.changes).to eq([file])
+      end
+    end
+
+    describe SimpleCov::CLI::Watch::Narrator do
+      it "names a burst by its first file and counts the rest" do
+        narrator = described_class.new(stdout, "/root")
+        narrator.change(["/root/a.rb", "/root/b.rb"], {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
+        expect(stdout.string).to eq("a.rb and 1 more changed, running 2 files...")
+      end
+    end
+
+    describe SimpleCov::CLI::Watch::TestPlan do
+      it "fails open to the full command on a selection trigger" do
+        document = {
+          "contexts" => ["spec/ghost_spec.rb:1"],
+          "coverage" => {File.join(tmp, "lib/code.rb") => {"lines" => [1], "contexts" => {"0" => "1"}}}
+        }
+        plan = Dir.chdir(tmp) do
+          described_class.build(["lib/code.rb"], document, root: tmp, input: "coverage.json", stderr: stderr)
+        end
+        expect(plan).to eq(run: true, tests: nil)
+        expect(stderr.string).to be_empty
+      end
+
+      it "derives the watch set without a coverage section" do
+        paths = described_class.watched_paths({"contexts" => ["spec/a_spec.rb:1"]}, tmp)
+        expect(paths).to eq([File.join(tmp, "spec/a_spec.rb")])
+      end
+    end
+
+    describe SimpleCov::CLI::Watch::LiveReport do
+      it "drops a departed tab's queue after a failed write" do
+        live = described_class.new(tmp)
+        server = TCPServer.new("127.0.0.1", 0)
+        client = TCPSocket.new("127.0.0.1", server.addr[1])
+        served = server.accept
+        thread = Thread.new { live.stream(served) }
+        wait_for { live.instance_variable_get(:@queues).size == 1 }
+        wait_for { client.readline.strip.empty? } # drain response headers
+        served.close
+        live.broadcast
+        thread.join(5)
+        expect(live.instance_variable_get(:@queues)).to be_empty
+      ensure
+        client&.close
+        server&.close
+      end
+
+      it "answers 404 for the page before a report exists" do
+        live = described_class.new(tmp)
+        server = TCPServer.new("127.0.0.1", 0)
+        thread = Thread.new do
+          SimpleCov::CLI::Serve::StaticFileHandler.handle_connection(server.accept, tmp, live.routes)
+        end
+        sock = TCPSocket.new("127.0.0.1", server.addr[1])
+        sock.write("GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+        expect(sock.read).to start_with("HTTP/1.1 404")
+      ensure
+        sock&.close
+        thread&.join(2)
+        server&.close
       end
     end
   end

@@ -1,0 +1,20 @@
+module SimpleCov
+  module CLI
+    module Watch
+      # Watches a fixed set of paths by polling mtimes.
+      class Poller
+        @snapshot: Hash[String, untyped]
+
+        def initialize: () -> void
+
+        def watch: (Array[String] paths) -> Hash[String, untyped]
+
+        def size: () -> Integer
+
+        def changes: () -> Array[String]
+
+        def stamp: (String path) -> Time?
+      end
+    end
+  end
+end

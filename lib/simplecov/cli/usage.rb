@@ -25,6 +25,7 @@ module SimpleCov
             patch                     Show coverage of the lines a change touched
             open                      Open the HTML report in the default browser
             serve                     Serve the coverage report over HTTP
+            watch <command...>        Re-run <command> on save and live-reload the served report
             clean                     Remove the coverage report directory
             help                      Show this message
 
@@ -91,6 +92,11 @@ module SimpleCov
           serve options:
             --port N                  Bind to port N (default: random open port)
             --host HOST               Bind to HOST (default: 127.0.0.1)
+
+          watch options:
+            --port N                  Bind to port N (default: random open port)
+            --host HOST               Bind to HOST (default: 127.0.0.1)
+            --interval SECONDS        Poll the tracked files this often (default: 0.5)
 
           clean options:
             --dry-run                 Print what would be removed without
