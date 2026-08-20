@@ -96,6 +96,15 @@ lcov formatter for SimpleCov
 
 LCOV formatter positioned as a successor to simplecov-lcov.
 
+#### [undercover](https://github.com/grodowski/undercover)
+*by Jan Grodowski*
+
+Warns about methods and blocks a git diff changed that lack test coverage. Its `SimpleCov::Formatter::Undercover`
+writes the report data for the separate `undercover` CLI to read, by default to the same `coverage/coverage.json`
+path the bundled formatters own, so whichever formatter runs last decides that file's shape. The bundled
+[`simplecov patch`](CLI.md) command answers the related per-line question (is the code this change touched
+covered?) without an extra gem.
+
 #### [simplecov-json](https://github.com/vicentllongo/simplecov-json)
 *by Vicent Llongo*
 
