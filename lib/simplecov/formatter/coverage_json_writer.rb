@@ -58,11 +58,24 @@ module SimpleCov
         return nil unless File.exist?(path)
 
         meta = parse_meta(path) or return nil
-        timestamp = meta[:timestamp] or return nil
+        timestamp = parse_time(meta[:timestamp]) or return nil
 
-        {timestamp: Time.iso8601(timestamp), command_name: meta[:command_name]}
+        {timestamp: timestamp, command_name: meta[:command_name]}
+      end
+
+      # Our own writer emits an ISO 8601 string, but coverage.json is
+      # whatever wrote it last: third-party formatters (undercover's
+      # among them) rewrite it in their own shape with an epoch integer
+      # in meta.timestamp, and Time.iso8601 raised TypeError on that,
+      # taking the whole report down on the next run. Both spellings
+      # feed the concurrency check; anything else disables it for this
+      # file instead of failing the write. See #1285.
+      def parse_time(value)
+        case value
+        when String then Time.iso8601(value)
+        when Numeric then Time.at(value)
+        end
       rescue ArgumentError
-        # An unparseable timestamp disables the check for this file.
         nil
       end
 
