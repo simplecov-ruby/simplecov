@@ -50,5 +50,21 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       File.write(path, JSON.generate(meta: {timestamp: "not a time"}))
       expect(described_class.existing_meta(path)).to be_nil
     end
+
+    # Third-party formatters (undercover's among them) rewrite
+    # coverage.json in their own shape with an epoch integer in
+    # meta.timestamp, and the previous run's file is whatever wrote it
+    # last. Reading it must never crash report generation. See #1285.
+    it "reads an epoch integer timestamp the way a foreign formatter writes it" do
+      moment = Time.at(Time.now.to_i)
+      File.write(path, JSON.generate(meta: {timestamp: moment.to_i, command_name: "RSpec"}))
+
+      expect(described_class.existing_meta(path)[:timestamp]).to eq(moment)
+    end
+
+    it "returns nil for a timestamp that is neither a string nor a number" do
+      File.write(path, JSON.generate(meta: {timestamp: true}))
+      expect(described_class.existing_meta(path)).to be_nil
+    end
   end
 end

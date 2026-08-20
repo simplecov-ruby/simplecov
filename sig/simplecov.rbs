@@ -1547,6 +1547,9 @@ module SimpleCov
       # Time.iso8601 at runtime.
       def self?.existing_meta: (String path) -> ({ timestamp: untyped, command_name: untyped })?
 
+      # ISO 8601 string or epoch number to a Time, nil for anything else.
+      def self?.parse_time: (untyped value) -> untyped
+
       def self?.parse_meta: (String path) -> Hash[Symbol, untyped]?
 
       # Bounded head read that parses just the flat meta object of files
