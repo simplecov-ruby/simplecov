@@ -34,7 +34,13 @@ module SimpleCov
         # writes a status response. Wide rescue so a misbehaving client
         # can't crash the server. The read timeout keeps idle connections
         # from pinning their threads forever.
-        def handle_connection(client, root)
+        #
+        # `routes` maps exact request paths (query string excluded) to
+        # callables that take over the connection — the seam `simplecov
+        # watch` mounts its /events stream and reload-injecting index
+        # route on. A route may hold the socket for as long as it likes;
+        # the ensure below closes it when the route returns.
+        def handle_connection(client, root, routes = {})
           # simplecov:disable branch — support for IO#timeout= is fixed by the engine
           # JRuby and TruffleRuby don't implement IO#timeout=. Without
           # the guard the NoMethodError lands in the wide rescue below
@@ -49,9 +55,8 @@ module SimpleCov
           # `path.split` inside the wide rescue, closing the connection
           # with an empty response instead of the 400 defined below.
           return respond(client, 400) if path.nil?
-          return respond(client, 405) unless method == "GET"
 
-          serve_file(client, path, root)
+          dispatch(client, method, path, root, routes)
         rescue StandardError
           # Misbehaving clients (truncated requests, connection resets,
           # invalid encoding) shouldn't take the whole server down.
@@ -61,6 +66,15 @@ module SimpleCov
           # the `&.` is purely defensive in case of future refactors
           client&.close
           # simplecov:enable
+        end
+
+        def dispatch(client, method, path, root, routes)
+          return respond(client, 405) unless method == "GET"
+
+          route = routes[path.split("?", 2).first]
+          return route.call(client) if route
+
+          serve_file(client, path, root)
         end
 
         def serve_file(client, path, root)

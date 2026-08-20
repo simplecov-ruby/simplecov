@@ -14,7 +14,9 @@ module SimpleCov
         # Reads one HTTP request line, drains headers, serves the file or
         # writes a status response. Wide rescue so a misbehaving client
         # can't crash the server.
-        def self?.handle_connection: (untyped client, untyped root) -> untyped
+        def self?.handle_connection: (untyped client, untyped root, ?Hash[String, untyped] routes) -> untyped
+
+        def self?.dispatch: (untyped client, untyped method, untyped path, untyped root, Hash[String, untyped] routes) -> untyped
 
         def self?.serve_file: (untyped client, untyped path, untyped root) -> untyped
 

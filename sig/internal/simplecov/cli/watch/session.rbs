@@ -1,0 +1,44 @@
+module SimpleCov
+  module CLI
+    module Watch
+      # One watch session: accept connections, poll, re-run, reload.
+      class Session
+        MERGE_WINDOW: String
+
+        @command: Array[String]
+        @dir: String
+        @interval: Float
+        @stderr: untyped
+        @root: String
+        @narrator: Narrator
+        @live: LiveReport
+        @poller: Poller
+        @document: Hash[String, untyped]
+
+        def initialize: (command: Array[String], dir: String, interval: Float, stdout: untyped, stderr: untyped) -> void
+
+        def run: (untyped server) -> Integer
+
+        def poll_forever: () -> bot
+
+        def step: () -> untyped
+
+        private
+
+        def accept_loop: (untyped server) -> Thread
+
+        def plan_for: (Array[String] changed) -> Hash[Symbol, untyped]
+
+        def run_tests: (Array[String]? tests) -> untyped
+
+        def refresh: () -> untyped
+
+        def settled_changes: () -> Array[String]
+
+        def total_percent: () -> Float?
+
+        def json_path: () -> String
+      end
+    end
+  end
+end

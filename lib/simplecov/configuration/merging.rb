@@ -99,9 +99,20 @@ module SimpleCov
     # Defines the maximum age (in seconds) of a resultset to still be
     # included in merged results. Default is 600 seconds (10 minutes).
     #
+    # A numeric SIMPLECOV_MERGE_TIMEOUT in the environment takes
+    # precedence over the configured value: `simplecov watch` re-runs
+    # test subsets across a long session and extends its child runs'
+    # merge window this way, where editing every watched project's
+    # configuration is not an option.
+    #
     def merge_timeout(seconds = nil)
       @merge_timeout = seconds if seconds.is_a?(Integer)
-      @merge_timeout ||= 600
+      env_merge_timeout || (@merge_timeout ||= 600)
+    end
+
+    def env_merge_timeout
+      value = ENV.fetch("SIMPLECOV_MERGE_TIMEOUT", nil)
+      value&.match?(/\A\d+\z/) ? Integer(value, 10) : nil
     end
 
     #

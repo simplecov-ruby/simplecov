@@ -1733,6 +1733,20 @@ RSpec.describe SimpleCov::Configuration do
         config.merge_timeout(120)
         expect(config.merge_timeout).to eq(120)
       end
+
+      # `simplecov watch` extends the merge window of its child runs
+      # through the environment, since a subset re-run merged under the
+      # default ten minutes would erode the report over a long session.
+      it "honors SIMPLECOV_MERGE_TIMEOUT over the configured value" do
+        config.merge_timeout(120)
+        stub_const("ENV", ENV.to_hash.merge("SIMPLECOV_MERGE_TIMEOUT" => "86400"))
+        expect(config.merge_timeout).to eq(86_400)
+      end
+
+      it "ignores a malformed SIMPLECOV_MERGE_TIMEOUT" do
+        stub_const("ENV", ENV.to_hash.merge("SIMPLECOV_MERGE_TIMEOUT" => "soon"))
+        expect(config.merge_timeout).to eq(600)
+      end
     end
 
     describe "#parallel_wait_timeout" do
