@@ -71,7 +71,7 @@ Instances mix freely with classes in `formatters` lists as well.
 
 As of SimpleCov 0.9 you can specify multiple result formats. The HTML and JSON formatters are built in; other
 formatters ship as separate gems you'll need to add and require — for example,
-[simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura) for the Cobertura XML that many CI services
+[simplecov-cobertura](https://github.com/jessebs/simplecov-cobertura) for the Cobertura XML that many CI services
 consume.
 
 ```ruby
