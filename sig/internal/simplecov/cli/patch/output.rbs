@@ -23,7 +23,7 @@ module SimpleCov
         def self?.branch?: (untyped row) -> bool
 
         # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
-        def self?.ranges: (untyped numbers) -> ::String
+        def self?.ranges: (untyped numbers, ?::String separator) -> ::String
 
         def self?.sum_stats: (untyped rows, untyped criterion) -> { covered: ::Integer, relevant: ::Integer }
 

@@ -14,6 +14,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 |--------------------|---------------------------------------------------------------------|
 | `run <command…>`   | Execute `<command>` with simplecov pre-loaded (no `test_helper` hook needed) |
 | `coverage <path>`  | Print coverage stats for a single file                              |
+| `show <path>`      | Print the file's source annotated with hit counts and misses        |
 | `report`           | Print the overall summary and per-group totals                      |
 | `uncovered`        | List the lowest-coverage files                                      |
 | `tests [<path>[:<line>]]` | List recorded tests for a file or line (needs `track_tests`) |
@@ -68,6 +69,33 @@ result.coverage_for("app/models/user.rb")
 result.source_file_for("app/models/user.rb")
 # => <SimpleCov::SourceFile>
 ```
+
+### `show` — annotated source in the terminal
+
+The way `go tool cover` and `llvm-cov show` print it: `simplecov show <path>` answers "what is missing in this file"
+without leaving the shell or forwarding a port off a CI box. Hit counts sit in the gutter (blank for blank and
+comment lines), each missed line carries a caret marker under it, and branch and method misses annotate the same way
+when the report measured them:
+
+```sh
+$ simplecov show lib/simplecov/cli/diff.rb
+   38    1  def call(baseline)
+   39    1    rows = compare(current, load(baseline))
+   40    0    return EXIT_FAILURE if rows.empty?
+            ^ missed
+```
+
+`--uncovered-only` collapses the answer to the ranges alone, a form that greps, fits in a commit message, and hands
+a coding agent exactly the lines whose tests are missing:
+
+```sh
+$ simplecov show --uncovered-only lib/simplecov/cli/diff.rb
+lib/simplecov/cli/diff.rb:40,52-58,71
+```
+
+Colors follow the same `NO_COLOR`, `FORCE_COLOR`, and `--no-color` rules as everywhere else. The source comes from
+the report itself when it embeds one (`source_in_json`), and otherwise from disk, accepted only while the file's
+line count still matches the report's, since annotating drifted source would put hit counts on the wrong lines.
 
 ### `report` — quick terminal report
 

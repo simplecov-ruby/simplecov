@@ -13,6 +13,7 @@ require_relative "cli/patch"
 require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
+require_relative "cli/show"
 require_relative "cli/tests"
 require_relative "cli/affected"
 require_relative "cli/uncovered"
@@ -34,6 +35,7 @@ module SimpleCov
   module CLI
     COMMANDS = {
       "coverage" => Coverage,
+      "show" => Show,
       "run" => Run,
       "open" => Open,
       "report" => Report,
