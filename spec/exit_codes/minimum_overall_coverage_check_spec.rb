@@ -80,6 +80,17 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
       expect(output.index("lib/worst.rb")).to be < output.index("lib/middle.rb")
     end
 
+    # Fully covered files used to pad the list out to five entries,
+    # which read as "add tests here" for files with nothing left to
+    # cover. See #1286.
+    it "leaves fully covered files out of the list" do
+      result_files = files + [file_double("lib/covered.rb", line: 100.0)]
+      allow(result).to receive(:files).and_return(result_files)
+
+      output = capture_stderr { check.report }
+      expect(output).not_to include("lib/covered.rb")
+    end
+
     it "skips files that lack stats for the violated criterion" do
       missing = instance_double(SimpleCov::SourceFile, project_filename: "lib/missing.rb", coverage_statistics: {})
       result_files = files + [missing]
