@@ -107,7 +107,14 @@ module SimpleCov
     #
     def merge_timeout(seconds = nil)
       @merge_timeout = seconds if seconds.is_a?(Integer)
-      env_merge_timeout || (@merge_timeout ||= 600)
+      # Memoized through a local rather than `|| (@merge_timeout ||= 600)`:
+      # steep 2.0's logic-type interpreter crashes on an or-assignment
+      # nested in a logical operand (UnknownNodeError), abandoning this
+      # file's type check mid-way, and ivar narrowing doesn't carry
+      # across statements the way a local's does.
+      configured = @merge_timeout || 600
+      @merge_timeout = configured
+      env_merge_timeout || configured
     end
 
     def env_merge_timeout
