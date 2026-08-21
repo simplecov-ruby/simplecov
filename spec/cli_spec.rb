@@ -157,7 +157,8 @@ RSpec.describe SimpleCov::CLI do
       ["diff baseline", ->(bad, good) { ["diff", "--input", good, bad] }],
       ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }],
       ["tests", ->(bad, _good) { ["tests", "--input", bad] }],
-      ["affected", ->(bad, _good) { ["affected", "--input", bad] }]
+      ["affected", ->(bad, _good) { ["affected", "--input", bad] }],
+      ["show", ->(bad, _good) { ["show", "--input", bad, "lib/a.rb"] }]
     ].each do |description, argv_for|
       it "handles malformed JSON for #{description}" do
         argv = argv_for.call(invalid, valid)
@@ -611,6 +612,143 @@ RSpec.describe SimpleCov::CLI do
       File.write(json_path, JSON.dump(payload.merge("contexts" => "junk")))
       expect(run("tests", "--input", json_path)).to eq(1)
       expect(stderr.string).to include("isn't valid")
+    end
+  end
+
+  describe "show subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-show-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+    let(:code_path) { File.join(tmp, "lib/code.rb") }
+
+    let(:source) do
+      ["def call(baseline)", "  rows = compare", "  return 1 if rows.empty?", "",
+       "# comment", "again", "done", "more", "covered", "last"]
+    end
+    let(:entry) do
+      {
+        "source" => source,
+        "lines" => [1, 1, 0, nil, nil, 0, 0, 0, 1, 0],
+        "branches" => [{"report_line" => 2, "coverage" => 0}, {"report_line" => 1, "coverage" => 3}, "junk"],
+        "methods" => [{"start_line" => 1, "coverage" => 0}, {"start_line" => "x", "coverage" => 0}, "junk"]
+      }
+    end
+    let(:payload) { {"coverage" => {code_path => entry}} }
+
+    before { File.write(json_path, JSON.dump(payload)) }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    it "prints the source with hit counts and miss markers" do
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(0)
+      expect(stdout.string).to eq(<<~OUT)
+         1  1  def call(baseline)
+               ^ method missed
+         2  1    rows = compare
+               ^ branch missed
+         3  0    return 1 if rows.empty?
+               ^ missed
+         4
+         5     # comment
+         6  0  again
+               ^ missed
+         7  0  done
+               ^ missed
+         8  0  more
+               ^ missed
+         9  1  covered
+        10  0  last
+               ^ missed
+      OUT
+    end
+
+    it "joins a line's markers when it misses more than one way" do
+      entry["branches"][0]["report_line"] = 3
+      File.write(json_path, JSON.dump(payload))
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(0)
+      expect(stdout.string).to include("^ missed, branch missed")
+    end
+
+    it "collapses the misses to greppable ranges under --uncovered-only" do
+      expect(run("show", "--input", json_path, "--uncovered-only", "lib/code.rb")).to eq(0)
+      expect(stdout.string).to eq("lib/code.rb:3,6-8,10\n")
+    end
+
+    it "notes a fully covered file under --uncovered-only instead of printing" do
+      entry["lines"] = [1, 1, 1, nil, nil, 1, 1, 1, 1, 1]
+      File.write(json_path, JSON.dump(payload))
+      expect(run("show", "--input", json_path, "--uncovered-only", "lib/code.rb")).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov show: nothing uncovered in lib/code.rb\n")
+    end
+
+    # Also the line-coverage-only shape: no branches or methods arrays.
+    it "reads the source from disk when the report carries none" do
+      entry.delete("source")
+      entry.delete("branches")
+      entry.delete("methods")
+      File.write(json_path, JSON.dump(payload))
+      FileUtils.mkdir_p(File.dirname(code_path))
+      File.write(code_path, "#{source.join("\n")}\n")
+
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(0)
+      expect(stdout.string).to include("  return 1 if rows.empty?")
+      expect(stdout.string).not_to include("branch missed")
+    end
+
+    it "refuses a disk source that drifted from the report" do
+      entry.delete("source")
+      File.write(json_path, JSON.dump(payload))
+      FileUtils.mkdir_p(File.dirname(code_path))
+      File.write(code_path, "one\ntwo\n")
+
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("changed since the report")
+    end
+
+    it "errors when neither the report nor the disk has the source" do
+      entry.delete("source")
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("regenerate")
+    end
+
+    it "errors on a report without line data" do
+      entry.delete("lines")
+      File.write(json_path, JSON.dump(payload))
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("no line coverage")
+    end
+
+    it "reports an unknown file like the coverage subcommand does" do
+      expect(run("show", "--input", json_path, "lib/nope.rb")).to eq(1)
+      expect(stderr.string).to include("no entry for lib/nope.rb")
+    end
+
+    it "reports a wrong-typed entry as invalid input" do
+      File.write(json_path, JSON.dump("coverage" => {code_path => "junk"}))
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("entry for lib/code.rb must be an object")
+    end
+
+    it "errors without a path" do
+      expect(run("show", "--input", json_path)).to eq(1)
+      expect(stderr.string).to include("missing path")
+    end
+
+    it "colorizes counts and markers for a tty" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(0)
+      expect(stdout.string).to include("\e[31m").and include("\e[32m")
+    end
+
+    it_behaves_like "a --no-color subcommand" do
+      let(:no_color_argv) { ["show", "--input", json_path, "--no-color", "lib/code.rb"] }
+    end
+
+    it "documents itself in the usage text" do
+      expect(run("help")).to eq(0)
+      expect(stdout.string).to include("show options:")
     end
   end
 
@@ -2277,6 +2415,13 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    # The fake suite's log line lands when the child's buffered write
+    # flushes at close, after the file itself appears — waiting on bare
+    # existence read an empty file on slow-starting engines (JRuby).
+    def wait_for_log
+      wait_for { File.exist?(log_path) && File.read(log_path).include?("window=") }
+    end
+
     def touch_code
       FileUtils.mkdir_p(File.dirname(code_path))
       File.write(code_path, "# changed #{rand}\n")
@@ -2302,7 +2447,7 @@ RSpec.describe SimpleCov::CLI do
         wait_for { events.readline.strip.empty? } # drain response headers
 
         touch_code
-        wait_for { File.exist?(log_path) }
+        wait_for_log
         expect(File.read(log_path)).to include("args=spec/code_spec.rb window=86400")
         expect(Timeout.timeout(10) { events.readline }).to include("data: reload")
         wait_for { stdout.string.include?("lib/code.rb changed, running 1 file... 95.00% (+5.00%)") }
@@ -2331,7 +2476,7 @@ RSpec.describe SimpleCov::CLI do
       thread, = start_watch(*fake_suite)
       begin
         touch_code
-        wait_for { File.exist?(log_path) }
+        wait_for_log
         expect(File.read(log_path)).to include("args= ")
         wait_for { stdout.string.include?("running the full suite") }
       ensure

@@ -1,0 +1,27 @@
+module SimpleCov
+  module CLI
+    module Show
+      # Renders one file's annotated source with hit-count gutters and
+      # caret marker lines under each miss.
+      module Annotator
+        def self?.call: (Array[String] source, untyped entry, untyped stdout, color: bool) -> untyped
+
+        def self?.missed_lines: (untyped entry) -> Array[Integer]
+
+        def self?.markers_for: (untyped entry) -> Hash[Integer, Array[String]]
+
+        def self?.emit: (untyped stdout, String rendered, Array[String] labels, Hash[Symbol, Integer] widths, bool color) -> untyped
+
+        def self?.each_missed: (untyped items) { (Integer) -> untyped } -> untyped
+
+        def self?.missed_line_of: (untyped item) -> Integer?
+
+        def self?.count_width: (untyped entry) -> Integer
+
+        def self?.row: (Integer number, untyped hit, String line, Hash[Symbol, Integer] widths, bool color) -> String
+
+        def self?.paint: (String text, Symbol tint, bool color) -> String
+      end
+    end
+  end
+end

@@ -16,6 +16,7 @@ module SimpleCov
                                       (so a coverage report is generated even
                                       when the project has no test_helper hook)
             coverage <path>           Print coverage stats for the given file
+            show <path>               Print the file's source annotated with hit counts and misses
             report                    Print the overall summary and group totals
             uncovered                 List the lowest-coverage files
             tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
@@ -32,12 +33,15 @@ module SimpleCov
           Default paths follow SimpleCov.coverage_dir from a project's
           `.simplecov` when one is present (#{cli.coverage_dir} for this run).
 
-          coverage / report / uncovered / tests / affected / diff / patch options:
+          coverage / show / report / uncovered / tests / affected / diff / patch options:
             --input PATH              Read from PATH instead of #{cli.default_input}
             --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
           coverage options:
             --json                    Print the file's JSON entry verbatim
+
+          show options:
+            --uncovered-only          Print only <path>:<ranges> of the missed lines
 
           report options:
             --json                    Emit totals and group sections as JSON

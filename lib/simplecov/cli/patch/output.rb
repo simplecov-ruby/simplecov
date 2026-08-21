@@ -72,10 +72,12 @@ module SimpleCov
         end
 
         # Collapse a sorted line list into ranges: [41, 42, 43, 47] -> "41-43, 47".
-        def ranges(numbers)
+        # The show subcommand borrows this with a bare-comma separator for
+        # its greppable `path:40,52-58,71` form.
+        def ranges(numbers, separator = ", ")
           numbers.slice_when { |prev, curr| curr > prev + 1 }
                  .map { |run| run.size == 1 ? run.first.to_s : "#{run.first}-#{run.last}" }
-                 .join(", ")
+                 .join(separator)
         end
 
         # Sum a criterion's {covered, relevant} across rows; branch stats are nil
