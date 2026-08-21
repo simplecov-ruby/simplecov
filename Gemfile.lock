@@ -87,6 +87,7 @@ GEM
     regexp_parser (2.12.0)
     reline (0.7.0)
       io-console (~> 0.5)
+    rexml (3.4.4)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -207,6 +208,7 @@ DEPENDENCIES
   parallel_tests
   rake
   rbs (~> 4.0)
+  rexml
   rspec
   rubocop
   rubocop-minitest

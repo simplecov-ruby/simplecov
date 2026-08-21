@@ -14,6 +14,10 @@ group :development do
   # would force every spec that drives the fixture to install them too.
   gem "json_schemer"
   gem "rake"
+  # The Cobertura formatter specs parse the XML they assert on. A
+  # bundled gem since Ruby 3.0, so it needs naming to load under
+  # bundler.
+  gem "rexml"
   gem "rspec"
   gem "test-unit"
 
