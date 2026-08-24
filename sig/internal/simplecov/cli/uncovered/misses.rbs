@@ -1,0 +1,15 @@
+module SimpleCov
+  module CLI
+    module Uncovered
+      # Missed-line extraction per criterion and the GitHub workflow
+      # annotations built from the ranges.
+      module Misses
+        def self?.missed_for: (untyped payload, untyped criterion) -> ::Array[::Integer]
+
+        def self?.collect: (untyped items) -> ::Array[::Integer]
+
+        def self?.annotate: (untyped stdout, untyped files) -> untyped
+      end
+    end
+  end
+end

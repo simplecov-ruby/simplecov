@@ -1347,6 +1347,47 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    describe "--annotate github" do
+      before do
+        File.write(json_path, JSON.dump(
+                                "coverage" => {
+                                  "/abs/lib/b.rb" => {
+                                    "total_lines" => 5, "covered_lines" => 1, "lines_covered_percent" => 20.0,
+                                    "lines" => [1, 0, 0, 0, nil, 0]
+                                  },
+                                  File.join(SimpleCov.root, "lib/rooted.rb") => {
+                                    "total_lines" => 2, "covered_lines" => 1, "lines_covered_percent" => 50.0,
+                                    "lines" => [1, 0]
+                                  }
+                                }
+                              ))
+      end
+
+      it "emits one workflow warning per contiguous missed range" do
+        expect(run("uncovered", "--input", json_path, "--annotate", "github")).to eq(0)
+        expect(stdout.string).to eq(<<~OUT)
+          ::warning file=/abs/lib/b.rb,line=2,endLine=4::Not covered by tests
+          ::warning file=/abs/lib/b.rb,line=6,endLine=6::Not covered by tests
+          ::warning file=lib/rooted.rb,line=2,endLine=2::Not covered by tests
+        OUT
+      end
+
+      it "stays silent when nothing is below the threshold" do
+        expect(run("uncovered", "--input", json_path, "--annotate", "github", "--threshold", "0")).to eq(0)
+        expect(stdout.string).to be_empty
+      end
+
+      it "rejects an unknown annotation format" do
+        expect(run("uncovered", "--input", json_path, "--annotate", "gitlab")).to eq(1)
+        expect(stderr.string).to include("only github is supported")
+      end
+
+      it "refuses to combine --annotate with --json" do
+        expect(run("uncovered", "--input", json_path, "--annotate", "github", "--json")).to eq(1)
+        expect(stderr.string).to include("--json")
+      end
+    end
+
     it "honours --threshold" do
       run("uncovered", "--input", json_path, "--threshold", "20")
       expect(stdout.string.lines.map(&:strip)).to all(include("/abs/lib/c.rb"))

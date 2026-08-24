@@ -142,9 +142,11 @@ $ simplecov uncovered --criterion branch
 `--threshold N` filters to files below N% coverage (default `100`); `--top N` caps the list at N entries (default
 `10`); `--criterion line|branch|method` chooses which coverage to rank by (default `line`). `--missing` appends the
 missed line ranges to each row (`50.00%  5/10  lib/foo.rb  missing 4-7,9`), following the chosen criterion, so the
-list says not just where to add tests but which lines they're for. `--json` emits the rows as a JSON array (empty
-when nothing is below the threshold, with a `missing` array per row under `--missing`), useful for piping into a CI
-gate.
+list says not just where to add tests but which lines they're for. `--annotate github` emits `::warning` workflow
+commands instead of rows, one per contiguous missed range with project-relative paths, so a plain GitHub Actions
+workflow gets inline diff annotations with no upload step and no code-scanning permissions. `--json` emits the rows
+as a JSON array (empty when nothing is below the threshold, with a `missing` array per row under `--missing`),
+useful for piping into a CI gate.
 
 ### `tests` — which tests cover a file or line
 
