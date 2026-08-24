@@ -27,6 +27,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `serve`            | Serve the coverage report over HTTP                                 |
 | `watch <command…>` | Re-run `<command>` on save and live-reload the served report        |
 | `clean`            | Remove the coverage report directory                                |
+| `completions <shell>` | Emit the completion script for fish, bash, or zsh                |
 
 Run `simplecov help` for the full option listing, or `simplecov <command> --help` for a single command's.
 
@@ -343,5 +344,20 @@ before binding. It exits with an error when neither artifact exists or the JSON 
 `simplecov clean` removes the coverage report directory. `--dry-run` prints what would be removed without deleting
 anything; `-q` / `--quiet` suppresses status lines. For safety, `clean` refuses to remove the current directory, the
 project root, or any of their ancestors when `coverage_dir` resolves to one of those paths.
+
+### `completions` — tab completion for the CLI
+
+`simplecov completions fish|bash|zsh` prints a completion script for the named shell: every subcommand with its
+description, and each command's own options once a subcommand is typed. The script is generated from the same usage
+document `simplecov help` prints, so a new command or option appears in completions the moment it is documented.
+Install it where the shell looks:
+
+```sh
+$ simplecov completions fish > ~/.config/fish/completions/simplecov.fish
+$ simplecov completions bash > ~/.local/share/bash-completion/completions/simplecov
+$ simplecov completions zsh > ~/.zsh/completions/_simplecov
+```
+
+For zsh, the target directory must be in `$fpath` before `compinit` runs.
 
 

@@ -43,11 +43,11 @@ module SimpleCov
             serve                     Serve the coverage report over HTTP
             watch <command...>        Re-run <command> on save and live-reload the served report
             clean                     Remove the coverage report directory
+            completions <shell>       Emit the completion script for fish, bash, or zsh
             help                      Show this message
 
-          Every command also answers `--help` / `-h` with its own usage.
-          Default paths follow SimpleCov.coverage_dir from a project's
-          `.simplecov` when one is present (#{cli.coverage_dir} for this run).
+          Every command answers `--help` / `-h`. Default paths follow a project's
+          `.simplecov` SimpleCov.coverage_dir (#{cli.coverage_dir} for this run).
 
           coverage / show / report / status / uncovered / tests / affected / diff / patch options:
             --input PATH              Read from PATH instead of #{cli.default_input}
