@@ -1,0 +1,14 @@
+module SimpleCov
+  module CLI
+    module Show
+      # The bare-invocation project sweep.
+      module Sweep
+        def self?.misses: (Hash[String, untyped] coverage) -> Array[untyped]
+
+        def self?.emit: (Array[untyped] rows, untyped opts, untyped stdout, untyped stderr) -> Integer
+
+        def self?.display_path: (String filename) -> String
+      end
+    end
+  end
+end

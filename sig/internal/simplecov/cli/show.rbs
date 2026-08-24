@@ -11,6 +11,8 @@ module SimpleCov
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
 
+      def self?.run_project: (untyped opts, untyped stdout, untyped stderr) -> Integer
+
       def self?.parse: (untyped args) -> untyped
 
       def self?.options: (untyped parser, untyped opts) -> untyped
