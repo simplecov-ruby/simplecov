@@ -3,6 +3,7 @@
 require "optparse"
 require_relative "color"
 require_relative "cli/dotfile"
+require_relative "cli/badge"
 require_relative "cli/clean"
 require_relative "cli/completions"
 require_relative "cli/coverage_file"
@@ -50,6 +51,7 @@ module SimpleCov
       "patch" => Patch,
       "serve" => Serve,
       "watch" => Watch,
+      "badge" => Badge,
       "clean" => Clean,
       "completions" => Completions
     }.freeze

@@ -252,6 +252,98 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "badge subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-badge-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    def write_report(line: 92.5, branch: nil)
+      totals = {"lines" => {"percent" => line}}
+      totals["branches"] = {"percent" => branch} if branch
+      File.write(json_path, JSON.dump("meta" => {}, "total" => totals))
+    end
+
+    def run_badge(*argv)
+      run("badge", "--input", json_path, *argv)
+    end
+
+    it "prints a flat SVG badge with the line percent" do
+      write_report(line: 92.5)
+
+      expect(run_badge).to eq(0)
+      svg = stdout.string
+      expect(svg).to start_with("<svg xmlns=")
+      expect(svg).to include('aria-label="line coverage: 92.50%"')
+      expect(svg).to include(">92.50%</text>").and include(">line coverage</text>")
+      expect(svg).to include('fill="#4c1"')
+    end
+
+    it "follows the chosen criterion and colors the lower rungs" do
+      write_report(line: 92.5, branch: 55.0)
+
+      expect(run_badge("--criterion", "branch")).to eq(0)
+      expect(stdout.string).to include('aria-label="branch coverage: 55.00%"').and include('fill="#fe7d37"')
+    end
+
+    it "steps through the whole color ladder" do
+      colors = [95, 85, 75, 65, 55, 45].collect { |pct| described_class::Badge::Svg.color(pct) }
+      expect(colors).to eq(["#4c1", "#97ca00", "#a4a61d", "#dfb317", "#fe7d37", "#e05d44"])
+    end
+
+    it "writes the badge to a file with --output and stays quiet" do
+      write_report
+      target = File.join(tmp, "badge.svg")
+
+      expect(run_badge("--output", target)).to eq(0)
+      expect(File.read(target)).to include(">92.50%</text>")
+      expect(stdout.string).to be_empty
+    end
+
+    it "renames the label and escapes markup in it" do
+      write_report
+
+      expect(run_badge("--label", "lines <&> \"covered\"")).to eq(0)
+      expect(stdout.string).to include(">lines &lt;&amp;&gt; &quot;covered&quot;</text>")
+    end
+
+    it "errors on an unknown criterion" do
+      write_report
+
+      expect(run_badge("--criterion", "files")).to eq(1)
+      expect(stderr.string).to include("unknown --criterion :files (expected line, branch, or method)")
+    end
+
+    it "errors when the report carries no totals at all" do
+      File.write(json_path, JSON.dump("meta" => {}))
+
+      expect(run_badge).to eq(1)
+      expect(stderr.string).to include("no line totals in #{json_path}")
+    end
+
+    it "errors when the report has no totals for the criterion" do
+      write_report(line: 92.5)
+
+      expect(run_badge("--criterion", "branch")).to eq(1)
+      expect(stderr.string).to include("no branch totals in #{json_path}")
+    end
+
+    it "errors when the report is missing" do
+      expect(run_badge).to eq(1)
+      expect(stderr.string).to include(json_path)
+    end
+
+    it "passes xmllint's validation" do
+      skip "xmllint is not installed here" unless system("xmllint", "--version", out: File::NULL, err: File::NULL)
+
+      write_report
+      expect(run_badge).to eq(0)
+      file = File.join(tmp, "badge.svg")
+      File.write(file, stdout.string)
+      expect(system("xmllint", "--noout", file)).to be(true)
+    end
+  end
+
   describe "completions subcommand" do
     def shell_available?(shell)
       system(shell, "-c", "true", out: File::NULL, err: File::NULL)
@@ -298,10 +390,14 @@ RSpec.describe SimpleCov::CLI do
       expect(out).to include("'1:shell:(fish bash zsh)'")
     end
 
-    it "ignores stray section lines that precede the first option" do
-      section = "clean options:\n  a stray note\n  --dry-run                 Print what would be removed\n"
-      longs = described_class::Completions.section_options(section).collect { |option| option[:long] }
-      expect(longs).to eq(["--dry-run"])
+    it "folds wrapped descriptions into their option and ignores stray lines before the first" do
+      section = ["clean options:",
+                 "  a stray note",
+                 "  --dry-run                 Print what would",
+                 "                            be removed", ""].join("\n")
+      options = described_class::Completions.section_options(section)
+      expect(options.collect { |option| option[:long] }).to eq(["--dry-run"])
+      expect(options.first[:desc]).to eq("Print what would be removed")
     end
 
     it "leaves run's arguments to the command being run" do
@@ -321,7 +417,7 @@ RSpec.describe SimpleCov::CLI do
 
   describe "per-command help" do
     %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status
-       completions].each do |command|
+       completions badge].each do |command|
       it "answers `#{command} --help` with that command's usage" do
         expect(run(command, "--help")).to eq(0)
         expect(stdout.string).to include("Usage: simplecov #{command} [options]")

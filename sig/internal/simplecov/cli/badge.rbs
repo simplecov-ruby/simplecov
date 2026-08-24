@@ -1,0 +1,23 @@
+module SimpleCov
+  module CLI
+    # `simplecov badge` — render the report's percentage as a flat SVG
+    # badge.
+    module Badge
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      TOTAL_KEYS: Hash[Symbol, String]
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.parse: (untyped args) -> Hash[Symbol, untyped]
+
+      def self?.percent_for: (Hash[Symbol, untyped] opts, String key, untyped stderr) -> Numeric?
+
+      def self?.emit: (String svg, Hash[Symbol, untyped] opts, untyped stdout) -> Integer
+    end
+  end
+end

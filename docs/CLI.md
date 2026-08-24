@@ -17,6 +17,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `show <path>`      | Print the file's source annotated with hit counts and misses        |
 | `report`           | Print the overall summary and per-group totals                      |
 | `status`           | Report freshness: age, commit distance, recorded tests              |
+| `badge`            | Render the coverage percent as an SVG badge                         |
 | `uncovered`        | List the lowest-coverage files                                      |
 | `tests [<path>[:<line>]]` | List recorded tests for a file or line (needs `track_tests`) |
 | `affected`         | List test files touching code changed since a git ref (needs `track_tests`) |
@@ -147,6 +148,21 @@ resultset coverage/.resultset.json
 The commit distance comes from comparing the report's recorded commit with the current `HEAD`, so "is this report
 about the code I'm looking at?" has a one-command answer. A report with no test map says what to enable, and `--json`
 emits the same facts as data.
+
+### `badge` — an SVG coverage badge
+
+`simplecov badge` renders the report's percentage as a flat SVG badge in the shields.io style, with no badge service
+in the loop, so a README or a CI artifact can carry the number straight from the local report:
+
+```sh
+$ simplecov badge --output coverage/badge.svg
+```
+
+Without `--output` the SVG goes to stdout. The color follows the ladder badge services use for coverage (bright green
+at 90% and above, stepping down to red below 50%), `--criterion line|branch|method` picks which percentage the badge
+shows, and the label names the chosen criterion ("line coverage", "branch coverage", "method coverage") unless
+`--label TEXT` replaces it. The percent comes from the totals `coverage.json` already carries, so the badge always
+matches what the other read-only commands report.
 
 ### `uncovered` — list lowest-coverage files
 
