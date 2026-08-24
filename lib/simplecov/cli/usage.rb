@@ -68,6 +68,7 @@ module SimpleCov
             --top N                   Show at most N files (default: 10)
             --criterion C             line, branch, or method (default: line)
             --missing                 Append the missed line ranges to each row
+            --annotate github         Emit ::warning workflow commands instead of rows
             --json                    Emit results as a JSON array (for CI)
 
           tests options:
@@ -122,8 +123,7 @@ module SimpleCov
             --open                    Open the served report in the default browser
 
           clean options:
-            --dry-run                 Print what would be removed without
-                                      deleting anything
+            --dry-run                 Print what would be removed without deleting
             -q, --quiet               Suppress status lines
         USAGE
       end

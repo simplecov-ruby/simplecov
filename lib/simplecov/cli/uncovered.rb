@@ -5,6 +5,7 @@ require "optparse"
 require_relative "command_helpers"
 require_relative "patch/output"
 require_relative "show/annotator"
+require_relative "uncovered/misses"
 
 module SimpleCov
   module CLI
@@ -21,10 +22,23 @@ module SimpleCov
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
+        issue = precheck(opts)
+        return error(stderr, issue) if issue
+
         keys = CoverageFile::CRITERIA[opts[:criterion]]
         return unknown_criterion(opts[:criterion], stderr) unless keys
 
+        opts[:missing] = true if opts[:annotate]
         report(opts, keys, stdout, stderr)
+      end
+
+      def precheck(opts)
+        return nil unless opts[:annotate]
+        unless opts[:annotate] == "github"
+          return "unknown --annotate #{opts[:annotate].inspect} (only github is supported)"
+        end
+
+        "cannot combine --annotate with --json" if opts[:json]
       end
 
       def report(opts, keys, stdout, stderr)
@@ -32,9 +46,16 @@ module SimpleCov
         return 1 unless coverage
 
         files = rank(coverage, opts, keys).first(opts[:top])
-        return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
+        return empty(opts, stdout) if files.empty?
 
         emit(stdout, files, opts)
+        0
+      end
+
+      # An empty annotate run stays silent — a clean CI step is the
+      # answer — while the listing forms say so.
+      def empty(opts, stdout)
+        stdout.puts(empty_message(opts[:json])) unless opts[:annotate]
         0
       end
 
@@ -44,17 +65,23 @@ module SimpleCov
       end
 
       def emit(stdout, files, opts)
+        return Misses.annotate(stdout, files) if opts[:annotate]
+
         opts[:json] ? emit_json(stdout, files) : emit_text(stdout, files, SimpleCov::CLI.color_enabled?(opts, stdout))
       end
 
       def parse(args)
-        opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line, missing: false) do |o, options|
-          o.on("--threshold N", Float) { |v| options[:threshold] = v }
-          o.on("--top N", Integer)     { |v| options[:top] = validate_top(v) }
-          o.on("--criterion C")        { |v| options[:criterion] = v.to_sym }
-          o.on("--missing")            { options[:missing] = true }
-        end
+        opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line,
+                                   missing: false, annotate: nil) { |o, options| own_options(o, options) }
         opts
+      end
+
+      def own_options(parser, options)
+        parser.on("--threshold N", Float) { |v| options[:threshold] = v }
+        parser.on("--top N", Integer)     { |v| options[:top] = validate_top(v) }
+        parser.on("--criterion C")        { |v| options[:criterion] = v.to_sym }
+        parser.on("--missing")            { options[:missing] = true }
+        parser.on("--annotate KIND")      { |v| options[:annotate] = v }
       end
 
       # A negative count would raise from `Array#first`; report it as
@@ -104,25 +131,8 @@ module SimpleCov
 
       def build_row(fname, pct, payload, opts, keys)
         row = [fname, pct, payload[keys[:covered]].to_i, payload[keys[:total]].to_i]
-        row << missed_for(payload, opts[:criterion]) if opts[:missing]
+        row << Misses.missed_for(payload, opts[:criterion]) if opts[:missing]
         row
-      end
-
-      # The missed line numbers behind the chosen criterion's shortfall:
-      # zero-hit lines, or the lines missed branches and methods report
-      # on, reusing the show subcommand's extraction.
-      def missed_for(payload, criterion)
-        case criterion
-        when :line then payload["lines"].is_a?(Array) ? Show::Annotator.missed_lines(payload) : []
-        when :branch then collect_missed(payload["branches"])
-        else collect_missed(payload["methods"])
-        end
-      end
-
-      def collect_missed(items)
-        missed = [] #: Array[Integer]
-        Show::Annotator.each_missed(items) { |line| missed << line }
-        missed.uniq.sort
       end
 
       def format_row(fname, pct, covered, total, color)

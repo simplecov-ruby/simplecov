@@ -43,9 +43,12 @@ module SimpleCov
 
       def self?.build_row: (untyped fname, untyped pct, untyped payload, untyped opts, untyped keys) -> ::Array[untyped]
 
-      def self?.missed_for: (untyped payload, untyped criterion) -> ::Array[::Integer]
+      def self?.precheck: (untyped opts) -> ::String?
 
-      def self?.collect_missed: (untyped items) -> ::Array[::Integer]
+      def self?.empty: (untyped opts, untyped stdout) -> ::Integer
+
+      def self?.own_options: (untyped parser, untyped options) -> untyped
+
 
       def self?.format_row: (untyped fname, untyped pct, untyped covered, untyped total, untyped color) -> untyped
     end
