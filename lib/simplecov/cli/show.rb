@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "optparse"
 require_relative "command_helpers"
 require_relative "patch/output"
@@ -32,17 +33,19 @@ module SimpleCov
         render(located, opts, stdout, stderr)
       end
 
-      # The common trio minus --json: stdout is the annotation itself.
       def parse(args)
-        opts = {input: SimpleCov::CLI.default_input, no_color: false, uncovered_only: false} #: Hash[Symbol, untyped]
-        rest =
-          OptionParser.new do |parser|
-            parser.on("--input PATH")     { |v| opts[:input] = v }
-            parser.on("--no-color")       { opts[:no_color] = true }
-            parser.on("--uncovered-only") { opts[:uncovered_only] = true }
-          end.parse(args)
+        opts = {input: SimpleCov::CLI.default_input, no_color: false,
+                uncovered_only: false, json: false} #: Hash[Symbol, untyped]
+        rest = OptionParser.new { |parser| options(parser, opts) }.parse(args)
         opts[:path] = rest.first
         opts
+      end
+
+      def options(parser, opts)
+        parser.on("--input PATH")     { |v| opts[:input] = v }
+        parser.on("--no-color")       { opts[:no_color] = true }
+        parser.on("--uncovered-only") { opts[:uncovered_only] = true }
+        parser.on("--json")           { opts[:json] = true }
       end
 
       # [filename, entry] for the resolved path, nil after reporting an
@@ -63,6 +66,7 @@ module SimpleCov
 
       def render(located, opts, stdout, stderr)
         filename, entry = located
+        return emit_json(entry, opts, stdout) if opts[:json]
         return show_uncovered(entry, opts, stdout, stderr) if opts[:uncovered_only]
 
         source = source_for(filename, entry, opts, stderr)
@@ -70,6 +74,24 @@ module SimpleCov
 
         Annotator.call(source, entry, stdout, color: SimpleCov::CLI.color_enabled?(opts, stdout))
         0
+      end
+
+      # The whole annotation as data, for editor integrations: per-line
+      # hits for the relevant lines, the missed line numbers, and the
+      # marker labels keyed by line. Built from the coverage data alone,
+      # so it answers even when no source text is available anywhere.
+      def emit_json(entry, opts, stdout)
+        stdout.puts(JSON.pretty_generate(
+                      path: opts[:path], missed: Annotator.missed_lines(entry),
+                      lines: relevant_lines(entry), markers: Annotator.markers_for(entry)
+                    ))
+        0
+      end
+
+      def relevant_lines(entry)
+        entry["lines"].each_with_index.filter_map do |hit, index|
+          {number: index + 1, hits: hit} if hit.is_a?(Integer)
+        end
       end
 
       def show_uncovered(entry, opts, stdout, stderr)

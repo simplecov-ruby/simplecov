@@ -742,6 +742,26 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("\e[31m").and include("\e[32m")
     end
 
+    it "emits the annotation as JSON" do
+      expect(run("show", "--input", json_path, "--json", "lib/code.rb")).to eq(0)
+      parsed = JSON.parse(stdout.string)
+      expect(parsed["path"]).to eq("lib/code.rb")
+      expect(parsed["missed"]).to eq([3, 6, 7, 8, 10])
+      expect(parsed["lines"].size).to eq(8)
+      expect(parsed["lines"].first).to eq("number" => 1, "hits" => 1)
+      expect(parsed["markers"]).to include("1" => ["method missed"], "2" => ["branch missed"], "3" => ["missed"])
+    end
+
+    # JSON mode reads only the coverage data, so it answers even when
+    # neither the report nor the disk can produce the source text.
+    it "answers JSON without any source available" do
+      entry.delete("source")
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "--json", "lib/code.rb")).to eq(0)
+      expect(JSON.parse(stdout.string)["missed"]).to eq([3, 6, 7, 8, 10])
+    end
+
     it_behaves_like "a --no-color subcommand" do
       let(:no_color_argv) { ["show", "--input", json_path, "--no-color", "lib/code.rb"] }
     end

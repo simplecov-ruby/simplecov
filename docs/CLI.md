@@ -93,6 +93,10 @@ $ simplecov show --uncovered-only lib/simplecov/cli/diff.rb
 lib/simplecov/cli/diff.rb:40,52-58,71
 ```
 
+`--json` emits the whole annotation as data for editor integrations: the path, the missed line numbers, per-line hits
+for the relevant lines, and the marker labels keyed by line. It reads only the coverage data, so it answers even when
+no source text is available.
+
 Colors follow the same `NO_COLOR`, `FORCE_COLOR`, and `--no-color` rules as everywhere else. The source comes from
 the report itself when it embeds one (`source_in_json`), and otherwise from disk, accepted only while the file's
 line count still matches the report's, since annotating drifted source would put hit counts on the wrong lines.
