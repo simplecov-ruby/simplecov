@@ -93,6 +93,10 @@ $ simplecov show --uncovered-only lib/simplecov/cli/diff.rb
 lib/simplecov/cli/diff.rb:40,52-58,71
 ```
 
+With no path at all, `--uncovered-only` sweeps the whole project — one `path:ranges` line per file with misses — so a
+single command produces the complete "everything untested" list. A bare `--json` emits the same sweep as an array of
+`{path, missed}` objects.
+
 `--json` emits the whole annotation as data for editor integrations: the path, the missed line numbers, per-line hits
 for the relevant lines, and the marker labels keyed by line. It reads only the coverage data, so it answers even when
 no source text is available.

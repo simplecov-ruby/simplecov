@@ -5,6 +5,7 @@ require "optparse"
 require_relative "command_helpers"
 require_relative "patch/output"
 require_relative "show/annotator"
+require_relative "show/sweep"
 
 module SimpleCov
   module CLI
@@ -22,7 +23,7 @@ module SimpleCov
 
       def run(args, stdout:, stderr:)
         opts = parse(args)
-        return error(stderr, "missing path (usage: simplecov show <path>)") unless opts[:path]
+        return run_project(opts, stdout, stderr) unless opts[:path]
 
         coverage = CoverageFile.load_coverage(opts[:input], command: "show", stderr: stderr)
         return 1 unless coverage
@@ -31,6 +32,21 @@ module SimpleCov
         return 1 unless located
 
         render(located, opts, stdout, stderr)
+      end
+
+      # No path sweeps the whole project, in the compact forms only —
+      # `--uncovered-only` prints one `path:ranges` line per file with
+      # misses, and `--json` the same as data. The annotated text form
+      # still wants one file.
+      def run_project(opts, stdout, stderr)
+        unless opts[:uncovered_only] || opts[:json]
+          return error(stderr, "missing path (annotating needs one file; --uncovered-only sweeps the whole project)")
+        end
+
+        coverage = CoverageFile.load_coverage(opts[:input], command: "show", stderr: stderr)
+        return 1 unless coverage
+
+        Sweep.emit(Sweep.misses(coverage), opts, stdout, stderr)
       end
 
       def parse(args)

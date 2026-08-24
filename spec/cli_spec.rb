@@ -744,6 +744,38 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("lib/code.rb:3,6-8,10\n")
     end
 
+    it "sweeps the whole project under a bare --uncovered-only" do
+      payload["coverage"][File.join(SimpleCov.root, "lib/rooted.rb")] = {"lines" => [1, 0, 0, nil, 0]}
+      payload["coverage"][File.join(tmp, "lib/covered.rb")] = {"lines" => [1, 1]}
+      payload["coverage"][File.join(tmp, "lib/junk.rb")] = "junk"
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
+      expect(stdout.string).to eq(<<~OUT)
+        #{code_path}:3,6-8,10
+        lib/rooted.rb:2-3,5
+      OUT
+    end
+
+    it "reports a missing input on a bare sweep like everywhere else" do
+      expect(run("show", "--input", File.join(tmp, "nope.json"), "--uncovered-only")).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+
+    it "notes a fully covered project under a bare --uncovered-only" do
+      entry["lines"] = [1, 1, 1, nil, nil, 1, 1, 1, 1, 1]
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
+      expect(stdout.string).to be_empty
+      expect(stderr.string).to eq("simplecov show: nothing uncovered\n")
+    end
+
+    it "emits the project sweep as JSON" do
+      expect(run("show", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq([{"path" => code_path, "missed" => [3, 6, 7, 8, 10]}])
+    end
+
     it "notes a fully covered file under --uncovered-only instead of printing" do
       entry["lines"] = [1, 1, 1, nil, nil, 1, 1, 1, 1, 1]
       File.write(json_path, JSON.dump(payload))
