@@ -27,6 +27,7 @@ module SimpleCov
         path = SimpleCov::CLI.default_report
         OptionParser.new do |o|
           o.on("--report PATH") { |v| path = v }
+          on_help(o)
         end.parse(args)
         path
       end

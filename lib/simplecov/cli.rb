@@ -98,6 +98,9 @@ module SimpleCov
     # exit status 1 instead of an unhandled-exception backtrace.
     def dispatch(handler, command, rest, stdout:, stderr:)
       handler.run(rest, stdout: stdout, stderr: stderr)
+    rescue CommandHelpers::HelpRequested
+      stdout.puts(Usage.for(self, command))
+      0
     rescue OptionParser::ParseError => e
       stderr.puts("simplecov #{command}: #{e.message} (run `simplecov help` for usage)")
       1

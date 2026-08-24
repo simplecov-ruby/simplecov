@@ -27,7 +27,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `watch <command…>` | Re-run `<command>` on save and live-reload the served report        |
 | `clean`            | Remove the coverage report directory                                |
 
-Run `simplecov help` for the full option listing.
+Run `simplecov help` for the full option listing, or `simplecov <command> --help` for a single command's.
 
 ### `run` — run a suite with coverage
 

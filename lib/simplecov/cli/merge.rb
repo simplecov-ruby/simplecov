@@ -52,6 +52,7 @@ module SimpleCov
             o.on("--honor-timeout") { opts[:honor_timeout] = true }
             o.on("--dry-run") { opts[:dry_run] = true }
             o.on("-q", "--quiet") { opts[:quiet] = true }
+            on_help(o)
           end.parse(args)
         opts.merge(files: files)
       end

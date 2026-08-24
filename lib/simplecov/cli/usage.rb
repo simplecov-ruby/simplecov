@@ -7,6 +7,21 @@ module SimpleCov
     module Usage
     module_function
 
+      # The full text filtered to one command, for `<command> --help`:
+      # a usage line, the command's row from the Commands table, and
+      # every options section that names it.
+      def for(cli, command)
+        sections = text(cli).split("\n\n")
+        row = sections.fetch(1).lines.find { |line| line.match?(/\A  #{Regexp.escape(command)}[ \[]/) }
+        options = sections.select { |section| section_for?(section, command) }
+        ["Usage: simplecov #{command} [options]", row&.strip, *options].compact.join("\n\n")
+      end
+
+      def section_for?(section, command)
+        header = section.lines.first.to_s.strip
+        header.end_with?("options:") && header.delete_suffix("options:").split(%r{[\s/]+}).include?(command)
+      end
+
       def text(cli)
         <<~USAGE
           Usage: simplecov <command> [options]
@@ -30,6 +45,7 @@ module SimpleCov
             clean                     Remove the coverage report directory
             help                      Show this message
 
+          Every command also answers `--help` / `-h` with its own usage.
           Default paths follow SimpleCov.coverage_dir from a project's
           `.simplecov` when one is present (#{cli.coverage_dir} for this run).
 

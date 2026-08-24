@@ -57,6 +57,31 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "per-command help" do
+    %w[coverage show report uncovered tests affected merge diff patch open serve watch clean].each do |command|
+      it "answers `#{command} --help` with that command's usage" do
+        expect(run(command, "--help")).to eq(0)
+        expect(stdout.string).to include("Usage: simplecov #{command} [options]")
+        expect(stderr.string).to be_empty
+      end
+    end
+
+    it "shows the command's options and not the others'" do
+      expect(run("affected", "-h")).to eq(0)
+      expect(stdout.string).to include("affected options:").and include("--base REF").and include("--input PATH")
+      expect(stdout.string).not_to include("merge options:")
+    end
+
+    it "names the command in the header row" do
+      expect(run("watch", "--help")).to eq(0)
+      expect(stdout.string).to include("Re-run <command> on save")
+    end
+
+    it "degrades to a bare usage line for a name with no listing" do
+      expect(described_class::Usage.for(described_class, "bogus")).to eq("Usage: simplecov bogus [options]")
+    end
+  end
+
   describe ".coverage_dir" do
     # Reset memoization between examples so each one sees a fresh
     # discovery from its own cwd.

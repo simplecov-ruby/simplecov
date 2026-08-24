@@ -46,6 +46,7 @@ module SimpleCov
         parser.on("--no-color")       { opts[:no_color] = true }
         parser.on("--uncovered-only") { opts[:uncovered_only] = true }
         parser.on("--json")           { opts[:json] = true }
+        on_help(parser)
       end
 
       # [filename, entry] for the resolved path, nil after reporting an
