@@ -16,6 +16,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `coverage <path>`  | Print coverage stats for a single file                              |
 | `show <path>`      | Print the file's source annotated with hit counts and misses        |
 | `report`           | Print the overall summary and per-group totals                      |
+| `status`           | Report freshness: age, commit distance, recorded tests              |
 | `uncovered`        | List the lowest-coverage files                                      |
 | `tests [<path>[:<line>]]` | List recorded tests for a file or line (needs `track_tests`) |
 | `affected`         | List test files touching code changed since a git ref (needs `track_tests`) |
@@ -124,6 +125,27 @@ so even a configured group named `All Files` remains distinct from the overall t
 ```json
 {"total":{"lines":{"percent":99.75,"covered":1638,"total":1642}},"groups":{"Models":{"lines":{"percent":100.0,"covered":400,"total":400}}}}
 ```
+
+### `status` — is the report fresh?
+
+Every change-aware command distrusts a stale report; `simplecov status` says whether yours is, from metadata the
+artifacts have carried all along:
+
+```sh
+$ simplecov status
+report coverage/coverage.json
+  generated 2026-08-24T09:12:33Z (18 minutes ago)
+  by simplecov 1.1.1 running RSpec
+  commit 4eccdbb (3 commits behind HEAD)
+  line 92.50%, branch 88.00%
+  tests recorded: 214 (track_tests)
+resultset coverage/.resultset.json
+  RSpec: 18 minutes ago
+```
+
+The commit distance comes from comparing the report's recorded commit with the current `HEAD`, so "is this report
+about the code I'm looking at?" has a one-command answer. A report with no test map says what to enable, and `--json`
+emits the same facts as data.
 
 ### `uncovered` — list lowest-coverage files
 

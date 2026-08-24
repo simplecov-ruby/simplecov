@@ -28,11 +28,11 @@ module SimpleCov
 
           Commands:
             run <command...>          Execute <command> with simplecov pre-loaded
-                                      (so a coverage report is generated even
-                                      when the project has no test_helper hook)
+                                      (works without a test_helper hook)
             coverage <path>           Print coverage stats for the given file
             show <path>               Print the file's source annotated with hit counts and misses
             report                    Print the overall summary and group totals
+            status                    Report freshness: age, commit distance, recorded tests
             uncovered                 List the lowest-coverage files
             tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
             affected                  List test files touching code changed since a git ref (needs track_tests)
@@ -49,7 +49,7 @@ module SimpleCov
           Default paths follow SimpleCov.coverage_dir from a project's
           `.simplecov` when one is present (#{cli.coverage_dir} for this run).
 
-          coverage / show / report / uncovered / tests / affected / diff / patch options:
+          coverage / show / report / status / uncovered / tests / affected / diff / patch options:
             --input PATH              Read from PATH instead of #{cli.default_input}
             --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
@@ -62,6 +62,9 @@ module SimpleCov
 
           report options:
             --json                    Emit totals and group sections as JSON
+
+          status options:
+            --json                    Emit the freshness facts as a JSON object
 
           uncovered options:
             --threshold N             Only show files below N% coverage
@@ -77,15 +80,13 @@ module SimpleCov
           affected options:
             --base REF                Diff against the merge base of REF and
                                       HEAD (default: origin's HEAD, else main)
-            --run <command...>        Run <command> (everything after --run) with the
-                                      selected test files appended, or bare when
-                                      falling back to the full suite; exits with
-                                      the command's own status
+            --run <command...>        Run <command> (all args after --run) with the
+                                      selection appended, or bare on a full-suite
+                                      fallback; exits with the command's status
             --json                    Emit {full_suite, triggers, tests} as a JSON object
 
           merge options:
-            --output PATH             Write merged resultset to PATH
-                                      (default: #{cli.default_resultset})
+            --output PATH             Write merged resultset to PATH (default: #{cli.default_resultset})
             --honor-timeout           Drop entries older than merge_timeout
             --dry-run                 Print what would be written without writing
             -q, --quiet               Suppress the success status line

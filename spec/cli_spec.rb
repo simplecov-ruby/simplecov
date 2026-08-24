@@ -103,8 +103,157 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "status subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-status-spec-") }
+    let(:json_path) { File.join(tmp, "coverage.json") }
+    let(:resultset_path) { File.join(tmp, ".resultset.json") }
+
+    before { allow(described_class).to receive(:default_resultset).and_return(resultset_path) }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    def repo!
+      system("git", "-C", tmp, "init", "-q", "-b", "main", exception: true)
+      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
+      2.times do |index|
+        system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
+               "commit", "-q", "--allow-empty", "-m", "c#{index}", exception: true)
+      end
+    end
+
+    def write_report(commit: nil, contexts: nil, generated: Time.now - 120)
+      meta = {"simplecov_version" => "9.9.9", "command_name" => "RSpec", "timestamp" => generated.iso8601(3)}
+      meta["commit"] = commit if commit
+      document = {"meta" => meta, "total" => {"lines" => {"percent" => 92.5}, "branches" => {"percent" => 88.0}}}
+      document["contexts"] = contexts if contexts
+      File.write(json_path, JSON.dump(document))
+    end
+
+    def run_status(*argv)
+      Dir.chdir(tmp) { run("status", "--input", json_path, *argv) }
+    end
+
+    def write_stale_fixture
+      repo!
+      first_commit = Dir.chdir(tmp) { `git rev-parse HEAD~1`.strip }
+      write_report(commit: first_commit, contexts: ["spec/a_spec.rb:1", "spec/b_spec.rb:2"])
+      File.write(resultset_path, JSON.dump("RSpec" => {"coverage" => {}, "timestamp" => (Time.now - 300).to_i}))
+      first_commit
+    end
+
+    it "reports the report's age, run, and commit distance" do
+      first_commit = write_stale_fixture
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("report #{json_path}")
+      expect(stdout.string).to include("generated").and include("(2 minutes ago)")
+      expect(stdout.string).to include("by simplecov 9.9.9 running RSpec")
+      expect(stdout.string).to include("commit #{first_commit[0, 7]} (1 commit behind HEAD)")
+    end
+
+    it "reports totals, the recorded tests, and the resultset's entries" do
+      write_stale_fixture
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("line 92.50%, branch 88.00%")
+      expect(stdout.string).to include("tests recorded: 2 (track_tests)")
+      expect(stdout.string).to include("resultset #{resultset_path}")
+      expect(stdout.string).to include("RSpec: 5 minutes ago")
+    end
+
+    it "reads a report at the current HEAD as current" do
+      repo!
+      head = Dir.chdir(tmp) { `git rev-parse HEAD`.strip }
+      write_report(commit: head)
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("commit #{head[0, 7]} (current HEAD)")
+    end
+
+    it "degrades when the report records no commit and no git is around" do
+      write_report
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("commit not recorded")
+      expect(stdout.string).to include("tests recorded: none (enable track_tests")
+      expect(stdout.string).to include("resultset none")
+    end
+
+    it "marks a commit outside this repository's history" do
+      repo!
+      write_report(commit: "0" * 40)
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("(not in this repository's history)")
+    end
+
+    it "counts plural commits behind" do
+      repo!
+      system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
+             "commit", "-q", "--allow-empty", "-m", "c2", exception: true)
+      first_commit = Dir.chdir(tmp) { `git rev-parse HEAD~2`.strip }
+      write_report(commit: first_commit)
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("(2 commits behind HEAD)")
+    end
+
+    it "degrades around a minimal document and malformed resultset entries" do
+      File.write(json_path, JSON.dump({}))
+      File.write(resultset_path, JSON.dump("Broken" => "junk", "NoStamp" => {"coverage" => {}}))
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("commit not recorded")
+      expect(stdout.string).to include("Broken: age unknown").and include("NoStamp: age unknown")
+      expect(stdout.string).not_to include("generated")
+    end
+
+    it "shrugs at an unparseable timestamp and a non-object resultset" do
+      write_report
+      document = JSON.parse(File.read(json_path))
+      document["meta"]["timestamp"] = "junk"
+      File.write(json_path, JSON.dump(document))
+      File.write(resultset_path, "[]")
+
+      expect(run_status).to eq(0)
+      expect(stdout.string).to include("generated junk\n")
+      expect(stdout.string).to include("resultset none")
+    end
+
+    it "emits the same facts as JSON" do
+      repo!
+      head = Dir.chdir(tmp) { `git rev-parse HEAD`.strip }
+      write_report(commit: head, contexts: ["spec/a_spec.rb:1"])
+
+      expect(run_status("--json")).to eq(0)
+      parsed = JSON.parse(stdout.string)
+      expect(parsed["commit"]).to eq(head)
+      expect(parsed["behind"]).to eq(0)
+      expect(parsed["contexts"]).to eq(1)
+      expect(parsed["totals"]).to eq("line" => 92.5, "branch" => 88.0)
+    end
+
+    it "errors like every reader when the report is missing" do
+      expect(run_status).to eq(1)
+      expect(stderr.string).to include("not found")
+    end
+
+    it "documents itself in the usage text" do
+      expect(run("help")).to eq(0)
+      expect(stdout.string).to include("status")
+    end
+
+    it "speaks ages in sensible units" do
+      words = described_class::Status.method(:age_in_words)
+      expect(words.call(45)).to eq("45 seconds")
+      expect(words.call(600)).to eq("10 minutes")
+      expect(words.call(7200)).to eq("2 hours")
+      expect(words.call(200_000)).to eq("2 days")
+    end
+  end
+
   describe "per-command help" do
-    %w[coverage show report uncovered tests affected merge diff patch open serve watch clean].each do |command|
+    %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status].each do |command|
       it "answers `#{command} --help` with that command's usage" do
         expect(run(command, "--help")).to eq(0)
         expect(stdout.string).to include("Usage: simplecov #{command} [options]")
