@@ -15,6 +15,10 @@ module SimpleCov
 
       def self?.bind: (untyped opts, untyped stderr) -> untyped
 
+      def self?.serve_session: (untyped server, Array[String] command, untyped opts, untyped stdout, untyped stderr) -> Integer
+
+      def self?.launch_browser: (untyped server, untyped stderr) -> untyped
+
       def self?.session_for: (Array[String] command, untyped opts, untyped stdout, untyped stderr) -> Session
     end
   end

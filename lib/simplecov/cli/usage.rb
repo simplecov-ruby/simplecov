@@ -101,6 +101,7 @@ module SimpleCov
             --port N                  Bind to port N (default: random open port)
             --host HOST               Bind to HOST (default: 127.0.0.1)
             --interval SECONDS        Poll the tracked files this often (default: 0.5)
+            --open                    Open the served report in the default browser
 
           clean options:
             --dry-run                 Print what would be removed without

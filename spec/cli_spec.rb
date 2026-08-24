@@ -2601,6 +2601,44 @@ RSpec.describe SimpleCov::CLI do
       expect(command).to eq(["bundle", "exec", "rspec", "--seed", "1"])
     end
 
+    it "opens the served report in the browser under --open" do
+      write_report
+      opened = Queue.new
+      allow(described_class::Watch).to receive(:launch_browser) { |server, _stderr| opened << server.addr[1] }
+      thread, port = start_watch("--open", *fake_suite)
+      begin
+        expect(Timeout.timeout(10) { opened.pop }).to eq(port)
+      ensure
+        stop_watch(thread)
+      end
+    end
+
+    it "hands the report URL to the platform opener" do
+      server = instance_double(TCPServer, addr: ["AF_INET", 53_422, "localhost", "127.0.0.1"])
+      allow(described_class::Open).to receive(:browser_opener).and_return(["fake-open"])
+      allow(described_class::Watch).to receive(:spawn).and_return(4242)
+      allow(Process).to receive(:detach)
+
+      described_class::Watch.launch_browser(server, stderr)
+
+      expect(described_class::Watch).to have_received(:spawn) do |*argv, **options|
+        expect(argv).to eq(["fake-open", "http://127.0.0.1:53422/"])
+        expect(options).to include(out: File::NULL, err: File::NULL)
+      end
+      expect(Process).to have_received(:detach).with(4242)
+    end
+
+    it "degrades to a note when the platform has no known opener" do
+      server = instance_double(TCPServer, addr: ["AF_INET", 53_422, "localhost", "127.0.0.1"])
+      allow(described_class::Open).to receive(:browser_opener).and_return(nil)
+      allow(Process).to receive(:spawn)
+
+      described_class::Watch.launch_browser(server, stderr)
+
+      expect(Process).not_to have_received(:spawn)
+      expect(stderr.string).to include("http://127.0.0.1:53422/").and include("open it yourself")
+    end
+
     describe SimpleCov::CLI::Watch::Poller do
       let(:poller) { described_class.new }
       let(:file) { File.join(tmp, "a.rb") }

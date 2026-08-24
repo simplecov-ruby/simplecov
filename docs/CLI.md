@@ -293,7 +293,7 @@ mtime with no filesystem-event dependency, which also keeps writes to the covera
 The command is the project's own test invocation and must generate the report, so a project with no
 `SimpleCov.start` hook composes `simplecov watch simplecov run bundle exec rake test`. Child runs get a day-long
 merge window through the `SIMPLECOV_MERGE_TIMEOUT` environment variable, so subset re-runs keep merging into a whole
-report across a long session. `--port` and `--host` bind like `serve`, and `--interval SECONDS` tunes the poll
+report across a long session. `--port` and `--host` bind like `serve`, `--interval SECONDS` tunes the poll, and `--open` pops the report in the default browser on start
 (default 0.5). The report on disk stays byte-identical to a plain run's; the reload listener joins it only on the
 way out of the server.
 

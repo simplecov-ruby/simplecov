@@ -2,6 +2,7 @@
 
 require "optparse"
 require_relative "command_helpers"
+require_relative "open"
 require_relative "serve"
 require_relative "affected"
 require_relative "watch/poller"
@@ -36,23 +37,41 @@ module SimpleCov
         server = bind(opts, stderr)
         return 1 unless server
 
-        begin
-          session_for(command, opts, stdout, stderr).run(server)
-        ensure
-          server.close
+        serve_session(server, command, opts, stdout, stderr)
+      end
+
+      def serve_session(server, command, opts, stdout, stderr)
+        launch_browser(server, stderr) if opts[:open]
+        session_for(command, opts, stdout, stderr).run(server)
+      ensure
+        server.close
+      end
+
+      # Fire-and-forget through the same platform opener `simplecov
+      # open` uses, detached so the session never waits on a browser. A
+      # platform with no known opener notes the URL instead of failing
+      # the watch.
+      def launch_browser(server, stderr)
+        url = "http://#{Serve.url_host(server.addr[3])}:#{server.addr[1]}/"
+        opener = Open.browser_opener
+        unless opener
+          return stderr.puts("simplecov watch: no known browser opener for this platform, open it yourself: #{url}")
         end
+
+        Process.detach(spawn(*opener, url, out: File::NULL, err: File::NULL))
       end
 
       # `order` (not `parse`) stops at the first positional, so the
       # runner command keeps its own flags: `simplecov watch bundle exec
       # rspec --seed 1` passes --seed through untouched.
       def parse(args)
-        opts = {port: 0, host: "127.0.0.1", interval: 0.5} #: Hash[Symbol, untyped]
+        opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false} #: Hash[Symbol, untyped]
         rest =
           OptionParser.new do |parser|
             parser.on("--port N", Integer)           { |v| opts[:port] = v }
             parser.on("--host HOST")                 { |v| opts[:host] = v }
             parser.on("--interval SECONDS", Float)   { |v| opts[:interval] = v }
+            parser.on("--open")                      { opts[:open] = true }
           end.order(args)
         [opts, rest]
       end
