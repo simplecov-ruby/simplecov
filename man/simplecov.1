@@ -1,0 +1,284 @@
+.TH SIMPLECOV 1 "2026-08-24" "simplecov 1.1.1" "User Commands"
+.SH NAME
+simplecov \- coverage reports and questions from the terminal
+.SH SYNOPSIS
+.B simplecov
+.I command
+.RI [ options ]
+.SH DESCRIPTION
+The simplecov command reads the JSON report a SimpleCov run writes next to its
+HTML report (coverage/coverage.json by default) and answers coverage questions
+from the terminal. Default paths follow SimpleCov.coverage_dir from a
+project's .simplecov when one is present. Every command answers \-\-help with
+its own usage.
+.SH COMMANDS
+.TP
+.B run <command...>
+Execute <command> with simplecov pre\-loaded
+.TP
+.B coverage <path>
+Print coverage stats for the given file
+.TP
+.B show <path>
+Print the file's source annotated with hit counts and misses
+.TP
+.B report
+Print the overall summary and group totals
+.TP
+.B status
+Report freshness: age, commit distance, recorded tests
+.TP
+.B badge
+Render the coverage percent as an SVG badge
+.TP
+.B uncovered
+List the lowest\-coverage files
+.TP
+.B tests [<path>[:<line>]]
+List recorded tests for a file or line (needs track_tests)
+.TP
+.B affected
+List test files touching code changed since a git ref (needs track_tests)
+.TP
+.B merge <files...>
+Merge multiple .resultset.json files
+.TP
+.B diff <baseline>
+Show per\-file coverage delta vs baseline
+.TP
+.B patch
+Show coverage of the lines a change touched
+.TP
+.B open
+Open the HTML report in the default browser
+.TP
+.B serve
+Serve the coverage report over HTTP
+.TP
+.B watch <command...>
+Re\-run <command> on save and live\-reload the served report
+.TP
+.B clean
+Remove the coverage report directory
+.TP
+.B completions <shell>
+Emit the completion script for fish, bash, or zsh
+.TP
+.B help
+Show this message
+.SH OPTIONS
+.SS coverage
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-json
+Print the file's JSON entry verbatim
+.SS show
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-uncovered\-only
+Print only <path>:<ranges> of the missed lines
+.TP
+.B \-\-json
+Emit path, missed lines, per\-line hits, and markers as JSON
+.SS report
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-json
+Emit totals and group sections as JSON
+.SS status
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-json
+Emit the freshness facts as a JSON object
+.SS badge
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-output PATH
+Write the badge to PATH instead of stdout
+.TP
+.B \-\-criterion C
+line, branch, or method (default: line)
+.TP
+.B \-\-label TEXT
+The badge's left\-side text (default: the criterion's, like "line coverage")
+.SS uncovered
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-threshold N
+Only show files below N% coverage
+.TP
+.B \-\-top N
+Show at most N files (default: 10)
+.TP
+.B \-\-criterion C
+line, branch, or method (default: line)
+.TP
+.B \-\-missing
+Append the missed line ranges to each row
+.TP
+.B \-\-annotate github
+Emit ::warning workflow commands instead of rows
+.TP
+.B \-\-json
+Emit results as a JSON array (for CI)
+.SS tests
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-json
+Emit the test ids as a JSON array
+.SS affected
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-base REF
+Diff against the merge base of REF and HEAD (default: origin's HEAD, else
+main)
+.TP
+.B \-\-run <command...>
+Run <command> (all args after \-\-run) with the selection appended, or bare on
+a full\-suite fallback, exiting with the command's status
+.TP
+.B \-\-json
+Emit {full_suite, triggers, tests} as a JSON object
+.SS merge
+.TP
+.B \-\-output PATH
+Write merged resultset to PATH (default: coverage/.resultset.json)
+.TP
+.B \-\-honor\-timeout
+Drop entries older than merge_timeout
+.TP
+.B \-\-dry\-run
+Print what would be written without writing
+.TP
+.B \-q, \-\-quiet
+Suppress the success status line
+.SS diff
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-fail\-on\-drop
+Exit non\-zero when any file's coverage dropped vs baseline (deletions don't
+count)
+.TP
+.B \-\-json
+Emit results as a JSON array (for CI)
+.TP
+.B \-\-threshold N
+Only show files whose absolute delta in any criterion is at least N%
+.SS patch
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-base REF
+Diff against the merge\-base of REF for the touched lines (default: origin's
+HEAD, else main, or in CI the PR's target branch)
+.TP
+.B \-\-minimum N
+Exit non\-zero when patch coverage (covered / coverable touched lines) is
+below N%
+.TP
+.B \-\-find\-renames
+Follow a renamed file instead of counting the moved file as all\-new
+.TP
+.B \-\-json
+Emit results as a JSON array (for CI)
+.SS open
+.TP
+.B \-\-report PATH
+Open PATH instead of coverage/index.html
+.SS serve
+.TP
+.B \-\-port N
+Bind to port N (default: random open port)
+.TP
+.B \-\-host HOST
+Bind to HOST (default: 127.0.0.1)
+.SS watch
+.TP
+.B \-\-port N
+Bind to port N (default: random open port)
+.TP
+.B \-\-host HOST
+Bind to HOST (default: 127.0.0.1)
+.TP
+.B \-\-interval SECONDS
+Poll the tracked files this often (default: 0.5)
+.TP
+.B \-\-open
+Open the served report in the default browser
+.SS clean
+.TP
+.B \-\-dry\-run
+Print what would be removed without deleting
+.TP
+.B \-q, \-\-quiet
+Suppress status lines
+.SH ENVIRONMENT
+.TP
+.B NO_COLOR
+Disable colorized output. FORCE_COLOR forces it on, and \-\-no\-color beats
+both.
+.TP
+.B SIMPLECOV_MERGE_TIMEOUT
+Override merge_timeout in seconds. The watch command sets it for child runs so
+subset re\-runs keep merging into a whole report.
+.SH FILES
+.TP
+.B coverage/coverage.json
+The JSON report the read\-only commands consume. The bundled HTML formatter
+writes it alongside index.html.
+.TP
+.B coverage/.resultset.json
+The merged raw resultset the merge command reads and writes.
+.TP
+.B .simplecov
+Project configuration. Its SimpleCov.coverage_dir setting moves every default
+path above.
+.SH SEE ALSO
+Full documentation with examples for every command lives in docs/CLI.md in the
+source tree and at https://github.com/simplecov\-ruby/simplecov
