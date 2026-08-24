@@ -29,16 +29,16 @@ module SimpleCov
     module Patch
       extend CommandHelpers
 
-      # The default when `--base` is omitted; overridden in CI with the
-      # target branch (or its merge-base) the change is compared against.
-      DEFAULT_BASE = "main"
-
     module_function
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args, stderr)
         return 1 unless opts
 
+        # An omitted --base resolves through origin's HEAD, so master
+        # and trunk repositories work bare; in CI, pass the pull
+        # request's target branch (or its merge-base) explicitly.
+        opts[:base] ||= Git.default_base
         diffed = ChangedLines.call(opts[:base], find_renames: opts[:find_renames], stderr: stderr)
         return 1 unless diffed
 
@@ -48,7 +48,7 @@ module SimpleCov
       end
 
       def parse(args, stderr)
-        opts, rest = parse_common(args, base: DEFAULT_BASE, find_renames: false, minimum: nil) do |parser, options|
+        opts, rest = parse_common(args, base: nil, find_renames: false, minimum: nil) do |parser, options|
           parser.on("--base REF") { |v| options[:base] = v }
           parser.on("--minimum N", Float) { |v| options[:minimum] = v }
           parser.on("--find-renames") { options[:find_renames] = true }

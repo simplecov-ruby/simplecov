@@ -40,7 +40,7 @@ module SimpleCov
         contexts = recorded_contexts(document, opts, stderr)
         return 1 unless contexts
 
-        diffed = ChangedFiles.call(opts[:base], stderr)
+        diffed = ChangedFiles.call(opts[:base] ||= Git.default_base, stderr)
         return 1 unless diffed
 
         respond(diffed, document, contexts, opts, stdout: stdout, stderr: stderr)
@@ -48,7 +48,7 @@ module SimpleCov
 
       def parse(args)
         head, runner = split_runner(args)
-        opts, rest = parse_common(head, base: "main", run: runner) do |parser, into|
+        opts, rest = parse_common(head, base: nil, run: runner) do |parser, into|
           parser.on("--base REF") { |v| into[:base] = v }
         end
         opts[:rest] = rest

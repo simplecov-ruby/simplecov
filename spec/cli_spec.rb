@@ -57,6 +57,52 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe SimpleCov::CLI::Git do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-git-spec-") }
+
+    after { FileUtils.rm_rf(tmp) }
+
+    def repo!(branch)
+      system("git", "-C", tmp, "init", "-q", "-b", branch, exception: true)
+      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
+      system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
+             "commit", "-q", "--allow-empty", "-m", "init", exception: true)
+    end
+
+    describe ".default_base" do
+      it "resolves the branch origin's HEAD points at" do
+        repo!("trunk")
+        system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
+        system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
+               "refs/remotes/origin/trunk", exception: true)
+
+        expect(Dir.chdir(tmp) { described_class.default_base }).to eq("trunk")
+      end
+
+      it "falls back to main when no origin HEAD is recorded" do
+        repo!("main")
+        expect(Dir.chdir(tmp) { described_class.default_base }).to eq("main")
+      end
+    end
+
+    describe ".capture" do
+      it "reads a spawn failure as an unsuccessful run carrying the message" do
+        allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git")
+        stdout, detail, success = described_class.capture("status")
+        expect(stdout).to be_nil
+        expect(detail).to include("git")
+        expect(success).to be(false)
+      end
+    end
+
+    describe ".option_like_ref?" do
+      it "flags refs git would parse as options" do
+        expect(described_class.option_like_ref?("--output=x")).to be(true)
+        expect(described_class.option_like_ref?("main")).to be(false)
+      end
+    end
+  end
+
   describe "per-command help" do
     %w[coverage show report uncovered tests affected merge diff patch open serve watch clean].each do |command|
       it "answers `#{command} --help` with that command's usage" do
@@ -896,6 +942,18 @@ RSpec.describe SimpleCov::CLI do
       expect(run_in_repo("affected", "--input", json_path)).to eq(0)
       expect(stdout.string).to be_empty
       expect(stderr.string).to eq("simplecov affected: no changes against main\n")
+    end
+
+    # A repository whose default branch is trunk (or master) works
+    # bare: the omitted --base resolves through origin's HEAD.
+    it "defaults the base to the branch origin's HEAD points at" do
+      system("git", "-C", tmp, "branch", "-m", "main", "trunk", exception: true)
+      system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
+      system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
+             "refs/remotes/origin/trunk", exception: true)
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stderr.string).to eq("simplecov affected: no changes against trunk\n")
     end
 
     it "still emits a JSON object when nothing differs from the base" do
@@ -1802,6 +1860,14 @@ RSpec.describe SimpleCov::CLI do
 
       expect(run_in_repo("patch", "--base", "does-not-exist", "--input", cov)).to eq(1)
       expect(stderr.string).to include("could not run `git diff`")
+    end
+
+    it "resolves an omitted --base through origin's HEAD" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      allow(SimpleCov::CLI::Git).to receive(:default_base).and_return("main")
+
+      expect(run_in_repo("patch", "--input", cov)).to eq(0)
+      expect(SimpleCov::CLI::Git).to have_received(:default_base)
     end
 
     it "errors when the coverage input is missing" do
