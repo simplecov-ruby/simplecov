@@ -1,0 +1,20 @@
+module SimpleCov
+  module CLI
+    module Status
+      # Gathers the freshness facts from the artifacts.
+      module Facts
+        def self?.gather: (Hash[String, untyped] document, String resultset_path) -> Hash[Symbol, untyped]
+
+        def self?.meta_facts: (Hash[String, untyped] document) -> Hash[Symbol, untyped]
+
+        def self?.parse_time: (untyped value) -> Time?
+
+        def self?.behind: (untyped commit) -> Integer?
+
+        def self?.totals: (untyped total) -> Hash[String, untyped]
+
+        def self?.resultset: (String path) -> Array[Hash[Symbol, untyped]]?
+      end
+    end
+  end
+end

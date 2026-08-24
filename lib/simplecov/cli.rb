@@ -14,6 +14,7 @@ require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
 require_relative "cli/show"
+require_relative "cli/status"
 require_relative "cli/tests"
 require_relative "cli/affected"
 require_relative "cli/uncovered"
@@ -39,6 +40,7 @@ module SimpleCov
       "run" => Run,
       "open" => Open,
       "report" => Report,
+      "status" => Status,
       "uncovered" => Uncovered,
       "tests" => Tests,
       "affected" => Affected,

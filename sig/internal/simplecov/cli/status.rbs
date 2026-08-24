@@ -1,0 +1,34 @@
+module SimpleCov
+  module CLI
+    # `simplecov status` — the freshness diagnostic.
+    module Status
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.print_facts: (Hash[Symbol, untyped] facts, untyped opts, untyped stdout) -> untyped
+
+      def self?.report_lines: (Hash[Symbol, untyped] facts) -> Array[String]
+
+      def self?.provenance_words: (Hash[Symbol, untyped] facts) -> String
+
+      def self?.commit_words: (Hash[Symbol, untyped] facts) -> String
+
+      def self?.distance_words: (Integer? behind) -> String
+
+      def self?.totals_words: (Hash[String, untyped] totals) -> String
+
+      def self?.contexts_words: (Integer? count) -> String
+
+      def self?.print_resultset: (Hash[Symbol, untyped] facts, untyped stdout) -> untyped
+
+      def self?.age_suffix: (Integer? age) -> String
+
+      def self?.age_in_words: (Integer seconds) -> String
+    end
+  end
+end
