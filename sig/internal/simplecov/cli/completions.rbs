@@ -1,0 +1,31 @@
+module SimpleCov
+  module CLI
+    # `simplecov completions <shell>` — shell completion scripts
+    # generated from the usage document.
+    module Completions
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      SHELLS: Array[String]
+
+      OPTION_ROW: Regexp
+
+      COMMAND_ROW: Regexp
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> Integer
+
+      def self?.script_for: (String shell) -> String
+
+      def self?.commands: () -> Array[[String, String]]
+
+      def self?.options_by_command: () -> Hash[String, Array[Hash[Symbol, untyped]]]
+
+      def self?.options_for: (String command) -> Array[Hash[Symbol, untyped]]
+
+      def self?.section_options: (String section) -> Array[Hash[Symbol, untyped]]
+    end
+  end
+end

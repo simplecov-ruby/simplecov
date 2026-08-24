@@ -252,8 +252,76 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "completions subcommand" do
+    def shell_available?(shell)
+      system(shell, "-c", "true", out: File::NULL, err: File::NULL)
+    end
+
+    def generate(shell)
+      expect(run("completions", shell)).to eq(0)
+      stdout.string
+    end
+
+    it "errors without a shell" do
+      expect(run("completions")).to eq(1)
+      expect(stderr.string).to include("fish, bash, or zsh")
+    end
+
+    it "errors on an unknown shell" do
+      expect(run("completions", "tcsh")).to eq(1)
+      expect(stderr.string).to include('"tcsh"').and include("fish, bash, or zsh")
+    end
+
+    it "generates fish completions from the usage document" do
+      out = generate("fish")
+      expect(out).to include("complete -c simplecov -f -n __fish_use_subcommand -a affected")
+      expect(out).to include("__fish_seen_subcommand_from affected")
+      expect(out).to include("-l base -r")
+      expect(out).to include("-s q -l quiet")
+      expect(out).to include("-a 'fish bash zsh'")
+      expect(out).to include("-l help")
+    end
+
+    it "generates bash completions" do
+      out = generate("bash")
+      expect(out).to include("_simplecov()")
+      expect(out).to include("complete -o default -F _simplecov simplecov")
+      expect(out).to match(/affected\)\s+opts="[^"]*--base/)
+      expect(out).to include('compgen -W "fish bash zsh -h --help"')
+    end
+
+    it "generates zsh completions" do
+      out = generate("zsh")
+      expect(out).to include("#compdef simplecov")
+      expect(out).to include("_describe")
+      expect(out).to include("'--base=[")
+      expect(out).to include("'1:shell:(fish bash zsh)'")
+    end
+
+    it "ignores stray section lines that precede the first option" do
+      section = "clean options:\n  a stray note\n  --dry-run                 Print what would be removed\n"
+      longs = described_class::Completions.section_options(section).collect { |option| option[:long] }
+      expect(longs).to eq(["--dry-run"])
+    end
+
+    it "leaves run's arguments to the command being run" do
+      expect(generate("fish")).not_to include("__fish_seen_subcommand_from run'")
+    end
+
+    %w[fish bash zsh].each do |shell|
+      it "passes #{shell}'s own syntax check" do
+        skip "#{shell} is not installed here" unless shell_available?(shell)
+
+        script = File.join(Dir.mktmpdir("simplecov-completions-"), "script")
+        File.write(script, generate(shell))
+        expect(system(shell, "-n", script)).to be(true)
+      end
+    end
+  end
+
   describe "per-command help" do
-    %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status].each do |command|
+    %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status
+       completions].each do |command|
       it "answers `#{command} --help` with that command's usage" do
         expect(run(command, "--help")).to eq(0)
         expect(stdout.string).to include("Usage: simplecov #{command} [options]")

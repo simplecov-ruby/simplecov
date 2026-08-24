@@ -1,0 +1,34 @@
+module SimpleCov
+  module CLI
+    module Completions
+      # The per-shell renderers for the completions command.
+      module Scripts
+        BASH_TAIL: Array[String]
+
+        ZSH_MIDDLE: Array[String]
+
+        ZSH_TAIL: Array[String]
+
+        def self?.fish: (Array[[String, String]] commands, Hash[String, Array[Hash[Symbol, untyped]]] options) -> String
+
+        def self?.fish_option: (String name, Hash[Symbol, untyped] option) -> String
+
+        def self?.fish_quote: (String text) -> String
+
+        def self?.bash: (Array[[String, String]] commands, Hash[String, Array[Hash[Symbol, untyped]]] options) -> String
+
+        def self?.bash_head: (Array[[String, String]] commands) -> Array[String]
+
+        def self?.bash_cases: (Hash[String, Array[Hash[Symbol, untyped]]] options) -> Array[String]
+
+        def self?.zsh: (Array[[String, String]] commands, Hash[String, Array[Hash[Symbol, untyped]]] options) -> String
+
+        def self?.zsh_cases: (Hash[String, Array[Hash[Symbol, untyped]]] options) -> Array[String]
+
+        def self?.zsh_specs: (Hash[Symbol, untyped] option) -> Array[String]
+
+        def self?.zsh_quote: (String text) -> String
+      end
+    end
+  end
+end
