@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "open3"
+require_relative "../git"
 
 module SimpleCov
   module CLI
@@ -48,10 +48,7 @@ module SimpleCov
         end
 
         def git_toplevel
-          stdout, _stderr, status = Open3.capture3("git", "rev-parse", "--show-toplevel")
-          status.success? ? stdout.chomp : nil
-        rescue StandardError
-          nil # git is not installed / not on PATH
+          Git.toplevel
         end
 
         # `--merge-base <base>` diffs the merge base of <base> and the
@@ -77,20 +74,18 @@ module SimpleCov
         # git's "unknown option `merge-base'" reaches the user instead of a
         # guess. Returns [output, nil] on success, [nil, detail] on failure.
         def git_diff(root, base, find_renames:)
-          # A git ref can never begin with "-", so refusing one keeps a
-          # `--base` value from being read by git as an option instead of a
-          # revision (e.g. `--output=FILE` writes to disk, `--line-prefix=`
-          # empties the diff so a `--minimum` gate passes over the change).
-          return [nil, "a ref cannot begin with \"-\""] if base.start_with?("-")
+          # Refusing an option-like ref keeps a `--base` value from being
+          # read by git as an option instead of a revision (e.g.
+          # `--output=FILE` writes to disk, `--line-prefix=` empties the
+          # diff so a `--minimum` gate passes over the change).
+          return [nil, "a ref cannot begin with \"-\""] if Git.option_like_ref?(base)
 
-          cmd = ["git", "-C", root, "-c", "core.quotePath=false", "diff", "--unified=0",
-                 "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
-                 "--src-prefix=a/", "--dst-prefix=b/"]
-          cmd += [find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
-          stdout, stderr_text, status = Open3.capture3(*cmd)
-          status.success? ? [stdout, nil] : [nil, stderr_text.lines.first.to_s.strip]
-        rescue StandardError => e
-          [nil, e.message] # git vanished between rev-parse and here
+          argv = ["-C", root, "-c", "core.quotePath=false", "diff", "--unified=0",
+                  "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
+                  "--src-prefix=a/", "--dst-prefix=b/",
+                  find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
+          stdout, detail, success = Git.capture(*argv)
+          success ? [stdout, nil] : [nil, detail]
         end
 
         # The files git tracks nowhere: a brand-new file that was never
@@ -100,11 +95,8 @@ module SimpleCov
         # `--exclude-standard`. A failure here contributes nothing rather
         # than failing the run, matching the pre-untracked behavior.
         def untracked_files(root)
-          stdout, _stderr, status = Open3.capture3("git", "-C", root, "ls-files",
-                                                   "--others", "--exclude-standard", "-z")
-          status.success? ? stdout.scrub.split("\0") : []
-        rescue StandardError
-          []
+          stdout, _detail, success = Git.capture("-C", root, "ls-files", "--others", "--exclude-standard", "-z")
+          success ? (_ = stdout).scrub.split("\0") : []
         end
 
         def report_git_error(stderr, base, detail)

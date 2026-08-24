@@ -1,0 +1,16 @@
+module SimpleCov
+  module CLI
+    # The git plumbing the change-aware subcommands share.
+    module Git
+      # [stdout, first stderr line, success]; stdout is nil when git
+      # never ran.
+      def self?.capture: (*String argv) -> [String?, String, bool]
+
+      def self?.toplevel: () -> String?
+
+      def self?.option_like_ref?: (String ref) -> bool
+
+      def self?.default_base: () -> String
+    end
+  end
+end

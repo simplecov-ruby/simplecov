@@ -163,8 +163,8 @@ enabled, and it will say so when the recording is missing.
 ### `affected` — select the tests that touch changed code
 
 With [`track_tests`](Configuration.md#tracking-which-test-covers-each-line) enabled, `simplecov affected` turns the
-recording into test selection. It diffs the working tree against the merge base of a git ref (`--base`, default
-`main`) and HEAD, so uncommitted work counts as part of the change while commits that landed on the base after the
+recording into test selection. It diffs the working tree against the merge base of a git ref (`--base`, defaulting
+to the branch origin's HEAD points at, else `main`) and HEAD, so uncommitted work counts as part of the change while commits that landed on the base after the
 branch point do not, and prints the test files whose recorded tests touch the changed code, one per line. `--run`
 hands them to the runner:
 
@@ -255,7 +255,8 @@ $ simplecov patch --base main
   Patch coverage:  89.66% (26/29) lines, 50.00% (1/2) branches
 ```
 
-`--base REF` selects the ref to diff against (defaults to `main`; in CI pass the pull request's target branch). The diff
+`--base REF` selects the ref to diff against (defaulting to the branch origin's HEAD points at, else `main`; in CI
+pass the pull request's target branch). The diff
 runs against the merge-base of `REF` and the working tree, so uncommitted edits count too — running `simplecov patch`
 before committing still scores the lines just written. `--minimum N` exits non-zero when patch coverage falls below N% — line coverage, and branch coverage too
 when the report has it, must both clear the floor — so it gates a change alongside the overall thresholds even when they

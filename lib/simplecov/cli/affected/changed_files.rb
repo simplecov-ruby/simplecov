@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "open3"
+require_relative "../git"
 
 module SimpleCov
   module CLI
@@ -19,10 +19,7 @@ module SimpleCov
 
         # nil after reporting a git failure.
         def call(base, stderr)
-          # A git ref can never begin with "-", so refusing one keeps a
-          # `--base` value from being read by git as an option instead
-          # of a revision.
-          return report(stderr, "invalid base ref #{base.inspect}") if base.start_with?("-")
+          return report(stderr, "invalid base ref #{base.inspect}") if Git.option_like_ref?(base)
 
           root = toplevel(stderr)
           return nil unless root
@@ -34,24 +31,24 @@ module SimpleCov
           untracked && {root: root, changed: (diff + untracked).uniq}
         end
 
+        # nil stdout from `Git.capture` means git never ran; a run that
+        # failed means the cwd is outside a working tree.
         def toplevel(stderr)
-          output, _error_output, status = Open3.capture3("git", "rev-parse", "--show-toplevel")
-          return output.chomp if status.success?
+          stdout, detail, success = Git.capture("rev-parse", "--show-toplevel")
+          return (_ = stdout).chomp if success
+          return report(stderr, "cannot run git (#{detail})") if stdout.nil?
 
           report(stderr, "not inside a git working tree")
-        rescue SystemCallError => e
-          report(stderr, "cannot run git (#{e.message})")
         end
 
         # A NUL-separated git listing, with git's own first stderr line
         # relayed on failure so a bad ref or an old git names itself.
         def list(command, argv, stderr)
-          output, error_output, status = Open3.capture3("git", *argv)
-          return output.split("\0") if status.success?
+          stdout, detail, success = Git.capture(*argv)
+          return (_ = stdout).split("\0") if success
+          return report(stderr, "cannot run git (#{detail})") if stdout.nil?
 
-          report(stderr, "`git #{command}` failed: #{error_output.lines.first.to_s.strip}")
-        rescue SystemCallError => e
-          report(stderr, "cannot run git (#{e.message})")
+          report(stderr, "`git #{command}` failed: #{detail}")
         end
 
         def report(stderr, message)

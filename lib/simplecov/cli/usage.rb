@@ -73,8 +73,8 @@ module SimpleCov
             --json                    Emit the test ids as a JSON array
 
           affected options:
-            --base REF                Diff the working tree against the merge
-                                      base of REF and HEAD (default: main)
+            --base REF                Diff against the merge base of REF and
+                                      HEAD (default: origin's HEAD, else main)
             --run <command...>        Run <command> (everything after --run) with the
                                       selected test files appended, or bare when
                                       falling back to the full suite; exits with
@@ -98,7 +98,8 @@ module SimpleCov
 
           patch options:
             --base REF                Diff against the merge-base of REF
-                                      for the touched lines (default: main;
+                                      for the touched lines (default:
+                                      origin's HEAD branch, else main;
                                       in CI, the PR's target branch)
             --minimum N               Exit non-zero when patch coverage
                                       (covered / coverable touched lines)
