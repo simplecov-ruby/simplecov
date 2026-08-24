@@ -37,9 +37,15 @@ module SimpleCov
 
       def self?.empty_message: (untyped json) -> ("[]" | "simplecov uncovered: nothing to report")
 
-      def self?.rank: (untyped coverage_hash, untyped threshold, untyped keys) -> untyped
+      def self?.rank: (untyped coverage_hash, untyped opts, untyped keys) -> untyped
 
-      def self?.row_for: (untyped fname, untyped payload, untyped threshold, untyped keys) -> (nil | ::Array[untyped])
+      def self?.row_for: (untyped fname, untyped payload, untyped opts, untyped keys) -> (nil | ::Array[untyped])
+
+      def self?.build_row: (untyped fname, untyped pct, untyped payload, untyped opts, untyped keys) -> ::Array[untyped]
+
+      def self?.missed_for: (untyped payload, untyped criterion) -> ::Array[::Integer]
+
+      def self?.collect_missed: (untyped items) -> ::Array[::Integer]
 
       def self?.format_row: (untyped fname, untyped pct, untyped covered, untyped total, untyped color) -> untyped
     end

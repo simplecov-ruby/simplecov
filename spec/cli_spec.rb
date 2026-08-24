@@ -1303,6 +1303,50 @@ RSpec.describe SimpleCov::CLI do
       expect(lines.last).to include("/abs/lib/b.rb")
     end
 
+    describe "--missing" do
+      before do
+        File.write(json_path, JSON.dump(
+                                "coverage" => {
+                                  "/abs/lib/b.rb" => {
+                                    "total_lines" => 5, "covered_lines" => 1, "lines_covered_percent" => 20.0,
+                                    "lines" => [1, 0, 0, 0, nil, 0],
+                                    "total_branches" => 2, "covered_branches" => 1, "branches_covered_percent" => 50.0,
+                                    "branches" => [{"report_line" => 2, "coverage" => 0},
+                                                   {"report_line" => 4, "coverage" => 3}],
+                                    "total_methods" => 2, "covered_methods" => 1, "methods_covered_percent" => 50.0,
+                                    "methods" => [{"start_line" => 9, "coverage" => 0},
+                                                  {"start_line" => 1, "coverage" => 2}]
+                                  },
+                                  "/abs/lib/stats_only.rb" => {
+                                    "total_lines" => 2, "covered_lines" => 1, "lines_covered_percent" => 50.0
+                                  }
+                                }
+                              ))
+      end
+
+      it "appends the missed line ranges to each row" do
+        expect(run("uncovered", "--input", json_path, "--missing")).to eq(0)
+        expect(stdout.string).to include("/abs/lib/b.rb  missing 2-4,6")
+        expect(stdout.string.lines.find { |line| line.include?("stats_only") }).not_to include("missing")
+      end
+
+      it "follows the chosen criterion" do
+        expect(run("uncovered", "--input", json_path, "--missing", "--criterion", "branch")).to eq(0)
+        expect(stdout.string).to include("/abs/lib/b.rb  missing 2")
+      end
+
+      it "reports the lines missed methods start on" do
+        expect(run("uncovered", "--input", json_path, "--missing", "--criterion", "method")).to eq(0)
+        expect(stdout.string).to include("/abs/lib/b.rb  missing 9")
+      end
+
+      it "adds the missed lines to the JSON rows" do
+        expect(run("uncovered", "--input", json_path, "--missing", "--json")).to eq(0)
+        row = JSON.parse(stdout.string).find { |entry| entry["file"] == "/abs/lib/b.rb" }
+        expect(row["missing"]).to eq([2, 3, 4, 6])
+      end
+    end
+
     it "honours --threshold" do
       run("uncovered", "--input", json_path, "--threshold", "20")
       expect(stdout.string.lines.map(&:strip)).to all(include("/abs/lib/c.rb"))

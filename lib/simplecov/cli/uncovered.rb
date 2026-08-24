@@ -3,6 +3,8 @@
 require "json"
 require "optparse"
 require_relative "command_helpers"
+require_relative "patch/output"
+require_relative "show/annotator"
 
 module SimpleCov
   module CLI
@@ -29,7 +31,7 @@ module SimpleCov
         coverage = CoverageFile.load_coverage(opts[:input], command: "uncovered", stderr: stderr)
         return 1 unless coverage
 
-        files = rank(coverage, opts[:threshold], keys).first(opts[:top])
+        files = rank(coverage, opts, keys).first(opts[:top])
         return stdout.puts(empty_message(opts[:json])) || 0 if files.empty?
 
         emit(stdout, files, opts)
@@ -46,10 +48,11 @@ module SimpleCov
       end
 
       def parse(args)
-        opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line) do |o, options|
+        opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line, missing: false) do |o, options|
           o.on("--threshold N", Float) { |v| options[:threshold] = v }
           o.on("--top N", Integer)     { |v| options[:top] = validate_top(v) }
           o.on("--criterion C")        { |v| options[:criterion] = v.to_sym }
+          o.on("--missing")            { options[:missing] = true }
         end
         opts
       end
@@ -65,12 +68,18 @@ module SimpleCov
       end
 
       def emit_text(stdout, files, color)
-        files.each { |fname, pct, covered, total| stdout.puts(format_row(fname, pct, covered, total, color)) }
+        files.each do |fname, pct, covered, total, missed|
+          row = format_row(fname, pct, covered, total, color)
+          row += "  missing #{Patch::Output.ranges(missed, ',')}" if missed&.any?
+          stdout.puts(row)
+        end
       end
 
       def emit_json(stdout, files)
-        rows = files.map do |fname, pct, covered, total|
-          {"file" => fname, "percent" => pct, "covered" => covered, "total" => total}
+        rows = files.map do |fname, pct, covered, total, missed|
+          row = {"file" => fname, "percent" => pct, "covered" => covered, "total" => total}
+          row["missing"] = missed if missed
+          row
         end
         stdout.puts(JSON.pretty_generate(rows))
       end
@@ -79,18 +88,41 @@ module SimpleCov
         json ? "[]" : "simplecov uncovered: nothing to report"
       end
 
-      def rank(coverage_hash, threshold, keys)
-        rows = coverage_hash.filter_map { |fname, payload| row_for(fname, payload, threshold, keys) }
+      def rank(coverage_hash, opts, keys)
+        rows = coverage_hash.filter_map { |fname, payload| row_for(fname, payload, opts, keys) }
         rows.sort_by { |_fname, pct, _c, _t| pct }
       end
 
-      def row_for(fname, payload, threshold, keys)
+      def row_for(fname, payload, opts, keys)
         return unless payload.is_a?(Hash) && payload[keys[:total]].to_i.positive?
 
         pct = payload[keys[:percent]].to_f
-        return if pct >= threshold
+        return if pct >= opts[:threshold]
 
-        [fname, pct, payload[keys[:covered]].to_i, payload[keys[:total]].to_i]
+        build_row(fname, pct, payload, opts, keys)
+      end
+
+      def build_row(fname, pct, payload, opts, keys)
+        row = [fname, pct, payload[keys[:covered]].to_i, payload[keys[:total]].to_i]
+        row << missed_for(payload, opts[:criterion]) if opts[:missing]
+        row
+      end
+
+      # The missed line numbers behind the chosen criterion's shortfall:
+      # zero-hit lines, or the lines missed branches and methods report
+      # on, reusing the show subcommand's extraction.
+      def missed_for(payload, criterion)
+        case criterion
+        when :line then payload["lines"].is_a?(Array) ? Show::Annotator.missed_lines(payload) : []
+        when :branch then collect_missed(payload["branches"])
+        else collect_missed(payload["methods"])
+        end
+      end
+
+      def collect_missed(items)
+        missed = [] #: Array[Integer]
+        Show::Annotator.each_missed(items) { |line| missed << line }
+        missed.uniq.sort
       end
 
       def format_row(fname, pct, covered, total, color)

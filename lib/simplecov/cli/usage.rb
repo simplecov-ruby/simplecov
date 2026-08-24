@@ -67,6 +67,7 @@ module SimpleCov
             --threshold N             Only show files below N% coverage
             --top N                   Show at most N files (default: 10)
             --criterion C             line, branch, or method (default: line)
+            --missing                 Append the missed line ranges to each row
             --json                    Emit results as a JSON array (for CI)
 
           tests options:
@@ -90,8 +91,7 @@ module SimpleCov
 
           diff options:
             --fail-on-drop            Exit non-zero when any file's coverage
-                                      dropped vs the baseline (deleted
-                                      files don't count as drops)
+                                      dropped vs baseline (deletions don't count)
             --json                    Emit results as a JSON array (for CI)
             --threshold N             Only show files whose absolute delta
                                       in any criterion is at least N%
