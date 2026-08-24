@@ -13,9 +13,15 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
+      def self?.options: (untyped parser, untyped opts) -> untyped
+
       def self?.locate: (Hash[String, untyped] coverage, untyped opts, untyped stderr) -> [String, untyped]?
 
       def self?.render: ([String, untyped] located, untyped opts, untyped stdout, untyped stderr) -> Integer
+
+      def self?.emit_json: (untyped entry, untyped opts, untyped stdout) -> Integer
+
+      def self?.relevant_lines: (untyped entry) -> Array[Hash[Symbol, untyped]]
 
       def self?.show_uncovered: (untyped entry, untyped opts, untyped stdout, untyped stderr) -> Integer
 

@@ -42,6 +42,7 @@ module SimpleCov
 
           show options:
             --uncovered-only          Print only <path>:<ranges> of the missed lines
+            --json                    Emit path, missed lines, per-line hits, and markers as JSON
 
           report options:
             --json                    Emit totals and group sections as JSON
