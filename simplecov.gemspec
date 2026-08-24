@@ -59,7 +59,7 @@ Gem::Specification.new do |gem|
   # type-check the whole codebase; only the public API signature file ships.
   # The schemas/ directory is also not packaged. Nothing reads it at runtime,
   # the JSON formatter refers consumers to the canonical schema URL on GitHub.
-  gem.files         = Dir["lib/**/*.*", "exe/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
+  gem.files         = Dir["lib/**/*.*", "exe/*", "man/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
   gem.bindir        = "exe"
   gem.executables   = ["simplecov"]
   gem.require_paths = ["lib"]

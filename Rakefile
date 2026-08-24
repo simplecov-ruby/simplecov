@@ -50,6 +50,16 @@ rescue LoadError
   end
 end
 
+# The man page is a committed build artifact of the usage document,
+# like the compiled HTML template is of the frontend; the suite's
+# man_page_spec fails when it is stale.
+desc "Regenerate man/simplecov.1 from the usage document"
+task :man do
+  require_relative "tasks/man_page"
+  mkdir_p "man"
+  File.write("man/simplecov.1", ManPage.build)
+end
+
 # The frontend's tests run under bun's built-in runner; bunfig.toml enforces
 # 100% line and function coverage of html_frontend/src, the JS counterpart of
 # the 100% dogfood coverage the RSpec suite enforces on lib/. Follows the

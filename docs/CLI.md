@@ -30,7 +30,11 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `clean`            | Remove the coverage report directory                                |
 | `completions <shell>` | Emit the completion script for fish, bash, or zsh                |
 
-Run `simplecov help` for the full option listing, or `simplecov <command> --help` for a single command's.
+Run `simplecov help` for the full option listing, or `simplecov <command> --help` for a single command's. The gem
+also ships a man page at `man/simplecov.1`, generated from the same usage document as the help text and the shell
+completions (`rake man` regenerates it, and the suite fails when the committed copy is stale). RubyGems does not
+install man pages onto `MANPATH`, so read it with `man $(gem contents simplecov | grep man/simplecov.1)` or let a
+system package manager place it.
 
 ### `run` — run a suite with coverage
 
