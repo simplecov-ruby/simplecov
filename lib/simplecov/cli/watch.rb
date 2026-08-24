@@ -72,6 +72,7 @@ module SimpleCov
             parser.on("--host HOST")                 { |v| opts[:host] = v }
             parser.on("--interval SECONDS", Float)   { |v| opts[:interval] = v }
             parser.on("--open")                      { opts[:open] = true }
+            on_help(parser)
           end.order(args)
         [opts, rest]
       end

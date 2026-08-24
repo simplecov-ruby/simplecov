@@ -53,6 +53,7 @@ module SimpleCov
         OptionParser.new do |o|
           o.on("--port N", Integer) { |v| opts[:port] = v }
           o.on("--host HOST")       { |v| opts[:host] = v }
+          on_help(o)
         end.parse(args)
         opts
       end

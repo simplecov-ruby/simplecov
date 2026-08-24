@@ -6,6 +6,13 @@ module SimpleCov
     module CommandHelpers
       STATS_ROW_FORMAT: ::String
 
+      # Raised by the shared --help switch; CLI.dispatch answers it
+      # with the command's slice of the usage text.
+      class HelpRequested < StandardError
+      end
+
+      def on_help: (untyped parser) -> untyped
+
       # "simplecov merge: ..." — derived from the extending module's name.
       def command_name: () -> ::String
 

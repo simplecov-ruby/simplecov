@@ -12,6 +12,13 @@ module SimpleCov
     module CommandHelpers
       STATS_ROW_FORMAT = "  %<label>-7s %<pct>s (%<covered>d / %<total>d)"
 
+      # Raised by the shared --help switch; `CLI.dispatch` turns it into
+      # the command's own slice of the usage text. The explicit handler
+      # also overrides optparse's built-in --help, which would print a
+      # bare option summary under the host program's banner and exit
+      # the process outright, from inside the parser.
+      class HelpRequested < StandardError; end
+
       # "simplecov merge: ..." — derived from the extending module's
       # name. The self cast collapses the mixin's view of `self` to the
       # Module that extends it, which is what carries `name`.
@@ -51,6 +58,11 @@ module SimpleCov
         parser.on("--input PATH") { |v| opts[:input] = v }
         parser.on("--json")       { opts[:json] = true }
         parser.on("--no-color")   { opts[:no_color] = true }
+        on_help(parser)
+      end
+
+      def on_help(parser)
+        parser.on("--help", "-h") { raise HelpRequested }
       end
 
       # The parse scaffold every read-only subcommand repeats: seed the

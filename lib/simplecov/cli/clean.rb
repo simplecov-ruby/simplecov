@@ -79,6 +79,7 @@ module SimpleCov
         OptionParser.new do |o|
           o.on("--dry-run") { opts[:dry_run] = true }
           o.on("-q", "--quiet") { opts[:quiet] = true }
+          on_help(o)
         end.parse(args)
         opts
       end
