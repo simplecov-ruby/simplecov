@@ -1,0 +1,22 @@
+module SimpleCov
+  module CLI
+    module Badge
+      # Renders the flat badge SVG for the badge command.
+      module Svg
+        COLORS: Array[Array[untyped]]
+
+        def self?.color: (Numeric percent) -> String
+
+        def self?.render: (label: String, percent: Numeric) -> String
+
+        def self?.width: (String text) -> Integer
+
+        def self?.escape: (String text) -> String
+
+        def self?.geometry: (Integer label_width, Integer value_width) -> Hash[Symbol, Integer]
+
+        def self?.document: (label: String, value: String, fill: String, geo: Hash[Symbol, Integer]) -> String
+      end
+    end
+  end
+end

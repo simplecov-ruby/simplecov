@@ -33,6 +33,7 @@ module SimpleCov
             show <path>               Print the file's source annotated with hit counts and misses
             report                    Print the overall summary and group totals
             status                    Report freshness: age, commit distance, recorded tests
+            badge                     Render the coverage percent as an SVG badge
             uncovered                 List the lowest-coverage files
             tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
             affected                  List test files touching code changed since a git ref (needs track_tests)
@@ -66,6 +67,12 @@ module SimpleCov
           status options:
             --json                    Emit the freshness facts as a JSON object
 
+          badge options:
+            --input PATH              Read from PATH instead of #{cli.default_input}
+            --output PATH             Write the badge to PATH instead of stdout
+            --criterion C             line, branch, or method (default: line)
+            --label TEXT              The badge's left-side text (default: the criterion's, like "line coverage")
+
           uncovered options:
             --threshold N             Only show files below N% coverage
             --top N                   Show at most N files (default: 10)
@@ -78,11 +85,8 @@ module SimpleCov
             --json                    Emit the test ids as a JSON array
 
           affected options:
-            --base REF                Diff against the merge base of REF and
-                                      HEAD (default: origin's HEAD, else main)
-            --run <command...>        Run <command> (all args after --run) with the
-                                      selection appended, or bare on a full-suite
-                                      fallback; exits with the command's status
+            --base REF                Diff against the merge base of REF and HEAD (default: origin's HEAD, else main)
+            --run <command...>        Run <command> (all args after --run) with the selection appended, or bare on a full-suite fallback, exiting with the command's status
             --json                    Emit {full_suite, triggers, tests} as a JSON object
 
           merge options:
@@ -92,22 +96,14 @@ module SimpleCov
             -q, --quiet               Suppress the success status line
 
           diff options:
-            --fail-on-drop            Exit non-zero when any file's coverage
-                                      dropped vs baseline (deletions don't count)
+            --fail-on-drop            Exit non-zero when any file's coverage dropped vs baseline (deletions don't count)
             --json                    Emit results as a JSON array (for CI)
-            --threshold N             Only show files whose absolute delta
-                                      in any criterion is at least N%
+            --threshold N             Only show files whose absolute delta in any criterion is at least N%
 
           patch options:
-            --base REF                Diff against the merge-base of REF
-                                      for the touched lines (default:
-                                      origin's HEAD branch, else main;
-                                      in CI, the PR's target branch)
-            --minimum N               Exit non-zero when patch coverage
-                                      (covered / coverable touched lines)
-                                      is below N%
-            --find-renames            Follow a renamed file instead of
-                                      counting the moved file as all-new
+            --base REF                Diff against the merge-base of REF for the touched lines (default: origin's HEAD, else main, or in CI the PR's target branch)
+            --minimum N               Exit non-zero when patch coverage (covered / coverable touched lines) is below N%
+            --find-renames            Follow a renamed file instead of counting the moved file as all-new
             --json                    Emit results as a JSON array (for CI)
 
           open options:
