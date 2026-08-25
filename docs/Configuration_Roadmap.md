@@ -25,9 +25,10 @@ plan rather than as another accretion.
    (criteria, eval, oneshot, subprocesses, per-test attribution), what the report *covers* (files, groups, views,
    formatters, paths), and what the exit check *enforces* (thresholds, caps, the baseline). A keyword's name should
    make its family obvious.
-4. **Migrations are mechanical.** Every deprecation warning prints the exact replacement, built from the caller's own
-   arguments, so migrating is copy-paste. Nothing is removed before SimpleCov 2.0, and a configuration written
-   against 1.x keeps working, warnings aside, until then.
+4. **Migrations are mechanical, and enforceable.** Every deprecation warning prints the exact replacement, built
+   from the caller's own arguments, so migrating is copy-paste, and `deprecations :raise` turns the warnings into
+   errors so a migrated project can guard against old spellings in CI. Nothing is removed before SimpleCov 2.0, and
+   a configuration written against 1.x keeps working, warnings aside, until then.
 
 ### The target threshold grammar
 
@@ -60,6 +61,18 @@ verbs (`minimum_per_file`, `minimum_per_group`, `maximum_missed_per_file`, and t
 them the first time. `maximum_missed` refuses `per: group(...)` loudly, because the enforcement behind it does not
 exist yet (see Phase 2), and refusing beats silently storing a cap nothing checks.
 
+### Phase 1.5: uniformity groundwork (done)
+
+Three smaller steps shipped on the same principles:
+
+- `coverage(:branch) { ignore :implicit_else, :eval_generated }` and `coverage :method, ignore: :eval_generated`
+  replace `ignore_branches` / `ignore_methods`, which had the criterion baked into their names the way the suffixed
+  threshold verbs did. The flat setters warn and delegate; their one distinct behavior (recording the filter without
+  enabling the criterion) rides out the deprecation period.
+- `formats :html, :json` selects bundled formatters by name, ending the `SimpleCov::Formatter::HTMLFormatter`
+  constant ritual for common combinations. Classes and instances mix beside the names for everything else.
+- `deprecations :raise` makes every deprecated API a `ConfigurationError`, the enforcement lever behind principle 4.
+
 ### Phase 2: fill the matrix
 
 The `per:` axis makes the missing cells visible. In rough priority order:
@@ -84,6 +97,9 @@ time, the way `maximum_missed per: group(...)` is today.
 - `track_tests` is already correctly named and placed. Once `track_files` (deprecated in favor of `cover`) is
   removed at 2.0, `track_` unambiguously means test attribution.
 - `merge_subprocesses` / `enable_for_subprocesses`: converge on one name for the subprocess switch.
+- One spelling for "primary". `primary_coverage :branch`, `coverage :branch, primary: true`, and the block verb
+  `primary` all exist. The `coverage` forms are canonical (the criterion is right there); `primary_coverage` becomes
+  a documented legacy alias, deprecated at 2.0.
 
 ### Phase 4: baseline unification
 
@@ -99,11 +115,27 @@ baseline file: "config/coverage_floors.yml", auto_ratchet: true
 demoting `BaselineFormatter` from user-facing switch to implementation detail (it stays public for formatter chains
 that want explicit control).
 
-### Phase 5: one boolean grammar
+### Phase 5: one grammar
 
-`use_merging`, `merge_subprocesses`, `print_errors`, and `source_in_json` mix verb-phrase and noun-phrase styles.
-Converge on the noun-value style the rest of the DSL uses, with the old names as warn-and-delegate aliases. This is
-the lowest-value phase and should ride along with other changes rather than ship alone.
+Three grammar unifications, none urgent alone, all worth folding into releases that touch the same code:
+
+- **Booleans.** `use_merging`, `merge_subprocesses`, `print_errors`, and `source_in_json` mix verb-phrase and
+  noun-phrase styles. Converge on the noun-value style the rest of the DSL uses, with the old names as
+  warn-and-delegate aliases.
+- **Matchers.** `cover "lib/**/*.rb"` takes a glob while `skip "lib/legacy"` takes a path-segment substring: two
+  universe verbs, two String grammars, and the difference is invisible at the call site. Changing `skip`'s String
+  semantics would silently alter which files existing configurations exclude, so the unification itself is a 2.0
+  change. An explicit `skip glob("lib/**/*_generated.rb")` wrapper (mirroring `per: group(...)`) can bridge earlier
+  for projects that want glob exclusion before then.
+- **Exclusion comments.** The legacy `# :nocov:` toggles and the newer `# simplecov:disable` / `# simplecov:enable`
+  directives do overlapping jobs with different syntax. The `nocov_token` configuration hook is already deprecated;
+  what remains is retiring recognition of the `# :nocov:` comments themselves in favor of the criterion-aware
+  directives, which is a 2.0 change because those comments live in thousands of shipped codebases.
+
+A footnote rather than a phase: the merge family (`merging`, `merge_timeout`, `merge_subprocesses`,
+`parallel_tests`, `command_name`, and the `SIMPLECOV_MERGE_TIMEOUT` variable) is one concern spread across six flat
+names, and a `merge do ... end` sub-block would group it the way `coverage` groups thresholds. It adds structure
+without removing anything, so it should only happen if the family grows again.
 
 ### Phase 6 (SimpleCov 2.0): one surface
 
