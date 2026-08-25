@@ -1,0 +1,24 @@
+module SimpleCov
+  module CLI
+    # `simplecov history` — the recorded coverage trend in the
+    # terminal: a sparkline per measured criterion, or one file's
+    # trajectory under `--file`.
+    module History
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (0 | 1)
+
+      def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
+
+      def self?.default_input: () -> String
+
+      def self?.load_entries: (String path, untyped stderr) -> (Array[SimpleCov::History::entry] | nil)
+
+      def self?.file_recorded?: (Array[SimpleCov::History::entry] entries, untyped opts, untyped stderr) -> bool
+    end
+  end
+end

@@ -321,3 +321,26 @@ describe('footer run names', () => {
     expect(footer.querySelector('details')).toBeNull();
   });
 });
+
+describe('the run-history trend', () => {
+  test('adds Trend columns when the report embeds a history', async () => {
+    const data = coverageData();
+    data.history = [
+      { created_at: '2026-08-24T00:00:00Z', totals: { line: 60 }, files: { 'lib/covered.rb': 90 } },
+      { created_at: '2026-08-25T00:00:00Z', totals: { line: 71.42 }, files: { 'lib/covered.rb': 100 } }
+    ];
+    await boot(data);
+
+    const allFiles = document.getElementById('g-total')!;
+    expect(allFiles.querySelector('th.t-trend-h')).not.toBeNull();
+    expect(allFiles.querySelector('.totals-row td.t-trend svg.sparkline')).not.toBeNull();
+  });
+
+  test('renders no trend column for a single-entry history', async () => {
+    const data = coverageData();
+    data.history = [{ created_at: '2026-08-25T00:00:00Z', totals: { line: 71.42 } }];
+    await boot(data);
+
+    expect(document.querySelector('.t-trend-h')).toBeNull();
+  });
+});

@@ -32,15 +32,24 @@ module SimpleCov
               :groups => format_groups(result),
               :errors => ErrorsFormatter.call(result)
             }
-            # Present exactly when the result carried a complete context map
-            # (see `Result#contexts`), so consumers can tell "recorded and
-            # empty" from "not recorded" — the per-file bitmaps index into
-            # this list.
-            document[:contexts] = result.contexts.contexts if result.contexts
+            add_optional_sections(document, result)
             document
           end
 
         private
+
+          def add_optional_sections(document, result)
+            # Contexts are present exactly when the result carried a
+            # complete map (see `Result#contexts`), so consumers can
+            # tell "recorded and empty" from "not recorded" — the
+            # per-file bitmaps index into this list.
+            document[:contexts] = result.contexts.contexts if result.contexts
+            # The run history (see SimpleCov::History) with this run
+            # appended, powering the report's sparklines. Present only
+            # when past runs are recorded: one point is not a trend.
+            history = SimpleCov::History.entries_with(result)
+            document[:history] = history if history.length > 1
+          end
 
           def format_files(result, include_source:)
             result.files.to_h do |source_file|

@@ -22,7 +22,22 @@ export interface CoverageData {
   // Recorded context ids (each one a test under `track_tests`), present
   // only when the run recorded them. Per-file bitmaps index into this.
   contexts?: string[];
+  // The run history (coverage/.history.json entries, oldest first, the
+  // reported run appended last), present only when past runs are
+  // recorded. Powers the trend sparklines.
+  history?: HistoryEntry[];
   groups: Record<string, GroupData>;
+}
+
+export interface HistoryEntry {
+  created_at: string;
+  branch?: string | null;
+  commit?: string | null;
+  // Percents keyed by criterion ("line" / "branch" / "method").
+  totals?: Record<string, number>;
+  groups?: Record<string, Record<string, number>>;
+  // Primary-criterion percent per project-relative path.
+  files?: Record<string, number>;
 }
 
 export type CoverageType = 'line' | 'branch' | 'method';

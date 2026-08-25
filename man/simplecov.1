@@ -28,6 +28,9 @@ Print the overall summary and group totals
 .B status
 Report freshness: age, commit distance, recorded tests
 .TP
+.B history
+Print the recorded coverage trend, a sparkline per criterion
+.TP
 .B badge
 Render the coverage percent as an SVG badge
 .TP
@@ -116,6 +119,19 @@ Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 .TP
 .B \-\-json
 Emit the freshness facts as a JSON object
+.SS history
+.TP
+.B \-\-input PATH
+Read from PATH instead of the coverage directory's .history.json
+.TP
+.B \-\-file PATH
+Follow one file's trajectory instead of the totals
+.TP
+.B \-\-json
+Emit the entries (or the file's trajectory) as JSON
+.TP
+.B \-\-no\-color
+Disable colorized deltas (also honors NO_COLOR / FORCE_COLOR env)
 .SS badge
 .TP
 .B \-\-input PATH

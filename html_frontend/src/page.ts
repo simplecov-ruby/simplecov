@@ -11,6 +11,7 @@ import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
+import { fileTrendSeries, totalsTrendSeries, type TrendData } from './sparkline';
 import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './contexts';
 import type { CoverageData, FileCoverage } from './types';
 
@@ -106,6 +107,15 @@ export function renderPage(data: CoverageData): void {
   // innerHTML once avoids the O(n^2) re-parse that `innerHTML += ...` in a
   // loop would trigger on reports with many groups.
   const content = document.getElementById('content')!;
+  // The Trend column exists only when the report embeds a run history
+  // (two or more runs); the per-file series are built once and shared
+  // by every group's list.
+  const history = Array.isArray(data.history) && data.history.length > 1 ? data.history : undefined;
+  const fileTrends = history ? fileTrendSeries(history) : undefined;
+  const trendFor = (groupName: string | null): TrendData | undefined =>
+    history && fileTrends
+      ? { totals: totalsTrendSeries(history, groupName, primaryCoverage), files: fileTrends }
+      : undefined;
   const fileListSections = [
     renderFileList({
       containerId: 'g-total',
@@ -117,7 +127,8 @@ export function renderPage(data: CoverageData): void {
       branchCoverage,
       methodCoverage,
       primaryCoverage,
-      contextsEnabled: !!data.contexts
+      contextsEnabled: !!data.contexts,
+      trend: trendFor(null)
     }),
   ];
   for (const groupName of Object.keys(data.groups)) {
@@ -133,7 +144,8 @@ export function renderPage(data: CoverageData): void {
         branchCoverage,
         methodCoverage,
         primaryCoverage,
-        contextsEnabled: !!data.contexts
+        contextsEnabled: !!data.contexts,
+        trend: trendFor(groupName)
       })
     );
   }

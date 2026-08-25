@@ -17,6 +17,8 @@ module SimpleCov
 
         def self.format: (untyped result, ?include_source: bool) -> Hash[Symbol, untyped]
 
+        def self.add_optional_sections: (Hash[Symbol, untyped] document, untyped result) -> void
+
         private
 
         def self.format_files: (untyped result, include_source: bool) -> untyped

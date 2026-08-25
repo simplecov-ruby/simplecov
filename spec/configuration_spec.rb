@@ -1097,6 +1097,39 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#history_limit and #drop_baseline" do
+      it "default to 100 entries measured against the last run" do
+        expect(config.history_limit).to eq(100)
+        expect(config.drop_baseline).to eq(:last_run)
+      end
+
+      it "take a new limit, zero disabling recording" do
+        config.history_limit 10
+        expect(config.history_limit).to eq(10)
+
+        config.history_limit 0
+        expect(config.history_limit).to eq(0)
+      end
+
+      it "reject a negative or fractional limit" do
+        expect { config.history_limit(-1) }.to raise_error(SimpleCov::ConfigurationError, /non-negative/)
+        expect { config.history_limit(1.5) }.to raise_error(SimpleCov::ConfigurationError, /non-negative/)
+      end
+
+      it "take the median and branch baselines" do
+        config.drop_baseline :median
+        expect(config.drop_baseline).to eq(:median)
+
+        config.drop_baseline :branch
+        expect(config.drop_baseline).to eq(:branch)
+      end
+
+      it "reject an unknown baseline" do
+        expect { config.drop_baseline :mean }
+          .to raise_error(SimpleCov::ConfigurationError, /:last_run, :median, :branch/)
+      end
+    end
+
     describe "#deprecations" do
       it "defaults to :warn" do
         expect(config.deprecations).to eq(:warn)

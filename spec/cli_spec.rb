@@ -2295,6 +2295,167 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  describe "history subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-history-spec-") }
+    let(:input) { File.join(tmp, ".history.json") }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def entry(created_at, line, branch: "main", commit: "abc123def456", files: {})
+      {"created_at" => created_at, "branch" => branch, "commit" => commit,
+       "totals" => {"line" => line}, "groups" => {}, "files" => files}
+    end
+
+    def write_history(entries)
+      File.write(input, JSON.dump("simplecov_history" => {"format_version" => 1, "entries" => entries}))
+    end
+
+    def run_history(*extra)
+      run("history", "--input", input, *extra)
+    end
+
+    it "prints a sparkline per criterion with the run rows beneath" do
+      write_history([
+                      entry("2026-08-23T10:00:00Z", 90.0),
+                      entry("2026-08-24T10:00:00Z", 95.0, branch: nil, commit: nil),
+                      entry("2026-08-25T10:00:00Z", 100.0)
+                    ])
+
+      expect(run_history("--no-color")).to eq(0)
+
+      expect(stdout.string).to include("Coverage history: #{input} (3 runs)")
+      expect(stdout.string).to match(/line\s+▁▅█\s+90\.0% → 100\.0%\s+\(\+10\.0\)/)
+      expect(stdout.string).to include("2026-08-23T10:00:00Z  main  abc123d  line 90.0%")
+      expect(stdout.string).to include("2026-08-24T10:00:00Z  -     -        line 95.0%")
+    end
+
+    it "renders a flat series at mid height rather than dividing by zero" do
+      write_history([entry("2026-08-23T10:00:00Z", 90.0), entry("2026-08-24T10:00:00Z", 90.0)])
+
+      run_history("--no-color")
+
+      expect(stdout.string).to match(/line\s+▄▄\s+90\.0% → 90\.0%\s+\(\+0\.0\)/)
+    end
+
+    it "shows every measured criterion, tolerating entries missing some or all totals" do
+      first = entry("2026-08-23T10:00:00Z", 90.0)
+      first["totals"]["branch"] = 80.0
+      second = entry("2026-08-24T10:00:00Z", 95.0)
+      second["totals"]["branch"] = 85.0
+      third = entry("2026-08-25T10:00:00Z", 96.0) # no branch measurement
+      fourth = entry("2026-08-26T10:00:00Z", 97.0)
+      fourth["totals"] = nil # a hand-edited entry must not crash the view
+      write_history([first, second, third, fourth])
+
+      run_history("--no-color")
+
+      expect(stdout.string).to match(/branch\s+▁█ {2}\s+80\.0% → 85\.0%\s+\(\+5\.0\)/)
+      expect(stdout.string).to include("line 90.0%  branch 80.0%")
+      expect(stdout.string).to include("2026-08-25T10:00:00Z  main  abc123d  line 96.0%")
+    end
+
+    it "signs a decline and renders a single run without a sparkline" do
+      write_history([entry("2026-08-23T10:00:00Z", 95.0), entry("2026-08-24T10:00:00Z", 90.0)])
+      run_history("--no-color")
+      expect(stdout.string).to match(/line\s+█▁\s+95\.0% → 90\.0%\s+\(-5\.0\)/)
+
+      stdout.truncate(0)
+      write_history([entry("2026-08-23T10:00:00Z", 95.0)])
+      run_history("--no-color")
+      expect(stdout.string).to include("(1 run)")
+    end
+
+    it "follows one file's trajectory under --file, with gaps for unrecorded runs" do
+      write_history([
+                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => 50.0}),
+                      entry("2026-08-24T10:00:00Z", 95.0),
+                      entry("2026-08-25T10:00:00Z", 100.0, files: {"lib/foo.rb" => 100.0})
+                    ])
+
+      expect(run_history("--file", "lib/foo.rb", "--no-color")).to eq(0)
+
+      expect(stdout.string).to include("Coverage history for lib/foo.rb (3 runs)")
+      expect(stdout.string).to match(%r{lib/foo\.rb\s+▁ █\s+50\.0% → 100\.0%\s+\(\+50\.0\)})
+      expect(stdout.string).to include("2026-08-24T10:00:00Z  main  abc123d  -")
+    end
+
+    it "errors under --file for a file no entry recorded" do
+      write_history([entry("2026-08-23T10:00:00Z", 90.0)])
+
+      expect(run_history("--file", "lib/nope.rb")).to eq(1)
+      expect(stderr.string).to include("no recorded coverage for lib/nope.rb")
+    end
+
+    it "emits the entries as JSON" do
+      write_history([entry("2026-08-23T10:00:00Z", 90.0)])
+
+      expect(run_history("--json")).to eq(0)
+      expect(JSON.parse(stdout.string).fetch(0).fetch("totals")).to eq("line" => 90.0)
+    end
+
+    it "narrows the JSON to one file's trajectory under --file" do
+      write_history([
+                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => 50.0}),
+                      entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/foo.rb" => 60.0})
+                    ])
+
+      run_history("--file", "lib/foo.rb", "--json")
+
+      rows = JSON.parse(stdout.string)
+      expect(rows).to eq([
+                           {"created_at" => "2026-08-23T10:00:00Z", "branch" => "main",
+                            "commit" => "abc123def456", "percent" => 50.0},
+                           {"created_at" => "2026-08-24T10:00:00Z", "branch" => "main",
+                            "commit" => "abc123def456", "percent" => 60.0}
+                         ])
+    end
+
+    it "reports an empty history plainly" do
+      write_history([])
+
+      expect(run_history).to eq(0)
+      expect(stdout.string).to include("no recorded runs")
+    end
+
+    it "errors when the history file is missing" do
+      expect(run_history).to eq(1)
+      expect(stderr.string).to include("simplecov history:")
+      expect(stderr.string).to include("not found")
+      expect(stderr.string).to include("recorded automatically")
+    end
+
+    it "errors when the file is not a history" do
+      File.write(input, JSON.dump("something" => "else"))
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to include("not a SimpleCov history file")
+    end
+
+    it "errors when the file is not JSON" do
+      File.write(input, "{")
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to include("not valid JSON")
+    end
+
+    it "errors when the file is JSON but not an object" do
+      File.write(input, "[]")
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to include("not a SimpleCov history file")
+    end
+
+    it "errors when the path cannot be read as a file" do
+      expect(run("history", "--input", tmp)).to eq(1)
+      expect(stderr.string).to include("simplecov history:")
+    end
+
+    it "rejects a stray positional argument" do
+      expect(run("history", "stray")).to eq(1)
+      expect(stderr.string).to include('unexpected argument "stray"')
+    end
+  end
+
   describe "dead-code subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-dead-code-spec-") }
     let(:input) { File.join(tmp, "coverage.json") }

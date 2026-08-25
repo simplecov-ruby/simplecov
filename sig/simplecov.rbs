@@ -1809,6 +1809,73 @@ module SimpleCov
   end
 end
 
+# ----- history -----
+
+module SimpleCov
+  # A bounded record of past runs, coverage/.history.json (see #1267):
+  # per-criterion totals plus per-group and per-file percentages with
+  # branch and commit provenance, powering the report's sparklines,
+  # `simplecov history`, and the :median / :branch drop baselines.
+  module History
+    ENVELOPE: String
+
+    FORMAT_VERSION: Integer
+
+    # One recorded run, string-keyed as stored on disk.
+    type entry = Hash[String, untyped]
+
+    def self.history_path: () -> String
+
+    # Append the run, keeping the newest `history_limit` entries; a
+    # limit of 0 disables recording.
+    def self.record: (SimpleCov::Result result) -> void
+
+    # The recorded entries, oldest first; empty (with a warning for a
+    # corrupt file) when there is nothing usable.
+    def self.read: () -> Array[entry]
+
+    # The recorded entries plus `result` as the newest, capped, without
+    # writing: what the HTML report embeds.
+    def self.entries_with: (SimpleCov::Result result) -> Array[entry]
+
+    # ["branch", "sha"], each nil when unanswerable; a detached HEAD
+    # reports nil rather than the literal "HEAD".
+    def self.git_info: () -> [String?, String?]
+
+    private
+
+    def self.entry_for: (SimpleCov::Result result) -> entry
+
+    def self.measured_percents: (untyped stats_source) -> Hash[String, Numeric]
+
+    def self.files_percents: (SimpleCov::Result result) -> Hash[String, Numeric]
+
+    def self.write: (Array[entry] entries) -> void
+
+    def self.invalid_history: () -> Array[entry]
+
+    def self.git: (*String args) -> String?
+  end
+end
+
+# ----- configuration/history -----
+
+module SimpleCov
+  # `history_limit` bounds coverage/.history.json; `drop_baseline`
+  # picks what `maximum_coverage_drop` compares against.
+  module Configuration
+    DROP_BASELINES: Array[Symbol]
+
+    @history_limit: Integer?
+
+    @drop_baseline: Symbol?
+
+    def history_limit: (?Integer? limit) -> Integer
+
+    def drop_baseline: (?Symbol? mode) -> Symbol
+  end
+end
+
 # ----- production -----
 
 module SimpleCov

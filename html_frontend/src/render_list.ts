@@ -6,6 +6,7 @@ import { pctClass, fmtNum, fmtPct, fileId } from './format';
 import { primaryCoverageStat } from './coverage';
 import { coveredOutsideCount } from './contexts';
 import { renderCoverageCells, renderHeaderCells } from './render_cells';
+import { renderSparkline, type TrendData } from './sparkline';
 import type { CoverageType, StatGroup, FileCoverage } from './types';
 
 interface FileListArgs {
@@ -21,6 +22,9 @@ interface FileListArgs {
   // True when the run recorded contexts (`track_tests`): line bars split
   // out the covered-outside-tests share and pick up the by-tests sort key.
   contextsEnabled?: boolean;
+  // The run-history series (see src/sparkline.ts), present only when the
+  // report embeds a history; adds the Trend column.
+  trend?: TrendData;
 }
 
 // Container open + <thead> (column headers and the totals row), i.e.
@@ -43,6 +47,7 @@ function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   if (lineStats) html.push(renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines'));
   if (branchCoverage) html.push(renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches'));
   if (methodCoverage) html.push(renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods'));
+  if (args.trend) html.push('<th class="t-trend-h">Trend</th>');
   html.push('</tr>');
 
   const fileLabel = filenames.length === 1 ? 'file' : 'files';
@@ -50,6 +55,7 @@ function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   if (lineStats) html.push(renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true, outsideTotal));
   if (branchStats) html.push(renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true));
   if (methodStats) html.push(renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true));
+  if (args.trend) html.push(`<td class="t-trend">${renderSparkline(args.trend.totals)}</td>`);
   html.push('</tr></thead><tbody>');
 
   return html.join('');
@@ -62,6 +68,10 @@ interface FileRowArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   outsideLines?: number;
+  // The file's history series; undefined outside trend mode, null-ish
+  // (empty cell, column kept aligned) for a file the history never saw.
+  trendSeries?: (number | null)[];
+  trendEnabled?: boolean;
 }
 
 function renderFileRow(args: FileRowArgs): string {
@@ -96,6 +106,7 @@ function renderFileRow(args: FileRowArgs): string {
     const pct = f.methods_covered_percent === undefined ? 100.0 : f.methods_covered_percent;
     cells.push(renderCoverageCells(pct, f.covered_methods || 0, f.total_methods || 0, 'method', false));
   }
+  if (args.trendEnabled) cells.push(`<td class="t-trend">${args.trendSeries ? renderSparkline(args.trendSeries) : ''}</td>`);
   cells.push('</tr>');
   return cells.join('');
 }
@@ -120,7 +131,9 @@ export function renderFileList(args: FileListArgs): string {
     if (!f) continue;
     html.push(renderFileRow({
       filename: fn, coverage: f, lineCoverage, branchCoverage, methodCoverage,
-      outsideLines: outsideByFile?.get(fn)
+      outsideLines: outsideByFile?.get(fn),
+      trendSeries: args.trend?.files.get(fn),
+      trendEnabled: !!args.trend
     }));
   }
   html.push('</tbody></table></div></div>');

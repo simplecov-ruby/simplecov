@@ -107,12 +107,16 @@ module SimpleCov
       end
 
       # @return [Array<Hash>] {:criterion, :maximum, :actual} where `actual`
-      #   is the observed drop (in percentage points) vs. the last run.
-      def maximum_drop(result, thresholds, last_run: SimpleCov::LastRun.read)
-        return [] unless last_run
+      #   is the observed drop (in percentage points) vs. the baseline
+      #   `mode` selects: the last run (default), the median of the
+      #   recorded history, or the newest recorded run on the current
+      #   git branch. See `drop_baseline`.
+      def maximum_drop(result, thresholds, last_run: nil, mode: SimpleCov.drop_baseline)
+        baseline = drop_baseline_percents(mode, last_run)
+        return [] unless baseline
 
         thresholds.filter_map do |criterion, maximum|
-          actual = compute_drop(criterion, result, last_run)
+          actual = compute_drop(criterion, result, baseline)
           {criterion: criterion, maximum: maximum, actual: actual} if actual && actual > maximum
         end
       end
@@ -217,14 +221,80 @@ module SimpleCov
         group
       end
 
-      def compute_drop(criterion, result, last_run)
-        stats_key = SimpleCov.coverage_statistics_key(criterion)
-        last_coverage_percent = last_run.dig(:result, stats_key)
-        if last_coverage_percent.nil? && stats_key == :line
-          last_coverage_percent = last_run.dig(:result, :covered_percent)
+      # The `{stats_key => percent}` baseline the drop is measured
+      # against, nil for "no previous run to compare with".
+      def drop_baseline_percents(mode, last_run)
+        case mode
+        when :median then median_baseline
+        when :branch then branch_baseline
+        else last_run_baseline(last_run || SimpleCov::LastRun.read)
         end
-        # A hand-edited .last_run.json can carry any value type, and
-        # LastRun.read only vouches for the top level being a Hash.
+      end
+
+      # A hand-edited .last_run.json can carry any value type, and
+      # LastRun.read only vouches for the top level being a Hash; the
+      # per-criterion numeric check happens in compute_drop. The
+      # :covered_percent key is the pre-criteria file format's spelling
+      # of the line percent.
+      def last_run_baseline(last_run)
+        previous = last_run.is_a?(Hash) ? (_ = last_run)[:result] : nil
+        return nil unless previous.is_a?(Hash)
+
+        previous = _ = previous
+        {line: previous[:line] || previous[:covered_percent],
+         branch: previous[:branch], method: previous[:method]}
+      end
+
+      # The per-criterion median over every recorded run, so one run
+      # that dipped for an unrelated reason cannot quietly become the
+      # baseline the next run is judged against.
+      def median_baseline
+        totals = history_totals
+        return nil if totals.empty?
+
+        baseline = {} #: Hash[Symbol, untyped]
+        %i[line branch method].each do |criterion|
+          values = totals.filter_map { |entry| entry[criterion.to_s] }.grep(Numeric)
+          baseline[criterion] = median(values) unless values.empty?
+        end
+        baseline
+      end
+
+      def history_totals
+        SimpleCov::History.read.filter_map do |entry|
+          entry["totals"] if entry.is_a?(Hash) && entry["totals"].is_a?(Hash)
+        end
+      end
+
+      def median(values)
+        sorted = values.sort
+        mid = sorted.length / 2
+        sorted.length.odd? ? sorted.fetch(mid) : (sorted.fetch(mid - 1) + sorted.fetch(mid)).fdiv(2)
+      end
+
+      # The newest recorded run on the current git branch, so a feature
+      # branch is compared with itself rather than with whatever ran
+      # most recently anywhere. Detached or non-git checkouts (and
+      # branches with no recorded run) have nothing to compare against.
+      def branch_baseline
+        branch, = SimpleCov::History.git_info
+        return nil unless branch
+
+        entry = SimpleCov::History.read.reverse_each.find { |candidate| branch_entry?(candidate, branch) }
+        return nil unless entry
+
+        totals = {} #: Hash[Symbol, untyped]
+        entry.fetch("totals").each { |key, value| totals[key.to_sym] = value }
+        totals
+      end
+
+      def branch_entry?(candidate, branch)
+        candidate.is_a?(Hash) && candidate["branch"] == branch && candidate["totals"].is_a?(Hash)
+      end
+
+      def compute_drop(criterion, result, baseline)
+        stats_key = SimpleCov.coverage_statistics_key(criterion)
+        last_coverage_percent = baseline[stats_key]
         # Treat a non-numeric percent like a missing one instead of
         # raising out of the at_exit hook.
         return unless last_coverage_percent.is_a?(Numeric)

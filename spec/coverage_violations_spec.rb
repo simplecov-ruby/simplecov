@@ -43,6 +43,71 @@ RSpec.describe SimpleCov::CoverageViolations do
     end
   end
 
+  describe ".maximum_drop baselines" do
+    let(:result) { instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats}) }
+
+    def entry(branch, line_percent)
+      {"branch" => branch, "totals" => {"line" => line_percent}}
+    end
+
+    context "with drop_baseline :median" do
+      it "measures the drop against the history's per-criterion median" do
+        # line_stats is 80%; median of [90, 100, 80] is 90 → a 10-point drop.
+        allow(SimpleCov::History).to receive(:read)
+          .and_return([entry("main", 90.0), entry("main", 100.0), entry("main", 80.0)])
+
+        violations = described_class.maximum_drop(result, {line: 5}, mode: :median)
+        expect(violations).to contain_exactly(criterion: :line, maximum: 5, actual: 10.0)
+      end
+
+      it "averages the middle pair for an even run count" do
+        allow(SimpleCov::History).to receive(:read)
+          .and_return([entry("main", 90.0), entry("main", 100.0)])
+
+        violations = described_class.maximum_drop(result, {line: 5}, mode: :median)
+        expect(violations).to contain_exactly(criterion: :line, maximum: 5, actual: 15.0)
+      end
+
+      it "finds nothing to compare against in an empty history" do
+        allow(SimpleCov::History).to receive(:read).and_return([])
+
+        expect(described_class.maximum_drop(result, {line: 0}, mode: :median)).to eq([])
+      end
+
+      it "medians over the well-formed entries, skipping hand-edited debris" do
+        allow(SimpleCov::History).to receive(:read)
+          .and_return(["debris", {"totals" => nil}, entry("main", 90.0)])
+
+        violations = described_class.maximum_drop(result, {line: 5}, mode: :median)
+        expect(violations).to contain_exactly(criterion: :line, maximum: 5, actual: 10.0)
+      end
+    end
+
+    context "with drop_baseline :branch" do
+      before { allow(SimpleCov::History).to receive(:git_info).and_return(%w[feature abc]) }
+
+      it "measures against the newest recorded run on the current branch" do
+        allow(SimpleCov::History).to receive(:read)
+          .and_return([entry("feature", 95.0), entry("main", 100.0), entry("feature", 90.0)])
+
+        violations = described_class.maximum_drop(result, {line: 5}, mode: :branch)
+        expect(violations).to contain_exactly(criterion: :line, maximum: 5, actual: 10.0)
+      end
+
+      it "finds nothing to compare against when the branch has no recorded run" do
+        allow(SimpleCov::History).to receive(:read).and_return([entry("main", 100.0)])
+
+        expect(described_class.maximum_drop(result, {line: 0}, mode: :branch)).to eq([])
+      end
+
+      it "finds nothing to compare against outside a branch (detached HEAD, no git)" do
+        allow(SimpleCov::History).to receive(:git_info).and_return([nil, nil])
+
+        expect(described_class.maximum_drop(result, {line: 0}, mode: :branch)).to eq([])
+      end
+    end
+  end
+
   describe ".minimum_by_group" do
     let(:group) { instance_double(SimpleCov::FileList, coverage_statistics: {line: line_stats}) }
 

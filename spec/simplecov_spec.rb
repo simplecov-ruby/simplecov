@@ -813,12 +813,14 @@ RSpec.describe SimpleCov do
                                                  final_result_process?: false,
                                                  result_exit_status: SimpleCov::ExitCodes::SUCCESS)
       allow(described_class).to receive(:write_last_run)
+      allow(SimpleCov::History).to receive(:record)
 
       described_class.collate(["coverage/worker/.resultset.json"])
 
       expect(SimpleCov::ResultMerger).to have_received(:merge_and_store)
         .with("coverage/worker/.resultset.json", ignore_timeout: true)
       expect(described_class).to have_received(:write_last_run).with(result)
+      expect(SimpleCov::History).to have_received(:record).with(result)
     end
   end
 
@@ -1155,6 +1157,9 @@ RSpec.describe SimpleCov do
             covered_percentages: []
           )
           allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
+          # The success path records the run for real, which would leave a
+          # .history.json in the shared coverage path for later specs to find.
+          allow(SimpleCov::History).to receive(:record)
         end
 
         it "return SimpleCov::ExitCodes::SUCCESS" do

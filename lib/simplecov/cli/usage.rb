@@ -36,6 +36,7 @@ module SimpleCov
             show <path>               Print the file's source annotated with hit counts and misses
             report                    Print the overall summary and group totals
             status                    Report freshness: age, commit distance, recorded tests
+            history                   Print the recorded coverage trend, a sparkline per criterion
             badge                     Render the coverage percent as an SVG badge
             uncovered                 List the lowest-coverage files
             tests [<path>[:<line>]]   List recorded tests for a file or line (needs track_tests)
@@ -71,6 +72,12 @@ module SimpleCov
 
           status options:
             --json                    Emit the freshness facts as a JSON object
+
+          history options:
+            --input PATH              Read from PATH instead of the coverage directory's .history.json
+            --file PATH               Follow one file's trajectory instead of the totals
+            --json                    Emit the entries (or the file's trajectory) as JSON
+            --no-color                Disable colorized deltas (also honors NO_COLOR / FORCE_COLOR env)
 
           badge options:
             --input PATH              Read from PATH instead of #{cli.default_input}

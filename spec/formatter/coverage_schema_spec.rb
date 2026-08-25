@@ -191,6 +191,26 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
       expect(validate_against_schema(document)).to be_empty
     end
 
+    it "validates a result carrying a run history, and omits it with no recorded past" do
+      allow(SimpleCov::History).to receive(:read).and_return([])
+      absent = emit(SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}))
+      expect(absent).not_to have_key("history")
+
+      allow(SimpleCov::History).to receive_messages(
+        read: [{"created_at" => "2026-08-24T12:00:00Z", "branch" => "main", "commit" => "abc",
+                "totals" => {"line" => 90.0}, "groups" => {}, "files" => {"lib/a.rb" => 90.0}}],
+        git_info: [nil, nil]
+      )
+      result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
+
+      document = emit(result)
+
+      expect(document.fetch("history").length).to eq(2)
+      expect(document.fetch("history").last.fetch("totals")).to eq("line" => 66.66)
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+    end
+
     it "validates a result with method coverage enabled" do
       allow(SimpleCov).to receive(:method_coverage?).and_return(true)
       result = SimpleCov::Result.new({

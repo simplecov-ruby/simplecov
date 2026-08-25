@@ -828,6 +828,18 @@ SimpleCov.maximum_missed 12                        # at most 12 misses suite-wid
 `expected_coverage` floors the actual percentage to two decimal places, so an actual of 95.4287 still passes at
 `expected_coverage 95.42`.
 
+`maximum_coverage_drop` compares against the previous run by default, which means a run that dipped for an unrelated
+reason quietly becomes the baseline the next run is judged against. `drop_baseline` picks a steadier comparison,
+reading the [run history](#run-history):
+
+```ruby
+SimpleCov.drop_baseline :median   # the median of the recorded history
+SimpleCov.drop_baseline :branch   # the newest recorded run on the current git branch
+```
+
+With an empty history (or, for `:branch`, no recorded run on the branch, or a detached HEAD) there is nothing to
+compare against, which counts as "no previous run" the way a missing `.last_run.json` does.
+
 > [!NOTE]
 > `minimum_coverage_by_file` and `minimum_coverage_by_group` are **deprecated** in favor of the `coverage` block's
 > scoped `minimum`. They still work but emit a deprecation warning. For example, replace
@@ -839,6 +851,23 @@ SimpleCov.maximum_missed 12                        # at most 12 misses suite-wid
 >   minimum 100, per: "app/x.rb"
 > end
 > ```
+
+### Run history
+
+Every successful run appends an entry to `coverage/.history.json`: the per-criterion totals, the per-group and
+per-file percentages, a timestamp, and the branch and commit when the project is a git checkout. `.last_run.json`
+keeps its one-number job untouched; the history is what turns "did the number move since last time" into direction of
+travel. It powers three things: the trend sparklines in the HTML report (one per file and per group, drawn whenever
+the report has two or more recorded runs), [`simplecov history`](CLI.md#history--the-recorded-coverage-trend) in the
+terminal, and the [`drop_baseline`](#suite-wide-shortcuts) comparisons above.
+
+The file is bounded (`history_limit`, 100 entries by default, newest kept, 0 disables recording), written atomically,
+and tolerant of corruption the way `.last_run.json` is. It is plain committable JSON, so a project that wants its
+trend to survive a clean CI checkout can check it in:
+
+```ruby
+SimpleCov.history_limit 25
+```
 
 ### Per-file baseline (ratchet)
 

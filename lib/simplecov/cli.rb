@@ -10,6 +10,7 @@ require_relative "cli/coverage_file"
 require_relative "cli/coverage"
 require_relative "cli/dead_code"
 require_relative "cli/diff"
+require_relative "cli/history"
 require_relative "cli/merge"
 require_relative "cli/open"
 require_relative "cli/patch"
@@ -45,6 +46,7 @@ module SimpleCov
       "open" => Open,
       "report" => Report,
       "status" => Status,
+      "history" => History,
       "uncovered" => Uncovered,
       "tests" => Tests,
       "affected" => Affected,

@@ -42,8 +42,9 @@ module SimpleCov
     def self.minimum_by_group: (untyped result, untyped thresholds) -> ::Array[::Hash[::Symbol, untyped]]
 
     # @return [Array<Hash>] {:criterion, :maximum, :actual} where `actual`
-    #   is the observed drop (in percentage points) vs. the last run.
-    def self.maximum_drop: (untyped result, untyped thresholds, ?last_run: untyped) -> (::Array[untyped] | untyped)
+    #   is the observed drop (in percentage points) vs. the baseline
+    #   `mode` selects (:last_run, :median, :branch).
+    def self.maximum_drop: (untyped result, untyped thresholds, ?last_run: untyped, ?mode: Symbol) -> (::Array[untyped] | untyped)
 
     private
 
@@ -84,7 +85,23 @@ module SimpleCov
 
     def self.lookup_group: (untyped result, untyped group_name) -> untyped
 
-    def self.compute_drop: (untyped criterion, untyped result, untyped last_run) -> (nil | untyped)
+    # The `{stats_key => percent}` baseline the drop is measured
+    # against, nil for "no previous run to compare with".
+    def self.drop_baseline_percents: (Symbol mode, untyped last_run) -> (Hash[Symbol, untyped] | nil)
+
+    def self.last_run_baseline: (untyped last_run) -> (Hash[Symbol, untyped] | nil)
+
+    def self.median_baseline: () -> (Hash[Symbol, untyped] | nil)
+
+    def self.history_totals: () -> Array[Hash[String, untyped]]
+
+    def self.median: (Array[Numeric] values) -> Numeric
+
+    def self.branch_baseline: () -> (Hash[Symbol, untyped] | nil)
+
+    def self.branch_entry?: (untyped candidate, String branch) -> bool
+
+    def self.compute_drop: (untyped criterion, untyped result, Hash[Symbol, untyped] baseline) -> (nil | untyped)
 
     def self.round: (untyped percent) -> untyped
   end

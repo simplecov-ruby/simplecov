@@ -1,0 +1,41 @@
+module SimpleCov
+  module CLI
+    module History
+      # Renders the trend: min-max scaled Unicode sparklines, the
+      # per-run rows, and the JSON forms of both views.
+      module Output
+        BARS: Array[String]
+
+        CRITERIA_ORDER: Array[String]
+
+        def self?.emit: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, color: bool) -> void
+
+        def self?.emit_totals: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
+
+        def self?.emit_sparklines: (untyped stdout, Array[SimpleCov::History::entry] entries, Array[String] criteria, bool color) -> void
+
+        def self?.emit_file: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
+
+        def self?.emit_rows: (untyped stdout, Array[SimpleCov::History::entry] entries) { (SimpleCov::History::entry) -> String } -> void
+
+        def self?.totals_cell: (SimpleCov::History::entry entry, Array[String] criteria) -> String
+
+        def self?.percent_or_dash: (untyped value) -> String
+
+        def self?.sparkline: (Array[untyped] series) -> String
+
+        def self?.bar: (untyped value, untyped min, untyped span) -> String
+
+        def self?.trend: (Array[untyped] series, bool color) -> String
+
+        def self?.emit_json: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries) -> void
+
+        def self?.measured_criteria: (Array[SimpleCov::History::entry] entries) -> Array[String]
+
+        def self?.numeric: (untyped value) -> Numeric?
+
+        def self?.pluralize: (Integer number, String noun) -> String
+      end
+    end
+  end
+end

@@ -106,9 +106,15 @@ module SimpleCov
     end
 
     # @api private — `exit_status = SimpleCov.process_result(SimpleCov.result)`.
+    # The history entry is recorded on the same successful-run condition
+    # `.last_run.json` uses, so a run that failed its thresholds becomes
+    # neither the drop baseline nor a data point in the trend.
     def process_result(result)
       result_exit_status = result_exit_status(result)
-      write_last_run(result) if result_exit_status == SimpleCov::ExitCodes::SUCCESS
+      if result_exit_status == SimpleCov::ExitCodes::SUCCESS
+        write_last_run(result)
+        SimpleCov::History.record(result)
+      end
       result_exit_status
     end
 

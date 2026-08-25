@@ -17,6 +17,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `show <path>`      | Print the file's source annotated with hit counts and misses        |
 | `report`           | Print the overall summary and per-group totals                      |
 | `status`           | Report freshness: age, commit distance, recorded tests              |
+| `history`          | Print the recorded coverage trend, a sparkline per criterion        |
 | `badge`            | Render the coverage percent as an SVG badge                         |
 | `uncovered`        | List the lowest-coverage files                                      |
 | `tests [<path>[:<line>]]` | List recorded tests for a file or line (needs `track_tests`) |
@@ -154,6 +155,28 @@ resultset coverage/.resultset.json
 The commit distance comes from comparing the report's recorded commit with the current `HEAD`, so "is this report
 about the code I'm looking at?" has a one-command answer. A report with no test map says what to enable, and `--json`
 emits the same facts as data.
+
+### `history` — the recorded coverage trend
+
+Every successful run appends to `coverage/.history.json` (see the
+[run history](Configuration.md#run-history)); `simplecov history` draws the trend in the terminal, a sparkline per
+measured criterion with the run rows beneath:
+
+```sh
+$ simplecov history
+Coverage history: coverage/.history.json (12 runs)
+
+  line    ▄▅▆▆▇▇▇█████  97.2% → 98.5%  (+1.3)
+  branch  ▂▃▃▄▄▅▅▅▆▆▆▆  88.0% → 91.25%  (+3.25)
+
+  2026-08-14T09:12:00Z  main  4eccdbb  line 97.2%  branch 88.0%
+  ...
+```
+
+`--file PATH` follows one file's trajectory instead of the totals, with gaps where a run recorded nothing for it, and
+`--json` emits the entries (or the file's trajectory) as data. Sparklines are scaled to each series' own range, so
+direction stays visible even when the numbers move within a fraction of a percent; the numbers beside them carry the
+absolute scale.
 
 ### `badge` — an SVG coverage badge
 
