@@ -12,7 +12,7 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 
 | Command            | Description                                                         |
 |--------------------|---------------------------------------------------------------------|
-| `run <command…>`   | Execute `<command>` with simplecov pre-loaded (no `test_helper` hook needed) |
+| `run <command…>`   | Execute `<command>` with SimpleCov pre-loaded (no `test_helper` hook needed) |
 | `coverage <path>`  | Print coverage stats for a single file                              |
 | `show <path>`      | Print the file's source annotated with hit counts and misses        |
 | `report`           | Print the overall summary and per-group totals                      |
@@ -42,7 +42,7 @@ system package manager place it.
 ### `run` — run a suite with coverage
 
 If your project has no `test_helper.rb` hook that calls `SimpleCov.start` (or you don't want to add one), `simplecov run`
-execs your test command with simplecov pre-loaded so a report drops into `coverage/` at the end:
+execs your test command with SimpleCov pre-loaded so a report drops into `coverage/` at the end:
 
 ```sh
 $ simplecov run bundle exec rspec

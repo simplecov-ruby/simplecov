@@ -30,7 +30,7 @@ module SimpleCov
           Usage: simplecov <command> [options]
 
           Commands:
-            run <command...>          Execute <command> with simplecov pre-loaded
+            run <command...>          Execute <command> with SimpleCov pre-loaded
                                       (works without a test_helper hook)
             coverage <path>           Print coverage stats for the given file
             show <path>               Print the file's source annotated with hit counts and misses

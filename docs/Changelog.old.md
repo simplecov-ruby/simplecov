@@ -68,9 +68,9 @@ Notably this **will be the last release to support ruby versions that have reach
 
 * Fix merging race condition when running tests in parallel and merging them. See [#570](https://github.com/simplecov-ruby/simplecov/pull/570) (thanks @jenseng)
 * Fix relevant lines for unloaded files - comments, skipped code etc. are correctly classified as irrelevant. See [#605](https://github.com/simplecov-ruby/simplecov/pull/605) (thanks @odlp)
-* Allow using simplecov with frozen-string-literals enabled. See [#590](https://github.com/simplecov-ruby/simplecov/pull/590) (thanks @pat)
+* Allow using SimpleCov with frozen-string-literals enabled. See [#590](https://github.com/simplecov-ruby/simplecov/pull/590) (thanks @pat)
 * Make sure Array Filter can use all other filter types. See [#589](https://github.com/simplecov-ruby/simplecov/pull/589) (thanks @jsteel)
-* Make sure file names use `Simplecov.root` as base avoiding using full absolute project paths. See [#589](https://github.com/simplecov-ruby/simplecov/pull/589) (thanks @jsteel)
+* Make sure file names use `SimpleCov.root` as base avoiding using full absolute project paths. See [#589](https://github.com/simplecov-ruby/simplecov/pull/589) (thanks @jsteel)
 
 0.14.1 2017-03-18 ([changes](https://github.com/simplecov-ruby/simplecov/compare/v0.14.0...v0.14.1))
 ========
@@ -181,7 +181,7 @@ Notably this **will be the last release to support ruby versions that have reach
 =================
 
 This is a minor bugfix release for simplecov-html, released as `0.9.0`. Due to the tight version constraint in the gemspec
-a new release of simplecov had to be shipped to allow using simplecov-html `~> 0.9.0`.
+a new release of SimpleCov had to be shipped to allow using simplecov-html `~> 0.9.0`.
 
   * The browser back / forward button should now work again. See [#36](https://github.com/simplecov-ruby/simplecov-html/pull/36) and
     [#35](https://github.com/simplecov-ruby/simplecov-html/pull/35). Thanks @whatasunnyday and @justinsteele for submitting PRs to fix this.
@@ -193,7 +193,7 @@ Other than the release includes a bunch of mostly documentation improvements:
 
   * Update Rails path for Rails 4+. See [#336](https://github.com/simplecov-ruby/simplecov/pull/336). Thanks @yazinsai
   * Encourage use of .simplecov to avoid lost files. See [#338](https://github.com/simplecov-ruby/simplecov/pull/338). thanks @dankohn
-  * Specified in the gemspec that simplecov needs ruby 1.8.7. See [#343](https://github.com/simplecov-ruby/simplecov/pull/343). thanks @iainbeeston
+  * Specified in the gemspec that SimpleCov needs ruby 1.8.7. See [#343](https://github.com/simplecov-ruby/simplecov/pull/343). thanks @iainbeeston
   * Fix mispointed link in CHANGELOG.md. See [#353](https://github.com/simplecov-ruby/simplecov/pull/353). Thanks @dleve123
   * Improve command name docs. See [#356](https://github.com/simplecov-ruby/simplecov/pull/356). Thanks @gtd
 
@@ -251,7 +251,7 @@ v0.8.2, 2013-11-20 ([changes](https://github.com/simplecov-ruby/simplecov/compar
 ## Bugfixes
 
   * Replaced the locking behaviour [via lockfile gem](https://github.com/simplecov-ruby/simplecov/pull/185) with
-    plain Ruby explicit file locking when merging results. This should make simplecov merging to behave well
+    plain Ruby explicit file locking when merging results. This should make SimpleCov merging to behave well
     on Windows again.
     See [#258](https://github.com/simplecov-ruby/simplecov/issues/258) and
     [#223](https://github.com/simplecov-ruby/simplecov/pull/223) (thanks to @tomykaira)
@@ -291,7 +291,7 @@ has been added.
   * Adds support for Rails 4 command guessing, removes default group `vendor/plugins`.
     See [#181](https://github.com/simplecov-ruby/simplecov/pull/181) and
     [#203](https://github.com/simplecov-ruby/simplecov/pull/203) (thanks to @semanticart and @phallstrom)
-  * You can now load simplecov without the default settings by doing `require 'simplecov/no_defaults'`
+  * You can now load SimpleCov without the default settings by doing `require 'simplecov/no_defaults'`
     or setting `ENV['SIMPLECOV_NO_DEFAULTS']`. Check `simplecov/defaults` to see what preconfigurations are getting
     dropped by using this. See [#209](https://github.com/simplecov-ruby/simplecov/pull/209) (thanks to @ileitch)
   * The result set merging now uses the `lockfile` gem to avoid race conditions.
@@ -382,7 +382,7 @@ v0.6.3, 2012-05-10 ([changes](https://github.com/simplecov-ruby/simplecov/compar
 ==================
 
   * [BUGFIX] Modified the API-changes for newer multi_json versions introduced with #122 and v0.6.2 so
-    they are backwards-compatible with older multi_json gems in order to avoid simplecov polluting
+    they are backwards-compatible with older multi_json gems in order to avoid SimpleCov polluting
     the multi_json minimum version requirement for entire applications.
     See https://github.com/simplecov-ruby/simplecov/issues/132
   * Added appraisal gem to the test setup in order to run the test suite against both 1.0 and 1.3

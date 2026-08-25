@@ -1,6 +1,6 @@
 ## Alternate coverage report formatters
 
-The community around simplecov provides a whole bunch of alternate formatters beyond the bundled
+The community around SimpleCov provides a whole bunch of alternate formatters beyond the bundled
 HTML and JSON formatters.
 
 If you have built or found one that is missing here, please send a Pull Request for this document!
