@@ -3,10 +3,40 @@
 require_relative "../formatter/multi_formatter"
 
 module SimpleCov
-  # Formatter selection (`formatter` / `formatters`), reporting toggles
-  # (`print_errors`), and the deprecated `# :nocov:` token hook.
+  # Formatter selection (`formats` / `formatter` / `formatters`),
+  # reporting toggles (`print_errors`), and the deprecated `# :nocov:`
+  # token hook.
   module Configuration
     attr_writer :formatter, :print_error_status
+
+    # The bundled formats `formats` resolves by name, as constant names
+    # under SimpleCov::Formatter.
+    BUILT_IN_FORMATS = {
+      html: :HTMLFormatter, json: :JSONFormatter, simple: :SimpleFormatter, baseline: :BaselineFormatter
+    }.freeze
+    private_constant :BUILT_IN_FORMATS
+
+    #
+    # The symbol front door to formatter selection: name the bundled
+    # formatters instead of spelling their constants.
+    #
+    #   SimpleCov.start do
+    #     formats :html, :json
+    #   end
+    #
+    # `:html`, `:json`, `:simple`, and `:baseline` map to the bundled
+    # formatter classes; anything else (a formatter class, or a
+    # ready-built instance for constructor options) passes through
+    # beside them, so `formats :html, MyFormatter` mixes freely. With no
+    # arguments it reads back the configured formatter list, like
+    # `formatters` does.
+    #
+    def formats(*names)
+      return formatters if names.empty?
+
+      self.formatters = names.map { |name| resolve_format(name) }
+      formatters
+    end
 
     #
     # Gets or sets the configured formatter. Accepts a formatter class
@@ -133,6 +163,26 @@ module SimpleCov
       return @nocov_token if defined?(@nocov_token) && value.nil?
 
       @nocov_token = value || "nocov"
+    end
+
+  private
+
+    # A `formats` element: Symbols name bundled formatters, everything
+    # else passes through as a formatter of its own. `:html` requires
+    # the HTML formatter lazily, since under SIMPLECOV_NO_DEFAULTS
+    # nothing else has loaded it.
+    def resolve_format(name)
+      return name unless name.is_a?(Symbol)
+
+      constant = BUILT_IN_FORMATS[name]
+      unless constant
+        raise SimpleCov::ConfigurationError,
+              "Unknown format #{name.inspect}. Built-in formats are :html, :json, :simple, and :baseline; " \
+              "pass a formatter class or instance for anything else."
+      end
+
+      require_relative "../../simplecov-html" if name == :html
+      SimpleCov::Formatter.const_get(constant)
     end
   end
 end

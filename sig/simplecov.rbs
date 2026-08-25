@@ -604,6 +604,16 @@ module SimpleCov
     @source_in_json: bool
     @nocov_token: String
 
+    # The bundled formats `formats` resolves by name, as constant names
+    # under SimpleCov::Formatter.
+    BUILT_IN_FORMATS: Hash[Symbol, Symbol]
+
+    # The symbol front door to formatter selection: `:html`, `:json`,
+    # `:simple`, and `:baseline` name the bundled formatters, anything
+    # else passes through as a formatter of its own. Bare, it reads
+    # back the configured list like `formatters` does.
+    def formats: (*untyped names) -> (Array[Class] | Class | nil)
+
     # Gets or sets the configured formatter. Pass `false` (or `nil`) to
     # opt out of formatting entirely (see #964).
     def formatter: (?(Class | false | :__no_arg__)? formatter) -> Class?
@@ -640,6 +650,12 @@ module SimpleCov
     alias skip_token nocov_token
 
     def current_nocov_token: (?String? value) -> String
+
+    private
+
+    # A `formats` element: Symbols name bundled formatters, everything
+    # else passes through as a formatter of its own.
+    def resolve_format: (untyped name) -> untyped
   end
 end
 

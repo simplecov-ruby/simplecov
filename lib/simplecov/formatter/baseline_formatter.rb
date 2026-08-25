@@ -10,10 +10,9 @@ module SimpleCov
     # teams that want floors to tighten on every run instead of by
     # deliberate `simplecov ratchet` invocations:
     #
-    #   SimpleCov.formatters = [
-    #     SimpleCov::Formatter::HTMLFormatter,
-    #     SimpleCov::Formatter::BaselineFormatter
-    #   ]
+    #   SimpleCov.start do
+    #     formats :html, :baseline
+    #   end
     #
     # The semantics are exactly the CLI's: the first run generates a
     # floor for every reported file, later runs raise the floors of

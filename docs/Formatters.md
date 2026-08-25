@@ -69,14 +69,30 @@ Instances mix freely with classes in `formatters` lists as well.
 
 ### Using multiple formatters
 
-As of SimpleCov 0.9 you can specify multiple result formats. The HTML and JSON formatters are built in; other
-formatters ship as separate gems you'll need to add and require — for example,
-[simplecov-cobertura](https://github.com/jessebs/simplecov-cobertura) for the Cobertura XML that many CI services
-consume.
+The bundled formatters are named by symbol, so the common combinations need no constants at all:
+
+```ruby
+SimpleCov.start do
+  formats :html, :json
+end
+```
+
+`:html`, `:json`, `:simple`, and `:baseline` are the built-in names. Other formatters ship as separate gems you'll
+need to add and require — for example, [simplecov-cobertura](https://github.com/jessebs/simplecov-cobertura) for the
+Cobertura XML that many CI services consume — and their classes (or ready-built instances, for constructor options)
+mix freely beside the names:
 
 ```ruby
 require "simplecov-cobertura"
 
+SimpleCov.start do
+  formats :html, SimpleCov::Formatter::CoberturaFormatter
+end
+```
+
+The constant-spelled form remains equivalent:
+
+```ruby
 SimpleCov.formatters = [
   SimpleCov::Formatter::HTMLFormatter,
   SimpleCov::Formatter::CoberturaFormatter,
@@ -116,10 +132,9 @@ commit SHA the report was generated against) lets tools recover the exact source
 floors to tighten continuously instead of by deliberate `simplecov ratchet` invocations:
 
 ```ruby
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
-  SimpleCov::Formatter::HTMLFormatter,
-  SimpleCov::Formatter::BaselineFormatter
-])
+SimpleCov.start do
+  formats :html, :baseline
+end
 ```
 
 The semantics are exactly the CLI's: the first run generates `.simplecov_baseline.yml` with a floor for every reported

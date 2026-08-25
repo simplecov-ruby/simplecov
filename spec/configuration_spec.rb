@@ -1789,6 +1789,45 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#formats" do
+      after do
+        config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
+      end
+
+      it "maps built-in format names to their formatter classes" do
+        config.formats :json, :simple
+
+        expect(config.formatter.new.formatters)
+          .to eq([SimpleCov::Formatter::JSONFormatter, SimpleCov::Formatter::SimpleFormatter])
+      end
+
+      it "resolves every built-in name" do
+        config.formats :html, :json, :simple, :baseline
+
+        expect(config.formatter.new.formatters).to eq(
+          [SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::JSONFormatter,
+           SimpleCov::Formatter::SimpleFormatter, SimpleCov::Formatter::BaselineFormatter]
+        )
+      end
+
+      it "passes classes and instances through beside the names" do
+        custom = Class.new { def format(_) = "ok" }
+        config.formats :json, custom
+
+        expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::JSONFormatter, custom])
+      end
+
+      it "rejects an unknown name, listing the built-ins" do
+        expect { config.formats :xml }
+          .to raise_error(SimpleCov::ConfigurationError, /Unknown format :xml.*:html, :json, :simple, and :baseline/m)
+      end
+
+      it "reads back the configured formatters when called bare" do
+        config.formatter = SimpleCov::Formatter::SimpleFormatter
+        expect(config.formats).to eq([SimpleCov::Formatter::SimpleFormatter])
+      end
+    end
+
     describe "#formatters" do
       after do
         config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
