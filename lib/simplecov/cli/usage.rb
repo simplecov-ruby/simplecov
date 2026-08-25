@@ -4,6 +4,9 @@ module SimpleCov
   module CLI
     # The `simplecov help` text. A method so its default paths resolve at
     # call time against the active `.simplecov`.
+    #
+    # rubocop:disable Metrics/ModuleLength -- the module is one usage
+    # document; its length is the command surface, not logic.
     module Usage
     module_function
 
@@ -40,6 +43,7 @@ module SimpleCov
             merge <files...>          Merge multiple .resultset.json files
             diff <baseline>           Show per-file coverage delta vs baseline
             patch                     Show coverage of the lines a change touched
+            ratchet                   Rewrite the per-file coverage baseline, only ever tightening
             open                      Open the HTML report in the default browser
             serve                     Serve the coverage report over HTTP
             watch <command...>        Re-run <command> on save and live-reload the served report
@@ -50,7 +54,7 @@ module SimpleCov
           Every command answers `--help` / `-h`. Default paths follow a project's
           `.simplecov` SimpleCov.coverage_dir (#{cli.coverage_dir} for this run).
 
-          coverage / show / report / status / uncovered / tests / affected / diff / patch options:
+          coverage / show / report / status / uncovered / tests / affected / diff / patch / ratchet options:
             --input PATH              Read from PATH instead of #{cli.default_input}
             --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
@@ -106,6 +110,12 @@ module SimpleCov
             --find-renames            Follow a renamed file instead of counting the moved file as all-new
             --json                    Emit results as a JSON array (for CI)
 
+          ratchet options:
+            --baseline PATH           The baseline file to rewrite (default: the project's `baseline_file`, .simplecov_baseline.yml)
+            --init                    Regenerate from scratch: add entries for new files and reset every floor to the current state
+            --dry-run                 Print what would change without writing
+            --json                    Emit the summary (tightened / pruned / regressed entries) as JSON
+
           open options:
             --report PATH             Open PATH instead of #{cli.default_report}
 
@@ -125,5 +135,6 @@ module SimpleCov
         USAGE
       end
     end
+    # rubocop:enable Metrics/ModuleLength
   end
 end

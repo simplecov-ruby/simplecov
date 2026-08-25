@@ -38,7 +38,7 @@ RSpec.describe SimpleCov::CoverageViolations do
 
     it "skips a configured threshold whose criterion isn't in the file's stats" do
       result = instance_double(SimpleCov::Result, files: [file])
-      violations = described_class.minimum_by_file(result, line: 100, branch: 100)
+      violations = described_class.minimum_by_file(result, {line: 100, branch: 100})
       expect(violations.map { |v| v[:criterion] }).to contain_exactly(:line)
     end
   end

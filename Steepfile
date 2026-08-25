@@ -18,6 +18,7 @@ target :lib do
   library "ripper"
   library "securerandom"
   library "monitor"
+  library "yaml"
 
   configure_code_diagnostics(Steep::Diagnostic::Ruby.strict)
 end

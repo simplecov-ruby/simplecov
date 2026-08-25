@@ -9,6 +9,13 @@ module SimpleCov
     module Dotfile
       def self?.coverage_dir: () -> untyped
 
+      # The project's configured baseline path (see `simplecov ratchet`),
+      # read from `.simplecov` the same way `coverage_dir` is.
+      def self?.baseline_file: () -> String
+
+      # Like `read_from`, snapshotting only the ivar this read is for.
+      def self?.read_baseline_file_from: (untyped dotfile) -> String
+
       # Load the dotfile, snapshot+restore `SimpleCov.coverage_dir` so we
       # don't quietly clobber it in a host process that's already
       # configured (e.g. when the CLI is exercised inline by simplecov's

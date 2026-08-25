@@ -14,7 +14,8 @@ module SimpleCov
       :minimum_coverage_by_file_overrides,
       :minimum_coverage_by_group,
       :maximum_coverage,
-      :maximum_coverage_drop
+      :maximum_coverage_drop,
+      :baseline
     )
 
     def at_exit_behavior
@@ -121,7 +122,8 @@ module SimpleCov
         minimum_coverage_by_file_overrides: minimum_coverage_by_file_overrides,
         minimum_coverage_by_group: minimum_coverage_by_group,
         maximum_coverage: maximum_coverage,
-        maximum_coverage_drop: maximum_coverage_drop
+        maximum_coverage_drop: maximum_coverage_drop,
+        baseline: baseline
       )
     end
   end

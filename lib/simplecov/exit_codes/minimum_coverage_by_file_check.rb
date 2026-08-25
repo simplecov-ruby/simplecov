@@ -5,9 +5,12 @@ module SimpleCov
     # Fails when any individual file falls below the configured minimum
     # coverage for any criterion.
     class MinimumCoverageByFileCheck < Check
-      def initialize(result, minimum_coverage_by_file, overrides = {})
+      # `baseline:` exempts the file-and-criterion pairs it covers: those
+      # answer to their own floor via `BaselineCheck` instead.
+      def initialize(result, minimum_coverage_by_file, overrides = {}, baseline: nil)
         super(result, minimum_coverage_by_file)
         @overrides = overrides
+        @baseline = baseline
       end
 
       def exit_code
@@ -17,7 +20,7 @@ module SimpleCov
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.minimum_by_file(result, thresholds, @overrides)
+        SimpleCov::CoverageViolations.minimum_by_file(result, thresholds, @overrides, baseline: @baseline)
       end
 
       def report_violation(violation)

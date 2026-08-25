@@ -963,6 +963,45 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#baseline_file and #baseline" do
+      it "defaults to .simplecov_baseline.yml" do
+        expect(config.baseline_file).to eq(".simplecov_baseline.yml")
+      end
+
+      it "takes a custom path" do
+        config.baseline_file "config/coverage_floors.yml"
+        expect(config.baseline_file).to eq("config/coverage_floors.yml")
+      end
+
+      it "returns nil when no baseline file exists under root" do
+        Dir.mktmpdir do |dir|
+          config.root(dir)
+          expect(config.baseline).to be_nil
+        end
+      end
+
+      it "reads the baseline file relative to root, once per resolved path" do
+        Dir.mktmpdir do |dir|
+          config.root(dir)
+          File.write(File.join(dir, ".simplecov_baseline.yml"), "lib/foo.rb: 41.2\n")
+
+          expect(config.baseline.floor_for("lib/foo.rb", :line)).to have_attributes(percent: 41.2, missed: nil)
+          expect(config.baseline).to equal(config.baseline)
+        end
+      end
+
+      it "re-reads when the configured path changes" do
+        Dir.mktmpdir do |dir|
+          config.root(dir)
+          File.write(File.join(dir, "floors.yml"), "lib/foo.rb: 41.2\n")
+
+          expect(config.baseline).to be_nil
+          config.baseline_file "floors.yml"
+          expect(config.baseline.covers?("lib/foo.rb", :line)).to be true
+        end
+      end
+    end
+
     describe "#enable_coverage_for_eval (deprecated)" do
       before { allow(config).to receive(:coverage_for_eval_supported?).and_return(true) }
 

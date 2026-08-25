@@ -18,7 +18,7 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION = "1.1"
+        SCHEMA_VERSION = "1.2"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 

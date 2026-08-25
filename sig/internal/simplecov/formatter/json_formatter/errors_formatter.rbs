@@ -17,6 +17,11 @@ module SimpleCov
 
         def self.format_minimum_by_file: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
+        # Baseline-floor violations, keyed like minimum_coverage_by_file:
+        # filename, then criterion. `allowed_missed` is absent for a
+        # percent-only floor.
+        def self.format_baseline: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
+
         def self.record_by_file: (untyped violation, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
         def self.format_minimum_by_group: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped

@@ -49,6 +49,9 @@ Show per\-file coverage delta vs baseline
 .B patch
 Show coverage of the lines a change touched
 .TP
+.B ratchet
+Rewrite the per\-file coverage baseline, only ever tightening
+.TP
 .B open
 Open the HTML report in the default browser
 .TP
@@ -227,6 +230,27 @@ Follow a renamed file instead of counting the moved file as all\-new
 .TP
 .B \-\-json
 Emit results as a JSON array (for CI)
+.SS ratchet
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-baseline PATH
+The baseline file to rewrite (default: the project's `baseline_file`,
+\&.simplecov_baseline.yml)
+.TP
+.B \-\-init
+Regenerate from scratch: add entries for new files and reset every floor to
+the current state
+.TP
+.B \-\-dry\-run
+Print what would change without writing
+.TP
+.B \-\-json
+Emit the summary (tightened / pruned / regressed entries) as JSON
 .SS open
 .TP
 .B \-\-report PATH

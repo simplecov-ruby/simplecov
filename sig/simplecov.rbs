@@ -1656,6 +1656,8 @@ module SimpleCov
       def maximum_coverage: () -> Hash[Symbol, Numeric]
 
       def maximum_coverage_drop: () -> Hash[Symbol, Numeric]
+
+      def baseline: () -> Baseline?
     end
 
     # Runs every coverage check against the result and returns the exit
@@ -1664,7 +1666,106 @@ module SimpleCov
       def self?.call: (SimpleCov::Result result, coverage_limits: _CoverageLimits) -> Integer
 
       def self?.coverage_checks: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> Array[untyped]
+
+      def self?.minimum_by_file_check: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> untyped
     end
+  end
+end
+
+# ----- baseline -----
+
+module SimpleCov
+  # The checked-in per-file coverage floor set behind `simplecov ratchet`
+  # (see #1268). Each entry records, per criterion, the percent a file
+  # has reached and the misses it had when that percent was recorded;
+  # the exit check fails a file below its floor on both axes, and
+  # `ratchet` rewrites the file so floors only ever tighten.
+  class Baseline
+    DEFAULT_FILENAME: String
+
+    # One criterion's floor. `missed` is nil for a hand-written
+    # percent-only entry, where the percent alone decides.
+    class Floor
+      attr_reader percent: Numeric
+      attr_reader missed: Integer?
+
+      def initialize: (percent: Numeric, missed: Integer?) -> void
+    end
+
+    # The result of a `ratchet` pass: the tightened baseline plus the
+    # path lists the CLI summarizes.
+    class Outcome
+      attr_reader baseline: Baseline
+      attr_reader tightened: Array[String]
+      attr_reader pruned: Array[String]
+      attr_reader regressed: Array[String]
+      attr_reader unchanged: Array[String]
+
+      def initialize: (baseline: Baseline, tightened: Array[String], pruned: Array[String],
+                       regressed: Array[String], unchanged: Array[String]) -> void
+    end
+
+    # The measured state ratchet and generate take:
+    # {project_filename => {criterion => {percent:, missed:}}}.
+    type current_floors = Hash[String, Hash[Symbol, {percent: Numeric, missed: Integer}]]
+
+    # Parse `path` into a Baseline, nil when the file does not exist;
+    # raises ConfigurationError on a malformed file.
+    def self.read: (String path) -> Baseline?
+
+    # Build a Baseline covering every file of the measured state.
+    def self.generate: (current_floors current) -> Baseline
+
+    attr_reader entries: Hash[String, Hash[Symbol, Floor]]
+
+    def initialize: (Hash[String, Hash[Symbol, Floor]] entries) -> void
+
+    def entry_for: (String project_filename) -> Hash[Symbol, Floor]?
+
+    def floor_for: (String project_filename, Symbol criterion) -> Floor?
+
+    # Whether this baseline governs the given file and criterion, which
+    # is also what exempts the pair from `minimum_per_file`.
+    def covers?: (String project_filename, Symbol criterion) -> bool
+
+    # Tighten every entry against the measured state; floors only move
+    # in the tightening direction.
+    def ratchet: (current_floors current) -> Outcome
+
+    # Canonical serialization: sorted by path, criteria in the report's
+    # vocabulary, self-describing header comment.
+    def to_yaml: () -> String
+
+    private
+
+    def ratchet_entry: (Hash[Symbol, Floor] entry, Hash[Symbol, {percent: Numeric, missed: Integer}]? current_entry) -> [Symbol, Hash[Symbol, Floor]?]
+
+    def bucket_for: (Hash[Symbol, Floor] entry, Hash[Symbol, Floor] merged, Hash[Symbol, {percent: Numeric, missed: Integer}] current_entry) -> Symbol
+
+    def tighten: (Floor? floor, {percent: Numeric, missed: Integer}? current) -> Floor
+
+    def dump_floor: (Floor floor) -> Hash[String, untyped]
+  end
+end
+
+# ----- configuration/baseline -----
+
+module SimpleCov
+  # Configuration for the per-file coverage baseline: the file's
+  # presence is the opt-in, `baseline_file` moves it.
+  module Configuration
+    @baseline_file: String?
+
+    @baseline: Baseline?
+
+    @baseline_path: String?
+
+    # The baseline's path, relative to `SimpleCov.root`; call with an
+    # argument to change it.
+    def baseline_file: (?String? path) -> String
+
+    # The parsed baseline, or nil when the file does not exist.
+    def baseline: () -> Baseline?
   end
 end
 

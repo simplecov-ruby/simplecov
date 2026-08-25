@@ -10,7 +10,7 @@ require "json_schemer"
 # spec catches drift between code and schema at test time so neither
 # can rot independently.
 describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
-  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.1.schema.json", __dir__) }
+  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.2.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }
   let(:alias_doc)   { JSON.parse(File.read(alias_path)) }
@@ -244,6 +244,31 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
         expect(document.dig("errors", "minimum_coverage_by_group")).not_to be_nil
         errors = validate_against_schema(document)
         expect(errors).to be_empty, errors.join("\n")
+      end
+
+      it "validates a baseline violation" do
+        stub_baseline(SimpleCov::Baseline::Floor.new(percent: 90.0, missed: 0))
+
+        document = emit(result)
+        violation = document.dig("errors", "baseline", project_fixture_filename("json/sample.rb"), "lines")
+        expect(violation).to include("expected" => 90.0, "actual_missed" => 1, "allowed_missed" => 0)
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
+
+      it "validates a percent-only baseline violation, which omits allowed_missed" do
+        stub_baseline(SimpleCov::Baseline::Floor.new(percent: 90.0, missed: nil))
+
+        document = emit(result)
+        violation = document.dig("errors", "baseline", project_fixture_filename("json/sample.rb"), "lines")
+        expect(violation).not_to have_key("allowed_missed")
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
+
+      def stub_baseline(floor)
+        baseline = SimpleCov::Baseline.new(project_fixture_filename("json/sample.rb") => {line: floor})
+        allow(SimpleCov).to receive(:baseline).and_return(baseline)
       end
 
       it "validates a maximum_coverage violation" do

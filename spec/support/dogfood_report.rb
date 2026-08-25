@@ -153,14 +153,15 @@ module_function
   end
   # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
-  # ExitCodeHandling.call just needs an object that responds to the six
+  # ExitCodeHandling.call just needs an object that responds to the
   # limit readers — building a local Data keeps this helper's coupling
   # to internal API minimal.
   def coverage_limits
     limits = {
       minimum_coverage: THRESHOLDS[RUBY_ENGINE] || {},
       minimum_coverage_by_file: {}, minimum_coverage_by_file_overrides: {},
-      minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {}
+      minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {},
+      baseline: nil
     }
     Data.define(*limits.keys).new(**limits)
   end

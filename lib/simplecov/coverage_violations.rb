@@ -7,6 +7,9 @@ module SimpleCov
   # Each method returns an array of violation hashes. All percents are
   # rounded via `SimpleCov.round_coverage` so downstream consumers don't
   # need to round again.
+  # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength -- one check
+  # per threshold family, and each reads better next to the others than
+  # split across files by size alone.
   module CoverageViolations
     class << self
       # @return [Array<Hash>] {:criterion, :expected, :actual}
@@ -35,10 +38,36 @@ module SimpleCov
       # `overrides` is an ordered Hash<pattern, criterion_thresholds> of per-path
       # overrides; for each file, defaults are merged with every matching override
       # (later wins per criterion, overrides win over defaults).
-      def minimum_by_file(result, defaults, overrides = {})
+      # A file and criterion with a `baseline` floor is exempt here: the
+      # baseline check holds it to its own floor instead, which is the
+      # fall-through the ratchet workflow rests on (see #1268).
+      def minimum_by_file(result, defaults, overrides = {}, baseline: nil)
         result.files.flat_map do |file|
           effective = effective_per_file_thresholds(file, defaults, overrides)
-          effective.filter_map { |criterion, expected| file_minimum_violation(file, criterion, expected) }
+          effective.filter_map do |criterion, expected|
+            next if baseline&.covers?(file.project_filename, criterion)
+
+            file_minimum_violation(file, criterion, expected)
+          end
+        end
+      end
+
+      # @return [Array<Hash>] {:criterion, :expected, :allowed_missed, :actual,
+      #   :actual_missed, :filename, :project_filename}
+      #
+      # A baseline violation needs the file below its floor on both axes:
+      # a percent under the floor's, and (when the floor records one)
+      # more misses than it allows. The missed count is the dampener
+      # that keeps percent movement from pure edits out of the answer;
+      # see `SimpleCov::Baseline`.
+      def baseline(result, baseline)
+        return [] unless baseline
+
+        result.files.flat_map do |file|
+          entry = baseline.entry_for(file.project_filename)
+          next [] unless entry
+
+          entry.filter_map { |criterion, floor| baseline_violation(file, criterion, floor) }
         end
       end
 
@@ -102,6 +131,18 @@ module SimpleCov
         project_filename == pattern
       end
 
+      def baseline_violation(file, criterion, floor)
+        stats = file.coverage_statistics[SimpleCov.coverage_statistics_key(criterion)]
+        return unless stats
+
+        actual = round(stats.percent)
+        return unless actual < floor.percent
+        return if floor.missed && stats.missed <= floor.missed
+
+        {criterion: criterion, expected: floor.percent, allowed_missed: floor.missed, actual: actual,
+         actual_missed: stats.missed, filename: file.filename, project_filename: file.project_filename}
+      end
+
       def file_minimum_violation(file, criterion, expected)
         actual = percent_for(file, criterion) or return
         return unless actual < expected
@@ -156,4 +197,5 @@ module SimpleCov
       end
     end
   end
+  # rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
 end

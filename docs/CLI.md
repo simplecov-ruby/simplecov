@@ -329,6 +329,26 @@ files resolve against the report by exact path, and when a changed line lies bey
 file, the command warns that the report looks stale instead of silently scoring nothing. Generate the report first:
 run your suite with the JSON formatter enabled, then `simplecov patch` reads `coverage/coverage.json`.
 
+### `ratchet` — per-file floors that only tighten
+
+`simplecov ratchet` writes `.simplecov_baseline.yml`, the checked-in per-file floor set the exit check enforces (see
+[Per-file baseline](Configuration.md#per-file-baseline-ratchet)). The first run generates a floor for every file the
+report carries, at the coverage it has already reached. Later runs only tighten: files that improved get their floors
+raised, files that regressed keep the floors they are now below, entries for deleted files are pruned, and new files
+never get an entry, so they stay answerable to the real `minimum_per_file` standard instead of a grandfathered one.
+
+```sh
+$ simplecov ratchet
+simplecov ratchet: wrote .simplecov_baseline.yml (3 tightened, 1 pruned, 148 unchanged)
+simplecov ratchet: 2 files below their floors, entries kept unchanged
+```
+
+`--baseline PATH` names the file to rewrite (defaulting to the project's `SimpleCov.baseline_file`, read from
+`.simplecov` the way the other commands read `coverage_dir`), `--input` picks the report, `--dry-run` prints without
+writing, and `--json` emits the summary (tightened, pruned, and regressed paths) as data. `--init` is the deliberate
+escape hatch: it regenerates the whole file from the current state, adding entries for new files and resetting floors,
+regressions included.
+
 ### `watch` — the coverage inner loop
 
 `simplecov watch <command...>` serves the report the way `serve` does, watches the tracked files for saves, re-runs

@@ -542,7 +542,8 @@ RSpec.describe SimpleCov::CLI do
       ["diff current", ->(bad, good) { ["diff", "--input", bad, good] }],
       ["tests", ->(bad, _good) { ["tests", "--input", bad] }],
       ["affected", ->(bad, _good) { ["affected", "--input", bad] }],
-      ["show", ->(bad, _good) { ["show", "--input", bad, "lib/a.rb"] }]
+      ["show", ->(bad, _good) { ["show", "--input", bad, "lib/a.rb"] }],
+      ["ratchet", ->(bad, _good) { ["ratchet", "--input", bad, "--dry-run"] }]
     ].each do |description, argv_for|
       it "handles malformed JSON for #{description}" do
         argv = argv_for.call(invalid, valid)
@@ -2108,6 +2109,187 @@ RSpec.describe SimpleCov::CLI do
 
         let(:no_color_argv) { ["diff", "--input", current, "--no-color", baseline] }
       end
+    end
+  end
+
+  describe "ratchet subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-ratchet-spec-") }
+    let(:input) { File.join(tmp, "coverage.json") }
+    let(:baseline_path) { File.join(tmp, ".simplecov_baseline.yml") }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def write_report(files)
+      File.write(input, JSON.dump("coverage" => files.transform_values { |entry| report_row(entry) }))
+    end
+
+    def report_row(entry)
+      row = {
+        "lines_covered_percent" => entry.fetch(:percent), "covered_lines" => 10,
+        "missed_lines" => entry.fetch(:missed), "total_lines" => 10 + entry.fetch(:missed)
+      }
+      if entry[:branch_percent]
+        row.merge!("branches_covered_percent" => entry.fetch(:branch_percent), "covered_branches" => 1,
+                   "missed_branches" => entry.fetch(:branch_missed), "total_branches" => 4)
+      end
+      row
+    end
+
+    def read_baseline
+      SimpleCov::Baseline.read(baseline_path)
+    end
+
+    it "generates a full baseline when none exists" do
+      write_report(
+        "lib/foo.rb" => {percent: 41.2, missed: 137, branch_percent: 25.0, branch_missed: 3},
+        "lib/bar.rb" => {percent: 100.0, missed: 0}
+      )
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(0)
+      expect(stdout.string).to include("wrote #{baseline_path}")
+      expect(stdout.string).to include("2 files")
+
+      baseline = read_baseline
+      expect(baseline.floor_for("lib/foo.rb", :line)).to have_attributes(percent: 41.2, missed: 137)
+      expect(baseline.floor_for("lib/foo.rb", :branch)).to have_attributes(percent: 25.0, missed: 3)
+      expect(baseline.floor_for("lib/bar.rb", :line)).to have_attributes(percent: 100.0, missed: 0)
+    end
+
+    context "with an existing baseline" do
+      before do
+        File.write(baseline_path, <<~YAML)
+          lib/improved.rb:
+            lines:
+              percent: 40.0
+              missed: 10
+          lib/regressed.rb:
+            lines:
+              percent: 90.0
+              missed: 2
+          lib/deleted.rb:
+            lines:
+              percent: 50.0
+              missed: 5
+        YAML
+        write_report(
+          "lib/improved.rb" => {percent: 75.0, missed: 4},
+          "lib/regressed.rb" => {percent: 80.0, missed: 6},
+          "lib/brand_new.rb" => {percent: 10.0, missed: 90}
+        )
+      end
+
+      it "tightens improved floors, keeps regressed ones, prunes deleted files, adds nothing" do
+        expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(0)
+
+        baseline = read_baseline
+        expect(baseline.floor_for("lib/improved.rb", :line)).to have_attributes(percent: 75.0, missed: 4)
+        expect(baseline.floor_for("lib/regressed.rb", :line)).to have_attributes(percent: 90.0, missed: 2)
+        expect(baseline.entry_for("lib/deleted.rb")).to be_nil
+        expect(baseline.entry_for("lib/brand_new.rb")).to be_nil
+      end
+
+      it "summarizes what moved, including the files still below their floors" do
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+
+        expect(stdout.string).to include("1 tightened, 1 pruned, 0 unchanged")
+        expect(stdout.string).to include("1 file below its floor")
+      end
+
+      it "prints without writing under --dry-run" do
+        before_content = File.read(baseline_path)
+        expect(run("ratchet", "--input", input, "--baseline", baseline_path, "--dry-run")).to eq(0)
+
+        expect(stdout.string).to include("would write")
+        expect(File.read(baseline_path)).to eq(before_content)
+      end
+
+      it "regenerates from scratch under --init, adding new files and resetting floors" do
+        expect(run("ratchet", "--input", input, "--baseline", baseline_path, "--init")).to eq(0)
+
+        baseline = read_baseline
+        expect(baseline.entry_for("lib/brand_new.rb")).not_to be_nil
+        expect(baseline.entry_for("lib/deleted.rb")).to be_nil
+        # --init is the escape hatch: floors reset to the current state,
+        # regression included.
+        expect(baseline.floor_for("lib/regressed.rb", :line)).to have_attributes(percent: 80.0, missed: 6)
+      end
+
+      it "emits the summary as JSON under --json" do
+        expect(run("ratchet", "--input", input, "--baseline", baseline_path, "--json")).to eq(0)
+
+        expect(JSON.parse(stdout.string)).to include(
+          "written" => true, "path" => baseline_path,
+          "tightened" => ["lib/improved.rb"], "pruned" => ["lib/deleted.rb"],
+          "regressed" => ["lib/regressed.rb"], "unchanged" => []
+        )
+      end
+    end
+
+    # A report written by another tool can carry rows without the missed
+    # counts; only a complete percent-and-missed pair can become a floor.
+    it "skips report rows without usable counts" do
+      File.write(input, JSON.dump("coverage" => {
+                                    "lib/counted.rb" => {"lines_covered_percent" => 80.0, "covered_lines" => 8,
+                                                         "missed_lines" => 2, "total_lines" => 10},
+                                    "lib/percent_only.rb" => {"lines_covered_percent" => 50.0}
+                                  }))
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(0)
+
+      baseline = read_baseline
+      expect(baseline.entry_for("lib/counted.rb")).not_to be_nil
+      expect(baseline.entry_for("lib/percent_only.rb")).to be_nil
+    end
+
+    it "pluralizes the below-floor note" do
+      File.write(baseline_path, <<~YAML)
+        lib/one.rb:
+          lines:
+            percent: 90.0
+            missed: 0
+        lib/two.rb:
+          lines:
+            percent: 90.0
+            missed: 0
+      YAML
+      write_report(
+        "lib/one.rb" => {percent: 50.0, missed: 5},
+        "lib/two.rb" => {percent: 50.0, missed: 5}
+      )
+
+      run("ratchet", "--input", input, "--baseline", baseline_path)
+
+      expect(stdout.string).to include("2 files below their floors")
+    end
+
+    it "rejects a stray positional argument" do
+      expect(run("ratchet", "stray")).to eq(1)
+      expect(stderr.string).to include('unexpected argument "stray"')
+    end
+
+    it "errors on a malformed baseline file" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+      File.write(baseline_path, "{")
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(1)
+      expect(stderr.string).to start_with("simplecov ratchet:")
+      expect(stderr.string).to include("not valid YAML")
+    end
+
+    it "defaults the baseline path to .simplecov_baseline.yml in the working directory" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+
+      Dir.chdir(tmp) { expect(run("ratchet", "--input", input)).to eq(0) }
+      expect(File).to exist(baseline_path)
+    end
+
+    it "honors SimpleCov.baseline_file from a project .simplecov" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+      File.write(File.join(tmp, ".simplecov"), %(SimpleCov.baseline_file "floors.yml"\n))
+
+      Dir.chdir(tmp) { expect(run("ratchet", "--input", input)).to eq(0) }
+      expect(File).to exist(File.join(tmp, "floors.yml"))
+      expect(File).not_to exist(baseline_path)
     end
   end
 

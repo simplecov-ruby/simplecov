@@ -161,4 +161,43 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
       end
     end
   end
+
+  # A baseline entry replaces the per-file minimum for that file and
+  # criterion: the file answers to its own floor instead. Files (and
+  # criteria) without an entry fall through to the configured minimum.
+  describe "baseline exemption" do
+    subject(:check) { described_class.new(result, minimum_coverage_by_file, overrides, baseline: baseline) }
+
+    let(:minimum_coverage_by_file) { {line: 90} }
+
+    context "when the failing file's criterion is covered by the baseline" do
+      let(:baseline) do
+        SimpleCov::Baseline.new(
+          "lib/foo.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: 137)}
+        )
+      end
+
+      it { is_expected.not_to be_failing }
+    end
+
+    context "when the baseline covers a different criterion of that file" do
+      let(:baseline) do
+        SimpleCov::Baseline.new(
+          "lib/foo.rb" => {branch: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: 137)}
+        )
+      end
+
+      it { is_expected.to be_failing }
+    end
+
+    context "when the baseline covers a different file" do
+      let(:baseline) do
+        SimpleCov::Baseline.new(
+          "lib/other.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: 137)}
+        )
+      end
+
+      it { is_expected.to be_failing }
+    end
+  end
 end

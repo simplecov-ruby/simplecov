@@ -12,6 +12,7 @@ require_relative "cli/diff"
 require_relative "cli/merge"
 require_relative "cli/open"
 require_relative "cli/patch"
+require_relative "cli/ratchet"
 require_relative "cli/report"
 require_relative "cli/run"
 require_relative "cli/serve"
@@ -49,6 +50,7 @@ module SimpleCov
       "merge" => Merge,
       "diff" => Diff,
       "patch" => Patch,
+      "ratchet" => Ratchet,
       "serve" => Serve,
       "watch" => Watch,
       "badge" => Badge,

@@ -29,6 +29,34 @@ module SimpleCov
         # simplecov:enable
       end
 
+      # The project's configured baseline path (see `simplecov ratchet`),
+      # read from `.simplecov` the same way `coverage_dir` is, so a
+      # project that moved its baseline doesn't need `--baseline` on
+      # every ratchet. Falls back to the default filename when there is
+      # no dotfile or it cannot be read.
+      def baseline_file
+        dotfile = find
+        return SimpleCov::Baseline::DEFAULT_FILENAME unless dotfile
+
+        with_simplecov_loaded { read_baseline_file_from(dotfile) }
+      rescue ScriptError, StandardError => e
+        # simplecov:disable — defensive fallback for a bad dotfile,
+        # mirroring coverage_dir's; never fires in the dogfood run.
+        warn "simplecov: failed to read baseline_file from #{dotfile}: #{e.class}: #{e.message}"
+        SimpleCov::Baseline::DEFAULT_FILENAME
+        # simplecov:enable
+      end
+
+      # Like `read_from`, snapshotting only the ivar this read is for.
+      def read_baseline_file_from(dotfile)
+        snapshot = SimpleCov.instance_variable_get(:@baseline_file) #: String?
+        load_with_start_neutered(dotfile)
+        SimpleCov.baseline_file
+      ensure
+        # @type var snapshot: String?
+        SimpleCov.instance_variable_set(:@baseline_file, snapshot)
+      end
+
       # Load the dotfile, snapshot+restore `SimpleCov.coverage_dir` so we
       # don't quietly clobber it in a host process that's already
       # configured (e.g. when the CLI is exercised inline by simplecov's

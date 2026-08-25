@@ -14,11 +14,11 @@ module SimpleCov
       # exactly one place.
       CRITERIA = {
         line: {label: "Line", percent: "lines_covered_percent",
-               covered: "covered_lines", total: "total_lines"},
+               covered: "covered_lines", missed: "missed_lines", total: "total_lines"},
         branch: {label: "Branch", percent: "branches_covered_percent",
-                 covered: "covered_branches", total: "total_branches"},
+                 covered: "covered_branches", missed: "missed_branches", total: "total_branches"},
         method: {label: "Method", percent: "methods_covered_percent",
-                 covered: "covered_methods", total: "total_methods"}
+                 covered: "covered_methods", missed: "missed_methods", total: "total_methods"}
       }.freeze
 
     module_function

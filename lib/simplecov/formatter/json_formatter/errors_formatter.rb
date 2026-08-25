@@ -17,6 +17,7 @@ module SimpleCov
             errors = {} #: Hash[Symbol, Hash[untyped, untyped]]
             format_minimum_overall(result, errors)
             format_minimum_by_file(result, errors)
+            format_baseline(result, errors)
             format_minimum_by_group(result, errors)
             format_maximum_overall(result, errors)
             format_maximum_drop(result, errors)
@@ -33,9 +34,25 @@ module SimpleCov
 
           def format_minimum_by_file(result, errors)
             violations = SimpleCov::CoverageViolations.minimum_by_file(
-              result, SimpleCov.minimum_coverage_by_file, SimpleCov.minimum_coverage_by_file_overrides
+              result, SimpleCov.minimum_coverage_by_file, SimpleCov.minimum_coverage_by_file_overrides,
+              baseline: SimpleCov.baseline
             )
             violations.each { |violation| record_by_file(violation, errors) }
+          end
+
+          # Baseline-floor violations (see SimpleCov::Baseline), keyed
+          # like minimum_coverage_by_file: filename, then criterion. The
+          # payload adds the two missed counts the floor was judged by;
+          # `allowed_missed` is absent for a percent-only floor.
+          def format_baseline(result, errors)
+            SimpleCov::CoverageViolations.baseline(result, SimpleCov.baseline).each do |violation|
+              by_file = bucket(errors, :baseline)
+              file_bucket = by_file[violation.fetch(:project_filename)] ||= {} #: Hash[untyped, untyped]
+              payload = expected_actual(violation).merge(actual_missed: violation.fetch(:actual_missed))
+              allowed = violation.fetch(:allowed_missed)
+              payload[:allowed_missed] = allowed if allowed
+              file_bucket[key_for(violation)] = payload
+            end
           end
 
           def record_by_file(violation, errors)

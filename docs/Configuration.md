@@ -816,6 +816,54 @@ SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
 > end
 > ```
 
+### Per-file baseline (ratchet)
+
+On a legacy codebase, one `minimum_per_file` number does nothing useful: set it to what the worst file scores and every
+other file is allowed to sink to that level. The baseline gives each file its own floor instead, generated from the
+current state and checked in:
+
+```sh
+bundle exec rspec          # produce a report
+simplecov ratchet          # write .simplecov_baseline.yml from it
+git add .simplecov_baseline.yml
+```
+
+The file maps each path to the coverage it has already reached, per measured criterion:
+
+```yaml
+lib/simplecov/legacy_thing.rb:
+  lines:
+    percent: 41.2
+    missed: 137
+lib/simplecov/result.rb:
+  lines:
+    percent: 100.0
+    missed: 0
+```
+
+From then on the exit check fails any listed file that drops below its own floor, and `simplecov ratchet` (run after
+improving coverage) rewrites the file with floors only ever tightening, so touching a legacy file drags it upward and
+it can never slide back. The diff on the baseline file becomes the honest record of which direction the codebase
+moved, reviewable in the same PR as the change that moved it. This is `.rubocop_todo.yml` applied to coverage.
+
+Each floor carries two numbers because each covers for the other's blind spot. The percent is the policy, but a
+percent moves when a file is edited without any coverage change at all, so the missed count acts as the dampener: a
+file below its percent floor still passes while it carries no more misses than the floor recorded. A violation
+requires both a lower percent and more misses. A hand-written entry can be a bare percent (`lib/foo.rb: 41.2`), which
+is then decided by the percent alone until the next ratchet records its missed count.
+
+Files with an entry are exempt from `minimum_per_file` (per criterion), and files without one fall through to it, so
+new code is held to the real standard rather than to a grandfathered one. Ratchet never adds entries for new files for
+the same reason. Entries for deleted files are pruned, and `simplecov ratchet --init` regenerates the whole file from
+scratch when you deliberately want floors reset.
+
+The baseline lives at `.simplecov_baseline.yml` under `SimpleCov.root`. Its presence is the opt-in; point somewhere
+else with:
+
+```ruby
+SimpleCov.baseline_file "config/coverage_floors.yml"
+```
+
 
 
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"

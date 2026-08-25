@@ -11,7 +11,7 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION: "1.1"
+        SCHEMA_VERSION: "1.2"
 
         SCHEMA_URL: ::String
 

@@ -22,7 +22,13 @@ module SimpleCov
     # `overrides` is an ordered Hash<pattern, criterion_thresholds> of per-path
     # overrides; for each file, defaults are merged with every matching override
     # (later wins per criterion, overrides win over defaults).
-    def self.minimum_by_file: (untyped result, untyped defaults, ?::Hash[untyped, untyped] overrides) -> untyped
+    # A file and criterion with a `baseline` floor is exempt here: the
+    # baseline check holds it to its own floor instead.
+    def self.minimum_by_file: (untyped result, untyped defaults, ?::Hash[untyped, untyped] overrides, ?baseline: Baseline?) -> untyped
+
+    # @return [Array<Hash>] {:criterion, :expected, :allowed_missed, :actual,
+    #   :actual_missed, :filename, :project_filename}
+    def self.baseline: (untyped result, Baseline? baseline) -> ::Array[::Hash[::Symbol, untyped]]
 
     # @return [Array<Hash>] {:group_name, :criterion, :expected, :actual}
     def self.minimum_by_group: (untyped result, untyped thresholds) -> ::Array[::Hash[::Symbol, untyped]]
@@ -57,6 +63,8 @@ module SimpleCov
     def self.path_matches?: (untyped project_filename, untyped pattern) -> untyped
 
     def self.file_minimum_violation: (untyped file, untyped criterion, untyped expected) -> (nil | { criterion: untyped, expected: untyped, actual: untyped, filename: untyped, project_filename: untyped })
+
+    def self.baseline_violation: (untyped file, untyped criterion, Baseline::Floor floor) -> (nil | ::Hash[::Symbol, untyped])
 
     def self.group_minimum_violations: (untyped group_name, untyped group, untyped minimums) -> ::Array[::Hash[::Symbol, untyped]]
 

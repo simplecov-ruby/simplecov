@@ -22,13 +22,21 @@ module SimpleCov
       def coverage_checks(result, coverage_limits)
         [
           MinimumOverallCoverageCheck.new(result, coverage_limits.minimum_coverage),
-          MinimumCoverageByFileCheck.new(
-            result, coverage_limits.minimum_coverage_by_file, coverage_limits.minimum_coverage_by_file_overrides
-          ),
+          minimum_by_file_check(result, coverage_limits),
+          BaselineCheck.new(result, coverage_limits.baseline),
           MinimumCoverageByGroupCheck.new(result, coverage_limits.minimum_coverage_by_group),
           MaximumOverallCoverageCheck.new(result, coverage_limits.maximum_coverage),
           MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop)
         ]
+      end
+
+      # Split out for length alone; the baseline exempts the pairs it
+      # covers from this check (see MinimumCoverageByFileCheck).
+      def minimum_by_file_check(result, coverage_limits)
+        MinimumCoverageByFileCheck.new(
+          result, coverage_limits.minimum_coverage_by_file, coverage_limits.minimum_coverage_by_file_overrides,
+          baseline: coverage_limits.baseline
+        )
       end
     end
   end
