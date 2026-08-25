@@ -141,6 +141,12 @@ function orderRows(rows: Element[], childIndex: number | null, dir: 'asc' | 'des
   return decorated.map(({ row }) => row);
 }
 
+// The trend column draws sparklines, not values — there is nothing
+// meaningful to sort it by, so it never takes part in sorting.
+function sortable(th: Element): boolean {
+  return !th.classList.contains('t-trend-h');
+}
+
 // Record the active sort in state and reflect it on the header indicators.
 function markSorted(table: Element, colIndex: number, dir: 'asc' | 'desc'): void {
   sortState.set(table, { colIndex, direction: dir });
@@ -150,7 +156,7 @@ function markSorted(table: Element, colIndex: number, dir: 'asc' | 'desc'): void
     const span = Number.parseInt(th.getAttribute('colspan') || '1', 10);
     th.classList.remove('sorting_asc', 'sorting_desc', 'sorting');
     const isActive = colIndex >= tdPos && colIndex < tdPos + span;
-    th.classList.add(isActive ? (dir === 'asc' ? 'sorting_asc' : 'sorting_desc') : 'sorting');
+    if (sortable(th)) th.classList.add(isActive ? (dir === 'asc' ? 'sorting_asc' : 'sorting_desc') : 'sorting');
     tdPos += span;
   });
 }
@@ -301,6 +307,7 @@ export function setupTableSorting(primaryCoverage?: string): void {
   const preference = readSortPreference();
   $$('table.file_list').forEach(table => {
     $$('thead tr:first-child th', table).forEach((th) => {
+      if (!sortable(th)) return;
       th.classList.add('sorting');
       (th as HTMLElement).style.cursor = 'pointer';
       th.addEventListener('click', () => sortTable(table, th));

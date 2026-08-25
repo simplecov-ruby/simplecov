@@ -106,6 +106,26 @@ describe('default sort', () => {
     expect(names(table)).toEqual(['lib/z.rb', 'lib/a.rb']);
   });
 
+  test('leaves the trend header out of sorting entirely', () => {
+    const table = buildTable(`${HEADERS}<th class="t-trend-h">Trend</th>`, ROWS);
+    setupTableSorting('line');
+
+    const trendTh = headerAt(table, 3);
+    expect(trendTh.classList.contains('sorting')).toBe(false);
+    expect(trendTh.style.cursor).toBe('');
+
+    // Clicking it neither reorders the rows nor marks it as the sort column.
+    const before = names(table);
+    click(trendTh);
+    expect(names(table)).toEqual(before);
+    expect(trendTh.classList.contains('sorting_asc')).toBe(false);
+
+    // A sort on a real column still leaves the trend header unmarked.
+    click(headerAt(table, 2));
+    expect(headerAt(table, 2).classList.contains('sorting_asc')).toBe(true);
+    expect(trendTh.classList.contains('sorting')).toBe(false);
+  });
+
   test('tolerates tables without a tbody or without rows', () => {
     document.body.innerHTML = `
       <table class="file_list" id="headless"><thead><tr><th>File</th></tr></thead></table>
