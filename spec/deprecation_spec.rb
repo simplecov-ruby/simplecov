@@ -37,6 +37,32 @@ describe SimpleCov::Deprecation do
       expect(stderr.scan("[DEPRECATION]").size).to eq(2)
     end
 
+    context "with `SimpleCov.deprecations :raise`" do
+      before { allow(SimpleCov).to receive(:deprecations).and_return(:raise) }
+
+      it "raises instead of warning" do
+        expect { deprecated_alias("`SimpleCov.old` is deprecated.") }
+          .to raise_error(SimpleCov::ConfigurationError, /`SimpleCov\.old` is deprecated/)
+      end
+
+      it "raises every time, not once per location" do
+        2.times do
+          expect { described_class.warn("repeated", location: "file.rb:1") }
+            .to raise_error(SimpleCov::ConfigurationError)
+        end
+      end
+
+      it "writes nothing to stderr" do
+        stderr = capture_stderr do
+          deprecated_alias("old api")
+        rescue SimpleCov::ConfigurationError
+          nil
+        end
+
+        expect(stderr).to be_empty
+      end
+    end
+
     it "omits the prefix and dedups on the message when no location is available" do
       stderr = capture_stderr do
         2.times { described_class.warn("locationless", location: nil) }

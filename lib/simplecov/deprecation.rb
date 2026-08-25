@@ -23,6 +23,12 @@ module SimpleCov
     # yields nil rather than raising — and, unlike `&.`, adds no branch for
     # the unreachable no-caller case to the project's 100% coverage target.
     def warn(message, location: Array(Kernel.caller(2..2)).first)
+      # `deprecations :raise` turns every deprecated API into an error,
+      # before the dedup: an error is not a notice to collapse, and a
+      # CI guard must fail on the second offender file as surely as on
+      # the first.
+      raise SimpleCov::ConfigurationError, message if SimpleCov.deprecations == :raise
+
       # Key on location when we have one (collapses a deprecated call in a
       # loop to a single warning); fall back to the message so a missing
       # backtrace never silently swallows every notice.

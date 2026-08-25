@@ -1097,6 +1097,27 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#deprecations" do
+      it "defaults to :warn" do
+        expect(config.deprecations).to eq(:warn)
+      end
+
+      it "accepts :raise and :warn" do
+        config.deprecations :raise
+        expect(config.deprecations).to eq(:raise)
+
+        config.deprecations :warn
+        expect(config.deprecations).to eq(:warn)
+      end
+
+      # Deliberately no :silence mode: a deprecation you cannot see is a
+      # migration you never make.
+      it "rejects any other mode" do
+        expect { config.deprecations :silence }
+          .to raise_error(SimpleCov::ConfigurationError, /:warn or :raise/)
+      end
+    end
+
     describe "#baseline_file and #baseline" do
       it "defaults to .simplecov_baseline.yml" do
         expect(config.baseline_file).to eq(".simplecov_baseline.yml")

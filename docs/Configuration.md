@@ -156,6 +156,22 @@ SimpleCov.start do
 end
 ```
 
+### Enforcing migrations with `deprecations :raise`
+
+Deprecated spellings warn and keep working, which also means a project can run on them indefinitely without noticing.
+Once you have migrated (or when starting fresh), make any deprecated API an error instead:
+
+```ruby
+SimpleCov.start do
+  deprecations :raise
+end
+```
+
+Every deprecation then raises a `SimpleCov::ConfigurationError` naming the replacement, so CI fails the moment an old
+spelling creeps back in, and early adopters can hold themselves to the current surface as the DSL evolves (see the
+[configuration roadmap](Configuration_Roadmap.md)). The default is `deprecations :warn`. There is deliberately no
+silencing mode, because a deprecation you cannot see is a migration you never make.
+
 ## Coverage criteria
 
 Line coverage is on by default. You can additionally enable branch, method, and eval coverage, replace ordinary line

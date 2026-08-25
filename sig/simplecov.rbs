@@ -1859,6 +1859,21 @@ module SimpleCov
   end
 end
 
+# ----- configuration/deprecations -----
+
+module SimpleCov
+  # The deprecation-handling mode: `:warn` (default) or `:raise`, which
+  # turns every deprecated API into a ConfigurationError so migrated
+  # projects can guard against old spellings in CI.
+  module Configuration
+    DEPRECATION_MODES: Array[Symbol]
+
+    @deprecations: Symbol?
+
+    def deprecations: (?Symbol? mode) -> Symbol
+  end
+end
+
 # ----- configuration/baseline -----
 
 module SimpleCov
