@@ -1552,6 +1552,47 @@ module SimpleCov
   end
 end
 
+# ----- formatter/baseline_formatter -----
+
+module SimpleCov
+  module Formatter
+    # Auto-ratchets the per-file coverage baseline (see Baseline and
+    # `simplecov ratchet`) at the end of every run, with exactly the
+    # CLI's semantics: floors only tighten, deleted files are pruned,
+    # new files never get an entry, and the file is rewritten only when
+    # a floor actually moved.
+    class BaselineFormatter < Base
+      @message: String
+
+      def format: (SimpleCov::Result result) -> void
+
+      private
+
+      def ratchet: (SimpleCov::Result result) -> String
+
+      def generate: (Baseline::current_floors current) -> String
+
+      def summary: (Baseline::Outcome outcome, bool changed) -> String
+
+      def below_floors: (Array[String] regressed) -> String
+
+      def current_floors: (SimpleCov::Result result) -> Baseline::current_floors
+
+      def measured_criteria: () -> Array[Symbol]
+
+      def floor_of: (untyped file, Symbol criterion) -> { percent: Numeric, missed: Integer }
+
+      def write: (Baseline baseline) -> void
+
+      # The baseline lives where the exit check reads it, not under the
+      # coverage directory.
+      def output_path: () -> String
+
+      def output_message: (SimpleCov::Result _result) -> String
+    end
+  end
+end
+
 # ----- formatter/coverage_json_writer -----
 
 module SimpleCov

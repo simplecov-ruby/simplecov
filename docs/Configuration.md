@@ -864,6 +864,9 @@ else with:
 SimpleCov.baseline_file "config/coverage_floors.yml"
 ```
 
+To ratchet automatically at the end of every run instead of by deliberate `simplecov ratchet` invocations, add
+[`SimpleCov::Formatter::BaselineFormatter`](Formatters.md#baseline-formatter) to your formatters.
+
 
 
 [Configuration]: http://rubydoc.info/gems/simplecov/SimpleCov/Configuration "Configuration options API documentation"

@@ -109,6 +109,26 @@ commit SHA the report was generated against) lets tools recover the exact source
 > [simplecov_json_formatter](https://github.com/codeclimate-community/simplecov_json_formatter). It is now built in and
 > loaded by default; existing code that does `require "simplecov_json_formatter"` will continue to work.
 
+### Baseline formatter
+
+`SimpleCov::Formatter::BaselineFormatter` auto-ratchets the
+[per-file coverage baseline](Configuration.md#per-file-baseline-ratchet) at the end of every run, for teams that want
+floors to tighten continuously instead of by deliberate `simplecov ratchet` invocations:
+
+```ruby
+SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::BaselineFormatter
+])
+```
+
+The semantics are exactly the CLI's: the first run generates `.simplecov_baseline.yml` with a floor for every reported
+file, later runs raise the floors of files that improved, keep the floors of files that regressed (naming them in the
+status line), prune entries for deleted files, and never add entries for new files. The file is rewritten only when a
+floor actually moved, so a run that changes nothing leaves the working tree clean, and the exit checks still judge the
+run against the floors as they were when it started. The trade-off of the auto mode is that floors tighten without a
+human in the loop. The diff still lands in the working tree for the next commit to carry.
+
 ### JSON Schema for `coverage.json`
 
 `coverage.json` is a public contract, described by a JSON Schema (2020-12) so downstream tools can validate it,
