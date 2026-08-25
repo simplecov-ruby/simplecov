@@ -335,7 +335,7 @@ run your suite with the JSON formatter enabled, then `simplecov patch` reads `co
 [Per-file baseline](Configuration.md#per-file-baseline-ratchet)). The first run generates a floor for every file the
 report carries, at the coverage it has already reached. Later runs only tighten: files that improved get their floors
 raised, files that regressed keep the floors they are now below, entries for deleted files are pruned, and new files
-never get an entry, so they stay answerable to the real `minimum_per_file` standard instead of a grandfathered one.
+never get an entry, so they stay answerable to the real per-file minimum instead of a grandfathered one.
 
 ```sh
 $ simplecov ratchet

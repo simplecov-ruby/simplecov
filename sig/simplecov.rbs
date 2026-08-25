@@ -452,13 +452,25 @@ module SimpleCov
     # writes a threshold for the single criterion the block configures,
     # so values are always plain percentages.
     class CoverageCriterion
+      # A `per:` scope target: nil (suite-wide), :file, a String path or
+      # Regexp override, or the wrapper `group("Name")` builds.
+      type per_target = nil | :file | String | Regexp | GroupTarget
+
+      # What `group("Name")` builds: a wrapper keeping a group name
+      # distinguishable from a String path in a `per:` argument.
+      class GroupTarget
+        attr_reader name: String | Symbol
+
+        def initialize: (name: String | Symbol) -> void
+      end
+
       @config: Configuration
       @criterion: Symbol
 
       def initialize: (Configuration config, Symbol criterion) -> void
 
-      # Overall (suite-wide) minimum for this criterion.
-      def minimum: (Numeric percent) -> void
+      # Minimum for this criterion, scoped by `per:`.
+      def minimum: (Numeric percent, ?per: per_target) -> void
 
       # Overall maximum: fails the build if coverage rises above it.
       def maximum: (Numeric percent) -> void
@@ -469,23 +481,29 @@ module SimpleCov
       # Maximum allowed drop between runs (0 refuses any drop).
       def maximum_drop: (Numeric percent) -> void
 
-      # Per-file minimum. With no `only:`, the default for every file;
-      # with `only:` (String path or Regexp), an override for matches.
+      # Cap on the number of misses in this criterion's own units
+      # (uncovered lines, branch arms, or methods), scoped by `per:`.
+      # Group targets are refused until group caps are enforced.
+      def maximum_missed: (Integer count, ?per: per_target) -> void
+
+      # Builds the group target for `per:`: `minimum 95, per: group("Models")`.
+      def group: (String | Symbol name) -> GroupTarget
+
+      # DEPRECATED: use `minimum N, per: :file` / `per: "path"`.
       def minimum_per_file: (Numeric percent, ?only: (String | Regexp)?) -> void
 
-      # Per-group minimum for the named group (defined via `group`).
+      # DEPRECATED: use `minimum N, per: group("Name")`.
       def minimum_per_group: (Numeric percent, only: String) -> void
 
-      # Suite-wide cap on the number of misses in this criterion's own
-      # units (uncovered lines, branch arms, or methods).
-      def maximum_missed: (Integer count) -> void
-
-      # Per-file misses cap, with `only:` override semantics matching
-      # `minimum_per_file`.
+      # DEPRECATED: use `maximum_missed N, per: :file` / `per: "path"`.
       def maximum_missed_per_file: (Integer count, ?only: (String | Regexp)?) -> void
 
       # Make this criterion the report's primary (leading) criterion.
       def primary: () -> void
+
+      private
+
+      def raise_invalid_per: (untyped per) -> bot
     end
   end
 end
@@ -861,6 +879,10 @@ module SimpleCov
     def normalized_missed_caps: ((Numeric | missed_caps) counts, String setting) -> missed_caps
 
     def raise_on_invalid_missed_cap: (untyped cap, String setting) -> void
+
+    # The copy-pastable `coverage` equivalent of a deprecated flat
+    # `maximum_missed_per_file` argument.
+    def missed_per_file_replacement: ((Numeric | missed_caps) counts) -> String
 
     def partition_per_file_thresholds: (Hash[Symbol | String | Regexp, Numeric | coverage_thresholds] coverage) -> [coverage_thresholds, Hash[String | Regexp, coverage_thresholds]]
 

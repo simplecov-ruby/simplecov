@@ -11,10 +11,11 @@ module SimpleCov
   #
   #   SimpleCov.start do
   #     coverage :line do
-  #       minimum          90
-  #       minimum_per_file 80
-  #       minimum_per_file 100, only: "app/mailers/request_mailer.rb"
-  #       maximum_drop     5
+  #       minimum 90
+  #       minimum 80,  per: :file
+  #       minimum 100, per: "app/mailers/request_mailer.rb"
+  #       minimum 95,  per: group("Models")
+  #       maximum_drop 5
   #     end
   #
   #     coverage :branch, minimum: 80
@@ -26,8 +27,10 @@ module SimpleCov
   # as the flat `minimum_coverage` family, so enforcement is unchanged.
   module Configuration
     # One-liner keyword options `coverage` accepts, each forwarding to the
-    # `CoverageCriterion` verb of the same name. `minimum_per_group` is omitted
-    # because it needs an `only:` target, so it's block-only.
+    # `CoverageCriterion` verb of the same name. Scoped thresholds are
+    # block-only, since a keyword slot carries the value and nothing
+    # else; the deprecated `_per_file` names stay accepted for
+    # configurations written before the `per:` axis existed.
     COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop minimum_per_file
                                     maximum_missed maximum_missed_per_file].freeze
 
@@ -137,7 +140,7 @@ module SimpleCov
     #
     # Receiver for a `coverage <criterion> do ... end` block. Each verb writes a
     # threshold for the single criterion the block configures, so the value is
-    # always a plain percentage (`minimum_per_file 100` is unambiguous) and the
+    # always a plain number, the scope is a uniform `per:` argument, and the
     # syntax is identical across line, branch, and method coverage.
     #
     class CoverageCriterion
@@ -146,9 +149,23 @@ module SimpleCov
         @criterion = criterion
       end
 
-      # Overall (suite-wide) minimum for this criterion.
-      def minimum(percent)
-        @config.send(:store_overall_threshold, :minimum_coverage, @criterion, percent)
+      # Minimum for this criterion. `per:` scopes it: nil (the default)
+      # is the suite-wide minimum, `:file` the default applied to every
+      # file, a String path or Regexp an override for the matching
+      # files, and `group("Name")` the minimum for a named group.
+      #
+      #   minimum 90
+      #   minimum 80,  per: :file
+      #   minimum 100, per: "app/mailers/request_mailer.rb"
+      #   minimum 95,  per: group("Models")
+      def minimum(percent, per: nil)
+        case per
+        when nil                then @config.send(:store_overall_threshold, :minimum_coverage, @criterion, percent)
+        when :file              then @config.send(:store_minimum_per_file, @criterion, percent, nil)
+        when String, Regexp     then @config.send(:store_minimum_per_file, @criterion, percent, per)
+        when GroupTarget        then @config.send(:store_minimum_per_group, @criterion, percent, per.name)
+        else raise_invalid_per(per)
+        end
       end
 
       # Overall maximum: fails the build if coverage rises above it. Paired with
@@ -168,30 +185,53 @@ module SimpleCov
         @config.send(:store_overall_threshold, :maximum_coverage_drop, @criterion, percent)
       end
 
-      # Per-file minimum. With no `only:`, sets the default applied to every
-      # file; with `only:` (a String path or Regexp), overrides that default
-      # for the matching files.
+      # Cap on the number of misses (uncovered lines, branch arms, or
+      # methods, depending on the block's criterion): an absolute
+      # burn-down number rather than a ratio. `per:` scopes it the same
+      # way `minimum`'s does, except that group targets are not
+      # enforced yet (see docs/Configuration_Roadmap.md).
+      #
+      #   maximum_missed 12
+      #   maximum_missed 5, per: :file
+      #   maximum_missed 0, per: "lib/critical.rb"
+      def maximum_missed(count, per: nil)
+        case per
+        when nil                then @config.send(:store_missed_cap, :maximum_missed, @criterion, count)
+        when :file              then @config.send(:store_maximum_missed_per_file, @criterion, count, nil)
+        when String, Regexp     then @config.send(:store_maximum_missed_per_file, @criterion, count, per)
+        when GroupTarget
+          raise SimpleCov::ConfigurationError,
+                "maximum_missed does not support `per: group(...)` yet; see docs/Configuration_Roadmap.md"
+        else raise_invalid_per(per)
+        end
+      end
+
+      # The `per:` target naming a group, distinguishing it from a
+      # String path: `minimum 95, per: group("Models")`.
+      def group(name)
+        GroupTarget.new(name: name)
+      end
+
+      # DEPRECATED: use `minimum N, per: :file` (or `per: "path"` /
+      # `per: %r{regexp}` for an override).
       def minimum_per_file(percent, only: nil)
+        SimpleCov::Deprecation.warn("`minimum_per_file` is deprecated. " \
+                                    "Replace with `minimum #{percent}, per: #{(only || :file).inspect}`.")
         @config.send(:store_minimum_per_file, @criterion, percent, only)
       end
 
-      # Suite-wide cap on the number of misses (uncovered lines, branch
-      # arms, or methods, depending on the block's criterion): an
-      # absolute burn-down number rather than a ratio.
-      def maximum_missed(count)
-        @config.send(:store_missed_cap, :maximum_missed, @criterion, count)
-      end
-
-      # Per-file misses cap, with the same `only:` override semantics as
-      # `minimum_per_file`. Holds every file to the same absolute budget
-      # where a percent minimum flatters the big ones.
-      def maximum_missed_per_file(count, only: nil)
-        @config.send(:store_maximum_missed_per_file, @criterion, count, only)
-      end
-
-      # Per-group minimum for the named group (defined via `group`).
+      # DEPRECATED: use `minimum N, per: group("Name")`.
       def minimum_per_group(percent, only:)
+        SimpleCov::Deprecation.warn("`minimum_per_group` is deprecated. " \
+                                    "Replace with `minimum #{percent}, per: group(#{only.inspect})`.")
         @config.send(:store_minimum_per_group, @criterion, percent, only)
+      end
+
+      # DEPRECATED: use `maximum_missed N, per: :file` (or `per: "path"`).
+      def maximum_missed_per_file(count, only: nil)
+        SimpleCov::Deprecation.warn("`maximum_missed_per_file` is deprecated. " \
+                                    "Replace with `maximum_missed #{count}, per: #{(only || :file).inspect}`.")
+        @config.send(:store_maximum_missed_per_file, @criterion, count, only)
       end
 
       # Make this criterion the report's primary (leading) criterion.
@@ -199,6 +239,17 @@ module SimpleCov
         # @criterion is Symbol-wide because this receiver is also built for
         # :eval; primary_coverage validates at runtime.
         @config.primary_coverage(_ = @criterion)
+      end
+
+      # What `group("Name")` builds: a wrapper that keeps a group name
+      # distinguishable from a String path in a `per:` argument.
+      GroupTarget = Data.define(:name)
+
+    private
+
+      def raise_invalid_per(per)
+        raise SimpleCov::ConfigurationError,
+              "`per:` must be :file, a String path, a Regexp, or group(\"Name\"), got #{per.inspect}"
       end
     end
   end

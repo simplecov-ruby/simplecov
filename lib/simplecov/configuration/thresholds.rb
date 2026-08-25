@@ -149,10 +149,10 @@ module SimpleCov
     # copy-pasted verbatim into the user's config.
     def per_file_coverage_replacement(defaults, overrides)
       by_criterion = {} #: Hash[Symbol, Array[String]]
-      defaults.each { |criterion, percent| (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}" }
+      defaults.each { |criterion, percent| (by_criterion[criterion] ||= []) << "minimum #{percent}, per: :file" }
       overrides.each do |target, criteria|
         criteria.each do |criterion, percent|
-          (by_criterion[criterion] ||= []) << "minimum_per_file #{percent}, only: #{target.inspect}"
+          (by_criterion[criterion] ||= []) << "minimum #{percent}, per: #{target.inspect}"
         end
       end
       render_coverage_blocks(by_criterion)
@@ -164,7 +164,7 @@ module SimpleCov
       coverage.each do |group_name, thresholds|
         normalized = (thresholds.is_a?(Numeric) ? {primary_coverage => thresholds} : thresholds) #: coverage_thresholds
         normalized.each do |criterion, percent|
-          (by_criterion[criterion] ||= []) << "minimum_per_group #{percent}, only: #{group_name.inspect}"
+          (by_criterion[criterion] ||= []) << "minimum #{percent}, per: group(#{group_name.inspect})"
         end
       end
       render_coverage_blocks(by_criterion)

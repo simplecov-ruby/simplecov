@@ -118,8 +118,8 @@ emit deprecation warnings that name their replacement; the table below is the ca
 | `enable_for_subprocesses true`      | `merge_subprocesses true`        | Same value, same behavior.                                                                                             |
 | `enable_coverage_for_eval`          | `enable_coverage :eval`          | Eval coverage now folds into the same call you use to enable `:line`/`:branch`/`:method`: `enable_coverage :branch, :eval`. |
 | `print_error_status` (reader)       | `print_errors`                   | Reader only. The `print_error_status=` writer still works without a warning, but `print_errors true`/`print_errors false` is the new spelling. |
-| `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` | `coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: 'app/x.rb' }` | The `coverage` block fixes the criterion, so per-path overrides are plain percentages with an `only:` target instead of a hash mixing Symbol / String / Regexp keys. See [Per-criterion thresholds](#per-criterion-thresholds-with-coverage). |
-| `minimum_coverage_by_group 'Models' => { line: 90 }` | `coverage(:line) { minimum_per_group 90, only: 'Models' }` | Same uniform shape as `minimum_per_file`. |
+| `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` | `coverage(:line) { minimum 70, per: :file; minimum 100, per: 'app/x.rb' }` | The `coverage` block fixes the criterion and the `per:` argument carries the scope, so per-path overrides are plain percentages instead of a hash mixing Symbol / String / Regexp keys. See [Per-criterion thresholds](#per-criterion-thresholds-with-coverage). |
+| `minimum_coverage_by_group 'Models' => { line: 90 }` | `coverage(:line) { minimum 90, per: group('Models') }` | Same uniform shape as the per-file form. |
 
 Brand-new in the redesigned API (no legacy method to migrate from):
 
@@ -754,20 +754,20 @@ as CI gates.
 
 ### Per-criterion thresholds with `coverage`
 
-The `coverage` block configures each criterion (line, branch, method) the same way: because the criterion is fixed by
-the enclosing block, every threshold value is a plain percentage, so line, branch, and method coverage read identically.
-Naming a criterion also enables it (line is enabled by default).
+The `coverage` block configures each criterion (line, branch, method) the same way: the criterion is fixed by the
+enclosing block, so every threshold value is a plain number, and the scope is a uniform `per:` argument, so line,
+branch, and method coverage read identically. Naming a criterion also enables it (line is enabled by default).
 
 ```ruby
 SimpleCov.start do
   coverage :line do
-    minimum           90    # suite-wide minimum; SimpleCov exits non-zero if unmet
-    minimum_per_file  80    # per-file minimum
-    minimum_per_file  100, only: "app/mailers/request_mailer.rb"  # per-path override (String path or Regexp)
-    minimum_per_group 95, only: "Models"                          # minimum for a named group
-    maximum_drop      5     # exit non-zero if coverage drops more than 5% between runs
-    maximum_missed          12   # at most 12 uncovered lines across the whole suite
-    maximum_missed_per_file 5    # no single file may carry more than 5 uncovered lines
+    minimum 90                          # suite-wide minimum; SimpleCov exits non-zero if unmet
+    minimum 80,  per: :file             # per-file minimum
+    minimum 100, per: "app/mailers/request_mailer.rb"  # per-path override (String path or Regexp)
+    minimum 95,  per: group("Models")   # minimum for a named group
+    maximum_drop 5                      # exit non-zero if coverage drops more than 5% between runs
+    maximum_missed 12                   # at most 12 uncovered lines across the whole suite
+    maximum_missed 5, per: :file        # no single file may carry more than 5 uncovered lines
   end
 
   coverage :branch, minimum: 80    # one-liner form for a single setting
@@ -777,19 +777,22 @@ end
 
 | Verb | Effect |
 |------|--------|
-| `minimum N` | Suite-wide minimum for this criterion. |
+| `minimum N` | Minimum for this criterion. Bare, it applies suite-wide. `per: :file` sets the default applied to every file, `per: "path"` / `per: %r{regexp}` overrides that default for matching files (later, more specific overrides win), and `per: group("Name")` sets the minimum for a named [group](#groups). |
 | `maximum N` | Suite-wide maximum: fails if coverage rises above N. Pairs with `minimum` to pin coverage so an unexpected jump fails instead of being silently absorbed. |
 | `exact N` | Pins coverage by setting both `minimum` and `maximum` to N. |
 | `maximum_drop N` | Maximum allowed drop between runs (`maximum_drop 0` refuses any drop). |
-| `minimum_per_file N` | Per-file minimum. Add `only: "path"` / `only: %r{regexp}` to override it for matching files (later, more specific overrides win). |
-| `minimum_per_group N, only: "Name"` | Minimum for a named [group](#groups). |
-| `maximum_missed N` | Suite-wide cap on the number of misses, in the criterion's own units (uncovered lines, branch arms, or methods). An absolute burn-down number rather than a ratio: "12 uncovered lines left" stays meaningful as the codebase grows and shrinks, and a percentage cannot say it. |
-| `maximum_missed_per_file N` | Per-file misses cap, with the same `only:` overrides as `minimum_per_file`. A percent minimum systematically flatters big files (a 2,000-line file at 99% hides 20 misses while a 10-line file at 80% fails over 2); the cap holds every file to the same absolute budget. Files with a [baseline](#per-file-baseline-ratchet) entry are exempt per covered criterion, the same way they are from `minimum_per_file`. |
+| `maximum_missed N` | Cap on the number of misses, in the criterion's own units (uncovered lines, branch arms, or methods). Bare, it caps the whole suite: an absolute burn-down number rather than a ratio, since "12 uncovered lines left" stays meaningful as the codebase grows and shrinks and a percentage cannot say it. With `per: :file` (or a path target) it caps each file: a percent minimum systematically flatters big files (a 2,000-line file at 99% hides 20 misses while a 10-line file at 80% fails over 2), while the cap holds every file to the same absolute budget. Files with a [baseline](#per-file-baseline-ratchet) entry are exempt from the per-file cap per covered criterion, the same way they are from the per-file minimum. |
 
-Every verb is also a keyword on the one-liner form (`coverage :branch, minimum: 80, maximum_drop: 5`). Two more options:
-`coverage :line, oneshot: true` selects the faster [oneshot-lines mode](#oneshot-lines-coverage), and
-`coverage :branch, primary: true` makes branch the report's leading criterion (the one a bare `minimum_coverage 90`
-targets). `coverage :eval` enables [eval coverage](#eval-coverage).
+Every suite-wide verb is also a keyword on the one-liner form (`coverage :branch, minimum: 80, maximum_drop: 5`).
+Two more options: `coverage :line, oneshot: true` selects the faster [oneshot-lines mode](#oneshot-lines-coverage),
+and `coverage :branch, primary: true` makes branch the report's leading criterion (the one a bare
+`minimum_coverage 90` targets). `coverage :eval` enables [eval coverage](#eval-coverage).
+
+> [!NOTE]
+> The suffixed scope verbs (`minimum_per_file`, `minimum_per_group`, `maximum_missed_per_file`, and their `only:`
+> keyword) are **deprecated** in favor of the `per:` argument. They still work but emit a deprecation warning naming
+> the exact replacement. The wider plan for the configuration DSL is recorded in the
+> [configuration roadmap](Configuration_Roadmap.md).
 
 ### Suite-wide shortcuts
 
@@ -804,7 +807,6 @@ SimpleCov.maximum_coverage_drop line: 5, branch: 10
 SimpleCov.expected_coverage 95.42                  # pins minimum == maximum
 SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
 SimpleCov.maximum_missed 12                        # at most 12 misses suite-wide
-SimpleCov.maximum_missed_per_file line: 5, branch: 2
 ```
 
 `expected_coverage` floors the actual percentage to two decimal places, so an actual of 95.4287 still passes at
@@ -812,19 +814,19 @@ SimpleCov.maximum_missed_per_file line: 5, branch: 2
 
 > [!NOTE]
 > `minimum_coverage_by_file` and `minimum_coverage_by_group` are **deprecated** in favor of the `coverage` block's
-> `minimum_per_file` / `minimum_per_group`. They still work but emit a deprecation warning. For example, replace
+> scoped `minimum`. They still work but emit a deprecation warning. For example, replace
 > `minimum_coverage_by_file line: 70, 'app/x.rb' => 100` with:
 >
 > ```ruby
 > coverage :line do
->   minimum_per_file 70
->   minimum_per_file 100, only: "app/x.rb"
+>   minimum 70,  per: :file
+>   minimum 100, per: "app/x.rb"
 > end
 > ```
 
 ### Per-file baseline (ratchet)
 
-On a legacy codebase, one `minimum_per_file` number does nothing useful: set it to what the worst file scores and every
+On a legacy codebase, one per-file minimum does nothing useful: set it to what the worst file scores and every
 other file is allowed to sink to that level. The baseline gives each file its own floor instead, generated from the
 current state and checked in:
 
@@ -858,7 +860,7 @@ file below its percent floor still passes while it carries no more misses than t
 requires both a lower percent and more misses. A hand-written entry can be a bare percent (`lib/foo.rb: 41.2`), which
 is then decided by the percent alone until the next ratchet records its missed count.
 
-Files with an entry are exempt from `minimum_per_file` (per criterion), and files without one fall through to it, so
+Files with an entry are exempt from the per-file minimum (per criterion), and files without one fall through to it, so
 new code is held to the real standard rather than to a grandfathered one. Ratchet never adds entries for new files for
 the same reason. Entries for deleted files are pruned, and `simplecov ratchet --init` regenerates the whole file from
 scratch when you deliberately want floors reset.

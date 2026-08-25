@@ -82,7 +82,7 @@ module SimpleCov
     end
 
     # Whether this baseline governs the given file and criterion, which
-    # is also what exempts the pair from `minimum_per_file`.
+    # is also what exempts the pair from the per-file thresholds.
     def covers?(project_filename, criterion)
       !floor_for(project_filename, criterion).nil?
     end

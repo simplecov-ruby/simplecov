@@ -128,21 +128,17 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "per-file thresholds" do
-      it "sets a default applied to every file (block and keyword forms)" do
-        config.coverage(:line) { minimum_per_file 80 }
+    describe "per-file thresholds (per: :file and path targets)" do
+      it "sets a default applied to every file" do
+        config.coverage(:line) { minimum 80, per: :file }
         expect(config.minimum_coverage_by_file).to eq(line: 80)
-
-        other = config_class.new
-        other.coverage :line, minimum_per_file: 80
-        expect(other.minimum_coverage_by_file).to eq(line: 80)
       end
 
-      it "overrides the default for a String path or Regexp via only:" do
+      it "overrides the default for a String path or Regexp target" do
         config.coverage :line do
-          minimum_per_file 80
-          minimum_per_file 100, only: "app/mailers/request_mailer.rb"
-          minimum_per_file 95, only: %r{\Aapp/payments/}
+          minimum 80,  per: :file
+          minimum 100, per: "app/mailers/request_mailer.rb"
+          minimum 95,  per: %r{\Aapp/payments/}
         end
         expect(config.minimum_coverage_by_file).to eq(line: 80)
         expect(config.minimum_coverage_by_file_overrides).to eq(
@@ -152,30 +148,68 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "keeps line and branch overrides for the same path independent" do
-        config.coverage(:line) { minimum_per_file 100, only: "app/x.rb" }
-        config.coverage(:branch) { minimum_per_file 90, only: "app/x.rb" }
+        config.coverage(:line) { minimum 100, per: "app/x.rb" }
+        config.coverage(:branch) { minimum 90, per: "app/x.rb" }
         expect(config.minimum_coverage_by_file_overrides).to eq("app/x.rb" => {line: 100, branch: 90})
       end
 
-      it "rejects a non-String/Regexp only: target" do
-        expect { config.coverage(:line) { minimum_per_file 100, only: :line } }
-          .to raise_error(SimpleCov::ConfigurationError, /must be a String path or Regexp/)
+      it "rejects a per: target it cannot read as a scope" do
+        expect { config.coverage(:line) { minimum 100, per: 42 } }
+          .to raise_error(SimpleCov::ConfigurationError, /`per:` must be :file, a String path, a Regexp/)
       end
     end
 
-    describe "per-group thresholds" do
+    describe "per-group thresholds (per: group targets)" do
       it "stores a per-criterion minimum under the named group" do
-        config.coverage(:line) { minimum_per_group 95, only: "Models" }
-        config.coverage(:branch) { minimum_per_group 90, only: "Models" }
+        config.coverage(:line) { minimum 95, per: group("Models") }
+        config.coverage(:branch) { minimum 90, per: group("Models") }
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95, branch: 90})
       end
 
       # `group :Models` normalizes to the String "Models", so the threshold
       # store must too. A Symbol key here missed the check-time lookup and
       # silently left the minimum unenforced.
-      it "normalizes a Symbol only: target to match Symbol-defined groups" do
-        config.coverage(:line) { minimum_per_group 95, only: :Models }
+      it "normalizes a Symbol group name to match Symbol-defined groups" do
+        config.coverage(:line) { minimum 95, per: group(:Models) }
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95})
+      end
+    end
+
+    describe "the deprecated suffixed scope verbs" do
+      it "minimum_per_file warns with the per: replacement and still stores" do
+        stderr = capture_stderr { config.coverage(:line) { minimum_per_file 80 } }
+
+        expect(stderr).to include("[DEPRECATION]")
+        expect(stderr).to include("`minimum 80, per: :file`")
+        expect(config.minimum_coverage_by_file).to eq(line: 80)
+      end
+
+      it "minimum_per_file with only: suggests the path target" do
+        stderr = capture_stderr { config.coverage(:line) { minimum_per_file 100, only: "app/x.rb" } }
+
+        expect(stderr).to include(%(`minimum 100, per: "app/x.rb"`))
+        expect(config.minimum_coverage_by_file_overrides).to eq("app/x.rb" => {line: 100})
+      end
+
+      it "minimum_per_group warns with the group target replacement and still stores" do
+        stderr = capture_stderr { config.coverage(:line) { minimum_per_group 95, only: "Models" } }
+
+        expect(stderr).to include(%(`minimum 95, per: group("Models")`))
+        expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95})
+      end
+
+      it "maximum_missed_per_file warns and still stores, keyword form included" do
+        stderr = capture_stderr { config.coverage :line, maximum_missed_per_file: 5 }
+
+        expect(stderr).to include("`maximum_missed 5, per: :file`")
+        expect(config.maximum_missed_per_file).to eq(line: 5)
+      end
+
+      it "minimum_per_file still rejects a non-String/Regexp only: target" do
+        capture_stderr do
+          expect { config.coverage(:line) { minimum_per_file 100, only: :line } }
+            .to raise_error(SimpleCov::ConfigurationError, /must be a String path or Regexp/)
+        end
       end
     end
   end
@@ -972,10 +1006,22 @@ RSpec.describe SimpleCov::Configuration do
 
       it "target the primary criterion when given a bare count" do
         config.maximum_missed 12
-        config.maximum_missed_per_file 5
+        capture_stderr { config.maximum_missed_per_file 5 }
 
         expect(config.maximum_missed).to eq(line: 12)
         expect(config.maximum_missed_per_file).to eq(line: 5)
+      end
+
+      # The suffixed flat setter is deprecated in favor of the `per:`
+      # axis; the reader stays, feeding enforcement.
+      it "deprecate the flat maximum_missed_per_file setter with a copy-pastable replacement" do
+        config.enable_coverage :branch
+        stderr = capture_stderr { config.maximum_missed_per_file line: 5, branch: 2 }
+
+        expect(stderr).to include("[DEPRECATION]")
+        expect(stderr).to include("coverage(:line) { maximum_missed 5, per: :file }")
+        expect(stderr).to include("coverage(:branch) { maximum_missed 2, per: :file }")
+        expect(config.maximum_missed_per_file).to eq(line: 5, branch: 2)
       end
 
       it "take criterion-keyed counts" do
@@ -996,44 +1042,58 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "reject a non-integer count" do
-        expect { config.maximum_missed_per_file line: 2.5 }
+        expect { config.coverage(:line) { maximum_missed 2.5, per: :file } }
           .to raise_error(SimpleCov::ConfigurationError, /non-negative integer/)
       end
     end
 
-    describe "the coverage block's maximum_missed verbs" do
+    describe "the coverage block's maximum_missed verb" do
       after { config.clear_coverage_criteria }
 
-      it "store caps for the block's criterion" do
+      it "stores caps for the block's criterion, suite-wide and per file" do
         config.coverage :branch do
           maximum_missed 3
-          maximum_missed_per_file 1
+          maximum_missed 1, per: :file
         end
 
         expect(config.maximum_missed).to eq(branch: 3)
         expect(config.maximum_missed_per_file).to eq(branch: 1)
       end
 
-      it "support per-path overrides via only:" do
+      it "takes per-path override targets" do
         config.coverage :line do
-          maximum_missed_per_file 5
-          maximum_missed_per_file 0, only: "lib/critical.rb"
+          maximum_missed 5, per: :file
+          maximum_missed 0, per: "lib/critical.rb"
         end
 
         expect(config.maximum_missed_per_file).to eq(line: 5)
         expect(config.maximum_missed_per_file_overrides).to eq("lib/critical.rb" => {line: 0})
       end
 
-      it "work as one-liner keywords" do
-        config.coverage :method, maximum_missed: 2, maximum_missed_per_file: 1
+      it "works as a one-liner keyword" do
+        config.coverage :method, maximum_missed: 2
 
         expect(config.maximum_missed).to eq(method: 2)
-        expect(config.maximum_missed_per_file).to eq(method: 1)
       end
 
-      it "reject an only: target that is neither String nor Regexp" do
-        expect { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } }
-          .to raise_error(SimpleCov::ConfigurationError, /`only:`/)
+      # The enforcement for group-scoped miss caps doesn't exist yet, so
+      # the target is refused rather than silently stored (see
+      # docs/Configuration_Roadmap.md).
+      it "rejects a group target until group caps are enforced" do
+        expect { config.coverage(:line) { maximum_missed 5, per: group("Models") } }
+          .to raise_error(SimpleCov::ConfigurationError, /per: group/)
+      end
+
+      it "rejects a per: target it cannot read as a scope" do
+        expect { config.coverage(:line) { maximum_missed 5, per: 42 } }
+          .to raise_error(SimpleCov::ConfigurationError, /`per:` must be/)
+      end
+
+      it "rejects an only: target that is neither String nor Regexp (deprecated verb)" do
+        capture_stderr do
+          expect { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } }
+            .to raise_error(SimpleCov::ConfigurationError, /`only:`/)
+        end
       end
     end
 
@@ -1176,7 +1236,7 @@ RSpec.describe SimpleCov::Configuration do
         expect(SimpleCov::Deprecation).to have_received(:warn).with(
           a_string_including(
             "`SimpleCov.minimum_coverage_by_file` is deprecated",
-            'coverage(:line) { minimum_per_file 70; minimum_per_file 100, only: "app/x.rb" }'
+            'coverage(:line) { minimum 70, per: :file; minimum 100, per: "app/x.rb" }'
           )
         )
       end
@@ -1278,7 +1338,7 @@ RSpec.describe SimpleCov::Configuration do
         expect(SimpleCov::Deprecation).to have_received(:warn).with(
           a_string_including(
             "`SimpleCov.minimum_coverage_by_group` is deprecated",
-            'coverage(:line) { minimum_per_group 80, only: "Models" }'
+            'coverage(:line) { minimum 80, per: group("Models") }'
           )
         )
       end

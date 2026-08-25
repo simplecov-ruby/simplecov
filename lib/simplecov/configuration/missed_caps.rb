@@ -28,23 +28,23 @@ module SimpleCov
     end
 
     #
+    # DEPRECATED as a setter: use the `coverage` block's
+    # `maximum_missed N, per: :file` (which also takes String / Regexp
+    # path targets). The reader stays, feeding enforcement.
+    #
     # Caps the number of misses any single file may carry. Unlike a
     # percent minimum, which systematically flatters big files (a
     # 2,000-line file at 99% hides 20 misses while a 10-line file at 80%
-    # fails over 2), this holds every file to the same absolute budget:
-    #
-    #   SimpleCov.maximum_missed_per_file 5
-    #   SimpleCov.maximum_missed_per_file line: 5, branch: 2
-    #
-    # Per-path overrides are declared through the `coverage` block's
-    # `maximum_missed_per_file N, only: "path"` verb. Files with a
-    # baseline entry (see `simplecov ratchet`) are exempt per covered
-    # criterion, the same way they are from `minimum_per_file`.
-    # Default is empty (disabled).
+    # fails over 2), this holds every file to the same absolute budget.
+    # Files with a baseline entry (see `simplecov ratchet`) are exempt
+    # per covered criterion, the same way they are from the per-file
+    # minimum. Default is empty (disabled).
     #
     def maximum_missed_per_file(counts = nil)
       return @maximum_missed_per_file ||= {} unless counts
 
+      SimpleCov::Deprecation.warn("`SimpleCov.maximum_missed_per_file` is deprecated. " \
+                                  "Replace it with:\n#{missed_per_file_replacement(counts)}")
       @maximum_missed_per_file = normalized_missed_caps(counts, "maximum_missed_per_file")
     end
 
@@ -74,6 +74,14 @@ module SimpleCov
 
       raise SimpleCov::ConfigurationError,
             "#{setting} takes a non-negative integer count of misses, got #{cap.inspect}"
+    end
+
+    # Render the `coverage` configuration equivalent to a (deprecated)
+    # flat `maximum_missed_per_file` argument, copy-pastable verbatim.
+    def missed_per_file_replacement(counts)
+      counts = {primary_coverage => counts} if counts.is_a?(Numeric)
+      counts.map { |criterion, cap| "  coverage(#{criterion.inspect}) { maximum_missed #{cap}, per: :file }" }
+            .join("\n")
     end
   end
 end
