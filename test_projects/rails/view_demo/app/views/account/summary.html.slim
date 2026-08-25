@@ -1,0 +1,18 @@
+h1 Account
+
+dl.profile
+  dt Name
+  dd = @account.name
+  dt Plan
+  dd = @account.plan
+
+- if @account.past_due?
+  p.warning Your payment is past due.
+
+h2 Recent orders
+- if @account.orders.any?
+  ol.orders
+    - @account.orders.each do |order|
+      li = order
+- else
+  p.empty No orders yet.

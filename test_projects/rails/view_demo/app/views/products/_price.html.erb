@@ -1,0 +1,6 @@
+<% if product.on_sale? %>
+  <del><%= product.price %></del>
+  <ins class="sale"><%= product.sale_price %></ins>
+<% else %>
+  <span class="price"><%= product.price %></span>
+<% end %>

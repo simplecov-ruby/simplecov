@@ -1,0 +1,18 @@
+<h1>Products</h1>
+
+<% if @promo_message %>
+  <aside class="promo"><%= @promo_message %></aside>
+<% end %>
+
+<% if @products.any? %>
+  <ul class="products">
+    <% @products.each do |product| %>
+      <li>
+        <span class="name"><%= product.name %></span>
+        <%= render "products/price", product: product %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p class="empty">Nothing for sale yet.</p>
+<% end %>

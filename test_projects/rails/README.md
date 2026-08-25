@@ -13,3 +13,8 @@ The fixtures exercise both of Rails' common test stacks:
 
 - `rspec_rails` runs a conventional RSpec Rails suite.
 - `minitest_rails` runs Rails' built-in Minitest suite with process parallelization.
+
+There is also a demo project, not driven by the spec suite:
+
+- `view_demo` generates a report showing `cover_views` template coverage
+  across ERB, Haml, and Slim. See its README.

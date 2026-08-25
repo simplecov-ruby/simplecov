@@ -1,0 +1,14 @@
+h1 Account closed
+
+p
+  | Your account has been closed and its data scheduled for deletion.
+
+- if @reopen_within
+  p.reopen
+    | Changed your mind? You can reopen it within
+    strong = @reopen_within
+    |  days.
+
+ul.next-steps
+  - @next_steps.each do |step|
+    li = step

@@ -1,0 +1,19 @@
+<h1><%= @product.name %></h1>
+
+<dl class="product">
+  <dt>Price</dt>
+  <% if @product.on_sale? %>
+    <dd><del><%= @product.price %></del> <ins><%= @product.sale_price %></ins></dd>
+  <% else %>
+    <dd><%= @product.price %></dd>
+  <% end %>
+</dl>
+
+<% if @related.any? %>
+  <h2>You might also like</h2>
+  <ul class="related">
+    <% @related.each do |product| %>
+      <li><%= product.name %></li>
+    <% end %>
+  </ul>
+<% end %>
