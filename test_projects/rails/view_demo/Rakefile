@@ -1,0 +1,91 @@
+# frozen_string_literal: true
+
+require "json"
+require "rake"
+
+RENDERED_TEMPLATES = %w[
+  app/views/products/index.html.erb
+  app/views/carts/show.html.haml
+  app/views/account/summary.html.slim
+].freeze
+
+# Rendered once per product by products/index, with both of its arms
+# reached, so it carries no missed branch and is verified separately.
+PARTIAL_TEMPLATE = "app/views/products/_price.html.erb"
+
+# No spec renders these (view specs never render the layout), so
+# `cover_views` compiles them at the end of the run and they appear at 0%
+# instead of being missing from the report.
+ORPHANED_TEMPLATES = %w[
+  app/views/products/show.html.erb
+  app/views/carts/abandoned.html.haml
+  app/views/account/closed.html.slim
+  app/views/layouts/application.html.erb
+].freeze
+
+ALL_TEMPLATES = (RENDERED_TEMPLATES + [PARTIAL_TEMPLATE] + ORPHANED_TEMPLATES).freeze
+
+def positive_hits?(lines)
+  lines.any? { |value| value.is_a?(Numeric) && value.positive? }
+end
+
+desc "Generate and verify the template coverage demo report"
+task :report do
+  sh "bundle exec rspec"
+
+  report = JSON.parse(File.read(File.expand_path("coverage/coverage.json", __dir__)))
+  meta = report.fetch("meta")
+  coverage = report.fetch("coverage")
+
+  abort "Expected line and branch coverage to be enabled." unless %w[line branch].all? { |type| meta.fetch("#{type}_coverage") }
+
+  views_group = report.fetch("groups").fetch("Views").fetch("files")
+  abort "Expected the Views group to hold exactly the demo's templates." unless views_group.sort == ALL_TEMPLATES.sort
+
+  missing = ALL_TEMPLATES.reject { |path| coverage.key?(path) }
+  abort "Expected every template in the report, missing: #{missing.join(', ')}" unless missing.empty?
+
+  # Each rendered template shows the full vocabulary: covered lines,
+  # missed lines, and both covered and missed branch markers.
+  incomplete = RENDERED_TEMPLATES.reject do |path|
+    file = coverage.fetch(path)
+    positive_hits?(file.fetch("lines")) &&
+      file.fetch("lines").include?(0) &&
+      file.fetch("covered_branches").positive? &&
+      file.fetch("missed_branches").positive?
+  end
+  abort "Expected rendered templates to mix covered and missed lines and branches: #{incomplete.join(', ')}" unless incomplete.empty?
+
+  # The partial runs once per product, and one product being on sale
+  # reaches both arms of its conditional.
+  partial = coverage.fetch(PARTIAL_TEMPLATE)
+  abort "Expected the price partial to run once per product." unless partial.fetch("lines").include?(3)
+  abort "Expected both arms of the price partial's conditional to be covered." unless partial.fetch("missed_branches").zero?
+
+  # Orphans arrive compiled but unexecuted: 0% with real branch tuples.
+  unorphaned = ORPHANED_TEMPLATES.reject do |path|
+    file = coverage.fetch(path)
+    !positive_hits?(file.fetch("lines")) &&
+      file.fetch("lines_covered_percent").zero? &&
+      file.fetch("covered_branches").zero? &&
+      file.fetch("missed_branches").positive?
+  end
+  abort "Expected orphaned templates at 0% with missed branch tuples: #{unorphaned.join(', ')}" unless unorphaned.empty?
+
+  # Every language appears on both sides of the rendered divide.
+  %w[erb haml slim].each do |extension|
+    rendered = RENDERED_TEMPLATES.any? { |path| path.end_with?(extension) }
+    orphaned = ORPHANED_TEMPLATES.any? { |path| path.end_with?(extension) }
+    abort "Expected a rendered and an orphaned .#{extension} template." unless rendered && orphaned
+  end
+
+  # The templates should read like real views, not one-liners.
+  short = ALL_TEMPLATES.reject { |path| coverage.fetch(path).fetch("source").length.between?(6, 20) }
+  abort "Expected each template to stay between 6 and 20 lines: #{short.join(', ')}" unless short.empty?
+
+  puts "Verified #{ALL_TEMPLATES.length} templates across ERB, Haml, and Slim, " \
+       "#{RENDERED_TEMPLATES.length + 1} rendered and #{ORPHANED_TEMPLATES.length} compiled at 0%."
+  puts "Open #{File.expand_path('coverage/index.html', __dir__)}"
+end
+
+task default: :report

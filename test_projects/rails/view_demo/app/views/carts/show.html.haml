@@ -1,0 +1,20 @@
+%h1 Your cart
+
+- if @items.empty?
+  %p.empty Your cart is empty.
+- else
+  %table.cart
+    - @items.each do |item|
+      %tr
+        %td.name= item.name
+        %td.quantity= item.quantity
+        - if item.gift?
+          %td.gift Gift wrapped
+  %p.total
+    Total:
+    %strong= @total
+
+- if @coupon
+  %p.coupon
+    %code= @coupon
+    applied at checkout.

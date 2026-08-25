@@ -1,0 +1,16 @@
+%h1 Still deciding?
+
+%p
+  Your cart is waiting, and everything in it is still in stock.
+
+- if @discount
+  %p.offer
+    Check out in the next
+    %strong= @discount.hours
+    hours and we will take
+    %strong= @discount.percent
+    off.
+
+%ul.cart-preview
+  - @items.each do |item|
+    %li= item.name

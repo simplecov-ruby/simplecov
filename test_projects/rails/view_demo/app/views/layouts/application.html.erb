@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Storefront</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+  </head>
+  <body>
+    <% if @flash_message %>
+      <p class="flash"><%= @flash_message %></p>
+    <% end %>
+    <%= yield %>
+  </body>
+</html>
