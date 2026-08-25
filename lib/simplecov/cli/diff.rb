@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require_relative "command_helpers"
+require_relative "diff/output"
 
 module SimpleCov
   module CLI
@@ -17,8 +18,6 @@ module SimpleCov
 
       EPSILON = 0.005 # tolerance below which a delta is considered noise
 
-      STATUS_SUFFIX = {"added" => "(new file)", "removed" => "(removed)"}.freeze
-
     module_function
 
       def run(args, stdout:, stderr:, **)
@@ -30,7 +29,7 @@ module SimpleCov
         if opts[:json]
           stdout.puts(JSON.pretty_generate(rows))
         else
-          emit_text(stdout, rows, SimpleCov::CLI.color_enabled?(opts, stdout))
+          Output.emit_text(stdout, rows, SimpleCov::CLI.color_enabled?(opts, stdout))
         end
         opts[:fail_on_drop] && coverage_drop?(rows) ? 1 : 0
       end
@@ -103,26 +102,6 @@ module SimpleCov
         payload[fields[:percent]].to_f
       end
 
-      def emit_text(stdout, rows, color)
-        return stdout.puts("simplecov diff: no per-file coverage changes") if rows.empty?
-
-        rows.each { |row| stdout.puts(format_row(row, color)) }
-      end
-
-      def format_row(row, color)
-        line = "  #{delta_parts(row, color).join('  ')}  #{row[:file]}"
-        suffix = STATUS_SUFFIX[row[:status]]
-        suffix ? "#{line}  #{suffix}" : line
-      end
-
-      def delta_parts(row, color)
-        [
-          format_delta(row[:line_delta], "lines", color),
-          (format_delta(row[:branch_delta], "branches", color) if row[:branch_delta].abs > EPSILON),
-          (format_delta(row[:method_delta], "methods", color)  if row[:method_delta].abs > EPSILON)
-        ].compact
-      end
-
       # A removed file's deltas are all -baseline%, but deleting a
       # covered file (dead code cleanup) is not a coverage regression,
       # so removed rows never trip the --fail-on-drop gate. Drops are
@@ -132,15 +111,6 @@ module SimpleCov
       def coverage_drop?(rows)
         rows.reject { |row| row[:status] == "removed" }
             .any? { |row| row.values_at(:line_delta, :branch_delta, :method_delta).min < -EPSILON }
-      end
-
-      # Deltas are sign-based, not threshold-based: a +5% bump is good
-      # (green) and a -5% drop is bad (red), regardless of where the
-      # absolute coverage level lands.
-      def format_delta(delta, label, color)
-        sign = delta.positive? ? "+" : ""
-        text = format("%<sign>s%<delta>6.2f%% %<label>s", sign: sign, delta: delta, label: label)
-        SimpleCov::Color.colorize(text, delta.negative? ? :red : :green, enabled: color)
       end
     end
   end

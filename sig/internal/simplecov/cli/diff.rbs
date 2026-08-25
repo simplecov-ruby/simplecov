@@ -19,8 +19,6 @@ module SimpleCov
       # plus `branches_covered_percent` / `methods_covered_percent` when
       # the corresponding criterion is enabled, so the diff can describe
       # whichever criteria the baseline + current both report on.
-      STATUS_SUFFIX: ::Hash[::String, ::String]
-
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (1 | untyped)
 
       def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
@@ -46,19 +44,9 @@ module SimpleCov
 
       def self?.pct_for: (untyped fields, untyped payload) -> (::Float | untyped)
 
-      def self?.emit_text: (untyped stdout, untyped rows, untyped color) -> untyped
-
-      def self?.format_row: (untyped row, untyped color) -> untyped
-
-      def self?.delta_parts: (untyped row, untyped color) -> untyped
-
       # Removed rows never trip the --fail-on-drop gate.
       def self?.coverage_drop?: (untyped rows) -> bool
 
-      # Deltas are sign-based, not threshold-based: a +5% bump is good
-      # (green) and a -5% drop is bad (red), regardless of where the
-      # absolute coverage level lands.
-      def self?.format_delta: (untyped delta, untyped label, untyped color) -> untyped
     end
   end
 end

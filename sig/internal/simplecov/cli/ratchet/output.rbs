@@ -1,0 +1,17 @@
+module SimpleCov
+  module CLI
+    module Ratchet
+      # Renders a ratchet pass: the one-line write summary, the
+      # below-floor note, and the JSON form of the same facts.
+      module Output
+        def self?.emit: (untyped stdout, untyped opts, Baseline::Outcome outcome, bool generated) -> void
+
+        def self?.change_summary: (Baseline::Outcome outcome, bool generated) -> String
+
+        def self?.report_regressed: (untyped stdout, Array[String] regressed) -> void
+
+        def self?.json_summary: (untyped opts, Baseline::Outcome outcome, bool generated) -> Hash[Symbol, untyped]
+      end
+    end
+  end
+end

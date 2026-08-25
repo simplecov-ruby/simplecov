@@ -20,14 +20,6 @@ module SimpleCov
       def self?.usable?: (untyped percent, untyped missed) -> bool
 
       def self?.compute: (untyped opts, Baseline::current_floors current) -> [Baseline::Outcome, bool]
-
-      def self?.emit: (untyped stdout, untyped opts, Baseline::Outcome outcome, bool generated) -> void
-
-      def self?.change_summary: (Baseline::Outcome outcome, bool generated) -> String
-
-      def self?.report_regressed: (untyped stdout, Array[String] regressed) -> void
-
-      def self?.json_summary: (untyped opts, Baseline::Outcome outcome, bool generated) -> Hash[Symbol, untyped]
     end
   end
 end
