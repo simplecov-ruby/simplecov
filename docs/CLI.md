@@ -24,6 +24,8 @@ to `SimpleCov.coverage_dir` from your project's `.simplecov` when one is present
 | `merge <files…>`   | Merge multiple `.resultset.json` files                              |
 | `diff <baseline>`  | Show per-file coverage delta vs a baseline                          |
 | `patch`            | Show coverage of only the lines a change touched                    |
+| `ratchet`          | Rewrite the per-file coverage baseline, only ever tightening        |
+| `dead-code`        | Cross production coverage with the report to find dead code         |
 | `open`             | Open the HTML report in the default browser                         |
 | `serve`            | Serve the coverage report over HTTP                                 |
 | `watch <command…>` | Re-run `<command>` on save and live-reload the served report        |
@@ -348,6 +350,34 @@ simplecov ratchet: 2 files below their floors, entries kept unchanged
 writing, and `--json` emits the summary (tightened, pruned, and regressed paths) as data. `--init` is the deliberate
 escape hatch: it regenerates the whole file from the current state, adding entries for new files and resetting floors,
 regressions included.
+
+### `dead-code` — cross production coverage with the test report
+
+With [production coverage](Production.md) accumulated by a `SimpleCov::Production` sink, `simplecov dead-code`
+crosses what real traffic ran with what the tests cover. Per line, the two cross into four cells: run in both is
+normal, and the other three are worth hearing about:
+
+```sh
+$ simplecov dead-code --production /var/data/coverage/production.json
+Production coverage: /var/data/coverage/production.json (window 2026-08-01T05:00:00Z to 2026-08-25T11:00:00Z)
+
+Dead code (not run in production, not covered by tests):
+  app/models/legacy_import.rb:4-30 (entire file)
+Possibly dead (not run in production, covered only by tests):
+  app/services/rollback.rb:12-19
+
+27 dead lines, 8 possibly dead lines
+```
+
+The default view prints the deletion candidates: dead (run by neither) and possibly dead (kept alive only by its own
+spec). `--untested-in-production` prints the remaining cell, code real users are running that no test covers, which
+is the highest-value place to add a test. Rows are the same greppable `path:ranges` form `show --uncovered-only`
+prints, a file whose every relevant line skipped production is marked `(entire file)`, and `--json` emits all three
+categories plus the window as data. Lines the report deems irrelevant or deliberately ignored stay out of every
+bucket, and a production file the report never tracked reports all its recorded lines as untested in production.
+
+The header names the window the production data spans because the window is the evidence: a day of traffic misses
+monthly jobs. `--production` is required; `--input` picks the test report like the other read-only commands.
 
 ### `watch` — the coverage inner loop
 

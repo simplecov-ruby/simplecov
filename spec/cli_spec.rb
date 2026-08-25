@@ -5,6 +5,7 @@ require "helper"
 require "net/http"
 require "open3"
 require "simplecov/cli"
+require "simplecov/production"
 require "socket"
 require "stringio"
 require "timeout"
@@ -543,7 +544,8 @@ RSpec.describe SimpleCov::CLI do
       ["tests", ->(bad, _good) { ["tests", "--input", bad] }],
       ["affected", ->(bad, _good) { ["affected", "--input", bad] }],
       ["show", ->(bad, _good) { ["show", "--input", bad, "lib/a.rb"] }],
-      ["ratchet", ->(bad, _good) { ["ratchet", "--input", bad, "--dry-run"] }]
+      ["ratchet", ->(bad, _good) { ["ratchet", "--input", bad, "--dry-run"] }],
+      ["dead-code", ->(bad, good) { ["dead-code", "--input", bad, "--production", good] }]
     ].each do |description, argv_for|
       it "handles malformed JSON for #{description}" do
         argv = argv_for.call(invalid, valid)
@@ -2290,6 +2292,146 @@ RSpec.describe SimpleCov::CLI do
       Dir.chdir(tmp) { expect(run("ratchet", "--input", input)).to eq(0) }
       expect(File).to exist(File.join(tmp, "floors.yml"))
       expect(File).not_to exist(baseline_path)
+    end
+  end
+
+  describe "dead-code subcommand" do
+    let(:tmp) { Dir.mktmpdir("simplecov-cli-dead-code-spec-") }
+    let(:input) { File.join(tmp, "coverage.json") }
+    let(:production_path) { File.join(tmp, "production.json") }
+
+    before do
+      # L1 tested+prod (normal), L2 untested+unprod (dead), L4
+      # tested+unprod (possibly dead), L5 untested+prod (untested in
+      # production). tested_unused.rb is fully tested and never runs in
+      # production. ignored/irrelevant lines stay out of every bucket.
+      File.write(input, JSON.dump("coverage" => {
+                                    "lib/mixed.rb" => {"lines" => [1, 0, nil, 2, 0]},
+                                    "lib/tested_unused.rb" => {"lines" => [2, 1]},
+                                    "lib/ignored.rb" => {"lines" => ["ignored", nil]}
+                                  }))
+      SimpleCov::Production::FileSink.new(path: production_path).store(
+        "lib/mixed.rb" => [1, 5], "lib/prod_only.rb" => [3, 4]
+      )
+    end
+
+    after { FileUtils.remove_entry(tmp) }
+
+    def run_dead_code(*extra)
+      run("dead-code", "--input", input, "--production", production_path, *extra)
+    end
+
+    it "prints the dead and possibly dead rows with ranges and a summary" do
+      expect(run_dead_code).to eq(0)
+
+      expect(stdout.string).to include("Dead code (not run in production, not covered by tests):")
+      expect(stdout.string).to include("  lib/mixed.rb:2\n")
+      expect(stdout.string).to include("Possibly dead (not run in production, covered only by tests):")
+      expect(stdout.string).to include("  lib/mixed.rb:4\n")
+      expect(stdout.string).to include("1 dead line, 3 possibly dead lines")
+    end
+
+    it "marks a file whose every relevant line skipped production, and keeps the other rows out" do
+      run_dead_code
+
+      expect(stdout.string).to include("  lib/tested_unused.rb:1-2 (entire file)")
+      expect(stdout.string).not_to include("prod_only")
+      expect(stdout.string).not_to include("ignored.rb")
+    end
+
+    it "names the production file and its window in the header" do
+      run_dead_code
+
+      window = SimpleCov::Production::FileSink.read(production_path)
+      expect(stdout.string).to include("Production coverage: #{production_path}")
+      expect(stdout.string).to include("window #{window.fetch('started_at')} to #{window.fetch('updated_at')}")
+    end
+
+    it "prints the untested-in-production row under --untested-in-production" do
+      expect(run_dead_code("--untested-in-production")).to eq(0)
+
+      expect(stdout.string).to include("Untested code running in production:")
+      expect(stdout.string).to include("  lib/mixed.rb:5\n")
+      expect(stdout.string).to include("  lib/prod_only.rb:3-4\n")
+      expect(stdout.string).to include("3 untested lines running in production")
+      expect(stdout.string).not_to include("Dead code")
+    end
+
+    it "emits every category as JSON" do
+      expect(run_dead_code("--json")).to eq(0)
+
+      data = JSON.parse(stdout.string)
+      expect(data.fetch("dead")).to eq([{"file" => "lib/mixed.rb", "lines" => [2]}])
+      expect(data.fetch("possibly_dead")).to eq(
+        [{"file" => "lib/mixed.rb", "lines" => [4]}, {"file" => "lib/tested_unused.rb", "lines" => [1, 2]}]
+      )
+      expect(data.fetch("untested_in_production")).to eq(
+        [{"file" => "lib/mixed.rb", "lines" => [5]}, {"file" => "lib/prod_only.rb", "lines" => [3, 4]}]
+      )
+      expect(data.fetch("window")).to include("started_at", "updated_at")
+    end
+
+    it "reports the happy emptiness when nothing is dead" do
+      SimpleCov::Production::FileSink.new(path: production_path).store(
+        "lib/mixed.rb" => [2, 4], "lib/tested_unused.rb" => [1, 2]
+      )
+
+      expect(run_dead_code).to eq(0)
+      expect(stdout.string).to include("No dead code found.")
+    end
+
+    it "reports the happy emptiness for the untested view too" do
+      FileUtils.rm(production_path)
+      SimpleCov::Production::FileSink.new(path: production_path).store("lib/mixed.rb" => [1, 4])
+
+      expect(run_dead_code("--untested-in-production")).to eq(0)
+      expect(stdout.string).to include("No untested production code found.")
+    end
+
+    # A branch-only report carries entries without a "lines" array;
+    # those files simply cannot be classified.
+    it "skips report entries without line data" do
+      File.write(input, JSON.dump("coverage" => {"lib/branch_only.rb" => {"branches" => []}}))
+
+      expect(run_dead_code).to eq(0)
+      expect(stdout.string).not_to include("branch_only")
+    end
+
+    it "omits the window from the header when the store carries no timestamps" do
+      File.write(production_path, JSON.dump(
+                                    SimpleCov::Production::FileSink::ENVELOPE => {
+                                      "format_version" => 1, "coverage" => {"lib/mixed.rb" => [1]}
+                                    }
+                                  ))
+
+      expect(run_dead_code).to eq(0)
+      expect(stdout.string).to include("Production coverage: #{production_path}\n")
+      expect(stdout.string).not_to include("window")
+    end
+
+    it "errors without --production" do
+      expect(run("dead-code", "--input", input)).to eq(1)
+      expect(stderr.string).to include("simplecov dead-code: missing --production")
+    end
+
+    it "errors when the production file is missing" do
+      FileUtils.rm(production_path)
+
+      expect(run_dead_code).to eq(1)
+      expect(stderr.string).to include("simplecov dead-code:")
+      expect(stderr.string).to include("not found")
+    end
+
+    it "errors when the production file is not a production store" do
+      File.write(production_path, JSON.dump("coverage" => {}))
+
+      expect(run_dead_code).to eq(1)
+      expect(stderr.string).to include("not a SimpleCov production coverage file")
+    end
+
+    it "rejects a stray positional argument" do
+      expect(run("dead-code", "--production", production_path, "stray")).to eq(1)
+      expect(stderr.string).to include('unexpected argument "stray"')
     end
   end
 

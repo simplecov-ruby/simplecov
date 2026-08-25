@@ -44,6 +44,7 @@ module SimpleCov
             diff <baseline>           Show per-file coverage delta vs baseline
             patch                     Show coverage of the lines a change touched
             ratchet                   Rewrite the per-file coverage baseline, only ever tightening
+            dead-code                 Cross production coverage with the report to find dead code
             open                      Open the HTML report in the default browser
             serve                     Serve the coverage report over HTTP
             watch <command...>        Re-run <command> on save and live-reload the served report
@@ -54,7 +55,7 @@ module SimpleCov
           Every command answers `--help` / `-h`. Default paths follow a project's
           `.simplecov` SimpleCov.coverage_dir (#{cli.coverage_dir} for this run).
 
-          coverage / show / report / status / uncovered / tests / affected / diff / patch / ratchet options:
+          coverage / show / report / status / uncovered / tests / affected / diff / patch / ratchet / dead-code options:
             --input PATH              Read from PATH instead of #{cli.default_input}
             --no-color                Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 
@@ -109,6 +110,11 @@ module SimpleCov
             --minimum N               Exit non-zero when patch coverage (covered / coverable touched lines) is below N%
             --find-renames            Follow a renamed file instead of counting the moved file as all-new
             --json                    Emit results as a JSON array (for CI)
+
+          dead-code options:
+            --production PATH         The production coverage file a SimpleCov::Production sink wrote (required)
+            --untested-in-production  Print code production runs that no test covers, instead of the dead rows
+            --json                    Emit every category (dead, possibly dead, untested in production) as JSON
 
           ratchet options:
             --baseline PATH           The baseline file to rewrite (default: the project's `baseline_file`, .simplecov_baseline.yml)

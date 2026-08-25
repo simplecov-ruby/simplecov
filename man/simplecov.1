@@ -52,6 +52,9 @@ Show coverage of the lines a change touched
 .B ratchet
 Rewrite the per\-file coverage baseline, only ever tightening
 .TP
+.B dead\-code
+Cross production coverage with the report to find dead code
+.TP
 .B open
 Open the HTML report in the default browser
 .TP
@@ -251,6 +254,22 @@ Print what would change without writing
 .TP
 .B \-\-json
 Emit the summary (tightened / pruned / regressed entries) as JSON
+.SS dead-code
+.TP
+.B \-\-input PATH
+Read from PATH instead of coverage/coverage.json
+.TP
+.B \-\-no\-color
+Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
+.TP
+.B \-\-production PATH
+The production coverage file a SimpleCov::Production sink wrote (required)
+.TP
+.B \-\-untested\-in\-production
+Print code production runs that no test covers, instead of the dead rows
+.TP
+.B \-\-json
+Emit every category (dead, possibly dead, untested in production) as JSON
 .SS open
 .TP
 .B \-\-report PATH

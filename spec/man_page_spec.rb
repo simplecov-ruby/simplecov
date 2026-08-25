@@ -17,7 +17,9 @@ RSpec.describe ManPage do
     page = described_class.build
     expect(page).to start_with(".TH SIMPLECOV 1")
     SimpleCov::CLI::COMMANDS.each_key do |command|
-      expect(page).to include("\n.B #{command}")
+      # Through the generator's own escaping, so a hyphenated command
+      # (dead-code renders as dead\-code) is looked up as roff sees it.
+      expect(page).to include("\n.B #{described_class.escape(command)}")
     end
     expect(page).to include(".B \\-\\-criterion C").and include("badge")
     expect(page).not_to include("tmp/dogfood")

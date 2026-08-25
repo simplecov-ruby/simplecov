@@ -1,0 +1,31 @@
+module SimpleCov
+  module CLI
+    # `simplecov dead-code --production PATH` — cross production
+    # coverage with the test report: dead / possibly dead / untested in
+    # production, per line.
+    module DeadCode
+      # `include` mirrors the runtime `extend` for steep's sake:
+      # module_function bodies type-check on the instance side.
+      include CommandHelpers
+
+      extend CommandHelpers
+
+      # The module-name derivation would say "deadcode".
+      def self?.command_name: () -> String
+
+      def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (0 | 1)
+
+      def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
+
+      def self?.load_production: (String path, untyped stderr) -> (Hash[String, untyped] | nil)
+
+      def self?.cross: (untyped coverage, Hash[String, Array[Integer]] production_coverage) -> Hash[Symbol, untyped]
+
+      def self?.classify_file: (Hash[Symbol, untyped] matrix, String file, Array[untyped] lines, Array[Integer] production_lines) -> void
+
+      def self?.classify_line: (bool tested, bool in_production) -> Symbol?
+
+      def self?.record: (Hash[Symbol, untyped] matrix, String file, Hash[Symbol, Array[Integer]] buckets, Integer relevant) -> void
+    end
+  end
+end

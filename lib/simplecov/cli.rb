@@ -8,6 +8,7 @@ require_relative "cli/clean"
 require_relative "cli/completions"
 require_relative "cli/coverage_file"
 require_relative "cli/coverage"
+require_relative "cli/dead_code"
 require_relative "cli/diff"
 require_relative "cli/merge"
 require_relative "cli/open"
@@ -51,6 +52,7 @@ module SimpleCov
       "diff" => Diff,
       "patch" => Patch,
       "ratchet" => Ratchet,
+      "dead-code" => DeadCode,
       "serve" => Serve,
       "watch" => Watch,
       "badge" => Badge,

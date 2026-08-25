@@ -1809,6 +1809,135 @@ module SimpleCov
   end
 end
 
+# ----- production -----
+
+module SimpleCov
+  # Production coverage mode (see #1271): oneshot lines measured by a
+  # live process, drained on an interval to a pluggable sink, crossed
+  # with the test report later by `simplecov dead-code`. Loadable on its
+  # own via `require "simplecov/production"`; a no-op unless `start` is
+  # called explicitly.
+  module Production
+    # Configuration and store-format failures. Sink errors raised from
+    # `store` are rescued, warned about, and retried instead.
+    class Error < StandardError
+    end
+
+    # The sink contract: receive root-relative paths mapped to sorted
+    # line numbers, merge them into shared storage, raise on failure.
+    interface _Sink
+      def store: (Hash[String, Array[Integer]] coverage) -> untyped
+    end
+
+    self.@running: bool?
+    self.@pid: Integer?
+    self.@started_coverage: bool?
+    self.@root_prefix: String
+    self.@sink: _Sink
+    self.@flush_interval: Float | Integer
+    self.@sample_rate: Float | Integer
+    self.@max_buffered_lines: Integer
+    self.@pending: Hash[String, Set[Integer]]
+    self.@measuring: bool
+    self.@mutex: Mutex
+    self.@waiter: ConditionVariable
+    self.@thread: Thread?
+    self.@at_exit_installed: bool?
+
+    # Begin measuring; false (with a warning) when it safely declined,
+    # Error on configuration mistakes.
+    def self.start: (?root: String, ?sink: _Sink?, ?flush_interval: (Float | Integer), ?sample_rate: (Float | Integer),
+                     ?max_buffered_lines: Integer) -> bool
+
+    def self.running?: () -> bool
+
+    # Drain the runtime's oneshot table and hand the delta to the sink.
+    def self.flush: () -> bool
+
+    # Wind down the flush thread, deliver the final delta, halt the
+    # instrumentation.
+    def self.stop: () -> bool
+
+    # @api private — clears module state between tests.
+    def self.reset!: () -> void
+
+    private
+
+    def self.validate!: ((Float | Integer) flush_interval, (Float | Integer) sample_rate, Integer max_buffered_lines) -> void
+
+    def self.claim_coverage: () -> boolish
+
+    def self.oneshot_supported?: () -> bool
+
+    def self.configure: (String root, _Sink? sink, (Float | Integer) flush_interval, (Float | Integer) sample_rate,
+                         Integer max_buffered_lines) -> void
+
+    def self.default_sink: (String root) -> FileSink
+
+    def self.spawn_flush_thread: () -> void
+
+    def self.flush_loop: () -> void
+
+    def self.wake_flush_thread: () -> void
+
+    def self.cycle: () -> void
+
+    def self.resample: () -> void
+
+    def self.pull_pending: () -> void
+
+    def self.push_pending: () -> bool
+
+    def self.enforce_ceiling: () -> void
+
+    def self.relativize: (String path) -> String?
+
+    def self.warn_decline: (String reason) -> false
+
+    def self.install_at_exit: () -> void
+
+    def self.at_exit_stop: () -> void
+  end
+end
+
+# ----- production/file_sink -----
+
+module SimpleCov
+  module Production
+    # The bundled sink: a single JSON file, union-merged under an
+    # exclusive lock. Also the reader `simplecov dead-code` consumes
+    # production coverage files through.
+    class FileSink
+      ENVELOPE: String
+
+      FORMAT_VERSION: Integer
+
+      attr_reader path: String
+
+      def initialize: (path: String) -> void
+
+      def store: (Hash[String, Array[Integer]] coverage) -> true
+
+      # The inner document: format_version / started_at / updated_at /
+      # coverage. Raises Error for anything that is not one.
+      def self.read: (String path) -> Hash[String, untyped]
+
+      # @api private — shared by `read` and `store`.
+      def self.parse: (String content, String path) -> Hash[String, untyped]
+
+      def self.envelope_of: (untyped document, String path) -> Hash[String, untyped]
+
+      private
+
+      def rewrite: (File file, Hash[String, untyped] payload) -> void
+
+      def merge: (Hash[String, untyped] existing, Hash[String, Array[Integer]] incoming) -> Hash[String, untyped]
+
+      def envelope: (Hash[String, untyped] coverage, String? started_at) -> Hash[String, untyped]
+    end
+  end
+end
+
 # ----- baseline -----
 
 module SimpleCov
