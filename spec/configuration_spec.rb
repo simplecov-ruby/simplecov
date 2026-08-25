@@ -1540,90 +1540,92 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    describe "#ignore_branches" do
-      it "defaults to empty" do
+    describe "the coverage block's ignore verb" do
+      after { config.clear_coverage_criteria }
+
+      it "defaults both criteria to empty" do
         expect(config.ignored_branches).to eq []
+        expect(config.ignored_methods).to eq []
       end
 
-      it "stores a single token" do
-        config.ignore_branches :implicit_else
-
-        expect(config.ignored_branches).to eq [:implicit_else]
-        expect(config.ignored_branch?(:implicit_else)).to be true
-      end
-
-      it "is variadic and unions across calls" do
-        config.ignore_branches :implicit_else
-        config.ignore_branches :implicit_else # duplicate is a no-op
-
-        expect(config.ignored_branches).to eq [:implicit_else]
-      end
-
-      it "raises on an unknown token" do
-        expect { config.ignore_branches :implict_else }
-          .to raise_error(SimpleCov::ConfigurationError, /Unsupported branch type :implict_else/)
-      end
-
-      it "names the supported tokens in the error message" do
-        expect { config.ignore_branches :nope }
-          .to raise_error(SimpleCov::ConfigurationError, /Supported values are \[:implicit_else, :eval_generated\]/)
-      end
-
-      it "stores the setting even when branch coverage is not enabled" do
-        # Branch coverage is off by default; only :line is in coverage_criteria.
-        expect(config.coverage_criteria).to contain_exactly :line
-        config.ignore_branches :implicit_else
-
-        # No raise, setting persists for later.
-        expect(config.ignored_branch?(:implicit_else)).to be true
-      end
-
-      it "is order-independent with respect to enable_coverage" do
-        config.ignore_branches :implicit_else
-        config.enable_coverage :branch
-
-        expect(config.coverage_criteria).to include :branch
-        expect(config.ignored_branch?(:implicit_else)).to be true
-      end
-
-      it "accepts :eval_generated alongside :implicit_else" do
-        config.ignore_branches :implicit_else, :eval_generated
+      it "stores branch tokens for coverage :branch" do
+        config.coverage(:branch) { ignore :implicit_else, :eval_generated }
 
         expect(config.ignored_branch?(:implicit_else)).to be true
         expect(config.ignored_branch?(:eval_generated)).to be true
       end
-    end
 
-    describe "#ignore_methods" do
-      it "starts empty" do
-        expect(config.ignored_methods).to eq []
-      end
-
-      it "records the requested token" do
-        config.ignore_methods :eval_generated
+      it "stores method tokens for coverage :method" do
+        config.coverage(:method) { ignore :eval_generated }
 
         expect(config.ignored_methods).to eq [:eval_generated]
         expect(config.ignored_method?(:eval_generated)).to be true
       end
 
-      it "deduplicates across calls" do
-        config.ignore_methods :eval_generated
-        config.ignore_methods :eval_generated
+      it "unions and deduplicates across calls" do
+        config.coverage(:branch) { ignore :implicit_else }
+        config.coverage(:branch) { ignore :implicit_else } # duplicate is a no-op
 
-        expect(config.ignored_methods).to eq [:eval_generated]
+        expect(config.ignored_branches).to eq [:implicit_else]
       end
 
-      it "raises on an unknown token" do
-        expect { config.ignore_methods :nope }
+      it "raises on an unknown token, naming the supported ones" do
+        expect { config.coverage(:branch) { ignore :implict_else } }
+          .to raise_error(SimpleCov::ConfigurationError,
+                          /branch type :implict_else.*Supported values are \[:implicit_else, :eval_generated\]/m)
+        expect { config.coverage(:method) { ignore :nope } }
           .to raise_error(SimpleCov::ConfigurationError,
                           /Unsupported method type :nope.*Supported values are \[:eval_generated\]/m)
       end
 
-      it "stores the setting even when method coverage is not enabled" do
-        expect(config.coverage_criteria).to contain_exactly :line
-        config.ignore_methods :eval_generated
+      # Line entries have no synthetic types to drop, so there is
+      # nothing for `ignore` to mean there.
+      it "rejects criteria without ignorable entry types" do
+        expect { config.coverage(:line) { ignore :eval_generated } }
+          .to raise_error(SimpleCov::ConfigurationError, /`ignore` is supported for `coverage :branch`/)
+      end
 
+      it "works as a one-liner keyword, single token or Array" do
+        config.coverage :method, ignore: :eval_generated
         expect(config.ignored_method?(:eval_generated)).to be true
+
+        other = config_class.new
+        other.coverage :branch, ignore: %i[implicit_else eval_generated]
+        expect(other.ignored_branches).to eq %i[implicit_else eval_generated]
+      end
+    end
+
+    describe "#ignore_branches and #ignore_methods (deprecated)" do
+      it "warn with the coverage-block replacement and still store" do
+        stderr = capture_stderr { config.ignore_branches :implicit_else, :eval_generated }
+
+        expect(stderr).to include("[DEPRECATION]")
+        expect(stderr).to include("`coverage(:branch) { ignore :implicit_else, :eval_generated }`")
+        expect(config.ignored_branches).to eq %i[implicit_else eval_generated]
+
+        stderr = capture_stderr { config.ignore_methods :eval_generated }
+        expect(stderr).to include("`coverage(:method) { ignore :eval_generated }`")
+        expect(config.ignored_methods).to eq [:eval_generated]
+      end
+
+      # Unlike the coverage block, whose criterion naming enables the
+      # criterion, the legacy setters record without enabling, and some
+      # configurations depend on setting the filter before (or without)
+      # enabling. That behavior rides out the deprecation period.
+      it "store the setting without enabling the criterion" do
+        expect(config.coverage_criteria).to contain_exactly :line
+        capture_stderr { config.ignore_branches :implicit_else }
+
+        expect(config.coverage_criteria).to contain_exactly :line
+        expect(config.ignored_branch?(:implicit_else)).to be true
+      end
+
+      it "stay order-independent with respect to enable_coverage" do
+        capture_stderr { config.ignore_branches :implicit_else }
+        config.enable_coverage :branch
+
+        expect(config.coverage_criteria).to include :branch
+        expect(config.ignored_branch?(:implicit_else)).to be true
       end
     end
 

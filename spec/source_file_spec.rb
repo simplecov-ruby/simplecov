@@ -655,7 +655,7 @@ RSpec.describe SimpleCov::SourceFile do
       # previous value before mutating — otherwise restoring the captured
       # reference puts back the post-mutation array.
       previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
-      SimpleCov.ignore_branches :implicit_else
+      capture_stderr { SimpleCov.ignore_branches :implicit_else }
       example.run
     ensure
       SimpleCov.instance_variable_set(:@ignored_branches, previous)
@@ -750,7 +750,7 @@ RSpec.describe SimpleCov::SourceFile do
 
     around do |example|
       previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
-      SimpleCov.ignore_branches :eval_generated
+      capture_stderr { SimpleCov.ignore_branches :eval_generated }
       example.run
     ensure
       SimpleCov.instance_variable_set(:@ignored_branches, previous)
@@ -779,7 +779,7 @@ RSpec.describe SimpleCov::SourceFile do
 
     around do |example|
       previous = SimpleCov.instance_variable_get(:@ignored_methods)&.dup
-      SimpleCov.ignore_methods :eval_generated
+      capture_stderr { SimpleCov.ignore_methods :eval_generated }
       example.run
     ensure
       SimpleCov.instance_variable_set(:@ignored_methods, previous)

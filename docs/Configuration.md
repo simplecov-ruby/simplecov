@@ -243,14 +243,16 @@ coverage), opt out:
 
 ```ruby
 SimpleCov.start do
-  enable_coverage :branch
-  ignore_branches :implicit_else
+  coverage :branch do
+    ignore :implicit_else
+  end
 end
 ```
 
-`ignore_branches` is variadic; `:implicit_else` and `:eval_generated` (below) are the supported tokens. Calling it
-before (or without) `enable_coverage :branch` is harmless: the setting is stored and applies once branch coverage is
-enabled. Explicit `else` arms still count.
+`ignore` is variadic; `:implicit_else` and `:eval_generated` (below) are the supported branch tokens, and naming the
+criterion enables it, so no separate `enable_coverage :branch` is needed. Explicit `else` arms still count. The flat
+`ignore_branches` / `ignore_methods` setters are **deprecated** in favor of the criterion-scoped verb; they still work
+(and, unlike the block, record the setting without enabling the criterion) but warn with the replacement.
 
 #### Ignoring eval-generated branches and methods
 
@@ -261,14 +263,12 @@ called from the suite. Drop those synthetic entries:
 
 ```ruby
 SimpleCov.start do
-  enable_coverage :branch
-  enable_coverage :method
-  ignore_branches :eval_generated
-  ignore_methods :eval_generated
+  coverage :branch, ignore: :eval_generated
+  coverage :method, ignore: :eval_generated
 end
 ```
 
-`ignore_methods` is variadic; `:eval_generated` is the only supported token. Both filters detect eval-generated entries
+`:eval_generated` is the only supported method token. Both filters detect eval-generated entries
 by walking the static source with [Prism](https://github.com/ruby/prism) and dropping any Coverage entry whose start
 line lacks a real `def` keyword (for methods) or branch construct (for branches). Prism is bundled with Ruby 3.3+; on
 older Rubies `gem install prism` enables the filter, otherwise it's a silent no-op. Real `def`s and branches that share
@@ -344,7 +344,7 @@ as Ruby.
 Two things to expect the first time you turn this on. Overall coverage usually drops, because untested views are being
 counted for the first time. And because eval coverage is now on, macros that evaluate code with `__FILE__` and
 `__LINE__` (Rails' `delegate`, and anything else built on `class_eval`) start reporting methods and branches at the
-line of the macro call. `ignore_methods :eval_generated` and `ignore_branches :eval_generated` drop those.
+line of the macro call. `coverage :method, ignore: :eval_generated` and `coverage :branch, ignore: :eval_generated` drop those.
 
 ### Primary coverage
 

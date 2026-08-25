@@ -10,12 +10,16 @@ module SimpleCov
     # Method types accepted by `ignore_methods`.
     IGNORABLE_METHOD_TYPES = %i[eval_generated].freeze
 
-    # Variadic; multiple calls union. Setting is recorded regardless
-    # of whether branch coverage is enabled at call time. See #1033, #1046.
+    # DEPRECATED: use `coverage(:branch) { ignore :implicit_else }`,
+    # which fixes the criterion by context the way the threshold verbs
+    # do. One difference rides out the deprecation period: the coverage
+    # block enables the criterion it names, while this legacy setter
+    # records without enabling (see #1033, #1046 for why the setting is
+    # accepted regardless of enablement order).
     def ignore_branches(*types)
-      types.each { |type| raise_if_branch_type_unsupported(type) }
-      ignored_branches.concat(types).uniq!
-      ignored_branches
+      SimpleCov::Deprecation.warn("`SimpleCov.ignore_branches` is deprecated. " \
+                                  "Replace with `coverage(:branch) { ignore #{types.map(&:inspect).join(', ')} }`.")
+      store_ignored_branches(types)
     end
 
     def ignored_branches
@@ -26,12 +30,12 @@ module SimpleCov
       ignored_branches.include?(type)
     end
 
-    # See `ignore_branches`. The only supported method-type token today
-    # is `:eval_generated`; see #1046 for the rationale.
+    # DEPRECATED: use `coverage(:method) { ignore :eval_generated }`.
+    # See `ignore_branches` for the enablement difference.
     def ignore_methods(*types)
-      types.each { |type| raise_if_method_type_unsupported(type) }
-      ignored_methods.concat(types).uniq!
-      ignored_methods
+      SimpleCov::Deprecation.warn("`SimpleCov.ignore_methods` is deprecated. " \
+                                  "Replace with `coverage(:method) { ignore #{types.map(&:inspect).join(', ')} }`.")
+      store_ignored_methods(types)
     end
 
     def ignored_methods
@@ -43,6 +47,21 @@ module SimpleCov
     end
 
   private
+
+    # The stores behind the `coverage` block's `ignore` verb and the
+    # deprecated flat setters. Variadic semantics: multiple calls union,
+    # duplicates are no-ops, unknown tokens raise.
+    def store_ignored_branches(types)
+      types.each { |type| raise_if_branch_type_unsupported(type) }
+      ignored_branches.concat(types).uniq!
+      ignored_branches
+    end
+
+    def store_ignored_methods(types)
+      types.each { |type| raise_if_method_type_unsupported(type) }
+      ignored_methods.concat(types).uniq!
+      ignored_methods
+    end
 
     def raise_if_branch_type_unsupported(type)
       return if IGNORABLE_BRANCH_TYPES.member?(type)

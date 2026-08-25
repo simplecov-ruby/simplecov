@@ -423,11 +423,11 @@ module SimpleCov
     # minimum_per_file:) arrive via **thresholds in the implementation, so
     # they are typed as a Numeric kwarg splat. The block runs under
     # instance_eval, which also yields the receiver as an optional argument.
-    def coverage: ((criterion | :eval) criterion, ?primary: bool, ?enabled: bool, ?oneshot: bool, **Numeric thresholds) ?{ (?CoverageCriterion) [self: CoverageCriterion] -> void } -> (criterion | :oneshot_line | :eval)
+    def coverage: ((criterion | :eval) criterion, ?primary: bool, ?enabled: bool, ?oneshot: bool, **untyped thresholds) ?{ (?CoverageCriterion) [self: CoverageCriterion] -> void } -> (criterion | :oneshot_line | :eval)
 
     private
 
-    def apply_threshold_options: (CoverageCriterion configurator, Hash[Symbol, Numeric] options) -> void
+    def apply_threshold_options: (CoverageCriterion configurator, Hash[Symbol, untyped] options) -> void
 
     def enable_coverage_criterion: ((criterion | :eval) criterion, enabled: bool, oneshot: bool) -> (criterion | :oneshot_line | :eval)
 
@@ -488,6 +488,10 @@ module SimpleCov
 
       # Builds the group target for `per:`: `minimum 95, per: group("Models")`.
       def group: (String | Symbol name) -> GroupTarget
+
+      # Drop synthetic entries of the given types for this criterion
+      # (branch and method coverage only).
+      def ignore: (*(Symbol | Array[Symbol]) types) -> Array[Symbol]
 
       # DEPRECATED: use `minimum N, per: :file` / `per: "path"`.
       def minimum_per_file: (Numeric percent, ?only: (String | Regexp)?) -> void
@@ -656,15 +660,15 @@ module SimpleCov
     @ignored_branches: Array[Symbol]?
     @ignored_methods: Array[Symbol]?
 
-    # Opt out of synthetic branch entries. Variadic; multiple calls
-    # union. Recorded even when branch coverage is not (yet) enabled.
+    # DEPRECATED: use `coverage(:branch) { ignore ... }`. Still recorded
+    # even when branch coverage is not (yet) enabled.
     def ignore_branches: (*(:implicit_else | :eval_generated) types) -> Array[Symbol]
 
     def ignored_branches: () -> Array[Symbol]
 
     def ignored_branch?: (Symbol type) -> bool
 
-    # Opt out of synthetic method entries (currently `:eval_generated` only).
+    # DEPRECATED: use `coverage(:method) { ignore :eval_generated }`.
     def ignore_methods: (*:eval_generated types) -> Array[Symbol]
 
     def ignored_methods: () -> Array[Symbol]
@@ -672,6 +676,12 @@ module SimpleCov
     def ignored_method?: (Symbol type) -> bool
 
     private
+
+    # The stores behind the `coverage` block's `ignore` verb and the
+    # deprecated flat setters.
+    def store_ignored_branches: (Array[Symbol] types) -> Array[Symbol]
+
+    def store_ignored_methods: (Array[Symbol] types) -> Array[Symbol]
 
     def raise_if_branch_type_unsupported: (Symbol type) -> void
 

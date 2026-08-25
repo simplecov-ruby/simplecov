@@ -31,7 +31,7 @@ module SimpleCov
     # block-only, since a keyword slot carries the value and nothing
     # else; the deprecated `_per_file` names stay accepted for
     # configurations written before the `per:` axis existed.
-    COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop minimum_per_file
+    COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop ignore minimum_per_file
                                     maximum_missed maximum_missed_per_file].freeze
 
     #
@@ -210,6 +210,22 @@ module SimpleCov
       # String path: `minimum 95, per: group("Models")`.
       def group(name)
         GroupTarget.new(name: name)
+      end
+
+      # Drop synthetic coverage entries of the given types for this
+      # criterion: `coverage(:branch) { ignore :implicit_else, :eval_generated }`,
+      # `coverage(:method) { ignore :eval_generated }`. Only branch and
+      # method entries have ignorable types; line coverage has none.
+      # The Array flatten serves the one-liner keyword form, whose value
+      # arrives as a single argument (`ignore: %i[implicit_else]`).
+      def ignore(*types)
+        case @criterion
+        when :branch then @config.send(:store_ignored_branches, types.flatten)
+        when :method then @config.send(:store_ignored_methods, types.flatten)
+        else
+          raise SimpleCov::ConfigurationError,
+                "`ignore` is supported for `coverage :branch` and `coverage :method`, not #{@criterion.inspect}"
+        end
       end
 
       # DEPRECATED: use `minimum N, per: :file` (or `per: "path"` /
