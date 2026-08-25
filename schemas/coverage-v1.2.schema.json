@@ -366,8 +366,8 @@
         },
         "files": {
           "type": "object",
-          "description": "Primary-criterion percent per project-relative file path.",
-          "additionalProperties": {"type": "number"}
+          "description": "Per-file per-criterion percents, keyed by project-relative file path.",
+          "additionalProperties": {"type": "object", "additionalProperties": {"type": "number"}}
         }
       }
     },

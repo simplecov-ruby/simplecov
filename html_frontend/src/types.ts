@@ -24,7 +24,7 @@ export interface CoverageData {
   contexts?: string[];
   // The run history (coverage/.history.json entries, oldest first, the
   // reported run appended last), present only when past runs are
-  // recorded. Powers the trend sparklines.
+  // recorded. Carried as data; the viewer does not render it yet.
   history?: HistoryEntry[];
   groups: Record<string, GroupData>;
 }
@@ -36,8 +36,9 @@ export interface HistoryEntry {
   // Percents keyed by criterion ("line" / "branch" / "method").
   totals?: Record<string, number>;
   groups?: Record<string, Record<string, number>>;
-  // Primary-criterion percent per project-relative path.
-  files?: Record<string, number>;
+  // Percents per project-relative path, keyed by criterion like the
+  // group entries.
+  files?: Record<string, Record<string, number>>;
 }
 
 export type CoverageType = 'line' | 'branch' | 'method';

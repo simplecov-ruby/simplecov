@@ -2365,17 +2365,19 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("(1 run)")
     end
 
-    it "follows one file's trajectory under --file, with gaps for unrecorded runs" do
+    it "follows one file's per-criterion trajectory under --file, with gaps for unrecorded runs" do
       write_history([
-                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => 50.0}),
+                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0, "branch" => 25.0}}),
                       entry("2026-08-24T10:00:00Z", 95.0),
-                      entry("2026-08-25T10:00:00Z", 100.0, files: {"lib/foo.rb" => 100.0})
+                      entry("2026-08-25T10:00:00Z", 100.0, files: {"lib/foo.rb" => {"line" => 100.0, "branch" => 75.0}})
                     ])
 
       expect(run_history("--file", "lib/foo.rb", "--no-color")).to eq(0)
 
       expect(stdout.string).to include("Coverage history for lib/foo.rb (3 runs)")
-      expect(stdout.string).to match(%r{lib/foo\.rb\s+▁ █\s+50\.0% → 100\.0%\s+\(\+50\.0\)})
+      expect(stdout.string).to match(/line\s+▁ █\s+50\.0% → 100\.0%\s+\(\+50\.0\)/)
+      expect(stdout.string).to match(/branch\s+▁ █\s+25\.0% → 75\.0%\s+\(\+50\.0\)/)
+      expect(stdout.string).to include("2026-08-23T10:00:00Z  main  abc123d  line 50.0%  branch 25.0%")
       expect(stdout.string).to include("2026-08-24T10:00:00Z  main  abc123d  -")
     end
 
@@ -2395,8 +2397,9 @@ RSpec.describe SimpleCov::CLI do
 
     it "narrows the JSON to one file's trajectory under --file" do
       write_history([
-                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => 50.0}),
-                      entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/foo.rb" => 60.0})
+                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0}}),
+                      entry("2026-08-24T10:00:00Z", 95.0),
+                      entry("2026-08-25T10:00:00Z", 96.0, files: {"lib/foo.rb" => {"line" => 60.0}})
                     ])
 
       run_history("--file", "lib/foo.rb", "--json")
@@ -2404,9 +2407,11 @@ RSpec.describe SimpleCov::CLI do
       rows = JSON.parse(stdout.string)
       expect(rows).to eq([
                            {"created_at" => "2026-08-23T10:00:00Z", "branch" => "main",
-                            "commit" => "abc123def456", "percent" => 50.0},
+                            "commit" => "abc123def456", "percents" => {"line" => 50.0}},
                            {"created_at" => "2026-08-24T10:00:00Z", "branch" => "main",
-                            "commit" => "abc123def456", "percent" => 60.0}
+                            "commit" => "abc123def456", "percents" => nil},
+                           {"created_at" => "2026-08-25T10:00:00Z", "branch" => "main",
+                            "commit" => "abc123def456", "percents" => {"line" => 60.0}}
                          ])
     end
 

@@ -12,9 +12,9 @@ module SimpleCov
   # commit when the project is a git checkout. `.last_run.json` keeps
   # its one-number-per-criterion job untouched; the history is what
   # turns "did the number move since the very last run" into direction
-  # of travel: sparklines in the HTML report, `simplecov history` in
-  # the terminal, and drop checks against a median or the same branch
-  # instead of against whatever happened to run most recently.
+  # of travel: `simplecov history` in the terminal, and drop checks
+  # against a median or the same branch instead of against whatever
+  # happened to run most recently.
   #
   # Entries are capped (`history_limit`, 100 by default) and written
   # atomically, and a corrupt or foreign file degrades to an empty
@@ -57,9 +57,9 @@ module SimpleCov
       end
 
       # The recorded entries plus `result` as the newest, capped, and
-      # without writing anything: what the HTML report embeds, so the
-      # sparklines include the run being reported even though recording
-      # happens later (after the exit checks pass).
+      # without writing anything: what the report artifacts embed, so
+      # the embedded history includes the run being reported even
+      # though recording happens later (after the exit checks pass).
       def entries_with(result)
         (read << entry_for(result)).last(SimpleCov.history_limit)
       end
@@ -98,16 +98,18 @@ module SimpleCov
         end
       end
 
-      # One number per file: the primary criterion's percent, which is
-      # what the per-file sparklines draw.
+      # Per-file percents in the same {criterion => percent} shape the
+      # totals and groups use, covering every measured criterion.
       def files_percents(result)
-        primary = SimpleCov.coverage_statistics_key(SimpleCov.primary_coverage)
-        initial = {} #: Hash[String, Numeric]
+        measured = result.coverage_statistics.keys
+        initial = {} #: Hash[String, Hash[String, Numeric]]
         result.files.each_with_object(initial) do |file, percents|
           # fetch: a SourceFile's statistics carry every criterion, so a
-          # missing primary key is an invariant break worth raising on.
-          stats = file.coverage_statistics.fetch(primary)
-          percents[file.project_filename] = SimpleCov.round_coverage(stats.percent)
+          # missing measured key is an invariant break worth raising on.
+          stats = file.coverage_statistics
+          percents[file.project_filename] = measured.to_h do |criterion|
+            [criterion.to_s, SimpleCov.round_coverage(stats.fetch(criterion).percent)]
+          end
         end
       end
 

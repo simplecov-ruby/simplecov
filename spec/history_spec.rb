@@ -35,7 +35,7 @@ RSpec.describe SimpleCov::History do
       expect(entry.fetch("commit")).to eq("abc123def")
       expect(entry.fetch("totals")).to eq("line" => 87.5)
       expect(entry.fetch("groups")).to eq("Samples" => {"line" => 66.66}, "Ungrouped" => {"line" => 100.0})
-      expect(entry.fetch("files")).to include("spec/fixtures/sample.rb" => 100.0)
+      expect(entry.fetch("files")).to include("spec/fixtures/sample.rb" => {"line" => 100.0})
     end
 
     it "appends across runs, newest last" do
@@ -74,7 +74,9 @@ RSpec.describe SimpleCov::History do
 
       described_class.record(result)
 
-      expect(described_class.read.fetch(0).fetch("totals")).to eq({})
+      entry = described_class.read.fetch(0)
+      expect(entry.fetch("totals")).to eq({})
+      expect(entry.fetch("files").values).to all(eq({}))
     end
 
     it "records measured criteria only" do
@@ -91,7 +93,11 @@ RSpec.describe SimpleCov::History do
 
       described_class.record(result_with_branch)
 
-      expect(described_class.read.fetch(0).fetch("totals")).to eq("line" => 66.66, "branch" => 50.0)
+      entry = described_class.read.fetch(0)
+      expect(entry.fetch("totals")).to eq("line" => 66.66, "branch" => 50.0)
+      expect(entry.fetch("files")).to eq(
+        "spec/fixtures/json/sample.rb" => {"line" => 66.66, "branch" => 50.0}
+      )
     end
   end
 

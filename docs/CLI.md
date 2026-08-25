@@ -173,7 +173,8 @@ Coverage history: coverage/.history.json (12 runs)
   ...
 ```
 
-`--file PATH` follows one file's trajectory instead of the totals, with gaps where a run recorded nothing for it, and
+`--file PATH` follows one file's trajectory instead of the totals, with the same per-criterion sparklines and gaps
+where a run recorded nothing for it, and
 `--json` emits the entries (or the file's trajectory) as data. Sparklines are scaled to each series' own range, so
 direction stays visible even when the numbers move within a fraction of a percent; the numbers beside them carry the
 absolute scale.

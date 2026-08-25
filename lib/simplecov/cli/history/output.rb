@@ -29,28 +29,31 @@ module SimpleCov
         def emit_totals(stdout, opts, entries, color)
           stdout.puts("Coverage history: #{opts[:input]} (#{pluralize(entries.length, 'run')})")
           stdout.puts
-          criteria = measured_criteria(entries)
-          emit_sparklines(stdout, entries, criteria, color)
-          stdout.puts
-          emit_rows(stdout, entries) { |entry| totals_cell(entry, criteria) }
+          emit_criteria_views(stdout, entries, color, ["totals"])
         end
 
-        def emit_sparklines(stdout, entries, criteria, color)
-          width = criteria.map(&:length).max
-          criteria.each do |criterion|
-            series = entries.map { |entry| numeric(entry.dig("totals", criterion)) }
-            stdout.puts("  #{criterion.ljust(width)}  #{sparkline(series)}  #{trend(series, color)}")
-          end
-        end
-
+        # The file view is the totals view scoped to one path: entries
+        # record the same {criterion => percent} shape for both.
         def emit_file(stdout, opts, entries, color)
           file = opts[:file]
-          series = entries.map { |entry| numeric(entry.dig("files", file)) }
           stdout.puts("Coverage history for #{file} (#{pluralize(entries.length, 'run')})")
           stdout.puts
-          stdout.puts("  #{file}  #{sparkline(series)}  #{trend(series, color)}")
+          emit_criteria_views(stdout, entries, color, ["files", file])
+        end
+
+        def emit_criteria_views(stdout, entries, color, path)
+          criteria = measured_criteria(entries, path)
+          emit_sparklines(stdout, entries, criteria, color, path)
           stdout.puts
-          emit_rows(stdout, entries) { |entry| percent_or_dash(entry.dig("files", file)) }
+          emit_rows(stdout, entries) { |entry| percents_cell(entry, criteria, path) }
+        end
+
+        def emit_sparklines(stdout, entries, criteria, color, path)
+          width = criteria.map(&:length).max
+          criteria.each do |criterion|
+            series = entries.map { |entry| numeric(entry.dig(*path, criterion)) }
+            stdout.puts("  #{criterion.ljust(width)}  #{sparkline(series)}  #{trend(series, color)}")
+          end
         end
 
         # One row per run: timestamp, branch, short commit, and the
@@ -64,15 +67,14 @@ module SimpleCov
           end
         end
 
-        def totals_cell(entry, criteria)
-          criteria.filter_map do |criterion|
-            value = numeric(entry.dig("totals", criterion))
+        # "line 90.0%  branch 80.0%", or "-" for a run that recorded
+        # nothing at the path (a file the run never saw).
+        def percents_cell(entry, criteria, path)
+          cell = criteria.filter_map do |criterion|
+            value = numeric(entry.dig(*path, criterion))
             "#{criterion} #{value}%" if value
           end.join("  ")
-        end
-
-        def percent_or_dash(value)
-          value.is_a?(Numeric) ? "#{value}%" : "-"
+          cell.empty? ? "-" : cell
         end
 
         # Min-max scaled block characters, one per run, a space where
@@ -105,17 +107,22 @@ module SimpleCov
           return stdout.puts(JSON.generate(entries)) unless opts[:file]
 
           rows = entries.map do |entry|
+            percents = entry.dig("files", opts[:file])
             {created_at: entry["created_at"], branch: entry["branch"], commit: entry["commit"],
-             percent: numeric(entry.dig("files", opts[:file]))}
+             percents: percents.is_a?(Hash) ? percents : nil}
           end
           stdout.puts(JSON.generate(rows))
         end
 
-        # Criteria present anywhere in the history, in canonical order,
-        # so a criterion enabled midway still gets its sparkline.
-        def measured_criteria(entries)
-          present = entries.flat_map { |entry| entry["totals"].is_a?(Hash) ? entry["totals"].keys : [] }.uniq
-          CRITERIA_ORDER & present
+        # Criteria present anywhere in the history at the given path, in
+        # canonical order, so a criterion enabled midway still gets its
+        # sparkline.
+        def measured_criteria(entries, path)
+          present = entries.flat_map do |entry|
+            percents = entry.dig(*path)
+            percents.is_a?(Hash) ? percents.keys : []
+          end
+          CRITERIA_ORDER & present.uniq
         end
 
         def numeric(value)

@@ -60,7 +60,7 @@ module SimpleCov
       def file_recorded?(entries, opts, stderr)
         file = opts[:file]
         return true unless file
-        return true if entries.any? { |entry| entry.is_a?(Hash) && entry.dig("files", file).is_a?(Numeric) }
+        return true if entries.any? { |entry| entry.is_a?(Hash) && entry.dig("files", file).is_a?(Hash) }
 
         error(stderr, "no recorded coverage for #{file} in #{opts[:input]}")
         false

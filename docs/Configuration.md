@@ -854,12 +854,12 @@ compare against, which counts as "no previous run" the way a missing `.last_run.
 
 ### Run history
 
-Every successful run appends an entry to `coverage/.history.json`: the per-criterion totals, the per-group and
-per-file percentages, a timestamp, and the branch and commit when the project is a git checkout. `.last_run.json`
-keeps its one-number job untouched; the history is what turns "did the number move since last time" into direction of
-travel. It powers three things: the trend sparklines in the HTML report (one per file and per group, drawn whenever
-the report has two or more recorded runs), [`simplecov history`](CLI.md#history--the-recorded-coverage-trend) in the
-terminal, and the [`drop_baseline`](#suite-wide-shortcuts) comparisons above.
+Every successful run appends an entry to `coverage/.history.json`: the per-criterion percentages for the suite, for
+every group, and for every file, plus a timestamp and the branch and commit when the project is a git checkout.
+`.last_run.json` keeps its one-number job untouched; the history is what turns "did the number move since last time"
+into direction of travel. It powers [`simplecov history`](CLI.md#history--the-recorded-coverage-trend) in the
+terminal and the [`drop_baseline`](#suite-wide-shortcuts) comparisons above, and rides into `coverage.json` as an
+optional top-level `history` array for other tools to draw from.
 
 The file is bounded (`history_limit`, 100 entries by default, newest kept, 0 disables recording), written atomically,
 and tolerant of corruption the way `.last_run.json` is. It is plain committable JSON, so a project that wants its

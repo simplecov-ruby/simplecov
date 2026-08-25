@@ -741,24 +741,6 @@ table.file_list .totals-row td.cell--denominator {
 .red, table.file_list td.red { color: var(--red); }
 .yellow, table.file_list td.yellow { color: var(--yellow); }
 
-/* --- Trend sparklines --------------------------------------- */
-/* The run-history column: direction of travel as a quiet line in the
-   secondary ink, the newest run as a dot in the row's band color
-   (via the .green/.yellow/.red color rules above, so the theme and
-   colorblind palettes apply unchanged). */
-th.t-trend-h { text-align: right; white-space: nowrap; }
-td.t-trend { text-align: right; vertical-align: middle; }
-.sparkline { width: 84px; height: 22px; display: inline-block; vertical-align: middle; }
-.sparkline polyline {
-  fill: none;
-  stroke: var(--text-secondary);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.75;
-}
-.sparkline .sparkline__lone { fill: var(--text-secondary); opacity: 0.75; }
-.sparkline .sparkline__now { fill: currentColor; }
 .missed-branch-text { color: var(--missed-branch-text); }
 .missed-method-text-color { color: var(--missed-method-text); }
 

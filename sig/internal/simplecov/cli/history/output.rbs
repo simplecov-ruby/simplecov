@@ -12,15 +12,15 @@ module SimpleCov
 
         def self?.emit_totals: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
 
-        def self?.emit_sparklines: (untyped stdout, Array[SimpleCov::History::entry] entries, Array[String] criteria, bool color) -> void
+        def self?.emit_criteria_views: (untyped stdout, Array[SimpleCov::History::entry] entries, bool color, Array[String] path) -> void
+
+        def self?.emit_sparklines: (untyped stdout, Array[SimpleCov::History::entry] entries, Array[String] criteria, bool color, Array[String] path) -> void
 
         def self?.emit_file: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
 
         def self?.emit_rows: (untyped stdout, Array[SimpleCov::History::entry] entries) { (SimpleCov::History::entry) -> String } -> void
 
-        def self?.totals_cell: (SimpleCov::History::entry entry, Array[String] criteria) -> String
-
-        def self?.percent_or_dash: (untyped value) -> String
+        def self?.percents_cell: (SimpleCov::History::entry entry, Array[String] criteria, Array[String] path) -> String
 
         def self?.sparkline: (Array[untyped] series) -> String
 
@@ -30,7 +30,7 @@ module SimpleCov
 
         def self?.emit_json: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries) -> void
 
-        def self?.measured_criteria: (Array[SimpleCov::History::entry] entries) -> Array[String]
+        def self?.measured_criteria: (Array[SimpleCov::History::entry] entries, Array[String] path) -> Array[String]
 
         def self?.numeric: (untyped value) -> Numeric?
 

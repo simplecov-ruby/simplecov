@@ -198,7 +198,7 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
 
       allow(SimpleCov::History).to receive_messages(
         read: [{"created_at" => "2026-08-24T12:00:00Z", "branch" => "main", "commit" => "abc",
-                "totals" => {"line" => 90.0}, "groups" => {}, "files" => {"lib/a.rb" => 90.0}}],
+                "totals" => {"line" => 90.0}, "groups" => {}, "files" => {"lib/a.rb" => {"line" => 90.0}}}],
         git_info: [nil, nil]
       )
       result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})

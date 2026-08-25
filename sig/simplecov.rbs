@@ -1848,7 +1848,7 @@ module SimpleCov
 
     def self.measured_percents: (untyped stats_source) -> Hash[String, Numeric]
 
-    def self.files_percents: (SimpleCov::Result result) -> Hash[String, Numeric]
+    def self.files_percents: (SimpleCov::Result result) -> Hash[String, Hash[String, Numeric]]
 
     def self.write: (Array[entry] entries) -> void
 

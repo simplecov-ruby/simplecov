@@ -45,8 +45,9 @@ module SimpleCov
             # per-file bitmaps index into this list.
             document[:contexts] = result.contexts.contexts if result.contexts
             # The run history (see SimpleCov::History) with this run
-            # appended, powering the report's sparklines. Present only
-            # when past runs are recorded: one point is not a trend.
+            # appended, carried for tools that draw trends. Present
+            # only when past runs are recorded: one point is not a
+            # trend.
             history = SimpleCov::History.entries_with(result)
             document[:history] = history if history.length > 1
           end
