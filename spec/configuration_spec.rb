@@ -963,6 +963,80 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
+    describe "#maximum_missed and #maximum_missed_per_file" do
+      it "default to empty (disabled)" do
+        expect(config.maximum_missed).to eq({})
+        expect(config.maximum_missed_per_file).to eq({})
+        expect(config.maximum_missed_per_file_overrides).to eq({})
+      end
+
+      it "target the primary criterion when given a bare count" do
+        config.maximum_missed 12
+        config.maximum_missed_per_file 5
+
+        expect(config.maximum_missed).to eq(line: 12)
+        expect(config.maximum_missed_per_file).to eq(line: 5)
+      end
+
+      it "take criterion-keyed counts" do
+        config.enable_coverage :branch
+        config.maximum_missed line: 12, branch: 3
+
+        expect(config.maximum_missed).to eq(line: 12, branch: 3)
+      end
+
+      it "reject a cap for a disabled criterion" do
+        expect { config.maximum_missed branch: 3 }
+          .to raise_error(SimpleCov::ConfigurationError, /branch/)
+      end
+
+      it "reject a negative count" do
+        expect { config.maximum_missed(-1) }
+          .to raise_error(SimpleCov::ConfigurationError, /non-negative integer/)
+      end
+
+      it "reject a non-integer count" do
+        expect { config.maximum_missed_per_file line: 2.5 }
+          .to raise_error(SimpleCov::ConfigurationError, /non-negative integer/)
+      end
+    end
+
+    describe "the coverage block's maximum_missed verbs" do
+      after { config.clear_coverage_criteria }
+
+      it "store caps for the block's criterion" do
+        config.coverage :branch do
+          maximum_missed 3
+          maximum_missed_per_file 1
+        end
+
+        expect(config.maximum_missed).to eq(branch: 3)
+        expect(config.maximum_missed_per_file).to eq(branch: 1)
+      end
+
+      it "support per-path overrides via only:" do
+        config.coverage :line do
+          maximum_missed_per_file 5
+          maximum_missed_per_file 0, only: "lib/critical.rb"
+        end
+
+        expect(config.maximum_missed_per_file).to eq(line: 5)
+        expect(config.maximum_missed_per_file_overrides).to eq("lib/critical.rb" => {line: 0})
+      end
+
+      it "work as one-liner keywords" do
+        config.coverage :method, maximum_missed: 2, maximum_missed_per_file: 1
+
+        expect(config.maximum_missed).to eq(method: 2)
+        expect(config.maximum_missed_per_file).to eq(method: 1)
+      end
+
+      it "reject an only: target that is neither String nor Regexp" do
+        expect { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } }
+          .to raise_error(SimpleCov::ConfigurationError, /`only:`/)
+      end
+    end
+
     describe "#baseline_file and #baseline" do
       it "defaults to .simplecov_baseline.yml" do
         expect(config.baseline_file).to eq(".simplecov_baseline.yml")

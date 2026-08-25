@@ -45,13 +45,19 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling do
     let(:coverage_limits) do
       double(
         minimum_coverage: {}, minimum_coverage_by_file: {}, minimum_coverage_by_file_overrides: {},
-        minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {}, baseline: nil
+        minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {},
+        maximum_missed: {}, maximum_missed_per_file: {}, maximum_missed_per_file_overrides: {},
+        baseline: nil
       )
     end
 
-    it "includes the baseline check" do
+    it "includes the baseline and missed-cap checks" do
       checks = described_class.coverage_checks(result, coverage_limits)
-      expect(checks.map(&:class)).to include(SimpleCov::ExitCodes::BaselineCheck)
+      expect(checks.map(&:class)).to include(
+        SimpleCov::ExitCodes::BaselineCheck,
+        SimpleCov::ExitCodes::MaximumMissedCheck,
+        SimpleCov::ExitCodes::MaximumMissedPerFileCheck
+      )
     end
   end
 

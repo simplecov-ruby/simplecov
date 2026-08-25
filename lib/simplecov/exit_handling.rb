@@ -15,6 +15,9 @@ module SimpleCov
       :minimum_coverage_by_group,
       :maximum_coverage,
       :maximum_coverage_drop,
+      :maximum_missed,
+      :maximum_missed_per_file,
+      :maximum_missed_per_file_overrides,
       :baseline
     )
 
@@ -115,16 +118,12 @@ module SimpleCov
 
   private
 
+    # Every CoverageLimits member is named after the configuration
+    # reader that supplies it, so the snapshot builds itself and a new
+    # limit only has to be added to the Data definition and the checks.
     def build_coverage_limits
-      CoverageLimits.new(
-        minimum_coverage: minimum_coverage,
-        minimum_coverage_by_file: minimum_coverage_by_file,
-        minimum_coverage_by_file_overrides: minimum_coverage_by_file_overrides,
-        minimum_coverage_by_group: minimum_coverage_by_group,
-        maximum_coverage: maximum_coverage,
-        maximum_coverage_drop: maximum_coverage_drop,
-        baseline: baseline
-      )
+      limits = CoverageLimits.members.to_h { |name| [name, public_send(name)] } #: Hash[Symbol, untyped]
+      CoverageLimits.new(**limits)
     end
   end
 end

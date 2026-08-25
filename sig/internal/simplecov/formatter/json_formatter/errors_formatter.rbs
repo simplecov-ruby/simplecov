@@ -30,6 +30,12 @@ module SimpleCov
 
         def self.format_maximum_drop: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
 
+        def self.format_maximum_missed: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
+
+        def self.format_maximum_missed_per_file: (untyped result, Hash[Symbol, Hash[untyped, untyped]] errors) -> untyped
+
+        def self.maximum_actual: (untyped violation) -> { maximum: untyped, actual: untyped }
+
         def self.bucket: (Hash[Symbol, Hash[untyped, untyped]] errors, Symbol name) -> Hash[untyped, untyped]
 
         def self.key_for: (untyped violation) -> Symbol

@@ -766,6 +766,8 @@ SimpleCov.start do
     minimum_per_file  100, only: "app/mailers/request_mailer.rb"  # per-path override (String path or Regexp)
     minimum_per_group 95, only: "Models"                          # minimum for a named group
     maximum_drop      5     # exit non-zero if coverage drops more than 5% between runs
+    maximum_missed          12   # at most 12 uncovered lines across the whole suite
+    maximum_missed_per_file 5    # no single file may carry more than 5 uncovered lines
   end
 
   coverage :branch, minimum: 80    # one-liner form for a single setting
@@ -781,6 +783,8 @@ end
 | `maximum_drop N` | Maximum allowed drop between runs (`maximum_drop 0` refuses any drop). |
 | `minimum_per_file N` | Per-file minimum. Add `only: "path"` / `only: %r{regexp}` to override it for matching files (later, more specific overrides win). |
 | `minimum_per_group N, only: "Name"` | Minimum for a named [group](#groups). |
+| `maximum_missed N` | Suite-wide cap on the number of misses, in the criterion's own units (uncovered lines, branch arms, or methods). An absolute burn-down number rather than a ratio: "12 uncovered lines left" stays meaningful as the codebase grows and shrinks, and a percentage cannot say it. |
+| `maximum_missed_per_file N` | Per-file misses cap, with the same `only:` overrides as `minimum_per_file`. A percent minimum systematically flatters big files (a 2,000-line file at 99% hides 20 misses while a 10-line file at 80% fails over 2); the cap holds every file to the same absolute budget. Files with a [baseline](#per-file-baseline-ratchet) entry are exempt per covered criterion, the same way they are from `minimum_per_file`. |
 
 Every verb is also a keyword on the one-liner form (`coverage :branch, minimum: 80, maximum_drop: 5`). Two more options:
 `coverage :line, oneshot: true` selects the faster [oneshot-lines mode](#oneshot-lines-coverage), and
@@ -799,6 +803,8 @@ SimpleCov.maximum_coverage line: 90
 SimpleCov.maximum_coverage_drop line: 5, branch: 10
 SimpleCov.expected_coverage 95.42                  # pins minimum == maximum
 SimpleCov.refuse_coverage_drop :line, :branch      # maximum drop of 0
+SimpleCov.maximum_missed 12                        # at most 12 misses suite-wide
+SimpleCov.maximum_missed_per_file line: 5, branch: 2
 ```
 
 `expected_coverage` floors the actual percentage to two decimal places, so an actual of 95.4287 still passes at

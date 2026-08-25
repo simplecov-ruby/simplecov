@@ -161,6 +161,7 @@ module_function
       minimum_coverage: THRESHOLDS[RUBY_ENGINE] || {},
       minimum_coverage_by_file: {}, minimum_coverage_by_file_overrides: {},
       minimum_coverage_by_group: {}, maximum_coverage: {}, maximum_coverage_drop: {},
+      maximum_missed: {}, maximum_missed_per_file: {}, maximum_missed_per_file_overrides: {},
       baseline: nil
     }
     Data.define(*limits.keys).new(**limits)

@@ -442,6 +442,10 @@ module SimpleCov
 
     def store_minimum_per_group: (Symbol criterion, Numeric percent, String group_name) -> void
 
+    def store_missed_cap: (Symbol setting, Symbol criterion, Integer count) -> void
+
+    def store_maximum_missed_per_file: (Symbol criterion, Integer count, (String | Regexp)? target) -> void
+
     public
 
     # Receiver for a `coverage <criterion> do ... end` block. Each verb
@@ -471,6 +475,14 @@ module SimpleCov
 
       # Per-group minimum for the named group (defined via `group`).
       def minimum_per_group: (Numeric percent, only: String) -> void
+
+      # Suite-wide cap on the number of misses in this criterion's own
+      # units (uncovered lines, branch arms, or methods).
+      def maximum_missed: (Integer count) -> void
+
+      # Per-file misses cap, with `only:` override semantics matching
+      # `minimum_per_file`.
+      def maximum_missed_per_file: (Integer count, ?only: (String | Regexp)?) -> void
 
       # Make this criterion the report's primary (leading) criterion.
       def primary: () -> void
@@ -777,9 +789,16 @@ module SimpleCov
     # the layer that rejects unknown symbols (with ConfigurationError).
     type coverage_thresholds = Hash[Symbol, Numeric]
 
+    # Miss-count caps are stored per criterion the same way, with
+    # non-negative Integer values in the criterion's own units.
+    type missed_caps = Hash[Symbol, Integer]
+
     @minimum_coverage: coverage_thresholds?
     @maximum_coverage: coverage_thresholds?
     @maximum_coverage_drop: coverage_thresholds?
+    @maximum_missed: missed_caps?
+    @maximum_missed_per_file: missed_caps?
+    @maximum_missed_per_file_overrides: Hash[String | Regexp, missed_caps]?
     @minimum_coverage_by_file: coverage_thresholds?
     @minimum_coverage_by_file_overrides: Hash[String | Regexp, coverage_thresholds]?
     @minimum_coverage_by_group: Hash[String, coverage_thresholds]?
@@ -803,6 +822,18 @@ module SimpleCov
     # pass. Default: none (100%, disabled).
     def maximum_coverage_drop: (?(Numeric | coverage_thresholds)? coverage_drop) -> coverage_thresholds
 
+    # Caps the suite's total misses per criterion, as an absolute
+    # burn-down number. Default: empty (disabled).
+    def maximum_missed: (?(Numeric | missed_caps)? counts) -> missed_caps
+
+    # Caps the misses any single file may carry, per criterion. Files
+    # with a baseline entry are exempt per covered criterion.
+    def maximum_missed_per_file: (?(Numeric | missed_caps)? counts) -> missed_caps
+
+    # The per-path overrides set via
+    # `coverage(criterion) { maximum_missed_per_file N, only: ... }`.
+    def maximum_missed_per_file_overrides: () -> Hash[String | Regexp, missed_caps]
+
     # DEPRECATED: use `coverage(criterion) { minimum_per_file ... }`.
     # Symbol keys declare per-criterion defaults; String / Regexp keys
     # declare per-path overrides.
@@ -825,6 +856,11 @@ module SimpleCov
 
     # Shared normalize-and-validate step behind every threshold setter.
     def normalized_threshold: ((Numeric | coverage_thresholds) coverage, String setting) -> coverage_thresholds
+
+    # The counts counterpart of `normalized_threshold`.
+    def normalized_missed_caps: ((Numeric | missed_caps) counts, String setting) -> missed_caps
+
+    def raise_on_invalid_missed_cap: (untyped cap, String setting) -> void
 
     def partition_per_file_thresholds: (Hash[Symbol | String | Regexp, Numeric | coverage_thresholds] coverage) -> [coverage_thresholds, Hash[String | Regexp, coverage_thresholds]]
 
@@ -1671,6 +1707,10 @@ module SimpleCov
 
     MAXIMUM_COVERAGE: 4
 
+    # The plural unit each criterion's misses count in, for the checks
+    # that report counts rather than percents.
+    UNITS: Hash[Symbol, String]
+
     # Threshold-violation reports and exit-status notices: enforcement
     # output on stderr, deliberately not routed through Kernel#warn.
     def self.print_error: (String message) -> void
@@ -1698,6 +1738,12 @@ module SimpleCov
 
       def maximum_coverage_drop: () -> Hash[Symbol, Numeric]
 
+      def maximum_missed: () -> Hash[Symbol, Integer]
+
+      def maximum_missed_per_file: () -> Hash[Symbol, Integer]
+
+      def maximum_missed_per_file_overrides: () -> untyped
+
       def baseline: () -> Baseline?
     end
 
@@ -1709,6 +1755,8 @@ module SimpleCov
       def self?.coverage_checks: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> Array[untyped]
 
       def self?.minimum_by_file_check: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> untyped
+
+      def self?.maximum_missed_per_file_check: (SimpleCov::Result result, _CoverageLimits coverage_limits) -> untyped
     end
   end
 end

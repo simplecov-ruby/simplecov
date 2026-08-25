@@ -28,7 +28,8 @@ module SimpleCov
     # One-liner keyword options `coverage` accepts, each forwarding to the
     # `CoverageCriterion` verb of the same name. `minimum_per_group` is omitted
     # because it needs an `only:` target, so it's block-only.
-    COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop minimum_per_file].freeze
+    COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop minimum_per_file
+                                    maximum_missed maximum_missed_per_file].freeze
 
     #
     # Configure (and, unless `enabled: false`, enable) a coverage criterion.
@@ -96,6 +97,24 @@ module SimpleCov
       public_send(setting)[criterion] = percent
     end
 
+    def store_missed_cap(setting, criterion, count)
+      raise_if_criterion_disabled(criterion)
+      raise_on_invalid_missed_cap(count, setting.to_s)
+      public_send(setting)[criterion] = count
+    end
+
+    def store_maximum_missed_per_file(criterion, count, target)
+      raise_if_criterion_disabled(criterion)
+      raise_on_invalid_missed_cap(count, "maximum_missed_per_file")
+      return maximum_missed_per_file[criterion] = count if target.nil?
+
+      unless target.is_a?(String) || target.is_a?(Regexp)
+        raise SimpleCov::ConfigurationError, "`only:` must be a String path or Regexp, got #{target.inspect}"
+      end
+
+      (maximum_missed_per_file_overrides[target] ||= {})[criterion] = count
+    end
+
     def store_minimum_per_file(criterion, percent, target)
       raise_on_invalid_coverage({criterion => percent}, "minimum_coverage_by_file")
       return minimum_coverage_by_file[criterion] = percent if target.nil?
@@ -154,6 +173,20 @@ module SimpleCov
       # for the matching files.
       def minimum_per_file(percent, only: nil)
         @config.send(:store_minimum_per_file, @criterion, percent, only)
+      end
+
+      # Suite-wide cap on the number of misses (uncovered lines, branch
+      # arms, or methods, depending on the block's criterion): an
+      # absolute burn-down number rather than a ratio.
+      def maximum_missed(count)
+        @config.send(:store_missed_cap, :maximum_missed, @criterion, count)
+      end
+
+      # Per-file misses cap, with the same `only:` override semantics as
+      # `minimum_per_file`. Holds every file to the same absolute budget
+      # where a percent minimum flatters the big ones.
+      def maximum_missed_per_file(count, only: nil)
+        @config.send(:store_maximum_missed_per_file, @criterion, count, only)
       end
 
       # Per-group minimum for the named group (defined via `group`).

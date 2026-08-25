@@ -1,0 +1,16 @@
+module SimpleCov
+  module ExitCodes
+    # Fails when the suite's total misses exceed the `maximum_missed`
+    # cap for any criterion. Reports in counts, in the criterion's own
+    # units.
+    class MaximumMissedCheck < Check
+      def exit_code: () -> untyped
+
+      private
+
+      def compute_violations: () -> untyped
+
+      def report_violation: (untyped violation) -> untyped
+    end
+  end
+end

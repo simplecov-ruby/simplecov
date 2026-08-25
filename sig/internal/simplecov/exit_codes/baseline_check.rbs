@@ -5,8 +5,6 @@ module SimpleCov
     # misses than it allows (the dampener; a percent-only floor is
     # decided by the percent alone).
     class BaselineCheck < Check
-      UNITS: Hash[Symbol, String]
-
       @baseline: Baseline?
 
       def initialize: (untyped result, Baseline? baseline) -> void

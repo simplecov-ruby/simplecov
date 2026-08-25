@@ -26,7 +26,9 @@ module SimpleCov
           BaselineCheck.new(result, coverage_limits.baseline),
           MinimumCoverageByGroupCheck.new(result, coverage_limits.minimum_coverage_by_group),
           MaximumOverallCoverageCheck.new(result, coverage_limits.maximum_coverage),
-          MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop)
+          MaximumCoverageDropCheck.new(result, coverage_limits.maximum_coverage_drop),
+          MaximumMissedCheck.new(result, coverage_limits.maximum_missed),
+          maximum_missed_per_file_check(result, coverage_limits)
         ]
       end
 
@@ -35,6 +37,15 @@ module SimpleCov
       def minimum_by_file_check(result, coverage_limits)
         MinimumCoverageByFileCheck.new(
           result, coverage_limits.minimum_coverage_by_file, coverage_limits.minimum_coverage_by_file_overrides,
+          baseline: coverage_limits.baseline
+        )
+      end
+
+      # Same baseline exemption as the per-file minimum (see
+      # MaximumMissedPerFileCheck).
+      def maximum_missed_per_file_check(result, coverage_limits)
+        MaximumMissedPerFileCheck.new(
+          result, coverage_limits.maximum_missed_per_file, coverage_limits.maximum_missed_per_file_overrides,
           baseline: coverage_limits.baseline
         )
       end

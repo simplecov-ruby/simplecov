@@ -24,9 +24,6 @@ module SimpleCov
         SimpleCov::CoverageViolations.baseline(result, @baseline)
       end
 
-      UNITS = {line: "lines", branch: "branches", method: "methods"}.freeze
-      private_constant :UNITS
-
       def report_violation(violation)
         message = format(
           "%<criterion>s coverage (%<actual>s) dropped below its baseline floor (%<expected>s%%) in %<filename>s",

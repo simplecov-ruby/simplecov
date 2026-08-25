@@ -287,6 +287,23 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
         errors = validate_against_schema(document)
         expect(errors).to be_empty, errors.join("\n")
       end
+
+      it "validates a maximum_missed violation" do
+        allow(SimpleCov).to receive(:maximum_missed).and_return(line: 0)
+        document = emit(result)
+        expect(document.dig("errors", "maximum_missed", "lines")).to eq("maximum" => 0, "actual" => 1)
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
+
+      it "validates a maximum_missed_per_file violation" do
+        allow(SimpleCov).to receive(:maximum_missed_per_file).and_return(line: 0)
+        document = emit(result)
+        violation = document.dig("errors", "maximum_missed_per_file", project_fixture_filename("json/sample.rb"))
+        expect(violation).to eq("lines" => {"maximum" => 0, "actual" => 1})
+        errors = validate_against_schema(document)
+        expect(errors).to be_empty, errors.join("\n")
+      end
     end
   end
 end

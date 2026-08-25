@@ -86,7 +86,7 @@
     },
     "errors": {
       "type": "object",
-      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage, maximum_coverage_drop, and the per-file baseline. Empty object when no thresholds were violated.",
+      "description": "Threshold violations from minimum_coverage, minimum_coverage_by_file, minimum_coverage_by_group, maximum_coverage, maximum_coverage_drop, maximum_missed, maximum_missed_per_file, and the per-file baseline. Empty object when no thresholds were violated.",
       "additionalProperties": false,
       "properties": {
         "minimum_coverage": {
@@ -127,6 +127,19 @@
           "type": "object",
           "description": "Keyed by criterion: lines, branches, methods.",
           "additionalProperties": {"$ref": "#/definitions/maximum_actual"}
+        },
+        "maximum_missed": {
+          "type": "object",
+          "description": "Keyed by criterion: lines, branches, methods. `maximum` is the configured cap on the number of misses, `actual` the measured count, both in the criterion's own units.",
+          "additionalProperties": {"$ref": "#/definitions/maximum_actual"}
+        },
+        "maximum_missed_per_file": {
+          "type": "object",
+          "description": "Keyed by project-relative filename, then by criterion (lines, branches, methods). `maximum` is the configured per-file cap on the number of misses, `actual` the file's measured count.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/maximum_actual"}
+          }
         }
       }
     }

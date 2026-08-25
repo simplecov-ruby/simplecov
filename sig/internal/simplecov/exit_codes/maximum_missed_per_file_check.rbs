@@ -1,0 +1,22 @@
+module SimpleCov
+  module ExitCodes
+    # Fails when any single file carries more misses than the
+    # `maximum_missed_per_file` cap for any criterion. Files with a
+    # baseline entry answer to their own floor instead.
+    class MaximumMissedPerFileCheck < Check
+      @overrides: untyped
+
+      @baseline: Baseline?
+
+      def initialize: (untyped result, untyped maximum_missed_per_file, ?::Hash[untyped, untyped] overrides, ?baseline: Baseline?) -> void
+
+      def exit_code: () -> untyped
+
+      private
+
+      def compute_violations: () -> untyped
+
+      def report_violation: (untyped violation) -> untyped
+    end
+  end
+end

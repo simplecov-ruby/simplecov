@@ -30,6 +30,14 @@ module SimpleCov
     #   :actual_missed, :filename, :project_filename}
     def self.baseline: (untyped result, Baseline? baseline) -> ::Array[::Hash[::Symbol, untyped]]
 
+    # @return [Array<Hash>] {:criterion, :maximum, :actual} where both
+    #   numbers are miss counts in the criterion's own units.
+    def self.maximum_missed: (untyped result, untyped caps) -> ::Array[::Hash[::Symbol, untyped]]
+
+    # Same override-merge semantics as `minimum_by_file`, and the same
+    # baseline exemption.
+    def self.maximum_missed_by_file: (untyped result, untyped defaults, ?::Hash[untyped, untyped] overrides, ?baseline: Baseline?) -> untyped
+
     # @return [Array<Hash>] {:group_name, :criterion, :expected, :actual}
     def self.minimum_by_group: (untyped result, untyped thresholds) -> ::Array[::Hash[::Symbol, untyped]]
 
@@ -65,6 +73,12 @@ module SimpleCov
     def self.file_minimum_violation: (untyped file, untyped criterion, untyped expected) -> (nil | { criterion: untyped, expected: untyped, actual: untyped, filename: untyped, project_filename: untyped })
 
     def self.baseline_violation: (untyped file, untyped criterion, Baseline::Floor floor) -> (nil | ::Hash[::Symbol, untyped])
+
+    # A criterion's missed count, nil (skip) when the runtime didn't
+    # measure it.
+    def self.missed_for: (untyped stats_source, untyped criterion) -> Integer?
+
+    def self.file_missed_cap_violation: (untyped file, untyped criterion, Integer maximum) -> (nil | ::Hash[::Symbol, untyped])
 
     def self.group_minimum_violations: (untyped group_name, untyped group, untyped minimums) -> ::Array[::Hash[::Symbol, untyped]]
 

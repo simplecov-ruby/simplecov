@@ -21,6 +21,8 @@ module SimpleCov
             format_minimum_by_group(result, errors)
             format_maximum_overall(result, errors)
             format_maximum_drop(result, errors)
+            format_maximum_missed(result, errors)
+            format_maximum_missed_per_file(result, errors)
             errors
           end
 
@@ -82,8 +84,25 @@ module SimpleCov
 
           def format_maximum_drop(result, errors)
             SimpleCov::CoverageViolations.maximum_drop(result, SimpleCov.maximum_coverage_drop).each do |violation|
-              bucket(errors, :maximum_coverage_drop)[key_for(violation)] =
-                {maximum: violation.fetch(:maximum), actual: violation.fetch(:actual)}
+              bucket(errors, :maximum_coverage_drop)[key_for(violation)] = maximum_actual(violation)
+            end
+          end
+
+          def format_maximum_missed(result, errors)
+            SimpleCov::CoverageViolations.maximum_missed(result, SimpleCov.maximum_missed).each do |violation|
+              bucket(errors, :maximum_missed)[key_for(violation)] = maximum_actual(violation)
+            end
+          end
+
+          def format_maximum_missed_per_file(result, errors)
+            violations = SimpleCov::CoverageViolations.maximum_missed_by_file(
+              result, SimpleCov.maximum_missed_per_file, SimpleCov.maximum_missed_per_file_overrides,
+              baseline: SimpleCov.baseline
+            )
+            violations.each do |violation|
+              by_file = bucket(errors, :maximum_missed_per_file)
+              file_bucket = by_file[violation.fetch(:project_filename)] ||= {} #: Hash[untyped, untyped]
+              file_bucket[key_for(violation)] = maximum_actual(violation)
             end
           end
 
@@ -97,6 +116,10 @@ module SimpleCov
 
           def expected_actual(violation)
             {expected: violation.fetch(:expected), actual: violation.fetch(:actual)}
+          end
+
+          def maximum_actual(violation)
+            {maximum: violation.fetch(:maximum), actual: violation.fetch(:actual)}
           end
         end
       end

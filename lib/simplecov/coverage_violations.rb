@@ -71,6 +71,32 @@ module SimpleCov
         end
       end
 
+      # @return [Array<Hash>] {:criterion, :maximum, :actual} where both
+      #   numbers are miss counts in the criterion's own units.
+      def maximum_missed(result, caps)
+        caps.filter_map do |criterion, maximum|
+          actual = missed_for(result, criterion) or next
+          {criterion: criterion, maximum: maximum, actual: actual} if actual > maximum
+        end
+      end
+
+      # @return [Array<Hash>] {:criterion, :maximum, :actual, :filename,
+      #   :project_filename}
+      #
+      # Same override-merge semantics as `minimum_by_file`, and the same
+      # baseline exemption: a file and criterion with a floor answers to
+      # the baseline check instead.
+      def maximum_missed_by_file(result, defaults, overrides = {}, baseline: nil)
+        result.files.flat_map do |file|
+          effective = effective_per_file_thresholds(file, defaults, overrides)
+          effective.filter_map do |criterion, maximum|
+            next if baseline&.covers?(file.project_filename, criterion)
+
+            file_missed_cap_violation(file, criterion, maximum)
+          end
+        end
+      end
+
       # @return [Array<Hash>] {:group_name, :criterion, :expected, :actual}
       def minimum_by_group(result, thresholds)
         thresholds.flat_map do |group_name, minimums|
@@ -129,6 +155,21 @@ module SimpleCov
         return project_filename.start_with?(pattern) if pattern.end_with?("/")
 
         project_filename == pattern
+      end
+
+      # A criterion's missed count, nil (skip, like `percent_for`) when
+      # the runtime didn't measure it.
+      def missed_for(stats_source, criterion)
+        stats = stats_source.coverage_statistics[SimpleCov.coverage_statistics_key(criterion)]
+        stats&.missed
+      end
+
+      def file_missed_cap_violation(file, criterion, maximum)
+        actual = missed_for(file, criterion) or return
+        return unless actual > maximum
+
+        {criterion: criterion, maximum: maximum, actual: actual,
+         filename: file.filename, project_filename: file.project_filename}
       end
 
       def baseline_violation(file, criterion, floor)
