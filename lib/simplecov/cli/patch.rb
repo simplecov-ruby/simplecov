@@ -116,7 +116,8 @@ module SimpleCov
         {
           file: path,
           line: line_stats(payload["lines"], changed),
-          branch: branch_stats(payload["branches"], changed)
+          branch: entry_stats(payload["branches"], changed),
+          method: entry_stats(payload["methods"], changed)
         }
       end
 
@@ -138,40 +139,41 @@ module SimpleCov
         {covered: covered, relevant: covered + missing.size, missing: missing.sort}
       end
 
-      # nil when the report carries no branch data (branch coverage off), so
-      # the output and gate skip the criterion rather than reporting a hollow
-      # 0/0. A branch counts when the line it is reported on was touched;
-      # "ignored" (nocov) branches drop out like nocov lines. Its miss is
-      # recorded at that reported line so the note points where the source is.
-      def branch_stats(branches, changed)
-        return nil unless branches.is_a?(Array)
+      # Branches and methods share the report shape (a reported line and an
+      # integer hit count), so one scorer serves both. nil when the report
+      # carries no data for the criterion (it was off), so the output and
+      # gate skip it rather than reporting a hollow 0/0. An entry counts
+      # when the line it is reported on was touched; "ignored" (nocov)
+      # entries drop out like nocov lines. A miss is recorded at that
+      # reported line so the note points where the source is.
+      def entry_stats(entries, changed)
+        return nil unless entries.is_a?(Array)
 
         covered = 0
         missing = [] #: Array[Integer]
-        each_touched_branch(branches, changed) do |line, hits|
+        each_touched(entries, changed) do |line, hits|
           hits.positive? ? (covered += 1) : (missing << line)
         end
         {covered: covered, relevant: covered + missing.size, missing: missing.uniq.sort}
       end
 
-      # Yields [reported_line, hit_count] for each branch reported on a touched
-      # line that carries a real hit count; "ignored" (nocov) branches and
-      # branches off the change are skipped.
-      def each_touched_branch(branches, changed)
-        branches.each do |branch|
-          next unless branch.is_a?(Hash)
+      # Yields [reported_line, hit_count] for each branch or method reported
+      # on a touched line that carries a real hit count; "ignored" (nocov)
+      # entries and entries off the change are skipped.
+      def each_touched(entries, changed)
+        entries.each do |entry|
+          next unless entry.is_a?(Hash)
 
-          line = branch["report_line"] || branch["start_line"]
-          hits = branch["coverage"]
+          line = entry["report_line"] || entry["start_line"]
+          hits = entry["coverage"]
           yield line, hits if changed.include?(line) && hits.is_a?(Integer)
         end
       end
 
       # Whether anything scored in this row: a coverable touched line, or a
-      # touched branch.
+      # touched branch or method.
       def scored?(row)
-        branch = row[:branch]
-        row[:line][:relevant].positive? || (branch.is_a?(Hash) && branch[:relevant].positive?)
+        row[:line][:relevant].positive? || Output.measured?(row[:branch]) || Output.measured?(row[:method])
       end
     end
   end

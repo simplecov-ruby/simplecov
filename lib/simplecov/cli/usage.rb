@@ -114,7 +114,7 @@ module SimpleCov
 
           patch options:
             --base REF                Diff against the merge-base of REF for the touched lines (default: origin's HEAD, else main, or in CI the PR's target branch)
-            --minimum N               Exit non-zero when patch coverage (covered / coverable touched lines) is below N%
+            --minimum N               Exit non-zero when patch coverage on any measured criterion is below N%
             --find-renames            Follow a renamed file instead of counting the moved file as all-new
             --json                    Emit results as a JSON array (for CI)
 

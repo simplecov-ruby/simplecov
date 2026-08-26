@@ -8,6 +8,10 @@ module SimpleCov
       # Turn the scored rows into text or JSON on stdout, and into the
       # `--minimum` gate's exit status.
       module Output
+        # The criteria that appear only when the change touched one;
+        # lines always score.
+        OPTIONAL_CRITERIA = %i[branch method].freeze
+
       module_function
 
         def emit(stdout, rows, opts)
@@ -27,17 +31,19 @@ module SimpleCov
         end
 
         def format_row(row, color)
-          line = "  #{criterion_cells(row[:line], row[:branch], color).join('  ')}  #{row[:file]}"
+          line = "  #{criterion_cells(row, color).join('  ')}  #{row[:file]}"
           note = missing_note(row)
           note.empty? ? line : "#{line}  #{note}"
         end
 
-        # A "lines" cell always, a "branches" cell only when the touched lines
-        # actually carried a branch — a hollow 0/0 branch cell is noise. Shared
-        # by the per-file row and the total, so `branch` is a stats hash or nil.
-        def criterion_cells(line, branch, color)
-          cells = [criterion_cell("lines", line, color)]
-          cells << criterion_cell("branches", branch, color) if branch.is_a?(Hash) && branch[:relevant].positive?
+        # A "lines" cell always, "branches" and "methods" cells only when the
+        # touched lines actually carried one — a hollow 0/0 cell is noise.
+        # Shared by the per-file row and the total, so the branch and method
+        # entries are stats hashes or nil.
+        def criterion_cells(row, color)
+          cells = [criterion_cell("lines", row[:line], color)]
+          cells << criterion_cell("branches", row[:branch], color) if measured?(row[:branch])
+          cells << criterion_cell("methods", row[:method], color) if measured?(row[:method])
           cells
         end
 
@@ -50,25 +56,34 @@ module SimpleCov
         def missing_note(row)
           parts = [] #: Array[String]
           parts << "missing #{ranges(row[:line][:missing])}" if row[:line][:missing].any?
-          parts << "branch #{ranges(row[:branch][:missing])}" if branch?(row) && row[:branch][:missing].any?
+          OPTIONAL_CRITERIA.each do |criterion|
+            stats = row[criterion]
+            parts << "#{criterion} #{ranges(stats[:missing])}" if measured?(stats) && stats[:missing].any?
+          end
           parts.join("  ")
         end
 
         def format_total(rows, color)
-          cells = criterion_cells(sum_stats(rows, :line), sum_stats(rows, :branch), color)
-          "  Patch coverage: #{cells.join(', ')}"
+          totals = {line: sum_stats(rows, :line), branch: sum_stats(rows, :branch), method: sum_stats(rows, :method)}
+          "  Patch coverage: #{criterion_cells(totals, color).join(', ')}"
         end
 
         def json_rows(rows)
           rows.map do |row|
             data = {file: row[:file], line: row[:line].merge(percent: pct(row[:line]))}
-            data[:branch] = row[:branch].merge(percent: pct(row[:branch])) if branch?(row)
+            OPTIONAL_CRITERIA.each do |criterion|
+              stats = row[criterion]
+              data[criterion] = stats.merge(percent: pct(stats)) if measured?(stats)
+            end
             data
           end
         end
 
-        def branch?(row)
-          row[:branch].is_a?(Hash) && row[:branch][:relevant].positive?
+        # Whether a criterion scored anything for this row or total: branch
+        # and method stats are nil when the report never measured them, and
+        # 0/0 when the change touched none.
+        def measured?(stats)
+          stats.is_a?(Hash) && stats[:relevant].positive?
         end
 
         # Collapse a sorted line list into ranges: [41, 42, 43, 47] -> "41-43, 47".
@@ -94,15 +109,14 @@ module SimpleCov
           (stats[:covered].to_f / relevant * 100).round(2)
         end
 
-        # No --minimum is report-only (exit 0). With one, line coverage must
-        # clear the floor and, when the report measured branches, so must the
-        # branch coverage of the touched branches.
+        # No --minimum is report-only (exit 0). With one, every measured
+        # criterion must clear the floor: line coverage, and branch and
+        # method coverage over the touched branches and methods when the
+        # report carries them (`short?` never fails an unmeasured one).
         def gate(rows, minimum)
           return 0 unless minimum
 
-          line = sum_stats(rows, :line)
-          branch = sum_stats(rows, :branch)
-          below = short?(line, minimum) || (branch[:relevant].positive? && short?(branch, minimum))
+          below = %i[line branch method].any? { |criterion| short?(sum_stats(rows, criterion), minimum) }
           below ? 1 : 0
         end
 

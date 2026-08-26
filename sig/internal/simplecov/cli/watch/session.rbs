@@ -5,6 +5,8 @@ module SimpleCov
       class Session
         MERGE_WINDOW: String
 
+        TOTALS_KEYS: Hash[String, String]
+
         @command: Array[String]
         @dir: String
         @interval: Float

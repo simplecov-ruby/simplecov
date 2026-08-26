@@ -4,13 +4,15 @@ module SimpleCov
       # Turn the scored rows into text or JSON on stdout, and into the
       # `--minimum` gate's exit status.
       module Output
+        OPTIONAL_CRITERIA: Array[Symbol]
+
         def self?.emit: (untyped stdout, untyped rows, untyped opts) -> untyped
 
         def self?.emit_text: (untyped stdout, untyped rows, untyped color) -> untyped
 
         def self?.format_row: (untyped row, untyped color) -> ::String
 
-        def self?.criterion_cells: (untyped line, untyped branch, untyped color) -> ::Array[::String]
+        def self?.criterion_cells: (untyped row, untyped color) -> ::Array[::String]
 
         def self?.criterion_cell: (untyped label, untyped stats, untyped color) -> ::String
 
@@ -20,7 +22,7 @@ module SimpleCov
 
         def self?.json_rows: (untyped rows) -> ::Array[untyped]
 
-        def self?.branch?: (untyped row) -> bool
+        def self?.measured?: (untyped stats) -> bool
 
         # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
         def self?.ranges: (untyped numbers, ?::String separator) -> ::String

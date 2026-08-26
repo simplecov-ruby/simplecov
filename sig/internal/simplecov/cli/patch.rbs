@@ -27,13 +27,13 @@ module SimpleCov
 
       def self?.warn_stale: (untyped path, untyped payload, ::Array[::Integer] changed, untyped stderr) -> void
 
-      def self?.build_row: (untyped path, untyped payload, untyped changed) -> { file: untyped, line: untyped, branch: untyped }
+      def self?.build_row: (untyped path, untyped payload, untyped changed) -> { file: untyped, line: untyped, branch: untyped, method: untyped }
 
       def self?.line_stats: (untyped hits, untyped changed) -> { covered: ::Integer, relevant: ::Integer, missing: ::Array[::Integer] }
 
-      def self?.branch_stats: (untyped branches, untyped changed) -> ({ covered: ::Integer, relevant: ::Integer, missing: ::Array[::Integer] } | nil)
+      def self?.entry_stats: (untyped entries, untyped changed) -> ({ covered: ::Integer, relevant: ::Integer, missing: ::Array[::Integer] } | nil)
 
-      def self?.each_touched_branch: (untyped branches, untyped changed) { (::Integer, untyped) -> void } -> void
+      def self?.each_touched: (untyped entries, untyped changed) { (::Integer, untyped) -> void } -> void
 
       def self?.scored?: (untyped row) -> bool
     end

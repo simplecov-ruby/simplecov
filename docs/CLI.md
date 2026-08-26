@@ -321,10 +321,10 @@ are normalized, so a baseline from an older SimpleCov still diffs cleanly agains
 
 `simplecov patch` answers the question `diff` does not: is the code in *this change* tested? It reads
 `git diff --unified=0 --merge-base <base>`, intersects the added and modified line numbers with the current report
-(`--input`), and prints line coverage — plus branch coverage over the branches those lines carry, when the report
-measured branches — over only that change, so a project that cannot move its overall number in one pull request can still
-require that everything it adds is covered. The `branches` column and a `branch <lines>` note appear only for files whose
-touched lines actually held a branch.
+(`--input`), and prints line coverage — plus branch and method coverage over the branches and methods those lines
+carry, when the report measured them — over only that change, so a project that cannot move its overall number in one
+pull request can still require that everything it adds is covered. The `branches` and `methods` columns and the
+`branch <lines>` / `method <lines>` notes appear only for files whose touched lines actually held one.
 
 ```sh
 $ simplecov patch --base main
@@ -336,8 +336,8 @@ $ simplecov patch --base main
 `--base REF` selects the ref to diff against (defaulting to the branch origin's HEAD points at, else `main`; in CI
 pass the pull request's target branch). The diff
 runs against the merge-base of `REF` and the working tree, so uncommitted edits count too — running `simplecov patch`
-before committing still scores the lines just written. `--minimum N` exits non-zero when patch coverage falls below N% — line coverage, and branch coverage too
-when the report has it, must both clear the floor — so it gates a change alongside the overall thresholds even when they
+before committing still scores the lines just written. `--minimum N` exits non-zero when patch coverage falls below N% — every measured criterion, line, branch,
+and method alike, must clear the floor — so it gates a change alongside the overall thresholds even when they
 are already satisfied:
 
 ```sh

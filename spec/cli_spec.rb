@@ -2653,14 +2653,14 @@ RSpec.describe SimpleCov::CLI do
     # `main`, plus a coverage.json whose `lines` array (indexed from line 1)
     # reflects `line_hits`. HEAD lives on its own branch so `main...HEAD`
     # resolves to the change rather than to an empty merge-base diff.
-    def build_repo(base:, head:, line_hits:, branches: nil, file: "lib/foo.rb", cover: true)
+    def build_repo(base:, head:, line_hits:, branches: nil, methods: nil, file: "lib/foo.rb", cover: true)
       init_repo
       write(file, base)
       commit("base")
       git("checkout", "-q", "-b", "feature")
       write(file, head)
       commit("head")
-      write_report(file, line_hits, branches) if cover
+      write_report(file, line_hits, branches, methods) if cover
     end
 
     def init_repo
@@ -2679,9 +2679,10 @@ RSpec.describe SimpleCov::CLI do
       git("commit", "-qm", message)
     end
 
-    def write_report(file, line_hits, branches)
+    def write_report(file, line_hits, branches, methods = nil)
       payload = {"lines" => line_hits}
       payload["branches"] = branches if branches
+      payload["methods"] = methods if methods
       write_coverage(File.join(tmp, file) => payload)
     end
 
@@ -2760,11 +2761,37 @@ RSpec.describe SimpleCov::CLI do
       expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
     end
 
-    it "omits the branch column for a line-only report" do
+    it "reports method coverage over the touched methods" do
+      build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov)
+      expect(stdout.string).to match(%r{50\.00%\s+\(1/2\)\s+methods})
+      expect(stdout.string).to include("method 3")
+    end
+
+    it "fails --minimum on an uncovered touched method even when lines are covered" do
+      build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
+    end
+
+    it "includes the method stats in JSON rows" do
+      build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
+                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+
+      run_in_repo("patch", "--base", "main", "--input", cov, "--json")
+      expect(JSON.parse(stdout.string).first.fetch("method"))
+        .to eq("covered" => 1, "relevant" => 2, "missing" => [3], "percent" => 50.0)
+    end
+
+    it "omits the branch and method columns for a line-only report" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).not_to include("branches")
+      expect(stdout.string).not_to include("methods")
     end
 
     it "skips changed files the report does not track" do
@@ -3595,6 +3622,16 @@ RSpec.describe SimpleCov::CLI do
       ensure
         stop_watch(thread)
       end
+    end
+
+    it "reports the primary criterion's percent when the report names one" do
+      session = described_class::Watch::Session.new(command: ["true"], dir: coverage_dir,
+                                                    interval: 0.01, stdout: stdout, stderr: stderr)
+      session.instance_variable_set(:@document, {
+                                      "meta" => {"primary_coverage" => "branch"},
+                                      "total" => {"lines" => {"percent" => 90.0}, "branches" => {"percent" => 75.0}}
+                                    })
+      expect(session.send(:total_percent)).to eq(75.0)
     end
 
     it "collects an editor's save burst into one run" do

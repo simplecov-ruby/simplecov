@@ -14,6 +14,10 @@ module SimpleCov
         # it after the default ten minutes.
         MERGE_WINDOW = "86400"
 
+        # meta.primary_coverage names a criterion; the totals table keys
+        # by its plural.
+        TOTALS_KEYS = {"line" => "lines", "branch" => "branches", "method" => "methods"}.freeze
+
         def initialize(command:, dir:, interval:, stdout:, stderr:)
           @command = command
           @dir = dir
@@ -121,8 +125,12 @@ module SimpleCov
           changed
         end
 
+        # The result line's one number follows the report's own primary
+        # criterion (meta.primary_coverage), falling back to line
+        # coverage for documents from before meta carried one.
         def total_percent
-          value = @document.dig("total", "lines", "percent")
+          key = TOTALS_KEYS[@document.dig("meta", "primary_coverage")] || "lines"
+          value = @document.dig("total", key, "percent")
           value.is_a?(Numeric) ? (_ = value).to_f : nil
         end
 
