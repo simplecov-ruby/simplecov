@@ -127,3 +127,8 @@ end
 
 Every option is documented in [docs/Configuration.md](docs/Configuration.md),
 including criteria, filters, groups, profiles, and thresholds.
+
+Measuring coverage in production to find dead code is its own mode with its
+own document, [docs/Production.md](docs/Production.md): a live process
+accumulates what real traffic executes, and `simplecov dead-code`, the HTML
+report, and `coverage.json` cross that with what the tests cover.
