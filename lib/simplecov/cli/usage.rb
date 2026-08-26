@@ -94,6 +94,7 @@ module SimpleCov
             --json                    Emit results as a JSON array (for CI)
 
           tests options:
+            --redundant               List only tests whose covered lines other tests also cover
             --json                    Emit the test ids as a JSON array
 
           affected options:

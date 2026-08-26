@@ -1000,6 +1000,105 @@ RSpec.describe SimpleCov::CLI do
       expect(run("tests", "--input", json_path)).to eq(1)
       expect(stderr.string).to include("isn't valid")
     end
+
+    describe "--redundant" do
+      let(:other_file) { "/abs/project/lib/other.rb" }
+
+      # Four contexts: :10 uniquely covers line 2 of result.rb and shares
+      # line 3, :20 covers only that shared line, :30 uniquely covers
+      # other.rb, and :40 ran without covering anything.
+      let(:payload) do
+        {
+          "contexts" => ["spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30", "spec/d_spec.rb:40"],
+          "coverage" => {
+            result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
+            other_file => {"lines" => [1], "contexts" => {"2" => "1"}},
+            quiet_file => {"lines" => [1, nil]}
+          }
+        }
+      end
+
+      it "lists the tests whose covered lines other tests also cover" do
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
+        expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/d_spec.rb:40\n")
+      end
+
+      it "narrows to the redundant tests touching a file" do
+        expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb")).to eq(0)
+        expect(stdout.string).to eq("spec/b_spec.rb:20\n")
+      end
+
+      it "answers an empty list, with a stderr note, for a line only unique tests cover" do
+        expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb:2")).to eq(0)
+        expect(stdout.string).to be_empty
+        expect(stderr.string).to eq("simplecov tests: no redundant test covers lib/result.rb:2\n")
+      end
+
+      # Mutual subsumption is the honest answer, not a bug: each of the
+      # two could go, but not both, so the list is per-test rather than
+      # a deletable set.
+      it "lists both of two tests covering exactly the same lines" do
+        payload["coverage"][result_file]["contexts"] = {"0" => "6", "1" => "6"}
+        File.write(json_path, JSON.dump(payload))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
+        expect(stdout.string).to eq("spec/a_spec.rb:10\nspec/b_spec.rb:20\nspec/d_spec.rb:40\n")
+      end
+
+      it "notes on stderr when every recorded test covers something uniquely" do
+        File.write(json_path, JSON.dump(
+                                "contexts" => ["spec/a_spec.rb:10", "spec/c_spec.rb:30"],
+                                "coverage" => {result_file => {"lines" => [1, 1],
+                                                               "contexts" => {"0" => "1", "1" => "2"}}}
+                              ))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
+        expect(stdout.string).to be_empty
+        expect(stderr.string)
+          .to eq("simplecov tests: no redundant tests, every recorded test covers at least one line uniquely\n")
+      end
+
+      it "keeps the no-recording note when the contexts list is empty" do
+        File.write(json_path, JSON.dump("contexts" => [], "coverage" => {quiet_file => {"lines" => [1, nil]}}))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
+        expect(stdout.string).to be_empty
+        expect(stderr.string).to eq("simplecov tests: no tests recorded\n")
+      end
+
+      it "emits the redundant ids as a JSON array under --json" do
+        expect(run("tests", "--input", json_path, "--redundant", "--json")).to eq(0)
+        expect(JSON.parse(stdout.string)).to eq(["spec/b_spec.rb:20", "spec/d_spec.rb:40"])
+      end
+
+      # The sweep reads every file's table, so a malformed table poisons
+      # the whole answer even when no query names its file — the same
+      # all-or-nothing tolerance the targeted queries apply.
+      it "treats a malformed contexts table anywhere in the sweep as invalid input" do
+        [{"9" => "1"}, "junk"].each do |malformed|
+          payload["coverage"][other_file]["contexts"] = malformed
+          File.write(json_path, JSON.dump(payload))
+          stderr.truncate(0) && stderr.rewind
+          expect(run("tests", "--input", json_path, "--redundant")).to eq(1), "expected 1 for #{malformed.inspect}"
+          expect(stderr.string).to include("isn't valid")
+        end
+      end
+
+      it "treats a non-object coverage section as invalid input for the bare sweep" do
+        File.write(json_path, JSON.dump(payload.merge("coverage" => "junk")))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+        expect(stderr.string).to include("isn't valid")
+      end
+
+      it "treats a wrong-typed entry anywhere in the sweep as invalid input" do
+        payload["coverage"][quiet_file] = "junk"
+        File.write(json_path, JSON.dump(payload))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+        expect(stderr.string).to include("entry for #{quiet_file} must be an object")
+      end
+
+      it "documents --redundant in the usage text" do
+        expect(run("help")).to eq(0)
+        expect(stdout.string).to include("--redundant")
+      end
+    end
   end
 
   describe "show subcommand" do

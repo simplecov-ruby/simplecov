@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require_relative "command_helpers"
+require_relative "tests/redundancy"
 
 module SimpleCov
   module CLI
@@ -31,7 +32,9 @@ module SimpleCov
       end
 
       def parse(args)
-        opts, rest = parse_common(args)
+        opts, rest = parse_common(args) do |parser, options|
+          parser.on("--redundant") { options[:redundant] = true }
+        end
         opts[:target] = rest.first
         opts.merge!(split_target(rest.first))
         opts
@@ -51,10 +54,22 @@ module SimpleCov
       end
 
       # The sorted ids the query selects, or nil after reporting a
-      # malformed document or an unanswerable query.
+      # malformed document or an unanswerable query. `--redundant`
+      # intersects the selection with the redundancy sweep, so the flag
+      # composes with the path and line narrowing.
       def resolve(document, opts, stderr)
         contexts = recorded_contexts(document, opts, stderr)
         return unless contexts
+
+        opts[:no_recording] = contexts.empty?
+        ids = selected_ids(document, contexts, opts, stderr)
+        return ids unless ids && opts[:redundant]
+
+        redundant = Redundancy.redundant_ids(document, contexts, opts, stderr)
+        redundant && (ids & redundant)
+      end
+
+      def selected_ids(document, contexts, opts, stderr)
         return contexts.sort unless opts[:path]
 
         entry = locate_entry(document, opts, stderr)
@@ -118,11 +133,24 @@ module SimpleCov
       end
 
       # Stdout stays reserved for ids, so an empty answer explains itself
-      # on stderr — naming the query when there was one.
+      # on stderr — naming the query when there was one. An empty
+      # `--redundant` answer over a real recording is good news and says
+      # so, but an empty recording keeps the plainer message: nothing was
+      # recorded, so nothing was proven unique.
       def note_empty(opts, stderr)
-        return stderr.puts("simplecov tests: no recorded test covers #{opts[:target]}") if opts[:target]
+        stderr.puts("simplecov tests: #{empty_message(opts)}")
+      end
 
-        stderr.puts("simplecov tests: no tests recorded")
+      def empty_message(opts)
+        if opts[:redundant] && !opts[:no_recording]
+          return "no redundant test covers #{opts[:target]}" if opts[:target]
+
+          "no redundant tests, every recorded test covers at least one line uniquely"
+        elsif opts[:target]
+          "no recorded test covers #{opts[:target]}"
+        else
+          "no tests recorded"
+        end
       end
     end
   end

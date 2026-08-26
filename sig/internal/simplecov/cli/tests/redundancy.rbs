@@ -1,0 +1,24 @@
+module SimpleCov
+  module CLI
+    module Tests
+      # The `--redundant` sweep: the contexts whose covered lines other
+      # contexts also cover, the tests contributing no coverage of their
+      # own.
+      module Redundancy
+        def self?.redundant_ids: (untyped document, Array[String] contexts, untyped opts, untyped stderr) -> Array[String]?
+
+        def self?.unique_owners: (Array[Hash[Integer, Integer]] tables, Integer context_count) -> Array[bool]
+
+        def self?.lone_bits: (Hash[Integer, Integer] table) -> Integer
+
+        def self?.sweep_tables: (untyped document, Array[String] contexts, untyped opts, untyped stderr) -> Array[Hash[Integer, Integer]]?
+
+        def self?.swept_table: (untyped entry, Array[String] contexts) -> Hash[Integer, Integer]?
+
+        def self?.complaint: (String path, untyped entry) -> String
+
+        def self?.invalid: (untyped opts, untyped stderr, String reason) -> nil
+      end
+    end
+  end
+end

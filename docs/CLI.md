@@ -238,6 +238,19 @@ stderr; `--json` emits a JSON array instead. Paths match the way `simplecov cove
 absolute, or basename. The command reads `coverage.json`, so it needs a report generated after `track_tests` was
 enabled, and it will say so when the recording is missing.
 
+`--redundant` inverts the question: not which tests cover a line, but which tests cover nothing alone. A test whose
+covered lines are all covered by other tests contributes no coverage of its own, and the flag lists those tests,
+computed from the same recording with no new measurement. It composes with the narrowing, so
+`simplecov tests --redundant lib/foo.rb` lists the redundant tests among those touching the file.
+
+Read the list the way `dead-code`'s buckets are read: candidates for review, not a delete list. Coverage-redundant
+is not useless, since a test can pin behavior with assertions on lines a dozen other tests execute, and its
+mutation-killing power is invisible to coverage. The list is also per-test rather than a deletable set, because two
+tests covering exactly the same lines subsume each other and both are listed, so deleting both would lose the
+lines. Remove one, regenerate the report, and look again. Under `track_tests granularity: :file` a listed id is a
+whole test file that adds no coverage of its own, a coarser but often more actionable answer. An empty answer over
+a real recording means every recorded test covers at least one line uniquely, and the stderr note says so.
+
 ### `affected` — select the tests that touch changed code
 
 With [`track_tests`](Configuration.md#tracking-which-test-covers-each-line) enabled, `simplecov affected` turns the
