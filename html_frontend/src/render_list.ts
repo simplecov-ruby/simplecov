@@ -6,7 +6,7 @@ import { pctClass, fmtNum, fmtPct, fileId } from './format';
 import { primaryCoverageStat } from './coverage';
 import { coveredOutsideCount } from './contexts';
 import { renderCoverageCells, renderHeaderCells } from './render_cells';
-import type { CoverageType, StatGroup, FileCoverage } from './types';
+import type { CoverageType, StatGroup, FileCoverage, ProductionData } from './types';
 
 interface FileListArgs {
   containerId: string;
@@ -21,6 +21,9 @@ interface FileListArgs {
   // True when the run recorded contexts (`track_tests`): line bars split
   // out the covered-outside-tests share and pick up the by-tests sort key.
   contextsEnabled?: boolean;
+  // Production coverage, when the report carries it: each row gains a
+  // last-run-in-production column, sortable by recency.
+  production?: ProductionData;
 }
 
 // Container open + <thead> (column headers and the totals row), i.e.
@@ -43,6 +46,9 @@ function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   if (lineStats) html.push(renderHeaderCells('Line Coverage', 'line', 'Covered', 'Lines'));
   if (branchCoverage) html.push(renderHeaderCells('Branch Coverage', 'branch', 'Covered', 'Branches'));
   if (methodCoverage) html.push(renderHeaderCells('Method Coverage', 'method', 'Covered', 'Methods'));
+  if (args.production) {
+    html.push('<th class="cell--production" data-sort-key="production"><span class="th-label">Last Run in Production</span></th>');
+  }
   html.push('</tr>');
 
   const fileLabel = filenames.length === 1 ? 'file' : 'files';
@@ -50,6 +56,10 @@ function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   if (lineStats) html.push(renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true, outsideTotal));
   if (branchStats) html.push(renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true));
   if (methodStats) html.push(renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true));
+  // The totals cell stays empty: a "files seen" count would go stale as
+  // rows are filtered, and the live totals updater only recomputes
+  // coverage sums.
+  if (args.production) html.push('<td class="cell--production"></td>');
   html.push('</tr></thead><tbody>');
 
   return html.join('');
@@ -62,10 +72,29 @@ interface FileRowArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   outsideLines?: number;
+  production?: ProductionData;
+}
+
+// The row's last-run-in-production cell. `data-order` carries epoch
+// milliseconds so the recency sort is numeric; a file the window never
+// saw sorts before everything (ascending puts the deletion candidates
+// on top), and a stamp-less store (written before stamps existed) sorts
+// between "never" and any dated file. The cell starts as the ISO date;
+// the timeago pass rewrites it to relative words on page load.
+function renderProductionCell(filename: string, production: ProductionData): string {
+  const entry = production.files[filename];
+  if (!entry) return '<td class="cell--production t-file__production t-file__production--never" data-order="-1">never</td>';
+
+  const stamp = entry.last_seen === undefined ? NaN : new Date(entry.last_seen).getTime();
+  if (Number.isNaN(stamp)) return '<td class="cell--production t-file__production" data-order="0">ran</td>';
+
+  const iso = entry.last_seen!;
+  return `<td class="cell--production t-file__production" data-order="${stamp}">` +
+    `<abbr class="timeago" title="${escapeHTML(iso)}">${escapeHTML(iso.slice(0, 10))}</abbr></td>`;
 }
 
 function renderFileRow(args: FileRowArgs): string {
-  const { filename, coverage: f, lineCoverage, branchCoverage, methodCoverage, outsideLines } = args;
+  const { filename, coverage: f, lineCoverage, branchCoverage, methodCoverage, outsideLines, production } = args;
   const id = fileId(filename);
 
   const dataAttrs: string[] = [];
@@ -96,12 +125,13 @@ function renderFileRow(args: FileRowArgs): string {
     const pct = f.methods_covered_percent === undefined ? 100.0 : f.methods_covered_percent;
     cells.push(renderCoverageCells(pct, f.covered_methods || 0, f.total_methods || 0, 'method', false));
   }
+  if (production) cells.push(renderProductionCell(filename, production));
   cells.push('</tr>');
   return cells.join('');
 }
 
 export function renderFileList(args: FileListArgs): string {
-  const { filenames, allCoverage, lineCoverage, branchCoverage, methodCoverage, contextsEnabled } = args;
+  const { filenames, allCoverage, lineCoverage, branchCoverage, methodCoverage, contextsEnabled, production } = args;
 
   // Computed once per file: the totals row shows the sum, each row its own.
   const outsideByFile = contextsEnabled && lineCoverage ? new Map(
@@ -120,7 +150,7 @@ export function renderFileList(args: FileListArgs): string {
     if (!f) continue;
     html.push(renderFileRow({
       filename: fn, coverage: f, lineCoverage, branchCoverage, methodCoverage,
-      outsideLines: outsideByFile?.get(fn)
+      outsideLines: outsideByFile?.get(fn), production
     }));
   }
   html.push('</tbody></table></div></div>');

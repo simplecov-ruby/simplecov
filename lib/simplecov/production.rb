@@ -39,6 +39,7 @@ module SimpleCov
       #     root: Rails.root.to_s,
       #     sink: SimpleCov::Production::FileSink.new(path: "/var/data/coverage/production.json"),
       #     flush_interval: 60,        # seconds between drains
+      #     flush_jitter: 6,           # extra random wait per drain (default a tenth of the interval)
       #     sample_rate: 1.0,          # fraction of intervals measured (< 1 needs Ruby 3.2+)
       #     max_buffered_lines: 1_000_000  # ceiling on lines retained across failed flushes
       #   )
@@ -47,12 +48,14 @@ module SimpleCov
       # `on_worker_boot`, Unicorn's `after_fork`): the flush thread does
       # not survive a fork, and `start` in the child picks the inherited
       # measurement back up.
-      def start(root: Dir.pwd, sink: nil, flush_interval: 60, sample_rate: 1.0, max_buffered_lines: 1_000_000)
-        validate!(flush_interval, sample_rate, max_buffered_lines)
+      def start(root: Dir.pwd, sink: nil, flush_interval: 60, flush_jitter: nil, sample_rate: 1.0,
+                max_buffered_lines: 1_000_000)
+        validate!(flush_interval, flush_jitter, sample_rate, max_buffered_lines)
         return warn_decline("SimpleCov::Production is already running") if running?
         return false unless claim_coverage
 
-        configure(root, sink, flush_interval, sample_rate, max_buffered_lines)
+        configure(root, sink, flush_interval: flush_interval, flush_jitter: flush_jitter,
+                              sample_rate: sample_rate, max_buffered_lines: max_buffered_lines)
         @running = true
         @pid = Process.pid
         install_at_exit
@@ -109,13 +112,22 @@ module SimpleCov
 
     private
 
-      def validate!(flush_interval, sample_rate, max_buffered_lines)
+      def validate!(flush_interval, flush_jitter, sample_rate, max_buffered_lines)
         raise Error, "flush_interval must be a positive number of seconds" unless flush_interval.positive?
+
+        validate_jitter!(flush_jitter)
         raise Error, "sample_rate must be within (0, 1]" unless sample_rate.positive? && sample_rate <= 1
         raise Error, "max_buffered_lines must be positive" unless max_buffered_lines.positive?
         return unless sample_rate < 1 && !::Coverage.respond_to?(:suspend)
 
         raise Error, "sample_rate below 1.0 needs Coverage.suspend (Ruby 3.2 or later)"
+      end
+
+      # nil means "default to a tenth of the interval" (see `configure`).
+      def validate_jitter!(flush_jitter)
+        return if flush_jitter.nil? || (flush_jitter.is_a?(Numeric) && flush_jitter >= 0)
+
+        raise Error, "flush_jitter must be a non-negative number of seconds"
       end
 
       # Take ownership of the Coverage runtime, or decline. A running
@@ -139,10 +151,11 @@ module SimpleCov
         !::Coverage.respond_to?(:supported?) || ::Coverage.supported?(:oneshot_lines)
       end
 
-      def configure(root, sink, flush_interval, sample_rate, max_buffered_lines)
+      def configure(root, sink, flush_interval:, flush_jitter:, sample_rate:, max_buffered_lines:)
         @root_prefix = File.expand_path(root) + File::SEPARATOR
         @sink = sink || default_sink(root)
         @flush_interval = flush_interval
+        @flush_jitter = flush_jitter || (flush_interval / 10.0)
         @sample_rate = sample_rate
         @max_buffered_lines = max_buffered_lines
         @pending = {} #: Hash[String, Set[Integer]]
@@ -168,10 +181,18 @@ module SimpleCov
       def flush_loop
         @mutex.synchronize do
           while @running
-            @waiter.wait(@mutex, @flush_interval)
+            @waiter.wait(@mutex, next_wait)
             cycle if @running
           end
         end
+      end
+
+      # The interval plus a fresh random share of the jitter, drawn per
+      # wait: a fleet of workers booted together (one worker-boot hook
+      # starting them all) would otherwise contend on the shared sink at
+      # the same instant every interval, forever.
+      def next_wait
+        @flush_jitter.zero? ? @flush_interval : @flush_interval + (rand * @flush_jitter)
       end
 
       # Both call sites run only after `configure` (stop requires

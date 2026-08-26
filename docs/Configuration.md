@@ -869,6 +869,22 @@ trend to survive a clean CI checkout can check it in:
 SimpleCov.history_limit 25
 ```
 
+### Production coverage in the report
+
+When a [`SimpleCov::Production` store](Production.md) has been accumulating what real traffic executes,
+`production_coverage` names it and the bundled formatters cross it with the test coverage: the HTML report gains a
+sortable "Last Run in Production" column and per-line production markers, and `coverage.json` an optional
+`production` section. Relative paths resolve against `SimpleCov.root`:
+
+```ruby
+SimpleCov.start do
+  production_coverage "/var/data/coverage/production.json"
+end
+```
+
+See [the production coverage documentation](Production.md#seeing-the-cross-in-the-html-and-json-reports) for what
+the reports show and how the store tolerates being missing.
+
 ### Per-file baseline (ratchet)
 
 On a legacy codebase, one per-file minimum does nothing useful: set it to what the worst file scores and every

@@ -335,3 +335,55 @@ describe('an embedded run history', () => {
     expect(document.querySelector('.sparkline')).toBeNull();
   });
 });
+
+describe('renderPage with production coverage', () => {
+  function withProduction() {
+    const data = coverageData();
+    data.production = {
+      started_at: '2026-08-01T05:00:00Z',
+      updated_at: '2026-08-25T11:00:00Z',
+      files: { 'lib/covered.rb': { lines: [1, 2], last_seen: '2026-08-25T10:00:00Z' } }
+    };
+    return data;
+  }
+
+  test('adds the production legend row exactly when the section is present', async () => {
+    await boot(coverageData());
+    expect(document.getElementById('source-legend')!.textContent).not.toContain('production');
+
+    installPageSkeleton();
+    await boot(withProduction());
+    const legend = document.getElementById('source-legend')!;
+    const row = legend.querySelector('.source-legend__row--production')!;
+    const labels = Array.from(row.querySelectorAll('.source-legend__item'), (item) => item.textContent);
+    expect(labels).toEqual(['Never ran in production', 'Untested, runs in production']);
+    expect(row.querySelector('.source-legend__swatch--production-never')).not.toBeNull();
+    expect(row.querySelector('.source-legend__swatch--production-ran')).not.toBeNull();
+  });
+
+  test('renders the last-run column in every file list', async () => {
+    await boot(withProduction());
+    const cells = document.querySelectorAll('#g-total tbody td.cell--production');
+    expect(cells).toHaveLength(2);
+    expect(cells[0].textContent).toBe('2026-08-25');
+    expect(cells[1].textContent).toBe('never');
+  });
+
+  test('threads each file\'s entry into materialized source views', async () => {
+    await boot(withProduction());
+    const seen = materializeSourceFile(fileId('lib/covered.rb'))!;
+    expect(seen.querySelector('li.production-ran')).not.toBeNull();
+    expect(seen.querySelector('.t-production-summary')!.textContent).toContain('last run 2026-08-25');
+
+    // A file the window never saw still gets the cross, as never-ran.
+    const unseen = materializeSourceFile(fileId('lib/missed.rb'))!;
+    expect(unseen.querySelectorAll('li.production-never').length).toBeGreaterThan(0);
+    expect(unseen.querySelector('li.production-ran')).toBeNull();
+  });
+
+  test('threads nothing when the report carries no section', async () => {
+    await boot(coverageData());
+    const el = materializeSourceFile(fileId('lib/covered.rb'))!;
+    expect(el.querySelector('[class*="production"]')).toBeNull();
+  });
+});

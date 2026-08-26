@@ -5,7 +5,7 @@ import { escapeHTML } from './dom';
 import { fileId } from './format';
 import { renderCoverageSummary } from './render_cells';
 import { decodeFileContexts, type FileContextIndex } from './contexts';
-import type { FileCoverage, BranchEntry, MethodEntry } from './types';
+import type { FileCoverage, BranchEntry, MethodEntry, ProductionFileEntry } from './types';
 
 interface LineStatusArgs {
   lineIndex: number;
@@ -78,18 +78,29 @@ interface SourceLineArgs {
   // The covering test count, present only when contexts were recorded
   // and the line executed.
   testCount?: number;
+  // Whether the production window ran this line, present only for
+  // relevant lines of a report that carries production coverage.
+  productionRan?: boolean;
 }
 
 function renderSourceLine(args: SourceLineArgs): string {
-  const { index, source, language, lineCov, status, branchCoverage, lineBranches, testCount } = args;
+  const { index, source, language, lineCov, status, branchCoverage, lineBranches, testCount, productionRan } = args;
   const lineNum = index + 1;
   const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
-  const lineHtml = [`<li class="${status}"${hitsAttr} data-linenumber="${lineNum}">`];
+  const productionClass = productionRan === undefined ? '' : (productionRan ? ' production-ran' : ' production-never');
+  const lineHtml = [`<li class="${status}${productionClass}"${hitsAttr} data-linenumber="${lineNum}">`];
 
   if (typeof lineCov === 'number' && lineCov > 0) {
     lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
   } else if (lineCov === 'ignored') {
     lineHtml.push('<span class="hits" data-content="skipped"></span>');
+  }
+
+  // Untested code real users are running — the cross's loudest cell —
+  // gets a badge, not just a tint: the missed line beside it looks
+  // identical, and the difference is exactly what matters.
+  if (productionRan && lineCov === 0) {
+    lineHtml.push('<span class="hits hits--production" data-content="runs in production"></span>');
   }
 
   // A real button so the peek panel it opens is keyboard-reachable. The
@@ -115,13 +126,30 @@ function renderSourceLine(args: SourceLineArgs): string {
   return lineHtml.join('');
 }
 
+// The production summary row of the file header: how much of the file
+// the window ran, and when it last saw the file. Dates render as plain
+// text (not the live timeago) because source files materialize on
+// demand, after the page's timeago scheduler has taken its census.
+function renderProductionSummary(ran: number, total: number, entry: ProductionFileEntry | null): string {
+  let parts = `<div class="t-production-summary">\n    Production: <b>${ran}</b>/${total} relevant lines ran`;
+  const stamp = entry && entry.last_seen;
+  if (stamp) {
+    parts += `<span class="coverage-cell__fraction">, last run ` +
+      `<span title="${escapeHTML(stamp)}">${escapeHTML(stamp.slice(0, 10))}</span></span>`;
+  }
+  return parts + '\n  </div>';
+}
+
 export function renderSourceFile(
   filename: string,
   data: FileCoverage,
   lineCoverage: boolean,
   branchCoverage: boolean,
   methodCoverage: boolean,
-  contexts?: string[]
+  contexts?: string[],
+  // undefined: the report carries no production coverage. null: it
+  // does, and the window never saw this file.
+  production?: ProductionFileEntry | null
 ): string {
   const id = fileId(filename);
   const coveredLines = lineCoverage ? (data.covered_lines || 0) : 0;
@@ -140,6 +168,8 @@ export function renderSourceFile(
   const contextIndex: FileContextIndex | null =
     contexts ? decodeFileContexts(data.contexts, data.source.length) : null;
   let outsideLines = 0;
+  const productionLines = production === undefined ? null : new Set(production ? production.lines : []);
+  let productionRanCount = 0;
 
   // Lines render before the header: the tests summary needs the drained
   // line count, which only the line pass knows.
@@ -162,6 +192,11 @@ export function renderSourceFile(
         if (status === 'covered') status = 'outside-tests';
       }
     }
+    let productionRan: boolean | undefined;
+    if (productionLines && typeof lineCov === 'number') {
+      productionRan = productionLines.has(i + 1);
+      if (productionRan) productionRanCount++;
+    }
     lineRows.push(renderSourceLine({
       index: i,
       source: data.source[i],
@@ -170,7 +205,8 @@ export function renderSourceFile(
       status,
       branchCoverage,
       lineBranches: branchCoverage ? branchesReport[i + 1] : undefined,
-      testCount
+      testCount,
+      productionRan
     }));
   }
 
@@ -187,6 +223,12 @@ export function renderSourceFile(
       coveredOutsideTests: contextIndex ? outsideLines : undefined
     })
   ];
+
+  if (production !== undefined) {
+    html.push('<div class="summary-stats summary-stats--production">',
+              renderProductionSummary(productionRanCount, totalLines, production),
+              '</div>');
+  }
 
   if (showMethodToggle) {
     html.push(

@@ -1876,6 +1876,21 @@ module SimpleCov
   end
 end
 
+# ----- configuration/production -----
+
+module SimpleCov
+  # `production_coverage` names the production coverage store the HTML
+  # and JSON formatters cross the report with (see SimpleCov::Production
+  # and docs/Production.md).
+  module Configuration
+    @production_coverage: String?
+
+    # Get (nil argument) or set the store path; relative paths resolve
+    # against `SimpleCov.root`. Defaults to nil: no production section.
+    def production_coverage: (?String? path) -> String?
+  end
+end
+
 # ----- production -----
 
 module SimpleCov
@@ -1902,6 +1917,7 @@ module SimpleCov
     self.@root_prefix: String
     self.@sink: _Sink
     self.@flush_interval: Float | Integer
+    self.@flush_jitter: Float | Integer
     self.@sample_rate: Float | Integer
     self.@max_buffered_lines: Integer
     self.@pending: Hash[String, Set[Integer]]
@@ -1913,7 +1929,8 @@ module SimpleCov
 
     # Begin measuring; false (with a warning) when it safely declined,
     # Error on configuration mistakes.
-    def self.start: (?root: String, ?sink: _Sink?, ?flush_interval: (Float | Integer), ?sample_rate: (Float | Integer),
+    def self.start: (?root: String, ?sink: _Sink?, ?flush_interval: (Float | Integer),
+                     ?flush_jitter: (Float | Integer)?, ?sample_rate: (Float | Integer),
                      ?max_buffered_lines: Integer) -> bool
 
     def self.running?: () -> bool
@@ -1930,20 +1947,26 @@ module SimpleCov
 
     private
 
-    def self.validate!: ((Float | Integer) flush_interval, (Float | Integer) sample_rate, Integer max_buffered_lines) -> void
+    def self.validate!: ((Float | Integer) flush_interval, (Float | Integer)? flush_jitter,
+                        (Float | Integer) sample_rate, Integer max_buffered_lines) -> void
+
+    def self.validate_jitter!: ((Float | Integer)? flush_jitter) -> void
 
     def self.claim_coverage: () -> boolish
 
     def self.oneshot_supported?: () -> bool
 
-    def self.configure: (String root, _Sink? sink, (Float | Integer) flush_interval, (Float | Integer) sample_rate,
-                         Integer max_buffered_lines) -> void
+    def self.configure: (String root, _Sink? sink, flush_interval: (Float | Integer),
+                         flush_jitter: (Float | Integer)?, sample_rate: (Float | Integer),
+                         max_buffered_lines: Integer) -> void
 
     def self.default_sink: (String root) -> FileSink
 
     def self.spawn_flush_thread: () -> void
 
     def self.flush_loop: () -> void
+
+    def self.next_wait: () -> (Float | Integer)
 
     def self.wake_flush_thread: () -> void
 
@@ -1986,7 +2009,7 @@ module SimpleCov
       def store: (Hash[String, Array[Integer]] coverage) -> true
 
       # The inner document: format_version / started_at / updated_at /
-      # coverage. Raises Error for anything that is not one.
+      # coverage / last_seen. Raises Error for anything that is not one.
       def self.read: (String path) -> Hash[String, untyped]
 
       # @api private — shared by `read` and `store`.
@@ -2000,7 +2023,7 @@ module SimpleCov
 
       def merge: (Hash[String, untyped] existing, Hash[String, Array[Integer]] incoming) -> Hash[String, untyped]
 
-      def envelope: (Hash[String, untyped] coverage, String? started_at) -> Hash[String, untyped]
+      def envelope: (Hash[String, untyped] existing, Hash[String, Array[Integer]] incoming) -> Hash[String, untyped]
     end
   end
 end

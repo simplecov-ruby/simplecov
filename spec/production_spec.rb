@@ -88,6 +88,11 @@ RSpec.describe SimpleCov::Production do
           .to raise_error(SimpleCov::Production::Error, /max_buffered_lines/)
       end
 
+      it "rejects a negative or non-numeric flush jitter" do
+        expect { start(flush_jitter: -1) }.to raise_error(SimpleCov::Production::Error, /flush_jitter/)
+        expect { start(flush_jitter: "6") }.to raise_error(SimpleCov::Production::Error, /flush_jitter/)
+      end
+
       # A forked worker inherits the parent's running measurement but
       # not its flush thread; `start` from the worker-boot hook picks
       # the measurement up rather than declining it as foreign.
@@ -281,6 +286,33 @@ RSpec.describe SimpleCov::Production do
 
       stored = Timeout.timeout(5) { queue_sink.stores.pop }
       expect(stored).to eq("lib/a.rb" => [2])
+    end
+  end
+
+  # The jitter keeps a fleet of workers booted together (a forking
+  # server's worker-boot hook starts them all at once) from draining
+  # into the shared sink at the same instant every interval.
+  describe "flush jitter" do
+    before { stub_coverage }
+
+    it "waits the interval plus a fresh random share of the jitter" do
+      start_without_flush_thread(flush_jitter: 60)
+      allow(described_class).to receive(:rand).and_return(0.5)
+
+      expect(described_class.send(:next_wait)).to eq(630)
+    end
+
+    it "defaults the jitter to a tenth of the flush interval" do
+      start_without_flush_thread
+      allow(described_class).to receive(:rand).and_return(1.0)
+
+      expect(described_class.send(:next_wait)).to eq(660)
+    end
+
+    it "waits exactly the interval when the jitter is zero" do
+      start(flush_jitter: 0)
+
+      expect(described_class.send(:next_wait)).to eq(600)
     end
   end
 

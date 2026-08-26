@@ -65,6 +65,8 @@
   --outside-tests-bg: #dfe5ee;
   --outside-tests-line-num-bg: #b6c4da;
   --outside-tests-text: #3f5578;
+  --production-marker: #0d7a80;
+  --production-never-marker: #8a919a;
 
   --source-bg: #fff;
   --source-border: #c0c5cc;
@@ -122,6 +124,8 @@
     --outside-tests-bg: #1a2231;
     --outside-tests-line-num-bg: #28344c;
     --outside-tests-text: #9db2d9;
+    --production-marker: #39c5cf;
+    --production-never-marker: #6e7681;
 
     --source-bg: #0d1117;
     --source-border: #3d444d;
@@ -174,6 +178,8 @@
   --outside-tests-bg: #1a2231;
   --outside-tests-line-num-bg: #28344c;
   --outside-tests-text: #9db2d9;
+  --production-marker: #39c5cf;
+  --production-never-marker: #6e7681;
 
   --source-bg: #0d1117;
   --source-border: #3d444d;
@@ -621,6 +627,18 @@ table.file_list td.strong {
   color: var(--text);
 }
 
+/* The last-run-in-production column, present only when the report
+   carries a production section. */
+table.file_list th.cell--production,
+table.file_list td.cell--production {
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.file_list td.t-file__production--never {
+  color: var(--text-tertiary);
+}
+
 table.file_list td.t-file__name {
   white-space: nowrap;
 }
@@ -887,6 +905,8 @@ dialog.source-dialog[open] {
 .source-legend__swatch--missed-branch { background: var(--missed-branch-bg); border-color: var(--missed-branch-line-num-bg); color: var(--missed-branch-text); }
 .source-legend__swatch--missed-method { background: var(--missed-method-bg); border-color: var(--missed-method-line-num-bg); color: var(--missed-method-text); }
 .source-legend__swatch--outside-tests { background: var(--outside-tests-bg); border-color: var(--outside-tests-line-num-bg); color: var(--outside-tests-text); }
+.source-legend__swatch--production-never { background: var(--covered-bg); border-color: var(--covered-line-num-bg); box-shadow: inset 4px 0 0 var(--production-never-marker); }
+.source-legend__swatch--production-ran   { background: var(--missed-bg); border-color: var(--missed-line-num-bg); box-shadow: inset 4px 0 0 var(--production-marker); }
 
 /* The colorblind and dark toggles, repeated in the dialog header so the mode
    can be changed while a source file is open (the modal covers the report's
@@ -1110,6 +1130,30 @@ table.file_list .totals-row td {
 .source_table .outside-tests::before { background-color: var(--outside-tests-line-num-bg); }
 
 .outside-tests-text { color: var(--outside-tests-text); }
+
+/* --- Production coverage (production_coverage) -------------------------
+
+   Rendered only when the report carries a production section. The cross
+   marks its two actionable cells with a gutter stripe: covered code the
+   production window never ran (gray — possibly dead, defended only by
+   its own spec), and missed code the window did run (teal — untested
+   code real users are hitting). The latter is doubled with a badge,
+   because next to it a plain missed line looks identical and the
+   difference is exactly what matters. Run-and-covered is the cell
+   nothing needs reporting about, so it stays unmarked. */
+
+.source_table .covered.production-never::before,
+.source_table .outside-tests.production-never::before {
+  box-shadow: inset 4px 0 0 var(--production-never-marker);
+}
+
+.source_table .missed.production-ran::before,
+.source_table .missed-branch.production-ran::before,
+.source_table .missed-method.production-ran::before {
+  box-shadow: inset 4px 0 0 var(--production-marker);
+}
+
+.source_table pre .hits--production { color: var(--production-marker); }
 
 /* The tests badge is a real button so the peek panel it opens is
    keyboard-reachable, but it wears the same chrome as the hit-count
@@ -1372,6 +1416,8 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     --outside-tests-bg: #dfe5ee;
     --outside-tests-line-num-bg: #b6c4da;
     --outside-tests-text: #3f5578;
+    --production-marker: #0d7a80;
+    --production-never-marker: #8a919a;
     --source-bg: #fff;
     --source-border: #c0c5cc;
     --source-line-number: #444;

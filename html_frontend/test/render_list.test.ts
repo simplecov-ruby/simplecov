@@ -4,7 +4,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { fileId, precomputeFileIds } from '../src/format';
 import { renderFileList } from '../src/render_list';
-import type { FileCoverage, StatGroup } from '../src/types';
+import type { FileCoverage, ProductionData, StatGroup } from '../src/types';
 
 const FULL = 'lib/full.rb';
 const BARE = 'lib/<bare>.rb'; // markup-significant name to prove escaping
@@ -212,5 +212,65 @@ describe('renderFileList with recorded contexts', () => {
     expect(container.querySelector('[data-covered-outside-lines]')).toBeNull();
     expect(container.querySelector('[data-order-2]')).toBeNull();
     expect(container.querySelector('.coverage-bar__fill--outside')).toBeNull();
+  });
+});
+
+describe('renderFileList with production coverage', () => {
+  function productionList(production?: ProductionData): HTMLElement {
+    return parse(
+      renderFileList({
+        containerId: 'g-total',
+        title: 'All Files',
+        filenames: [FULL, BARE],
+        stats: { lines: stats.lines },
+        allCoverage: { [FULL]: fullCoverage, [BARE]: bareCoverage },
+        lineCoverage: true,
+        branchCoverage: false,
+        methodCoverage: false,
+        primaryCoverage: 'line',
+        production
+      })
+    );
+  }
+
+  test('adds a sortable last-run column with an empty totals cell', () => {
+    const container = productionList({
+      files: { [FULL]: { lines: [1, 3], last_seen: '2026-08-20T12:00:00Z' } }
+    });
+
+    const header = container.querySelector('th.cell--production')!;
+    expect(header.getAttribute('data-sort-key')).toBe('production');
+    expect(header.textContent).toBe('Last Run in Production');
+    expect(container.querySelector('.totals-row td.cell--production')!.textContent).toBe('');
+
+    const cell = container.querySelector('tbody td.cell--production')!;
+    expect(cell.getAttribute('data-order')).toBe(String(Date.parse('2026-08-20T12:00:00Z')));
+    const abbr = cell.querySelector('abbr.timeago')!;
+    expect(abbr.getAttribute('title')).toBe('2026-08-20T12:00:00Z');
+    expect(abbr.textContent).toBe('2026-08-20');
+  });
+
+  test('marks a file the window never saw as never, sorted first ascending', () => {
+    const container = productionList({ files: {} });
+    const cell = container.querySelectorAll('tbody td.cell--production')[1]!;
+    expect(cell.textContent).toBe('never');
+    expect(cell.getAttribute('data-order')).toBe('-1');
+    expect(cell.className).toContain('t-file__production--never');
+  });
+
+  test('marks a stamp-less or unparseable entry as ran, between never and any date', () => {
+    const container = productionList({
+      files: { [FULL]: { lines: [1] }, [BARE]: { lines: [2], last_seen: 'junk' } }
+    });
+    const cells = container.querySelectorAll('tbody td.cell--production');
+    for (const cell of Array.from(cells)) {
+      expect(cell.textContent).toBe('ran');
+      expect(cell.getAttribute('data-order')).toBe('0');
+    }
+  });
+
+  test('renders exactly as before when the report carries no section', () => {
+    const container = productionList(undefined);
+    expect(container.querySelector('.cell--production')).toBeNull();
   });
 });

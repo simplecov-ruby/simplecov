@@ -26,7 +26,28 @@ export interface CoverageData {
   // reported run appended last), present only when past runs are
   // recorded. Carried as data; the viewer does not render it yet.
   history?: HistoryEntry[];
+  // Coverage a SimpleCov::Production store accumulated, present only
+  // when `SimpleCov.production_coverage` names a readable store. File
+  // keys match the coverage section's, so the viewer crosses the two
+  // by key.
+  production?: ProductionData;
   groups: Record<string, GroupData>;
+}
+
+export interface ProductionData {
+  // The window the store spans; optional because a store assembled by
+  // a remote sink may not carry one.
+  started_at?: string;
+  updated_at?: string;
+  files: Record<string, ProductionFileEntry>;
+}
+
+export interface ProductionFileEntry {
+  // Sorted 1-based line numbers the production window executed.
+  lines: number[];
+  // When the store last saw the file run; absent from stores written
+  // before the field existed.
+  last_seen?: string;
 }
 
 export interface HistoryEntry {

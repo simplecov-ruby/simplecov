@@ -74,6 +74,58 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["coverage"]).to eq("lib/a.rb" => [1])
   end
 
+  # Oneshot clears on drain, so hot code re-reports every interval and
+  # the store can keep a per-file recency stamp essentially for free.
+  # "This file last mattered in March" is far stronger deletion evidence
+  # than a binary bit over the whole window.
+  describe "last_seen" do
+    it "stamps every file in a delta with the store time" do
+      sink.store("lib/a.rb" => [1], "lib/b.rb" => [2])
+
+      expect(stored["last_seen"].keys.sort).to eq(["lib/a.rb", "lib/b.rb"])
+      expect(Time.iso8601(stored["last_seen"]["lib/a.rb"])).to be_within(60).of(Time.now)
+    end
+
+    it "advances only the files the delta touches" do
+      old = Time.utc(2026, 3, 1).iso8601
+      sink.store("lib/a.rb" => [1], "lib/b.rb" => [2])
+      rewrite_last_seen("lib/a.rb" => old, "lib/b.rb" => old)
+
+      sink.store("lib/b.rb" => [9])
+
+      expect(stored["last_seen"]["lib/a.rb"]).to eq(old)
+      expect(stored["last_seen"]["lib/b.rb"]).not_to eq(old)
+    end
+
+    it "sorts the stamps so the store diffs stably" do
+      sink.store("lib/z.rb" => [1])
+      sink.store("lib/a.rb" => [1])
+
+      expect(stored["last_seen"].keys).to eq(["lib/a.rb", "lib/z.rb"])
+    end
+
+    # A store written by an older gem (or a remote sink that only fills
+    # the documented v1 shape) carries no stamps; reading and merging
+    # into it must not require them.
+    it "tolerates a store without stamps" do
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE =>
+        {"format_version" => 1, "coverage" => {"lib/a.rb" => [1]}, "last_seen" => "junk"}))
+
+      expect(stored["last_seen"]).to eq({})
+
+      sink.store("lib/b.rb" => [2])
+      expect(stored["coverage"]).to eq("lib/a.rb" => [1], "lib/b.rb" => [2])
+      expect(stored["last_seen"].keys).to eq(["lib/b.rb"])
+    end
+
+    def rewrite_last_seen(stamps)
+      document = JSON.parse(File.read(path))
+      document[SimpleCov::Production::FileSink::ENVELOPE]["last_seen"] = stamps
+      File.write(path, JSON.dump(document))
+    end
+  end
+
   describe ".read" do
     it "raises for a missing envelope, naming the path" do
       FileUtils.mkdir_p(File.dirname(path))

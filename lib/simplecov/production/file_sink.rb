@@ -21,12 +21,21 @@ module SimpleCov
     # metrics pipeline — implement the same one method and live outside
     # this gem.
     #
-    # The file's shape, consumed by `simplecov dead-code`:
+    # The file's shape, consumed by `simplecov dead-code` and the
+    # report formatters:
     #
     #   {"simplecov_production": {
     #     "format_version": 1,
     #     "started_at": "...", "updated_at": "...",
-    #     "coverage": {"lib/foo.rb": [1, 3, 12]}}}
+    #     "coverage": {"lib/foo.rb": [1, 3, 12]},
+    #     "last_seen": {"lib/foo.rb": "..."}}}
+    #
+    # `last_seen` stamps each file with the last store that carried it.
+    # Oneshot clears on drain, so still-running code re-reports every
+    # interval and the stamp tracks real recency, not first sighting.
+    # The field is optional on read: a v1 store written before it
+    # existed (or by a remote sink that only fills the documented
+    # shape) simply has no recency evidence to offer.
     class FileSink
       # The envelope key, which is also how `read` tells a production
       # coverage file from an arbitrary JSON document it must not
@@ -45,7 +54,7 @@ module SimpleCov
         File.open(path, File::RDWR | File::CREAT, 0o644) do |file|
           file.flock(File::LOCK_EX)
           existing = self.class.parse(file.read, path)
-          rewrite(file, envelope(merge(existing["coverage"], coverage), existing["started_at"]))
+          rewrite(file, envelope(existing, coverage))
         end
         true
       end
@@ -71,10 +80,11 @@ module SimpleCov
       # @api private — shared by `read` and `store`'s read-modify-write.
       # An empty or missing file is a fresh store.
       def self.parse(content, path)
-        return {"coverage" => {}, "started_at" => nil} if content.strip.empty?
+        return {"coverage" => {}, "last_seen" => {}, "started_at" => nil} if content.strip.empty?
 
         inner = envelope_of(JSON.parse(content), path)
         inner["coverage"] = {} unless inner["coverage"].is_a?(Hash)
+        inner["last_seen"] = {} unless inner["last_seen"].is_a?(Hash)
         inner
       rescue JSON::ParserError => e
         raise Error, "#{path} is not valid JSON (#{e.message.lines.first.to_s.strip})"
@@ -97,14 +107,15 @@ module SimpleCov
         end
       end
 
-      def envelope(coverage, started_at)
+      def envelope(existing, incoming)
         now = Time.now.utc.iso8601
         {
           ENVELOPE => {
             "format_version" => FORMAT_VERSION,
-            "started_at" => started_at || now,
+            "started_at" => existing["started_at"] || now,
             "updated_at" => now,
-            "coverage" => coverage.sort.to_h
+            "coverage" => merge(existing["coverage"], incoming).sort.to_h,
+            "last_seen" => existing["last_seen"].merge(incoming.keys.to_h { |file| [file, now] }).sort.to_h
           }
         }
       end

@@ -10,7 +10,7 @@ require "json_schemer"
 # spec catches drift between code and schema at test time so neither
 # can rot independently.
 describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
-  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.2.schema.json", __dir__) }
+  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }
   let(:alias_doc)   { JSON.parse(File.read(alias_path)) }
@@ -207,6 +207,24 @@ describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
 
       expect(document.fetch("history").length).to eq(2)
       expect(document.fetch("history").last.fetch("totals")).to eq("line" => 66.66)
+      errors = validate_against_schema(document)
+      expect(errors).to be_empty, errors.join("\n")
+    end
+
+    it "validates a result carrying production coverage, and omits it with no store configured" do
+      absent = emit(SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}))
+      expect(absent).not_to have_key("production")
+
+      allow(SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter).to receive(:call).and_return(
+        started_at: "2026-08-01T05:00:00Z", updated_at: "2026-08-25T11:00:00Z",
+        files: {"lib/a.rb" => {lines: [1, 3], last_seen: "2026-08-25T10:00:00Z"},
+                "lib/b.rb" => {lines: [2]}}
+      )
+      result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
+
+      document = emit(result)
+
+      expect(document.fetch("production").fetch("files").keys).to eq(["lib/a.rb", "lib/b.rb"])
       errors = validate_against_schema(document)
       expect(errors).to be_empty, errors.join("\n")
     end

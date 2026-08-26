@@ -1,0 +1,19 @@
+module SimpleCov
+  module Formatter
+    class JSONFormatter
+      # Builds the optional `production` section of coverage.json from
+      # the store `SimpleCov.production_coverage` names: the window the
+      # data spans and, per root-relative path, the lines production ran
+      # plus the store's recency stamp.
+      module ProductionSectionFormatter
+        # The section, or nil — not configured, or unreadable (which
+        # warns instead of raising).
+        def self?.call: (?String? path) -> Hash[Symbol, untyped]?
+
+        def self?.section: (Hash[String, untyped] store) -> Hash[Symbol, untyped]
+
+        def self?.files: (Hash[String, untyped] store) -> Hash[String, Hash[Symbol, untyped]]
+      end
+    end
+  end
+end

@@ -238,6 +238,28 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  describe "#production_coverage" do
+    it "defaults to nil" do
+      expect(config.production_coverage).to be_nil
+    end
+
+    it "stores the path, expanded against the root" do
+      config.production_coverage "tmp/production.json"
+      expect(config.production_coverage).to eq(File.expand_path("tmp/production.json", config.root))
+    end
+
+    it "keeps an absolute path as given" do
+      absolute = File.expand_path("/var/data/production.json")
+      config.production_coverage absolute
+      expect(config.production_coverage).to eq(absolute)
+    end
+
+    it "rejects a non-string path" do
+      expect { config.production_coverage 42 }
+        .to raise_error(SimpleCov::ConfigurationError, /production_coverage/)
+    end
+  end
+
   describe "#source_in_json" do
     it "defaults to true" do
       expect(config.source_in_json).to be true

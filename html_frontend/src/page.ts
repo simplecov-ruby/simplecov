@@ -12,7 +12,7 @@ import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
 import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './contexts';
-import type { CoverageData, FileCoverage } from './types';
+import type { CoverageData, FileCoverage, ProductionData } from './types';
 
 hljs.registerLanguage('ruby', ruby);
 // A `.erb` view is markup with Ruby inside it, so it gets its own grammar
@@ -62,6 +62,8 @@ interface RenderState {
   methodCoverage: boolean;
   // The recorded context ids, or null for a report without recordings.
   contexts: string[] | null;
+  // The production section, or null for a report without one.
+  production: ProductionData | null;
 }
 let renderState: RenderState | null = null;
 
@@ -117,7 +119,8 @@ export function renderPage(data: CoverageData): void {
       branchCoverage,
       methodCoverage,
       primaryCoverage,
-      contextsEnabled: !!data.contexts
+      contextsEnabled: !!data.contexts,
+      production: data.production
     }),
   ];
   for (const groupName of Object.keys(data.groups)) {
@@ -133,7 +136,8 @@ export function renderPage(data: CoverageData): void {
         branchCoverage,
         methodCoverage,
         primaryCoverage,
-        contextsEnabled: !!data.contexts
+        contextsEnabled: !!data.contexts,
+        production: data.production
       })
     );
   }
@@ -145,7 +149,8 @@ export function renderPage(data: CoverageData): void {
   for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
   renderState = {
     idToFilename, coverage: data.coverage, lineCoverage, branchCoverage, methodCoverage,
-    contexts: data.contexts || null
+    contexts: data.contexts || null,
+    production: data.production || null
   };
   contextIndexCache.clear();
 
@@ -172,6 +177,16 @@ export function renderPage(data: CoverageData): void {
       coveredChips +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>' +
+      '</div>';
+  }
+  // The production cross marks only its two interesting cells: covered
+  // code the window never ran (a deletion candidate) and missed code it
+  // did (untested code real users are running). Run-and-covered is the
+  // cell nothing needs reporting about.
+  if (data.production && lineCoverage) {
+    legendHtml += '<div class="source-legend__row source-legend__row--production">' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--production-never"></span>Never ran in production</span>' +
+      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--production-ran"></span>Untested, runs in production</span>' +
       '</div>';
   }
   if (branchCoverage) {
@@ -202,6 +217,9 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
     renderState.branchCoverage,
     renderState.methodCoverage,
     renderState.contexts || undefined,
+    // undefined: no production section; null: a section that never saw
+    // this file (every relevant line renders as never-ran).
+    renderState.production ? (renderState.production.files[targetFilename] || null) : undefined,
   );
   const container = document.querySelector('.source_files')!;
   const wrapper = document.createElement('div');

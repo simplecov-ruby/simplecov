@@ -4,7 +4,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { fileId, precomputeFileIds } from '../src/format';
 import { languageFor, renderSourceFile } from '../src/render_source';
-import type { FileCoverage } from '../src/types';
+import type { FileCoverage, ProductionFileEntry } from '../src/types';
 
 const FILE = 'lib/<source>.rb'; // markup-significant name to prove escaping
 const TEMPLATE = 'app/views/foos/show.html.erb';
@@ -252,5 +252,68 @@ describe('renderSourceFile with recorded contexts', () => {
     expect(rendered.querySelector('.hits--tests')).toBeNull();
     expect(rendered.querySelector('.outside-tests')).toBeNull();
     expect(rendered.querySelector('.t-tests-summary')).toBeNull();
+  });
+});
+
+describe('renderSourceFile with production coverage', () => {
+  // Lines 1-3 relevant (covered, covered, missed), 4 non-relevant.
+  const simple: FileCoverage = {
+    source: ['def foo', '  :bar', '  :baz', 'end'],
+    lines: [1, 1, 0, null],
+    covered_lines: 2,
+    total_lines: 3
+  };
+
+  function renderProduction(production?: ProductionFileEntry | null): HTMLElement {
+    const el = document.createElement('div');
+    el.innerHTML = renderSourceFile(FILE, simple, true, false, false, undefined, production);
+    return el.firstElementChild as HTMLElement;
+  }
+
+  test('crosses each relevant line with the production window', () => {
+    const table = renderProduction({ lines: [1, 3], last_seen: '2026-08-25T10:30:00Z' });
+    const lines = table.querySelectorAll('pre li');
+    expect(lines[0].className).toBe('covered production-ran');
+    expect(lines[1].className).toBe('covered production-never');
+    expect(lines[2].className).toBe('missed production-ran');
+    expect(lines[3].className).toBe('never');
+  });
+
+  test('badges untested code the window ran, and only that', () => {
+    const table = renderProduction({ lines: [1, 3] });
+    const badges = table.querySelectorAll('.hits--production');
+    expect(badges).toHaveLength(1);
+    expect(badges[0].getAttribute('data-content')).toBe('runs in production');
+    expect(badges[0].closest('li')!.getAttribute('data-linenumber')).toBe('3');
+  });
+
+  test('summarizes the ran share and the last-run date in the header', () => {
+    const table = renderProduction({ lines: [1, 3], last_seen: '2026-08-25T10:30:00Z' });
+    const summary = table.querySelector('.summary-stats--production .t-production-summary')!;
+    expect(summary.textContent).toContain('Production:');
+    expect(summary.textContent).toContain('2/3 relevant lines ran');
+    expect(summary.textContent).toContain('last run 2026-08-25');
+    expect(summary.querySelector('[title="2026-08-25T10:30:00Z"]')).not.toBeNull();
+  });
+
+  test('omits the last-run clause for a stamp-less entry', () => {
+    const summary = renderProduction({ lines: [1] })
+      .querySelector('.t-production-summary')!;
+    expect(summary.textContent).toContain('1/3 relevant lines ran');
+    expect(summary.textContent).not.toContain('last run');
+  });
+
+  test('marks every relevant line of a file the window never saw', () => {
+    const table = renderProduction(null);
+    const lines = table.querySelectorAll('pre li');
+    expect(lines[0].className).toBe('covered production-never');
+    expect(lines[2].className).toBe('missed production-never');
+    expect(table.querySelector('.hits--production')).toBeNull();
+    expect(table.querySelector('.t-production-summary')!.textContent).toContain('0/3 relevant lines ran');
+  });
+
+  test('renders identically to today when the report carries no section', () => {
+    const table = renderProduction(undefined);
+    expect(table.querySelector('[class*="production"]')).toBeNull();
   });
 });

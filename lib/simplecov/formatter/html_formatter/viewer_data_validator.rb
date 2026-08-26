@@ -6,7 +6,10 @@ module SimpleCov
   module Formatter
     class HTMLFormatter
       # Validates the subset of coverage.json that the browser viewer
-      # dereferences without defensive fallbacks.
+      # dereferences without defensive fallbacks. One check per section
+      # the viewer reads; the module's length tracks the document's
+      # surface, not an accumulation of concerns.
+      # rubocop:disable Metrics/ModuleLength
       module ViewerDataValidator
         META_STRINGS = %w[simplecov_version command_name project_name timestamp].freeze
         COVERAGE_FLAGS = {
@@ -26,6 +29,7 @@ module SimpleCov
             data.fetch("coverage").each { |filename, file| validate_file!(filename, file) }
             data.fetch("groups").each { |name, group| validate_group!(name, group, meta) }
             validate_contexts!(data)
+            validate_production!(data)
             data
           end
 
@@ -75,6 +79,36 @@ module SimpleCov
           def context_entry?(key, value, count)
             key.is_a?(String) && key.match?(/\A\d+\z/) && key.to_i < count &&
               value.is_a?(String) && value.match?(/\A\h+\z/)
+          end
+
+          # Optional: a report without a configured production store
+          # carries none. When present, the viewer dereferences the
+          # files table, each entry's line list, and the stamp's string
+          # methods, so exactly those are checked; the window edges only
+          # ever feed display and stay free-form.
+          def validate_production!(data)
+            production = data["production"]
+            return if production.nil?
+
+            raise SimpleCov::CoverageJSON::Error, '"production" must be an object' unless production.is_a?(Hash)
+
+            files = validate_type!(production, "files", Hash, "production")
+            files.each { |filename, entry| validate_production_file!(filename, entry) }
+          end
+
+          def validate_production_file!(filename, entry)
+            unless production_lines?(entry)
+              raise SimpleCov::CoverageJSON::Error,
+                    "production entry #{filename.inspect} must list sorted line numbers"
+            end
+            return if entry["last_seen"].nil? || entry["last_seen"].is_a?(String)
+
+            raise SimpleCov::CoverageJSON::Error, "production entry #{filename.inspect} last_seen must be a string"
+          end
+
+          def production_lines?(entry)
+            lines = entry["lines"] if entry.is_a?(Hash)
+            lines.is_a?(Array) && lines.all? { |line| line.is_a?(Integer) && line.positive? }
           end
 
           def validate_meta!(meta)
@@ -131,6 +165,7 @@ module SimpleCov
           end
         end
       end
+      # rubocop:enable Metrics/ModuleLength
     end
   end
 end

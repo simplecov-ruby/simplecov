@@ -3,6 +3,7 @@
 require "open3"
 require "time"
 require_relative "errors_formatter"
+require_relative "production_section_formatter"
 require_relative "source_file_formatter"
 
 module SimpleCov
@@ -18,7 +19,7 @@ module SimpleCov
         # consumers should pin to, schemas/coverage.schema.json is a
         # convenience alias that always tracks the latest. See the
         # `coverage.json` schema section of the README for the rationale.
-        SCHEMA_VERSION = "1.2"
+        SCHEMA_VERSION = "1.3"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 
@@ -50,6 +51,10 @@ module SimpleCov
             # trend.
             history = SimpleCov::History.entries_with(result)
             document[:history] = history if history.length > 1
+            # Production coverage (see `SimpleCov.production_coverage`),
+            # present only when a store is configured and readable.
+            production = ProductionSectionFormatter.call
+            document[:production] = production if production
           end
 
           def format_files(result, include_source:)

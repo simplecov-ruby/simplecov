@@ -85,6 +85,60 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /files must be an array of strings/)
   end
 
+  # The production section is optional (a report without a configured
+  # `production_coverage` store has none). When present the viewer
+  # dereferences its files and their line lists, so those are checked.
+  describe "production coverage" do
+    let(:production) do
+      {
+        "started_at" => "2026-08-01T05:00:00Z",
+        "updated_at" => "2026-08-25T11:00:00Z",
+        "files" => {"lib/a.rb" => {"lines" => [1, 3], "last_seen" => "2026-08-25T10:00:00Z"}}
+      }
+    end
+
+    before { data["production"] = production }
+
+    it "accepts a document carrying a well-formed section" do
+      expect(validate).to equal(data)
+    end
+
+    it "accepts a section without a window or stamps" do
+      production.delete("started_at")
+      production.delete("updated_at")
+      production.dig("files", "lib/a.rb").delete("last_seen")
+      expect(validate).to equal(data)
+    end
+
+    it "rejects a section that is not an object" do
+      data["production"] = "junk"
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /"production" must be an object/)
+    end
+
+    it "rejects a section without a files table" do
+      production.delete("files")
+      expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, /production\.files must be a hash/)
+    end
+
+    it "rejects a file entry whose lines are not positive integers" do
+      production["files"]["lib/a.rb"] = {"lines" => [1, 0]}
+      expect { validate }
+        .to raise_error(SimpleCov::CoverageJSON::Error, %r{production entry "lib/a\.rb" must list sorted line numbers})
+    end
+
+    it "rejects a file entry that is not an object" do
+      production["files"]["lib/a.rb"] = [1, 3]
+      expect { validate }
+        .to raise_error(SimpleCov::CoverageJSON::Error, %r{production entry "lib/a\.rb" must list sorted line numbers})
+    end
+
+    it "rejects a non-string stamp" do
+      production["files"]["lib/a.rb"]["last_seen"] = 7
+      expect { validate }
+        .to raise_error(SimpleCov::CoverageJSON::Error, %r{production entry "lib/a\.rb" last_seen must be a string})
+    end
+  end
+
   # The contexts data is optional (a report without `track_tests` has
   # none), but when present the viewer dereferences it, so its shape is
   # held to the same bar as the rest.
