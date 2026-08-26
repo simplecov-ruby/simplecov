@@ -137,6 +137,27 @@ A footnote rather than a phase: the merge family (`merging`, `merge_timeout`, `m
 names, and a `merge do ... end` sub-block would group it the way `coverage` groups thresholds. It adds structure
 without removing anything, so it should only happen if the family grows again.
 
+### Production coverage: placed, and split on purpose
+
+`production_coverage PATH` names the store a `SimpleCov::Production` sink accumulated (see
+[Production.md](Production.md)) and belongs to the report family: it changes what the report carries, not what the
+runtime measures or the exit check enforces. The `*_coverage` name does not make it a criterion, any more than the
+Phase 3 target name `eval_coverage` is one. What matters, per the `:eval` lesson, is that it never rides the
+criteria switch.
+
+Production configuration spans two surfaces on purpose, and the split must survive future unifications.
+`SimpleCov::Production.start(root:, sink:, flush_interval:, ...)` configures the measuring process and stays outside
+the DSL, because `.simplecov` is loaded by every test run and by the CLI's dotfile reader, and loading a config file
+must never be able to boot a production measurement tap. Only the report-side pointer lives in the DSL, and the CLI
+defaults `dead-code --production` from it the way `ratchet` defaults `--baseline` from `baseline_file`, so the DSL
+is the single source of truth for where the store lives.
+
+Growth follows the patterns already on this page. A second report-side knob (a staleness policy, multiple stores for
+multiple environments) converges on the Phase 4 keyword-construct template
+(`production_coverage file: ..., stale_after: ...`), never a second `production_*` flat name. And if the cross ever
+feeds enforcement ("no untested lines running in production"), that cell belongs in the `coverage` block grammar as
+a bound verb under principle 2, shipped only when its enforcement ships, per the Phase 2 rule.
+
 ### Phase 6 (SimpleCov 2.0): one surface
 
 - Remove everything deprecated in Phases 1 through 5, plus the pre-existing deprecations
