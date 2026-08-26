@@ -7,11 +7,14 @@ module SimpleCov
       module Output
         def self?.emit: (untyped stdout, untyped opts, Hash[Symbol, untyped] matrix, Hash[String, untyped] production) -> void
 
-        def self?.emit_dead: (untyped stdout, Hash[Symbol, untyped] matrix) -> void
+        def self?.emit_dead: (untyped stdout, Hash[Symbol, untyped] matrix, Hash[String, untyped] last_seen) -> void
 
-        def self?.emit_untested: (untyped stdout, Hash[Symbol, untyped] matrix) -> void
+        def self?.emit_untested: (untyped stdout, Hash[Symbol, untyped] matrix, Hash[String, untyped] last_seen) -> void
 
-        def self?.section: (untyped stdout, String heading, Hash[Symbol, untyped] matrix, Symbol bucket) -> Integer
+        def self?.section: (untyped stdout, String heading, Hash[Symbol, untyped] matrix, Symbol bucket,
+                            Hash[String, untyped] last_seen) -> Integer
+
+        def self?.markers: (Hash[Symbol, untyped] matrix, String file, Hash[String, untyped] last_seen) -> String
 
         def self?.count: (Hash[Symbol, untyped] matrix, Symbol bucket) -> Integer
 
@@ -20,6 +23,8 @@ module SimpleCov
         def self?.window_suffix: (Hash[String, untyped] production) -> String
 
         def self?.json_payload: (Hash[Symbol, untyped] matrix, Hash[String, untyped] production) -> Hash[Symbol, untyped]
+
+        def self?.json_entry: (String file, Array[Integer] lines, Hash[String, untyped] last_seen) -> Hash[Symbol, untyped]
       end
     end
   end

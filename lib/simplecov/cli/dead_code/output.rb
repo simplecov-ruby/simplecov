@@ -16,13 +16,15 @@ module SimpleCov
 
           stdout.puts("Production coverage: #{opts[:production]}#{window_suffix(production)}")
           stdout.puts
-          opts[:untested] ? emit_untested(stdout, matrix) : emit_dead(stdout, matrix)
+          last_seen = production.fetch("last_seen")
+          opts[:untested] ? emit_untested(stdout, matrix, last_seen) : emit_dead(stdout, matrix, last_seen)
         end
 
-        def emit_dead(stdout, matrix)
-          rows = section(stdout, "Dead code (not run in production, not covered by tests):", matrix, :dead)
+        def emit_dead(stdout, matrix, last_seen)
+          rows = section(stdout, "Dead code (not run in production, not covered by tests):", matrix, :dead,
+                         last_seen)
           rows += section(stdout, "Possibly dead (not run in production, covered only by tests):", matrix,
-                          :possibly_dead)
+                          :possibly_dead, last_seen)
           return stdout.puts("No dead code found.") if rows.zero?
 
           dead = count(matrix, :dead)
@@ -30,8 +32,8 @@ module SimpleCov
           stdout.puts("#{pluralize(dead, 'dead line')}, #{pluralize(possibly, 'possibly dead line')}")
         end
 
-        def emit_untested(stdout, matrix)
-          rows = section(stdout, "Untested code running in production:", matrix, :untested_in_production)
+        def emit_untested(stdout, matrix, last_seen)
+          rows = section(stdout, "Untested code running in production:", matrix, :untested_in_production, last_seen)
           return stdout.puts("No untested production code found.") if rows.zero?
 
           stdout.puts("#{pluralize(count(matrix, :untested_in_production), 'untested line')} running in production")
@@ -40,17 +42,30 @@ module SimpleCov
         # Print one category as `path:ranges` rows (empty categories
         # print nothing, not even their heading) and return the row
         # count.
-        def section(stdout, heading, matrix, bucket)
+        def section(stdout, heading, matrix, bucket, last_seen)
           rows = matrix[bucket].sort
           return 0 if rows.empty?
 
           stdout.puts(heading)
           rows.each do |file, lines|
-            marker = matrix[:entire].include?(file) ? " (entire file)" : ""
-            stdout.puts("  #{file}:#{Patch::Output.ranges(lines, ',')}#{marker}")
+            stdout.puts("  #{file}:#{Patch::Output.ranges(lines, ',')}#{markers(matrix, file, last_seen)}")
           end
           stdout.puts
           rows.size
+        end
+
+        # The row's parenthesized evidence. "entire file" says every
+        # relevant line skipped production; "last run" dates the store's
+        # last sighting of the file, which for a dead or possibly dead
+        # row means other lines of the file (or lines the report deems
+        # irrelevant) ran then, and its absence means the window never
+        # saw the file at all. Both can hold at once.
+        def markers(matrix, file, last_seen)
+          markers = [] #: Array[String]
+          markers << "entire file" if matrix[:entire].include?(file)
+          stamp = last_seen[file]
+          markers << "last run #{stamp[0, 10]}" if stamp.is_a?(String)
+          markers.empty? ? "" : " (#{markers.join(', ')})"
         end
 
         def count(matrix, bucket)
@@ -70,11 +85,21 @@ module SimpleCov
         end
 
         def json_payload(matrix, production)
+          last_seen = production.fetch("last_seen")
           payload = {window: {started_at: production["started_at"], updated_at: production["updated_at"]}}
           %i[dead possibly_dead untested_in_production].each do |bucket|
-            payload[bucket] = matrix[bucket].sort.map { |file, lines| {file: file, lines: lines} }
+            payload[bucket] = matrix[bucket].sort.map { |file, lines| json_entry(file, lines, last_seen) }
           end
           payload
+        end
+
+        # JSON carries the full stamp where the text views print its
+        # date, and omits the key for a file the window never saw.
+        def json_entry(file, lines, last_seen)
+          entry = {file: file, lines: lines} #: Hash[Symbol, untyped]
+          stamp = last_seen[file]
+          entry[:last_seen] = stamp if stamp.is_a?(String)
+          entry
         end
       end
     end

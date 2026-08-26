@@ -388,7 +388,7 @@ Production coverage: /var/data/coverage/production.json (window 2026-08-01T05:00
 Dead code (not run in production, not covered by tests):
   app/models/legacy_import.rb:4-30 (entire file)
 Possibly dead (not run in production, covered only by tests):
-  app/services/rollback.rb:12-19
+  app/services/rollback.rb:12-19 (last run 2026-08-03)
 
 27 dead lines, 8 possibly dead lines
 ```
@@ -399,6 +399,11 @@ is the highest-value place to add a test. Rows are the same greppable `path:rang
 prints, a file whose every relevant line skipped production is marked `(entire file)`, and `--json` emits all three
 categories plus the window as data. Lines the report deems irrelevant or deliberately ignored stay out of every
 bucket, and a production file the report never tracked reports all its recorded lines as untested in production.
+
+When the store carries [`last_seen` stamps](Production.md#sinks), each row dates the store's last sighting of its
+file (`(last run 2026-08-03)`, with the full stamp as `last_seen` in the `--json` entries). On a dead or possibly
+dead row that means other lines of the file ran then, so a recent date says the file is alive around its dead lines,
+while no date at all says the window never saw the file. Rows from a store without stamps print bare.
 
 The header names the window the production data spans because the window is the evidence: a day of traffic misses
 monthly jobs. `--production` is required; `--input` picks the test report like the other read-only commands.

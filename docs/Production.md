@@ -107,16 +107,18 @@ Production coverage: /var/data/coverage/production.json (window 2026-08-01T05:00
 Dead code (not run in production, not covered by tests):
   app/models/legacy_import.rb:4-30 (entire file)
 Possibly dead (not run in production, covered only by tests):
-  app/services/rollback.rb:12-19
+  app/services/rollback.rb:12-19 (last run 2026-08-03)
 
 27 dead lines, 8 possibly dead lines
 ```
 
-Per line, production and tests cross into four cells: run in both is normal; run in production but untested is the
-highest-value place to add a test (`--untested-in-production` prints those); tested but never run in production is
-possibly dead, a deletion candidate whose only defender is its own spec; run by neither is dead. The default view
+Per line, production and tests cross into four cells: run in both is normal. Run in production but untested is the
+highest-value place to add a test (`--untested-in-production` prints those). Tested but never run in production is
+possibly dead, a deletion candidate whose only defender is its own spec. Run by neither is dead. The default view
 prints the two deletion-candidate rows, a file whose every relevant line skipped production is marked `(entire
-file)`, and `--json` emits all three categories with the window, for tooling.
+file)`, a store with `last_seen` stamps dates each row's file (`(last run 2026-08-03)` says other lines of
+rollback.rb ran then, while no date says the window never saw the file at all), and `--json` emits all three
+categories with the window and full stamps, for tooling.
 
 The header names the window because the window is the evidence: a day of traffic misses monthly jobs, and a month
 misses yearly ones. Read "dead" as "dead over this window, as far as this traffic saw".

@@ -2487,22 +2487,53 @@ RSpec.describe SimpleCov::CLI do
       run("dead-code", "--input", input, "--production", production_path, *extra)
     end
 
+    # The date the store last saw a file run, as the text views print it.
+    def last_run(file)
+      SimpleCov::Production::FileSink.read(production_path).fetch("last_seen").fetch(file)[0, 10]
+    end
+
     it "prints the dead and possibly dead rows with ranges and a summary" do
       expect(run_dead_code).to eq(0)
 
       expect(stdout.string).to include("Dead code (not run in production, not covered by tests):")
-      expect(stdout.string).to include("  lib/mixed.rb:2\n")
+      expect(stdout.string).to include("  lib/mixed.rb:2 (last run #{last_run('lib/mixed.rb')})\n")
       expect(stdout.string).to include("Possibly dead (not run in production, covered only by tests):")
-      expect(stdout.string).to include("  lib/mixed.rb:4\n")
+      expect(stdout.string).to include("  lib/mixed.rb:4 (last run #{last_run('lib/mixed.rb')})\n")
       expect(stdout.string).to include("1 dead line, 3 possibly dead lines")
     end
 
     it "marks a file whose every relevant line skipped production, and keeps the other rows out" do
       run_dead_code
 
-      expect(stdout.string).to include("  lib/tested_unused.rb:1-2 (entire file)")
+      expect(stdout.string).to include("  lib/tested_unused.rb:1-2 (entire file)\n")
       expect(stdout.string).not_to include("prod_only")
       expect(stdout.string).not_to include("ignored.rb")
+    end
+
+    # A store can have seen a file without any of its relevant lines
+    # (stale line numbers, lines the report deems irrelevant): the row
+    # then carries both markers, because "every relevant line skipped
+    # production" and "production last touched this file in August" are
+    # both evidence.
+    it "combines the entire-file marker with the file's last production activity" do
+      SimpleCov::Production::FileSink.new(path: production_path).store("lib/tested_unused.rb" => [9])
+
+      run_dead_code
+
+      expect(stdout.string)
+        .to include("  lib/tested_unused.rb:1-2 (entire file, last run #{last_run('lib/tested_unused.rb')})\n")
+    end
+
+    # A v1 store (or a remote sink that only fills the documented shape)
+    # carries no stamps; rows stay bare rather than guessing.
+    it "leaves the annotation off when the store carries no stamps" do
+      document = JSON.parse(File.read(production_path))
+      document[SimpleCov::Production::FileSink::ENVELOPE].delete("last_seen")
+      File.write(production_path, JSON.dump(document))
+
+      expect(run_dead_code).to eq(0)
+      expect(stdout.string).to include("  lib/mixed.rb:2\n")
+      expect(stdout.string).not_to include("last run")
     end
 
     it "names the production file and its window in the header" do
@@ -2517,22 +2548,26 @@ RSpec.describe SimpleCov::CLI do
       expect(run_dead_code("--untested-in-production")).to eq(0)
 
       expect(stdout.string).to include("Untested code running in production:")
-      expect(stdout.string).to include("  lib/mixed.rb:5\n")
-      expect(stdout.string).to include("  lib/prod_only.rb:3-4\n")
+      expect(stdout.string).to include("  lib/mixed.rb:5 (last run #{last_run('lib/mixed.rb')})\n")
+      expect(stdout.string).to include("  lib/prod_only.rb:3-4 (last run #{last_run('lib/prod_only.rb')})\n")
       expect(stdout.string).to include("3 untested lines running in production")
       expect(stdout.string).not_to include("Dead code")
     end
 
-    it "emits every category as JSON" do
+    it "emits every category as JSON, with the full stamps" do
       expect(run_dead_code("--json")).to eq(0)
 
+      store = SimpleCov::Production::FileSink.read(production_path).fetch("last_seen")
       data = JSON.parse(stdout.string)
-      expect(data.fetch("dead")).to eq([{"file" => "lib/mixed.rb", "lines" => [2]}])
+      expect(data.fetch("dead"))
+        .to eq([{"file" => "lib/mixed.rb", "lines" => [2], "last_seen" => store.fetch("lib/mixed.rb")}])
       expect(data.fetch("possibly_dead")).to eq(
-        [{"file" => "lib/mixed.rb", "lines" => [4]}, {"file" => "lib/tested_unused.rb", "lines" => [1, 2]}]
+        [{"file" => "lib/mixed.rb", "lines" => [4], "last_seen" => store.fetch("lib/mixed.rb")},
+         {"file" => "lib/tested_unused.rb", "lines" => [1, 2]}]
       )
       expect(data.fetch("untested_in_production")).to eq(
-        [{"file" => "lib/mixed.rb", "lines" => [5]}, {"file" => "lib/prod_only.rb", "lines" => [3, 4]}]
+        [{"file" => "lib/mixed.rb", "lines" => [5], "last_seen" => store.fetch("lib/mixed.rb")},
+         {"file" => "lib/prod_only.rb", "lines" => [3, 4], "last_seen" => store.fetch("lib/prod_only.rb")}]
       )
       expect(data.fetch("window")).to include("started_at", "updated_at")
     end
