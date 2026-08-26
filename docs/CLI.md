@@ -406,7 +406,9 @@ dead row that means other lines of the file ran then, so a recent date says the 
 while no date at all says the window never saw the file. Rows from a store without stamps print bare.
 
 The header names the window the production data spans because the window is the evidence: a day of traffic misses
-monthly jobs. `--production` is required; `--input` picks the test report like the other read-only commands.
+monthly jobs. `--production` defaults to the [`production_coverage`](Production.md#seeing-the-cross-in-the-html-and-json-reports)
+configured in the project's `.simplecov`, the way `ratchet` reads `baseline_file`, and is required when no store is
+configured. `--input` picks the test report like the other read-only commands.
 
 ### `watch` — the coverage inner loop
 

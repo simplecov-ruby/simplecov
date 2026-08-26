@@ -2610,9 +2610,27 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("window")
     end
 
-    it "errors without --production" do
-      expect(run("dead-code", "--input", input)).to eq(1)
+    it "defaults --production to the project's configured production_coverage" do
+      File.write(File.join(tmp, ".simplecov"), %(SimpleCov.production_coverage #{production_path.inspect}\n))
+
+      Dir.chdir(tmp) { expect(run("dead-code", "--input", input)).to eq(0) }
+      expect(stdout.string).to include("Production coverage: #{production_path}")
+    end
+
+    it "prefers an explicit --production over the configured store" do
+      other = File.join(tmp, "other.json")
+      SimpleCov::Production::FileSink.new(path: other).store("lib/other.rb" => [1])
+      File.write(File.join(tmp, ".simplecov"), %(SimpleCov.production_coverage #{other.inspect}\n))
+
+      Dir.chdir(tmp) { expect(run_dead_code).to eq(0) }
+      expect(stdout.string).to include("Production coverage: #{production_path}")
+      expect(stdout.string).not_to include("other.json")
+    end
+
+    it "errors without --production when the project configures no store" do
+      Dir.chdir(tmp) { expect(run("dead-code", "--input", input)).to eq(1) }
       expect(stderr.string).to include("simplecov dead-code: missing --production")
+      expect(stderr.string).to include("production_coverage")
     end
 
     it "errors when the production file is missing" do

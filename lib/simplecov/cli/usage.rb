@@ -119,7 +119,7 @@ module SimpleCov
             --json                    Emit results as a JSON array (for CI)
 
           dead-code options:
-            --production PATH         The production coverage file a SimpleCov::Production sink wrote (required)
+            --production PATH         The production coverage file a SimpleCov::Production sink wrote (default: the project's `production_coverage`, required when none is configured)
             --untested-in-production  Print code production runs that no test covers, instead of the dead rows
             --json                    Emit every category (dead, possibly dead, untested in production) as JSON
 

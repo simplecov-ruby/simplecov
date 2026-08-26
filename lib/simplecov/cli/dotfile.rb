@@ -47,6 +47,37 @@ module SimpleCov
         # simplecov:enable
       end
 
+      # The project's configured production coverage store (see
+      # `SimpleCov.production_coverage` and docs/Production.md), read
+      # from `.simplecov` the same way `baseline_file` is, so a project
+      # that names its store doesn't need `--production` on every
+      # dead-code run. Nil when there is no dotfile, the dotfile names
+      # no store, or it cannot be read: unlike the other reads there is
+      # no sensible fallback path, and the command's own missing-store
+      # error is the right answer.
+      def production_coverage
+        dotfile = find
+        return nil unless dotfile
+
+        with_simplecov_loaded { read_production_coverage_from(dotfile) }
+      rescue ScriptError, StandardError => e
+        # simplecov:disable — defensive fallback for a bad dotfile,
+        # mirroring coverage_dir's; never fires in the dogfood run.
+        warn "simplecov: failed to read production_coverage from #{dotfile}: #{e.class}: #{e.message}"
+        nil
+        # simplecov:enable
+      end
+
+      # Like `read_from`, snapshotting only the ivar this read is for.
+      def read_production_coverage_from(dotfile)
+        snapshot = SimpleCov.instance_variable_get(:@production_coverage) #: String?
+        load_with_start_neutered(dotfile)
+        SimpleCov.production_coverage
+      ensure
+        # @type var snapshot: String?
+        SimpleCov.instance_variable_set(:@production_coverage, snapshot)
+      end
+
       # Like `read_from`, snapshotting only the ivar this read is for.
       def read_baseline_file_from(dotfile)
         snapshot = SimpleCov.instance_variable_get(:@baseline_file) #: String?

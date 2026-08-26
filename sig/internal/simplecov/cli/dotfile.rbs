@@ -16,6 +16,14 @@ module SimpleCov
       # Like `read_from`, snapshotting only the ivar this read is for.
       def self?.read_baseline_file_from: (untyped dotfile) -> String
 
+      # The project's configured production coverage store (see
+      # `SimpleCov.production_coverage`), or nil when there is no
+      # dotfile, no configured store, or the dotfile cannot be read.
+      def self?.production_coverage: () -> String?
+
+      # Like `read_from`, snapshotting only the ivar this read is for.
+      def self?.read_production_coverage_from: (untyped dotfile) -> String?
+
       # Load the dotfile, snapshot+restore `SimpleCov.coverage_dir` so we
       # don't quietly clobber it in a host process that's already
       # configured (e.g. when the CLI is exercised inline by simplecov's

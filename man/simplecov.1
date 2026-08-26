@@ -278,7 +278,8 @@ Read from PATH instead of coverage/coverage.json
 Disable colorized percentages (also honors NO_COLOR / FORCE_COLOR env)
 .TP
 .B \-\-production PATH
-The production coverage file a SimpleCov::Production sink wrote (required)
+The production coverage file a SimpleCov::Production sink wrote (default: the
+project's `production_coverage`, required when none is configured)
 .TP
 .B \-\-untested\-in\-production
 Print code production runs that no test covers, instead of the dead rows

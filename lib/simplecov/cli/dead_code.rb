@@ -50,12 +50,18 @@ module SimpleCov
           parser.on("--untested-in-production") { options[:untested] = true }
         end
         return error_nil(stderr, "unexpected argument #{rest.first.inspect}") unless rest.empty?
-        unless opts[:production]
-          return error_nil(stderr,
-                           "missing --production PATH (the file a SimpleCov::Production sink wrote)")
-        end
 
-        opts
+        # The project's configured store fills in for the flag, the way
+        # ratchet reads `baseline_file`, so the DSL stays the single
+        # source of truth for where production coverage lives.
+        opts[:production] ||= Dotfile.production_coverage
+        opts[:production] ? opts : missing_production(stderr)
+      end
+
+      def missing_production(stderr)
+        error_nil(stderr,
+                  "missing --production PATH (the file a SimpleCov::Production sink wrote, " \
+                  "or configure SimpleCov.production_coverage in .simplecov)")
       end
 
       def load_production(path, stderr)

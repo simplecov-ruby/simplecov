@@ -124,7 +124,8 @@ The header names the window because the window is the evidence: a day of traffic
 misses yearly ones. Read "dead" as "dead over this window, as far as this traffic saw".
 
 See the [command-line interface](CLI.md#dead-code--cross-production-coverage-with-the-test-report) for the full
-option listing.
+option listing. With `production_coverage` configured (next section), the `--production` flag is optional and the
+command runs bare.
 
 ### Seeing the cross in the HTML and JSON reports
 
@@ -150,3 +151,6 @@ for downstream tools.
 
 The store is read at report time. An unreadable or invalid store warns and the report is generated without the
 section: a missing night of production data should not fail the suite that measured the tests.
+
+The setting is also the CLI's default: with `production_coverage` in `.simplecov`, `simplecov dead-code` needs no
+`--production` flag, so the configuration names the store once and everything that crosses reads it from there.

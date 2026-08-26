@@ -17,6 +17,8 @@ module SimpleCov
 
       def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
 
+      def self?.missing_production: (untyped stderr) -> nil
+
       def self?.load_production: (String path, untyped stderr) -> (Hash[String, untyped] | nil)
 
       def self?.cross: (untyped coverage, Hash[String, Array[Integer]] production_coverage) -> Hash[Symbol, untyped]
