@@ -1998,7 +1998,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "show subcommand" do
+  describe "show subcommand", mutant_expression: "SimpleCov::CLI::Show*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-show-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:code_path) { File.join(tmp, "lib/code.rb") }
@@ -2057,21 +2057,54 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "sweeps the whole project under a bare --uncovered-only" do
+      payload["coverage"][File.join(SimpleCov.root, "lib/zzz.rb")] = {"lines" => [0]}
       payload["coverage"][File.join(SimpleCov.root, "lib/rooted.rb")] = {"lines" => [1, 0, 0, nil, 0]}
       payload["coverage"][File.join(tmp, "lib/covered.rb")] = {"lines" => [1, 1]}
       payload["coverage"][File.join(tmp, "lib/junk.rb")] = "junk"
       File.write(json_path, JSON.dump(payload))
 
+      # Sorted by the path shown, not by the order the report happens
+      # to list them in.
       expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
       expect(stdout.string).to eq(<<~OUT)
         #{code_path}:3,6-8,10
         lib/rooted.rb:2-3,5
+        lib/zzz.rb:1
       OUT
     end
 
     it "reports a missing input on a bare sweep like everywhere else" do
-      expect(run("show", "--input", File.join(tmp, "nope.json"), "--uncovered-only")).to eq(1)
-      expect(stderr.string).to include("not found")
+      missing = File.join(tmp, "nope.json")
+      expect(run("show", "--input", missing, "--uncovered-only")).to eq(1)
+      expect(stderr.string).to eq("simplecov show: #{missing} not found\n")
+    end
+
+    it "names the subcommand and the input when the file itself is missing" do
+      missing = File.join(tmp, "nope.json")
+      expect(run("show", "--input", missing, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov show: #{missing} not found\n")
+    end
+
+    # A line-coverage-only entry is a Hash whose "lines" is a list. A
+    # Hash whose "lines" is anything else has no gutter to sweep, and
+    # an entry that is no Hash has nothing to ask at all.
+    it "passes over an entry whose lines are no lines at all in a sweep" do
+      payload["coverage"][File.join(tmp, "lib/odd.rb")] = {"lines" => "junk"}
+      payload["coverage"][File.join(tmp, "lib/list.rb")] = [1, 0]
+      payload["coverage"][File.join(tmp, "lib/none.rb")] = {"branches" => []}
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
+      expect(stdout.string).to eq("#{code_path}:3,6-8,10\n")
+    end
+
+    # The root is shown project-relative, and a root that has not been
+    # expanded yet is still that root.
+    it "trims an unexpanded root off the paths it sweeps" do
+      allow(SimpleCov).to receive(:root).and_return(File.join(tmp, "lib", ".."))
+
+      expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
+      expect(stdout.string).to eq("lib/code.rb:3,6-8,10\n")
     end
 
     it "notes a fully covered project under a bare --uncovered-only" do
@@ -2132,18 +2165,32 @@ RSpec.describe SimpleCov::CLI do
       entry.delete("lines")
       File.write(json_path, JSON.dump(payload))
       expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
-      expect(stderr.string).to include("no line coverage")
+      expect(stderr.string).to eq("simplecov show: no line coverage for lib/code.rb in #{json_path}\n")
+    end
+
+    # A gutter is a list of counts. Something else under that key is no
+    # more usable than nothing under it.
+    it "errors on a report whose line data is no list" do
+      entry["lines"] = "junk"
+      File.write(json_path, JSON.dump(payload))
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov show: no line coverage for lib/code.rb in #{json_path}\n")
     end
 
     it "reports an unknown file like the coverage subcommand does" do
       expect(run("show", "--input", json_path, "lib/nope.rb")).to eq(1)
-      expect(stderr.string).to include("no entry for lib/nope.rb")
+      expect(stderr.string).to eq("simplecov show: no entry for lib/nope.rb in #{json_path}\n")
     end
 
+    # One complaint, not two: the wrong-typed entry is reported and
+    # nothing goes on to ask it for lines.
     it "reports a wrong-typed entry as invalid input" do
       File.write(json_path, JSON.dump("coverage" => {code_path => "junk"}))
       expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
-      expect(stderr.string).to include("entry for lib/code.rb must be an object")
+      expect(stderr.string).to eq(
+        "simplecov show: input file #{json_path.inspect} isn't valid JSON " \
+        "(entry for lib/code.rb must be an object)\n"
+      )
     end
 
     it "errors without a path" do
@@ -2184,6 +2231,236 @@ RSpec.describe SimpleCov::CLI do
     it "documents itself in the usage text" do
       expect(run("help")).to eq(0)
       expect(stdout.string).to include("show options:")
+    end
+
+    describe ".source_for" do
+      # The report's lines have no newlines on them, so the source read
+      # from disk in their place must not either.
+      it "reads the file from disk without the newlines" do
+        FileUtils.mkdir_p(File.dirname(code_path))
+        File.write(code_path, source.join("\n") << "\n")
+        entry.delete("source")
+
+        read = SimpleCov::CLI::Show.source_for(code_path, entry, {path: "lib/code.rb", input: json_path}, stderr)
+        expect(read).to eq(source)
+      end
+    end
+
+    describe ".parse" do
+      # Every other example passes --input, so the default is only ever
+      # seen when nothing says otherwise.
+      it "reads the project's own report when no input is named" do
+        expect(SimpleCov::CLI::Show.parse([])[:input]).to eq(described_class.default_input)
+      end
+
+      # Numbered by where the count sits in the gutter, not by where it
+      # lands in the answer.
+      it "counts only whole numbers of hits as lines to report" do
+        entry["lines"] = [1, 0.0, "3", nil, 5]
+        File.write(json_path, JSON.dump(payload))
+
+        expect(run("show", "--input", json_path, "--json", "lib/code.rb")).to eq(0)
+        expect(JSON.parse(stdout.string)["lines"])
+          .to eq([{"number" => 1, "hits" => 1}, {"number" => 5, "hits" => 5}])
+      end
+
+      it "starts with color on and both compact forms off" do
+        opts = SimpleCov::CLI::Show.parse([])
+        expect(opts).to include(no_color: false, uncovered_only: false, json: false, path: nil)
+      end
+
+      it "takes each flag when it is given" do
+        opts = SimpleCov::CLI::Show.parse(%w[--input other.json --no-color --uncovered-only --json lib/a.rb])
+        expect(opts).to eq(input: "other.json", no_color: true, uncovered_only: true, json: true, path: "lib/a.rb")
+      end
+
+      # One file is annotated, so anything past the first is not a path.
+      it "takes the first bare argument as the path" do
+        expect(SimpleCov::CLI::Show.parse(%w[lib/a.rb lib/b.rb])[:path]).to eq("lib/a.rb")
+      end
+    end
+
+    it "reports a source list carrying something that is not a line" do
+      entry["source"] = ["def call", 42]
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("no source for lib/code.rb")
+    end
+
+    # Source is a list of lines. One string holding the whole file is
+    # not that, and is no more usable than none at all.
+    it "reports a source that is not a list of lines" do
+      entry["source"] = "def call\nend\n"
+      File.write(json_path, JSON.dump(payload))
+
+      expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
+      expect(stderr.string).to include("no source for lib/code.rb")
+    end
+
+    # The renderer asked directly, rather than through a whole report:
+    # the gutter arithmetic and the tolerance for malformed entries are
+    # what a rendered page can only show one combination of at a time.
+    describe SimpleCov::CLI::Show::Annotator do
+      let(:annotator) { described_class }
+      let(:out) { StringIO.new }
+
+      describe "#count_width" do
+        it "measures the widest hit count" do
+          expect(annotator.count_width({"lines" => [1, 100, 5]})).to eq(3)
+        end
+
+        it "ignores the lines carrying no count at all" do
+          expect(annotator.count_width({"lines" => [nil, 7, nil]})).to eq(1)
+        end
+
+        # One column, so a countless file still lines its source up.
+        it "falls back to a single column when nothing is counted" do
+          expect(annotator.count_width({"lines" => [nil, nil]})).to eq(1)
+          expect(annotator.count_width({"lines" => []})).to eq(1)
+        end
+      end
+
+      describe "#missed_line_of" do
+        it "reads a zero-hit item's reported line" do
+          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 0})).to eq(4)
+        end
+
+        # report_line is what the report says to point at; start_line is
+        # where the construct begins, and stands in when it is absent.
+        it "prefers the reported line to the starting one" do
+          expect(annotator.missed_line_of({"report_line" => 4, "start_line" => 9, "coverage" => 0})).to eq(4)
+          expect(annotator.missed_line_of({"start_line" => 9, "coverage" => 0})).to eq(9)
+        end
+
+        it "passes over an item that was hit" do
+          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 1})).to be_nil
+        end
+
+        it "passes over an item whose count is no count" do
+          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => nil})).to be_nil
+          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => "0"})).to be_nil
+          expect(annotator.missed_line_of({"report_line" => 4})).to be_nil
+        end
+
+        it "passes over an item whose line is no line" do
+          expect(annotator.missed_line_of({"report_line" => "4", "coverage" => 0})).to be_nil
+          expect(annotator.missed_line_of({"coverage" => 0})).to be_nil
+        end
+
+        it "passes over anything that is not an item" do
+          expect(annotator.missed_line_of("junk")).to be_nil
+          expect(annotator.missed_line_of(nil)).to be_nil
+          expect(annotator.missed_line_of([{"report_line" => 4, "coverage" => 0}])).to be_nil
+        end
+      end
+
+      describe "#each_missed" do
+        it "yields the line of every missed item and no other" do
+          items = [{"report_line" => 2, "coverage" => 0}, {"report_line" => 3, "coverage" => 1},
+                   {"report_line" => 5, "coverage" => 0}]
+          expect { |probe| annotator.each_missed(items, &probe) }.to yield_successive_args(2, 5)
+        end
+
+        # A report without branches or methods carries nothing here, and
+        # a malformed one carries the wrong thing.
+        it "yields nothing when there is no list to walk" do
+          expect { |probe| annotator.each_missed(nil, &probe) }.not_to yield_control
+          expect { |probe| annotator.each_missed("junk", &probe) }.not_to yield_control
+          expect { |probe| annotator.each_missed([], &probe) }.not_to yield_control
+        end
+      end
+
+      describe "#missed_lines" do
+        it "numbers the zero-hit lines from one" do
+          expect(annotator.missed_lines({"lines" => [0, 1, 0, nil]})).to eq([1, 3])
+        end
+
+        it "passes over the lines that carry no count" do
+          expect(annotator.missed_lines({"lines" => [nil, nil]})).to be_empty
+        end
+
+        # A count is a whole number of hits. A zero that is not one is
+        # not a miss the gutter knows how to report.
+        it "passes over a zero that is no count" do
+          expect(annotator.missed_lines({"lines" => [0.0]})).to be_empty
+        end
+      end
+
+      describe "#call" do
+        # An embedded source can carry more lines than the report has
+        # counts for. Those lines still print, with a blank gutter.
+        it "leaves the gutter blank past the end of the counts" do
+          annotator.call(%w[one two], {"lines" => [1], "branches" => [], "methods" => []}, out, color: false)
+          expect(out.string).to eq("1  1  one\n2     two\n")
+        end
+
+        # The caret line is painted under the same rule as the count
+        # beside it, so both answer to the one setting.
+        it "paints the caret as well as the count" do
+          annotator.call(%w[one], {"lines" => [0], "branches" => [], "methods" => []}, out, color: true)
+          expect(out.string).to eq("1  \e[31m0\e[0m  one\n      \e[31m^ missed\e[0m\n")
+        end
+      end
+
+      describe "#row" do
+        let(:widths) { {number: 2, count: 3} }
+
+        it "right-aligns the number and the count in their columns" do
+          expect(annotator.row(7, 42, "code", widths, false)).to eq(" 7   42  code")
+        end
+
+        it "leaves the count column blank for a line that carries none" do
+          expect(annotator.row(7, nil, "code", widths, false)).to eq(" 7       code")
+        end
+
+        # A count is a number. Anything else in the slot is not one, and
+        # printing it would put a non-count in the count column.
+        it "leaves the column blank for a count that is no number" do
+          expect(annotator.row(7, "3", "code", widths, false)).to eq(" 7       code")
+        end
+
+        it "trims a row whose source line is empty" do
+          expect(annotator.row(7, nil, "", widths, false)).to eq(" 7")
+        end
+
+        # Padded before painting, so the escape codes cannot widen the
+        # column they sit in.
+        it "paints a missed count red and a hit one green, after padding" do
+          expect(annotator.row(7, 0, "code", widths, true)).to eq(" 7  \e[31m  0\e[0m  code")
+          expect(annotator.row(7, 1, "code", widths, true)).to eq(" 7  \e[32m  1\e[0m  code")
+        end
+
+        it "leaves a blank count unpainted" do
+          expect(annotator.row(7, nil, "code", widths, true)).to eq(" 7       code")
+        end
+      end
+
+      describe "#emit" do
+        let(:widths) { {number: 2, count: 3} }
+
+        it "prints the row alone when nothing is missed on it" do
+          annotator.emit(out, " 7   42  code", [], widths, false)
+          expect(out.string).to eq(" 7   42  code\n")
+        end
+
+        # The caret sits under the source column, past the number, the
+        # count, and the two-space gaps either side of it.
+        it "points a caret at the source column under the row" do
+          annotator.emit(out, " 7    0  code", ["missed"], widths, false)
+          expect(out.string).to eq(" 7    0  code\n         ^ missed\n")
+        end
+
+        it "joins a line's labels on the one caret" do
+          annotator.emit(out, " 7    0  code", ["missed", "branch missed"], widths, false)
+          expect(out.string).to include("^ missed, branch missed\n")
+        end
+
+        it "paints the caret line red" do
+          annotator.emit(out, " 7    0  code", ["missed"], widths, true)
+          expect(out.string).to include("\e[31m^ missed\e[0m")
+        end
+      end
     end
   end
 

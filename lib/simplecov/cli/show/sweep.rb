@@ -8,13 +8,13 @@ module SimpleCov
       # output is the whole project's uncovered surface, ready for a
       # grep or a coding agent.
       module Sweep
-      module_function
+        extend self
 
         # [display path, missed lines] per file with misses, sorted,
         # with paths under SimpleCov.root shown project-relative.
         def misses(coverage)
           rows = coverage.filter_map do |filename, entry|
-            next unless entry.is_a?(Hash) && entry["lines"].is_a?(Array)
+            next unless entry.instance_of?(Hash) && entry["lines"].instance_of?(Array)
 
             missed = Annotator.missed_lines(entry)
             [display_path(filename), missed] unless missed.empty?
@@ -23,7 +23,7 @@ module SimpleCov
         end
 
         def emit(rows, opts, stdout, stderr)
-          if opts[:json]
+          if opts.fetch(:json)
             stdout.puts(JSON.pretty_generate(rows.map { |path, missed| {path: path, missed: missed} }))
           elsif rows.empty?
             stderr.puts("simplecov show: nothing uncovered")
