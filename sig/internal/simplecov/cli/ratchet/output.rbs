@@ -4,6 +4,10 @@ module SimpleCov
       # Renders a ratchet pass: the one-line write summary, the
       # below-floor note, and the JSON form of the same facts.
       module Output
+        include CommandHelpers
+
+        extend CommandHelpers
+
         def self?.emit: (untyped stdout, untyped opts, Baseline::Outcome outcome, bool generated) -> void
 
         def self?.change_summary: (Baseline::Outcome outcome, bool generated) -> String

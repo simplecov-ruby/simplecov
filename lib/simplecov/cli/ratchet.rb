@@ -24,24 +24,28 @@ module SimpleCov
     module Ratchet
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         # The full library carries Baseline and the dotfile default.
         require "simplecov"
         opts = parse(args, stderr) or return 1
-        coverage = CoverageFile.load_coverage(opts[:input], command: "ratchet", stderr: stderr) or return 1
+        coverage = CoverageFile.load_coverage(opts.fetch(:input), command: "ratchet", stderr: stderr) or return 1
 
         outcome, generated = compute(opts, current_floors(coverage))
-        AtomicFile.write(opts[:baseline], outcome.baseline.to_yaml) unless opts[:dry_run]
+        AtomicFile.write(opts.fetch(:baseline), outcome.baseline.to_yaml) unless opts.fetch(:dry_run)
         Output.emit(stdout, opts, outcome, generated)
         0
-      rescue SimpleCov::ConfigurationError => e
-        error(stderr, e.message)
+      rescue ConfigurationError => e
+        # The exception stands for its own message: `error` interpolates
+        # what it is handed, and an exception interpolates as its message.
+        error(stderr, e)
       end
 
       def parse(args, stderr)
-        opts, rest = parse_common(args, baseline: nil, init: false, dry_run: false) do |parser, options|
+        # `baseline` needs no default: it is filled in below from the
+        # project's configured path whenever the flag went unused.
+        opts, rest = parse_common(args, init: false, dry_run: false) do |parser, options|
           parser.on("--baseline PATH") { |v| options[:baseline] = v }
           parser.on("--init")          { options[:init] = true }
           parser.on("--dry-run")       { options[:dry_run] = true }
@@ -57,7 +61,7 @@ module SimpleCov
       # the report carries for a file appear, so a line-only report
       # leaves existing branch floors alone.
       def current_floors(coverage)
-        initial = {} #: SimpleCov::Baseline::current_floors
+        initial = {} #: Baseline::current_floors
         coverage.each_with_object(initial) do |(path, entry), floors|
           criteria = CoverageFile::CRITERIA.filter_map do |criterion, keys|
             percent = entry[keys.fetch(:percent)]
@@ -71,19 +75,19 @@ module SimpleCov
       # A report row from another tool may be missing counts; only a
       # complete pair can become a floor.
       def usable?(percent, missed)
-        percent.is_a?(Numeric) && missed.is_a?(Integer)
+        percent.is_a?(Numeric) && missed.instance_of?(Integer)
       end
 
       # Ratchet against the existing baseline, or generate one covering
       # every reported file when there is none (or `--init` asked for a
       # fresh one). The second return value says which happened.
       def compute(opts, current)
-        existing = SimpleCov::Baseline.read(opts[:baseline]) unless opts[:init]
+        existing = Baseline.read(opts.fetch(:baseline)) unless opts.fetch(:init)
         return [existing.ratchet(current), false] if existing
 
         none = [] #: Array[String]
-        outcome = SimpleCov::Baseline::Outcome.new(
-          baseline: SimpleCov::Baseline.generate(current),
+        outcome = Baseline::Outcome.new(
+          baseline: Baseline.generate(current),
           tightened: none, pruned: none, regressed: none, unchanged: none
         )
         [outcome, true]

@@ -3436,7 +3436,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "ratchet subcommand" do
+  describe "ratchet subcommand", mutant_expression: "SimpleCov::CLI::Ratchet*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-ratchet-spec-") }
     let(:input) { File.join(tmp, "coverage.json") }
     let(:baseline_path) { File.join(tmp, ".simplecov_baseline.yml") }
@@ -3461,6 +3461,155 @@ RSpec.describe SimpleCov::CLI do
 
     def read_baseline
       SimpleCov::Baseline.read(baseline_path)
+    end
+
+    it "loads the full library before touching Baseline and the dotfile default" do
+      allow(SimpleCov::CLI::Ratchet).to receive(:require)
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+
+      run("ratchet", "--input", input, "--baseline", baseline_path, "--dry-run", "--quiet")
+
+      expect(SimpleCov::CLI::Ratchet).to have_received(:require).with("simplecov")
+    end
+
+    # The whole payload: every fact the JSON view carries, under the key
+    # it carries it, so a key that went missing or was renamed shows.
+    it "reports a generated pass as JSON" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq(
+        "written" => true, "path" => baseline_path, "generated" => true, "files" => 1,
+        "tightened" => [], "pruned" => [], "regressed" => [], "unchanged" => []
+      )
+    end
+
+    it "says nothing was written under --dry-run" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+
+      run("ratchet", "--input", input, "--baseline", baseline_path, "--json", "--dry-run")
+      expect(JSON.parse(stdout.string)).to include("written" => false)
+      expect(File).not_to exist(baseline_path)
+    end
+
+    it "reports a ratcheted pass as JSON, saying it generated nothing" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+      run("ratchet", "--input", input, "--baseline", baseline_path)
+      stdout.truncate(stdout.rewind)
+
+      run("ratchet", "--input", input, "--baseline", baseline_path, "--json")
+      expect(JSON.parse(stdout.string)).to include("generated" => false, "files" => 1)
+    end
+
+    it "names itself when the report cannot be read" do
+      expect(run("ratchet", "--input", File.join(tmp, "absent.json"), "--baseline", baseline_path)).to eq(1)
+      expect(stderr.string).to eq("simplecov ratchet: #{File.join(tmp, 'absent.json')} not found\n")
+    end
+
+    it "reports a baseline it cannot make sense of" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+      File.write(baseline_path, "not: [a, baseline\n")
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(1)
+      expect(stderr.string).to start_with("simplecov ratchet:")
+    end
+
+    describe "which rows can become a floor" do
+      # A row from another tool may carry one half of the pair; a floor
+      # needs both, and needs them as numbers.
+      it "takes a row that carries both a percent and a count" do
+        expect(described_class::Ratchet.usable?(41.2, 137)).to be(true)
+      end
+
+      it "refuses a row whose percent is not a number" do
+        expect(described_class::Ratchet.usable?("41.2", 137)).to be(false)
+      end
+
+      it "refuses a row with no count beside the percent" do
+        expect(described_class::Ratchet.usable?(41.2, nil)).to be(false)
+      end
+
+      # A count is whole: a fractional one is not a number of lines.
+      it "refuses a count that is not a whole number" do
+        expect(described_class::Ratchet.usable?(41.2, 137.5)).to be(false)
+      end
+    end
+
+    describe "the line it prints" do
+      before { write_report("lib/foo.rb" => {percent: 41.2, missed: 137}) }
+
+      it "counts one generated file in the singular" do
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).to eq("simplecov ratchet: wrote #{baseline_path} (1 file)\n")
+      end
+
+      it "counts several generated files in the plural" do
+        write_report("lib/foo.rb" => {percent: 41.2, missed: 137}, "lib/bar.rb" => {percent: 50.0, missed: 5})
+
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).to eq("simplecov ratchet: wrote #{baseline_path} (2 files)\n")
+      end
+
+      it "says it would write under --dry-run" do
+        run("ratchet", "--input", input, "--baseline", baseline_path, "--dry-run")
+        expect(stdout.string).to start_with("simplecov ratchet: would write #{baseline_path} (")
+      end
+
+      # A ratcheted pass counts what moved rather than what exists.
+      it "counts what moved once a baseline is there" do
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        stdout.truncate(stdout.rewind)
+        write_report("lib/foo.rb" => {percent: 80.0, missed: 2})
+
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).to eq(
+          "simplecov ratchet: wrote #{baseline_path} (1 tightened, 0 pruned, 0 unchanged)\n"
+        )
+      end
+    end
+
+    describe "files that slipped below their floor" do
+      before do
+        write_report("lib/foo.rb" => {percent: 80.0, missed: 2}, "lib/bar.rb" => {percent: 80.0, missed: 2})
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        stdout.truncate(stdout.rewind)
+      end
+
+      it "says nothing when every file held its floor" do
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).not_to include("below")
+      end
+
+      it "names one in the singular" do
+        write_report("lib/foo.rb" => {percent: 10.0, missed: 90}, "lib/bar.rb" => {percent: 80.0, missed: 2})
+
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).to include("simplecov ratchet: 1 file below its floor, entries kept unchanged")
+      end
+
+      it "names several in the plural" do
+        write_report("lib/foo.rb" => {percent: 10.0, missed: 90}, "lib/bar.rb" => {percent: 10.0, missed: 90})
+
+        run("ratchet", "--input", input, "--baseline", baseline_path)
+        expect(stdout.string).to include("simplecov ratchet: 2 files below their floors, entries kept unchanged")
+      end
+    end
+
+    # A percent from a report carries whatever precision the writer used;
+    # a floor is stored at the precision SimpleCov rounds to.
+    it "rounds a floor to the precision coverage is reported at" do
+      write_report("lib/foo.rb" => {percent: 41.23456789, missed: 137})
+
+      run("ratchet", "--input", input, "--baseline", baseline_path)
+      expect(read_baseline.entries.fetch("lib/foo.rb").fetch(:line).percent)
+        .to eq(SimpleCov.round_coverage(41.23456789))
+    end
+
+    it "refuses a stray positional argument, naming the first" do
+      write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
+
+      expect(run("ratchet", "--input", input, "--baseline", baseline_path, "stray", "another")).to eq(1)
+      expect(stderr.string).to eq("simplecov ratchet: unexpected argument \"stray\"\n")
     end
 
     it "generates a full baseline when none exists" do
@@ -3617,6 +3766,9 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  # The history renderer, driven directly. The subcommand's own examples
+  # write a history file and run the command; these pin the table it
+  # draws, which is where nearly all of this code lives.
   describe "history output", mutant_expression: "SimpleCov::CLI::History*" do
     let(:renderer) { SimpleCov::CLI::History::Output }
     let(:out) { StringIO.new }
