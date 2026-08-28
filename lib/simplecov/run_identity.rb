@@ -6,7 +6,7 @@ module SimpleCov
   # Identifies one test invocation and each top-level parallel worker within
   # it. Forked subprocesses inherit both values from their parent worker.
   module RunIdentity
-  module_function
+    extend self
 
     # Returns the run id together with its provenance: `true` when the id
     # alone proves same-run membership (explicitly configured, derived from
@@ -20,7 +20,7 @@ module SimpleCov
       pid_file = ENV.fetch("PARALLEL_PID_FILE", nil)
       return ["parallel-tests:#{File.basename(pid_file)}", true] if pid_file && !pid_file.empty?
 
-      return ["parallel-parent:#{Process.ppid}", false] if SimpleCov::ParallelAdapters.current
+      return ["parallel-parent:#{Process.ppid}", false] if ParallelAdapters.current
 
       [SecureRandom.uuid, true]
     end
@@ -50,7 +50,7 @@ module SimpleCov
     end
 
     def materialize_current
-      @current, @authoritative = generate unless defined?(@current)
+      @current, @authoritative = generate unless instance_variable_defined?(:@current)
     end
 
     def current_worker_id
@@ -58,7 +58,7 @@ module SimpleCov
     end
 
     def prepare
-      SimpleCov::ParallelAdapters.current
+      ParallelAdapters.current
       SimpleCov.run_id
       SimpleCov.worker_id
     end
@@ -66,11 +66,11 @@ module SimpleCov
     # Mixed into SimpleCov after ParallelAdapters has loaded.
     module Accessors
       def run_id
-        SimpleCov::RunIdentity.current
+        RunIdentity.current
       end
 
       def worker_id
-        SimpleCov::RunIdentity.current_worker_id
+        RunIdentity.current_worker_id
       end
     end
   end
