@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck do
+RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MaximumMissedPerFileCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_missed_per_file, overrides, baseline: baseline) }
 
   let(:result) { instance_double(SimpleCov::Result, files: files) }
@@ -77,5 +79,31 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck do
     it "returns MINIMUM_COVERAGE" do
       expect(check.exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
     end
+  end
+
+  # Overrides and the baseline are both optional: a project that names
+  # neither still gets a check that reads its caps.
+  it "needs neither overrides nor a baseline to be built" do
+    built = described_class.new(result, {line: 2})
+
+    expect(built.instance_variable_get(:@overrides)).to eq({})
+    expect(built.instance_variable_get(:@baseline)).to be_nil
+    expect(built).to be_failing
+  end
+
+  it "names the file, its misses and the cap they passed" do
+    expect { described_class.new(result, {line: 2}).report }
+      .to output("Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb.\n")
+      .to_stderr
+  end
+
+  # Oneshot lines are recorded under the line statistics, so their units
+  # are read through the key they are stored under.
+  it "names oneshot lines as lines" do
+    violation = {criterion: :oneshot_line, actual: 5, maximum: 2, project_filename: "lib/foo.rb"}
+
+    expect { described_class.new(result, {line: 2}).send(:report_violation, violation) }
+      .to output("Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb.\n")
+      .to_stderr
   end
 end
