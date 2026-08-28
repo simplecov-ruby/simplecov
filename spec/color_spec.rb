@@ -107,6 +107,20 @@ RSpec.describe SimpleCov::Color do
       expect(described_class.enabled?(stream_tty)).to be false
     end
 
+    # The config is read only where there is one to read. Reading it
+    # regardless would let a project's setting decide colour for the
+    # standalone CLI, which never loaded that setting.
+    it "does not read a color config it was told is not there" do
+      allow(SimpleCov).to receive(:respond_to?).and_call_original
+      allow(SimpleCov).to receive(:respond_to?).with(:color).and_return(false)
+      allow(SimpleCov).to receive(:color).and_return(true)
+
+      stream = StringIO.new
+      allow(stream).to receive(:tty?).and_return(false)
+
+      expect(described_class.enabled?(stream)).to be false
+    end
+
     context "when SimpleCov.color is set explicitly" do
       it "returns true when set to true, overriding a non-TTY stream" do
         SimpleCov.color true
@@ -185,6 +199,17 @@ RSpec.describe SimpleCov::Color do
 
     it "honours an explicit pre-rendered text" do
       expect(described_class.colorize_percent(40.0, "  40.00%")).to eq("\e[31m  40.00%\e[0m")
+    end
+
+    # Whether to color is answered once, here, and handed on: asking
+    # again further down would ignore what the caller said.
+    it "leaves the text alone when the caller says not to color it" do
+      expect(described_class.colorize_percent(40.0, enabled: false)).to eq("40.00%")
+    end
+
+    it "answers the question itself when the caller did not" do
+      allow(described_class).to receive(:enabled?).and_return(false)
+      expect(described_class.colorize_percent(40.0)).to eq("40.00%")
     end
   end
 end

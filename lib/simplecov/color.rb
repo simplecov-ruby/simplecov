@@ -26,7 +26,7 @@ module SimpleCov
       reset: "\e[0m"
     }.freeze
 
-  module_function
+    extend self
 
     # `stream` is the IO that the colorized text is destined for. The
     # formatter writes to stderr, so that's the default. CLI subcommands
