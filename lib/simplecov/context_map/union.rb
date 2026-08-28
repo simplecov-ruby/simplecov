@@ -61,11 +61,12 @@ module SimpleCov
       # Dropping warns when the merge mixed results with and without maps,
       # since that usually means `track_tests` is enabled in some suites or
       # workers and not others; a merge where nothing recorded stays quiet.
+      # `warn_about_partial_maps` answers nil either way, which is also the
+      # answer a partial union owes its caller.
       def map
         return @map if @complete
 
         warn_about_partial_maps
-        nil
       end
 
     protected
