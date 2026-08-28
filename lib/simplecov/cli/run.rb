@@ -10,19 +10,23 @@ module SimpleCov
     module Run
       AUTOSTART = File.expand_path("../autostart", __dir__.to_s)
 
-    module_function
+      extend self
 
       def run(args, stderr:, **)
-        cmd = args.first == "--" ? args.drop(1) : args
+        cmd = args.first.eql?("--") ? args.drop(1) : args
         if cmd.empty?
           stderr.puts("simplecov run: missing command")
           return 1
         end
 
-        Kernel.exec(rubyopt_env, *cmd)
+        exec_command(rubyopt_env, cmd)
       rescue Errno::ENOENT => e
-        stderr.puts("simplecov run: #{e.message}")
+        stderr.puts("simplecov run: #{e}")
         127
+      end
+
+      def exec_command(env, cmd)
+        Kernel.exec(env, *cmd)
       end
 
       def rubyopt_env

@@ -10,6 +10,8 @@ module SimpleCov
 
       def self?.run: (untyped args, stderr: untyped, **untyped) -> untyped
 
+      def self?.exec_command: (untyped env, Array[String] cmd) -> untyped
+
       def self?.rubyopt_env: () -> untyped
     end
   end

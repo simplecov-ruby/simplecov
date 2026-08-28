@@ -1425,10 +1425,29 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "run subcommand" do
+  describe "run subcommand", mutant_expression: "SimpleCov::CLI::Run*" do
+    # A mutation respelling `Kernel.exec` as a bare exec would replace
+    # the example process with the command under test, which exits
+    # cleanly and reports nothing — read by mutation analysis as a
+    # pass. Arm every example in this pool so that spelling fails an
+    # example instead of ending the process.
+    before do
+      allow(described_class::Run).to receive(:exec) { raise "exec reached the module, not Kernel" }
+    end
+
     it "errors and exits 1 when no command is given" do
       expect(run("run")).to eq(1)
       expect(stderr.string).to include("missing command")
+    end
+
+    it "execs through Kernel by name, never through a bare exec on itself" do
+      allow(Kernel).to receive(:exec)
+      allow(described_class::Run).to receive(:exec) # quiet the armed raise; the point is who was asked
+
+      described_class::Run.send(:exec_command, {"MARK" => "1"}, ["true", "--flag"])
+
+      expect(Kernel).to have_received(:exec).with({"MARK" => "1"}, "true", "--flag")
+      expect(described_class::Run).not_to have_received(:exec)
     end
 
     it "execs the command with RUBYOPT set to load the autostart shim" do
@@ -1444,6 +1463,46 @@ RSpec.describe SimpleCov::CLI do
       run("run", "echo", "hello")
       expect(captured_argv).to eq(%w[echo hello])
       expect(captured_env["RUBYOPT"]).to include("-r#{described_class::Run::AUTOSTART}")
+    end
+
+    # The child needs the environment it was launched in, not just the
+    # one variable this command sets. Probed with a variable of the
+    # example's own: a system one like PATH is spelled with whatever
+    # casing the platform fancies.
+    it "passes the whole environment through, not only RUBYOPT" do
+      captured_env = nil
+      allow(Kernel).to receive(:exec) { |env, *_cmd| captured_env = env }
+
+      with_env("SIMPLECOV_SPEC_CARRIED" => "through") do
+        run("run", "true")
+      end
+      expect(captured_env).to include("SIMPLECOV_SPEC_CARRIED" => "through")
+    end
+
+    # A RUBYOPT padded with spaces is a RUBYOPT of its own, and joining
+    # to it without trimming leaves a doubled separator.
+    it "trims an existing RUBYOPT before joining to it" do
+      previous = ENV.fetch("RUBYOPT", nil)
+      ENV["RUBYOPT"] = "  -W0  "
+
+      captured_env = nil
+      allow(Kernel).to receive(:exec) { |env, *_cmd| captured_env = env }
+      run("run", "true")
+      expect(captured_env["RUBYOPT"]).to eq("-W0 -r#{described_class::Run::AUTOSTART}")
+    ensure
+      ENV["RUBYOPT"] = previous
+    end
+
+    it "reports a command that is not there, and answers the shell's own code for it" do
+      allow(Kernel).to receive(:exec).and_raise(Errno::ENOENT, "nope")
+
+      expect(run("run", "nope")).to eq(127)
+      expect(stderr.string).to eq("simplecov run: No such file or directory - nope\n")
+    end
+
+    it "errors and exits 1 when no command is given, saying so" do
+      expect(run("run")).to eq(1)
+      expect(stderr.string).to eq("simplecov run: missing command\n")
     end
 
     it "preserves an existing RUBYOPT alongside the injection" do
