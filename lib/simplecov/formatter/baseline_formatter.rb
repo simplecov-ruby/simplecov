@@ -30,9 +30,11 @@ module SimpleCov
     # auto mode is that floors tighten without a human in the loop;
     # the diff still lands in the working tree for the commit to carry.
     class BaselineFormatter < Base
+      # The status line for a baseline run is the ratchet's own summary
+      # rather than anything read off the result, so the summary is what
+      # `emit_status` is handed in the result's place.
       def format(result)
-        @message = ratchet(result)
-        emit_status(result)
+        emit_status(ratchet(result))
       end
 
     private
@@ -47,14 +49,16 @@ module SimpleCov
         outcome = existing.ratchet(current)
         changed = outcome.tightened.any? || outcome.pruned.any?
         write(outcome.baseline) if changed
-        "#{summary(outcome, changed)}#{below_floors(outcome.regressed)}"
+        note = summary(outcome, changed)
+        regressed = outcome.regressed
+        regressed.empty? ? note : "#{note}#{below_floors(regressed)}"
       end
 
       def generate(current)
-        baseline = SimpleCov::Baseline.generate(current)
+        baseline = Baseline.generate(current)
         write(baseline)
         files = baseline.entries.size
-        "Coverage baseline generated to #{displayable_output_path} (#{files} #{files == 1 ? 'file' : 'files'})"
+        "Coverage baseline generated to #{displayable_output_path} (#{files} #{files.eql?(1) ? 'file' : 'files'})"
       end
 
       def summary(outcome, changed)
@@ -65,11 +69,11 @@ module SimpleCov
       end
 
       # Regressed floors are kept, not loosened, so they stay worth
-      # saying out loud: these are the files the exit check fails.
+      # saying out loud: these are the files the exit check fails. The
+      # caller keeps the empty case, so this always has something to
+      # name.
       def below_floors(regressed)
-        return "" if regressed.empty?
-
-        noun = regressed.size == 1 ? "1 file below its floor" : "#{regressed.size} files below their floors"
+        noun = regressed.size.eql?(1) ? "1 file below its floor" : "#{regressed.size} files below their floors"
         ", #{noun}: #{regressed.join(', ')}"
       end
 
@@ -80,7 +84,7 @@ module SimpleCov
       # the configuration rather than on the stats' presence.
       def current_floors(result)
         criteria = measured_criteria
-        floors = {} #: SimpleCov::Baseline::current_floors
+        floors = {} #: Baseline::current_floors
         result.files.each do |file|
           floors[file.project_filename] = criteria.to_h { |criterion| [criterion, floor_of(file, criterion)] }
         end
@@ -111,8 +115,10 @@ module SimpleCov
         File.expand_path(SimpleCov.baseline_file, SimpleCov.root)
       end
 
-      def output_message(_result)
-        @message
+      # `format` hands the ratchet's summary to `emit_status`, which
+      # passes it through to here.
+      def output_message(message)
+        message
       end
     end
   end

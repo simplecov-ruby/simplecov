@@ -32,8 +32,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
       output = format_result
 
       expect(read_baseline.floor_for(project_filename, :line)).to have_attributes(percent: 66.66, missed: 1)
-      expect(output).to include("Coverage baseline generated")
-      expect(output).to include("1 file")
+      expect(output).to eq("Coverage baseline generated to #{baseline_path} (1 file)\n")
     end
 
     it "pluralizes the generation summary" do
@@ -46,7 +45,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
 
       output = capture_stderr { formatter.format(result) }
 
-      expect(output).to include("2 files")
+      expect(output).to eq("Coverage baseline generated to #{baseline_path} (2 files)\n")
     end
   end
 
@@ -64,8 +63,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
       output = format_result
 
       expect(read_baseline.floor_for(project_filename, :line)).to have_attributes(percent: 66.66, missed: 1)
-      expect(output).to include("Coverage baseline ratcheted")
-      expect(output).to include("1 tightened")
+      expect(output).to eq("Coverage baseline ratcheted to #{baseline_path} (1 tightened, 0 pruned)\n")
     end
   end
 
@@ -84,8 +82,9 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
       output = format_result
 
       expect(File.read(baseline_path)).to eq(before_content)
-      expect(output).to include("Coverage baseline unchanged")
-      expect(output).to include("1 file below its floor")
+      expect(output).to eq(
+        "Coverage baseline unchanged at #{baseline_path}, 1 file below its floor: #{project_filename}\n"
+      )
     end
   end
 
@@ -104,8 +103,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
       output = format_result
 
       expect(File.read(baseline_path)).to eq(before_content)
-      expect(output).to include("Coverage baseline unchanged")
-      expect(output).not_to include("below its floor")
+      expect(output).to eq("Coverage baseline unchanged at #{baseline_path}\n")
     end
   end
 
@@ -136,7 +134,10 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     it "pluralizes the below-floors note" do
       output = format_result
 
-      expect(output).to include("2 files below their floors")
+      expect(output).to eq(
+        "Coverage baseline unchanged at #{baseline_path}, " \
+        "2 files below their floors: #{project_filename}, #{sibling_filename}\n"
+      )
     end
   end
 
@@ -149,11 +150,26 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     end
 
     it "adds no entry, and prunes the file the report no longer carries" do
-      format_result
+      output = format_result
 
-      baseline = read_baseline
-      expect(baseline.entry_for(project_filename)).to be_nil
-      expect(baseline.entry_for("lib/covered_elsewhere.rb")).to be_nil
+      expect(read_baseline.entries).to be_empty
+      expect(output).to eq("Coverage baseline ratcheted to #{baseline_path} (0 tightened, 1 pruned)\n")
+    end
+  end
+
+  # The baseline is checked-in policy, so it belongs where the exit check
+  # reads it (under the project root) rather than wherever the run happens
+  # to have been started from.
+  it "writes a relative baseline_file under SimpleCov.root, not the working directory" do
+    Dir.mktmpdir("simplecov-baseline-root-") do |root|
+      Dir.mktmpdir("simplecov-baseline-cwd-") do |elsewhere|
+        allow(SimpleCov).to receive_messages(root: root, baseline_file: ".simplecov_baseline.yml")
+
+        Dir.chdir(elsewhere) { format_result }
+
+        expect(File).to exist(File.join(root, ".simplecov_baseline.yml"))
+        expect(File).not_to exist(File.join(elsewhere, ".simplecov_baseline.yml"))
+      end
     end
   end
 
