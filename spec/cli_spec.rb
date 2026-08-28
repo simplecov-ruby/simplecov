@@ -320,9 +320,37 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "badge subcommand" do
+  describe "badge subcommand", mutant_expression: "SimpleCov::CLI::Badge*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-badge-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
+    # Asserted whole rather than by fragments: the badge is one rendered
+    # artifact, every number in it is derived from the two segment
+    # widths, and a fragment assertion leaves the rest of the document
+    # free to drift. This is the reference rendering the geometry
+    # examples below take apart.
+    let(:reference_badge) do
+      <<~SVG
+        <svg xmlns="http://www.w3.org/2000/svg" width="153" height="20" role="img" aria-label="line coverage: 92.50%">
+          <title>line coverage: 92.50%</title>
+          <linearGradient id="s" x2="0" y2="100%">
+            <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+            <stop offset="1" stop-opacity=".1"/>
+          </linearGradient>
+          <clipPath id="r"><rect width="153" height="20" rx="3" fill="#fff"/></clipPath>
+          <g clip-path="url(#r)">
+            <rect width="101" height="20" fill="#555"/>
+            <rect x="101" width="52" height="20" fill="#4c1"/>
+            <rect width="153" height="20" fill="url(#s)"/>
+          </g>
+          <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+            <text aria-hidden="true" x="505" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="910">line coverage</text>
+            <text x="505" y="140" transform="scale(.1)" fill="#fff" textLength="910">line coverage</text>
+            <text aria-hidden="true" x="1270" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="420">92.50%</text>
+            <text x="1270" y="140" transform="scale(.1)" fill="#fff" textLength="420">92.50%</text>
+          </g>
+        </svg>
+      SVG
+    end
 
     after { FileUtils.rm_rf(tmp) }
 
@@ -336,15 +364,38 @@ RSpec.describe SimpleCov::CLI do
       run("badge", "--input", json_path, *argv)
     end
 
-    it "prints a flat SVG badge with the line percent" do
+    it "prints the whole flat SVG badge for a known percent" do
       write_report(line: 92.5)
 
       expect(run_badge).to eq(0)
-      svg = stdout.string
-      expect(svg).to start_with("<svg xmlns=")
-      expect(svg).to include('aria-label="line coverage: 92.50%"')
-      expect(svg).to include(">92.50%</text>").and include(">line coverage</text>")
-      expect(svg).to include('fill="#4c1"')
+      expect(stdout.string).to eq(reference_badge)
+    end
+
+    # The geometry the document lays out: two segments sized by their
+    # own text, and text coordinates in the 10x space the scale(.1)
+    # trick draws in.
+    describe "geometry" do
+      let(:svg) { described_class::Badge::Svg }
+
+      it "sizes a segment by its text, with padding on both sides" do
+        expect(svg.width("")).to eq(10)
+        expect(svg.width("abc")).to eq(31)
+      end
+
+      it "places the segments side by side and centers each caption in its own" do
+        expect(svg.geometry(101, 52)).to eq(
+          label_width: 101, value_width: 52, total: 153,
+          label_x: 505, value_x: 1270, label_span: 910, value_span: 420
+        )
+      end
+
+      it "keeps the value segment centered past the label, not over it" do
+        expect(svg.geometry(20, 40)).to include(label_x: 100, value_x: 400, total: 60)
+      end
+
+      it "spans the caption over its segment less the padding" do
+        expect(svg.geometry(31, 31)).to include(label_span: 210, value_span: 210)
+      end
     end
 
     it "follows the chosen criterion and colors the lower rungs" do
@@ -357,6 +408,54 @@ RSpec.describe SimpleCov::CLI do
     it "steps through the whole color ladder" do
       colors = [95, 85, 75, 65, 55, 45].collect { |pct| described_class::Badge::Svg.color(pct) }
       expect(colors).to eq(["#4c1", "#97ca00", "#a4a61d", "#dfb317", "#fe7d37", "#e05d44"])
+    end
+
+    # Each rung's own number belongs to that rung, not the one below:
+    # exactly 90% is bright green, not the 80s' colour.
+    it "gives each rung's boundary to the rung it names" do
+      colors = [90, 80, 70, 60, 50].collect { |pct| described_class::Badge::Svg.color(pct) }
+      expect(colors).to eq(["#4c1", "#97ca00", "#a4a61d", "#dfb317", "#fe7d37"])
+    end
+
+    it "answers its own usage for --help" do
+      expect(run("badge", "--help")).to eq(0)
+      expect(stdout.string).to include("badge options:").and include("--criterion")
+    end
+
+    # The shared handler is what makes that work: it raises for the
+    # dispatcher to answer, where optparse's own officious --help would
+    # print a bare summary and exit the process from inside the parser.
+    # Caught explicitly, including SystemExit, so the officious handler
+    # is compared against rather than allowed to end the run.
+    it "wires the shared help handler rather than leaving optparse's" do
+      raised = nil
+      begin
+        described_class::Badge.parse(["--help"])
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        raised = e
+      end
+
+      expect(raised).to be_a(SimpleCov::CLI::CommandHelpers::HelpRequested)
+    end
+
+    # Without --input the badge reads the project's own report, the way
+    # every other read-only command defaults its path. The discovered
+    # directory is memoized on the CLI, so it is reset around this
+    # example the way `.coverage_dir`'s own examples reset it.
+    it "reads the default report when given no input path" do
+      previous = described_class.instance_variable_get(:@coverage_dir)
+      described_class.instance_variable_set(:@coverage_dir, nil)
+      Dir.mktmpdir("simplecov-cli-badge-default-") do |dir|
+        FileUtils.mkdir_p(File.join(dir, "coverage"))
+        File.write(File.join(dir, "coverage", "coverage.json"),
+                   JSON.dump("meta" => {}, "total" => {"lines" => {"percent" => 92.5}}))
+        Dir.chdir(dir) do
+          expect(run("badge")).to eq(0)
+          expect(stdout.string).to include('aria-label="line coverage: 92.50%"')
+        end
+      end
+    ensure
+      described_class.instance_variable_set(:@coverage_dir, previous)
     end
 
     it "writes the badge to a file with --output and stays quiet" do
@@ -379,7 +478,7 @@ RSpec.describe SimpleCov::CLI do
       write_report
 
       expect(run_badge("--criterion", "files")).to eq(1)
-      expect(stderr.string).to include("unknown --criterion :files (expected line, branch, or method)")
+      expect(stderr.string).to eq("simplecov badge: unknown --criterion :files (expected line, branch, or method)\n")
     end
 
     it "errors when the report carries no totals at all" do
@@ -396,9 +495,35 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no branch totals in #{json_path}")
     end
 
-    it "errors when the report is missing" do
+    it "errors when the report is missing, under its own command name" do
       expect(run_badge).to eq(1)
-      expect(stderr.string).to include(json_path)
+      expect(stderr.string).to eq("simplecov badge: #{json_path} not found\n")
+    end
+
+    # A percent the report carries as something other than a number is
+    # no percent at all, and saying so beats rendering nonsense.
+    it "errors when the recorded percent is not a number" do
+      File.write(json_path, JSON.dump("meta" => {}, "total" => {"lines" => {"percent" => "92.5"}}))
+
+      expect(run_badge).to eq(1)
+      expect(stderr.string).to include("no line totals in #{json_path}")
+    end
+
+    it "errors when the totals section is not an object at all" do
+      File.write(json_path, JSON.dump("meta" => {}, "total" => "junk"))
+
+      expect(run_badge).to eq(1)
+      expect(stderr.string).to include("no line totals in #{json_path}")
+    end
+
+    # Any Hash of totals will do, including one a document reader hands
+    # back as a subclass of it.
+    it "reads a totals section that arrives as a Hash subclass" do
+      totals = Class.new(Hash).new.merge!("lines" => {"percent" => 92.5})
+      allow(SimpleCov::CLI::CoverageFile).to receive(:load_document).and_return({"total" => totals})
+
+      expect(run_badge).to eq(0)
+      expect(stdout.string).to include('aria-label="line coverage: 92.50%"')
     end
 
     it "passes xmllint's validation" do
