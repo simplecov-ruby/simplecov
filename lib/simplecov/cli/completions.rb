@@ -16,7 +16,7 @@ module SimpleCov
     module Completions
       extend CommandHelpers
 
-    module_function
+      extend self
 
       SHELLS = %w[fish bash zsh].freeze
 
@@ -31,7 +31,7 @@ module SimpleCov
       COMMAND_ROW = /\A(\S+)(?: \S+)*?\s{2,}(\S.*)\z/
 
       def run(args, stdout:, stderr:)
-        shell, = OptionParser.new { |parser| on_help(parser) }.parse(args)
+        shell, = build_parser.parse(args)
         return error(stderr, "missing shell (expected fish, bash, or zsh)") unless shell
         unless SHELLS.include?(shell)
           return error(stderr, "unknown shell #{shell.inspect} (expected fish, bash, or zsh)")
@@ -49,8 +49,10 @@ module SimpleCov
         end
       end
 
+      # The section's own "Commands:" header never matches a command
+      # row, so the filter below drops it without help.
       def commands
-        Usage.text(SimpleCov::CLI).split("\n\n").fetch(1).lines.drop(1).filter_map do |row|
+        Usage.text(CLI).split("\n\n").fetch(1).lines.filter_map do |row|
           match = row.strip.match(COMMAND_ROW)
           match && [(_ = match[1]), (_ = match[2])]
         end
@@ -66,9 +68,9 @@ module SimpleCov
       # `run` takes no options of its own (everything after it belongs
       # to the command being run), so it must not even offer --help.
       def options_for(command)
-        return [] if command == "run"
+        return [] if command.eql?("run")
 
-        sections = Usage.text(SimpleCov::CLI).split("\n\n").select { |section| Usage.section_for?(section, command) }
+        sections = Usage.text(CLI).split("\n\n").select { |section| Usage.section_for?(section, command) }
         options = sections.flat_map { |section| section_options(section) }
         options << {short: "-h", long: "--help", arg: nil, desc: "Show this command's usage"}
       end
@@ -76,11 +78,11 @@ module SimpleCov
       # Rows that don't parse as options are continuations of the
       # previous row's description, wrapped for the terminal.
       def section_options(section)
-        section.lines.drop(1).each_with_object([]) do |line, options|
+        section.lines.each_with_object([]) do |line, options|
           if (match = line.chomp.match(OPTION_ROW))
             options << {short: match[1], long: match[2], arg: match[3], desc: (_ = match[4])}
-          elsif options.last
-            options.last[:desc] = "#{options.last[:desc]} #{line.strip}"
+          elsif (previous = options.last)
+            previous[:desc] = "#{previous.fetch(:desc)} #{line.strip}"
           end
         end
       end
