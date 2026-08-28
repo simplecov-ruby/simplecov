@@ -8,7 +8,7 @@ module SimpleCov
     # the repository toplevel, ref hygiene, and the default base ref a
     # diff compares against.
     module Git
-    module_function
+      extend self
 
       # [stdout, first stderr line, success]. A spawn failure (git not
       # on PATH) reads as an unsuccessful run whose stdout is nil and
@@ -25,7 +25,7 @@ module SimpleCov
       # working tree (or without git).
       def toplevel
         stdout, _detail, success = capture("rev-parse", "--show-toplevel")
-        success ? (_ = stdout).chomp : nil
+        (_ = stdout).chomp if success
       end
 
       # A git ref can never begin with "-", so one that does would be

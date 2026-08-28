@@ -125,16 +125,57 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe SimpleCov::CLI::Git do
+  describe SimpleCov::CLI::Git, mutant_expression: "SimpleCov::CLI::Git*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-git-spec-") }
 
     after { FileUtils.rm_rf(tmp) }
 
     def repo!(branch)
-      system("git", "-C", tmp, "init", "-q", "-b", branch, exception: true)
-      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
-      system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-             "commit", "-q", "--allow-empty", "-m", "init", exception: true)
+      GitFixture.init_repo(tmp, branch: branch)
+      system("git", "-C", tmp, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
+    end
+
+    describe ".capture" do
+      # git reports failures over several lines; the caller wants one
+      # line of it, without the newline it came with.
+      it "answers the first line of git's complaint, trimmed" do
+        allow(Open3).to receive(:capture3).and_return(
+          ["", "  fatal: not a thing  \nhint: try something else\n", instance_double(Process::Status, success?: false)]
+        )
+
+        _stdout, detail, success = described_class.capture("rev-parse", "--nope")
+        expect(detail).to eq("fatal: not a thing")
+        expect(success).to be(false)
+      end
+
+      # git missing from PATH is not a git error, so the run reads as
+      # unsuccessful with nothing on stdout and the reason as detail.
+      it "reads a spawn failure as an unsuccessful run carrying the message" do
+        allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git")
+
+        stdout, detail, success = described_class.capture("status")
+        expect(stdout).to be_nil
+        expect(detail).to include("git")
+        expect(success).to be(false)
+      end
+
+      it "answers nothing said when git said nothing" do
+        allow(Open3).to receive(:capture3).and_return(["out\n", "", instance_double(Process::Status, success?: true)])
+
+        expect(described_class.capture("rev-parse", "HEAD")).to eq(["out\n", "", true])
+      end
+    end
+
+    describe ".toplevel" do
+      it "answers the working tree's root, without the newline git adds" do
+        repo!("main")
+        expect(Dir.chdir(tmp) { described_class.toplevel }).to eq(File.realpath(tmp))
+      end
+
+      it "answers nothing outside a working tree" do
+        allow(described_class).to receive(:capture).and_return(["", "fatal: not a git repository", false])
+        expect(described_class.toplevel).to be_nil
+      end
     end
 
     describe ".default_base" do
@@ -150,16 +191,6 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to main when no origin HEAD is recorded" do
         repo!("main")
         expect(Dir.chdir(tmp) { described_class.default_base }).to eq("main")
-      end
-    end
-
-    describe ".capture" do
-      it "reads a spawn failure as an unsuccessful run carrying the message" do
-        allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git")
-        stdout, detail, success = described_class.capture("status")
-        expect(stdout).to be_nil
-        expect(detail).to include("git")
-        expect(success).to be(false)
       end
     end
 
