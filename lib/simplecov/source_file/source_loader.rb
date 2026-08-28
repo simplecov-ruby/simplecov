@@ -11,20 +11,13 @@ module SimpleCov
       SHEBANG_REGEX = /\A#!/
       RUBY_FILE_ENCODING_MAGIC_COMMENT_REGEX = /\A#\s*(?:-\*-)?\s*(?:en)?coding:\s*(\S+)\s*(?:-\*-)?\s*\z/
 
-    module_function
+      extend self
 
       def call(filename)
         lines = [] #: Array[String]
         # The default encoding is UTF-8
         File.open(filename, "rb:UTF-8") do |file|
-          current_line = scrub_invalid(file.gets)
-
-          if current_line && shebang?(current_line)
-            lines << current_line
-            current_line = scrub_invalid(file.gets)
-          end
-
-          read_lines(file, lines, current_line)
+          read_lines(file, lines, scrub_invalid(file.gets))
         end
       end
 
@@ -42,8 +35,16 @@ module SimpleCov
         SHEBANG_REGEX.match?(line)
       end
 
+      # Each `return` answers a file that has run out of lines: an empty
+      # one on the first, a file of nothing but a shebang on the second.
       def read_lines(file, lines, current_line)
         return lines unless current_line
+
+        if shebang?(current_line)
+          lines << current_line
+          current_line = scrub_invalid(file.gets)
+          return lines unless current_line
+        end
 
         set_encoding_based_on_magic_comment(file, current_line)
         lines.concat([current_line], ensure_remove_undefs(file.readlines))
@@ -64,14 +65,25 @@ module SimpleCov
       # and scrub UTF-8-tagged lines that carry invalid bytes, which
       # would otherwise raise from every regex the classifier runs.
       def ensure_remove_undefs(file_lines)
-        file_lines.each do |line|
-          # simplecov:disable — defensive: only fires for non-UTF-8 source files
-          if line.encoding == Encoding::UTF_8
-            line.scrub! unless line.valid_encoding?
-          else
-            line.encode!("UTF-8", invalid: :replace, undef: :replace)
-          end
-          # simplecov:enable
+        file_lines.each { |line| make_utf8(line) }
+      end
+
+      # Encodings are singletons, so identity is the whole of the
+      # question. A line already tagged UTF-8 has nothing to transcode,
+      # only invalid bytes to replace, and scrubbing a line that has
+      # none of those leaves it alone.
+      #
+      # mutant:disable — on CRuby the two arms answer alike, because
+      # converting to the encoding a string already carries scrubs it
+      # when `invalid: :replace` is given. The arms are kept apart for
+      # the engines where that conversion is the documented no-op it
+      # reads as, which is the same reason the transcode is here rather
+      # than on `file.set_encoding`.
+      def make_utf8(line)
+        if line.encoding.equal?(Encoding::UTF_8)
+          line.scrub!
+        else
+          line.encode!("UTF-8", invalid: :replace, undef: :replace)
         end
       end
     end

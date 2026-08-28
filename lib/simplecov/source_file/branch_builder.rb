@@ -44,7 +44,7 @@ module SimpleCov
         # simplecov:enable branch
 
         _type, _id, start_line, * = RubyDataParser.call(condition)
-        !positions[:branches].include?(start_line)
+        !positions.fetch(:branches).include?(start_line)
       end
 
       def build_branches_from(condition, branches)
@@ -64,11 +64,11 @@ module SimpleCov
         type, _id, start_line, start_col, end_line, end_col = branch_data
         return nil if implicit_else_to_ignore?(type, [start_line, start_col, end_line, end_col], condition_range)
 
-        SourceFile::Branch.new(
+        Branch.new(
           start_line: start_line,
           end_line: end_line,
           coverage: hit_count,
-          inline: start_line == condition_range.first,
+          inline: start_line.eql?(condition_range.first),
           type: type
         )
       end
@@ -88,15 +88,14 @@ module SimpleCov
       # Only consulted when the user has opted in via
       # `SimpleCov.ignore_branches :implicit_else`. See #1033.
       def implicit_else_to_ignore?(type, branch_range, condition_range)
-        return false unless type == :else
+        return false unless type.equal?(:else)
         return false unless SimpleCov.ignored_branch?(:implicit_else)
 
-        branch_range == condition_range
+        branch_range.eql?(condition_range)
       end
 
       def process_skipped(branches)
         chunks = @source_file.skip_chunks_for(:branch)
-        return branches if chunks.empty?
 
         # A non-inline branch's source range starts on its arm body (e.g. the
         # `:yes` line of `if cond / :yes / else / :no / end`), but `report_line`
@@ -106,8 +105,6 @@ module SimpleCov
         branches.each do |branch|
           branch.skipped! if chunks.any? { |chunk| branch.overlaps_with?(chunk) || chunk.include?(branch.report_line) }
         end
-
-        branches
       end
     end
   end

@@ -29,6 +29,9 @@ module SimpleCov
       # these options on `file.set_encoding` doesn't seem to work
       # properly, so it has to be done here.
       def self?.ensure_remove_undefs: (untyped file_lines) -> untyped
+
+      # One line, valid UTF-8 on the way out.
+      def self?.make_utf8: (String line) -> void
     end
   end
 end

@@ -37,7 +37,25 @@ COVERAGE_FOR_TRIPLE_LINES = {"lines" => [nil, nil, 1]}.freeze
 
 DEGREE_135_LINE = "puts \"135°C\"\n"
 
+COVERAGE_FOR_METHODS_RB = {
+  "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
+  "branches" => {},
+  "methods" => {
+    ["A", :method1, 2, 2, 5, 5] => 1,
+    ["A", :method2, 9, 2, 11, 5] => 1,
+    ["A", :method3, 13, 2, 15, 5] => 0
+  }
+}.freeze
+
 RSpec.describe SimpleCov::SourceFile do
+  # A source file whose source is handed over rather than read from disk,
+  # so a fixture can be shaped for exactly one behavior.
+  def source_file_with(coverage_data, source_lines)
+    SimpleCov::SourceFile.new("inline_source.rb", coverage_data).tap do |file|
+      file.instance_variable_set(:@src, source_lines)
+    end
+  end
+
   context "when a source file initialized with some coverage data" do
     subject(:source_file) do
       described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
@@ -132,17 +150,7 @@ RSpec.describe SimpleCov::SourceFile do
       described_class.new(source_fixture("methods.rb"), coverage_for_methods_rb)
     end
 
-    let(:coverage_for_methods_rb) do
-      {
-        "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
-        "branches" => {},
-        "methods" => {
-          ["A", :method1, 2, 2, 5, 5] => 1,
-          ["A", :method2, 9, 2, 11, 5] => 1,
-          ["A", :method3, 13, 2, 15, 5] => 0
-        }
-      }
-    end
+    let(:coverage_for_methods_rb) { COVERAGE_FOR_METHODS_RB }
 
     describe "method coverage" do
       it "has 3 total methods" do
@@ -356,6 +364,18 @@ RSpec.describe SimpleCov::SourceFile do
 
       it "has line 3 with missed branches branch" do
         expect(source_file.line_with_missed_branch?(3)).to be(true)
+      end
+
+      it "has no missed branch on line 9, whose only branch was taken" do
+        expect(source_file.line_with_missed_branch?(9)).to be(false)
+      end
+
+      it "has no missed branch on a line that carries no branch at all" do
+        expect(source_file.line_with_missed_branch?(1)).to be(false)
+      end
+
+      it "does have branches" do
+        expect(source_file.no_branches?).to be(false)
       end
     end
 
@@ -741,6 +761,31 @@ RSpec.describe SimpleCov::SourceFile do
         expect(else_lines).to contain_exactly(5, 10) # postfix-if's synthetic else at line 3 is gone
       end
     end
+
+    # Only an `else` arm can be an implicit else. An arm of any other type
+    # that happens to carry its condition's full range is a real branch
+    # the report has to keep.
+    describe "a non-else arm carrying its condition's whole range" do
+      subject(:source_file) do
+        source_file_with(
+          {
+            "lines" => [1],
+            "branches" => {
+              [:if, 0, 1, 0, 1, 10] => {
+                [:then, 1, 1, 0, 1, 10] => 1,
+                [:else, 2, 1, 0, 1, 10] => 0
+              }
+            },
+            "methods" => {}
+          },
+          ["x = 1 if y\n"]
+        )
+      end
+
+      it "drops the else arm and keeps the other one" do
+        expect(source_file.branches.map(&:type)).to eq [:then]
+      end
+    end
   end
 
   context "with ignore_branches :eval_generated configured", if: SimpleCov::StaticCoverageExtractor.available? do
@@ -769,6 +814,27 @@ RSpec.describe SimpleCov::SourceFile do
       # contributes 2. Without the filter we'd see 4 branches; with it,
       # only 2.
       expect(source_file.total_branches.size).to eq 2
+    end
+
+    # The condition keys of a resultset that has been through JSON are
+    # the strings Ruby's `inspect` made of them, and the filter has to
+    # read a start line out of those too.
+    describe "with the branch keys stringified by a JSON round-trip" do
+      subject(:source_file) do
+        described_class.new(source_fixture("eval_generated.rb"), stringified_coverage)
+      end
+
+      let(:stringified_coverage) do
+        branches = CoverageFixtures::EVAL_GENERATED_RB.fetch("branches").to_h do |condition, arms|
+          [condition.to_s, arms.transform_keys(&:to_s)]
+        end
+
+        CoverageFixtures::EVAL_GENERATED_RB.merge("branches" => branches)
+      end
+
+      it "still drops the eval-generated branch and keeps the real one" do
+        expect(source_file.branches.map(&:start_line).uniq).to eq [4]
+      end
     end
   end
 
@@ -1283,9 +1349,9 @@ RSpec.describe SimpleCov::SourceFile do
         )
       end
 
-      it "skips the :then arm whose report_line falls on the directive" do
-        skipped = source_file.branches.select(&:skipped?)
-        expect(skipped.map(&:type)).to include(:then)
+      it "skips the :then arm whose report_line falls on the directive, and only that one" do
+        expect(source_file.branches.select(&:skipped?).map(&:type)).to eq [:then]
+        expect(source_file.branches_report).to eq(3 => [[:else, 0]])
       end
     end
 
@@ -1374,8 +1440,18 @@ RSpec.describe SimpleCov::SourceFile do
 
   describe "#lines_of_code" do
     it "returns the total relevant line count" do
-      source_file = described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB)
-      expect(source_file.lines_of_code).to be > 0
+      source_file = described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
+
+      expect(source_file.lines_of_code).to eq(5)
+    end
+
+    # With line coverage disabled there are no line statistics to take a
+    # total from, and no lines of code either.
+    it "counts nothing when there are no line statistics at all" do
+      source_file = described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
+      allow(source_file).to receive(:coverage_statistics).and_return({})
+
+      expect(source_file.lines_of_code).to eq(0)
     end
   end
 
@@ -1404,14 +1480,17 @@ RSpec.describe SimpleCov::SourceFile do
     it "warns and delegates branches_coverage_percent to covered_percent(:branch)" do
       allow(source_file).to receive(:covered_percent).with(:branch).and_return(42.0)
       expect(source_file.branches_coverage_percent).to eq(42.0)
-      expect(SimpleCov::Deprecation).to have_received(:warn).with(/branches_coverage_percent` is deprecated/)
+      expect(SimpleCov::Deprecation).to have_received(:warn).with(
+        "`SimpleCov::SourceFile#branches_coverage_percent` is deprecated. Use `covered_percent(:branch)`."
+      )
     end
 
     it "warns and delegates methods_coverage_percent to covered_percent(:method)" do
       allow(source_file).to receive(:covered_percent).with(:method).and_return(50.0)
       expect(source_file.methods_coverage_percent).to eq(50.0)
-      expect(SimpleCov::Deprecation).to have_received(:warn)
-        .with(/`SimpleCov::SourceFile#methods_coverage_percent` is deprecated/)
+      expect(SimpleCov::Deprecation).to have_received(:warn).with(
+        "`SimpleCov::SourceFile#methods_coverage_percent` is deprecated. Use `covered_percent(:method)`."
+      )
     end
   end
 
@@ -1422,13 +1501,96 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "raises when the input isn't an array literal" do
-        expect { described_class.parse_array_string("42") }.to raise_error(ArgumentError, /array literal/)
+        expect { described_class.parse_array_string("42") }
+          .to raise_error(ArgumentError, %(expected array literal: "42"))
+      end
+
+      it "raises when the input carries more than the literal" do
+        expect { described_class.parse_array_string("[1]; [2]") }
+          .to raise_error(ArgumentError, %(expected array literal: "[1]; [2]"))
+      end
+
+      it "raises when the input isn't Ruby at all" do
+        expect { described_class.parse_array_string("[") }
+          .to raise_error(ArgumentError, %(expected array literal: "["))
+      end
+
+      # The grammar covers the shapes Coverage emits and nothing else, so
+      # anything past it names the node it choked on rather than failing
+      # somewhere further down with a mangled key.
+      it "raises on a literal outside the grammar, naming the node" do
+        expect { described_class.parse_array_string("[1.5]") }
+          .to raise_error(ArgumentError, /\Aunexpected element: \[:@float, "1\.5", /)
+      end
+
+      # Every shape Coverage ever emits as an array key, walked back
+      # without eval (see #801).
+      {
+        "a plain symbol" => ["[:if, 0]", [:if, 0]],
+        "a quoted symbol carrying a space" => ['[:"weird name", 1]', [:"weird name", 1]],
+        "a quoted symbol carrying an escape" => ['[:"a\\"b", 1]', [:'a"b', 1]],
+        "a string class name" => ['["ClassName", :m]', ["ClassName", :m]],
+        "a string carrying an escape" => ['["a\\"b", :m]', ['a"b', :m]],
+        "a string carrying more than one escape" => ['["a\\"b\\"c", :m]', ['a"b"c', :m]],
+        "an empty string" => ['["", :m]', ["", :m]],
+        "a bare constant" => ["[Foo, :m]", ["Foo", :m]],
+        "a nested constant path" => ["[Foo::Bar, :m]", ["Foo::Bar", :m]],
+        "a deeply nested constant path" => ["[Foo::Bar::Baz, :m]", ["Foo::Bar::Baz", :m]],
+        "a negative integer" => ["[-2]", [-2]],
+        "a zero" => ["[0]", [0]],
+        "an empty array" => ["[]", []]
+      }.each do |description, (input, expected)|
+        it "parses #{description}" do
+          expect(described_class.parse_array_string(input)).to eq(expected)
+        end
+      end
+
+      # Method keys can name a singleton class, whose inspect form is not
+      # valid Ruby, so those segments are quoted before parsing. The
+      # nesting matters: stopping at the first `>` leaves a dangling one
+      # that fails the parse and takes the merge down with it.
+      it "parses an inspect-form singleton class as an opaque string" do
+        expect(described_class.parse_array_string("[#<Class:Foo>, :m]")).to eq(["#<Class:Foo>", :m])
+      end
+
+      it "parses a singleton class nested inside another" do
+        expect(described_class.parse_array_string("[#<Class:#<Object:0x1>>, :m]"))
+          .to eq(["#<Class:#<Object:0x1>>", :m])
+      end
+
+      # A key that is already valid Ruby must not be re-quoted, which is
+      # the shape simplecov's own method-coverage keys take.
+      it "leaves an already-quoted inspect string alone" do
+        expect(described_class.parse_array_string('["#<Class:Foo>", :m]')).to eq(["#<Class:Foo>", :m])
+      end
+
+      it "quotes every inspect segment in a key, not just the first" do
+        expect(described_class.parse_array_string("[#<Class:Foo>, #<Class:Bar>, :m]"))
+          .to eq(["#<Class:Foo>", "#<Class:Bar>", :m])
+      end
+
+      # An inspect form can carry quotes of its own, and they have to
+      # survive the quoting that wraps the segment: escape none of them
+      # and the wrapped literal ends early, escape one and the rest of
+      # the key goes with it.
+      it "keeps the quotes inside an inspect segment" do
+        expect(described_class.parse_array_string('[#<Struct name="x">, :m]'))
+          .to eq(['#<Struct name="x">', :m])
       end
     end
 
     describe ".call" do
       it "parses a stringified tuple into its array form" do
         expect(described_class.call("[:if, 0, 3, 4, 3, 21]")).to eq([:if, 0, 3, 4, 3, 21])
+      end
+
+      # The guard asks whether the key is already in its parsed form, not
+      # whether it is exactly an Array, so a subclass passes through too
+      # rather than being stringified and parsed back.
+      it "returns an Array subclass untouched" do
+        tuple = Class.new(Array).new([:then, 4, 8])
+
+        expect(described_class.call(tuple)).to be(tuple)
       end
 
       it "returns arrays untouched and unfrozen" do
@@ -1467,6 +1629,418 @@ RSpec.describe SimpleCov::SourceFile do
     it "parses the dynamic symbol via the dyna_symbol path" do
       source_file = described_class.new(source_fixture("sample.rb"), coverage_data)
       expect(source_file.methods.map(&:to_s)).to include(/weird name/)
+    end
+  end
+
+  describe "#coverage_statistics" do
+    subject(:source_file) { described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB) }
+
+    it "answers the statistics of the one criterion it is asked for" do
+      expect(source_file.coverage_statistics(:line)).to be(source_file.coverage_statistics[:line])
+    end
+
+    it "answers nil for a criterion it holds no statistics for" do
+      expect(source_file.coverage_statistics(:nope)).to be_nil
+    end
+
+    it "builds the statistics once and hands back the same hash" do
+      statistics = source_file.coverage_statistics
+
+      expect(source_file.coverage_statistics).to be(statistics)
+    end
+  end
+
+  describe "#line" do
+    subject(:source_file) { described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB) }
+
+    it "numbers lines from one, not from zero" do
+      expect(source_file.line(1).source).to eq "# Foo class\n"
+      expect(source_file.line(2).source).to eq "class Foo\n"
+    end
+
+    it "answers nil past the last line rather than raising" do
+      expect(source_file.line(17)).to be_nil
+    end
+  end
+
+  describe "#real_source_positions" do
+    subject(:source_file) do
+      described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
+    end
+
+    it "reports the branch lines and method names of the parsed source",
+       if: SimpleCov::StaticCoverageExtractor.available? do
+      expect(source_file.real_source_positions).to eq(branches: Set[3, 5, 7], methods: Set[[:call, 2]])
+    end
+
+    it "answers the remembered positions rather than parsing again" do
+      positions = {branches: Set[3], methods: Set[[:call, 2]]}
+      allow(SimpleCov::StaticCoverageExtractor).to receive(:real_source_positions).and_return(positions)
+
+      source_file.real_source_positions
+
+      expect(source_file.real_source_positions).to be(positions)
+    end
+
+    it "parses the source once, remembering even an answer of nil" do
+      allow(SimpleCov::StaticCoverageExtractor).to receive(:real_source_positions).and_return(nil)
+
+      2.times { source_file.real_source_positions }
+
+      expect(SimpleCov::StaticCoverageExtractor).to have_received(:real_source_positions).once
+    end
+  end
+
+  # The Coverage library omits "lines" entirely when line coverage was
+  # never enabled. The source rows are still worth having (the HTML
+  # report shows them), they just carry no hits.
+  context "when the coverage data holds no line data at all" do
+    subject(:source_file) do
+      described_class.new(source_fixture("sample.rb"), {"branches" => {}, "methods" => {}})
+    end
+
+    it "builds a line for every source row, none of them relevant" do
+      expect(source_file.lines.size).to eq 16
+      expect(source_file.never_lines.size).to eq 11
+      expect(source_file.skipped_lines.size).to eq 5
+      expect(source_file.relevant_lines).to eq 0
+      expect(source_file.covered_percent).to eq 100.0
+    end
+  end
+
+  # A resultset that has been through JSON carries its branch keys as the
+  # strings Ruby's `inspect` produced, exactly as method keys do.
+  context "when branch coverage data came back from a JSON round-trip" do
+    subject(:source_file) do
+      described_class.new(source_fixture("branches.rb"), stringified_coverage)
+    end
+
+    let(:stringified_coverage) do
+      branches = CoverageFixtures::BRANCHES_RB.fetch("branches").to_h do |condition, arms|
+        [condition.to_s, arms.transform_keys(&:to_s)]
+      end
+
+      CoverageFixtures::BRANCHES_RB.merge("branches" => branches)
+    end
+
+    it "parses the keys back and reports what the array keys report" do
+      expect(source_file.branches_report).to eq(
+        3 => [[:then, 0], [:else, 1]],
+        5 => [[:then, 1], [:else, 0]],
+        7 => [[:then, 0]],
+        9 => [[:else, 1]]
+      )
+    end
+  end
+
+  # Both eval_generated filters compare Coverage's entries against the
+  # positions Prism found. With no parsed source to compare against there
+  # is nothing to be sure of, so nothing may be dropped.
+  context "with the eval_generated filters on but no parsed source to check against" do
+    let(:source_file) do
+      described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
+    end
+
+    around do |example|
+      previous_branches = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
+      previous_methods = SimpleCov.instance_variable_get(:@ignored_methods)&.dup
+      capture_stderr do
+        SimpleCov.ignore_branches :eval_generated
+        SimpleCov.ignore_methods :eval_generated
+      end
+      example.run
+    ensure
+      SimpleCov.instance_variable_set(:@ignored_branches, previous_branches)
+      SimpleCov.instance_variable_set(:@ignored_methods, previous_methods)
+    end
+
+    before { allow(source_file).to receive(:real_source_positions).and_return(nil) }
+
+    it "keeps every branch" do
+      expect(source_file.total_branches.size).to eq 4
+    end
+
+    it "keeps every method" do
+      expect(source_file.methods.map(&:method_name)).to contain_exactly(:hello, :initialize)
+    end
+  end
+
+  # A branch arm is skipped either because its own source range falls in a
+  # disabled region or because the line it is reported on does. These two
+  # fixtures separate the halves: here only the range matches.
+  describe "a branch arm disabled on its own line but reported elsewhere" do
+    subject(:source_file) do
+      source_file_with(
+        {
+          "lines" => [1, 1, nil, 1, nil],
+          "branches" => {
+            [:if, 0, 1, 0, 5, 3] => {
+              [:then, 1, 2, 2, 2, 7] => 1,
+              [:else, 2, 4, 2, 4, 7] => 0
+            }
+          },
+          "methods" => {}
+        },
+        [
+          "if cond\n",                          # 1
+          "  :yes # simplecov:disable\n",       # 2
+          "else\n",                             # 3
+          "  :no\n",                            # 4
+          "end\n"                               # 5
+        ]
+      )
+    end
+
+    it "skips the arm whose range overlaps the directive, and only that one" do
+      expect(source_file.branches.select(&:skipped?).map(&:type)).to eq [:then]
+      expect(source_file.branches_report).to eq(3 => [[:else, 0]])
+    end
+  end
+
+  describe SimpleCov::SourceFile::SkipChunks do
+    before { described_class.nocov_warned.clear }
+
+    def chunks_for(src, criterion = :line, filename: "chunked.rb")
+      chunks = nil
+      capture_stderr { chunks = described_class.new(filename, src).for(criterion) }
+      chunks
+    end
+
+    it "pairs the nocov markers into inclusive ranges of line numbers" do
+      src = ["# :nocov:\n", "a = 1\n", "# :nocov:\n", "b = 2\n", "# :nocov:\n", "c = 3\n", "# :nocov:\n"]
+
+      expect(chunks_for(src)).to eq [1..3, 5..7]
+    end
+
+    it "runs an unpaired marker to the end of the file" do
+      expect(chunks_for(["a = 1\n", "# :nocov:\n", "b = 2\n", "c = 3\n", "d = 4\n"])).to eq [2..5]
+    end
+
+    it "finds no chunks in a file that has no markers" do
+      expect(chunks_for(["a = 1\n", "b = 2\n"])).to eq []
+    end
+
+    it "adds the criterion's own directive ranges to the nocov ones" do
+      src = [
+        "# :nocov:\n",                  # 1
+        "a = 1\n",                      # 2
+        "# :nocov:\n",                  # 3
+        "# simplecov:disable branch\n", # 4
+        "b = 2\n",                      # 5
+        "# simplecov:enable branch\n"   # 6
+      ]
+
+      expect(chunks_for(src, :branch)).to eq [1..3, 4..6]
+      expect(chunks_for(src, :line)).to eq [1..3]
+    end
+
+    describe "the nocov deprecation warning" do
+      let(:src) { ["a = 1\n", "b = 2\n", "# :nocov:\n", "c = 3\n", "# :nocov:\n"] }
+
+      it "names the file and the first marker's line, and what to write instead" do
+        stderr = capture_stderr { described_class.new("warned.rb", src).for(:line) }
+
+        expect(stderr).to eq(
+          "warned.rb:3: [DEPRECATION] `# :nocov:` is deprecated and will be removed in a future release. " \
+          "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.\n"
+        )
+      end
+
+      it "warns once per file" do
+        capture_stderr { described_class.new("warned.rb", src).for(:line) }
+        stderr = capture_stderr { described_class.new("warned.rb", src).for(:line) }
+
+        expect(stderr).to be_empty
+      end
+
+      it "warns again for a different file" do
+        capture_stderr { described_class.new("warned.rb", src).for(:line) }
+        stderr = capture_stderr { described_class.new("other.rb", src).for(:line) }
+
+        expect(stderr).to include("other.rb:3:")
+      end
+
+      it "says nothing about a file with no markers" do
+        expect(capture_stderr { described_class.new("quiet.rb", ["a = 1\n"]).for(:line) }).to be_empty
+      end
+    end
+  end
+
+  describe SimpleCov::SourceFile::SourceLoader do
+    let(:tmpdir) { Dir.mktmpdir("simplecov-source-loader-spec-") }
+
+    after { FileUtils.remove_entry(tmpdir) }
+
+    def source_path(content)
+      File.join(tmpdir, "source.rb").tap { |path| File.binwrite(path, content) }
+    end
+
+    describe ".call" do
+      it "reads every line of a plain file" do
+        expect(described_class.call(source_path("a = 1\nb = 2\n"))).to eq ["a = 1\n", "b = 2\n"]
+      end
+
+      it "reads no lines out of an empty file" do
+        expect(described_class.call(source_path(""))).to eq []
+      end
+
+      it "keeps a shebang line and everything under it" do
+        expect(described_class.call(source_path("#!/usr/bin/env ruby\na = 1\n")))
+          .to eq ["#!/usr/bin/env ruby\n", "a = 1\n"]
+      end
+
+      it "reads a file that is nothing but a shebang" do
+        expect(described_class.call(source_path("#!/usr/bin/env ruby\n"))).to eq ["#!/usr/bin/env ruby\n"]
+      end
+
+      it "replaces invalid bytes on the first line, before any regex sees it" do
+        expect(described_class.call(source_path("# caf\xE9\na = 1\n"))).to eq ["# caf�\n", "a = 1\n"]
+      end
+
+      it "replaces invalid bytes on the lines below the first" do
+        expect(described_class.call(source_path("a = 1\nb = 2\n# caf\xE9\n")))
+          .to eq ["a = 1\n", "b = 2\n", "# caf�\n"]
+      end
+
+      it "reads a file in the encoding its magic comment declares" do
+        expect(described_class.call(source_path("# encoding: EUC-JP\n# \xB0\xA1\n")))
+          .to eq ["# encoding: EUC-JP\n", "# 亜\n"]
+      end
+
+      # The mode pins the read to UTF-8 rather than to whatever the
+      # process happens to have as its default external encoding: every
+      # line is expected to leave the loader as UTF-8 (see #866), and a
+      # project is free to set that default to anything.
+      it "reads the file as UTF-8 whatever the default external encoding is" do
+        path = source_path("# 135°C\n")
+        original = Encoding.default_external
+        verbose = $VERBOSE
+        # Setting the default external encoding warns, and this suite
+        # fails the build on its own warnings.
+        $VERBOSE = nil
+
+        begin
+          Encoding.default_external = Encoding::US_ASCII
+
+          expect(described_class.call(path)).to eq ["# 135°C\n"]
+        ensure
+          Encoding.default_external = original
+          $VERBOSE = verbose
+        end
+      end
+
+      # A filename is a filename. `Kernel#open` would take a leading pipe
+      # as an invitation to run the rest as a command.
+      it "does not run a filename that begins with a pipe" do
+        # Windows rejects the pipe as an illegal filename character
+        # instead of looking for the file, which proves the same point.
+        error = Gem.win_platform? ? Errno::EINVAL : Errno::ENOENT
+        expect { described_class.call("|echo not-a-file") }.to raise_error(error)
+      end
+    end
+
+    describe ".scrub_invalid" do
+      it "answers nil for nil, which is what an exhausted file hands back" do
+        expect(described_class.scrub_invalid(nil)).to be_nil
+      end
+
+      it "hands back a valid line untouched" do
+        line = +"a = 1\n"
+
+        expect(described_class.scrub_invalid(line)).to be(line)
+      end
+
+      it "replaces the invalid bytes of an invalid line" do
+        line = (+"# caf\xE9\n").force_encoding(Encoding::UTF_8)
+
+        expect(described_class.scrub_invalid(line)).to eq "# caf�\n"
+      end
+    end
+
+    describe ".shebang?" do
+      it "recognises a shebang at the start of a line" do
+        expect(described_class.shebang?("#!/usr/bin/env ruby\n")).to be true
+      end
+
+      it "ignores one further along the line" do
+        expect(described_class.shebang?("x = 1 #!/usr/bin/env ruby\n")).to be false
+      end
+    end
+
+    describe ".set_encoding_based_on_magic_comment" do
+      it "reads the file in the declared encoding and hands it over as UTF-8" do
+        File.open(source_path("# encoding: EUC-JP\n"), "rb:UTF-8") do |file|
+          described_class.set_encoding_based_on_magic_comment(file, "# encoding: EUC-JP\n")
+
+          expect(file.external_encoding).to eq Encoding::EUC_JP
+          expect(file.internal_encoding).to eq Encoding::UTF_8
+        end
+      end
+
+      it "leaves the encodings alone for a line that declares nothing" do
+        File.open(source_path("a = 1\n"), "rb:UTF-8") do |file|
+          described_class.set_encoding_based_on_magic_comment(file, "a = 1\n")
+
+          expect(file.external_encoding).to eq Encoding::UTF_8
+          expect(file.internal_encoding).to be_nil
+        end
+      end
+    end
+
+    describe ".ensure_remove_undefs" do
+      it "hands back the very array it was given" do
+        lines = [+"a = 1\n"]
+
+        expect(described_class.ensure_remove_undefs(lines)).to be(lines)
+      end
+
+      it "leaves a valid UTF-8 line exactly as it was" do
+        expect(described_class.ensure_remove_undefs([+"# 135°C\n"])).to eq ["# 135°C\n"]
+      end
+
+      it "replaces the invalid bytes of a UTF-8 line in place" do
+        line = (+"# caf\xE9\n").force_encoding(Encoding::UTF_8)
+        described_class.ensure_remove_undefs([line])
+
+        expect(line).to eq "# caf�\n"
+      end
+
+      it "transcodes a line that carries another encoding" do
+        line = (+"# \xB0\xA1\n").force_encoding(Encoding::EUC_JP)
+        described_class.ensure_remove_undefs([line])
+
+        expect(line).to eq "# 亜\n"
+        expect(line.encoding).to eq Encoding::UTF_8
+      end
+
+      it "replaces bytes that are invalid in the line's own encoding" do
+        line = (+"# \x8F\xFF\n").force_encoding(Encoding::EUC_JP)
+        described_class.ensure_remove_undefs([line])
+
+        # CRuby counts the two bytes as two broken characters where other
+        # engines read \x8F as the opening byte of one; either way every
+        # invalid byte is replaced.
+        expect(line).to match(/\A# �+\n\z/)
+        expect(line).to eq("# ��\n") if RUBY_ENGINE == "ruby"
+      end
+
+      # Valid EUC-JP with no Unicode mapping at all, which is the `undef`
+      # half of the transcode: without it the conversion raises and takes
+      # the whole report down with it.
+      it "replaces a character its own encoding has and UTF-8 has not" do
+        line = (+"# \x8E\xE0\n").force_encoding(Encoding::EUC_JP)
+        described_class.ensure_remove_undefs([line])
+
+        expect(line).to eq "# �\n"
+        expect(line.encoding).to eq Encoding::UTF_8
+      end
+
+      it "replaces bytes that have no UTF-8 meaning at all" do
+        line = (+"# caf\xE9\n").force_encoding(Encoding::BINARY)
+        described_class.ensure_remove_undefs([line])
+
+        expect(line).to eq "# caf�\n"
+      end
     end
   end
 end

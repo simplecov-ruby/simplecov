@@ -18,7 +18,7 @@ module SimpleCov
           info = RubyDataParser.call(info)
           next if eval_generated_to_ignore?(info)
 
-          SourceFile::Method.new(@source_file, info, hit_count)
+          Method.new(@source_file, info, hit_count)
         end
 
         process_skipped(methods)
@@ -42,18 +42,15 @@ module SimpleCov
         # simplecov:enable branch
 
         _class_name, name, start_line, * = info
-        !positions[:methods].include?([name, start_line])
+        !positions.fetch(:methods).include?([name, start_line])
       end
 
       def process_skipped(methods)
         chunks = @source_file.skip_chunks_for(:method)
-        return methods if chunks.empty?
 
         methods.each do |method|
           method.skipped! if chunks.any? { |chunk| method.overlaps_with?(chunk) }
         end
-
-        methods
       end
     end
   end

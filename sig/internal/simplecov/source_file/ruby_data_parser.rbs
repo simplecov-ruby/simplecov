@@ -27,14 +27,12 @@ module SimpleCov
 
       def self?.parse_element: (untyped node) -> untyped
 
-      def self?.parse_integer_node: (untyped node) -> untyped
+      # A constant path's namespace is an element in its own right.
+      def self?.const_path: (Array[untyped] node) -> String
 
-      def self?.parse_symbol_node: (untyped node) -> untyped
-
-      # Concatenate the text fragments of a `:string_content` node. Ripper
-      # may emit zero, one, or many `:@tstring_content` children depending
-      # on the literal.
-      def self?.string_literal_text: (Array[untyped] string_content) -> String
+      # The text a string or symbol literal carries. Ripper may emit
+      # zero, one, or many fragments under it depending on the literal.
+      def self?.literal_text: (Array[untyped] node) -> untyped
 
       # Undo the same backslash-prefix escapes the previous hand-rolled
       # parser undid: `\X` → `X` for any X.

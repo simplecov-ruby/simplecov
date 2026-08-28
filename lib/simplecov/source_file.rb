@@ -89,9 +89,10 @@ module SimpleCov
       coverage_statistics[:line]&.total || 0
     end
 
-    # Access SimpleCov::SourceFile::Line source lines by line number
+    # Access SimpleCov::SourceFile::Line source lines by line number.
+    # Answers nil for a number this file has no line for.
     def line(number)
-      lines[number - 1]
+      lines.at(number - 1)
     end
 
     # The coverage for this file in percent, for the given criterion (line by
@@ -104,8 +105,10 @@ module SimpleCov
       coverage_statistics(criterion)&.strength
     end
 
+    # Nothing here is worth covering: every line the file has is
+    # irrelevant, a file with no lines at all included.
     def no_lines?
-      lines.empty? || (lines.length == never_lines.size)
+      lines.all?(&:never?)
     end
 
     def relevant_lines
@@ -123,8 +126,8 @@ module SimpleCov
 
     # DEPRECATED: use `covered_percent(:branch)`.
     def branches_coverage_percent
-      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
-                                  "Use `covered_percent(:branch)`.")
+      Deprecation.warn("`SimpleCov::SourceFile#branches_coverage_percent` is deprecated. " \
+                       "Use `covered_percent(:branch)`.")
       covered_percent(:branch)
     end
 
@@ -176,8 +179,8 @@ module SimpleCov
 
     # DEPRECATED: use `covered_percent(:method)`.
     def methods_coverage_percent
-      SimpleCov::Deprecation.warn("`SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
-                                  "Use `covered_percent(:method)`.")
+      Deprecation.warn("`SimpleCov::SourceFile#methods_coverage_percent` is deprecated. " \
+                       "Use `covered_percent(:method)`.")
       covered_percent(:method)
     end
 

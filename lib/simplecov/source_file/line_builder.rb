@@ -27,7 +27,7 @@ module SimpleCov
       def build_lines
         line_coverage = @source_file.coverage_data["lines"] || []
         @source_file.src.map.with_index(1) do |src, i|
-          SourceFile::Line.new(src, i, line_coverage[i - 1])
+          Line.new(src, i, line_coverage.at(i - 1))
         end
       end
 

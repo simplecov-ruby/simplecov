@@ -19,7 +19,7 @@ module SimpleCov
       # Coverage entry (no false drops). The `defined?` guard preserves a
       # nil memoization across calls.
       def real_source_positions
-        return @real_source_positions if defined?(@real_source_positions)
+        return @real_source_positions if instance_variable_defined?(:@real_source_positions)
 
         @real_source_positions = StaticCoverageExtractor.real_source_positions(src.join)
       end
