@@ -10,6 +10,43 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
   let(:sample) { File.join(fixture_root, "sample.rb") }
 
   describe ".discover" do
+    context "with a directory of its own" do
+      let(:root) { Dir.mktmpdir("injector-discover") }
+
+      before do
+        FileUtils.mkdir_p(File.join(root, "lib"))
+        File.write(File.join(root, "lib/a.rb"), "a = 1\n")
+        File.write(File.join(root, "lib/b.rb"), "b = 2\n")
+      end
+
+      after { FileUtils.remove_entry(root) }
+
+      it "ignores a glob that was never given" do
+        expect(described_class.discover(["lib/a.rb", nil], root: root))
+          .to eq([File.join(root, "lib/a.rb")])
+      end
+
+      # Two globs naming the same file name it once.
+      it "answers each path once, however many globs found it" do
+        expect(described_class.discover(["lib/a.rb", "lib/*.rb"], root: root))
+          .to contain_exactly(File.join(root, "lib/a.rb"), File.join(root, "lib/b.rb"))
+      end
+
+      it "drops the paths a path-only filter would exclude" do
+        expect(described_class.discover(["lib/*.rb"], root: root, reject: [SimpleCov::StringFilter.new("a.rb")]))
+          .to eq([File.join(root, "lib/b.rb")])
+      end
+
+      # Nothing to reject means nothing to ask, so no source file is
+      # built to ask it of.
+      it "builds no source file when there is nothing to reject" do
+        allow(SimpleCov::SourceFile).to receive(:new).and_call_original
+
+        described_class.discover(["lib/*.rb"], root: root, reject: [])
+        expect(SimpleCov::SourceFile).not_to have_received(:new)
+      end
+    end
+
     it "expands globs into absolute paths relative to the given root" do
       expect(described_class.discover(["sample.rb"], root: fixture_root)).to eq([sample])
     end
@@ -26,11 +63,34 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
   end
 
   describe ".call" do
+    # Whether to synthesize branch and method tuples is the caller's to
+    # decide, and it is passed on rather than assumed.
+    it "passes the caller's choice of synthesis through" do
+      allow(SimpleCov::SimulateCoverage).to receive(:call).and_return({"lines" => []})
+
+      described_class.call({}, [sample], synthesize: true, lines: false)
+      expect(SimpleCov::SimulateCoverage).to have_received(:call).with(sample, synthesize: true, lines: false)
+    end
+
     it "simulates coverage for paths the result doesn't carry" do
       coverage, injected = described_class.call({}, [sample], synthesize: false, lines: true)
 
       expect(injected).to eq(Set[sample])
       expect(coverage[sample]["lines"]).to be_an(Array)
+    end
+
+    # The paths after one that is already carried are still considered:
+    # a path already there is skipped, not a place to stop.
+    it "carries on past a path the result already carries" do
+      Dir.mktmpdir("injector-call") do |dir|
+        other = File.join(dir, "other.rb")
+        File.write(other, "2\n")
+
+        _coverage, injected = described_class.call({sample => {"lines" => [1]}}, [sample, other],
+                                                   synthesize: false, lines: true)
+
+        expect(injected).to eq(Set[other])
+      end
     end
 
     it "leaves paths the result already carries alone" do
@@ -53,6 +113,32 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
 
       expect(coverage[sample]).not_to have_key("lines")
       expect(coverage[sample]["branches"]).to be_empty
+    end
+  end
+
+  describe ".rejected?" do
+    it "is true when any filter matches the path" do
+      filters = [SimpleCov::StringFilter.new("nothing"), SimpleCov::StringFilter.new("sample.rb")]
+      expect(described_class.rejected?(sample, filters)).to be(true)
+    end
+
+    it "is false when none does" do
+      expect(described_class.rejected?(sample, [SimpleCov::StringFilter.new("zzz")])).to be(false)
+    end
+
+    # The file is handed over as one that was never loaded and carries
+    # no coverage, so a path-only filter answers without reading it.
+    it "hands the filter a file marked as never loaded, with no coverage" do
+      seen = nil
+      described_class.rejected?(sample, [SimpleCov::BlockFilter.new(->(file) { seen = file and false })])
+
+      expect(seen.project_filename).to end_with("sample.rb")
+      expect(seen).to be_not_loaded
+      expect(seen.coverage_data).to eq("lines" => [])
+    end
+
+    it "is false when there are no filters at all" do
+      expect(described_class.rejected?(sample, [])).to be(false)
     end
   end
 end

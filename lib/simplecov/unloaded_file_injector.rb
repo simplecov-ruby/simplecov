@@ -18,7 +18,7 @@ module SimpleCov
   # no `cover` glob of its own and takes the tracked paths from the resultsets
   # instead. See #1250.
   module UnloadedFileInjector
-  module_function
+    extend self
 
     # Expand `globs` into absolute paths, relative to `root` rather than
     # `Dir.pwd` — test runners that chdir (or CI scripts that invoke the suite
@@ -36,6 +36,9 @@ module SimpleCov
                    .flat_map { |glob| Dir.glob(glob, base: root) }
                    .uniq
                    .map { |path| File.expand_path(path, root) }
+      # With nothing to reject the filter below would keep every path
+      # anyway; this saves building a SourceFile per path to find that
+      # out.
       return paths if reject.empty?
 
       paths.reject { |path| rejected?(path, reject) }
