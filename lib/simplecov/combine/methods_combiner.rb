@@ -11,7 +11,7 @@ module SimpleCov
     #
     # Should be called through `CoverageAccumulator`.
     module MethodsCombiner
-    module_function
+      extend self
 
       #
       # Return merged methods or the existing methods if other is missing.
