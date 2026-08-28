@@ -9,14 +9,22 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   subject(:formatter) { described_class.new(silent: true) }
 
   let(:loud_formatter) { described_class.new(silent: false) }
-  let(:coverage_dir)   { SimpleCov.coverage_dir }
   let(:fixtures_path)  { File.join(source_fixture_base_directory, "fixtures") }
 
+  # A coverage directory of its own, rather than the suite's shared one.
+  # These examples assert the exact contents of the directory the
+  # formatter wrote into, and they used to empty that directory first,
+  # both of which reach into whatever else the suite keeps there.
+  let(:tmp_root) { Dir.mktmpdir("simplecov-html-formatter-") }
+  let(:coverage_dir) { File.join(tmp_root, "coverage") }
+
   before do
-    FileUtils.rm_rf(coverage_dir)
     FileUtils.mkdir_p(coverage_dir)
+    allow(SimpleCov).to receive_messages(coverage_dir: coverage_dir, coverage_path: coverage_dir)
     SimpleCov::SourceFile::SkipChunks.nocov_warned.clear
   end
+
+  after { FileUtils.rm_rf(tmp_root) }
 
   def fixture_path(name)
     File.join(fixtures_path, name)
@@ -38,11 +46,34 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     JSON.parse(embedded_json(dir))
   end
 
+  def with_default_external(encoding)
+    original = Encoding.default_external
+    assign_default_external(encoding)
+    yield
+  ensure
+    assign_default_external(original)
+  end
+
+  def assign_default_external(encoding)
+    verbose = $VERBOSE
+    $VERBOSE = nil # assigning default_external warns; that's the point here
+    Encoding.default_external = encoding
+  ensure
+    $VERBOSE = verbose
+  end
+
   describe "DATA_MARKER" do
     it "is present exactly once in the compiled template" do
       template = File.read(File.join(formatter.send(:public_dir), "index.html"))
       expect(template.scan(described_class::DATA_MARKER).count).to eq 1
     end
+  end
+
+  # The compiled viewer ships inside the gem, next to the formatter that
+  # reads it.
+  it "reads its template from the assets directory beside the formatter" do
+    expect(formatter.send(:public_dir))
+      .to eq("#{File.expand_path('../../lib/simplecov/formatter/html_formatter/public', __dir__)}/")
   end
 
   describe "#format when an existing coverage.json was written after this process started" do
@@ -104,22 +135,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
         expect(embedded_json(dir)).to include("135°C")
       end
     end
-
-    def with_default_external(encoding)
-      original = Encoding.default_external
-      assign_default_external(encoding)
-      yield
-    ensure
-      assign_default_external(original)
-    end
-
-    def assign_default_external(encoding)
-      verbose = $VERBOSE
-      $VERBOSE = nil # assigning default_external warns; that's the point here
-      Encoding.default_external = encoding
-    ensure
-      $VERBOSE = verbose
-    end
   end
 
   describe "#format with output_dir" do
@@ -137,6 +152,19 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
     it "writes no files besides index.html and coverage.json" do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html]
+    end
+
+    # Written in binary mode so the report is byte-identical wherever it
+    # was generated, rather than gaining CRLFs on a platform that
+    # translates newlines. Asserted at the call, since the mode has no
+    # effect on a platform that does not translate them.
+    it "writes the report as bytes, not text" do
+      allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
+
+      formatter.format(make_result)
+
+      expect(SimpleCov::AtomicFile).to have_received(:write)
+        .with(File.join(coverage_dir, "index.html"), anything, binary: true)
     end
 
     it "removes the sibling files a pre-1.0.4 report left behind" do
@@ -193,10 +221,19 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     # via `FileUtils.cp_r`, which preserved the read-only mode and then
     # raised EACCES the next run when it tried to open them for writing.
     # The temp-file + rename approach bypasses the open-for-write step.
+    # Only the files are made read-only, and their modes are put back
+    # afterwards: a directory at 0444 has no execute bit, so nothing
+    # inside it can be read again, and this directory outlives the
+    # example and the run.
     it "overwrites read-only assets from prior runs without raising EACCES" do
       formatter.format(make_result)
-      Dir[File.join(coverage_dir, "*")].each { |f| File.chmod(0o444, f) }
+      assets = Dir[File.join(coverage_dir, "*")].select { |path| File.file?(path) }
+      modes = assets.to_h { |path| [path, File.stat(path).mode & 0o777] }
+      assets.each { |path| File.chmod(0o444, path) }
+
       expect { formatter.format(make_result) }.not_to raise_error
+    ensure
+      modes&.each { |path, mode| File.chmod(mode, path) if File.exist?(path) }
     end
   end
 
@@ -224,8 +261,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     # "</script>" (or "<!--" + "<script") in embedded source text would
     # terminate or destabilize the element. render_report escapes every
     # `<` in the payload, so none of these sequences can occur raw.
-    it "keeps embedded </script> and <!-- sequences from breaking the data script element" do
-      hostile = {"source" => ["</script><script>alert(1)</script>", "<!-- <script> -->"]}
+    # The backslashes matter as much as the angle brackets: substituted as
+    # a replacement string rather than through a block, `\1` would be read
+    # as a back-reference and dropped from the payload.
+    it "keeps embedded </script>, <!-- and backslash sequences intact" do
+      hostile = {"source" => ["</script><script>alert(1)</script>", "<!-- <script> -->", "a\\1b\\\\c"]}
       html = formatter.send(:render_report, JSON.generate(hostile))
       captured = html[%r{window\.SIMPLECOV_DATA = (.*?);</script>}m, 1]
 
@@ -233,10 +273,37 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(JSON.parse(captured)).to eq hostile
     end
 
+    # The template is read as UTF-8 rather than in the locale's encoding,
+    # so a minimal CI container (US-ASCII) can still embed a payload
+    # carrying non-ASCII source.
+    it "embeds a non-ASCII payload under a non-UTF-8 default external encoding" do
+      html = with_default_external(Encoding::US_ASCII) do
+        formatter.send(:render_report, JSON.generate({"source" => ["135°C"]}))
+      end
+
+      expect(html).to include(%(window.SIMPLECOV_DATA = {"source":["135°C"]};))
+    end
+
+    # The report is the compiled template with the payload substituted
+    # at its marker, so everything the template carries (the viewer's
+    # JS and CSS included) is still around the data.
+    it "substitutes the payload into the template, leaving the rest of the page" do
+      template = File.read(File.join(formatter.send(:public_dir), "index.html"), encoding: Encoding::UTF_8)
+
+      html = formatter.send(:render_report, "{}")
+
+      expect(html).to eq(template.sub(described_class::DATA_MARKER,
+                                      %(<script>window.SIMPLECOV_DATA = {};</script>)))
+      expect(html).not_to include(described_class::DATA_MARKER)
+    end
+
     it "raises a clear error when the template is missing the data marker" do
       allow(File).to receive(:read).and_return("<html></html>")
 
-      expect { formatter.send(:render_report, "{}") }.to raise_error(/marker/)
+      expect { formatter.send(:render_report, "{}") }.to raise_error(
+        RuntimeError,
+        %(SimpleCov's HTML template is missing its "<!-- SIMPLECOV_COVERAGE_DATA -->" marker)
+      )
     end
   end
 
@@ -259,6 +326,17 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       described_class.new.format_from_json(json_path, standalone_dir)
 
       expect(Dir.children(standalone_dir)).to eq %w[index.html]
+    end
+
+    # The same byte-for-byte report as an in-process run writes, which
+    # is the point of regenerating one from a coverage.json.
+    it "writes the standalone report as bytes, not text" do
+      allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
+
+      described_class.new.format_from_json(json_path, standalone_dir)
+
+      expect(SimpleCov::AtomicFile).to have_received(:write)
+        .with(File.join(standalone_dir, "index.html"), anything, binary: true)
     end
 
     it "embeds data with the same shape as the in-process format run" do

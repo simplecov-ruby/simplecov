@@ -50,7 +50,7 @@ module SimpleCov
       # pretty-printed) input and rejects invalid JSON here rather than
       # embedding it and failing at view time.
       def format_from_json(json_path, output_dir)
-        data = ViewerDataValidator.call(SimpleCov::CoverageJSON.load(json_path))
+        data = ViewerDataValidator.call(CoverageJSON.load(json_path))
         json = JSON.generate(data)
         AtomicFile.write(File.join(output_dir, "index.html"), render_report(json), binary: true)
       end
@@ -94,9 +94,10 @@ module SimpleCov
       end
 
       def public_dir
-        # `.to_s` collapses `__dir__`'s nil arm (only possible under eval,
-        # which can't happen for a file on disk) so the path is a String.
-        File.join(__dir__.to_s, "html_formatter/public/")
+        # Interpolated rather than joined: `__dir__` is nilable (only under
+        # eval, which can't happen for a file on disk) and interpolation
+        # renders the path without a spare `to_s` step.
+        "#{__dir__}/html_formatter/public/"
       end
     end
   end
