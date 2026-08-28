@@ -6081,14 +6081,21 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "open subcommand" do
+  describe "open subcommand", mutant_expression: "SimpleCov::CLI::Open*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-open-spec-") }
 
     after { FileUtils.remove_entry(tmp) }
 
-    it "errors when the report file is missing" do
-      expect(run("open", "--report", File.join(tmp, "missing.html"))).to eq(1)
-      expect(stderr.string).to include("not found")
+    it "errors when the report file is missing, naming it" do
+      missing = File.join(tmp, "missing.html")
+
+      expect(run("open", "--report", missing)).to eq(1)
+      expect(stderr.string).to eq("simplecov open: #{missing} not found\n")
+    end
+
+    # Without --report the report is the one the project writes.
+    it "opens the project's own report when told of no other" do
+      expect(SimpleCov::CLI::Open.parse([])).to eq(described_class.default_report)
     end
 
     it "shells out to the platform opener with the report path" do
@@ -6100,13 +6107,14 @@ RSpec.describe SimpleCov::CLI do
       expect(SimpleCov::CLI::Open).to have_received(:system).with("open", report)
     end
 
-    it "errors when the platform has no known opener" do
+    it "errors when the platform has no known opener, naming the platform" do
       report = File.join(tmp, "index.html")
       File.write(report, "<html></html>")
       allow(SimpleCov::CLI::Open).to receive(:browser_opener).and_return(nil)
+      stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => "exotic-os"))
 
       expect(run("open", "--report", report)).to eq(1)
-      expect(stderr.string).to include("no known opener")
+      expect(stderr.string).to eq("simplecov open: no known opener for exotic-os\n")
     end
 
     it "returns 1 when the opener exits non-zero" do
@@ -6133,14 +6141,20 @@ RSpec.describe SimpleCov::CLI do
         expect(SimpleCov::CLI::Open.browser_opener).to eq(["open"])
       end
 
-      it "picks `cmd /c start` on Windows" do
-        stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => "mswin64"))
-        expect(SimpleCov::CLI::Open.browser_opener).to eq(["cmd", "/c", "start", ""])
+      # Every spelling of each family, since one of them standing in for
+      # the others leaves the rest free to go unrecognized.
+      %w[mswin64 mingw32 cygwin].each do |host|
+        it "picks `cmd /c start` on #{host}" do
+          stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => host))
+          expect(SimpleCov::CLI::Open.browser_opener).to eq(["cmd", "/c", "start", ""])
+        end
       end
 
-      it "picks `xdg-open` on Linux/BSD/Solaris" do
-        stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => "linux-gnu"))
-        expect(SimpleCov::CLI::Open.browser_opener).to eq(["xdg-open"])
+      %w[linux-gnu freebsd14 solaris2.11].each do |host|
+        it "picks `xdg-open` on #{host}" do
+          stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => host))
+          expect(SimpleCov::CLI::Open.browser_opener).to eq(["xdg-open"])
+        end
       end
 
       it "returns nil for an unrecognized platform" do

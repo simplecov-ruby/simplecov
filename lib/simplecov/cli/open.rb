@@ -11,23 +11,22 @@ module SimpleCov
     module Open
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stderr:, **)
         path = parse(args)
         return error(stderr, "#{path} not found") unless File.exist?(path)
 
         opener = browser_opener
-        return error(stderr, "no known opener for #{RbConfig::CONFIG['host_os']}") unless opener
+        return error(stderr, "no known opener for #{RbConfig::CONFIG.fetch('host_os')}") unless opener
 
         system(*opener, path) ? 0 : 1
       end
 
       def parse(args)
-        path = SimpleCov::CLI.default_report
-        OptionParser.new do |o|
+        path = CLI.default_report
+        build_parser do |o|
           o.on("--report PATH") { |v| path = v }
-          on_help(o)
         end.parse(args)
         path
       end
@@ -38,7 +37,7 @@ module SimpleCov
       # the empty string is the window-title positional `start` takes
       # before the path so a quoted path isn't mis-parsed as the title.
       def browser_opener
-        case RbConfig::CONFIG["host_os"]
+        case RbConfig::CONFIG.fetch("host_os")
         when /darwin/             then ["open"]
         when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", ""]
         when /linux|bsd|solaris/  then ["xdg-open"]
