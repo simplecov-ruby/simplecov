@@ -9,7 +9,7 @@ module SimpleCov
   # still warning separately about each distinct call site the user needs
   # to fix. See issue #1204.
   module Deprecation
-  module_function
+    extend self
 
     # Warn about a deprecated API. `message` is the notice without the
     # `[DEPRECATION]` tag or location prefix (both are added here).
@@ -22,12 +22,12 @@ module SimpleCov
     # `Array(...)` coerces a missing backtrace (nil) to `[]` so `.first`
     # yields nil rather than raising — and, unlike `&.`, adds no branch for
     # the unreachable no-caller case to the project's 100% coverage target.
-    def warn(message, location: Array(Kernel.caller(2..2)).first)
+    def warn(message, location: caller_location)
       # `deprecations :raise` turns every deprecated API into an error,
       # before the dedup: an error is not a notice to collapse, and a
       # CI guard must fail on the second offender file as surely as on
       # the first.
-      raise SimpleCov::ConfigurationError, message if SimpleCov.deprecations == :raise
+      raise ConfigurationError, message if SimpleCov.deprecations.equal?(:raise)
 
       # Key on location when we have one (collapses a deprecated call in a
       # loop to a single warning); fall back to the message so a missing
@@ -35,6 +35,16 @@ module SimpleCov
       return unless emitted.add?(location || message)
 
       Kernel.warn "#{"#{location}: " if location}[DEPRECATION] #{message}"
+    end
+
+    # The caller of the deprecated method that called us. Every shipped
+    # call site is a one-level alias such as `track_files`, so the frame
+    # three up from here is the user's own code.
+    #
+    # `Array(...)` coerces a missing backtrace (nil) to `[]` so `.first`
+    # yields nil rather than raising.
+    def caller_location
+      Array(Kernel.caller(3..3)).first
     end
 
     # Already-emitted dedup keys for this process. Parallel workers are

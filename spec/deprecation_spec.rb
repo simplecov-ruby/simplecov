@@ -12,12 +12,31 @@ describe SimpleCov::Deprecation do
     described_class.warn(message)
   end
 
-  describe ".warn" do
-    it "tags the message and prefixes the caller location" do
-      stderr = capture_stderr { deprecated_alias("`SimpleCov.old` is deprecated.") }
+  describe ".caller_location" do
+    # The window is asked for one frame, but the promise is "the first
+    # of whatever comes back", which takes two frames to tell apart.
+    it "reads the first frame of the window it asked for" do
+      allow(Kernel).to receive(:caller).with(3..3).and_return(["lib/user.rb:1:in 'block'", "lib/deeper.rb:9"])
 
-      expect(stderr).to include("[DEPRECATION] `SimpleCov.old` is deprecated.")
-      expect(stderr).to include("#{__FILE__}:")
+      expect(described_class.send(:caller_location)).to eq("lib/user.rb:1:in 'block'")
+    end
+
+    it "answers nil when the stack is too shallow to carry one" do
+      allow(Kernel).to receive(:caller).with(3..3).and_return(nil)
+
+      expect(described_class.send(:caller_location)).to be_nil
+    end
+  end
+
+  describe ".warn" do
+    # The frame two up is the user's own call, not the alias that
+    # forwarded it and not the alias's caller's caller.
+    it "tags the message and prefixes the line that called the deprecated alias" do
+      stderr = capture_stderr { deprecated_alias("`SimpleCov.old` is deprecated.") }
+      called_on = __LINE__ - 1
+
+      expect(stderr).to start_with("#{__FILE__}:#{called_on}:")
+      expect(stderr).to end_with("[DEPRECATION] `SimpleCov.old` is deprecated.\n")
     end
 
     it "emits a given location only once, no matter how many times it repeats" do
@@ -80,6 +99,75 @@ describe SimpleCov::Deprecation do
       expect(first).to include("[DEPRECATION]")
       expect(second_without_reset).to be_empty
       expect(third_after_reset).to include("[DEPRECATION]")
+    end
+  end
+
+  describe ".emitted" do
+    # A set, so the same key added twice is one key, which is what the
+    # deduplication rests on. Built on first asking, from nothing.
+    it "builds an empty set the first time it is asked" do
+      described_class.remove_instance_variable(:@emitted) if
+        described_class.instance_variable_defined?(:@emitted)
+
+      expect(described_class.emitted).to eq(Set.new)
+      described_class.emitted.add("a")
+      described_class.emitted.add("a")
+      expect(described_class.emitted).to eq(Set["a"])
+    end
+
+    it "answers the same set each time it is asked" do
+      first = described_class.emitted
+      expect(described_class.emitted).to be(first)
+    end
+  end
+
+  describe ".reset!" do
+    it "forgets what was already warned about" do
+      described_class.warn("once", location: "file.rb:1")
+      expect(described_class.emitted).not_to be_empty
+
+      described_class.reset!
+      expect(described_class.emitted).to eq(Set.new)
+    end
+
+    # Forgotten, not discarded: the next warning has somewhere to go
+    # without having to build it.
+    it "leaves an empty set behind rather than nothing" do
+      described_class.warn("once", location: "file.rb:1")
+      described_class.reset!
+
+      expect(described_class.instance_variable_get(:@emitted)).to eq(Set.new)
+    end
+  end
+
+  # Two different messages from one place are one call site to fix, and
+  # a message with no place to attribute it to is still worth saying.
+  describe "what it keys the deduplication on" do
+    it "collapses different messages from the same location" do
+      stderr = capture_stderr do
+        described_class.warn("first", location: "file.rb:1")
+        described_class.warn("second", location: "file.rb:1")
+      end
+
+      expect(stderr).to include("first")
+      expect(stderr).not_to include("second")
+    end
+
+    it "keeps warning separately about each distinct message when there is no location" do
+      stderr = capture_stderr do
+        described_class.warn("first", location: nil)
+        described_class.warn("second", location: nil)
+      end
+
+      expect(stderr).to include("first").and include("second")
+    end
+
+    it "says a message with no location once, without a prefix" do
+      stderr = capture_stderr do
+        2.times { described_class.warn("no place", location: nil) }
+      end
+
+      expect(stderr).to eq("[DEPRECATION] no place\n")
     end
   end
 end
