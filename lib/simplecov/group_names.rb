@@ -5,7 +5,7 @@ module SimpleCov
   module GroupNames
     UNGROUPED = "Ungrouped"
 
-  module_function
+    extend self
 
     # Group names are Hash keys, report labels, and JSON object keys all at
     # once, so they are normalized to Strings up front: a Symbol spelling
@@ -17,15 +17,18 @@ module SimpleCov
       when String then group_name
       when Symbol then group_name.to_s
       else
-        raise SimpleCov::ConfigurationError,
+        raise ConfigurationError,
               "Group names must be Strings, got #{group_name.inspect} (#{group_name.class})"
       end
     end
 
     def validate!(group_names)
-      return group_names unless group_names.include?(UNGROUPED)
+      # Each name in turn, rather than asking the collection: a String
+      # asked whether it "includes" the reserved name answers about its
+      # own characters.
+      return group_names unless group_names.any? { |name| name.eql?(UNGROUPED) }
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "#{UNGROUPED.inspect} is reserved for files that do not match a configured group"
     end
   end
