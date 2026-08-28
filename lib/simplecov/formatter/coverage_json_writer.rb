@@ -22,7 +22,7 @@ module SimpleCov
       META_SCAN_BYTES = 64 * 1024
       private_constant :META_SCAN_BYTES
 
-    module_function
+      extend self
 
       def write(output_path, hash, result)
         path = File.join(output_path, FILENAME)
@@ -38,14 +38,14 @@ module SimpleCov
       def warn_if_concurrent_overwrite(path, result)
         start_time = SimpleCov.process_start_time or return
         existing = existing_meta(path) or return
-        return unless existing[:timestamp] > start_time
+        return unless existing.fetch(:timestamp) > start_time
 
         # Both formatters write coverage.json through this method, so when
         # they are configured together the file found here was just written
         # by our own run, not a concurrent one. A matching command_name
         # means the same merged result, so there's nothing to lose by
         # overwriting. See issue #1171.
-        return if existing[:command_name] == result.command_name
+        return if existing.fetch(:command_name).eql?(result.command_name)
 
         warn "simplecov: #{path} was written at #{existing[:timestamp].iso8601} — after " \
              "this process started at #{start_time.iso8601}. Overwriting " \
@@ -101,7 +101,7 @@ module SimpleCov
 
       def parse_meta_full(path)
         parsed = JSON.parse(File.read(path), symbolize_names: true)
-        parsed.is_a?(Hash) ? parsed[:meta] : nil
+        parsed[:meta] if parsed.is_a?(Hash)
       rescue JSON::ParserError
         nil
       end

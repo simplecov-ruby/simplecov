@@ -30,11 +30,43 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(described_class.existing_meta(path)[:command_name]).to eq("Weird } Name")
     end
 
+    # The head scan reads a bounded slice precisely so a multi-megabyte
+    # report is not parsed whole on every write; a meta object sitting
+    # past that bound is what makes the fallback necessary.
     it "falls back to a full parse when meta sits beyond the scanned head" do
       File.write(path, JSON.generate(coverage: {"a.rb" => {"source" => ["x" * 70_000]}},
                                      meta: {timestamp: timestamp, command_name: "RSpec"}))
+      allow(described_class).to receive(:parse_meta_full).and_call_original
 
       expect(described_class.existing_meta(path)[:command_name]).to eq("RSpec")
+      expect(described_class).to have_received(:parse_meta_full)
+    end
+
+    # This writer pretty-prints, so the meta object it emits spans
+    # several lines: the head scan has to read across them or every
+    # write would fall back to parsing the whole report.
+    it "reads a meta object that spans lines, as this writer emits it" do
+      File.write(path, JSON.pretty_generate(meta: {timestamp: timestamp, command_name: "RSpec"}))
+      allow(described_class).to receive(:parse_meta_full).and_call_original
+
+      expect(described_class.existing_meta(path)[:command_name]).to eq("RSpec")
+      expect(described_class).not_to have_received(:parse_meta_full)
+    end
+
+    # An empty meta object is still a meta object, and finding it in the
+    # head is what keeps a large report from being parsed whole.
+    it "reads an empty meta object out of the head, without a full parse" do
+      File.write(path, JSON.generate(meta: {}, coverage: {}))
+      allow(described_class).to receive(:parse_meta_full).and_call_original
+
+      expect(described_class.existing_meta(path)).to be_nil
+      expect(described_class).not_to have_received(:parse_meta_full)
+    end
+
+    it "reads a document that carries no meta at all as carrying none" do
+      File.write(path, JSON.generate(coverage: {}))
+
+      expect(described_class.existing_meta(path)).to be_nil
     end
 
     it "returns nil when the file is missing" do
@@ -65,6 +97,144 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
     it "returns nil for a timestamp that is neither a string nor a number" do
       File.write(path, JSON.generate(meta: {timestamp: true}))
       expect(described_class.existing_meta(path)).to be_nil
+    end
+  end
+
+  # The head scan reads a bounded slice, and `File.read` with a length
+  # answers nil at end of file rather than an empty string.
+  it "reads an empty file as carrying no metadata" do
+    File.write(path, "")
+
+    expect(described_class.existing_meta(path)).to be_nil
+  end
+
+  it "reads metadata with no timestamp at all as carrying none" do
+    File.write(path, JSON.generate(meta: {command_name: "RSpec"}))
+
+    expect(described_class.existing_meta(path)).to be_nil
+  end
+
+  # A full parse answers whatever the JSON library hands back, and any
+  # Hash of metadata will do.
+  it "reads a document that parses to a Hash subclass" do
+    allow(described_class).to receive(:parse_meta_head).and_return(nil)
+    allow(JSON).to receive(:parse).and_return(Class.new(Hash).new.merge!(meta: {timestamp: timestamp}))
+    File.write(path, "{}")
+
+    expect(described_class.existing_meta(path)[:timestamp]).to be_within(1).of(Time.now)
+  end
+
+  it "reads a document that parses to something other than a Hash as carrying none" do
+    File.write(path, "[]")
+
+    expect(described_class.existing_meta(path)).to be_nil
+  end
+
+  describe ".write" do
+    let(:result) { instance_double(SimpleCov::Result, command_name: "RSpec") }
+
+    # Run from inside the temporary directory: the path under test is
+    # built from the output directory, and a mutation that drops that
+    # would otherwise write into the repository itself.
+    around { |example| Dir.chdir(tmp) { example.run } }
+
+    it "writes the document as pretty JSON under the fixed filename, and answers its path" do
+      written = described_class.write(tmp, {"meta" => {"command_name" => "RSpec"}}, result)
+
+      expect(written).to eq(path)
+      expect(File.read(path)).to eq(%({\n  "meta": {\n    "command_name": "RSpec"\n  }\n}))
+    end
+
+    # Written in binary mode so the two formatters that both emit this
+    # file produce identical bytes, rather than differing by whichever
+    # wrote last on a platform that translates newlines. Asserted at the
+    # call, since the mode itself has no effect on a platform that does
+    # not translate them.
+    it "writes bytes, not text" do
+      allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
+
+      described_class.write(tmp, {"a" => "b"}, result)
+
+      expect(File.binread(path)).to eq(%({\n  "a": "b"\n}))
+      expect(SimpleCov::AtomicFile).to have_received(:write).with(path, anything, binary: true)
+    end
+
+    it "checks for a concurrent writer before overwriting, not after" do
+      allow(described_class).to receive(:warn_if_concurrent_overwrite) do
+        expect(File.exist?(path)).to be false
+      end
+
+      described_class.write(tmp, {"a" => "b"}, result)
+
+      expect(described_class).to have_received(:warn_if_concurrent_overwrite).with(path, result)
+    end
+  end
+
+  # The warning of issue #1171: a coverage.json newer than this process
+  # is a sibling test runner's, and overwriting it loses their data.
+  describe ".warn_if_concurrent_overwrite" do
+    let(:started) { Time.now }
+    let(:result) { instance_double(SimpleCov::Result, command_name: "RSpec") }
+
+    before { allow(SimpleCov).to receive(:process_start_time).and_return(started) }
+
+    def write_existing(written_at, command_name: "Minitest")
+      File.write(path, JSON.generate(meta: {timestamp: written_at.iso8601(3), command_name: command_name}))
+    end
+
+    def warning
+      capture_stderr { described_class.warn_if_concurrent_overwrite(path, result) }
+    end
+
+    it "warns, naming both times and what to do instead" do
+      write_existing(started + 5)
+
+      expect(warning).to eq(
+        "simplecov: #{path} was written at #{(started + 5).iso8601} — after " \
+        "this process started at #{started.iso8601}. Overwriting " \
+        "likely loses coverage data from a concurrent test run. For " \
+        "parallel test setups, use SimpleCov::ResultMerger or run a single " \
+        "collation step after all workers finish.\n"
+      )
+    end
+
+    it "says nothing about a file written before this process started" do
+      write_existing(started - 5)
+
+      expect(warning).to be_empty
+    end
+
+    it "says nothing about a file written at the very moment we started" do
+      write_existing(started)
+
+      expect(warning).to be_empty
+    end
+
+    # Both formatters write this file through here, so a newer file
+    # carrying our own command name is our own run, not a rival's.
+    it "says nothing about our own run's file" do
+      write_existing(started + 5, command_name: "RSpec")
+
+      expect(warning).to be_empty
+    end
+
+    it "says nothing when there is no file to overwrite" do
+      expect(warning).to be_empty
+    end
+
+    it "says nothing when the existing file carries no usable timestamp" do
+      File.write(path, JSON.generate(meta: {timestamp: "not a time", command_name: "Minitest"}))
+
+      expect(warning).to be_empty
+    end
+
+    # Without a start time there is nothing to compare against, which is
+    # the state a process that never called start is in.
+    it "says nothing when this process has no recorded start time" do
+      allow(SimpleCov).to receive(:process_start_time).and_return(nil)
+      write_existing(Time.now + 5)
+
+      expect(warning).to be_empty
     end
   end
 end
