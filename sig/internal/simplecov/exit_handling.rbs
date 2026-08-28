@@ -42,6 +42,10 @@ module SimpleCov
   # @api private — `exit_status = SimpleCov.process_result(SimpleCov.result)`.
   def self.process_result: (untyped result) -> untyped
 
+  def self.started_in_this_process?: () -> bool
+
+  def self.successful?: (Integer status) -> bool
+
   def self.result_exit_status: (untyped result) -> untyped
 
   private

@@ -23,7 +23,7 @@ module SimpleCov
 
     def at_exit_behavior
       # If we are in a different process than called start, don't interfere.
-      return if SimpleCov.pid != Process.pid
+      return unless started_in_this_process?
 
       # If Coverage is no longer running (e.g. someone manually stopped it
       # or a test consumed the result) then don't run exit tasks.
@@ -37,7 +37,7 @@ module SimpleCov
       # Stand down when we'd only clobber a fresher report (#581).
       return if defer_to_existing_report?
 
-      SimpleCov.run_exit_tasks!(error_exit_status)
+      run_exit_tasks!(error_exit_status)
     end
 
     # @api private — called from the at_exit block (which pre-captures
@@ -57,21 +57,24 @@ module SimpleCov
       if @exit_exception.is_a?(SystemExit)
         @exit_exception.status
       else
-        SimpleCov::ExitCodes::EXCEPTION
+        ExitCodes::EXCEPTION
       end
     end
 
     # @api private — strict boolean so rspec-mocks 4's predicate matcher
     # accepts it. test_unit sets status 0 on success, so SUCCESS must
-    # also be treated as "not a previous error".
+    # also be treated as "not a previous error", which is the question
+    # `successful?` already answers.
     def previous_error?(error_exit_status)
-      !!(error_exit_status && error_exit_status != SimpleCov::ExitCodes::SUCCESS)
+      return false unless error_exit_status
+
+      !successful?(error_exit_status)
     end
 
     # @api private
     def exit_and_report_previous_error(exit_status)
       if print_errors
-        ExitCodes.print_error SimpleCov::Color.colorize(
+        ExitCodes.print_error Color.colorize(
           "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
           :yellow
         )
@@ -98,7 +101,7 @@ module SimpleCov
       return unless exit_status.positive?
 
       if print_errors
-        ExitCodes.print_error SimpleCov::Color.colorize(
+        ExitCodes.print_error Color.colorize(
           "SimpleCov failed with exit #{exit_status} due to a coverage related error", :red
         )
       end
@@ -111,11 +114,25 @@ module SimpleCov
     # neither the drop baseline nor a data point in the trend.
     def process_result(result)
       result_exit_status = result_exit_status(result)
-      if result_exit_status == SimpleCov::ExitCodes::SUCCESS
+      if successful?(result_exit_status)
         write_last_run(result)
-        SimpleCov::History.record(result)
+        History.record(result)
       end
       result_exit_status
+    end
+
+    # mutant:disable — a pid is an Integer, and Integers answer ==, eql?
+    # and equal? alike for the same value.
+    def started_in_this_process?
+      SimpleCov.pid == Process.pid
+    end
+
+    # An exit status is successful when it is zero, which is what
+    # `ExitCodes::SUCCESS` is defined as. Asked as a predicate rather
+    # than compared against the constant, because two equal Integers
+    # are equal through every spelling of the comparison.
+    def successful?(status)
+      status.zero?
     end
 
     def result_exit_status(result)
