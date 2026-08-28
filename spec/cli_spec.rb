@@ -6432,8 +6432,45 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "serve subcommand" do
+  describe "serve subcommand", mutant_expression: "SimpleCov::CLI::Serve*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-serve-spec-") }
+    # A socket's worth of surface: request bytes in, response bytes out.
+    # The mechanics below answer the same whether the other end is a
+    # browser or this.
+    let(:fake_client_class) do
+      Class.new do
+        attr_reader :written, :read_timeout, :closed
+
+        def initialize(request)
+          @lines = request.lines
+          @written = +""
+          @closed = false
+        end
+
+        def readline = (@lines.shift or raise EOFError)
+
+        def write(*parts) = parts.each { |part| @written << part.to_s }
+
+        def timeout=(seconds)
+          @read_timeout = seconds
+        end
+
+        def close = @closed = true
+      end
+    end
+    let(:viewer_document) do
+      lines = {"covered" => 1, "missed" => 0, "total" => 1, "percent" => 100.0, "strength" => 1.0}
+      {
+        "meta" => {
+          "simplecov_version" => SimpleCov::VERSION, "command_name" => "RSpec", "project_name" => "Example",
+          "timestamp" => Time.now.iso8601, "line_coverage" => true,
+          "branch_coverage" => false, "method_coverage" => false
+        },
+        "total" => {"lines" => lines},
+        "coverage" => {"lib/a.rb" => {"source" => ["puts :ok"]}},
+        "groups" => {}
+      }
+    end
 
     after { FileUtils.rm_rf(tmp) }
 
@@ -6503,6 +6540,69 @@ RSpec.describe SimpleCov::CLI do
       expect(described_class::Serve).to have_received(:with_server)
     end
 
+    it "requires the stdlib sockets on the way in" do
+      allow(described_class::Serve).to receive(:require)
+
+      described_class::Serve.send(:require_socket)
+
+      expect(described_class::Serve).to have_received(:require).with("socket")
+    end
+
+    # Preparing answers nothing when there is nothing to say, which is
+    # what tells the run to go ahead and bind.
+    describe "preparing the report" do
+      let(:preparer) { described_class::Serve::ReportPreparer }
+
+      it "loads the HTML formatter and hands the JSON to it, reporting nothing" do
+        formatter = instance_double(SimpleCov::Formatter::HTMLFormatter)
+        allow(preparer).to receive(:require_relative)
+        allow(SimpleCov::Formatter::HTMLFormatter).to receive(:new).and_return(formatter)
+        allow(formatter).to receive(:format_from_json).and_return("report")
+
+        expect(preparer.send(:build_index, "cov/coverage.json", "cov")).to be_nil
+
+        expect(preparer).to have_received(:require_relative).with("../../formatter/html_formatter")
+        expect(formatter).to have_received(:format_from_json).with("cov/coverage.json", "cov")
+      end
+
+      it "answers nothing when the index is already there" do
+        FileUtils.mkdir_p(tmp)
+        File.write(File.join(tmp, "index.html"), "existing")
+
+        expect(preparer.call(tmp)).to be_nil
+      end
+
+      it "answers nothing once it has built the index itself" do
+        FileUtils.mkdir_p(tmp)
+        File.write(File.join(tmp, "coverage.json"), JSON.dump(viewer_document))
+
+        expect(preparer.call(tmp)).to be_nil
+        expect(File.read(File.join(tmp, "index.html"))).to include("window.SIMPLECOV_DATA")
+      end
+
+      it "names the directory that is not there" do
+        missing = File.join(tmp, "nowhere")
+
+        expect(preparer.call(missing)).to eq("#{missing} doesn't exist; run your test suite first")
+      end
+
+      it "names the directory that carries neither file" do
+        FileUtils.mkdir_p(tmp)
+
+        expect(preparer.call(tmp))
+          .to eq("#{tmp} has no index.html or coverage.json; run your test suite first")
+      end
+
+      it "names the file it could not build from, and what went wrong" do
+        FileUtils.mkdir_p(tmp)
+        json_path = File.join(tmp, "coverage.json")
+        File.write(json_path, "{")
+
+        expect(preparer.call(tmp))
+          .to match(/\Acannot build index\.html from #{Regexp.escape(json_path)}: \S/)
+      end
+    end
+
     it "reports invalid coverage.json before binding" do
       FileUtils.mkdir_p(tmp)
       json_path = File.join(tmp, "coverage.json")
@@ -6516,6 +6616,338 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string.lines.size).to eq(1)
       expect(File).not_to exist(File.join(tmp, "index.html"))
       expect(TCPServer).not_to have_received(:new)
+    end
+
+    # The engines without IO#timeout= are the same, minus that method.
+    def fake_client(request = "", timeout: true)
+      klass = timeout ? fake_client_class : Class.new(fake_client_class) { undef_method(:timeout=) }
+      klass.new(request)
+    end
+
+    # The accept loop runs until the terminal interrupts it, and says so
+    # on the way out rather than leaving a bare ^C on the line.
+    describe "the accept loop" do
+      it "says it is stopping when it is interrupted" do
+        server = instance_double(TCPServer)
+        allow(server).to receive(:accept).and_raise(Interrupt)
+        out = StringIO.new
+
+        described_class::Serve.send(:serve_loop, server, tmp, out)
+
+        expect(out.string).to eq("\nsimplecov serve: stopping\n")
+      end
+
+      # One thread per connection, so the assertions wait for them
+      # rather than racing the loop's own exit.
+      it "hands each accepted connection to the handler" do
+        server = instance_double(TCPServer)
+        accepted = %i[first second]
+        allow(server).to receive(:accept) { accepted.shift or raise Interrupt }
+        served = Queue.new
+        allow(described_class::Serve::StaticFileHandler)
+          .to receive(:handle_connection) { |client, dir| served << [client, dir] }
+
+        described_class::Serve.send(:serve_loop, server, tmp, StringIO.new)
+
+        expect([served.pop, served.pop]).to contain_exactly([:first, tmp], [:second, tmp])
+      end
+    end
+
+    # A port already taken, a privileged port, or a host that resolves
+    # nowhere: the reason git gives is the reason a user needs.
+    describe "binding the socket" do
+      it "reports the host, the port, and what the system said" do
+        allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE)
+        err = StringIO.new
+
+        status = described_class::Serve.send(:with_server, {host: "127.0.0.1", port: 8080}, err) { 0 }
+
+        expect(status).to eq(1)
+        expect(err.string).to eq("simplecov serve: cannot bind to 127.0.0.1:8080 " \
+                                 "(#{Errno::EADDRINUSE.new.message})\n")
+      end
+
+      it "closes the server when the block is done with it" do
+        server = instance_double(TCPServer, close: nil)
+        allow(TCPServer).to receive(:new).and_return(server)
+
+        expect(described_class::Serve.send(:with_server, {host: "::1", port: 0}, StringIO.new) { 7 }).to eq(7)
+        expect(server).to have_received(:close)
+      end
+    end
+
+    # The announcement is the only way anyone learns which port the
+    # server took when it was asked for any port at all.
+    describe "announcing where it is listening" do
+      def announce(addr)
+        server = instance_double(TCPServer, addr: addr)
+        out = StringIO.new
+        described_class::Serve.send(:announce, out, server, "/srv/report")
+        out.string
+      end
+
+      it "names the directory, the host, and the port it took" do
+        expect(announce(["AF_INET", 8080, "localhost", "127.0.0.1"]))
+          .to eq("simplecov serve: serving /srv/report at http://127.0.0.1:8080/\n" \
+                 "Press Ctrl-C to stop.\n")
+      end
+
+      # An IPv6 literal needs brackets, or the port reads as part of the
+      # address.
+      it "brackets an IPv6 address so the port is still a port" do
+        expect(announce(["AF_INET6", 9292, "localhost", "::1"]))
+          .to start_with("simplecov serve: serving /srv/report at http://[::1]:9292/\n")
+      end
+
+      it "leaves a name that is not an address alone" do
+        expect(announce(["AF_INET", 3000, "example.test", "example.test"]))
+          .to start_with("simplecov serve: serving /srv/report at http://example.test:3000/\n")
+      end
+    end
+
+    describe "the options it takes" do
+      def parse(*args)
+        described_class::Serve.send(:parse, args)
+      end
+
+      it "asks the operating system for a port unless given one" do
+        expect(parse).to eq(port: 0, host: "127.0.0.1")
+      end
+
+      it "takes a port as a number, not as the text it arrived as" do
+        expect(parse("--port", "8080")).to eq(port: 8080, host: "127.0.0.1")
+      end
+
+      it "takes a host to bind to" do
+        expect(parse("--host", "0.0.0.0")).to eq(port: 0, host: "0.0.0.0")
+      end
+
+      it "refuses a port that is not a number" do
+        expect { parse("--port", "http") }.to raise_error(OptionParser::InvalidArgument)
+      end
+    end
+
+    describe "reading one request off a connection" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      before { File.write(File.join(tmp, "index.html"), "<html></html>") }
+
+      it "gives an idle connection a deadline to finish its request" do
+        client = fake_client("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n")
+
+        handler.handle_connection(client, tmp)
+
+        expect(client.read_timeout).to eq(described_class::Serve::StaticFileHandler::READ_TIMEOUT)
+      end
+
+      # JRuby and TruffleRuby have no IO#timeout=, and a connection
+      # there is served without one rather than failing.
+      it "serves a connection that cannot be given a deadline" do
+        client = fake_client("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n", timeout: false)
+
+        handler.handle_connection(client, tmp)
+
+        expect(client.written).to start_with("HTTP/1.1 200")
+      end
+
+      it "answers a request line missing its path with bad-request" do
+        client = fake_client("GET\r\n\r\n")
+
+        handler.handle_connection(client, tmp)
+
+        expect(client.written).to start_with("HTTP/1.1 400")
+      end
+
+      # A route takes over the connection, and what it reads next is the
+      # body rather than the rest of the headers.
+      it "leaves a route reading the body, not the headers" do
+        seen = []
+        routes = {"/events" => ->(client) { seen << client.readline }}
+        client = fake_client("GET /events HTTP/1.1\r\nHost: x\r\n\r\nbody-line\n")
+
+        handler.handle_connection(client, tmp, routes)
+
+        expect(seen).to eq(["body-line\n"])
+      end
+
+      it "answers a request line missing its path exactly once" do
+        client = fake_client("POST\r\n\r\n")
+
+        handler.handle_connection(client, tmp)
+
+        expect(client.written.scan("HTTP/1.1").size).to eq(1)
+      end
+
+      it "closes the connection, whatever the request was" do
+        client = fake_client("GET /index.html HTTP/1.1\r\n\r\n")
+
+        handler.handle_connection(client, tmp)
+
+        expect(client.closed).to be true
+      end
+
+      # A client that hangs up mid-request is the ordinary case, not a
+      # reason to take the server down.
+      it "closes quietly on a request that stops early" do
+        client = fake_client("GET /index.html HTTP/1.1\r\n")
+
+        expect { handler.handle_connection(client, tmp) }.not_to raise_error
+        expect(client.closed).to be true
+      end
+    end
+
+    # Headers are read to the blank line and no further: what follows is
+    # the body, and a route may want it.
+    describe "draining the headers" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      it "reads to the blank line and stops there" do
+        client = fake_client("Host: x\r\nAccept: */*\r\n\r\nbody-line\n")
+
+        handler.send(:drain_headers, client)
+
+        expect(client.readline).to eq("body-line\n")
+      end
+
+      it "stops on a blank line that carries nothing but its newline" do
+        client = fake_client("\nafter\n")
+
+        handler.send(:drain_headers, client)
+
+        expect(client.readline).to eq("after\n")
+      end
+    end
+
+    describe "the response it writes" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      def respond(*args)
+        client = fake_client
+        handler.send(:respond, client, *args)
+        client.written
+      end
+
+      it "names the status it is answering with" do
+        expect(respond(200)).to start_with("HTTP/1.1 200 OK\r\n")
+        expect(respond(400)).to start_with("HTTP/1.1 400 Bad Request\r\n")
+        expect(respond(403)).to start_with("HTTP/1.1 403 Forbidden\r\n")
+        expect(respond(404)).to start_with("HTTP/1.1 404 Not Found\r\n")
+        expect(respond(405)).to start_with("HTTP/1.1 405 Method Not Allowed\r\n")
+      end
+
+      it "answers a status it has no name for with one anyway" do
+        expect(respond(418)).to start_with("HTTP/1.1 418 Error\r\n")
+      end
+
+      it "says the body is text unless told otherwise" do
+        expect(respond(404)).to include("Content-Type: text/plain\r\n")
+        expect(respond(200, "body", "text/css")).to include("Content-Type: text/css\r\n")
+      end
+
+      # A file whose extension nothing recognises is bytes, and saying
+      # so is what keeps a browser from guessing.
+      it "says bytes when it does not know what the body is" do
+        expect(respond(200, "body", nil)).to include("Content-Type: application/octet-stream\r\n")
+      end
+
+      it "measures the body in bytes rather than characters" do
+        expect(respond(200, "café")).to include("Content-Length: 5\r\n")
+      end
+
+      it "writes the whole head, then the body" do
+        expect(respond(200, "hi", "text/plain"))
+          .to eq("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" \
+                 "Content-Length: 2\r\nConnection: close\r\n\r\nhi")
+      end
+    end
+
+    describe "what it serves, and what it refuses" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      before do
+        FileUtils.mkdir_p(File.join(tmp, "assets"))
+        File.write(File.join(tmp, "index.html"), "<html></html>")
+        File.write(File.join(tmp, "assets", "APP.JS"), "var x;")
+        File.write(File.join(tmp, "assets", "data.bin"), "\x00\x01")
+      end
+
+      def serve(path)
+        client = fake_client
+        handler.send(:serve_file, client, path, tmp)
+        client.written
+      end
+
+      it "answers a file with its own type, whatever case the name is in" do
+        expect(serve("/assets/APP.JS")).to include("Content-Type: application/javascript\r\n")
+      end
+
+      it "answers a file it has no type for as bytes" do
+        expect(serve("/assets/data.bin")).to include("Content-Type: application/octet-stream\r\n")
+      end
+
+      it "answers a missing file with not-found, and a traversal with forbidden" do
+        expect(serve("/missing.html")).to start_with("HTTP/1.1 404")
+        expect(serve("/../secret.txt")).to start_with("HTTP/1.1 403")
+      end
+
+      it "answers the file's own bytes" do
+        expect(serve("/index.html")).to end_with("<html></html>")
+      end
+    end
+
+    describe "how it dispatches a request" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      before { File.write(File.join(tmp, "index.html"), "<html></html>") }
+
+      def dispatch(method, path, routes = {})
+        client = fake_client
+        handler.send(:dispatch, client, method, path, tmp, routes)
+        client.written
+      end
+
+      it "answers anything but a GET with method-not-allowed, once" do
+        %w[POST HEAD PUT].each do |method|
+          answer = dispatch(method, "/")
+
+          expect(answer).to start_with("HTTP/1.1 405")
+          expect(answer.scan("HTTP/1.1").size).to eq(1)
+        end
+      end
+
+      it "hands a mounted path to its route, query string and all" do
+        taken = []
+        routes = {"/events" => ->(client) { taken << client }}
+
+        expect(dispatch("GET", "/events?since=3", routes)).to eq("")
+        expect(taken.size).to eq(1)
+      end
+
+      it "serves a file for a path nothing is mounted on" do
+        expect(dispatch("GET", "/index.html", {"/events" => ->(_) {}})).to start_with("HTTP/1.1 200")
+      end
+    end
+
+    # Root itself is inside root; a sibling whose name merely starts the
+    # same way is not.
+    describe "what counts as inside the report directory" do
+      let(:handler) { described_class::Serve::StaticFileHandler }
+
+      it "counts the directory itself, however the two paths were built" do
+        expect(handler.send(:inside?, File.join("/srv", "report"), "/srv/report")).to be true
+      end
+
+      it "counts a file within it" do
+        expect(handler.send(:inside?, "/srv/report/index.html", "/srv/report")).to be true
+      end
+
+      it "counts out a sibling that starts with the same name" do
+        expect(handler.send(:inside?, "/srv/report-secrets/x", "/srv/report")).to be false
+      end
+
+      it "counts out somewhere else entirely" do
+        expect(handler.send(:inside?, "/etc/passwd", "/srv/report")).to be false
+      end
     end
 
     describe ".resolve" do
@@ -6539,6 +6971,50 @@ RSpec.describe SimpleCov::CLI do
       it "strips query strings" do
         expect(handler.resolve("/index.html?_=1", tmp))
           .to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "maps a request with nothing in it at all to index.html" do
+        expect(handler.resolve("", tmp)).to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "maps a bare query string to index.html" do
+        expect(handler.resolve("/?_=1", tmp)).to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "keeps a question mark's worth of path and no more" do
+        expect(handler.resolve("/index.html?a=1?b=2", tmp))
+          .to eq(File.realpath(File.join(tmp, "index.html")))
+      end
+
+      it "refuses an absolute path outright" do
+        expect(handler.resolve("//etc/passwd", tmp)).to eq(:forbidden)
+      end
+
+      # A directory with no index.html is nothing to serve, and asking
+      # to read it would be an error rather than a 404.
+      it "returns nil for a directory that carries no index" do
+        FileUtils.mkdir_p(File.join(tmp, "empty"))
+
+        expect(handler.resolve("/empty", tmp)).to be_nil
+      end
+
+      # A pipe in the report directory is not a file to read: reading
+      # one would block the connection until something wrote to it.
+      it "returns nil for something that is neither a file nor a directory" do
+        skip "no mkfifo on this platform" unless File.respond_to?(:mkfifo)
+        File.mkfifo(File.join(tmp, "pipe"))
+
+        expect(handler.resolve("/pipe", tmp)).to be_nil
+      end
+
+      # The file can go between the check and the read; that is a race,
+      # not a refusal.
+      it "returns nil for a file that vanishes mid-resolve" do
+        vanishing = File.join(File.realpath(tmp), "index.html")
+        allow(File).to receive(:realpath).and_call_original
+        allow(File).to receive(:realpath).with(vanishing).and_raise(Errno::ENOENT)
+
+        expect(handler.resolve("/index.html", tmp)).to be_nil
       end
 
       it "returns nil for a missing file" do
@@ -6677,6 +7153,18 @@ RSpec.describe SimpleCov::CLI do
       expect(server).to have_received(:close)
     end
 
+    # Watches for the announcement and hands back the URL it named,
+    # letting the real one still print.
+    def announcing_url
+      announced = Queue.new
+      original = described_class::Serve.method(:announce)
+      allow(described_class::Serve).to receive(:announce) do |out, server, dir|
+        announced << "http://#{server.addr[3]}:#{server.addr[1]}/"
+        original.call(out, server, dir)
+      end
+      announced
+    end
+
     # End-to-end through `run`: spin the full entry point in a thread,
     # hit it, then signal Ctrl-C to stop. Exercises `run`, `announce`,
     # the serve_loop exit path, and the ensure-time `server.close`.
@@ -6684,12 +7172,8 @@ RSpec.describe SimpleCov::CLI do
       File.write(File.join(tmp, "index.html"), "<html>via-run</html>")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
 
-      announced = Queue.new
-      original_announce = described_class::Serve.method(:announce)
-      allow(described_class::Serve).to receive(:announce) do |stdout, server, dir|
-        announced << "http://#{server.addr[3]}:#{server.addr[1]}/"
-        original_announce.call(stdout, server, dir)
-      end
+      announced = announcing_url
+      allow(described_class::Serve).to receive(:require_socket).and_call_original
 
       thread = Thread.new { described_class.run(["serve"], stdout: stdout, stderr: stderr) }
       begin
@@ -6701,8 +7185,14 @@ RSpec.describe SimpleCov::CLI do
         expect(not_found.code).to eq("404")
       ensure
         thread.raise(Interrupt) if thread.alive?
-        thread.join(2)
+        status = thread.join(2)&.value
       end
+
+      # The run answers success once it is stopped, having said where it
+      # was listening and loaded the sockets it needed to.
+      expect(status).to eq(0)
+      expect(stdout.string).to include("simplecov serve: serving #{tmp} at http://")
+      expect(described_class::Serve).to have_received(:require_socket)
     end
 
     # Browsers open speculative connections that send no bytes; each

@@ -3,6 +3,9 @@ module SimpleCov
     module Serve
       module ReportPreparer
         def self.call: (String dir) -> String?
+
+        # Loads the HTML formatter and writes an index.html from the JSON.
+        def self.build_index: (String json_path, String dir) -> nil
       end
     end
   end

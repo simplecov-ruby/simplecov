@@ -17,11 +17,18 @@ module SimpleCov
 
           return "#{dir} has no index.html or coverage.json; run your test suite first" unless File.file?(json_path)
 
+          build_index(json_path, dir)
+        rescue CoverageJSON::Error, SystemCallError => e
+          "cannot build index.html from #{json_path}: #{e}"
+        end
+
+        # Loading the HTML formatter is what lets a report be served
+        # from a coverage.json alone.
+        def self.build_index(json_path, dir)
           require_relative "../../formatter/html_formatter"
-          SimpleCov::Formatter::HTMLFormatter.new.format_from_json(json_path, dir)
+          Formatter::HTMLFormatter.new.format_from_json(json_path, dir)
+          # Nothing to report: the index is there now.
           nil
-        rescue SimpleCov::CoverageJSON::Error, SystemCallError => e
-          "cannot build index.html from #{json_path}: #{e.message}"
         end
       end
     end

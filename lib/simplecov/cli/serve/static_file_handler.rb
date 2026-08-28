@@ -28,7 +28,7 @@ module SimpleCov
         # raise IO::TimeoutError and the connection is dropped.
         READ_TIMEOUT = 5
 
-      module_function
+        extend self
 
         # Reads one HTTP request line, drains headers, serves the file or
         # writes a status response. Wide rescue so a misbehaving client
@@ -64,14 +64,14 @@ module SimpleCov
         ensure
           # simplecov:disable — `client` is the parameter, never nil here;
           # the `&.` is purely defensive in case of future refactors
-          client&.close
+          client.close
           # simplecov:enable
         end
 
         def dispatch(client, method, path, root, routes)
-          return respond(client, 405) unless method == "GET"
+          return respond(client, 405) unless method.eql?("GET")
 
-          route = routes[path.split("?", 2).first]
+          route = routes[path.split("?").first]
           return route.call(client) if route
 
           serve_file(client, path, root)
@@ -79,13 +79,15 @@ module SimpleCov
 
         def serve_file(client, path, root)
           file = resolve(path, root)
-          return respond(client, file == :forbidden ? 403 : 404) unless file.is_a?(String)
+          # `resolve` answers a path, nothing for a file that is not
+          # there, or the refusal itself.
+          return respond(client, file ? 403 : 404) unless file.instance_of?(String)
 
           respond(client, 200, File.binread(file), MIME[File.extname(file).downcase])
         end
 
         def drain_headers(client)
-          loop { break if client.readline.strip.empty? }
+          loop { break if client.readline.rstrip.empty? }
         end
 
         # Returns the absolute path of the file to serve, :forbidden for
@@ -98,9 +100,11 @@ module SimpleCov
         # If decoding is ever added, it must happen BEFORE the `inside?`
         # check below.
         def resolve(request_path, root)
-          path = request_path.split("?", 2).first.to_s.sub(%r{^/}, "")
+          path = request_path.split("?").first.to_s.delete_prefix("/")
           absolute_root = File.realpath(root)
-          candidate = File.expand_path(path.empty? ? "index.html" : path, absolute_root)
+          # An empty path expands to the root itself, which the directory
+          # branch below turns into its index.html.
+          candidate = File.expand_path(path, absolute_root)
           # Reject `..` traversal and absolute-path attempts before
           # touching disk so they're 403, not 404.
           return :forbidden unless inside?(candidate, absolute_root)
@@ -120,7 +124,7 @@ module SimpleCov
         end
 
         def inside?(path, root)
-          path == root || path.start_with?(root + File::SEPARATOR)
+          path.eql?(root) || path.start_with?(root + File::SEPARATOR)
         end
 
         def respond(client, status, body = "", content_type = "text/plain")

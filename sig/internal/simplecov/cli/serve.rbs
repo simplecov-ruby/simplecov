@@ -14,6 +14,9 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
+      # Loads the socket library the accept loop needs.
+      def self?.require_socket: () -> void
+
       def self?.announce: (untyped stdout, untyped server, untyped dir) -> untyped
 
       # IPv6 literals need brackets in a URL.
