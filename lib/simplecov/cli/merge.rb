@@ -16,43 +16,45 @@ module SimpleCov
     module Merge
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
-        return error(stderr, "missing input files") if opts[:files].empty?
-        return 1 unless valid_inputs?(opts[:files], stderr)
+        return error(stderr, "missing input files") if opts.fetch(:files).empty?
 
-        require "simplecov"
-        result = SimpleCov::ResultMerger.merge_results(*opts[:files], ignore_timeout: !opts[:honor_timeout])
+        parsed = parse_inputs(opts.fetch(:files), stderr)
+        return 1 unless parsed
+
+        warn_about_duplicate_command_names(parsed, stderr)
+        result = result_merger.merge_results(*opts.fetch(:files), ignore_timeout: !opts.fetch(:honor_timeout))
         return error(stderr, "no mergeable results in input files") unless result
 
         commit(opts, result, stdout)
         0
       end
 
-      def commit(opts, result, stdout)
-        verb = opts[:dry_run] ? "would write" : "wrote"
-        write(opts[:output], result) unless opts[:dry_run]
-        stdout.puts("simplecov merge: #{verb} #{opts[:output]}") unless opts[:quiet]
+      # Loaded here rather than at the top of the file, so the read-only
+      # subcommands never pay for ResultMerger and its Coverage runtime
+      # guard.
+      def result_merger
+        require "simplecov"
+        ResultMerger
       end
 
-      def valid_inputs?(files, stderr)
-        parsed = parse_inputs(files, stderr) or return false
-
-        warn_about_duplicate_command_names(parsed, stderr)
-        true
+      def commit(opts, result, stdout)
+        verb = opts.fetch(:dry_run) ? "would write" : "wrote"
+        write(opts.fetch(:output), result) unless opts.fetch(:dry_run)
+        stdout.puts("simplecov merge: #{verb} #{opts.fetch(:output)}") unless opts.fetch(:quiet)
       end
 
       def parse(args)
-        opts = {output: SimpleCov::CLI.default_resultset, honor_timeout: false, dry_run: false, quiet: false}
+        opts = {output: CLI.default_resultset, honor_timeout: false, dry_run: false, quiet: false}
         files =
-          OptionParser.new do |o|
+          build_parser do |o|
             o.on("--output PATH") { |v| opts[:output] = v }
             o.on("--honor-timeout") { opts[:honor_timeout] = true }
             o.on("--dry-run") { opts[:dry_run] = true }
-            o.on("-q", "--quiet") { opts[:quiet] = true }
-            on_help(o)
+            quiet_option(o, opts)
           end.parse(args)
         opts.merge(files: files)
       end
@@ -75,20 +77,21 @@ module SimpleCov
       # directory (EISDIR) or an unreadable file (EACCES).
       def parse_input(path, stderr)
         data = JSON.parse(File.read(path))
-        return data if data.is_a?(Hash) && !data.empty?
+        return data if data.instance_of?(Hash) && !data.empty?
 
         parse_input_error(stderr, path, "has no resultset entries")
       rescue Errno::ENOENT
         parse_input_error(stderr, path, "not found")
       rescue JSON::ParserError => e
-        parse_input_error(stderr, path, "isn't valid JSON (#{e.message})")
+        parse_input_error(stderr, path, "isn't valid JSON (#{e})")
       rescue SystemCallError => e
-        parse_input_error(stderr, path, "cannot be read (#{e.message.lines.first.to_s.strip})")
+        parse_input_error(stderr, path, "cannot be read (#{e.message.lines.first.to_s.rstrip})")
       end
 
+      # Answers nothing, which is what an input that cannot be read
+      # contributes to the merge.
       def parse_input_error(stderr, path, reason)
         stderr.puts("simplecov merge: input file #{path.inspect} #{reason}")
-        nil
       end
 
       # When two input files share a command_name, ResultMerger folds

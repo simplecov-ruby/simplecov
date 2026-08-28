@@ -2866,7 +2866,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "merge subcommand" do
+  describe "merge subcommand", mutant_expression: "SimpleCov::CLI::Merge*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-merge-spec-") }
     let(:a) { File.join(tmp, "a.json") }
     let(:b) { File.join(tmp, "b.json") }
@@ -2874,16 +2874,72 @@ RSpec.describe SimpleCov::CLI do
     # Use a real on-disk file inside SimpleCov.root so the default
     # root_filter doesn't strip it during result construction.
     let(:file) { File.expand_path("spec/fixtures/sample.rb", SimpleCov.root) }
+    let(:c) { File.join(tmp, "c.json") }
 
     after { FileUtils.remove_entry(tmp) }
 
-    def write_resultset(path, command_name, file_path, lines)
+    def write_resultset(path, command_name, file_path, lines, outdated: false)
       File.write(path, JSON.dump(
                          command_name => {
                            "coverage" => {file_path => {"lines" => lines}},
-                           "timestamp" => Time.now.to_i
+                           "timestamp" => outdated ? Time.now.to_i - 100_000 : Time.now.to_i
                          }
                        ))
+    end
+
+    it "loads the full library on the way to the merger it hands back" do
+      allow(SimpleCov::CLI::Merge).to receive(:require)
+
+      expect(SimpleCov::CLI::Merge.send(:result_merger)).to be(SimpleCov::ResultMerger)
+      expect(SimpleCov::CLI::Merge).to have_received(:require).with("simplecov")
+    end
+
+    # Nothing said to honour it, so a stale resultset is still merged.
+    it "ignores the merge timeout unless told to honour it" do
+      write_resultset(a, "worker_1", file, [1, 0, nil], outdated: true)
+
+      expect(run("merge", "--output", out, a)).to eq(0)
+      expect(JSON.parse(File.read(out)).keys).to eq(["worker_1"])
+    end
+
+    it "quotes what the JSON parser said about an unparseable input" do
+      File.write(a, "{")
+
+      expect(run("merge", "--output", out, a)).to eq(1)
+      expect(stderr.string).to match(/\Asimplecov merge: input file .* isn't valid JSON \(.+\)\n\z/)
+      expect(stderr.string).not_to include("()")
+    end
+
+    # The first command name belongs to one file only. Skipping it must
+    # not stop the sweep before the duplicate that follows.
+    it "warns about a duplicate that follows a command name of its own" do
+      write_resultset(a, "solo", file, [1, 0, nil])
+      write_resultset(b, "shared", file, [0, 1, nil])
+      write_resultset(c, "shared", file, [1, 1, nil])
+
+      expect(run("merge", "--output", out, a, b, c)).to eq(0)
+      expect(stderr.string).to include(%(command_name "shared" appears in 2 input files))
+    end
+
+    # The require is lazy, so the read-only subcommands never pay for
+    # ResultMerger. A process that already has simplecov loaded cannot
+    # tell whether it happened, so this asks one that does not.
+    it "loads the library it merges with, in a process that has not" do
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+      exe = File.expand_path("../exe/simplecov", __dir__)
+      lib = File.expand_path("../lib", __dir__)
+
+      stdout_text, stderr_text, status =
+        Open3.capture3(RbConfig.ruby, "-I", lib, exe, "merge", "--output", out, a)
+
+      expect(status.exitstatus).to eq(0), stderr_text
+      expect(stdout_text).to include("wrote #{out}")
+    end
+
+    it "stops at missing input files rather than going on" do
+      expect(run("merge", "--output", out)).to eq(1)
+      expect(stderr.string).to eq("simplecov merge: missing input files\n")
+      expect(File.exist?(out)).to be false
     end
 
     it "errors when no input files are given" do
@@ -2930,8 +2986,27 @@ RSpec.describe SimpleCov::CLI do
     # problems get.
     it "surfaces a specific error when an input path is not a readable file" do
       expect(run("merge", "--output", out, tmp)).to eq(1)
-      expect(stderr.string).to include("cannot be read")
-      expect(stderr.string).to include(tmp)
+      expect(stderr.string).to match(/\Asimplecov merge: input file "\S.*" cannot be read \(\S.*\)\n\z/)
+    end
+
+    # git and the kernel sometimes answer with more than one line. The
+    # status line takes the first of them, without its newline, so the
+    # report stays one complaint per file.
+    it "reports only the first line of a multi-line read error" do
+      wordy = Errno::EACCES.new("first line\nsecond line")
+      allow(File).to receive(:read).and_raise(wordy)
+
+      expect(run("merge", "--output", out, a)).to eq(1)
+      expect(stderr.string.lines.size).to eq(1)
+      expect(stderr.string).to end_with("cannot be read (#{wordy.message.lines.first.rstrip})\n")
+    end
+
+    it "reports an unreadable input whose error says nothing" do
+      silent = Class.new(Errno::EACCES) { def message = "" }
+      allow(File).to receive(:read).and_raise(silent.new)
+
+      expect(run("merge", "--output", out, a)).to eq(1)
+      expect(stderr.string).to end_with("cannot be read ()\n")
     end
 
     it "errors when --honor-timeout expires every input's entries" do
@@ -2947,9 +3022,43 @@ RSpec.describe SimpleCov::CLI do
       write_resultset(b, "RSpec", file, [0, 1, nil])
 
       expect(run("merge", "--output", out, a, b)).to eq(0)
-      expect(stderr.string).to include("warning")
-      expect(stderr.string).to include('"RSpec"')
-      expect(stderr.string).to include("appears in 2 input files")
+      expect(stderr.string).to eq(
+        %(simplecov merge: warning \u2014 command_name "RSpec" appears in 2 input files ) \
+        "(#{a}, #{b}); entries will be merged\n"
+      )
+    end
+
+    it "writes to the project resultset when no output is named" do
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+      allow(described_class).to receive(:default_resultset).and_return(out)
+
+      expect(run("merge", a)).to eq(0)
+      expect(stdout.string).to eq("simplecov merge: wrote #{out}\n")
+    end
+
+    # One command name in one file is not a duplicate.
+    it "stays quiet when the command names are distinct" do
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+      write_resultset(b, "worker_2", file, [1, 1, nil])
+
+      expect(run("merge", "--output", out, a, b)).to eq(0)
+      expect(stderr.string).to be_empty
+    end
+
+    it "says it wrote the output when it did" do
+      write_resultset(a, "worker_1", file, [1, 0, nil])
+
+      expect(run("merge", "--output", out, a)).to eq(0)
+      expect(stdout.string).to eq("simplecov merge: wrote #{out}\n")
+    end
+
+    # A resultset is an object of command names. A JSON array parses,
+    # and is not one.
+    it "surfaces a specific error when an input is not an object" do
+      File.write(a, JSON.dump([{"coverage" => {}}]))
+
+      expect(run("merge", "--output", out, a)).to eq(1)
+      expect(stderr.string).to eq(%(simplecov merge: input file #{a.inspect} has no resultset entries\n))
     end
 
     it "doesn't write the output file under --dry-run" do
@@ -2957,8 +3066,7 @@ RSpec.describe SimpleCov::CLI do
 
       expect(run("merge", "--output", out, "--dry-run", a)).to eq(0)
       expect(File.exist?(out)).to be false
-      expect(stdout.string).to include("would write")
-      expect(stdout.string).to include(out)
+      expect(stdout.string).to eq("simplecov merge: would write #{out}\n")
     end
 
     it "silences the success status line under --quiet" do
