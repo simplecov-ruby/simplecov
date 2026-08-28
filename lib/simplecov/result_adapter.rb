@@ -32,7 +32,7 @@ module SimpleCov
     # shape. Newer entries also need their methods and branches tables
     # massaged before downstream code reports or merges them.
     def adapt_one(file_name, cover_statistic)
-      return {"lines" => cover_statistic} if cover_statistic.is_a?(Array)
+      return {"lines" => cover_statistic} if cover_statistic.instance_of?(Array)
 
       adapt_oneshot_lines_if_needed(file_name, cover_statistic)
       normalize_method_keys(cover_statistic)
@@ -90,11 +90,11 @@ module SimpleCov
     end
 
     def normalize_method_key(key)
-      normalized_key = key.dup
-      normalized_key[0] = class_display_name(key[0])
-                          .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
-                          .sub(SINGLETON_WRAPPER_PATTERN, '\1')
-      normalized_key
+      receiver, *rest = key
+      normalized_receiver = class_display_name(receiver)
+                            .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
+                            .sub(SINGLETON_WRAPPER_PATTERN, '\1')
+      [normalized_receiver, *rest]
     end
 
     # Rendering a class name can execute user code: a singleton class's
@@ -112,10 +112,16 @@ module SimpleCov
       singleton_wrapper_name(klass) || Object.instance_method(:to_s).bind_call(klass)
     end
 
+    # `singleton_class?` is a Module method, so a receiver that is neither a
+    # class nor a module (nothing Coverage records, but the rescue above
+    # hands us whatever the resultset carried) has to be turned away first.
+    # Anything that then answers `singleton_class?` truthily is a Class, so
+    # `Class#attached_object` applies — reached through a bound method, like
+    # the rest of this fallback, so shadowing cannot divert it.
     def singleton_wrapper_name(klass)
-      return nil unless klass.is_a?(Class) && klass.singleton_class?
+      return nil unless klass.is_a?(Module) && klass.singleton_class?
 
-      attached = klass.attached_object
+      attached = Class.instance_method(:attached_object).bind_call(klass)
       # simplecov:disable branch — CRuby only reaches the rescue via a
       # Module/Class attached object (instance singletons render from the
       # class name chain without calling user inspect), so the non-Module
@@ -132,15 +138,16 @@ module SimpleCov
     # the same file, each counting only the renders that flowed through that
     # compile. Reported as-is they inflate the branch denominator and turn a
     # side covered under a different compile into a phantom miss (issue
-    # #1235). Aggregate them by (type, location) — combining a branches hash
-    # with an empty one dedups within it, since BranchesCombiner keys arms
-    # on location identity. Regular (non-eval) source can never produce two
-    # conditions at the same location, so this is a no-op outside eval.
+    # #1235). Aggregate them by (type, location) — absorbing the branches
+    # hash into an empty table dedups within it, since BranchesCombiner keys
+    # arms on location identity. Regular (non-eval) source can never produce
+    # two conditions at the same location, so this is a no-op outside eval.
     def aggregate_duplicated_branches(cover_statistic)
       branches = cover_statistic[:branches]
       return unless branches
 
-      cover_statistic[:branches] = Combine::BranchesCombiner.combine(branches, {})
+      combiner = Combine::BranchesCombiner
+      cover_statistic[:branches] = combiner.materialize(combiner.absorb({}, branches))
     end
 
     def adapt_oneshot_lines_if_needed(file_name, cover_statistic)
@@ -154,8 +161,8 @@ module SimpleCov
 
     # A file that has vanished or no longer parses has no stub to build
     # from, so start from nothing: the assignments in
-    # `adapt_oneshot_lines_if_needed` grow the array to the highest
-    # covered line, which is as far as the oneshot data reaches anyway.
+    # `adapt_oneshot_lines_if_needed` grow the array to the highest covered
+    # line, which is as far as the oneshot data reaches anyway.
     def build_line_stub(file_name)
       Coverage.line_stub(file_name)
     rescue Errno::ENOENT, SyntaxError

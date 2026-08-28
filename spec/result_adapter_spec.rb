@@ -40,9 +40,7 @@ RSpec.describe SimpleCov::ResultAdapter do
       end
 
       it "builds a fallback line stub for the missing file" do
-        lines = adapter[deleted_file][:lines]
-        expect(lines[0]).to eq(1)
-        expect(lines[2]).to eq(1)
+        expect(adapter[deleted_file][:lines]).to eq([1, nil, 1])
       end
 
       it "still adapts the existing file normally" do
@@ -70,8 +68,7 @@ RSpec.describe SimpleCov::ResultAdapter do
       end
 
       it "builds a fallback line stub for the non-parseable file" do
-        lines = adapter[non_ruby_file][:lines]
-        expect(lines[0]).to eq(1)
+        expect(adapter[non_ruby_file][:lines]).to eq([1])
       end
 
       it "still adapts the existing file normally" do
@@ -159,6 +156,56 @@ RSpec.describe SimpleCov::ResultAdapter do
       end.new
       methods = adapter_for(broken.singleton_class)
       expect(methods.keys.first[0]).to eq("#<Class:#<#<Class:0x0>:0x0>>")
+    end
+
+    it "renders a receiver that is not a module at all" do
+      methods = adapter_for(breaking_to_s(Object.new))
+      expect(methods.keys.first[0]).to eq("#<Object:0x0>")
+    end
+
+    it "renders a class that is not a singleton class" do
+      methods = adapter_for(breaking_to_s(Class.new))
+      expect(methods.keys.first[0]).to eq("#<Class:0x0>")
+    end
+
+    it "recovers a named class's singleton wrapper via Module#name" do
+      klass = Class.new
+      stub_const("FakeNamedClass", klass)
+      methods = adapter_for(breaking_to_s(klass.singleton_class))
+      expect(methods.keys.first[0]).to eq("FakeNamedClass")
+    end
+
+    # Other engines render the singleton wrapper through the attached
+    # object, so only the address normalization holds everywhere.
+    it "falls back to the address form when the attached object is not a module" do
+      methods = adapter_for(breaking_to_s(Object.new.singleton_class))
+      rendered = methods.keys.first[0]
+      expect(rendered).not_to match(/0x\h{2,}/)
+      expect(rendered).to eq("#<Class:0x0>") if RUBY_ENGINE == "ruby"
+    end
+
+    it "keeps the wrapper around a name that is not a constant path" do
+      # A module reachable only through an anonymous class gets a temporary
+      # name like "#<Class:0x...>::Inner". The wrapper-stripping pattern
+      # matches constant paths only, so the receiver stays rendered as a
+      # singleton of that module, with every address normalized.
+      inner = Module.new
+      Class.new.const_set(:Inner, inner)
+      methods = adapter_for(breaking_to_s(inner.singleton_class))
+      rendered = methods.keys.first[0]
+      # Engines that never mint the temporary name land on the address
+      # form instead; either way no raw address leaks through.
+      expect(rendered).not_to match(/0x\h{2,}/)
+      expect(rendered).to eq("#<Class:#<Class:0x0>::Inner>") if RUBY_ENGINE == "ruby"
+    end
+
+    # Shadowing `to_s` on the receiver itself makes the rendering failure
+    # reproducible on every engine, instead of depending on whether a given
+    # runtime routes singleton rendering through the attached object's
+    # `#inspect`.
+    def breaking_to_s(receiver)
+      receiver.singleton_class.define_method(:to_s) { raise ArgumentError, "broken to_s" }
+      receiver
     end
 
     def adapter_for(receiver)
@@ -292,6 +339,28 @@ RSpec.describe SimpleCov::ResultAdapter do
       end
 
       it "keeps them separate (distinct source methods)" do
+        methods = adapter[existing_file][:methods]
+        expect(methods.keys.size).to eq(2)
+        expect(methods.values).to contain_exactly(1, 0)
+      end
+    end
+
+    context "with locations that differ only in their start line" do
+      # All four coordinates of the span make up a method's identity, so
+      # entries that agree on start column and end position but begin on
+      # different lines are still two distinct methods.
+      let(:result_set) do
+        {
+          existing_file => {
+            methods: {
+              ["Foo", :outer, 2, 4, 9, 7] => 1,
+              ["Foo", :inner, 5, 4, 9, 7] => 0
+            }
+          }
+        }
+      end
+
+      it "keeps them separate" do
         methods = adapter[existing_file][:methods]
         expect(methods.keys.size).to eq(2)
         expect(methods.values).to contain_exactly(1, 0)
