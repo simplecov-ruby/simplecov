@@ -85,12 +85,100 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(accumulator.result.fetch("file.rb")).to be(only)
     end
 
+    # A file only one resultset carried comes back exactly as it came in,
+    # whatever it was: a resultset written by another tool can carry
+    # anything under a filename, and coercing it here would only hide it
+    # from the code that does check.
+    it "passes an entry that is not a coverage hash through untouched" do
+      accumulator = described_class.new.absorb("file.rb" => nil)
+
+      expect(accumulator.result).to eq("file.rb" => nil)
+    end
+
+    # Not just the falsey ones: anything that is not an accumulated file is
+    # handed back as it arrived, rather than coerced towards a hash.
+    it "passes an entry that is neither a coverage hash nor nil through untouched" do
+      entry = [1, 2]
+      accumulator = described_class.new.absorb("file.rb" => entry)
+
+      expect(accumulator.result.fetch("file.rb")).to be(entry)
+    end
+
     it "keeps files in first-seen order across resultsets" do
       accumulator = described_class.new
       accumulator.absorb("b.rb" => {"lines" => [1]}, "a.rb" => {"lines" => [1]})
       accumulator.absorb("a.rb" => {"lines" => [1]}, "c.rb" => {"lines" => [1]})
 
       expect(accumulator.result.keys).to eq(%w[b.rb a.rb c.rb])
+    end
+
+    # A file more than one resultset carried is held as a `MergedFile` for
+    # as long as the fold runs, and becomes the plain hash the rest of
+    # SimpleCov reads only here.
+    context "when more than one resultset carried a file" do
+      around do |example|
+        SimpleCov.clear_coverage_criteria
+        example.run
+        SimpleCov.clear_coverage_criteria
+      end
+
+      it "is the merged coverage as a plain hash" do
+        accumulator = described_class.new
+        accumulator.absorb("file.rb" => {"lines" => [nil, 3]})
+        accumulator.absorb("file.rb" => {"lines" => [nil, 4]})
+
+        expect(accumulator.result).to eq("file.rb" => {"lines" => [nil, 7]})
+      end
+
+      it "converts every merged file, not just the first" do
+        accumulator = described_class.new
+        accumulator.absorb("a.rb" => {"lines" => [3]}, "b.rb" => {"lines" => [5]})
+        accumulator.absorb("a.rb" => {"lines" => [4]}, "b.rb" => {"lines" => [6]})
+
+        expect(accumulator.result).to eq("a.rb" => {"lines" => [7]}, "b.rb" => {"lines" => [11]})
+      end
+    end
+  end
+
+  # `ResultMerger` folds `[[command_name], coverage]` pairs, reading each
+  # resultset off disk only as the fold asks for it.
+  describe "folding command names and coverage together" do
+    around do |example|
+      SimpleCov.clear_coverage_criteria
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    it "concatenates the command names and merges the coverage" do
+      pairs = [
+        [["rspec"], {"file.rb" => {"lines" => [nil, 3]}}],
+        [%w[cucumber minitest], {"file.rb" => {"lines" => [nil, 4]}}]
+      ]
+
+      expect(described_class.fold(pairs))
+        .to eq([%w[rspec cucumber minitest], {"file.rb" => {"lines" => [nil, 7]}}])
+    end
+
+    it "reports no coverage at all when there are no pairs" do
+      expect(described_class.fold([])).to eq([[], nil])
+    end
+
+    it "keeps the command names of a pair that carried no coverage" do
+      expect(described_class.fold([[["rspec"], nil]])).to eq([["rspec"], nil])
+    end
+
+    # `ResultMerger.absorb_results` hands in a lazy enumerable so a big CI
+    # run's resultsets are never all in memory at once. The fold only
+    # iterates, so it must not need a materialized collection.
+    it "folds a lazy enumerable, reading one pair at a time" do
+      read = []
+      pairs = [3, 4].lazy.map do |count|
+        read << count
+        [["run#{count}"], {"file.rb" => {"lines" => [count]}}]
+      end
+
+      expect(described_class.fold(pairs)).to eq([%w[run3 run4], {"file.rb" => {"lines" => [7]}}])
+      expect(read).to eq([3, 4])
     end
   end
 
@@ -229,6 +317,35 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
 
       expect(merge(empty, empty)["branches"]).to eq({})
     end
+
+    # Branch coverage is on, so a file that simply has no branches still
+    # advertises the criterion rather than looking unmeasured.
+    it "reports an empty table when no resultset carried branches at all" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})["branches"]).to eq({})
+    end
+
+    it "keeps the accumulated branches when a later resultset carries none" do
+      expect(merge(executed, {"lines" => [nil, 1, 1]})["branches"]).to eq(executed["branches"])
+    end
+
+    # An empty lines table is not evidence that a side never ran, any more
+    # than an absent one is, so neither side's tuples are synthesized and
+    # both survive.
+    context "when a side carries an empty lines table" do
+      let(:empty_lines) do
+        {"lines" => [], "branches" => {[:if, 0, 2, 2, 4, 12] => {[:then, 1, 3, 4, 3, 10] => 0}}}
+      end
+
+      it "unions the tuples when it is the accumulated side" do
+        expect(merge(empty_lines, executed)["branches"].keys)
+          .to contain_exactly([:if, 0, 2, 2, 4, 12], [:if, 0, 2, 2, 4, 10])
+      end
+
+      it "unions the tuples when it is the incoming side" do
+        expect(merge(executed, empty_lines)["branches"].keys)
+          .to contain_exactly([:if, 0, 2, 2, 4, 10], [:if, 0, 2, 2, 4, 12])
+      end
+    end
   end
 
   describe "method merging", if: SimpleCov.method_coverage_supported? do
@@ -244,6 +361,13 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       simulated_methods = {"lines" => [nil, 0, 0], "methods" => {["Foo", :bar, 2, 2, 3, 7] => 0}}
 
       expect(merge(executed_methods, simulated_methods)["methods"].keys).to eq([["Foo", :bar, 2, 2, 3, 5]])
+    end
+
+    # A file the report carries no method table for stays without one,
+    # rather than gaining an empty table that reads as "measured, none
+    # covered".
+    it "leaves a file with no method table without one" do
+      expect(merge({"lines" => [nil, 1]}, {"lines" => [nil, 1]})).not_to have_key("methods")
     end
 
     it "takes the executed side's methods when it is absorbed second" do
@@ -289,12 +413,37 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(merge({"lines" => [nil, 0]}, {"lines" => [nil, 1]})["methods"]).to be_nil
     end
 
+    # An explicit null is not a table. A resultset can carry one (JSON has
+    # no other way to write "measured nothing here"), and the dropped side
+    # of a reconciliation then has no methods to stand in for, so the
+    # criterion stays absent rather than turning into an empty table.
+    it "reports nil when the dropped side carried an explicit null for methods" do
+      merged = merge({"lines" => [nil, 1]}, {"lines" => [nil, 0], "methods" => nil})
+
+      expect(merged).not_to have_key("methods")
+    end
+
     it "keeps an empty table when only the replaced side carried methods" do
       # The mirror of the dropped-side case above, so the answer does not
       # depend on absorption order.
       merged = merge({"lines" => [nil, 0], "methods" => {}}, {"lines" => [nil, 1]})
 
       expect(merged["methods"]).to eq({})
+    end
+
+    # Both sides ran, so their tuples are unioned: a criterion only the
+    # incoming side carries comes into play, and one only the accumulated
+    # side carries survives.
+    it "picks up a method table only a later resultset carries" do
+      merged = merge({"lines" => [nil, 1]}, {"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 3}})
+
+      expect(merged["methods"]).to eq(["Foo", :bar, 2, 2, 3, 5] => 3)
+    end
+
+    it "keeps the accumulated methods when a later resultset carries none" do
+      merged = merge({"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 3}}, {"lines" => [nil, 1]})
+
+      expect(merged["methods"]).to eq(["Foo", :bar, 2, 2, 3, 5] => 3)
     end
   end
 
@@ -310,8 +459,32 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       SimpleCov.clear_coverage_criteria
     end
 
+    # Both sides carry the same condition, so its arms sum. Dropping the
+    # table on the way in because this process did not ask for branches
+    # would lose the first side's counts, not just the criterion.
     it "keeps the branch table the resultsets carried" do
-      expect(merge(executed, executed)["branches"]).not_to be_empty
+      expect(merge(executed, executed)["branches"]).to eq(
+        [:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 2, [:else, 2, 4, 4, 4, 10] => 0}
+      )
+    end
+
+    it "keeps the method table the resultsets carried" do
+      with_methods = {"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 3}}
+
+      expect(merge(with_methods, with_methods)["methods"]).to eq(["Foo", :bar, 2, 2, 3, 5] => 6)
+    end
+
+    # The accumulated side has no table of its own to fold into: this
+    # process measures neither criterion, and the first resultset carried
+    # neither. The tuples the second one carries still have to survive.
+    it "picks up a branch table only a later resultset carries" do
+      expect(merge({"lines" => [nil, 1, 1]}, executed)["branches"]).to eq(executed["branches"])
+    end
+
+    it "picks up a method table the data carries and this process does not" do
+      merged = merge({"lines" => [nil, 1]}, {"lines" => [nil, 1], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 3}})
+
+      expect(merged["methods"]).to eq(["Foo", :bar, 2, 2, 3, 5] => 3)
     end
 
     it "omits the table when neither this process nor the data has one" do
@@ -334,6 +507,23 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
 
       expect(merge(executed_line_only, simulated_drifted))
         .to eq(merge(simulated_drifted, executed_line_only))
+    end
+
+    # The same rule for methods, on both reconciliation paths: an empty
+    # table stands in for a blanked side only for a process that measures
+    # methods itself. This one does not, so the criterion goes with the
+    # tuples that were dropped.
+    context "when only the side whose tuples are dropped carried methods" do
+      let(:simulated_methods) { {"lines" => [nil, 0], "methods" => {["Foo", :bar, 2, 2, 3, 5] => 0}} }
+      let(:executed_line_only) { {"lines" => [nil, 1]} }
+
+      it "does not keep the table when the accumulated side is replaced" do
+        expect(merge(simulated_methods, executed_line_only)).not_to have_key("methods")
+      end
+
+      it "does not keep the table when the incoming side is dropped" do
+        expect(merge(executed_line_only, simulated_methods)).not_to have_key("methods")
+      end
     end
 
     it "gives a merged file the same shape as one a single resultset carried" do

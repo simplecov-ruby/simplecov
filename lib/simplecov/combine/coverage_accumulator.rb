@@ -67,8 +67,11 @@ module SimpleCov
       end
 
       def initialize
-        @files = {} #: Hash[String, untyped]
-        @absorbed = false
+        # The file table stays `nil` until the first absorb, which is what
+        # tells "nothing was absorbed" apart from "an empty resultset was
+        # absorbed": both end with no files, and only the first means there
+        # is no report to build.
+        #
         # Whether a criterion is enabled can't change mid-fold, so read it once
         # here rather than once per file. `branch_coverage?` reaches
         # `Coverage.supported?`, and a large parallel run merges thousands of
@@ -87,9 +90,9 @@ module SimpleCov
       def absorb(coverage)
         return self unless coverage
 
-        @absorbed = true
+        files = (@files ||= {}) #: Hash[String, untyped]
         coverage.each do |filename, file_coverage|
-          @files[filename] = merge_file(@files[filename], file_coverage)
+          files[filename] = merge_file(files[filename], file_coverage)
         end
 
         self
@@ -107,10 +110,11 @@ module SimpleCov
       # @return [Hash, nil]
       #
       def result
-        return nil unless @absorbed
-
-        @files.transform_values do |entry|
-          entry.is_a?(MergedFile) ? entry.to_h : entry
+        @files&.transform_values do |entry|
+          case entry
+          when MergedFile then entry.to_h
+          else entry
+          end
         end
       end
 
@@ -142,13 +146,21 @@ module SimpleCov
         def initialize(coverage, branches:, methods:)
           @branch_coverage = branches
           @method_coverage = methods
-          @lines = coverage["lines"]&.dup
+          # `merge_into` with nothing accumulated yet is exactly the copy
+          # this needs: the resultset's own array must not become the
+          # fold's scratch space.
+          @lines = LinesCombiner.merge_into(nil, coverage["lines"])
+          branches_table = coverage["branches"]
+          methods_table = coverage["methods"]
           # Branch coverage always reports a table, even an empty one, so
           # `SourceFile` can tell "no branches in this file" from "branch
-          # coverage was off". Method coverage stays `nil` until some resultset
-          # actually carries methods.
-          @branches = BranchesCombiner.absorb({}, coverage["branches"]) if branches || coverage["branches"]
-          @methods = MethodsCombiner.absorb(nil, coverage["methods"]) if methods || coverage["methods"]
+          # coverage was off". Method coverage stays `nil` until some
+          # resultset actually carries methods, so there only the data
+          # decides, never this process's own configuration.
+          @branches = BranchesCombiner.absorb(new_table, branches_table) if branches || branches_table
+          # Methods need no guard here either: absorbing nothing answers
+          # nothing, which is what a file carrying no method table has.
+          @methods = MethodsCombiner.absorb(nil, methods_table)
         end
 
         #
@@ -190,12 +202,14 @@ module SimpleCov
         # because folding in an executed resultset can flip it, exactly as it
         # would have flipped between two steps of the pairwise fold.
         def reconcile_synthesized(coverage)
-          return absorb_tuples(coverage) unless judgeable?(@lines) && judgeable?(coverage["lines"])
+          incoming_lines = coverage["lines"]
+          return absorb_tuples(coverage) unless judgeable?(@lines) && judgeable?(incoming_lines)
 
-          accumulated_executed = executed?(@lines)
-          incoming_executed = executed?(coverage["lines"])
+          incoming_executed = executed?(incoming_lines)
 
-          if accumulated_executed == incoming_executed
+          # Both sides answer with the `true` / `false` singletons, so
+          # identity is the whole of the question.
+          if executed?(@lines).equal?(incoming_executed)
             absorb_tuples(coverage)
           elsif incoming_executed
             replace_tuples(coverage)
@@ -211,9 +225,18 @@ module SimpleCov
         # sourced from data this merge just discarded, which claims the file
         # has no branches when what is true is that nobody measured them.
         def absorb_tuples(coverage)
-          @branches = BranchesCombiner.absorb(@branches || new_table, coverage["branches"]) if
-            @branches || coverage["branches"]
-          @methods = MethodsCombiner.absorb(@methods, coverage["methods"]) if @methods || coverage["methods"]
+          # A side that carries no branches folds in nothing, so it is the
+          # incoming table alone that decides whether there is anything to
+          # do here: what is accumulated already stands. The guard does
+          # more than save the work. Without an incoming table there is
+          # nothing to promote a nil accumulator into an empty one for,
+          # and doing so would claim the file has no branches when the
+          # truth is that nobody measured them.
+          branches_table = coverage["branches"]
+          @branches = BranchesCombiner.absorb(@branches || new_table, branches_table) if branches_table
+          # Methods need no such guard: absorbing nothing answers the
+          # accumulated table as it stands, nil included.
+          @methods = MethodsCombiner.absorb(@methods, coverage["methods"])
         end
 
         # Only the accumulated side ran, so the incoming tuples are synthesized
@@ -247,7 +270,7 @@ module SimpleCov
         def authoritative_table(combiner, table, keep_empty)
           return combiner.absorb(new_table, table) if table
 
-          keep_empty ? new_table : nil
+          new_table if keep_empty
         end
 
         # Whether a side can be judged at all. Absent lines do not mean the side
