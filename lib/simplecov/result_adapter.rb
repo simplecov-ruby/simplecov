@@ -147,15 +147,19 @@ module SimpleCov
       return unless cover_statistic.key?(:oneshot_lines)
 
       oneshot_lines = cover_statistic.delete(:oneshot_lines)
-      line_stub     = build_line_stub(file_name, oneshot_lines)
+      line_stub     = build_line_stub(file_name)
       oneshot_lines.each { |covered_line| line_stub[covered_line - 1] = 1 }
       cover_statistic[:lines] = line_stub
     end
 
-    def build_line_stub(file_name, oneshot_lines)
+    # A file that has vanished or no longer parses has no stub to build
+    # from, so start from nothing: the assignments in
+    # `adapt_oneshot_lines_if_needed` grow the array to the highest
+    # covered line, which is as far as the oneshot data reaches anyway.
+    def build_line_stub(file_name)
       Coverage.line_stub(file_name)
     rescue Errno::ENOENT, SyntaxError
-      Array.new(oneshot_lines.max || 0, nil)
+      []
     end
   end
 end
