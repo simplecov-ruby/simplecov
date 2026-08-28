@@ -69,4 +69,60 @@ RSpec.describe SimpleCov::LastRun do
       end
     end
   end
+
+  describe ".read" do
+    let(:dir) { Dir.mktmpdir("last-run") }
+    let(:path) { File.join(dir, ".last_run.json") }
+
+    before { allow(described_class).to receive(:last_run_path).and_return(path) }
+
+    after { FileUtils.remove_entry(dir) }
+
+    it "answers nothing when there is no file" do
+      expect(described_class.read).to be_nil
+    end
+
+    # A file of no bytes at all is as empty as one of blank ones.
+    it "answers nothing, quietly, for an empty file" do
+      File.write(path, "")
+
+      expect { expect(described_class.read).to be_nil }.not_to output.to_stderr
+    end
+
+    # A file of nothing but whitespace is a file that was never written,
+    # not one that was written wrongly, so it passes without a word.
+    it "answers nothing, quietly, for a file holding only whitespace" do
+      File.write(path, "  \n\t\n")
+
+      expect { expect(described_class.read).to be_nil }.not_to output.to_stderr
+    end
+
+    it "reads the recorded run back with its keys as symbols" do
+      File.write(path, JSON.dump(result: {line: 80.0}))
+      expect(described_class.read).to eq(result: {line: 80.0})
+    end
+
+    # A corrupt or hand-edited file counts as no previous run rather
+    # than taking the at_exit hook down with it.
+    # Corrupt is not the same as absent: the run says so before
+    # carrying on without a previous result.
+    it "warns and answers nothing for a file that is not JSON" do
+      File.write(path, "{not json")
+
+      expect { expect(described_class.read).to be_nil }
+        .to output(/Parsing JSON content of \.last_run\.json failed/).to_stderr
+    end
+
+    it "warns and answers nothing for JSON that is not an object" do
+      File.write(path, JSON.dump([1, 2]))
+
+      expect { expect(described_class.read).to be_nil }
+        .to output(/ignoring the previous run/).to_stderr
+    end
+
+    # An absent or empty file is not corrupt, so it says nothing.
+    it "says nothing about a file that was never written" do
+      expect { described_class.read }.not_to output.to_stderr
+    end
+  end
 end

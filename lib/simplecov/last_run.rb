@@ -16,13 +16,13 @@ module SimpleCov
         return nil unless File.exist?(last_run_path)
 
         json = File.read(last_run_path)
-        return nil if json.strip.empty?
+        return nil if json.match?(/\A\s*\z/)
 
         parsed = JSON.parse(json, symbolize_names: true)
         # The maximum_coverage_drop check digs into a Hash, so anything
         # else in a corrupt or hand-edited file counts as "no previous
         # run" rather than crashing the at_exit hook.
-        parsed.is_a?(Hash) ? parsed : invalid_last_run
+        parsed.instance_of?(Hash) ? parsed : invalid_last_run
       rescue JSON::ParserError
         invalid_last_run
       end
@@ -33,9 +33,10 @@ module SimpleCov
 
     private
 
+      # `warn` answers nil, which is what an unreadable previous run
+      # reports.
       def invalid_last_run
         warn "[SimpleCov]: Warning! Parsing JSON content of .last_run.json failed, ignoring the previous run"
-        nil
       end
     end
   end
