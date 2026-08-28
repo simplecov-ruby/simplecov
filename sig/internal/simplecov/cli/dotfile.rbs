@@ -40,6 +40,10 @@ module SimpleCov
 
       def self?.with_simplecov_loaded: () { () -> untyped } -> untyped
 
+      NEUTERED: Proc
+
+      def self?.load_simplecov: () -> untyped
+
       # Load `path` with `SimpleCov.start` and the at_exit installer
       # turned into no-ops, so a project whose dotfile calls
       # `SimpleCov.start` doesn't trigger Coverage just because we asked

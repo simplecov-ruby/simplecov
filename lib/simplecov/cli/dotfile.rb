@@ -11,7 +11,7 @@ module SimpleCov
     # paths to whatever the project's dotfile declares, without making
     # every read-only subcommand pay for actually starting Coverage.
     module Dotfile
-    module_function
+      extend self
 
       def coverage_dir
         dotfile = find
@@ -24,7 +24,7 @@ module SimpleCov
         # SyntaxError a malformed dotfile raises from `load` (it is not a
         # StandardError) along with LoadError; StandardError covers the
         # rest (EACCES, errors raised by the dotfile's own code, etc.).
-        warn "simplecov: failed to read coverage_dir from #{dotfile}: #{e.class}: #{e.message}"
+        warn "simplecov: failed to read coverage_dir from #{dotfile}: #{e.class}: #{e}"
         "coverage"
         # simplecov:enable
       end
@@ -36,14 +36,14 @@ module SimpleCov
       # no dotfile or it cannot be read.
       def baseline_file
         dotfile = find
-        return SimpleCov::Baseline::DEFAULT_FILENAME unless dotfile
+        return Baseline::DEFAULT_FILENAME unless dotfile
 
         with_simplecov_loaded { read_baseline_file_from(dotfile) }
       rescue ScriptError, StandardError => e
         # simplecov:disable — defensive fallback for a bad dotfile,
         # mirroring coverage_dir's; never fires in the dogfood run.
-        warn "simplecov: failed to read baseline_file from #{dotfile}: #{e.class}: #{e.message}"
-        SimpleCov::Baseline::DEFAULT_FILENAME
+        warn "simplecov: failed to read baseline_file from #{dotfile}: #{e.class}: #{e}"
+        Baseline::DEFAULT_FILENAME
         # simplecov:enable
       end
 
@@ -63,8 +63,8 @@ module SimpleCov
       rescue ScriptError, StandardError => e
         # simplecov:disable — defensive fallback for a bad dotfile,
         # mirroring coverage_dir's; never fires in the dogfood run.
-        warn "simplecov: failed to read production_coverage from #{dotfile}: #{e.class}: #{e.message}"
-        nil
+        # `warn` answers nil, which is this reader's whole fallback.
+        warn "simplecov: failed to read production_coverage from #{dotfile}: #{e.class}: #{e}"
         # simplecov:enable
       end
 
@@ -109,6 +109,9 @@ module SimpleCov
         SimpleCov.instance_variable_set(:@coverage_dir, snapshot)
       end
 
+      # The nearest `.simplecov` at or above the working directory, or
+      # nil, which is what the walk itself answers once it breaks at the
+      # filesystem root.
       def find
         dir = Pathname.new(Dir.pwd)
         loop do
@@ -118,7 +121,6 @@ module SimpleCov
 
           dir = dir.parent
         end
-        nil
       end
 
       def with_simplecov_loaded
@@ -129,7 +131,7 @@ module SimpleCov
         # CLI-only behavior — e.g. simplecov itself sets `coverage_dir`
         # to the dogfood path here but skips that for descendants.
         ENV["SIMPLECOV_CLI"] = "1"
-        require "simplecov"
+        load_simplecov
         yield
       ensure
         # @type var previous_no_defaults: String?
@@ -137,6 +139,20 @@ module SimpleCov
         ENV["SIMPLECOV_NO_DEFAULTS"] = previous_no_defaults
         ENV["SIMPLECOV_CLI"]         = previous_cli
       end
+
+      # The deferred require exists for a standalone CLI process that
+      # has not loaded simplecov yet. It must happen inside the env
+      # guard above, so a first load here skips the default profile
+      # chain.
+      def load_simplecov
+        require "simplecov"
+      end
+
+      # What both neutered methods answer while a dotfile is read. A
+      # constant rather than a block written at the call site, where an
+      # empty block and one answering nil are the same thing to every
+      # caller and so to every test.
+      NEUTERED = proc {}
 
       # Load `path` with `SimpleCov.start` and the at_exit installer
       # turned into no-ops, so a project whose dotfile calls
@@ -149,7 +165,7 @@ module SimpleCov
         stash = names.to_h { |name| [name, klass.instance_method(name)] } #: Hash[Symbol, UnboundMethod]
         # define_method over an existing method emits a "method redefined"
         # warning under $VERBOSE; the override and restore are intentional.
-        silence_verbose { names.each { |name| klass.define_method(name) { nil } } }
+        silence_verbose { names.each { |name| klass.define_method(name, &(_ = NEUTERED)) } }
         load path
       ensure
         # @type var stash: Hash[Symbol, UnboundMethod]
