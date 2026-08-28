@@ -6,20 +6,20 @@ module SimpleCov
     # configured maximum since the last recorded run.
     class MaximumCoverageDropCheck < Check
       def exit_code
-        SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP
+        MAXIMUM_COVERAGE_DROP
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.maximum_drop(result, thresholds)
+        CoverageViolations.maximum_drop(result, thresholds)
       end
 
       # The "drop percent" is a delta, not a coverage level — it has no
       # natural green/yellow/red mapping, so the whole line goes red to
       # keep the failure visible at a glance.
       def report_violation(violation)
-        ExitCodes.print_error SimpleCov::Color.colorize(message_for(violation), :red)
+        ExitCodes.print_error Color.colorize(message_for(violation), :red)
       end
 
       def message_for(violation)

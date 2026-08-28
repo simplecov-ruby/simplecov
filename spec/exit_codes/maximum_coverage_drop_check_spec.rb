@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck do
+RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MaximumCoverageDropCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_coverage_drop) }
 
   let(:result) do
@@ -105,6 +107,18 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck do
   describe "#exit_code" do
     it "returns SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP" do
       expect(check.exit_code).to eq(SimpleCov::ExitCodes::MAXIMUM_COVERAGE_DROP)
+    end
+  end
+
+  # The drop is the one violation printed in red: it is the message that
+  # says a run went backwards.
+  context "when the run went backwards" do
+    let(:last_coverage) { {line: 90.0, branch: 90.0} }
+
+    it "reports the drop in red" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect { check.report }.to output(a_string_starting_with("\e[31m")).to_stderr
     end
   end
 end
