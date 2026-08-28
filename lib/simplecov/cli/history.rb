@@ -15,14 +15,14 @@ module SimpleCov
     module History
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args, stderr) or return 1
-        entries = load_entries(opts[:input], stderr) or return 1
+        entries = load_entries(opts.fetch(:input), stderr) or return 1
         return 1 unless file_recorded?(entries, opts, stderr)
 
-        Output.emit(stdout, opts, entries, color: SimpleCov::CLI.color_enabled?(opts, stdout))
+        Output.emit(stdout, opts, entries, color: CLI.color_enabled?(opts, stdout))
         0
       end
 
@@ -38,13 +38,13 @@ module SimpleCov
       # The history file, not coverage.json: this command reads the
       # sibling artifact the exit tasks append to.
       def default_input
-        File.join(SimpleCov::CLI.coverage_dir, ".history.json")
+        File.join(CLI.coverage_dir, ".history.json")
       end
 
       def load_entries(path, stderr)
         document = JSON.parse(File.read(path))
-        entries = document.dig(SimpleCov::History::ENVELOPE, "entries") if document.is_a?(Hash)
-        return entries if entries.is_a?(Array)
+        entries = document.dig(SimpleCov::History::ENVELOPE, "entries") if document.instance_of?(Hash)
+        return entries if entries.instance_of?(Array)
 
         error_nil(stderr, "#{path} is not a SimpleCov history file")
       rescue Errno::ENOENT
@@ -52,17 +52,17 @@ module SimpleCov
       rescue JSON::ParserError => e
         error_nil(stderr, "#{path} is not valid JSON (#{e.message.lines.first.to_s.strip})")
       rescue SystemCallError => e
-        error_nil(stderr, e.message)
+        error_nil(stderr, "#{path} could not be read (#{e})")
       end
 
       # A `--file` for a path no entry recorded deserves a loud answer,
       # not an empty sparkline that reads as "0% forever".
       def file_recorded?(entries, opts, stderr)
-        file = opts[:file]
+        file = opts.fetch(:file)
         return true unless file
-        return true if entries.any? { |entry| entry.is_a?(Hash) && entry.dig("files", file).is_a?(Hash) }
+        return true if entries.any? { |entry| entry.instance_of?(Hash) && entry.dig("files", file).instance_of?(Hash) }
 
-        error(stderr, "no recorded coverage for #{file} in #{opts[:input]}")
+        error(stderr, "no recorded coverage for #{file} in #{opts.fetch(:input)}")
         false
       end
     end

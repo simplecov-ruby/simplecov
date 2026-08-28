@@ -3509,7 +3509,206 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "history subcommand" do
+  describe "history output", mutant_expression: "SimpleCov::CLI::History*" do
+    let(:renderer) { SimpleCov::CLI::History::Output }
+    let(:out) { StringIO.new }
+    let(:entries) do
+      [{"created_at" => "2026-08-01T00:00:00Z", "branch" => "main", "commit" => "abcdef1234",
+        "totals" => {"line" => 90.0, "branch" => 80.0}, "files" => {"lib/a.rb" => {"line" => 50.0}}},
+       {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
+        "totals" => {"line" => 95.0, "branch" => 70.0}, "files" => {}},
+       {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
+        "totals" => {"line" => 100.0, "branch" => 70.0}, "files" => {"lib/a.rb" => {"line" => 75.0}}}]
+    end
+
+    # A sparkline per criterion over the whole history, then one row per
+    # run: the columns are padded to the widest value so the rows line
+    # up, a run with no branch or commit shows a dash, and the commit is
+    # cut to seven characters.
+    it "draws the totals view whole" do
+      renderer.emit(out, {input: "coverage/.history.json", json: false, file: nil}, entries, color: false)
+
+      expect(out.string).to eq(
+        [
+          "Coverage history: coverage/.history.json (3 runs)",
+          "",
+          "  line    ▁▅█  90.0% → 100.0%  (+10.0)",
+          "  branch  █▁▁  80.0% → 70.0%  (-10.0)",
+          "",
+          "  2026-08-01T00:00:00Z  main       abcdef1  line 90.0%  branch 80.0%",
+          "  2026-08-02T00:00:00Z  feature-x  1234567  line 95.0%  branch 70.0%",
+          "  2026-08-03T00:00:00Z  -          -        line 100.0%  branch 70.0%"
+        ].join("\n").concat("\n")
+      )
+    end
+
+    # The same table scoped to one path, where a run that never saw the
+    # file leaves a gap in the sparkline and a dash in its row.
+    it "draws one file's trajectory whole" do
+      renderer.emit(out, {input: "x", json: false, file: "lib/a.rb"}, entries, color: false)
+
+      expect(out.string).to eq(
+        [
+          "Coverage history for lib/a.rb (3 runs)",
+          "",
+          "  line  ▁ █  50.0% → 75.0%  (+25.0)",
+          "",
+          "  2026-08-01T00:00:00Z  main       abcdef1  line 50.0%",
+          "  2026-08-02T00:00:00Z  feature-x  1234567  -",
+          "  2026-08-03T00:00:00Z  -          -        line 75.0%"
+        ].join("\n").concat("\n")
+      )
+    end
+
+    it "says so plainly when nothing has been recorded" do
+      renderer.emit(out, {input: "coverage/.history.json", json: false, file: nil}, [], color: false)
+
+      expect(out.string).to eq("simplecov history: no recorded runs in coverage/.history.json\n")
+    end
+
+    it "emits the entries verbatim as data, and one file's rows when scoped" do
+      renderer.emit(out, {input: "x", json: true, file: nil}, entries, color: false)
+      expect(JSON.parse(out.string)).to eq(entries)
+
+      scoped = StringIO.new
+      renderer.emit(scoped, {input: "x", json: true, file: "lib/a.rb"}, entries, color: false)
+      expect(JSON.parse(scoped.string)).to eq(
+        [{"created_at" => "2026-08-01T00:00:00Z", "branch" => "main", "commit" => "abcdef1234",
+          "percents" => {"line" => 50.0}},
+         {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
+          "percents" => nil},
+         {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
+          "percents" => {"line" => 75.0}}]
+      )
+    end
+
+    # Scaled to the series' own range, so direction stays visible even
+    # when the numbers move within a fraction of a percent. A flat
+    # series renders at mid height rather than at the floor.
+    it "scales the sparkline to its own range, and gaps what it has no value for" do
+      expect(renderer.sparkline([1.0, 2.0, 3.0])).to eq("▁▅█")
+      expect(renderer.sparkline([5.0, 5.0])).to eq("▄▄")
+      expect(renderer.sparkline([1.0, nil, 3.0])).to eq("▁ █")
+    end
+
+    # A series with no numbers at all still renders, as the gaps it is.
+    it "draws a series that carries no value anywhere" do
+      expect(renderer.sparkline([nil, nil])).to eq("  ")
+      expect(renderer.sparkline([])).to eq("")
+    end
+
+    it "reads the trend from the first and last recorded values, signed" do
+      expect(renderer.trend([90.0, 100.0], false)).to eq("90.0% → 100.0%  (+10.0)")
+      expect(renderer.trend([100.0, 90.0], false)).to eq("100.0% → 90.0%  (-10.0)")
+      expect(renderer.trend([nil, 90.0, 90.0, nil], false)).to eq("90.0% → 90.0%  (+0.0)")
+    end
+
+    it "colours a drop red and a rise green" do
+      expect(renderer.trend([100.0, 90.0], true)).to include("\e[31m(-10.0)\e[0m")
+      expect(renderer.trend([90.0, 100.0], true)).to include("\e[32m(+10.0)\e[0m")
+    end
+
+    # A criterion enabled midway through the history still gets a
+    # sparkline, and the criteria keep their canonical order rather than
+    # the order they were first seen in.
+    it "lists every criterion the history ever recorded, in order" do
+      late = [{"totals" => {"branch" => 1.0}}, {"totals" => {"line" => 2.0, "method" => 3.0}}]
+
+      expect(renderer.measured_criteria(late, ["totals"])).to eq(%w[line branch method])
+      expect(renderer.measured_criteria([{"totals" => "junk"}], ["totals"])).to eq([])
+      expect(renderer.measured_criteria([{"totals" => [90.0]}], ["totals"])).to eq([])
+    end
+
+    it "counts runs in words that agree with the number" do
+      expect(renderer.pluralize(1, "run")).to eq("1 run")
+      expect(renderer.pluralize(2, "run")).to eq("2 runs")
+      expect(renderer.pluralize(0, "run")).to eq("0 runs")
+    end
+
+    it "reads only numbers as percents" do
+      expect(renderer.numeric(1.5)).to eq(1.5)
+      expect(renderer.numeric("1.5")).to be_nil
+      expect(renderer.numeric(nil)).to be_nil
+    end
+
+    # The delta is the one colored thing in either view, and the color
+    # has to survive the whole way down: the view, the sparkline row,
+    # and the trend that draws the delta.
+    it "colors the delta of both views when color is on" do
+      renderer.emit(out, {input: "x", json: false, file: nil}, entries, color: true)
+
+      expect(out.string).to include("90.0% → 100.0%  \e[32m(+10.0)\e[0m")
+        .and include("80.0% → 70.0%  \e[31m(-10.0)\e[0m")
+
+      scoped = StringIO.new
+      renderer.emit(scoped, {input: "x", json: false, file: "lib/a.rb"}, entries, color: true)
+
+      expect(scoped.string).to include("50.0% → 75.0%  \e[32m(+25.0)\e[0m")
+    end
+
+    # A hand-edited history: a run with none of the row's fields, a
+    # percentage that is not a number, and a run that recorded nothing
+    # at all. Every column still renders, the criterion nothing
+    # numeric was recorded for is left out of the view entirely, and
+    # the run that recorded no number for a listed criterion is a gap.
+    it "draws a run that recorded none of the row's fields" do
+      sparse = [{"totals" => {"line" => 90.0}}, {"totals" => {"line" => "?", "branch" => "?"}}, {}]
+
+      renderer.emit(out, {input: "x", json: false, file: nil}, sparse, color: false)
+
+      expect(out.string).to eq(
+        [
+          "Coverage history: x (3 runs)",
+          "",
+          "  line  ▄    90.0% → 90.0%  (+0.0)",
+          "",
+          "    -  -        line 90.0%",
+          "    -  -        -",
+          "    -  -        -"
+        ].join("\n").concat("\n")
+      )
+    end
+
+    # The JSON rows carry whatever the entry recorded and null where it
+    # recorded nothing, including a files section holding something
+    # other than a run's percentages.
+    it "answers null columns for a run that recorded none of them" do
+      sparse = [{}, {"files" => {"lib/a.rb" => "junk"}}]
+
+      renderer.emit(out, {input: "x", json: true, file: "lib/a.rb"}, sparse, color: false)
+
+      expect(JSON.parse(out.string)).to eq(
+        [{"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil},
+         {"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil}]
+      )
+    end
+
+    # The label column is as wide as the widest criterion it prints,
+    # not as wide as whichever one happens to come last.
+    it "pads the criterion labels to the widest of them" do
+      renderer.emit_sparklines(out, entries, %w[branch line], false, ["totals"])
+
+      expect(out.string).to eq(
+        ["  branch  █▁▁  80.0% → 70.0%  (-10.0)",
+         "  line    ▁▅█  90.0% → 100.0%  (+10.0)"].join("\n").concat("\n")
+      )
+    end
+
+    # The high and the low are read off the whole series, not off its
+    # ends, and the scale between them is a float even for a history
+    # that recorded whole percentages.
+    it "scales to the range of the whole series" do
+      expect(renderer.sparkline([3.0, 5.0, 1.0, 4.0])).to eq("▅█▁▆")
+      expect(renderer.sparkline([90, 95, 100])).to eq("▁▅█")
+      expect(renderer.sparkline([1.5, 2.5])).to eq("▁█")
+    end
+
+    it "rounds the delta to two decimals" do
+      expect(renderer.trend([90.123456, 95.0], false)).to eq("90.123456% → 95.0%  (+4.88)")
+    end
+  end
+
+  describe "history subcommand", mutant_expression: "SimpleCov::CLI::History*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-history-spec-") }
     let(:input) { File.join(tmp, ".history.json") }
 
@@ -3526,6 +3725,39 @@ RSpec.describe SimpleCov::CLI do
 
     def run_history(*extra)
       run("history", "--input", input, *extra)
+    end
+
+    # The JSON parser's complaint can run to several lines. The status
+    # line takes the first, without its trailing newline.
+    it "reports only the first line of a multi-line parse error" do
+      File.write(input, "{\n  bad\n}")
+
+      expect(run_history).to eq(1)
+      expect(stderr.string.lines.size).to eq(1)
+      expect(stderr.string).to match(/\Asimplecov history: \S.* is not valid JSON \(\S.*\)\n\z/)
+    end
+
+    # Older JSON parsers quote the offending source back, which can run
+    # to several lines with whitespace around it. The status line takes
+    # the first of them, trimmed.
+    it "trims a multi-line parse error down to its first line" do
+      File.write(input, "{}")
+      allow(JSON).to receive(:parse)
+        .and_raise(JSON::ParserError.new("  unexpected token at 'bad'  \nand more\n"))
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to eq("simplecov history: #{input} is not valid JSON (unexpected token at 'bad')\n")
+    end
+
+    # A run recorded before the file existed has no files section at
+    # all, which is not the same as one that recorded nothing for it.
+    it "carries no percents for an entry that has no files section" do
+      write_history([{"created_at" => "2026-08-23T10:00:00Z", "totals" => {"line" => 90.0}},
+                     entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/a.rb" => {"line" => 95.0}})])
+
+      expect(run_history("--json", "--file", "lib/a.rb")).to eq(0)
+      percents = JSON.parse(stdout.string).map { |row| row["percents"] }
+      expect(percents).to eq([nil, {"line" => 95.0}])
     end
 
     it "prints a sparkline per criterion with the run rows beneath" do
@@ -3602,6 +3834,16 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no recorded coverage for lib/nope.rb")
     end
 
+    # A hand-edited history can name the file under something other than
+    # a run's percentages. That is a name, not a recording, and it still
+    # deserves the loud answer rather than an empty sparkline.
+    it "errors under --file for a file recorded as something other than percentages" do
+      write_history([entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => "junk"})])
+
+      expect(run_history("--file", "lib/foo.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov history: no recorded coverage for lib/foo.rb in #{input}\n")
+    end
+
     it "emits the entries as JSON" do
       write_history([entry("2026-08-23T10:00:00Z", 90.0)])
 
@@ -3643,35 +3885,127 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("recorded automatically")
     end
 
+    # Each refusal names the file it read, which is the only thing that
+    # distinguishes them from one another in a CI log.
     it "errors when the file is not a history" do
       File.write(input, JSON.dump("something" => "else"))
 
       expect(run_history).to eq(1)
-      expect(stderr.string).to include("not a SimpleCov history file")
+      expect(stderr.string).to eq("simplecov history: #{input} is not a SimpleCov history file\n")
     end
 
     it "errors when the file is not JSON" do
       File.write(input, "{")
 
       expect(run_history).to eq(1)
-      expect(stderr.string).to include("not valid JSON")
+      expect(stderr.string).to start_with("simplecov history: #{input} is not valid JSON (")
+      expect(stderr.string.lines.length).to eq(1)
     end
 
     it "errors when the file is JSON but not an object" do
       File.write(input, "[]")
 
       expect(run_history).to eq(1)
-      expect(stderr.string).to include("not a SimpleCov history file")
+      expect(stderr.string).to eq("simplecov history: #{input} is not a SimpleCov history file\n")
+    end
+
+    it "errors when the envelope carries entries that are not a list" do
+      File.write(input, JSON.dump("simplecov_history" => {"entries" => "junk"}))
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to eq("simplecov history: #{input} is not a SimpleCov history file\n")
+    end
+
+    # The history is written by the suite itself, so a missing one means
+    # no suite has reported yet rather than a mistyped path.
+    it "errors when the history has never been written, saying why" do
+      missing = File.join(tmp, "absent.json")
+
+      expect(run("history", "--input", missing)).to eq(1)
+      expect(stderr.string).to eq(
+        "simplecov history: #{missing} not found " \
+        "(the history is recorded automatically each time a suite reports)\n"
+      )
+    end
+
+    it "names a file the history never recorded, rather than drawing an empty line" do
+      write_history([entry("2026-08-01T00:00:00Z", 90.0, files: {"lib/a.rb" => {"line" => 50.0}})])
+
+      expect(run_history("--file", "lib/missing.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov history: no recorded coverage for lib/missing.rb in #{input}\n")
     end
 
     it "errors when the path cannot be read as a file" do
       expect(run("history", "--input", tmp)).to eq(1)
-      expect(stderr.string).to include("simplecov history:")
+      expect(stderr.string).to match(/\Asimplecov history: #{Regexp.escape(tmp)} could not be read \(\S.*\)\n\z/)
     end
 
     it "rejects a stray positional argument" do
       expect(run("history", "stray")).to eq(1)
       expect(stderr.string).to include('unexpected argument "stray"')
+    end
+
+    # The first stray argument is the one worth naming: the rest are
+    # very likely the same mistake repeated.
+    it "names the first of several stray arguments" do
+      expect(run("history", "one", "two")).to eq(1)
+      expect(stderr.string).to eq(%(simplecov history: unexpected argument "one"\n))
+    end
+
+    # The history is written beside the report, and the command finds
+    # it there without being told where to look.
+    it "reads the history beside the report by default" do
+      allow(described_class).to receive(:coverage_dir).and_return(tmp)
+      write_history([entry("2026-08-23T10:00:00Z", 90.0)])
+
+      expect(described_class::History.default_input).to eq(input)
+      expect(run("history", "--no-color")).to eq(0)
+      expect(stdout.string).to include("Coverage history: #{input} (1 run)")
+    end
+
+    # A parser complaint with nothing in it still leaves a status line
+    # that reads as one, rather than taking the read down with it.
+    it "prints an empty parser complaint as an empty note" do
+      File.write(input, "{}")
+      allow(JSON).to receive(:parse).and_raise(JSON::ParserError.new(""))
+
+      expect(run_history).to eq(1)
+      expect(stderr.string).to eq("simplecov history: #{input} is not valid JSON ()\n")
+    end
+
+    # The entries are whatever the file held. One that is not an object
+    # records nothing for any file, and must not take the lookup down
+    # with it.
+    it "reads past an entry that is not an object when looking for a file" do
+      write_history(["junk"])
+
+      expect(run_history("--file", "lib/a.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov history: no recorded coverage for lib/a.rb in #{input}\n")
+    end
+
+    # The answer is a plain yes or no: `run` reads it as the difference
+    # between reporting and carrying on.
+    it "answers whether the file was recorded at all" do
+      opts = {file: "lib/a.rb", input: input}
+
+      expect(described_class::History.file_recorded?([], opts, stderr)).to be(false)
+      expect(described_class::History.file_recorded?([], {file: nil, input: input}, stderr)).to be(true)
+    end
+
+    context "with colorization" do
+      it "colors the trend when Color.enabled? is true" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+        write_history([entry("2026-08-23T10:00:00Z", 90.0), entry("2026-08-24T10:00:00Z", 95.0)])
+
+        expect(run_history).to eq(0)
+        expect(stdout.string).to include("90.0% → 95.0%  \e[32m(+5.0)\e[0m")
+      end
+
+      it_behaves_like "a --no-color subcommand" do
+        before { write_history([entry("2026-08-23T10:00:00Z", 90.0)]) }
+
+        let(:no_color_argv) { ["history", "--input", input, "--no-color"] }
+      end
     end
   end
 

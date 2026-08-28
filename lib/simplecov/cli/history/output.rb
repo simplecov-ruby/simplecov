@@ -13,13 +13,13 @@ module SimpleCov
         # rest of SimpleCov presents criteria in.
         CRITERIA_ORDER = %w[line branch method].freeze
 
-      module_function
+        extend self
 
         def emit(stdout, opts, entries, color:)
-          return emit_json(stdout, opts, entries) if opts[:json]
-          return stdout.puts("simplecov history: no recorded runs in #{opts[:input]}") if entries.empty?
+          return emit_json(stdout, opts, entries) if opts.fetch(:json)
+          return stdout.puts("simplecov history: no recorded runs in #{opts.fetch(:input)}") if entries.empty?
 
-          if opts[:file]
+          if opts.fetch(:file)
             emit_file(stdout, opts, entries, color)
           else
             emit_totals(stdout, opts, entries, color)
@@ -27,21 +27,23 @@ module SimpleCov
         end
 
         def emit_totals(stdout, opts, entries, color)
-          stdout.puts("Coverage history: #{opts[:input]} (#{pluralize(entries.length, 'run')})")
+          stdout.puts("Coverage history: #{opts.fetch(:input)} (#{pluralize(entries.length, 'run')})")
           stdout.puts
-          emit_criteria_views(stdout, entries, color, ["totals"])
+          emit_criteria_views(stdout, entries, color, "totals")
         end
 
         # The file view is the totals view scoped to one path: entries
         # record the same {criterion => percent} shape for both.
         def emit_file(stdout, opts, entries, color)
-          file = opts[:file]
+          file = opts.fetch(:file)
           stdout.puts("Coverage history for #{file} (#{pluralize(entries.length, 'run')})")
           stdout.puts
-          emit_criteria_views(stdout, entries, color, ["files", file])
+          emit_criteria_views(stdout, entries, color, "files", file)
         end
 
-        def emit_criteria_views(stdout, entries, color, path)
+        # The path is taken apart rather than passed as a list, so each
+        # view names its own keys and the views below can dig with it.
+        def emit_criteria_views(stdout, entries, color, *path)
           criteria = measured_criteria(entries, path)
           emit_sparklines(stdout, entries, criteria, color, path)
           stdout.puts
@@ -59,12 +61,18 @@ module SimpleCov
         # One row per run: timestamp, branch, short commit, and the
         # view's own cell, columns padded so the rows read as a table.
         def emit_rows(stdout, entries)
-          branch_width = entries.map { |entry| (entry["branch"] || "-").length }.max
+          width = entries.map { |entry| branch_of(entry).length }.max
           entries.each do |entry|
-            branch = (entry["branch"] || "-").ljust(branch_width)
             commit = (entry["commit"] || "-")[0, 7].ljust(7)
-            stdout.puts("  #{entry['created_at']}  #{branch}  #{commit}  #{yield(entry)}")
+            stdout.puts("  #{entry['created_at']}  #{branch_of(entry).ljust(width)}  #{commit}  #{yield(entry)}")
           end
+        end
+
+        # The branch a run was recorded on, or a dash for a run that
+        # recorded none. Read the one way, so the column is padded to
+        # the width of the values it actually prints.
+        def branch_of(entry)
+          entry["branch"] || "-"
         end
 
         # "line 90.0%  branch 80.0%", or "-" for a run that recorded
@@ -81,15 +89,21 @@ module SimpleCov
         # the series has no value for that run. A flat series renders at
         # mid height: direction of travel is the message, and a flat
         # line says it plainly.
+        # A series with no numbers at all is all gaps, and answering
+        # that outright keeps the scale off a range it doesn't have.
         def sparkline(series)
           numeric = series.compact
-          min = numeric.min || 0
-          span = (numeric.max || 0) - min.to_f
+          return " " * series.length if numeric.empty?
+
+          min = numeric.min
+          # The float keeps the scaling below off integer division for a
+          # history that recorded whole percentages.
+          span = numeric.max - min.to_f
           series.map { |value| value.nil? ? " " : bar(value, min, span) }.join
         end
 
         def bar(value, min, span)
-          span.zero? ? BARS[3] : BARS[((value - min).to_f / span * (BARS.length - 1)).round]
+          span.zero? ? BARS.fetch(3) : BARS.fetch(((value - min) / span * (BARS.length - 1)).round)
         end
 
         # "90.0% → 100.0%  (+10.0)", the delta colored by its sign.
@@ -98,39 +112,44 @@ module SimpleCov
           first = numeric.first
           last = numeric.last
           delta = (last - first).round(2)
-          sign = delta.negative? ? "" : "+"
-          delta_text = SimpleCov::Color.colorize("(#{sign}#{delta})", delta.negative? ? :red : :green, enabled: color)
+          # A drop already carries its own minus, so the sign is a prefix
+          # a rise has and a drop has not. Spelled as an absent prefix
+          # rather than an empty one, since the two interpolate alike.
+          sign = "+" unless delta.negative?
+          delta_text = Color.colorize("(#{sign}#{delta})", delta.negative? ? :red : :green, enabled: color)
           "#{first}% → #{last}%  #{delta_text}"
         end
 
         def emit_json(stdout, opts, entries)
-          return stdout.puts(JSON.generate(entries)) unless opts[:file]
+          return stdout.puts(JSON.generate(entries)) unless opts.fetch(:file)
 
           rows = entries.map do |entry|
-            percents = entry.dig("files", opts[:file])
+            percents = entry.dig("files", opts.fetch(:file))
             {created_at: entry["created_at"], branch: entry["branch"], commit: entry["commit"],
-             percents: percents.is_a?(Hash) ? percents : nil}
+             percents: (percents if percents.instance_of?(Hash))}
           end
           stdout.puts(JSON.generate(rows))
         end
 
-        # Criteria present anywhere in the history at the given path, in
+        # Criteria some run recorded a number for at the given path, in
         # canonical order, so a criterion enabled midway still gets its
-        # sparkline.
+        # sparkline. A criterion no run recorded a number for is left
+        # out: an all-gaps sparkline has no trend to read off it.
         def measured_criteria(entries, path)
-          present = entries.flat_map do |entry|
-            percents = entry.dig(*path)
-            percents.is_a?(Hash) ? percents.keys : []
+          CRITERIA_ORDER.select do |criterion|
+            entries.any? do |entry|
+              percents = entry.dig(*path)
+              percents.instance_of?(Hash) && numeric(percents[criterion])
+            end
           end
-          CRITERIA_ORDER & present.uniq
         end
 
         def numeric(value)
-          value.is_a?(Numeric) ? value : nil
+          value if value.is_a?(Numeric)
         end
 
         def pluralize(number, noun)
-          "#{number} #{noun}#{'s' unless number == 1}"
+          "#{number} #{noun}#{'s' unless number.eql?(1)}"
         end
       end
     end

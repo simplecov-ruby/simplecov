@@ -12,13 +12,17 @@ module SimpleCov
 
         def self?.emit_totals: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
 
-        def self?.emit_criteria_views: (untyped stdout, Array[SimpleCov::History::entry] entries, bool color, Array[String] path) -> void
+        def self?.emit_criteria_views: (untyped stdout, Array[SimpleCov::History::entry] entries, bool color, *String path) -> void
 
         def self?.emit_sparklines: (untyped stdout, Array[SimpleCov::History::entry] entries, Array[String] criteria, bool color, Array[String] path) -> void
 
         def self?.emit_file: (untyped stdout, untyped opts, Array[SimpleCov::History::entry] entries, bool color) -> void
 
         def self?.emit_rows: (untyped stdout, Array[SimpleCov::History::entry] entries) { (SimpleCov::History::entry) -> String } -> void
+
+        # The branch a run was recorded on, or a dash for a run that
+        # recorded none.
+        def self?.branch_of: (SimpleCov::History::entry entry) -> String
 
         def self?.percents_cell: (SimpleCov::History::entry entry, Array[String] criteria, Array[String] path) -> String
 
