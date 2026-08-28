@@ -48,10 +48,12 @@ module SimpleCov
         return [] unless File.exist?(history_path)
 
         content = File.read(history_path)
-        return [] if content.strip.empty?
+        return [] if content.match?(/\A\s*\z/)
 
+        # JSON answers plain arrays and hashes, never a subclass of one,
+        # so the shape check asks about the class itself.
         entries = JSON.parse(content).dig(ENVELOPE, "entries")
-        entries.is_a?(Array) ? entries : invalid_history
+        entries.instance_of?(Array) ? entries : invalid_history
       rescue JSON::ParserError
         invalid_history
       end
@@ -69,7 +71,8 @@ module SimpleCov
       # rather than the literal "HEAD" most CI checkouts would record.
       def git_info
         branch = git("rev-parse", "--abbrev-ref", "HEAD")
-        [branch == "HEAD" ? nil : branch, git("rev-parse", "HEAD")]
+        branch = nil if branch.eql?("HEAD")
+        [branch, git("rev-parse", "HEAD")]
       end
 
     private
@@ -101,13 +104,13 @@ module SimpleCov
       # Per-file percents in the same {criterion => percent} shape the
       # totals and groups use, covering every measured criterion.
       def files_percents(result)
-        measured = result.coverage_statistics.keys
+        measured = result.coverage_statistics
         initial = {} #: Hash[String, Hash[String, Numeric]]
         result.files.each_with_object(initial) do |file, percents|
           # fetch: a SourceFile's statistics carry every criterion, so a
           # missing measured key is an invariant break worth raising on.
           stats = file.coverage_statistics
-          percents[file.project_filename] = measured.to_h do |criterion|
+          percents[file.project_filename] = measured.to_h do |criterion, _run_total|
             [criterion.to_s, SimpleCov.round_coverage(stats.fetch(criterion).percent)]
           end
         end
@@ -123,9 +126,11 @@ module SimpleCov
         []
       end
 
+      # A root that is not a String (a Pathname, say) is still a path,
+      # and git's own answers carry a trailing newline and nothing else.
       def git(*)
         output, status = Open3.capture2e("git", "-C", SimpleCov.root.to_s, *)
-        status.success? ? output.strip : nil
+        output.rstrip if status.success?
       rescue StandardError
         nil
       end
