@@ -53,8 +53,7 @@ module SimpleCov
     # Walk an array of source lines and return the disabled line ranges per
     # category as `{ line: [Range, ...], branch: [...], method: [...] }`.
     # An unclosed `disable` block extends to the end of the file.
-    def self.disabled_ranges(src_lines)
-      lines = src_lines.to_a
+    def self.disabled_ranges(lines)
       ranges = CATEGORIES.to_h do |category|
         empty = [] # : Array[Range[Integer]]
         [category, empty]
@@ -62,7 +61,7 @@ module SimpleCov
       open_starts = {} # : Hash[Symbol, Integer]
 
       directives_in(lines).each { |directive| directive.apply(ranges, open_starts) }
-      open_starts.each { |category, start| ranges[category] << (start..lines.size) }
+      open_starts.each { |category, start| ranges.fetch(category) << (start..lines.size) }
 
       ranges
     end
@@ -94,9 +93,10 @@ module SimpleCov
 
       new(
         line_number: line_number,
-        # `to_s` is a no-op: the pattern requires the `mode` group, so it
-        # is present whenever `match` is; it also satisfies the type checker.
-        mode: match[:mode].to_s.to_sym,
+        # The pattern admits exactly two modes, so asking whether this one
+        # is `disable` names the other by elimination. Comparing the
+        # captured text also keeps the nilable capture out of `to_sym`.
+        mode: match[:mode].eql?("disable") ? :disable : :enable,
         categories: parse_categories(match[:categories]),
         inline: inline?(lines, line_number, column + match.begin(0))
       )
@@ -105,8 +105,10 @@ module SimpleCov
       nil
     end
 
+    # The bare form targets every category, and answers the frozen
+    # constant itself: a directive's categories are only ever iterated.
     def self.parse_categories(text)
-      return CATEGORIES.dup if text.nil?
+      return CATEGORIES if text.nil?
 
       text.split(/\s*,\s*/).map(&:to_sym)
     end
@@ -116,8 +118,12 @@ module SimpleCov
     # adjusted for any prefix that may precede it within the comment token
     # (e.g., `# prefix # simplecov:disable line`).
     def self.inline?(lines, line_number, column)
-      line = lines[line_number - 1].to_s
-      !line.byteslice(0, column).to_s.strip.empty?
+      line = lines.at(line_number - 1).to_s
+      # Indentation is all a non-inline directive may have before it, so
+      # stripping the prefix from the left decides the question. Doing it
+      # from the right instead would raise on a line whose trailing bytes
+      # are invalid, which is a property of the code after the directive.
+      !line.byteslice(0, column).to_s.lstrip.empty?
     rescue ArgumentError, EncodingError
       false # simplecov:disable — defensive guard for invalid byte sequences
     end
@@ -125,7 +131,7 @@ module SimpleCov
     def self.comments_in(lines)
       source = lines.map { |line| line.end_with?("\n") ? line : "#{line}\n" }.join
       Ripper.lex(source).filter_map do |(line_number, column), type, text|
-        [line_number, column, text] if type == :on_comment
+        [line_number, column, text] if type.equal?(:on_comment)
       end
     rescue ArgumentError, EncodingError
       [] # simplecov:disable — Ripper.lex can raise on invalid byte sequences
@@ -142,7 +148,7 @@ module SimpleCov
     end
 
     def disabled?
-      mode == :disable
+      mode.equal?(:disable)
     end
 
     def inline?
@@ -155,11 +161,11 @@ module SimpleCov
     def apply(ranges, open_starts)
       categories.each do |category|
         if inline?
-          ranges[category] << (line_number..line_number) if disabled?
+          ranges.fetch(category) << (line_number..line_number) if disabled?
         elsif disabled?
           open_starts[category] ||= line_number
         elsif (start = open_starts.delete(category))
-          ranges[category] << (start..line_number)
+          ranges.fetch(category) << (start..line_number)
         end
       end
     end

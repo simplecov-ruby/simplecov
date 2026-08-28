@@ -321,5 +321,104 @@ RSpec.describe SimpleCov::Directive do
         expect(ranges[:line]).to eq [1..1]
       end
     end
+
+    it "tokenizes nothing when no line so much as mentions the gem" do
+      # The pre-check earns its keep by keeping Ripper away from the files
+      # that are the overwhelming majority: every source line of every
+      # tracked file passes through here.
+      allow(Ripper).to receive(:lex).and_call_original
+
+      expect(described_class.disabled_ranges(["def foo", "  bar", "end"])).to eq empty_ranges
+      expect(Ripper).not_to have_received(:lex)
+    end
+  end
+
+  # The steps behind `.disabled_ranges`, exercised directly. A whole file
+  # only reaches them through source that the comment scanner and the
+  # directive pattern both accept, which leaves their edges unvisited: a
+  # line that cannot be searched, a comment that is not a directive, a
+  # column nothing can be sliced at. Each step is private, being one
+  # step's worth of parsing rather than API, so the examples use `send`.
+  describe "the parsing steps" do
+    it "answers whether any line so much as mentions the gem" do
+      expect(described_class.send(:source_might_contain_directive?, ["def foo", "  bar", "end"])).to be false
+      expect(described_class.send(:source_might_contain_directive?, ["  # simplecov:disable line"])).to be true
+      expect(described_class.send(:source_might_contain_directive?, [])).to be false
+    end
+
+    it "answers no for a line whose encoding cannot be searched" do
+      # A UTF-16 line and an ASCII needle share no encoding, so the search
+      # raises instead of answering.
+      utf16 = "# simplecov:disable line".encode("UTF-16LE")
+
+      expect(described_class.send(:source_might_contain_directive?, [utf16])).to be false
+    end
+
+    it "reports each comment with the line and column it starts at" do
+      lines = ["x = 1 # first\n", "# second\n"]
+
+      expect(described_class.send(:comments_in, lines)).to eq([[1, 6, "# first\n"], [2, 0, "# second\n"]])
+    end
+
+    it "terminates lines that arrive without one, so the line numbers stay put" do
+      # Lines read off a file keep their newline, but a caller's array
+      # need not: without one, the whole file would lex as a single line.
+      expect(described_class.send(:comments_in, ["x = 1", "# c"])).to eq([[2, 0, "# c\n"]])
+    end
+
+    it "finds no comments in source it cannot tokenize" do
+      utf16 = "# simplecov:disable line".encode("UTF-16LE")
+
+      expect(described_class.send(:comments_in, [utf16])).to eq([])
+    end
+
+    it "reads a comment into a directive" do
+      directive = described_class.send(:parse_comment, ["# simplecov:disable line"], 1, 0, "# simplecov:disable line")
+
+      expect(directive.line_number).to eq(1)
+      expect(directive.mode).to eq(:disable)
+      expect(directive.categories).to eq(%i[line])
+      expect(directive.inline?).to be false
+    end
+
+    it "reads the other mode, and the bare form's categories, the same way" do
+      directive = described_class.send(:parse_comment, ["code # simplecov:enable"], 1, 5, "# simplecov:enable")
+
+      expect(directive.mode).to eq(:enable)
+      expect(directive.categories).to eq(%i[line branch method])
+      expect(directive.inline?).to be true
+    end
+
+    it "reads no directive out of a comment that is not one, or one it cannot match" do
+      invalid = (+"# simplecov:disable line\xC3").force_encoding("UTF-8")
+
+      expect(described_class.send(:parse_comment, ["# nope"], 1, 0, "# nope")).to be_nil
+      expect(described_class.send(:parse_comment, [invalid], 1, 0, invalid)).to be_nil
+    end
+
+    it "names the categories a directive lists, and every one when it lists none" do
+      expect(described_class.send(:parse_categories, nil)).to eq(%i[line branch method])
+      expect(described_class.send(:parse_categories, "branch , method")).to eq(%i[branch method])
+    end
+
+    it "answers whether anything but indentation precedes the directive's column" do
+      expect(described_class.send(:inline?, ["prefix", "  # x", "tail!"], 2, 2)).to be false
+      expect(described_class.send(:inline?, ["code # x", "     "], 1, 5)).to be true
+      expect(described_class.send(:inline?, ["# x"], 1, 0)).to be false
+    end
+
+    it "answers not inline for a line the array does not have" do
+      expect(described_class.send(:inline?, [], 1, 0)).to be false
+    end
+
+    it "answers not inline for a column nothing can be sliced at" do
+      expect(described_class.send(:inline?, ["code # x"], 1, -1)).to be false
+    end
+
+    it "answers not inline for a prefix whose bytes are invalid" do
+      invalid = (+"\xC3 = 1 # simplecov:disable").force_encoding("UTF-8")
+
+      expect(described_class.send(:inline?, [invalid], 1, 7)).to be false
+    end
   end
 end

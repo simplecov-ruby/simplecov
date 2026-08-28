@@ -57,7 +57,7 @@ module SimpleCov
     # Walk an array of source lines and return the disabled line ranges per
     # category as `{ line: [Range, ...], branch: [...], method: [...] }`.
     # An unclosed `disable` block extends to the end of the file.
-    def self.disabled_ranges: (untyped src_lines) -> untyped
+    def self.disabled_ranges: (untyped lines) -> untyped
 
     # Extract every directive in the file, in source order. Comments inside
     # string literals or heredocs are skipped because Ripper.lex doesn't tag
@@ -70,6 +70,8 @@ module SimpleCov
 
     def self.parse_comment: (untyped lines, untyped line_number, untyped column, untyped text) -> untyped
 
+    # The bare form targets every category, and answers the frozen
+    # constant itself: a directive's categories are only ever iterated.
     def self.parse_categories: (untyped text) -> untyped
 
     # Whether the directive sits after non-whitespace content on its line.
