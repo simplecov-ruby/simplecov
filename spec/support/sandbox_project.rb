@@ -87,7 +87,9 @@ module SandboxProject
   # that cache). Fixtures without a Gemfile intentionally use the root one.
   # The parallel_tests marker variables are scrubbed for the same reason the
   # cucumber suite scrubbed them: an inherited TEST_ENV_NUMBER makes a child
-  # suite defer its report to a "final" process that never runs.
+  # suite defer its report to a "final" process that never runs. The colour
+  # overrides go too, so a child's output is plain whatever the terminal
+  # running the suite prefers.
   def run_command(command, env: {}, timeout: 60)
     command_env = sandbox_command_environment(env)
     @last_command = Open3.popen2e(
@@ -208,7 +210,7 @@ private
     Bundler.unbundled_env
            .merge(host_bundle_settings)
            .merge("BUNDLE_WITH" => bundle_with)
-           .merge(scrub_parallel_markers(overrides))
+           .merge(scrub_inherited_markers(overrides))
            .merge("BUNDLE_GEMFILE" => sandbox_gemfile)
   end
 
@@ -237,9 +239,14 @@ private
   # PARALLEL_WORKERS is Rails' own knob: `ActiveSupport::TestCase.parallelize`
   # lets it override the `workers:` argument outright, so an exported value
   # would silently re-shape the fixtures that pin a worker count.
-  def scrub_parallel_markers(env)
+  # The colour overrides go with them, and have to be scrubbed here as
+  # well as in the spec helper: `Bundler.unbundled_env` rebuilds the
+  # environment from the snapshot Bundler took before the helper ran, so
+  # a FORCE_COLOR the helper deleted comes back for the child.
+  def scrub_inherited_markers(env)
     {"TEST_ENV_NUMBER" => nil, "PARALLEL_TEST_GROUPS" => nil,
-     "PARALLEL_PID_FILE" => nil, "PARALLEL_WORKERS" => nil}.merge(env)
+     "PARALLEL_PID_FILE" => nil, "PARALLEL_WORKERS" => nil,
+     "FORCE_COLOR" => nil, "NO_COLOR" => nil}.merge(env)
   end
 
   def collect_command_result(command, stdout, wait_thread, timeout)
@@ -286,6 +293,15 @@ end
 
 RSpec.configure do |config|
   config.include SandboxProject, :sandbox
+
+  # A sandbox example proves the library works when a real project runs
+  # it, which is worth having and is not something mutation analysis can
+  # use: the example asserts on a child process, and mutant mutates the
+  # parent in memory, so the child loads the file from disk unmutated
+  # and the example passes whatever was done to the code. Left in a
+  # subject's test pool it is pure cost, and an expensive one, since
+  # each example spawns a bundler and a test run.
+  config.define_derived_metadata(sandbox: true) { |metadata| metadata[:mutant] = false }
   # The sandbox suite keeps the platform envelope of the cucumber feature
   # suite it replaced, which only ever ran on MRI Linux/macOS: alternative
   # engines and Windows run the unit specs alone.

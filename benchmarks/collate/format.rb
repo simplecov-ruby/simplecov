@@ -4,7 +4,7 @@ module CollateBenchmark
   # Number formatting for the report tables. Kept apart from `Report` so that
   # class stays about the shape of the output rather than its units.
   module Format
-  module_function
+    extend self
 
     # A collate at full scale runs into minutes, so seconds alone stop being
     # readable past the first phase.

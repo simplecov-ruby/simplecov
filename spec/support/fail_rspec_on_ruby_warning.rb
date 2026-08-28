@@ -81,11 +81,18 @@ private
   end
 end
 
-warning_collector = FailOnWarnings.new
-warning_collector.collect_warnings
+# Under mutant the warning gate stands down: inserting a mutated method
+# legitimately warns (a literal in a condition, a void-context `nil`),
+# and the after(:suite) abort would kill the kill-fork before it reports
+# its test result back, scoring the mutation alive no matter what the
+# tests said.
+unless defined?(Mutant)
+  warning_collector = FailOnWarnings.new
+  warning_collector.collect_warnings
 
-RSpec.configure do |config|
-  config.after(:suite) do
-    warning_collector.process_warnings
+  RSpec.configure do |config|
+    config.after(:suite) do
+      warning_collector.process_warnings
+    end
   end
 end

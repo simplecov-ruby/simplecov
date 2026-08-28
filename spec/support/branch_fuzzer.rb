@@ -8,7 +8,7 @@ require "prism"
 # programs are returned; they are meant to be *loaded* (defining `fx`), never
 # run, so undefined references in their bodies are fine.
 module BranchFuzzer
-module_function
+  extend self
 
   # Returns { "s<seed>_<index>" => source } for the requested volume, with
   # duplicate sources dropped.

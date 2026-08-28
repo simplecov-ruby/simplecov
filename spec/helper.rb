@@ -37,6 +37,12 @@ SPEC_PARALLEL_WORKER = ENV.fetch("TEST_ENV_NUMBER", nil)
 SPEC_PARALLEL_PID_FILE = ENV.fetch("PARALLEL_PID_FILE", nil)
 %w[TEST_ENV_NUMBER PARALLEL_TEST_GROUPS PARALLEL_PID_FILE].each { |variable| ENV.delete(variable) }
 
+# The colour overrides go the same way. A developer whose terminal
+# exports FORCE_COLOR has every example that asserts plain output fail
+# on the escape codes, which says nothing about the code under test.
+# The examples that care set these themselves through `with_env`.
+%w[FORCE_COLOR NO_COLOR].each { |variable| ENV.delete(variable) }
+
 require "rspec"
 require "stringio"
 require "open3"
@@ -52,6 +58,18 @@ require "simplecov"
 # asserts the same warning (the suite runs in random order).
 RSpec.configure do |config|
   config.before { SimpleCov::Deprecation.reset! }
+
+  # No example opens a browser. The open subcommand shells out to the
+  # platform's opener and the watch subcommand spawns it detached, so a
+  # mutation that skips either one's guards reaches that call with a
+  # path an example only meant to reject. Under mutant that is a window
+  # per mutation, which is how it was noticed.
+  config.before do
+    next unless defined?(SimpleCov::CLI::Open)
+
+    allow(SimpleCov::CLI::Open).to receive(:system).and_return(true)
+    allow(SimpleCov::CLI::Watch).to receive(:spawn).and_return(1234) if defined?(SimpleCov::CLI::Watch)
+  end
 end
 
 # The default profile chain now includes `test_frameworks`, which
@@ -74,6 +92,12 @@ unless DOGFOOD_DISABLED
   # the dogfood `Result.new`, not into `SimpleCov.filters`, so they
   # don't leak into synthetic Results that unit tests build from
   # `spec/fixtures/*` paths.
+  # Opt-in, because recording which test covered each line costs time
+  # every example pays. `SIMPLECOV_TRACK_TESTS=1 bundle exec rspec` gives
+  # the dogfood report the contexts `simplecov tests --redundant` reads,
+  # which is how this suite finds examples that cover nothing no other
+  # example already covers.
+  SimpleCov.track_tests if ENV["SIMPLECOV_TRACK_TESTS"]
   SimpleCov.start_tracking
 
   require "support/dogfood_report"

@@ -8,7 +8,7 @@ module CollateBenchmark
   # a few percent on the merge phase — enough that an instrumented run makes a
   # poor baseline, which is why `Report` records the flag alongside the timings.
   module Breakdown
-  module_function
+    extend self
 
     # Labelled as `[description, module, method]`. The modules are resolved
     # lazily because this file is loaded before `simplecov` is.

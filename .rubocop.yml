@@ -131,6 +131,14 @@ Style/EnvHome:
   # the `||` fall-through chain in lib/simplecov/load_global_config.rb.
   Enabled: false
 
+Style/ModuleFunction:
+  # `module_function` copies each method into a second, singleton
+  # definition, and callers dispatch to the copy. Mutant re-inserts
+  # mutated instance methods, so under module_function every mutation is
+  # invisible to the tests. `extend self` routes singleton dispatch
+  # through the one real definition, which mutation testing can see.
+  EnforcedStyle: extend_self
+
 Style/StringLiterals:
   Description: Allow double-quoted strings without interpolation.
   EnforcedStyle: double_quotes

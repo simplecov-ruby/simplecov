@@ -61,3 +61,125 @@ cd html_frontend && bun test test/format.test.ts
 
 Note: single-file rspec runs fail the 100% self-coverage check by design.
 Set `SIMPLECOV_NO_DOGFOOD=1` to skip it when running a subset.
+
+## Mutation Testing
+
+The suite is also held to account by [mutant](https://github.com/mbj/mutant),
+configured in `.mutant.yml` with the full operator set. Mutant rewrites one
+method at a time and re-runs the tests that cover it, so a mutation nobody
+notices is a behavior nobody pinned. Run it over the code you touched:
+
+```bash
+bundle exec mutant run 'SimpleCov::CLI::Patch*'   # one namespace, seconds
+bundle exec rake mutant:since                      # subjects touched since origin/main
+bundle exec rake mutant                            # the whole lib, slow
+```
+
+Pull requests run `mutant:since` against their base branch in CI, so a change
+is answerable for the mutations it introduces without waiting on the whole
+library. A pull request that touches no library code selects no subjects and
+passes.
+
+Where the library's own shape makes mutation testing slower or harder than it
+needs to be, and what a major version could do about it, is written down in
+[docs/Mutation_Testing_Roadmap.md](Mutation_Testing_Roadmap.md).
+
+Three suite conventions keep mutant fast and honest, and touching them breaks
+it quietly, so know they exist:
+
+* Library modules use `extend self`, never `module_function`.
+  `module_function` copies each method to a second singleton definition and
+  callers dispatch to the copy, so mutant's re-inserted instance methods would
+  be invisible and every mutation would survive. RuboCop enforces this.
+* Spec describes that don't name a constant carry a `mutant_expression`
+  metadata tag naming the namespace they exercise (see `spec/cli_spec.rb`), so
+  mutant selects only those examples for the namespace's subjects. An
+  untagged group is selected for every subject in the file's top constant,
+  which is slow. Specs that only observe subprocesses can't kill an in-memory
+  mutation at all and are tagged `mutant: false`.
+* A provably equivalent mutation (the tests cannot ever tell it apart) is
+  disabled at its definition site with a `# mutant:disable` comment naming the
+  equivalence, and the method's behavior is pinned by unit examples instead.
+
+### Selecting the right tests
+
+Mutant offers a subject the tests from the **most specific expression that
+matches any**, and stops there. That one rule explains most surprises:
+
+* A `describe ".method"` block gives its examples that method's exact
+  expression, so a subject with such a block is offered only that block's
+  examples. Examples elsewhere in the same file are never considered for it,
+  however directly they exercise it.
+* Tagging a describe at a level *deeper* than the pool that already covers the
+  code replaces that pool rather than joining it. Tagging at the *same* level
+  merges the two.
+* RSpec joins a class describe and a `#method` / `.method` description without
+  a space, so `describe "#thing"` inside `RSpec.describe Klass` reads as
+  `Klass#thing` and gives that subject an exact pool. Adding such a block to
+  hold new examples starves the subject of every example outside it, which
+  looks exactly like a wave of new survivors.
+* Worse, the pool can end up empty rather than merely narrow. Mutant reads the
+  first whitespace-delimited token of an example's full description, so
+  `describe "#overlaps_with?(range)"` glues into
+  `Klass#overlaps_with?(range)`, which is not an expression anything can
+  parse, and every example in the group leaves mutant's view. Seven examples
+  sat behind one of those and twenty-nine mutations survived in front of it.
+  Name such a group so the first token is either a bare expression or not one
+  at all: `describe "#overlaps_with?"`, or prose with no leading `#`.
+* So: tag a new describe with the expression the existing pool already uses,
+  and add an exact-method expression only where such a block already exists.
+  Creating an exact pool where none existed starves the subject.
+
+### What cannot be killed
+
+Some mutations are exact synonyms, and no test can tell them apart. Recognise
+them rather than chasing them:
+
+* `==` against `eql?` (and often `equal?`) where both operands are Strings,
+  Symbols, or Integers.
+* `defined?(@ivar)` against `instance_variable_defined?(:@ivar)`.
+* `::Const` against `Const` where nothing of that name is nested.
+* `map` against `flat_map` where the result is `join`ed, since `join` flattens.
+* `is_a?` against `instance_of?` for a class with no subclass in play.
+* A redundant guard whose absence changes nothing, which is worth deleting
+  rather than disabling: mutant found dead code.
+
+A mutation whose damage lands outside an example is caught by the
+`process_abort` coverage criterion in `.mutant.yml`: a failure in an `after`
+hook, or on the way out of the process, takes the run down with a failing
+status and counts. Enable that criterion when reading survivors, or a
+mutation the suite plainly kills by hand will read as surviving.
+
+What that criterion cannot catch is a mutation that ends the process
+*successfully*. Dropping `on_help` from a parser leaves optparse's officious
+`--help`, which prints a summary and calls `exit` from inside the parser: the
+process ends cleanly, before any result is recorded, and mutant reads the
+zero status as a passing run. That is why every parser is built through
+`CommandHelpers#build_parser`, which carries that one line, disabled, in a
+single place.
+
+Read the mutation before deciding it is equivalent. `unless X` becomes
+`unless true`, which makes a guard *never* fire rather than always fire, so
+the example that kills it is one where the guard's own case is the one that
+matters. And a survivor that will not die under an example that plainly
+covers it is worth running by hand: an equivalent-looking mutation of
+`formatters=` turned out to be reporting a real regression, where rewriting
+an assignment as a modifier had stopped an empty list from clearing the
+formatter.
+
+An equivalent mutation is often the tests asserting through something lossy
+rather than the code being redundant. Reading a record back through JSON
+stringifies its symbol keys; comparing an object with itself makes `equal?`
+indistinguishable from `==`; recording the same run twice makes the newest
+entry indistinguishable from the oldest. Fix the example rather than the
+code where that is what is going on.
+
+### Code that only runs on another Ruby
+
+Version-gated code is invisible here, because the constant that gates it is
+false on the Ruby you measure with. Two ways out, in order of preference:
+call the gated logic directly where it is a pure function (the value-position
+pass is exercised this way), or stub the constant and pin the conventions the
+gated paths produce as a regression baseline (the legacy branch locations are
+pinned this way). Say which one it is in the spec, so a reader knows whether
+the expectations are ground truth or a frozen baseline.

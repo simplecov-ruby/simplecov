@@ -23,6 +23,11 @@ group :development do
   # spec` falls back to a serial run without parallel_tests (the sandbox
   # specs it fans out don't run on JRuby anyway).
   unless RUBY_ENGINE == "jruby"
+    # Mutation testing (rake mutant). CRuby-only: mutant forks per
+    # mutation, which the JVM engines cannot.
+    gem "mutant", require: false
+    gem "mutant-rspec", require: false
+
     # Fans `rake spec` out across worker processes.
     gem "parallel_tests"
     gem "rbs", "~> 4.0.0"

@@ -1,0 +1,4 @@
+# Per-file coverage floors. A file that drops below its floor fails the run,
+# and files with no entry fall through to the global per-file minimum.
+# Regenerate with `simplecov ratchet`. Floors only ever tighten.
+--- {}

@@ -87,7 +87,7 @@ module CollateBenchmark
       result = nil
 
       phase("merge") { merged = merge_coverage(fixture.resultset_paths) }
-      phase("build_result") { result = SimpleCov::ResultMerger.create_result(*merged) }
+      phase("build_result") { result = SimpleCov::ResultMerger.create_result(*merged, tracked_files: []) }
       phase("store") { SimpleCov::ResultMerger.store_result(result) }
       phase("format") { result.format! }
       phase("thresholds") { SimpleCov.result_exit_status(result) }

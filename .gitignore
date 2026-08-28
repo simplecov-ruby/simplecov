@@ -31,3 +31,14 @@ spec/fixtures/coverage
 spec/fixtures/frameworks/coverage
 spec/fixtures/eval_test/coverage
 test_projects/**/coverage
+.mutant/
+
+# Artifacts a mutated run can leave in the repository root: a mutation
+# of coverage_path lands the report, the last-run record, or the
+# resultset lock in the working directory, and they must never be
+# swept into a commit again.
+/index.html
+/.last_run.json
+/.resultset.json
+/.resultset.json.lock
+/coverage.json

@@ -19,7 +19,7 @@
 # - keys in both array and `inspect`-string form, mixed within a shard
 # - `branches` / `methods` keys absent, and line arrays of differing lengths
 module MergeFuzzer
-module_function
+  extend self
 
   # A small pool, so collisions and drift arise naturally rather than by
   # special-casing. Two `:if` spans differ only in end column, as in #1233.

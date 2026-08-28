@@ -4,7 +4,7 @@ module CollateBenchmark
   # Sampling helpers for turning the measured quantile curves in
   # `Shape` back into concrete per-file numbers.
   module Distribution
-  module_function
+    extend self
 
     # Draw `count` values by walking the inverse CDF at evenly spaced
     # quantiles — no PRNG, so the distribution is reproduced rather than

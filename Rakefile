@@ -60,6 +60,21 @@ task :man do
   File.write("man/simplecov.1", ManPage.build)
 end
 
+# Mutation testing (see docs/Contributing.md#mutation-testing). The bare
+# task sweeps the whole lib and takes a while; the :since task covers the
+# subjects the current branch touched, which is the inner-loop and CI form.
+desc "Mutation-test the whole lib with mutant (slow)"
+task :mutant do
+  sh "bundle exec mutant run"
+end
+
+namespace :mutant do
+  desc "Mutation-test only the subjects touched since REF (default origin/main)"
+  task :since, [:ref] do |_task, args|
+    sh "bundle exec mutant run --since #{args[:ref] || 'origin/main'}"
+  end
+end
+
 # The frontend's tests run under bun's built-in runner; bunfig.toml enforces
 # 100% line and function coverage of html_frontend/src, the JS counterpart of
 # the 100% dogfood coverage the RSpec suite enforces on lib/. Follows the

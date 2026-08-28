@@ -13,7 +13,7 @@ require "tmpdir"
 # battery and the opt-in fuzzer alike, so a divergence found by one can
 # be replayed verbatim in the other.
 module CoverageDifferential
-module_function
+  extend self
 
   # { name => source } -> { name => { condition => { arm => 0 } } }
   def runtime_branches(programs)

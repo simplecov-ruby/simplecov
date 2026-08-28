@@ -11,13 +11,13 @@ require "simplecov/version"
 # writes the artifact and spec/man_page_spec.rb fails when the
 # committed copy is stale.
 module ManPage
-module_function
+  extend self
 
   # Usage.text interpolates the process's resolved default paths; the
   # man page wants the plain defaults a fresh project sees, whatever
   # directory the generator runs from.
   module Defaults
-  module_function
+    extend self
 
     def coverage_dir = "coverage"
     def default_input = "coverage/coverage.json"

@@ -1,0 +1,41 @@
+name: mutation
+
+on: pull_request
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    # Only the touched subjects are analysed, but a change to a slow
+    # namespace (the CLI subcommands that shell out, SimpleCov itself)
+    # is still minutes of work per subject.
+    timeout-minutes: 30
+
+    env:
+      BUNDLE_WITHOUT: "benchmark"
+
+    steps:
+      # Mutant selects subjects by diffing against a revision, so the
+      # base branch has to be in the clone: a shallow one has nothing to
+      # compare against.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby
+          rubygems: default
+          bundler-cache: true
+
+      - name: Fetch the base branch
+        run: git fetch --no-tags origin ${{ github.base_ref }}
+
+      # Keeps the analysis to the subjects whose own lines the pull
+      # request touched, rather than the whole library: mutant matches
+      # each subject's line range against the diff, so an untouched
+      # method in a touched file is left alone too.
+      #
+      # A pull request that touches no library code selects nothing and
+      # passes, which is what a docs- or spec-only change should do.
+      - name: Analyse the mutations the pull request touches
+        run: bundle exec rake "mutant:since[origin/${{ github.base_ref }}]"

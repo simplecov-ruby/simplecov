@@ -200,6 +200,11 @@ end
 # defined here are usable from SimpleCov directly.
 module SimpleCov
   module Configuration
+    # The `coverage` DSL object reaches its config's internals through
+    # this; a module type carries only the module's own methods, so the
+    # one every object answers has to be spelled out here.
+    def __send__: (Symbol name, *untyped args) -> untyped
+
     @root: String
     @coverage_dir: String
     @coverage_dir_explicit: bool?
@@ -247,7 +252,10 @@ module SimpleCov
 
     # Whether SimpleCov has anything to do at exit: coverage is being
     # tracked, or a result has already been assembled (e.g. by collate).
-    def active_session?: () -> boolish
+    def active_session?: () -> bool
+
+    # Whether the Coverage library, if this process has one, is running.
+    def coverage_running?: () -> bool
 
     # Gets or sets the behavior run in a newly forked process. The
     # block receives the child pid. The default renames the command
@@ -329,6 +337,10 @@ module SimpleCov
     # criterion, named in Coverage's own plural vocabulary
     # (`:lines`, `:branches`, `:methods`, `:oneshot_lines`, `:eval`).
     def coverage_criterion_supported?: (Symbol criterion) -> bool
+
+    # Loading this file on its own leaves Coverage undefined, so the
+    # question above loads it first.
+    def load_coverage: () -> untyped
 
     private
 
@@ -566,6 +578,9 @@ module SimpleCov
     # The configured groups. Add groups using `group`.
     def groups: () -> Hash[String, Filter[untyped]]
 
+    # The group set `grouped` bins against when its caller names none.
+    def default_groups: () -> Hash[String, Filter[untyped]]
+
     # Define a display group for files. Same matcher grammar as `skip`,
     # but bins matches under `group_name` instead of dropping them.
     def group: (String group_name, ?filter_arg? filter_argument) ?{ (SourceFile source_file) -> boolish } -> Filter[untyped]
@@ -607,6 +622,9 @@ module SimpleCov
     # The bundled formats `formats` resolves by name, as constant names
     # under SimpleCov::Formatter.
     BUILT_IN_FORMATS: Hash[Symbol, Symbol]
+
+    # The bundled formats living outside the always-loaded core, and where each is required from.
+    LAZY_FORMAT_REQUIRES: Hash[Symbol, String]
 
     # The symbol front door to formatter selection: `:html`, `:json`,
     # `:simple`, and `:baseline` name the bundled formatters, anything
@@ -655,7 +673,13 @@ module SimpleCov
 
     # A `formats` element: Symbols name bundled formatters, everything
     # else passes through as a formatter of its own.
+    # One formatter standing for the list, or nothing for an empty one.
+    def combined_formatter: (Array[untyped] formatters) -> untyped
+
     def resolve_format: (untyped name) -> untyped
+
+    # Loads the HTML formatter when :html is the name being resolved.
+    def require_html_formatter: (untyped name) -> void
   end
 end
 
@@ -774,7 +798,7 @@ module SimpleCov
     # for recognized multi-worker parallel runs writing to a custom
     # coverage destination (those likely finalize via an external
     # `SimpleCov.collate` step). See #1215.
-    def finalize_merge: (?(:__no_arg__ | bool) value) -> bool
+    def finalize_merge: (*bool value) -> bool
 
     def finalize_merge?: () -> bool
 
@@ -851,7 +875,7 @@ module SimpleCov
     # Default: none (0%, disabled).
     def minimum_coverage: (?(Numeric | coverage_thresholds)? coverage) -> coverage_thresholds
 
-    def raise_on_invalid_coverage: (coverage_thresholds coverage, String coverage_setting) -> void
+    def raise_on_invalid_coverage: (coverage_thresholds coverage, (String | Symbol) coverage_setting) -> void
 
     # The maximum overall coverage allowed — an unexpected jump above
     # it fails the build. Pair with `minimum_coverage` (or use
@@ -904,7 +928,7 @@ module SimpleCov
     # The counts counterpart of `normalized_threshold`.
     def normalized_missed_caps: ((Numeric | missed_caps) counts, String setting) -> missed_caps
 
-    def raise_on_invalid_missed_cap: (untyped cap, String setting) -> void
+    def raise_on_invalid_missed_cap: (untyped cap, (String | Symbol) setting) -> void
 
     # The copy-pastable `coverage` equivalent of a deprecated flat
     # `maximum_missed_per_file` argument.
@@ -914,7 +938,7 @@ module SimpleCov
 
     def validate_per_file_key: ((Symbol | String | Regexp) key) -> void
 
-    def minimum_possible_coverage_exceeded: (String coverage_option) -> void
+    def minimum_possible_coverage_exceeded: ((String | Symbol) coverage_option) -> void
 
     def per_file_coverage_replacement: (coverage_thresholds defaults, Hash[String | Regexp, coverage_thresholds] overrides) -> String
 
@@ -967,7 +991,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String], ?run_id: String?, ?worker_id: String?, ?contexts: ContextMap?, ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String]?, ?run_id: String?, ?worker_id: String?, ?contexts: ContextMap?, ?report: bool, ?filter_config: FilterConfig) -> void
 
     def filenames: () -> Array[String]
     # Accepts an absolute or project-relative path (resolved against SimpleCov.root).
@@ -1002,8 +1026,8 @@ module SimpleCov
 
     private
 
-    def initialize_resultset_metadata: (_ToA[String] tracked_files, String? run_id, String? worker_id, ContextMap? contexts) -> void
-    def warn_about_missing_source_files: (Array[String] missing, Integer input_size) -> void
+    def initialize_resultset_metadata: (_ToA[String]? tracked_files, String? run_id, String? worker_id, ContextMap? contexts) -> void
+    def warn_about_missing_source_files: (Array[String] missing) -> void
     def apply_filters!: (Array[Filter[untyped]] filters) -> void
     def apply_cover_filters!: (Array[Filter[untyped]] cover_filters) -> void
   end
@@ -1038,6 +1062,10 @@ module SimpleCov
       private
 
       def append_contexts: (Hash[String, untyped] data) -> void
+
+      # This result's own files as a Set, which keeps the restriction
+      # one membership test per recorded file.
+      def context_filenames: () -> Set[String]
 
       def coverage: () -> Hash[String, untyped]
     end
@@ -1216,7 +1244,7 @@ module SimpleCov
       def skipped!: () -> void
       def skipped?: () -> bool
       # "covered", "missed", "skipped", or "never" — useful e.g. as a css class.
-      def status: () -> String?
+      def status: () -> String
     end
   end
 end
@@ -1504,6 +1532,10 @@ module SimpleCov
     # instance — into an instance. See #1240.
     def self.instance_for: (untyped formatter) -> untyped
 
+    # Whether the configured formatter is a class waiting to be
+    # instantiated rather than an instance already built.
+    def self.instantiable?: (untyped formatter) -> bool
+
     # Instantiates a formatter class when necessary and dispatches the result.
     def self.format: (untyped formatter, SimpleCov::Result result) -> untyped
   end
@@ -1543,9 +1575,11 @@ module SimpleCov
 
       # Prints `output_message` to stderr unless silent; the one home of
       # the "status lines go to stderr, not through warn" decision (#1225).
-      def emit_status: (SimpleCov::Result result) -> void
+      # Untyped because a subclass whose message is not read off the
+      # result (BaselineFormatter) is handed its own message here.
+      def emit_status: (untyped result) -> void
 
-      def output_message: (SimpleCov::Result result) -> String
+      def output_message: (untyped result) -> String
 
       # nil for branch/method criteria with nothing to measure, so the
       # summary doesn't print "Branch coverage: 0 / 0 (100.00%)" noise.
@@ -1646,8 +1680,6 @@ module SimpleCov
     # new files never get an entry, and the file is rewritten only when
     # a floor actually moved.
     class BaselineFormatter < Base
-      @message: String
-
       def format: (SimpleCov::Result result) -> void
 
       private
@@ -1672,7 +1704,9 @@ module SimpleCov
       # coverage directory.
       def output_path: () -> String
 
-      def output_message: (SimpleCov::Result _result) -> String
+      # `format` hands the ratchet's summary to `emit_status`, which
+      # passes it through to here.
+      def output_message: (untyped message) -> String
     end
   end
 end
@@ -1986,7 +2020,6 @@ module SimpleCov
 
     def self.install_at_exit: () -> void
 
-    def self.at_exit_stop: () -> void
   end
 end
 
@@ -2018,6 +2051,9 @@ module SimpleCov
       def self.envelope_of: (untyped document, String path) -> Hash[String, untyped]
 
       private
+
+      # Both halves of the read-modify-write, through one locked handle.
+      def locked: [T] () { (File file) -> T } -> T
 
       def rewrite: (File file, Hash[String, untyped] payload) -> void
 
@@ -2094,7 +2130,9 @@ module SimpleCov
 
     private
 
-    def ratchet_entry: (Hash[Symbol, Floor] entry, Hash[Symbol, {percent: Numeric, missed: Integer}]? current_entry) -> [Symbol, Hash[Symbol, Floor]?]
+    # The pruned arm carries no replacement entry, so it answers the
+    # bucket alone.
+    def ratchet_entry: (Hash[Symbol, Floor] entry, Hash[Symbol, {percent: Numeric, missed: Integer}]? current_entry) -> {bucket: Symbol, ?entry: Hash[Symbol, Floor]}
 
     def bucket_for: (Hash[Symbol, Floor] entry, Hash[Symbol, Floor] merged, Hash[Symbol, {percent: Numeric, missed: Integer}] current_entry) -> Symbol
 
@@ -2339,6 +2377,8 @@ module SimpleCov
     # `message` is the notice without the `[DEPRECATION]` tag or location
     # prefix; `location` defaults to the caller of the deprecated method.
     def self?.warn: (String message, ?location: String?) -> void
+
+    def self?.caller_location: () -> String?
 
     # Dedup keys (locations, or messages when no backtrace is available)
     # already emitted by this process. Declared on both the instance and

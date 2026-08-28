@@ -19,7 +19,7 @@
 #   name for methods (#1233, #1234). Counts sum, and the first key seen among
 #   the contributing entries is retained.
 module MergeReference
-module_function
+  extend self
 
   def call(shards, branches:, methods:)
     shards.flat_map(&:keys).uniq.to_h do |file|

@@ -37,11 +37,10 @@ module DogfoodReport
     "truffleruby" => {line: 97.5}
   }.freeze
 
-module_function
+  extend self
 
   def generate
-    raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
-    coverage = SimpleCov::ResultAdapter.call(raw)
+    contexts, coverage = final_coverage
 
     if parallel_worker?
       store_partial(coverage)
@@ -50,7 +49,16 @@ module_function
       wait_for_sibling_workers
       coverage = merged_partials
     end
-    report(coverage)
+    report(coverage, contexts)
+  end
+
+  # Taking a coverage result stops measurement, so the tracker's last
+  # open segment has to be closed against the same one the report is
+  # built from.
+  def final_coverage
+    final = Coverage.result
+    contexts = SimpleCov.test_tracker&.recorded_map(closing: final)
+    [contexts, SimpleCov::ResultAdapter.call(SimpleCov::UselessResultsRemover.call(final))]
   end
 
   # The SPEC_PARALLEL_* constants are the worker identity spec/helper.rb
@@ -108,7 +116,7 @@ module_function
 
   # rubocop:disable Metrics/MethodLength, Metrics/AbcSize -- one linear
   # report pipeline; the length is comments explaining each step's why.
-  def report(coverage)
+  def report(coverage, contexts = nil)
     extra_filters = %w[/spec/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
     # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
     # (JRuby, TruffleRuby, CRuby on Windows) its worker lines are unreachable
@@ -124,7 +132,10 @@ module_function
     SimpleCov.enable_coverage :branch if SimpleCov.branch_coverage_supported?
     SimpleCov.enable_coverage :method if SimpleCov.method_coverage_supported?
     filter_config = SimpleCov::Result::FilterConfig.new(filters: SimpleCov.filters + extra_filters, groups: {})
-    result = SimpleCov::Result.new(coverage, filter_config: filter_config)
+    # Under SIMPLECOV_TRACK_TESTS the tracker has been recording which
+    # example covered each line. Hand that map to the result so the
+    # report carries it and `simplecov tests` can read it back.
+    result = SimpleCov::Result.new(coverage, contexts: contexts, filter_config: filter_config)
 
     # Leading newline so the formatter's message doesn't fuse onto
     # RSpec's progress-formatter dots when run via `rake spec` / `rspec`.

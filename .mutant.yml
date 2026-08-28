@@ -1,0 +1,38 @@
+---
+# Mutation testing (https://github.com/mbj/mutant). Run via `rake mutant`
+# (the whole lib) or directly for one subject while iterating:
+#
+#   bundle exec mutant run 'SimpleCov::CLI::Tests*'
+#
+usage: opensource
+includes:
+  - lib
+requires:
+  - simplecov
+  - simplecov/cli
+  - simplecov/production
+environment_variables:
+  # The suite's own-coverage dogfooding instruments every mutation fork
+  # and enforces 100% line coverage at exit, which would abort mutant's
+  # partial runs. Mutation runs measure the tests, not the coverage.
+  SIMPLECOV_NO_DOGFOOD: "1"
+integration:
+  name: rspec
+matcher:
+  subjects:
+    - SimpleCov*
+mutation:
+  operators: full
+  # Full operators produce infinite-loop mutations (flipped loop
+  # conditions, dropped increments). The timeout converts them into
+  # kills via the timeout coverage criterion below. It is set well above
+  # any subject's honest test selection so a timeout means runaway
+  # behavior, not a slow suite masking the result.
+  timeout: 30.0
+coverage_criteria:
+  timeout: true
+  # A mutation that takes the test process down with it is caught, the
+  # same as one that fails an example. Without this a mutation whose
+  # damage lands outside an example (in a hook, or on the way out of the
+  # process) reads as surviving.
+  process_abort: true

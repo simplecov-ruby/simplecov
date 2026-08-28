@@ -17,7 +17,7 @@ module CollateBenchmark
   # git-ignored and already excluded from RuboCop, and is deliberately left
   # behind after a run so repeated runs and `--baseline` comparisons reuse it.
   module Fixture
-  module_function
+    extend self
 
     # Bumping this invalidates cached fixtures whose layout predates it.
     GENERATOR_VERSION = 1
