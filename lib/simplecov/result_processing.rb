@@ -91,7 +91,7 @@ module SimpleCov
 
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
     def filtered(files)
-      result = files.to_a.dup
+      result = files.to_a
       filters.each do |filter|
         result = result.reject { |source_file| filter.matches?(source_file) }
       end
