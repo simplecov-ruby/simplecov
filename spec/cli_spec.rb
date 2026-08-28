@@ -202,7 +202,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "status subcommand" do
+  describe "status subcommand", mutant_expression: "SimpleCov::CLI::Status*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-status-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:resultset_path) { File.join(tmp, ".resultset.json") }
@@ -212,11 +212,9 @@ RSpec.describe SimpleCov::CLI do
     after { FileUtils.rm_rf(tmp) }
 
     def repo!
-      system("git", "-C", tmp, "init", "-q", "-b", "main", exception: true)
-      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
+      GitFixture.init_repo(tmp)
       2.times do |index|
-        system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-               "commit", "-q", "--allow-empty", "-m", "c#{index}", exception: true)
+        system("git", "-C", tmp, "commit", "-q", "--allow-empty", "-m", "c#{index}", exception: true)
       end
     end
 
@@ -238,6 +236,54 @@ RSpec.describe SimpleCov::CLI do
       write_report(commit: first_commit, contexts: ["spec/a_spec.rb:1", "spec/b_spec.rb:2"])
       File.write(resultset_path, JSON.dump("RSpec" => {"coverage" => {}, "timestamp" => (Time.now - 300).to_i}))
       first_commit
+    end
+
+    describe "#age_in_words" do
+      # Each unit changes over at an exact second, and the boundary
+      # belongs to the larger unit. Tested on both sides of all three.
+      {
+        89 => "89 seconds", 90 => "2 minutes",
+        5399 => "90 minutes", 5400 => "2 hours",
+        129_599 => "36 hours", 129_600 => "2 days"
+      }.each do |seconds, words|
+        it "reads #{seconds} seconds as #{words}" do
+          expect(described_class::Status.age_in_words(seconds)).to eq(words)
+        end
+      end
+
+      it "rounds a fractional count of seconds" do
+        expect(described_class::Status.age_in_words(12.4)).to eq("12 seconds")
+      end
+    end
+
+    describe "#commit_words" do
+      it "reports a commit that is not a string as unrecorded" do
+        expect(described_class::Status.commit_words(commit: 12_345, behind: nil)).to eq("not recorded")
+      end
+    end
+
+    describe "#report_lines" do
+      let(:facts) do
+        {generated_at: nil, age: nil, version: "9.9.9", command_name: "RSpec",
+         commit: nil, behind: nil, totals: {}, contexts: nil}
+      end
+
+      it "omits the totals line when nothing was measured" do
+        expect(described_class::Status.report_lines(facts)).to eq(
+          ["by simplecov 9.9.9 running RSpec", "commit not recorded",
+           "tests recorded: none (enable track_tests to select and re-run by test)"]
+        )
+      end
+
+      it "prints the totals line when something was" do
+        lines = described_class::Status.report_lines(facts.merge(totals: {"line" => 92.5}))
+        expect(lines).to include("line 92.50%")
+      end
+    end
+
+    it "names itself in the error when the report cannot be read" do
+      expect(run("status", "--input", File.join(tmp, "absent.json"))).to eq(1)
+      expect(stderr.string).to start_with("simplecov status:")
     end
 
     it "reports the report's age, run, and commit distance" do
@@ -351,6 +397,9 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
+  # The plumbing every read-only subcommand extends. Exercised through
+  # a stand-in module rather than through one of the nine commands, so
+  # what is under test is the helper itself and not a caller's use of it.
   describe SimpleCov::CLI::CommandHelpers, mutant_expression: "SimpleCov::CLI::CommandHelpers*" do
     let(:host) do
       Module.new do
@@ -504,6 +553,198 @@ RSpec.describe SimpleCov::CLI do
   # subcommand: what these answer for a well-formed report is already
   # covered there, and what they answer for a malformed one is the part
   # a fixture written by hand can reach.
+  describe SimpleCov::CLI::Status::Facts, mutant_expression: "SimpleCov::CLI::Status::Facts*" do
+    subject(:facts) { described_class }
+
+    describe "#age_of" do
+      it "answers whole seconds between the wall clock and the stored epoch" do
+        allow(Process).to receive(:clock_gettime).and_return(500.9)
+
+        expect(facts.send(:age_of, 100)).to be(400)
+        expect(Process).to have_received(:clock_gettime).with(Process::CLOCK_REALTIME)
+      end
+    end
+
+    describe "#whole_seconds" do
+      it "cuts the fraction off" do
+        expect(facts.send(:whole_seconds, 400.9)).to be(400)
+      end
+
+      it "keeps a whole value whole" do
+        expect(facts.send(:whole_seconds, 7.0)).to be(7)
+      end
+
+      it "cuts toward zero for a clock that went backwards" do
+        expect(facts.send(:whole_seconds, -1.7)).to be(-1)
+      end
+    end
+
+    describe "#commit_count" do
+      it "reads the digits git prints, newline and all" do
+        expect(facts.send(:commit_count, "42\n")).to be(42)
+      end
+
+      it "reads a leading zero as a digit, not as an octal marker" do
+        expect(facts.send(:commit_count, "042\n")).to be(42)
+      end
+    end
+
+    describe "#parse_time" do
+      it "reads an ISO 8601 timestamp" do
+        expect(facts.parse_time("2026-08-27T12:00:00.000Z")).to eq(Time.utc(2026, 8, 27, 12))
+      end
+
+      it "answers nil for a timestamp that is not a string" do
+        expect(facts.parse_time(1_756_300_000)).to be_nil
+      end
+
+      it "answers nil for a string that is not a timestamp" do
+        expect(facts.parse_time("last tuesday")).to be_nil
+      end
+    end
+
+    describe "#behind" do
+      it "counts the commits between the report's and HEAD" do
+        allow(SimpleCov::CLI::Git).to receive(:capture).and_return(["9\n", "", true])
+        expect(facts.behind("abc1234")).to eq(9)
+      end
+
+      it "asks git for the count between that commit and HEAD" do
+        allow(SimpleCov::CLI::Git).to receive(:capture).and_return(["0\n", "", true])
+
+        facts.behind("abc1234")
+        expect(SimpleCov::CLI::Git).to have_received(:capture).with("rev-list", "--count", "abc1234..HEAD")
+      end
+
+      it "answers nil when git cannot answer" do
+        allow(SimpleCov::CLI::Git).to receive(:capture).and_return(["", "bad revision", false])
+        expect(facts.behind("abc1234")).to be_nil
+      end
+
+      it "answers nil for a commit that is not a string, without asking git" do
+        allow(SimpleCov::CLI::Git).to receive(:capture)
+
+        expect(facts.behind(12_345)).to be_nil
+        expect(SimpleCov::CLI::Git).not_to have_received(:capture)
+      end
+    end
+
+    describe "#totals" do
+      it "names each criterion and keeps its percent" do
+        total = {"lines" => {"percent" => 92.5}, "branches" => {"percent" => 88.0},
+                 "methods" => {"percent" => 75.0}}
+        expect(facts.totals(total)).to eq("line" => 92.5, "branch" => 88.0, "method" => 75.0)
+      end
+
+      it "drops a criterion whose percent is not a number" do
+        expect(facts.totals("lines" => {"percent" => "92.5"})).to eq({})
+      end
+
+      it "answers nothing for a total that is not an object" do
+        expect(facts.totals([1, 2])).to eq({})
+      end
+    end
+
+    describe "#meta_facts" do
+      it "answers empty facts for meta that is not an object" do
+        expect(facts.meta_facts("meta" => [])).to eq(
+          generated_at: nil, age: nil, version: nil, command_name: nil, commit: nil, behind: nil
+        )
+      end
+
+      # Whole hash: every fact is read from its own key, and a fact that
+      # went missing or arrived under another name would otherwise pass.
+      it "reads each fact from the metadata it was written under" do
+        generated = Time.now - 12.6
+        allow(SimpleCov::CLI::Git).to receive(:capture).and_return(["4\n", "", true])
+
+        expect(facts.meta_facts("meta" => {"timestamp" => generated.iso8601(3),
+                                           "simplecov_version" => "9.9.9",
+                                           "command_name" => "RSpec",
+                                           "commit" => "abc1234"})).to eq(
+                                             generated_at: generated.iso8601(3), age: 12,
+                                             version: "9.9.9", command_name: "RSpec",
+                                             commit: "abc1234", behind: 4
+                                           )
+      end
+    end
+
+    describe "#gather" do
+      it "counts the recorded contexts, and says where the resultset was sought" do
+        answered = facts.gather({"contexts" => %w[a b c]}, "/nonexistent/.resultset.json")
+        expect(answered).to eq(
+          generated_at: nil, age: nil, version: nil, command_name: nil, commit: nil, behind: nil,
+          totals: {}, contexts: 3,
+          resultset_path: "/nonexistent/.resultset.json", resultset: nil
+        )
+      end
+
+      # Reads the totals out of the report and the entries out of the
+      # resultset beside it, each from its own place.
+      it "gathers the totals and the resultset together" do
+        dir = Dir.mktmpdir("simplecov-gather-spec-")
+        path = File.join(dir, ".resultset.json")
+        File.write(path, JSON.dump("RSpec" => {"timestamp" => (Time.now - 60).to_i}))
+
+        answered = facts.gather({"total" => {"lines" => {"percent" => 92.5}}}, path)
+        expect(answered).to include(totals: {"line" => 92.5}, contexts: nil,
+                                    resultset_path: path, resultset: [{command: "RSpec", age: 60}])
+      ensure
+        FileUtils.remove_entry(dir)
+      end
+
+      it "answers no count for a report that recorded no contexts at all" do
+        expect(facts.gather({}, "/nonexistent/.resultset.json")[:contexts]).to be_nil
+      end
+
+      it "answers no count for contexts that are not a list" do
+        answered = facts.gather({"contexts" => "a_spec.rb"}, "/nonexistent/.resultset.json")
+        expect(answered[:contexts]).to be_nil
+      end
+    end
+
+    describe "#resultset" do
+      let(:path) { File.join(dir, ".resultset.json") }
+      let(:dir) { Dir.mktmpdir("simplecov-facts-spec-") }
+
+      after { FileUtils.remove_entry(dir) }
+
+      it "ages each command against the time it recorded" do
+        File.write(path, JSON.dump("RSpec" => {"timestamp" => (Time.now - 300).to_i}))
+        expect(facts.resultset(path)).to eq([{command: "RSpec", age: 300}])
+      end
+
+      it "answers no age for an entry that carries no timestamp" do
+        File.write(path, JSON.dump("RSpec" => {"coverage" => {}}))
+        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+      end
+
+      it "answers no age for a timestamp that is not a number" do
+        File.write(path, JSON.dump("RSpec" => {"timestamp" => "recently"}))
+        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+      end
+
+      it "answers no age for an entry that is not an object" do
+        File.write(path, JSON.dump("RSpec" => []))
+        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+      end
+
+      it "answers nil when the resultset is not there" do
+        expect(facts.resultset(File.join(dir, "absent.json"))).to be_nil
+      end
+
+      it "answers nil when the resultset is not JSON" do
+        File.write(path, "not json")
+        expect(facts.resultset(path)).to be_nil
+      end
+
+      it "answers nil when the resultset is not an object" do
+        File.write(path, JSON.dump([1, 2]))
+        expect(facts.resultset(path)).to be_nil
+      end
+    end
+  end
+
   describe "badge subcommand", mutant_expression: "SimpleCov::CLI::Badge*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-badge-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }

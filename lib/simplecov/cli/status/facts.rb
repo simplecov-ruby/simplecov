@@ -7,29 +7,43 @@ module SimpleCov
       # metadata, how far HEAD has moved since it was generated, and
       # the resultset's entries with their ages.
       module Facts
-      module_function
+        extend self
 
         def gather(document, resultset_path)
+          contexts = document["contexts"]
           meta_facts(document).merge(
             totals: totals(document["total"]),
-            contexts: document["contexts"].is_a?(Array) ? document["contexts"].size : nil,
+            contexts: (contexts.size if contexts.instance_of?(Array)),
             resultset_path: resultset_path, resultset: resultset(resultset_path)
           )
         end
 
         def meta_facts(document)
           none = {} #: Hash[String, untyped]
-          meta = document["meta"].is_a?(Hash) ? document["meta"] : none
+          recorded = document["meta"]
+          meta = recorded.instance_of?(Hash) ? recorded : none
           generated = parse_time(meta["timestamp"])
           {
-            generated_at: meta["timestamp"], age: generated && (Time.now - generated).to_i,
+            generated_at: meta["timestamp"], age: generated && whole_seconds(Time.now - generated),
             version: meta["simplecov_version"], command_name: meta["command_name"],
             commit: meta["commit"], behind: behind(meta["commit"])
           }
         end
 
+        # How long ago a recording was made, from the epoch seconds it
+        # stored. The wall clock is read as epoch seconds directly,
+        # which keeps the subtraction between two numbers.
+        def age_of(timestamp)
+          whole_seconds(Process.clock_gettime(Process::CLOCK_REALTIME) - timestamp)
+        end
+
+        # Ages are reported in whole seconds.
+        def whole_seconds(elapsed)
+          elapsed.truncate
+        end
+
         def parse_time(value)
-          value.is_a?(String) ? Time.iso8601(value) : nil
+          Time.iso8601(value) if value.instance_of?(String)
         rescue ArgumentError
           nil
         end
@@ -38,14 +52,21 @@ module SimpleCov
         # when unanswerable (no commit recorded, no git, or a commit
         # this repository has never seen).
         def behind(commit)
-          return nil unless commit.is_a?(String)
+          return nil unless commit.instance_of?(String)
 
           stdout, _detail, success = Git.capture("rev-list", "--count", "#{commit}..HEAD")
-          success ? Integer((_ = stdout).strip, 10) : nil
+          commit_count(_ = stdout) if success
+        end
+
+        # `Integer` ignores surrounding whitespace on its own, so git's
+        # trailing newline needs no trimming. The base is spelled out
+        # because bare `Integer` reads a leading zero as octal.
+        def commit_count(output)
+          Integer(output, 10)
         end
 
         def totals(total)
-          return {} unless total.is_a?(Hash)
+          return {} unless total.instance_of?(Hash)
 
           rows = {"line" => "lines", "branch" => "branches", "method" => "methods"}.filter_map do |name, key|
             percent = total.dig(key, "percent")
@@ -58,11 +79,11 @@ module SimpleCov
         # readable resultset — its absence is a fact, not an error.
         def resultset(path)
           parsed = JSON.parse(File.read(path))
-          return nil unless parsed.is_a?(Hash)
+          return nil unless parsed.instance_of?(Hash)
 
           parsed.map do |command, data|
-            timestamp = data.is_a?(Hash) ? data["timestamp"] : nil
-            {command: command, age: timestamp.is_a?(Numeric) ? (Time.now - Time.at(timestamp)).to_i : nil}
+            timestamp = data["timestamp"] if data.instance_of?(Hash)
+            {command: command, age: (age_of(timestamp) if timestamp.is_a?(Numeric))}
           end
         rescue SystemCallError, JSON::ParserError
           nil

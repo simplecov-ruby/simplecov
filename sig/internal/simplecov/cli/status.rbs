@@ -26,7 +26,7 @@ module SimpleCov
 
       def self?.print_resultset: (Hash[Symbol, untyped] facts, untyped stdout) -> untyped
 
-      def self?.age_suffix: (Integer? age) -> String
+      def self?.age_suffix: (Integer? age) -> String?
 
       def self?.age_in_words: (Integer seconds) -> String
     end

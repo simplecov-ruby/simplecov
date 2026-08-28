@@ -7,6 +7,12 @@ module SimpleCov
 
         def self?.meta_facts: (Hash[String, untyped] document) -> Hash[Symbol, untyped]
 
+        def self?.age_of: (Numeric timestamp) -> Integer
+
+        def self?.commit_count: (String output) -> Integer
+
+        def self?.whole_seconds: (Float elapsed) -> Integer
+
         def self?.parse_time: (untyped value) -> Time?
 
         def self?.behind: (untyped commit) -> Integer?
