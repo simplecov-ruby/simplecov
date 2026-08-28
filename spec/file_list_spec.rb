@@ -51,11 +51,43 @@ RSpec.describe SimpleCov::FileList do
   end
 
   it "has the correct least covered file" do
-    expect(file_list.least_covered_file).to match(/sample_controller.rb/)
+    expect(file_list.least_covered_file).to eq(source_fixture("app/controllers/sample_controller.rb"))
   end
 
   it "has the correct covered strength" do
     expect(file_list.covered_strength).to eq(0.9285714285714286)
+  end
+
+  describe "#least_covered_file" do
+    def list_of(*percentages)
+      files = percentages.each_with_index.map do |percent, index|
+        instance_double(SimpleCov::SourceFile, covered_percent: percent, filename: "#{index}.rb")
+      end
+      described_class.new(files)
+    end
+
+    # The lowest percentage sits in the middle so neither end of the list
+    # can pass for the answer.
+    it "answers the filename of the lowest percentage, wherever it sits" do
+      expect(list_of(80.0, 20.0, 50.0).least_covered_file).to eq("1.rb")
+    end
+
+    # `covered_percent` is nil only for an unmeasured criterion. The
+    # fallback stands in for a percentage rather than for "worst", so a
+    # measured file at 0% still loses the tie ahead of it.
+    it "treats an unmeasured file as 0%, not as the worst" do
+      expect(list_of(0.0, nil).least_covered_file).to eq("0.rb")
+    end
+
+    it "treats an unmeasured file as 0%, not as the best" do
+      expect(list_of(nil, 0.5).least_covered_file).to eq("0.rb")
+    end
+
+    # A fully filtered result has no worst file, and asking for one has to
+    # answer that rather than raise on the missing file.
+    it "answers nil for a list with no files at all" do
+      expect(described_class.new([]).least_covered_file).to be_nil
+    end
   end
 
   context "without branch or method coverage enabled" do
@@ -144,6 +176,18 @@ RSpec.describe SimpleCov::FileList do
       expect(branch_only_file_list.lines_of_code).to be_nil
       expect(branch_only_file_list.covered_percent).to be_nil
       expect(branch_only_file_list.covered_strength).to be_nil
+    end
+
+    # The criterion is a parameter, not a synonym for :line: asking for
+    # the measured one has to answer from it even when :line is absent.
+    it "answers covered_percent and covered_strength for the criterion it is given" do
+      expect(branch_only_file_list.covered_percent(:branch)).to eq(50.0)
+      expect(branch_only_file_list.covered_strength(:branch)).to eq(0.0)
+    end
+
+    it "buckets each file's statistics under the enabled criteria only" do
+      expect(branch_only_file_list.coverage_statistics_by_file.keys).to eq([:branch])
+      expect(branch_only_file_list.coverage_statistics_by_file.fetch(:branch).size).to eq(1)
     end
 
     it "omits :line from enabled_criteria_for_reporting" do

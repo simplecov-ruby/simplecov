@@ -141,9 +141,9 @@ module SimpleCov
         bucket = [] #: Array[CoverageStatistics]
         [criterion, bucket]
       end
-      @files.each_with_object(seed) do |file, together|
+      each_with_object(seed) do |file, together|
         file.coverage_statistics.each do |criterion, stats|
-          together[criterion] << stats if together.key?(criterion)
+          together.fetch(criterion) << stats if together.key?(criterion)
         end
       end
     end
