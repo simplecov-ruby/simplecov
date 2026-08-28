@@ -22,15 +22,19 @@ module SimpleCov
       nil
     end
 
+    # Closing flushes the last buffered bytes, so the rename publishes a
+    # complete file rather than whatever happened to reach disk. A closed
+    # `File` still stands in for its own path, which is all `chmod` and
+    # `rename` want from it.
+    #
+    # No cleanup of its own: `Tempfile.create` closes and removes the
+    # file when its block ends, however the block ends.
     def self.replace(temp, path, content, mode, binary:)
       temp.binmode if binary
       temp.write(content)
       temp.close
-      File.chmod(mode, temp.path)
-      rename_over(temp.path, path)
-    ensure
-      temp.close unless temp.closed?
-      FileUtils.rm_f(temp.path)
+      File.chmod(mode, temp)
+      rename_over(temp, path)
     end
     private_class_method :replace
 
@@ -38,18 +42,18 @@ module SimpleCov
     # Windows it fails with EACCES when the destination is open in a
     # reader or mid-replacement by a concurrent writer, so retry briefly
     # there before giving up.
-    def self.rename_over(temp_path, path)
-      attempts = 0
+    def self.rename_over(temp, path)
+      remaining = 10
       begin
-        File.rename(temp_path, path)
+        File.rename(temp, path)
       rescue Errno::EACCES
         # simplecov:disable branch — which arm runs is fixed by the platform
         raise unless Gem.win_platform?
 
         # simplecov:enable branch
         # simplecov:disable — Windows-only; unreachable where dogfood runs
-        attempts += 1
-        raise if attempts >= 10
+        remaining -= 1
+        raise if remaining.zero?
 
         sleep(0.01)
         retry
