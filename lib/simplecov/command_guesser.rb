@@ -80,7 +80,9 @@ module SimpleCov
       private_constant :COMMAND_LINE_FRAMEWORKS
 
       def from_command_line_options
-        COMMAND_LINE_FRAMEWORKS.find { |pattern, _| pattern.match?(original_run_command.to_s) }&.last
+        # A command that was never recorded matches nothing, which
+        # `match?` answers for a nil of its own accord.
+        COMMAND_LINE_FRAMEWORKS.find { |pattern, _| pattern.match?(original_run_command) }&.last
       end
 
       # Which binary was invoked outranks everything else on the command line.

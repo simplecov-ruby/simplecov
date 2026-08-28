@@ -182,4 +182,111 @@ RSpec.describe SimpleCov::CommandGuesser do
       expect(guesser.guess).to eq("RSpec (1/2)")
     end
   end
+
+  describe "the parallel worker label" do
+    before { guesser.original_run_command = "/some/path/spec/foo.rb" }
+
+    it "goes unlabelled when the pool size is unknown" do
+      with_env("PARALLEL_TEST_GROUPS" => nil, "TEST_ENV_NUMBER" => "2") do
+        expect(guesser.guess).to eq("RSpec")
+      end
+    end
+
+    it "goes unlabelled when this worker's position is unknown" do
+      with_env("PARALLEL_TEST_GROUPS" => "2", "TEST_ENV_NUMBER" => nil) do
+        expect(guesser.guess).to eq("RSpec")
+      end
+    end
+
+    it "labels a numbered worker by its own number" do
+      with_env("PARALLEL_TEST_GROUPS" => "4", "TEST_ENV_NUMBER" => "3") do
+        expect(guesser.guess).to eq("RSpec (3/4)")
+      end
+    end
+  end
+
+  describe "the invoked program" do
+    # Windows' rspec.bat is the rspec executable, and so is a bare
+    # `rspec`; the extension is not part of the name. Asked of the
+    # reader itself, because a run that recognizes no executable still
+    # finds RSpec among the constants these examples run under.
+    it "recognizes an executable that carries an extension" do
+      guesser.original_run_command = "/some/path/rspec.bat --format doc"
+      guesser.original_program_name = nil
+      expect(guesser.send(:from_executable_name)).to eq("RSpec")
+    end
+
+    it "recognizes an executable named without one" do
+      guesser.original_run_command = "/some/path/cucumber features"
+      guesser.original_program_name = nil
+      expect(guesser.send(:from_executable_name)).to eq("Cucumber Features")
+    end
+
+    # Nothing was recorded, so there is nothing to match against, which
+    # is a question to answer rather than one to raise over.
+    it "matches no pattern against a command that was never recorded" do
+      guesser.original_run_command = nil
+      guesser.original_program_name = nil
+      expect(guesser.send(:from_command_line_options)).to be_nil
+    end
+
+    # The command is a program joined to its arguments, so the program
+    # is what precedes the first space, without the space.
+    it "reads the program out of a command that begins with whitespace" do
+      guesser.original_run_command = "  cucumber features"
+      guesser.original_program_name = nil
+      expect(guesser.original_program_name).to eq("cucumber")
+    end
+
+    it "guesses nothing from a command that was never recorded" do
+      guesser.original_run_command = nil
+      guesser.original_program_name = nil
+      expect(guesser.original_program_name).to be_nil
+    end
+  end
+
+  # RSpec is defined while these examples run, so the later frameworks
+  # in the list can only be reached through a list of our own.
+  describe "falling back to the frameworks that are loaded" do
+    # The list is declared inside `class << self`, so it belongs to the
+    # singleton class and `stub_const` cannot address it by name.
+    def with_frameworks(list)
+      singleton = described_class.singleton_class
+      original = singleton.const_get(:DEFINED_CONSTANT_FRAMEWORKS)
+      swap_frameworks(singleton, list)
+      yield
+    ensure
+      swap_frameworks(singleton, original)
+    end
+
+    # stub_const addresses a constant by name, and this one belongs to
+    # an anonymous singleton class, so there is no name to give it.
+    # rubocop:disable RSpec/RemoveConst
+    def swap_frameworks(singleton, list)
+      singleton.send(:remove_const, :DEFINED_CONSTANT_FRAMEWORKS)
+      singleton.const_set(:DEFINED_CONSTANT_FRAMEWORKS, list)
+      singleton.send(:private_constant, :DEFINED_CONSTANT_FRAMEWORKS)
+    end
+    # rubocop:enable RSpec/RemoveConst
+
+    it "names the first framework whose constant is there" do
+      guesser.original_run_command = "/some/path/unremarkable.rb"
+      guesser.original_program_name = nil
+
+      with_frameworks([["Absent", -> { false }], ["Present", -> { true }]]) do
+        expect(guesser.guess).to eq("Present")
+      end
+    end
+
+    it "says so when it recognizes nothing" do
+      guesser.original_run_command = "/some/path/unremarkable.rb"
+      guesser.original_program_name = nil
+      allow(described_class).to receive(:warn)
+
+      with_frameworks([["Absent", -> { false }]]) do
+        expect(guesser.guess).to eq("Unknown Test Framework")
+      end
+      expect(described_class).to have_received(:warn).with(/failed to recognize the test framework/)
+    end
+  end
 end
