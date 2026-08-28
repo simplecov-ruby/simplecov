@@ -4503,7 +4503,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "clean subcommand" do
+  describe "clean subcommand", mutant_expression: "SimpleCov::CLI::Clean*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-clean-spec-") }
 
     before do
@@ -4514,6 +4514,27 @@ RSpec.describe SimpleCov::CLI do
     end
 
     after { FileUtils.rm_rf(tmp) }
+
+    it "canonicalizes through symlinks, the way the targets it compares against are" do
+      real = File.join(tmp, "real")
+      link = File.join(tmp, "link")
+      Dir.mkdir(real)
+      File.symlink(real, link)
+
+      expect(described_class::Clean.send(:canonical_path, link)).to eq(File.realpath(real))
+    end
+
+    it "still answers an absolute spelling for a path that is not there" do
+      expect(described_class::Clean.send(:canonical_path, "no/such/dir"))
+        .to eq(File.expand_path("no/such/dir"))
+    end
+
+    it "protects the working directory by its canonical spelling" do
+      allow(described_class::Clean).to receive(:canonical_path).and_return("/canonical/cwd")
+
+      expect(described_class::Clean.send(:protected_paths)).to eq(["/canonical/cwd"])
+      expect(described_class::Clean).to have_received(:canonical_path).with(Dir.pwd)
+    end
 
     it "removes the coverage directory and reports what was deleted" do
       expect(run("clean")).to eq(0)
@@ -4540,7 +4561,42 @@ RSpec.describe SimpleCov::CLI do
     it "is a no-op when the directory doesn't exist" do
       FileUtils.remove_entry(tmp)
       expect(run("clean")).to eq(0)
-      expect(stdout.string).to include("doesn't exist")
+      # Whole line: the report has to name the directory, and reporting
+      # it must be the end of the run rather than a preamble to a sweep.
+      expect(stdout.string).to eq("simplecov clean: #{tmp} doesn't exist; nothing to do\n")
+    end
+
+    it "names the directory it removed, under the command's own name" do
+      expect(run("clean")).to eq(0)
+      expect(stdout.string).to eq("simplecov clean: removed #{tmp}\n")
+    end
+
+    it "quotes the directory it refuses, so a stray space is visible" do
+      Dir.chdir(tmp) do
+        allow(described_class).to receive(:coverage_dir).and_return(".")
+
+        run("clean")
+        expect(stderr.string).to eq(
+          "simplecov clean: refusing to remove unsafe coverage directory \".\"\n"
+        )
+      end
+    end
+
+    # The guard compares against the working directory as a path, not as
+    # a prefix: a sibling whose name merely starts the same way is not an
+    # ancestor of anything and is free to be removed.
+    it "removes a directory whose name prefixes the working directory's" do
+      sibling = File.join(tmp, "coverage")
+      nested  = File.join(tmp, "coverage-data")
+      FileUtils.mkdir_p(sibling)
+      FileUtils.mkdir_p(nested)
+
+      Dir.chdir(nested) do
+        allow(described_class).to receive(:coverage_dir).and_return(sibling)
+
+        expect(run("clean")).to eq(0)
+        expect(File).not_to exist(sibling)
+      end
     end
 
     it "silences all status lines under --quiet" do

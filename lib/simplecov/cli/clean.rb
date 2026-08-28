@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "optparse"
 require_relative "command_helpers"
 
@@ -12,11 +13,11 @@ module SimpleCov
     module Clean
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
-        dir = SimpleCov::CLI.coverage_dir
+        dir = CLI.coverage_dir
         return error(stderr, "refusing to remove unsafe coverage directory #{dir.inspect}") unless safe_to_remove?(dir)
         return announce(stdout, opts, "#{dir} doesn't exist; nothing to do") || 0 unless File.directory?(dir)
 
@@ -25,10 +26,9 @@ module SimpleCov
       end
 
       def sweep(dir, opts, stdout)
-        if opts[:dry_run]
+        if opts.fetch(:dry_run)
           announce(stdout, opts, "would remove #{dir} (#{entry_count(dir)} entries)")
         else
-          require "fileutils"
           FileUtils.rm_rf(dir)
           announce(stdout, opts, "removed #{dir}")
         end
@@ -43,7 +43,7 @@ module SimpleCov
       end
 
       def announce(stdout, opts, message)
-        stdout.puts("simplecov #{command_name}: #{message}") unless opts[:quiet]
+        stdout.puts("simplecov #{command_name}: #{message}") unless opts.fetch(:quiet)
       end
 
       def safe_to_remove?(dir)
@@ -52,17 +52,19 @@ module SimpleCov
         # roots like "D:/" on Windows). The descendant check below only
         # protects roots that happen to contain the cwd or project root,
         # which misses other drives, so refuse roots outright.
-        return false if File.dirname(target) == target
+        return false if File.dirname(target).eql?(target)
 
-        protected_paths.none? { |path| path == target || descendant_of?(path, target) }
+        protected_paths.none? { |path| path.eql?(target) || descendant_of?(path, target) }
       end
 
       # The working directory, which a coverage directory must not be or
       # contain. The `.simplecov` project root was listed here too until
       # it was shown to be unreachable: `Dotfile.find` walks up from the
-      # working directory, so the root it finds is always at or above it,
-      # and any target containing that root contains the working
+      # working directory, so the root it finds is always at or above
+      # it, and any target containing that root contains the working
       # directory as well, which this entry already refuses.
+      # Canonicalized the same way as the target it is compared
+      # against, so the two sides of that comparison are built alike.
       def protected_paths
         [canonical_path(Dir.pwd)]
       end
@@ -73,6 +75,8 @@ module SimpleCov
         path.start_with?("#{possible_ancestor}#{File::SEPARATOR}")
       end
 
+      # The rescue answers for a path that is not there, which still
+      # deserves an absolute spelling for the comparisons it feeds.
       def canonical_path(path)
         File.realpath(path)
       rescue SystemCallError
@@ -81,10 +85,9 @@ module SimpleCov
 
       def parse(args)
         opts = {dry_run: false, quiet: false}
-        OptionParser.new do |o|
+        build_parser do |o|
           o.on("--dry-run") { opts[:dry_run] = true }
-          o.on("-q", "--quiet") { opts[:quiet] = true }
-          on_help(o)
+          quiet_option(o, opts)
         end.parse(args)
         opts
       end
