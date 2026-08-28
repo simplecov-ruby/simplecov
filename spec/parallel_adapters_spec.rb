@@ -44,6 +44,10 @@ RSpec.describe SimpleCov::ParallelAdapters do
       end
     end
 
+    it "answers the adapter it was given" do
+      expect(described_class.register(custom_adapter)).to be(custom_adapter)
+    end
+
     it "prepends the adapter so user adapters take precedence" do
       described_class.register(custom_adapter)
       expect(described_class.adapters.first).to equal(custom_adapter)
@@ -55,13 +59,18 @@ RSpec.describe SimpleCov::ParallelAdapters do
       expect(described_class.adapters.count(custom_adapter)).to eq(1)
     end
 
+    # Memoized to something first, so that clearing it is what lets the
+    # newly registered adapter be seen.
     it "clears the memoized current selection" do
-      described_class.current # memoize
-      described_class.register(custom_adapter)
-      # Re-reading current re-runs selection; the custom adapter is inactive
-      # so the next active one wins (or nil if neither built-in is active).
-      ENV.delete("TEST_ENV_NUMBER")
-      expect(described_class.current).to be_nil
+      ENV["TEST_ENV_NUMBER"] = "1"
+      expect(described_class.current).to be(SimpleCov::ParallelAdapters::GenericAdapter)
+
+      active = Class.new(SimpleCov::ParallelAdapters::Base) do
+        def self.active? = true
+      end
+
+      described_class.register(active)
+      expect(described_class.current).to be(active)
     end
   end
 
@@ -166,6 +175,13 @@ RSpec.describe SimpleCov::ParallelAdapters do
     end
 
     describe ".first_worker?" do
+      # The variable is absent outside a parallel run, which is a
+      # question to answer rather than one to refuse.
+      it "is false when no worker number was set at all" do
+        ENV.delete("TEST_ENV_NUMBER")
+        expect(described_class.first_worker?).to be(false)
+      end
+
       it 'returns true for TEST_ENV_NUMBER == "" (parallel_tests/parallel_rspec first-worker convention)' do
         ENV["TEST_ENV_NUMBER"] = ""
         expect(described_class.first_worker?).to be true
@@ -233,6 +249,95 @@ RSpec.describe SimpleCov::ParallelAdapters do
       ENV["PARALLEL_PID_FILE"] = prev_pid_file
     end
 
+    describe ".env_suggests_parallel_tests?" do
+      # Both variables, because either one alone is set by plenty of
+      # things that are not parallel_tests.
+      it "is false when only the worker number is set" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV.delete("PARALLEL_TEST_GROUPS")
+        expect(described_class.send(:env_suggests_parallel_tests?)).to be(false)
+      end
+
+      it "is false when only the group count is set" do
+        ENV.delete("TEST_ENV_NUMBER")
+        ENV["PARALLEL_TEST_GROUPS"] = "4"
+        expect(described_class.send(:env_suggests_parallel_tests?)).to be(false)
+      end
+
+      it "is true when both are set" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "4"
+        expect(described_class.send(:env_suggests_parallel_tests?)).to be(true)
+      end
+    end
+
+    describe ".ensure_loaded" do
+      it "asks for nothing when the gem is already loaded" do
+        stub_const("ParallelTests", Class.new)
+        allow(described_class).to receive(:require)
+
+        described_class.ensure_loaded
+        expect(described_class).not_to have_received(:require)
+      end
+
+      # The environment does suggest parallel_tests here, so the opt-out
+      # is the only thing left to stop the load.
+      it "asks for nothing when the user turned parallel_tests off" do
+        hide_const("ParallelTests") if defined?(ParallelTests)
+        allow(SimpleCov).to receive(:parallel_tests).and_return(false)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "4"
+        allow(described_class).to receive(:require)
+
+        described_class.ensure_loaded
+        expect(described_class).not_to have_received(:require)
+      end
+
+      it "asks for nothing when neither the setting nor the environment suggests it" do
+        hide_const("ParallelTests") if defined?(ParallelTests)
+        allow(SimpleCov).to receive(:parallel_tests).and_return(nil)
+        ENV.delete("TEST_ENV_NUMBER")
+        ENV.delete("PARALLEL_TEST_GROUPS")
+        allow(described_class).to receive(:require)
+
+        described_class.ensure_loaded
+        expect(described_class).not_to have_received(:require)
+      end
+
+      # Turned on explicitly, the setting is reason enough on its own.
+      it "loads the gem when the user asked for parallel_tests outright" do
+        hide_const("ParallelTests") if defined?(ParallelTests)
+        allow(SimpleCov).to receive(:parallel_tests).and_return(true)
+        ENV.delete("TEST_ENV_NUMBER")
+        ENV.delete("PARALLEL_TEST_GROUPS")
+        allow(described_class).to receive(:require)
+
+        described_class.ensure_loaded
+        expect(described_class).to have_received(:require).with("parallel_tests")
+      end
+
+      it "loads the gem when the environment suggests it" do
+        hide_const("ParallelTests") if defined?(ParallelTests)
+        allow(SimpleCov).to receive(:parallel_tests).and_return(nil)
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "4"
+        allow(described_class).to receive(:require)
+
+        described_class.ensure_loaded
+        expect(described_class).to have_received(:require).with("parallel_tests")
+      end
+
+      # An optional dependency that isn't installed reads as "the user
+      # isn't using parallel_tests", not as a failure.
+      it "lets a missing gem pass quietly" do
+        hide_const("ParallelTests") if defined?(ParallelTests)
+        allow(SimpleCov).to receive(:parallel_tests).and_return(true)
+        allow(described_class).to receive(:require).and_raise(LoadError)
+
+        expect { described_class.ensure_loaded }.not_to raise_error
+      end
+    end
+
     describe ".active?" do
       it "is true when ParallelTests is loaded and the native env contract is set" do
         stub_const("ParallelTests", Class.new)
@@ -242,11 +347,22 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class.active?).to be true
       end
 
+      # The env contract is satisfied here, so the missing constant is
+      # the only thing left to answer for.
       it "is false when ParallelTests isn't loaded" do
         hide_const("ParallelTests") if defined?(ParallelTests)
         ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_PID_FILE"] = "tmp/parallel_tests.pid"
         allow(described_class).to receive(:ensure_loaded)
         expect(described_class.active?).to be false
+      end
+
+      it "gives the gem a chance to load before asking whether it did" do
+        stub_const("ParallelTests", Class.new)
+        allow(described_class).to receive(:ensure_loaded)
+
+        described_class.active?
+        expect(described_class).to have_received(:ensure_loaded)
       end
 
       it "is false when PARALLEL_PID_FILE is unset" do
@@ -332,34 +448,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
       it "defaults to 1 when PARALLEL_TEST_GROUPS is unset" do
         ENV.delete("PARALLEL_TEST_GROUPS")
         expect(described_class.expected_worker_count).to eq(1)
-      end
-    end
-
-    describe ".ensure_loaded" do
-      it "is a no-op when ParallelTests is already loaded" do
-        stub_const("ParallelTests", Class.new)
-        expect { described_class.ensure_loaded }.not_to raise_error
-      end
-
-      it "is a no-op when SimpleCov.parallel_tests is false" do
-        hide_const("ParallelTests") if defined?(ParallelTests)
-        previous = SimpleCov.parallel_tests
-        SimpleCov.parallel_tests false
-        expect { described_class.ensure_loaded }.not_to raise_error
-      ensure
-        SimpleCov.parallel_tests previous
-      end
-
-      it "silently swallows LoadError when the gem isn't installed" do
-        hide_const("ParallelTests") if defined?(ParallelTests)
-        ENV["TEST_ENV_NUMBER"] = "1"
-        ENV["PARALLEL_TEST_GROUPS"] = "2"
-        previous = SimpleCov.parallel_tests
-        SimpleCov.parallel_tests nil # force the env-suggests path
-        allow(described_class).to receive(:require).with("parallel_tests").and_raise(LoadError)
-        expect { described_class.ensure_loaded }.not_to raise_error
-      ensure
-        SimpleCov.parallel_tests previous
       end
     end
   end

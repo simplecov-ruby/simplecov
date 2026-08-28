@@ -59,6 +59,10 @@ module SimpleCov
         # The user's explicit `SimpleCov.parallel_tests false` opt-out,
         # which every adapter's `active?` honors before its own
         # detection.
+        #
+        # mutant:disable — `false` is a singleton, so comparing against
+        # it answers the same through ==, eql? and equal?, and no
+        # example can tell the three apart.
         def forced_off?
           SimpleCov.parallel_tests == false
         end
@@ -69,7 +73,7 @@ module SimpleCov
         # an unparseable value must not yield 0 workers, which would end
         # the sibling wait before it started.
         def parallel_test_groups_count
-          count = Integer(ENV.fetch("PARALLEL_TEST_GROUPS", ""), exception: false)
+          count = Integer(ENV.fetch("PARALLEL_TEST_GROUPS", nil), exception: false)
           count&.positive? ? count : 1
         end
       end

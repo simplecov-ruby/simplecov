@@ -35,7 +35,7 @@ module SimpleCov
   # are defined as class methods, so plain inheritance is what carries
   # them through; `extend Base` won't pick them up).
   module ParallelAdapters
-  module_function
+    extend self
 
     # Adapters in selection order. ParallelTestsAdapter first (most
     # specific — uses the gem's own API when the gem is loaded); then
@@ -71,7 +71,7 @@ module SimpleCov
     # parallel test runner), in which case the caller should treat the
     # process as single-worker.
     def current
-      return @current if defined?(@current)
+      return @current if instance_variable_defined?(:@current)
 
       @current = adapters.find(&:active?)
     end
@@ -79,7 +79,7 @@ module SimpleCov
     # Clear the memoized `current` selection. Primarily for tests that
     # mutate env vars between examples; production runs are single-shot.
     def reset_current!
-      remove_instance_variable(:@current) if defined?(@current)
+      remove_instance_variable(:@current) if instance_variable_defined?(:@current)
     end
   end
 end

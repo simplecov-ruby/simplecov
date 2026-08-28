@@ -34,13 +34,13 @@ module SimpleCov
         # `TEST_ENV_NUMBER` is "" and `first_process?` tests for that
         # empty string).
         def first_worker?
-          ::ParallelTests.first_process?
+          ParallelTests.first_process?
         end
 
         def wait_for_siblings
           return unless native_parallel_tests_environment?
 
-          ::ParallelTests.wait_for_other_processes_to_finish
+          ParallelTests.wait_for_other_processes_to_finish
         end
 
         # The native wait blocks until every sibling process exits, but only
@@ -67,7 +67,7 @@ module SimpleCov
         # off). See #1018.
         def ensure_loaded
           return if defined?(::ParallelTests) # simplecov:disable — only true after a previous load
-          return if SimpleCov.parallel_tests == false # simplecov:disable — only fires when user opts out
+          return if forced_off? # simplecov:disable — only fires when user opts out
           # simplecov:disable — env-var-only path
           return unless SimpleCov.parallel_tests || env_suggests_parallel_tests?
 
