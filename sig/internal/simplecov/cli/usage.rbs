@@ -8,6 +8,8 @@ module SimpleCov
       def self?.for: (untyped cli, String command) -> ::String
 
       def self?.section_for?: (String section, String command) -> bool
+
+      def self?.heading_of: (String section) -> String
     end
   end
 end

@@ -8,6 +8,7 @@ require "simplecov/cli"
 require "simplecov/production"
 require "socket"
 require "stringio"
+require "support/git_fixture"
 require "timeout"
 require "tmpdir"
 
@@ -31,7 +32,8 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "dispatch" do
+  describe "dispatch", mutant_expression: ["SimpleCov::CLI#run", "SimpleCov::CLI#dispatch",
+                                           "SimpleCov::CLI#usage", "SimpleCov::CLI#color_enabled?"] do
     it "prints usage and exits 0 with no arguments" do
       expect(run).to eq(0)
       expect(stdout.string).to include("Usage:")
@@ -42,9 +44,74 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("Commands:")
     end
 
+    it "prints usage on `--help`" do
+      expect(run("--help")).to eq(0)
+      expect(stdout.string).to include("Commands:")
+    end
+
+    it "prints usage on `-h`" do
+      expect(run("-h")).to eq(0)
+      expect(stdout.string).to include("Commands:")
+    end
+
     it "complains and exits non-zero on an unknown command" do
       expect(run("nope")).to eq(1)
       expect(stderr.string).to include('unknown command "nope"')
+    end
+
+    it "shows what the commands are when it does not recognize the one it got" do
+      run("nope")
+      expect(stderr.string).to include("Commands:")
+    end
+
+    it "writes to the process's own streams when it is handed none" do
+      expect { expect(described_class.run(["nope"])).to eq(1) }
+        .to output(/unknown command "nope"/).to_stderr
+      expect { expect(described_class.run(["help"])).to eq(0) }
+        .to output(/Commands:/).to_stdout
+    end
+
+    it "prints the subcommand's own usage and exits 0 when the subcommand asks for it" do
+      expect(run("uncovered", "--help")).to eq(0)
+      expect(stdout.string).to include("Usage: simplecov uncovered")
+    end
+
+    it "hands the subcommand the very streams it was given" do
+      handler = Class.new do
+        def self.run(_rest, stdout:, stderr:)
+          stdout.puts("handled")
+          stderr.puts("noted")
+          0
+        end
+      end
+      stub_const("SimpleCov::CLI::COMMANDS", {"fake" => handler})
+
+      expect(run("fake")).to eq(0)
+      expect(stdout.string).to eq("handled\n")
+      expect(stderr.string).to eq("noted\n")
+    end
+
+    it "is the full command list it hands out as usage" do
+      expect(described_class.usage).to include("Usage:").and include("Commands:")
+    end
+
+    it "colorizes nothing when --no-color was passed, whatever the stream would allow" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect(described_class.color_enabled?({no_color: true}, stdout)).to be(false)
+    end
+
+    it "defers to Color when --no-color was given as false rather than omitted" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect(described_class.color_enabled?({no_color: false}, stdout)).to be(true)
+    end
+
+    it "asks Color about the very stream it was given when --no-color was not passed" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+      expect(described_class.color_enabled?({}, stdout)).to be(true)
+      expect(SimpleCov::Color).to have_received(:enabled?).with(stdout)
     end
 
     it "reports an unknown option as a one-line error" do
@@ -416,7 +483,18 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "per-command help" do
+  describe "per-command help", mutant_expression: "SimpleCov::CLI::Usage*" do
+    describe ".heading_of" do
+      it "reads the first line, shorn of the whitespace around both ends" do
+        expect(SimpleCov::CLI::Usage.send(:heading_of, "  merge options:  \n  --quiet\n"))
+          .to eq("merge options:")
+      end
+
+      it "answers an empty heading for an empty section" do
+        expect(SimpleCov::CLI::Usage.send(:heading_of, "")).to eq("")
+      end
+    end
+
     %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status
        completions badge].each do |command|
       it "answers `#{command} --help` with that command's usage" do
@@ -440,9 +518,86 @@ RSpec.describe SimpleCov::CLI do
     it "degrades to a bare usage line for a name with no listing" do
       expect(described_class::Usage.for(described_class, "bogus")).to eq("Usage: simplecov bogus [options]")
     end
+
+    # The whole answer: a usage line, the command's row from the table
+    # trimmed of the indentation it is listed under, and the options
+    # sections that name it, one blank line apart.
+    it "answers with the usage line, the row and the options, spaced apart" do
+      expect(described_class::Usage.for(described_class, "clean")).to eq(<<~HELP)
+        Usage: simplecov clean [options]
+
+        clean                     Remove the coverage report directory
+
+        clean options:
+          --dry-run                 Print what would be removed without deleting
+          -q, --quiet               Suppress status lines
+      HELP
+    end
+
+    # The name is matched literally, so a name that reads as a pattern
+    # matches only itself.
+    it "reads a command name as a name and not as a pattern" do
+      expect(described_class::Usage.for(described_class, "cle.n")).to eq("Usage: simplecov cle.n [options]")
+    end
+
+    # A section is one command's options when its heading names that
+    # command, and a section with no heading at all names nothing.
+    it "takes no section for a command no heading names" do
+      expect(described_class::Usage.section_for?("", "clean")).to be(false)
+      expect(described_class::Usage.section_for?("Commands:\n  clean\n", "clean")).to be(false)
+    end
+
+    # A heading that names the command is still not its options unless
+    # it says so.
+    it "takes no section from a heading that names the command but lists no options" do
+      expect(described_class::Usage.section_for?("clean and friends:\n  --dry-run\n", "clean")).to be(false)
+    end
+
+    # A command is a whole word in the heading, not a piece of one, and
+    # "options:" is the word that marks the heading rather than a
+    # command listed in it.
+    it "takes no section for a name that is only part of one it lists" do
+      expect(described_class::Usage.section_for?("clean options:\n", "lea")).to be(false)
+    end
+
+    it "takes no section for the word that marks the heading" do
+      expect(described_class::Usage.section_for?("options:\n", "options:")).to be(false)
+    end
+
+    it "takes no section for no name at all" do
+      expect(described_class::Usage.section_for?("show  coverage options:\n", "")).to be(false)
+    end
+
+    it "takes a section whose heading lists the command among others" do
+      expect(described_class::Usage.section_for?("show/coverage options:\n  --input PATH\n", "coverage")).to be(true)
+    end
+
+    # The defaults are resolved when the text is asked for, so they
+    # describe the run in hand.
+    # Every line that names a default, not merely one of them: the text
+    # states the same default in more than one place and each has to say
+    # what this run would actually use.
+    it "names the paths this run would read and write, wherever it names them" do
+      lines = described_class::Usage.text(described_class).lines
+
+      # Two of the three name the report; the third names the history
+      # file, which has a default of its own.
+      inputs = lines.grep(/Read from PATH instead of/).grep_v(/\.history\.json/)
+      expect(inputs.size).to eq(2)
+      expect(inputs).to all(end_with("instead of #{described_class.default_input}\n"))
+
+      expect(lines.grep(/Write merged resultset/))
+        .to all(end_with("(default: #{described_class.default_resultset})\n"))
+      expect(lines.grep(/Open PATH instead of/))
+        .to all(end_with("instead of #{described_class.default_report}\n"))
+      expect(lines.grep(/SimpleCov\.coverage_dir/))
+        .to all(include("(#{described_class.coverage_dir} for this run)"))
+    end
   end
 
-  describe ".coverage_dir" do
+  describe ".coverage_dir", mutant_expression: ["SimpleCov::CLI#coverage_dir", "SimpleCov::CLI#default_input",
+                                                "SimpleCov::CLI#default_report", "SimpleCov::CLI#default_resultset",
+                                                "SimpleCov::CLI::Dotfile*"] do
     # Reset memoization between examples so each one sees a fresh
     # discovery from its own cwd.
     around do |example|
@@ -451,6 +606,32 @@ RSpec.describe SimpleCov::CLI do
       example.run
     ensure
       described_class.instance_variable_set(:@coverage_dir, previous)
+    end
+
+    it "looks for the coverage JSON under the coverage directory" do
+      allow(described_class).to receive(:coverage_dir).and_return("my/reports")
+
+      expect(described_class.default_input).to eq("my/reports/coverage.json")
+    end
+
+    it "looks for the HTML report's index under the coverage directory" do
+      allow(described_class).to receive(:coverage_dir).and_return("my/reports")
+
+      expect(described_class.default_report).to eq("my/reports/index.html")
+    end
+
+    it "looks for the resultset under the coverage directory" do
+      allow(described_class).to receive(:coverage_dir).and_return("my/reports")
+
+      expect(described_class.default_resultset).to eq("my/reports/.resultset.json")
+    end
+
+    it "loads simplecov itself when a standalone process asks for the dotfile" do
+      allow(SimpleCov::CLI::Dotfile).to receive(:require)
+
+      SimpleCov::CLI::Dotfile.send(:load_simplecov)
+
+      expect(SimpleCov::CLI::Dotfile).to have_received(:require).with("simplecov")
     end
 
     it "honors SimpleCov.coverage_dir from a project .simplecov" do
@@ -4130,7 +4311,7 @@ RSpec.describe SimpleCov::CLI do
   # can't see it. The reproduction also needs a directory with no
   # `.simplecov` above it, since finding one lazily requires the full
   # library and incidentally defines `SimpleCov.color`.
-  describe "colorizing subcommands in the standalone CLI process" do
+  describe "colorizing subcommands in the standalone CLI process", mutant: false do
     let(:exe) { File.expand_path("../exe/simplecov", __dir__) }
     let(:lib) { File.expand_path("../lib", __dir__) }
     let(:filename) { "/project/app.rb" }

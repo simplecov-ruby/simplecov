@@ -62,7 +62,7 @@ module SimpleCov
       "completions" => Completions
     }.freeze
 
-  module_function
+    extend self
 
     # Resolved once per process. Walks up from cwd looking for a
     # `.simplecov`; if present, the file is loaded with
@@ -83,7 +83,7 @@ module SimpleCov
     def color_enabled?(opts, stream)
       return false if opts[:no_color]
 
-      SimpleCov::Color.enabled?(stream)
+      Color.enabled?(stream)
     end
 
     def default_report
@@ -114,7 +114,8 @@ module SimpleCov
       stdout.puts(Usage.for(self, command))
       0
     rescue OptionParser::ParseError => e
-      stderr.puts("simplecov #{command}: #{e.message} (run `simplecov help` for usage)")
+      # The exception stands for its own message in the interpolation.
+      stderr.puts("simplecov #{command}: #{e} (run `simplecov help` for usage)")
       1
     end
 

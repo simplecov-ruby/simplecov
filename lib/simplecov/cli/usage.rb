@@ -8,7 +8,7 @@ module SimpleCov
     # rubocop:disable Metrics/ModuleLength -- the module is one usage
     # document; its length is the command surface, not logic.
     module Usage
-    module_function
+      extend self
 
       # The full text filtered to one command, for `<command> --help`:
       # a usage line, the command's row from the Commands table, and
@@ -21,8 +21,12 @@ module SimpleCov
       end
 
       def section_for?(section, command)
-        header = section.lines.first.to_s.strip
+        header = heading_of(section)
         header.end_with?("options:") && header.delete_suffix("options:").split(%r{[\s/]+}).include?(command)
+      end
+
+      def heading_of(section)
+        section.lines.first.to_s.strip
       end
 
       def text(cli)
