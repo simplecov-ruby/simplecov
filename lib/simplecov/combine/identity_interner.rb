@@ -16,7 +16,7 @@ module SimpleCov
     # equal, so the string and array forms of one key still merge together.
     #
     module IdentityInterner
-    module_function
+      extend self
 
       def build
         ids = {} #: Hash[::Array[untyped], Integer]
