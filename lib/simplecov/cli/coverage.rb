@@ -11,7 +11,7 @@ module SimpleCov
     module Coverage
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:)
         opts = parse(args, stderr: stderr)
@@ -26,25 +26,32 @@ module SimpleCov
 
       def parse(args, stderr:)
         opts, rest = parse_common(args)
-        return stderr.puts("simplecov coverage: missing file argument") && nil if rest.empty?
+        if rest.empty?
+          stderr.puts("simplecov coverage: missing file argument")
+          return nil
+        end
 
         opts[:path] = rest.first
         opts
       end
 
       def locate_match(opts, stderr)
-        coverage = CoverageFile.load_coverage(opts[:input], command: "coverage", stderr: stderr)
+        coverage = CoverageFile.load_coverage(opts.fetch(:input), command: "coverage", stderr: stderr)
         return unless coverage
 
-        match = lookup(coverage, opts[:path])
-        if match.nil?
-          stderr.puts("simplecov coverage: #{CoverageFile.not_found_message(coverage, opts[:path], opts[:input])}")
-          return nil
-        end
+        match = lookup(coverage, opts.fetch(:path))
+        # `puts` answers nil, which is what an unlocatable file reports.
+        return report_not_found(stderr, coverage, opts) if match.nil?
         # A wrong-typed entry used to escape here and crash print_human.
-        return match if match.last.is_a?(Hash)
+        return match if match.last.instance_of?(Hash)
 
-        CoverageFile.report_invalid(stderr, "coverage", opts[:input], "entry for #{opts[:path]} must be an object")
+        CoverageFile.report_invalid(stderr, "coverage", opts.fetch(:input),
+                                    "entry for #{opts.fetch(:path)} must be an object")
+      end
+
+      def report_not_found(stderr, coverage, opts)
+        message = CoverageFile.not_found_message(coverage, opts.fetch(:path), opts.fetch(:input))
+        stderr.puts("simplecov coverage: #{message}")
       end
 
       # Path matching lives in CoverageFile so the tests subcommand
@@ -55,11 +62,11 @@ module SimpleCov
 
       def emit(match, opts, stdout)
         filename, payload = match
-        if opts[:json]
+        if opts.fetch(:json)
           entry = {filename => payload} #: Hash[untyped, untyped]
           stdout.puts(JSON.pretty_generate(entry))
         else
-          print_human(filename, payload, stdout, SimpleCov::CLI.color_enabled?(opts, stdout))
+          print_human(filename, payload, stdout, CLI.color_enabled?(opts, stdout))
         end
       end
 
@@ -69,13 +76,13 @@ module SimpleCov
       end
 
       def emit_criterion(stdout, payload, criterion, color)
-        return unless payload.key?(criterion[:percent])
+        return unless payload.key?(criterion.fetch(:percent))
 
-        pct = payload[criterion[:percent]].to_f
-        stdout.puts(stats_row(criterion[:label],
-                              SimpleCov::Color.colorize_percent(pct, enabled: color),
-                              payload[criterion[:covered]],
-                              payload[criterion[:total]]))
+        pct = payload.fetch(criterion.fetch(:percent)).to_f
+        stdout.puts(stats_row(criterion.fetch(:label),
+                              Color.colorize_percent(pct, enabled: color),
+                              payload[criterion.fetch(:covered)],
+                              payload[criterion.fetch(:total)]))
       end
     end
   end

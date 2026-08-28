@@ -1234,7 +1234,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "coverage subcommand" do
+  describe "coverage subcommand", mutant_expression: ["SimpleCov::CLI::Coverage*", "SimpleCov::CLI::CommandHelpers*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:abs_filename) { "/abs/project/app/models/user.rb" }
@@ -1253,6 +1253,71 @@ RSpec.describe SimpleCov::CLI do
     end
 
     after { FileUtils.remove_entry(tmp) }
+
+    it "names itself in the error when the report cannot be read" do
+      absent = File.join(tmp, "absent.json")
+
+      expect(run("coverage", "--input", absent, "lib/a.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov coverage: #{absent} not found\n")
+    end
+
+    # The whole message: it names the command, the report it read and
+    # the path it could not find, and each of those is read from its own
+    # place in the options.
+    # Whole message: each of the command, the report and the path is
+    # read from its own place, and passing the options themselves would
+    # still print something that mentions the report.
+    it "names the report and the path when the file is not in it" do
+      expect(run("coverage", "--input", json_path, "lib/absent.rb")).to eq(1)
+      expect(stderr.string).to eq("simplecov coverage: no entry for lib/absent.rb in #{json_path}\n")
+    end
+
+    # Two positional arguments, so the one that is read is identified by
+    # position rather than by being the only one there.
+    it "reads the path from the first positional argument" do
+      expect(run("coverage", "--input", json_path, abs_filename, "lib/other.rb")).to eq(0)
+      expect(stdout.string).to include(abs_filename)
+    end
+
+    it "names the report and the path when the entry is not an object" do
+      File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => "junk"}))
+
+      expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(1)
+      expect(stderr.string).to eq(
+        "simplecov coverage: input file #{json_path.inspect} isn't valid JSON " \
+        "(entry for lib/a.rb must be an object)\n"
+      )
+    end
+
+    # A percent without its counts beside it still has a row to print,
+    # and the counts it does not have read as zero.
+    it "prints a criterion whose counts are missing" do
+      File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {"lines_covered_percent" => 66.67}}))
+
+      expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(0)
+      expect(stdout.string).to include("(0 / 0)")
+    end
+
+    it "omits a criterion the report never measured" do
+      File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {
+                                        "lines_covered_percent" => 66.67,
+                                        "covered_lines" => 2, "total_lines" => 3
+                                      }}))
+
+      expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(0)
+      expect(stdout.string).to include("Line:")
+      expect(stdout.string).not_to include("Branch:")
+    end
+
+    it "reads a percent that arrived as a string" do
+      File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {
+                                        "lines_covered_percent" => "66.67",
+                                        "covered_lines" => 2, "total_lines" => 3
+                                      }}))
+
+      expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(0)
+      expect(stdout.string).to include("66.67%")
+    end
 
     it "prints stats for a matching path (absolute)" do
       expect(run("coverage", "--input", json_path, abs_filename)).to eq(0)

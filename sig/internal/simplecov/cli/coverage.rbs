@@ -15,6 +15,8 @@ module SimpleCov
 
       def self?.locate_match: (untyped opts, untyped stderr) -> (untyped | nil)
 
+      def self?.report_not_found: (untyped stderr, untyped coverage, untyped opts) -> nil
+
       # Match either the absolute path, the literal string passed, or
       # any coverage entry whose absolute filename ends with "/<path>".
       # That covers the three natural ways a user types a path: relative
