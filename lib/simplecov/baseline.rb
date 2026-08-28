@@ -53,7 +53,9 @@ module SimpleCov
 
       new(Parser.call(YAML.safe_load_file(path), path))
     rescue Psych::Exception => e
-      raise ConfigurationError, "baseline file #{path} is not valid YAML: #{e.message}"
+      # Interpolating the exception renders the message Psych objected
+      # with, quoted rather than replaced.
+      raise ConfigurationError, "baseline file #{path} is not valid YAML: #{e}"
     end
 
     # Build a Baseline covering every file of `current`, a
@@ -102,9 +104,10 @@ module SimpleCov
     def ratchet(current)
       buckets = {tightened: [], pruned: [], regressed: [], unchanged: []} #: Hash[Symbol, Array[String]]
       ratcheted = entries.filter_map do |file, entry|
-        bucket, new_entry = ratchet_entry(entry, current[file])
-        buckets.fetch(bucket) << file
-        [file, new_entry] if new_entry
+        step = ratchet_entry(entry, current[file])
+        buckets.fetch(step.fetch(:bucket)) << file
+        merged = step[:entry]
+        [file, merged] if merged
       end.to_h
 
       Outcome.new(baseline: Baseline.new(ratcheted), tightened: buckets.fetch(:tightened),
@@ -123,16 +126,18 @@ module SimpleCov
 
   private
 
-    # One entry's ratchet step: nil current prunes the entry, otherwise
-    # every measured criterion tightens (keeping unmeasured ones), and
-    # the file lands in exactly one summary bucket.
+    # One entry's ratchet step: the summary bucket the file lands in,
+    # and the entry that replaces it. A nil current prunes the entry,
+    # which carries no replacement and so answers with the bucket
+    # alone. Otherwise every measured criterion tightens, keeping the
+    # ones this run did not measure.
     def ratchet_entry(entry, current_entry)
-      return [:pruned, nil] unless current_entry
+      return {bucket: :pruned} unless current_entry
 
       merged = (entry.keys | current_entry.keys).to_h do |criterion|
         [criterion, tighten(entry[criterion], current_entry[criterion])]
       end
-      [bucket_for(entry, merged, current_entry), merged]
+      {bucket: bucket_for(entry, merged, current_entry), entry: merged}
     end
 
     # The regressed bucket mirrors the violation rule exactly (percent
@@ -140,7 +145,10 @@ module SimpleCov
     # floor" in the ratchet summary always means the exit check fails
     # the file, never a percent drift the dampener tolerates.
     def bucket_for(entry, merged, current_entry)
-      return :tightened if merged != entry
+      # Exact equality rather than numeric: tightening keeps the entry's
+      # own floor on a tie, so an entry that did not move is the very
+      # values it came in with.
+      return :tightened unless merged.eql?(entry)
 
       regressed = entry.any? do |criterion, floor|
         current = current_entry[criterion]

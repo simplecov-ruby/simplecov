@@ -45,39 +45,121 @@ RSpec.describe SimpleCov::Baseline do
       expect(baseline.floor_for("lib/foo.rb", :line)).to be_nil
     end
 
-    it "raises a configuration error for invalid YAML" do
-      expect { read_baseline("{") }
-        .to raise_error(SimpleCov::ConfigurationError, /baseline/)
+    it "keeps a floor hash that carries a percent but no missed count" do
+      baseline = read_baseline("lib/foo.rb:\n  lines:\n    percent: 41.2\n")
+
+      expect(baseline.floor_for("lib/foo.rb", :line)).to have_attributes(percent: 41.2, missed: nil)
+    end
+
+    # The YAML error is quoted rather than replaced, so the message says
+    # both which file failed and what Psych objected to.
+    it "raises a configuration error naming the file for invalid YAML" do
+      with_baseline_file("{") do |path|
+        expect { described_class.read(path) }.to raise_error(
+          SimpleCov::ConfigurationError,
+          /\Abaseline file #{Regexp.escape(path)} is not valid YAML: \S/
+        )
+      end
     end
 
     it "raises a configuration error for an unknown criterion key" do
-      expect { read_baseline("lib/foo.rb:\n  bogus: 41.2\n") }
-        .to raise_error(SimpleCov::ConfigurationError, /bogus/)
+      expect_rejection(
+        "lib/foo.rb:\n  bogus: 41.2\n",
+        "baseline file %<path>s: unknown criterion \"bogus\" for lib/foo.rb " \
+        "(expected lines, branches, or methods)"
+      )
     end
 
     it "raises a configuration error for a non-numeric floor" do
-      expect { read_baseline("lib/foo.rb: high\n") }
-        .to raise_error(SimpleCov::ConfigurationError, %r{lib/foo\.rb})
+      expect_rejection(
+        "lib/foo.rb: high\n",
+        "baseline file %<path>s: entry for lib/foo.rb must be a number or a criteria Hash"
+      )
     end
 
     it "raises a configuration error for a criterion floor that is neither number nor Hash" do
-      expect { read_baseline("lib/foo.rb:\n  lines: high\n") }
-        .to raise_error(SimpleCov::ConfigurationError, /percent/)
+      expect_rejection(
+        "lib/foo.rb:\n  lines: high\n",
+        "baseline file %<path>s: floor for lib/foo.rb needs a numeric percent"
+      )
+    end
+
+    # An Array, unlike a String, cannot even be asked for its "percent"
+    # key, so the shape check has to happen before the lookup.
+    it "raises a configuration error for a criterion floor that is a sequence" do
+      expect_rejection(
+        "lib/foo.rb:\n  lines:\n    - 41.2\n",
+        "baseline file %<path>s: floor for lib/foo.rb needs a numeric percent"
+      )
     end
 
     it "raises a configuration error when the document is not a Hash at all" do
-      expect { read_baseline("- lib/foo.rb\n") }
-        .to raise_error(SimpleCov::ConfigurationError, /must map file paths/)
+      expect_rejection("- lib/foo.rb\n", "baseline file %<path>s must map file paths to floors")
+    end
+
+    # A floor hash that carries a percent of the wrong kind is as
+    # unusable as one carrying none: a floor is a number to compare
+    # against, and anything else would compare as "never below".
+    it "raises a configuration error for a floor hash whose percent is not a number" do
+      expect_rejection(
+        "lib/foo.rb:\n  lines:\n    percent: high\n",
+        "baseline file %<path>s: floor for lib/foo.rb needs a numeric percent"
+      )
     end
 
     it "raises a configuration error for a floor hash without a percent" do
-      expect { read_baseline("lib/foo.rb:\n  lines:\n    missed: 3\n") }
-        .to raise_error(SimpleCov::ConfigurationError, /percent/)
+      expect_rejection(
+        "lib/foo.rb:\n  lines:\n    missed: 3\n",
+        "baseline file %<path>s: floor for lib/foo.rb needs a numeric percent"
+      )
     end
 
     it "raises a configuration error for a non-integer missed count" do
-      expect { read_baseline("lib/foo.rb:\n  lines:\n    percent: 41.2\n    missed: many\n") }
-        .to raise_error(SimpleCov::ConfigurationError, /missed count/)
+      expect_rejection(
+        "lib/foo.rb:\n  lines:\n    percent: 41.2\n    missed: many\n",
+        "baseline file %<path>s: missed count for lib/foo.rb must be an integer"
+      )
+    end
+  end
+
+  # Parser is reached through `.read` for a YAML document, but it is
+  # lenient about what a caller hands it: any Hash-shaped mapping, and
+  # keys that are not already Strings.
+  describe "the parser" do
+    it "stringifies file and criterion keys a caller supplies as Symbols" do
+      entries = SimpleCov::Baseline::Parser.call({"lib/foo.rb": {lines: 41.2}}, "somewhere.yml")
+
+      expect(entries).to eq("lib/foo.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: nil)})
+    end
+
+    it "reads a Hash subclass wherever a mapping is expected" do
+      mapping = Class.new(Hash)
+      floor = mapping.new.merge!("percent" => 41.2, "missed" => 137)
+      document = mapping.new.merge!("lib/foo.rb" => mapping.new.merge!("lines" => floor))
+
+      entries = SimpleCov::Baseline::Parser.call(document, "somewhere.yml")
+
+      expect(entries).to eq("lib/foo.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: 137)})
+    end
+  end
+
+  describe "#entry_for" do
+    let(:baseline) do
+      read_baseline(<<~YAML)
+        lib/foo.rb:
+          lines:
+            percent: 41.2
+            missed: 137
+      YAML
+    end
+
+    it "answers the floors recorded for a covered file" do
+      expect(baseline.entry_for("lib/foo.rb"))
+        .to eq(line: SimpleCov::Baseline::Floor.new(percent: 41.2, missed: 137))
+    end
+
+    it "answers nil for a file the baseline does not cover" do
+      expect(baseline.entry_for("lib/bar.rb")).to be_nil
     end
   end
 
@@ -151,8 +233,53 @@ RSpec.describe SimpleCov::Baseline do
     end
 
     it "prunes entries for files the report no longer carries" do
-      expect(outcome.baseline.entry_for("lib/deleted.rb")).to be_nil
+      expect(outcome.baseline.entries.keys).to eq(["lib/improved.rb", "lib/regressed.rb"])
       expect(outcome.pruned).to eq(["lib/deleted.rb"])
+    end
+
+    # One regressed criterion is enough to fail the file, so the bucket
+    # asks whether any criterion regressed, not whether all did.
+    it "reports a file whose branch floor alone was breached" do
+      baseline = read_baseline(<<~YAML)
+        lib/mixed.rb:
+          lines:
+            percent: 90.0
+            missed: 2
+          branches:
+            percent: 80.0
+            missed: 4
+      YAML
+      outcome = baseline.ratchet(
+        "lib/mixed.rb" => {line: {percent: 90.0, missed: 2}, branch: {percent: 70.0, missed: 9}}
+      )
+
+      expect(outcome.regressed).to eq(["lib/mixed.rb"])
+      expect(outcome.unchanged).to be_empty
+    end
+
+    # Exactly at the floor is not below it, however many misses came with
+    # the file, so the pair sits on the passing side of the check.
+    it "counts a file sitting exactly on its percent floor as unchanged" do
+      baseline = read_baseline(<<~YAML)
+        lib/level.rb:
+          lines:
+            percent: 90.0
+            missed: 2
+      YAML
+      outcome = baseline.ratchet("lib/level.rb" => {line: {percent: 90.0, missed: 3}})
+
+      expect(outcome.unchanged).to eq(["lib/level.rb"])
+      expect(outcome.regressed).to be_empty
+    end
+
+    # A hand-written percent-only floor has no dampener on either side,
+    # so the percent alone decides, exactly as the exit check does.
+    it "reports a percent drop below a floor that carries no missed count" do
+      baseline = read_baseline("lib/plain.rb: 41.2\n")
+      outcome = baseline.ratchet("lib/plain.rb" => {line: {percent: 30.0, missed: nil}})
+
+      expect(outcome.regressed).to eq(["lib/plain.rb"])
+      expect(outcome.baseline.floor_for("lib/plain.rb", :line)).to have_attributes(percent: 41.2, missed: nil)
     end
 
     # New files are held to the real standard (the global thresholds),
@@ -223,6 +350,27 @@ RSpec.describe SimpleCov::Baseline do
   end
 
   describe "#to_yaml" do
+    it "writes the header and one sorted mapping, with no document separator" do
+      baseline = described_class.generate(
+        "lib/zebra.rb" => {line: {percent: 50.0, missed: 5}},
+        "lib/aardvark.rb" => {line: {percent: 41.2, missed: 137}}
+      )
+
+      expect(baseline.to_yaml).to eq(<<~YAML)
+        # Per-file coverage floors. A file that drops below its floor fails the run,
+        # and files with no entry fall through to the global per-file minimum.
+        # Regenerate with `simplecov ratchet`. Floors only ever tighten.
+        lib/aardvark.rb:
+          lines:
+            percent: 41.2
+            missed: 137
+        lib/zebra.rb:
+          lines:
+            percent: 50.0
+            missed: 5
+      YAML
+    end
+
     it "serializes entries sorted by path, with a self-describing header" do
       baseline = described_class.generate(
         "lib/zebra.rb" => {line: {percent: 50.0, missed: 5}},
@@ -259,10 +407,23 @@ RSpec.describe SimpleCov::Baseline do
   end
 
   def read_baseline(yaml)
+    with_baseline_file(yaml) { |path| SimpleCov::Baseline.read(path) }
+  end
+
+  # The error messages name the file they came from, so the examples
+  # that assert them need the path the document was written to.
+  def with_baseline_file(yaml)
     Dir.mktmpdir do |dir|
       path = File.join(dir, ".simplecov_baseline.yml")
       File.write(path, yaml)
-      return SimpleCov::Baseline.read(path)
+      return yield(path)
+    end
+  end
+
+  def expect_rejection(yaml, message)
+    with_baseline_file(yaml) do |path|
+      expect { SimpleCov::Baseline.read(path) }
+        .to raise_error(SimpleCov::ConfigurationError, format(message, path: path))
     end
   end
 end

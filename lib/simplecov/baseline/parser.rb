@@ -12,7 +12,7 @@ module SimpleCov
     # offending entry: a malformed policy must fail loudly rather than
     # silently un-enforce every floor it carried.
     module Parser
-    module_function
+      extend self
 
       def call(data, path)
         raise ConfigurationError, "baseline file #{path} must map file paths to floors" unless data.is_a?(Hash)
@@ -49,7 +49,7 @@ module SimpleCov
         end
 
         missed = floor["missed"]
-        unless missed.nil? || missed.is_a?(Integer)
+        unless missed.nil? || missed.instance_of?(Integer)
           raise ConfigurationError, "baseline file #{path}: missed count for #{file} must be an integer"
         end
 
