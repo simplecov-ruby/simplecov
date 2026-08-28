@@ -2,6 +2,7 @@
 
 require "helper"
 require "fileutils"
+require "tmpdir"
 require "open3"
 
 STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
@@ -27,10 +28,14 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     res
   end
 
-  # Prevent stale coverage.json from prior tests from triggering the
-  # concurrent-overwrite warning.
+  # A coverage directory of its own, so what a previous run left in the
+  # shared one stays out of the formatted document. A `.history.json`
+  # lying around there is embedded in the report, which is the whole
+  # point of it, and makes every fixture comparison here fail.
+  let(:coverage_dir) { Dir.mktmpdir("simplecov-json-formatter-") }
+
   before do
-    FileUtils.rm_f(File.join(SimpleCov.coverage_path, "coverage.json"))
+    allow(SimpleCov).to receive_messages(coverage_dir: coverage_dir, coverage_path: coverage_dir)
     SimpleCov.process_start_time = Time.now
     allow(Open3).to receive(:capture2e)
       .and_return(["#{STUB_COMMIT}\n", instance_double(Process::Status, success?: true)])
@@ -38,7 +43,10 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
   # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
   # concurrent-overwrite checks have a reference point.
-  after { SimpleCov.process_start_time = nil }
+  after do
+    SimpleCov.process_start_time = nil
+    FileUtils.remove_entry(coverage_dir)
+  end
 
   describe "with output_dir" do
     it "writes coverage.json into the explicit directory, not SimpleCov.coverage_path" do
@@ -207,8 +215,10 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_method"))
 
+        # Spelled out rather than derived from the file's own covered and
+        # missed counts, which would restate the arithmetic under test.
         file = json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))
-        expect(file.fetch("total_methods")).to eq(file.fetch("covered_methods") + file.fetch("missed_methods"))
+        expect(file.fetch("total_methods")).to eq(3)
         expect(file.fetch("methods").size).to eq(4)
       end
     end
