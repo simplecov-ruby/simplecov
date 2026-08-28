@@ -27,14 +27,14 @@ module SimpleCov
     module Affected
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:)
         opts = parse(args)
         issue = precheck(opts)
         return error(stderr, issue) if issue
 
-        document = CoverageFile.load_document(opts[:input], command: "affected", stderr: stderr)
+        document = CoverageFile.load_document(opts.fetch(:input), command: "affected", stderr: stderr)
         return 1 unless document
 
         contexts = recorded_contexts(document, opts, stderr)
@@ -69,44 +69,44 @@ module SimpleCov
       # and silently dropping it would select tests for the wrong change,
       # so it's an error rather than ignored.
       def precheck(opts)
-        stray = opts[:rest].first
+        stray = opts.fetch(:rest).first
         return "unexpected argument #{stray.inspect} (did you mean `--base #{stray}`?)" if stray
-        return "missing command after --run" if opts[:run] && opts[:run].empty?
+        return "missing command after --run" if opts.fetch(:run) && opts.fetch(:run).empty?
 
-        "--run and --json cannot be combined" if opts[:run] && opts[:json]
+        "--run and --json cannot be combined" if opts.fetch(:run) && opts.fetch(:json)
       end
 
       def respond(diffed, document, contexts, opts, stdout:, stderr:)
-        opts[:root] = diffed[:root]
-        return no_changes(opts, stdout, stderr) if diffed[:changed].empty?
+        opts[:root] = diffed.fetch(:root)
+        return no_changes(opts, stdout, stderr) if diffed.fetch(:changed).empty?
 
-        selection = Selection.build(diffed[:changed], document, contexts, opts, stderr, root: diffed[:root])
+        selection = Selection.build(diffed.fetch(:changed), document, contexts, opts, stderr, root: diffed.fetch(:root))
         return 1 unless selection
 
         deliver(selection, opts, stdout, stderr)
       end
 
       def no_changes(opts, stdout, stderr)
-        stderr.puts("simplecov affected: no changes against #{opts[:base]}")
+        stderr.puts("simplecov affected: no changes against #{opts.fetch(:base)}")
         empty = {tests: [], triggers: []} #: Hash[Symbol, Array[String]]
-        emit_json(empty, false, stdout) if opts[:json]
+        emit_json(empty, false, stdout) if opts.fetch(:json)
         0
       end
 
       def deliver(selection, opts, stdout, stderr)
-        full = !selection[:triggers].empty?
-        selection[:triggers].each { |trigger| stderr.puts("simplecov affected: #{trigger}") }
+        full = !selection.fetch(:triggers).empty?
+        selection.fetch(:triggers).each { |trigger| stderr.puts("simplecov affected: #{trigger}") }
         stderr.puts("simplecov affected: falling back to the full suite") if full
-        return emit_json(selection, full, stdout) if opts[:json]
-        return execute(selection, full, opts, stderr) if opts[:run]
+        return emit_json(selection, full, stdout) if opts.fetch(:json)
+        return execute(selection, full, opts, stderr) if opts.fetch(:run)
 
         emit_text(selection, full, stdout, stderr)
       end
 
       def emit_json(selection, full, stdout)
         none = [] #: Array[String]
-        stdout.puts(JSON.pretty_generate("full_suite" => full, "triggers" => selection[:triggers],
-                                         "tests" => full ? none : selection[:tests]))
+        stdout.puts(JSON.pretty_generate("full_suite" => full, "triggers" => selection.fetch(:triggers),
+                                         "tests" => full ? none : selection.fetch(:tests)))
         0
       end
 
@@ -116,10 +116,14 @@ module SimpleCov
       # everything".
       def emit_text(selection, full, stdout, stderr)
         return 0 if full
-        return note_untouched(stderr) if selection[:tests].empty?
 
-        selection[:tests].each { |file| stdout.puts(file) }
-        0
+        tests = selection.fetch(:tests)
+        if tests.empty?
+          note_untouched(stderr)
+        else
+          tests.each { |file| stdout.puts(file) }
+          0
+        end
       end
 
       def note_untouched(stderr)
@@ -128,12 +132,12 @@ module SimpleCov
       end
 
       def execute(selection, full, opts, stderr)
-        return run_command(opts[:run], opts[:root], stderr) if full
-        return note_untouched(stderr) if selection[:tests].empty?
+        return run_command(opts.fetch(:run), opts.fetch(:root), stderr) if full
+        return note_untouched(stderr) if selection.fetch(:tests).empty?
 
-        count = selection[:tests].size
-        stderr.puts("simplecov affected: running #{count} test file#{'s' unless count == 1}")
-        run_command(opts[:run] + selection[:tests], opts[:root], stderr)
+        count = selection.fetch(:tests).size
+        stderr.puts("simplecov affected: running #{count} test file#{'s' unless count.eql?(1)}")
+        run_command(opts.fetch(:run) + selection.fetch(:tests), opts.fetch(:root), stderr)
       end
 
       # The selection's paths are relative to the repository root, so the
@@ -145,7 +149,7 @@ module SimpleCov
       rescue SystemCallError => e
         # The command is named explicitly because not every engine's
         # exception message carries it (JRuby's ENOENT does not).
-        stderr.puts("simplecov affected: cannot run #{command.first.inspect} (#{e.message})")
+        stderr.puts("simplecov affected: cannot run #{command.first.inspect} (#{e})")
         127
       end
     end

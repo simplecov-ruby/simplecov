@@ -1471,8 +1471,21 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "affected subcommand" do
-    let(:tmp) { Dir.mktmpdir("simplecov-cli-affected-spec-") }
+  describe "affected subcommand", mutant_expression: "SimpleCov::CLI::Affected*" do
+    # Built once and copied per example: see GitFixture.
+    let(:fixture_files) do
+      {
+        "lib/result.rb" => "# original\n", "lib/quiet.rb" => "# original\n",
+        "lib/odd.rb" => "# original\n", "lib/stale.rb" => "# original\n",
+        "lib/plain.rb" => "# original\n", "toplevel_test.rb" => "# original\n",
+        "lib/suffixless.rb" => "# original\n", "spec/no_suffix" => "# original\n",
+        "lib/plain2.rb" => "# original\n", "spec/test_helper.rb" => "# original\n",
+        "spec/result_spec.rb" => "# original\n", "spec/source_file_spec.rb" => "# original\n",
+        "spec/helper.rb" => "# original\n", "Gemfile.lock" => "# original\n",
+        ".gitignore" => "coverage.json\nout.txt\n"
+      }
+    end
+    let(:tmp) { GitFixture.checkout(fixture_files) }
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:out_path) { File.join(tmp, "out.txt") }
 
@@ -1487,13 +1500,17 @@ RSpec.describe SimpleCov::CLI do
           "spec/source_file_spec.rb:12",
           "OddTest#test_odd",
           "spec/ghost_spec.rb:7",
-          "toplevel_test.rb:99"
+          "toplevel_test.rb:99",
+          "spec/no_suffix:3"
         ],
         "coverage" => {
           File.join(tmp, "lib/result.rb") => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
           File.join(tmp, "lib/quiet.rb") => {"lines" => [1, nil]},
           File.join(tmp, "lib/odd.rb") => {"lines" => [1], "contexts" => {"2" => "1"}},
-          File.join(tmp, "lib/stale.rb") => {"lines" => [1], "contexts" => {"3" => "1"}}
+          File.join(tmp, "lib/stale.rb") => {"lines" => [1], "contexts" => {"3" => "1"}},
+          File.join(tmp, "lib/plain.rb") => {"lines" => [1], "contexts" => {"4" => "1"}},
+          File.join(tmp, "lib/suffixless.rb") => {"lines" => [1], "contexts" => {"5" => "1"}},
+          File.join(tmp, "lib/plain2.rb") => {"lines" => [1], "contexts" => {"4" => "1"}}
         }
       }
     end
@@ -1505,30 +1522,14 @@ RSpec.describe SimpleCov::CLI do
     end
 
     def commit!(message)
-      system("git", "-C", tmp, "add", "-A", exception: true)
-      system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-             "commit", "-qm", message, exception: true)
+      GitFixture.commit!(tmp, message)
     end
 
-    before do
-      file!("lib/result.rb")
-      file!("lib/quiet.rb")
-      file!("lib/odd.rb")
-      file!("lib/stale.rb")
-      file!("spec/result_spec.rb")
-      file!("spec/source_file_spec.rb")
-      file!("spec/helper.rb")
-      file!("Gemfile.lock")
-      file!(".gitignore", "coverage.json\nout.txt\n")
-      system("git", "-c", "init.defaultBranch=main", "init", "-q", tmp, exception: true)
-      # git 2.46+ forks a detached `git maintenance` after commits; its
-      # transient .git/objects/maintenance.lock races the after-hook's
-      # directory removal, so the fixture repo opts out.
-      system("git", "-C", tmp, "config", "maintenance.auto", "false", exception: true)
-      system("git", "-C", tmp, "config", "gc.auto", "0", exception: true)
-      commit!("init")
-      File.write(json_path, JSON.dump(payload))
+    def git_in_repo(*argv)
+      system("git", "-C", tmp, *argv, exception: true)
     end
+
+    before { File.write(json_path, JSON.dump(payload)) }
 
     # rm_rf rather than remove_entry: it shrugs off files a lingering
     # background git process deletes mid-walk instead of raising ENOENT.
@@ -1664,7 +1665,225 @@ RSpec.describe SimpleCov::CLI do
         expect(Dir.chdir(plain) { run("affected", "--input", json_path) }).to eq(1)
       end
       expect(stdout.string).to be_empty
-      expect(stderr.string).to include("git working tree")
+      expect(stderr.string).to eq("simplecov affected: not inside a git working tree\n")
+    end
+
+    # A report with no "coverage" key at all covers nothing, which is
+    # not the same as a report whose "coverage" is the wrong shape.
+    it "selects nothing from a report that carries no coverage" do
+      payload.delete("coverage")
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stderr.string).to include("has no data for it").and include("falling back to the full suite")
+    end
+
+    it "refuses a report whose coverage is the wrong shape" do
+      payload["coverage"] = []
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to eq(
+        %(simplecov affected: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+      )
+    end
+
+    # A recorded id names a file when it has a directory or a .rb suffix.
+    # "toplevel_test.rb:99" has no slash, so only the suffix answers for
+    # it, and a bare test file at the root is a real shape.
+    it "selects a recorded test file that sits at the repository root" do
+      file!("lib/plain.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("toplevel_test.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    describe ".parse" do
+      it "starts with no base, no runner, and both compact forms off" do
+        expect(SimpleCov::CLI::Affected.parse([]))
+          .to eq(input: described_class.default_input, json: false, no_color: false,
+                 base: nil, run: nil, rest: [])
+      end
+
+      # Everything after --run is the runner command, verbatim, so the
+      # command's own flags never collide with ours.
+      it "splits the runner command off at --run" do
+        opts = SimpleCov::CLI::Affected.parse(%w[--base main --run rake test --verbose])
+        expect(opts).to include(base: "main", run: %w[rake test --verbose], rest: [])
+      end
+
+      it "leaves an empty runner command empty rather than absent" do
+        expect(SimpleCov::CLI::Affected.parse(%w[--run])).to include(run: [])
+      end
+
+      # The pair itself, since a head with no --run still has to answer
+      # with two values for the caller to destructure.
+      it "answers a head and no runner when there is no --run" do
+        expect(SimpleCov::CLI::Affected.split_runner(%w[--base main])).to eq([%w[--base main], nil])
+      end
+
+      it "answers the head and the runner when there is one" do
+        expect(SimpleCov::CLI::Affected.split_runner(%w[--base main --run rake])).to eq([%w[--base main], %w[rake]])
+      end
+    end
+
+    # Two of them, so the message names the first rather than whichever
+    # happens to be there.
+    it "names the first stray positional, not the last" do
+      expect(run_in_repo("affected", "--input", json_path, "feature-x", "feature-y")).to eq(1)
+      expect(stderr.string)
+        .to eq(%(simplecov affected: unexpected argument "feature-x" (did you mean `--base feature-x`?)\n))
+    end
+
+    it "reports a missing input, naming itself and the file" do
+      missing = File.join(tmp, "nope.json")
+
+      expect(run_in_repo("affected", "--input", missing)).to eq(1)
+      expect(stderr.string).to eq("simplecov affected: #{missing} not found\n")
+    end
+
+    it "reports an input that is not JSON at all" do
+      File.write(json_path, "not json")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to start_with(%(simplecov affected: input file #{json_path.inspect} isn't valid JSON))
+    end
+
+    # A recorded id names a file when it has a directory OR a .rb suffix.
+    # "spec/no_suffix" has the directory and not the suffix, so only the
+    # first half of that answers for it.
+    it "selects a recorded test file that carries no .rb suffix" do
+      file!("lib/suffixless.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/no_suffix\n")
+      expect(stderr.string).to be_empty
+    end
+
+    # Two changed files whose recorded tests are the same file: it runs
+    # once, and the list comes back sorted rather than in the order the
+    # changes happened to arrive.
+    it "names each selected test file once, in order" do
+      file!("lib/plain.rb", "# changed\n")
+      file!("lib/plain2.rb", "# changed\n")
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\ntoplevel_test.rb\n")
+    end
+
+    it "emits no tests under --json when the whole suite runs" do
+      file!("lib/result.rb", "# changed\n")
+      file!("lib/stale.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path, "--json")).to eq(0)
+      parsed = JSON.parse(stdout.string)
+      expect(parsed["full_suite"]).to be true
+      expect(parsed["tests"]).to be_empty
+    end
+
+    it "names the command it could not run for the full suite too" do
+      file!("Gemfile.lock", "# changed\n")
+      missing = File.join(tmp, "nope-does-not-exist")
+
+      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to eq(127)
+      # JRuby's spawn reports a missing command through the child's exit
+      # status instead of raising, so there is no message to look for.
+      unless RUBY_ENGINE == "jruby"
+        expect(stderr.string).to include("cannot run #{missing.inspect} (No such file or directory")
+      end
+    end
+
+    # --merge-base, so commits that landed on the base after the branch
+    # point stay out of the change.
+    it "diffs against the merge base, not the base's tip" do
+      git_in_repo("checkout", "-q", "-b", "feature")
+      file!("lib/result.rb", "# changed\n")
+      commit!("change on the branch")
+      git_in_repo("checkout", "-q", "main")
+      file!("lib/plain.rb", "# changed on main\n")
+      commit!("change on main")
+      git_in_repo("checkout", "-q", "feature")
+
+      expect(run_in_repo("affected", "--input", json_path, "--base", "main")).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+    end
+
+    it "relays what git said about a base it cannot resolve" do
+      expect(run_in_repo("affected", "--input", json_path, "--base", "no-such-ref")).to eq(1)
+      expect(stderr.string).to start_with("simplecov affected: `git diff` failed: ")
+      expect(stderr.string.lines.size).to eq(1)
+    end
+
+    # The name is judged on the basename: "spec/test_helper.rb" starts
+    # with no "test_" and ends with no "_spec.rb", so only its last
+    # component says it is a test file at all.
+    it "recognises a test file by its own name, not by its path" do
+      file!("spec/test_helper.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("spec/test_helper.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    # An index past the end of the recorded contexts names a test that
+    # is not there, which makes the table malformed rather than partly
+    # usable.
+    it "refuses a contexts table that indexes past the recorded tests" do
+      payload["coverage"][File.join(tmp, "lib/result.rb")] = {"lines" => [1], "contexts" => {"7" => "1"}}
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to eq(
+        "simplecov affected: input file #{json_path.inspect} isn't valid JSON " \
+        "(entry for lib/result.rb carries a malformed \"contexts\" table)\n"
+      )
+    end
+
+    # `--`, so a base ref that is also the name of a file in the tree is
+    # read as the ref it is rather than as a path to limit the diff to.
+    # Without the separator git calls it ambiguous and refuses.
+    it "diffs against a base ref that is also a path in the tree" do
+      git_in_repo("branch", "lib/quiet.rb")
+      git_in_repo("checkout", "-q", "-b", "feature")
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path, "--base", "lib/quiet.rb")).to eq(0)
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+      expect(stderr.string).to be_empty
+    end
+
+    # A file dropped from the index but still on disk is both a deletion
+    # in the diff and an untracked file, so it arrives twice. It is one
+    # change, and the trigger it raises is one trigger.
+    it "names a file that is both changed and untracked only once" do
+      git_in_repo("rm", "--cached", "-q", "Gemfile.lock")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      expect(stderr.string.scan("Gemfile.lock changed but").size).to eq(1)
+    end
+
+    # The diff itself failing to run, rather than the toplevel lookup
+    # that precedes it: one complaint, not two.
+    it "reports a git that cannot run the diff, once" do
+      allow(SimpleCov::CLI::Git).to receive(:capture).and_wrap_original do |original, *argv|
+        argv.include?("diff") ? [nil, "No such file or directory", false] : original.call(*argv)
+      end
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to eq("simplecov affected: cannot run git (No such file or directory)\n")
+    end
+
+    it "reports a git it cannot run at all, once" do
+      allow(SimpleCov::CLI::Git).to receive(:capture).and_return([nil, "No such file or directory", false])
+
+      expect(run_in_repo("affected", "--input", json_path)).to eq(1)
+      expect(stderr.string).to eq("simplecov affected: cannot run git (No such file or directory)\n")
     end
 
     it "rejects a stray positional that looks like a forgotten --base" do
@@ -1701,7 +1920,9 @@ RSpec.describe SimpleCov::CLI do
       file!("lib/odd.rb", "# changed\n")
       expect(run_in_repo("affected", "--input", json_path)).to eq(0)
       expect(stdout.string).to be_empty
-      expect(stderr.string).to include("OddTest#test_odd").and include("no file location")
+      expect(stderr.string).to include(
+        "simplecov affected: recorded test OddTest#test_odd touches lib/odd.rb but has no file location"
+      )
       expect(stderr.string).to include("falling back to the full suite")
     end
 
@@ -1709,7 +1930,8 @@ RSpec.describe SimpleCov::CLI do
       file!("lib/stale.rb", "# changed\n")
       expect(run_in_repo("affected", "--input", json_path)).to eq(0)
       expect(stdout.string).to be_empty
-      expect(stderr.string).to include("spec/ghost_spec.rb no longer exists")
+      expect(stderr.string)
+        .to include("simplecov affected: recorded test file spec/ghost_spec.rb no longer exists")
       expect(stderr.string).to include("falling back to the full suite")
     end
 
@@ -1753,6 +1975,29 @@ RSpec.describe SimpleCov::CLI do
       expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(0)
       expect(File.read(out_path)).to eq('""')
       expect(stderr.string).to include("falling back to the full suite")
+    end
+
+    # A trigger forces the full suite even when files were also
+    # selected, and the bare run is the whole answer: appending the
+    # selection to it would run those files a second time.
+    it "runs the command bare, and only bare, when a trigger fires alongside a selection" do
+      file!("lib/result.rb", "# changed\n")
+      file!("lib/stale.rb", "# changed\n")
+      script = "File.write(#{out_path.inspect}, ARGV.join(' ').inspect)"
+
+      expect(run_in_repo("affected", "--input", json_path, "--run", RbConfig.ruby, "-e", script)).to eq(0)
+      expect(File.read(out_path)).to eq('""')
+      expect(stderr.string).to include("no longer exists").and include("falling back to the full suite")
+    end
+
+    it "names the command it could not run" do
+      file!("lib/result.rb", "# changed\n")
+      missing = File.join(tmp, "nope-does-not-exist")
+
+      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to eq(127)
+      # JRuby's spawn reports a missing command through the child's exit
+      # status instead of raising, so there is no message to look for.
+      expect(stderr.string).to include("cannot run #{missing.inspect}") unless RUBY_ENGINE == "jruby"
     end
 
     it "propagates the runner's exit status" do
@@ -1829,7 +2074,10 @@ RSpec.describe SimpleCov::CLI do
       File.write(json_path, JSON.dump(payload))
       file!("lib/result.rb", "# changed\n")
       expect(run_in_repo("affected", "--input", json_path)).to eq(1)
-      expect(stderr.string).to include("entry for lib/result.rb must be an object")
+      expect(stderr.string).to eq(
+        "simplecov affected: input file #{json_path.inspect} isn't valid JSON " \
+        "(entry for lib/result.rb must be an object)\n"
+      )
     end
 
     it "treats a non-object coverage section as invalid input" do

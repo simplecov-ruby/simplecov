@@ -17,6 +17,11 @@ module SimpleCov
 
         def self?.classify: (String path, untyped state) -> untyped
 
+
+        # Outside the tracked set: the whole suite has to run.
+
+        def self?.note_untracked: (String path, Hash[Symbol, untyped] state) -> Array[String]
+
         def self?.select_test_file: (String path, untyped state, ?note_deleted: bool) -> String
 
         def self?.select_covering: (String path, untyped entry, untyped state) -> String?

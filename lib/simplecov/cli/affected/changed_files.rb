@@ -15,7 +15,7 @@ module SimpleCov
       # selects over the whole change. NUL separation keeps exotic
       # filenames literal instead of quoted.
       module ChangedFiles
-      module_function
+        extend self
 
         # nil after reporting a git failure.
         def call(base, stderr)
@@ -51,9 +51,9 @@ module SimpleCov
           report(stderr, "`git #{command}` failed: #{detail}")
         end
 
+        # Answers nothing, which is what a git call that failed returns.
         def report(stderr, message)
           stderr.puts("simplecov affected: #{message}")
-          nil
         end
       end
     end
