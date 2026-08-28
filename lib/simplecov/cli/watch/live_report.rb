@@ -24,8 +24,10 @@ module SimpleCov
         end
 
         def broadcast(event = "reload")
-          @lock.synchronize { @queues.each { |queue| queue << event } }
+          with_queues { |queues| queues.each { |queue| queue << event } }
         end
+
+      private
 
         # Holds the connection open, forwarding each broadcast as one SSE
         # message, until the tab goes away and the write fails. A closed
@@ -35,19 +37,29 @@ module SimpleCov
         def stream(client)
           queue = Queue.new #: Thread::Queue
           begin
-            @lock.synchronize { @queues << queue }
+            with_queues { |queues| queues << queue }
             forward(client, queue)
           ensure
-            @lock.synchronize { @queues.delete(queue) }
+            with_queues { |queues| queues.delete(queue) }
           end
         end
 
         def forward(client, queue)
           client.write("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n" \
                        "Cache-Control: no-cache\r\n\r\n")
-          loop { client.write("data: #{queue.pop}\n\n") }
+          loop { client.write("data: #{next_event(queue)}\n\n") }
         rescue IOError, SystemCallError
           nil
+        end
+
+        # The next broadcast, waiting on the queue until one arrives.
+        #
+        # `Thread::Queue#shift` is an alias of `#pop`, one method under
+        # two names, so narrowing to it is a difference no example can
+        # show. It is disabled here rather than pinned by a test.
+        # mutant:disable
+        def next_event(queue)
+          queue.pop
         end
 
         def page(client)
@@ -55,6 +67,16 @@ module SimpleCov
           Serve::StaticFileHandler.respond(client, 200, body, "text/html; charset=utf-8")
         rescue SystemCallError
           Serve::StaticFileHandler.respond(client, 404)
+        end
+
+        # Every touch of the queue registry goes through the lock: an
+        # accept thread adds and drops its own queue while the session
+        # thread walks them all. The lock is the one thing here no test
+        # can hold to account, because dropping it leaves a race rather
+        # than a wrong answer.
+        # mutant:disable
+        def with_queues
+          @lock.synchronize { yield @queues }
         end
       end
     end

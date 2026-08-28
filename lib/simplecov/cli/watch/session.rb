@@ -55,10 +55,10 @@ module SimpleCov
 
           plan = plan_for(changed)
           @narrator.change(changed, plan)
-          return unless plan[:run]
+          return unless plan.fetch(:run)
 
           before = total_percent
-          run_tests(plan[:tests])
+          run_tests(plan.fetch(:tests))
           return @narrator.failed_refresh unless refresh
 
           @live.broadcast
@@ -93,7 +93,9 @@ module SimpleCov
         # the long merge window through the environment.
         def run_tests(tests)
           env = {"SIMPLECOV_MERGE_TIMEOUT" => MERGE_WINDOW}
-          Kernel.system(env, *@command, *Array(tests))
+          # A selection is appended to the command. No selection means
+          # the whole suite, which is the command on its own.
+          Kernel.system(env, *(tests ? @command + tests : @command))
         end
 
         # Re-read the regenerated report: it is both the watch set (the
@@ -131,7 +133,7 @@ module SimpleCov
         def total_percent
           key = TOTALS_KEYS[@document.dig("meta", "primary_coverage")] || "lines"
           value = @document.dig("total", key, "percent")
-          value.is_a?(Numeric) ? (_ = value).to_f : nil
+          (_ = value).to_f if value.is_a?(Numeric)
         end
 
         def json_path

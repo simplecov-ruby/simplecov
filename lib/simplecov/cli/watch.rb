@@ -27,13 +27,13 @@ module SimpleCov
     module Watch
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         opts, command = parse(args)
         return error(stderr, "missing command to run (e.g. `simplecov watch bundle exec rspec`)") if command.empty?
 
-        require "socket"
+        Serve.require_socket
         server = bind(opts, stderr)
         return 1 unless server
 
@@ -41,7 +41,7 @@ module SimpleCov
       end
 
       def serve_session(server, command, opts, stdout, stderr)
-        launch_browser(server, stderr) if opts[:open]
+        launch_browser(server, stderr) if opts.fetch(:open)
         session_for(command, opts, stdout, stderr).run(server)
       ensure
         server.close
@@ -52,7 +52,7 @@ module SimpleCov
       # platform with no known opener notes the URL instead of failing
       # the watch.
       def launch_browser(server, stderr)
-        url = "http://#{Serve.url_host(server.addr[3])}:#{server.addr[1]}/"
+        url = "http://#{Serve.url_host(server.addr.fetch(3))}:#{server.addr.fetch(1)}/"
         opener = Open.browser_opener
         unless opener
           return stderr.puts("simplecov watch: no known browser opener for this platform, open it yourself: #{url}")
@@ -67,26 +67,25 @@ module SimpleCov
       def parse(args)
         opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false} #: Hash[Symbol, untyped]
         rest =
-          OptionParser.new do |parser|
+          build_parser do |parser|
             parser.on("--port N", Integer)           { |v| opts[:port] = v }
             parser.on("--host HOST")                 { |v| opts[:host] = v }
             parser.on("--interval SECONDS", Float)   { |v| opts[:interval] = v }
             parser.on("--open")                      { opts[:open] = true }
-            on_help(parser)
           end.order(args)
         [opts, rest]
       end
 
       def bind(opts, stderr)
         # The receiver cast works around an rbs stdlib gap, as in serve.
-        (_ = TCPServer).new(opts[:host], opts[:port]) #: TCPServer
+        (_ = TCPServer).new(opts.fetch(:host), opts.fetch(:port)) #: TCPServer
       rescue SystemCallError, SocketError => e
-        error_nil(stderr, "cannot bind to #{opts[:host]}:#{opts[:port]} (#{e.message})")
+        error_nil(stderr, "cannot bind to #{opts.fetch(:host)}:#{opts.fetch(:port)} (#{e})")
       end
 
       def session_for(command, opts, stdout, stderr)
-        Session.new(command: command, dir: SimpleCov::CLI.coverage_dir,
-                    interval: opts[:interval], stdout: stdout, stderr: stderr)
+        Session.new(command: command, dir: CLI.coverage_dir,
+                    interval: opts.fetch(:interval), stdout: stdout, stderr: stderr)
       end
     end
   end

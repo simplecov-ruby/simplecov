@@ -6,6 +6,11 @@ module SimpleCov
         def self?.build: (Array[String] changed, untyped document, root: String, input: String, stderr: untyped) -> Hash[Symbol, untyped]
 
         def self?.watched_paths: (untyped document, String root) -> Array[String]
+
+
+        # The files behind the report's recorded test ids.
+
+        def self?.recorded_test_files: (untyped document) -> Array[String]
       end
     end
   end

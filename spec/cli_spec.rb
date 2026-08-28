@@ -8167,7 +8167,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "watch subcommand" do
+  describe "watch subcommand", mutant_expression: "SimpleCov::CLI::Watch*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-watch-spec-") }
     let(:coverage_dir) { File.join(tmp, "coverage") }
     let(:json_path) { File.join(coverage_dir, "coverage.json") }
@@ -8269,7 +8269,7 @@ RSpec.describe SimpleCov::CLI do
       write_report
       thread, port = start_watch(*fake_suite)
       begin
-        response = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/"))
+        response = Net::HTTP.start("127.0.0.1", port, open_timeout: 5, read_timeout: 5) { |http| http.get("/") }
         expect(response.code).to eq("200")
         expect(response.body).to include("<html>report</html>").and include("EventSource('/events')")
         expect(File.read(File.join(coverage_dir, "index.html"))).to eq("<html>report</html>")
@@ -8378,17 +8378,35 @@ RSpec.describe SimpleCov::CLI do
       expect(session.send(:settled_changes)).to eq(["a.rb", "b.rb"])
     end
 
-    it "errors without a command" do
+    describe ".parse" do
+      # Port 0 asks the kernel for a free one, which is what makes a
+      # watch session start without the operator picking a port.
+      it "asks for an ephemeral port on the loopback address by default" do
+        opts, = described_class::Watch.parse(%w[rake])
+        expect(opts).to eq(port: 0, host: "127.0.0.1", interval: 0.5, open: false)
+      end
+
+      it "takes each flag when it is given" do
+        opts, rest = described_class::Watch.parse(%w[--port 9 --host ::1 --interval 2.5 --open rake test])
+        expect(opts).to eq(port: 9, host: "::1", interval: 2.5, open: true)
+        expect(rest).to eq(%w[rake test])
+      end
+    end
+
+    it "errors without a command, pointing at what one looks like" do
       expect(run("watch")).to eq(1)
-      expect(stderr.string).to include("missing command")
+      expect(stderr.string).to eq("simplecov watch: missing command to run " \
+                                  "(e.g. `simplecov watch bundle exec rspec`)\n")
     end
 
     it "errors when the port is already taken" do
       write_report
+      allow(described_class::Serve).to receive(:require_socket).and_call_original
       blocker = TCPServer.new("127.0.0.1", 0)
       begin
         expect(Dir.chdir(tmp) { run("watch", "--port", blocker.addr[1].to_s, "ruby", "-e", "1") }).to eq(1)
-        expect(stderr.string).to include("simplecov watch: cannot bind")
+        expect(stderr.string).to match(/\Asimplecov watch: cannot bind to 127\.0\.0\.1:\d+ \(\S.*\)\n\z/)
+        expect(described_class::Serve).to have_received(:require_socket)
       ensure
         blocker.close
       end
@@ -8425,27 +8443,92 @@ RSpec.describe SimpleCov::CLI do
 
       described_class::Watch.launch_browser(server, stderr)
 
-      expect(described_class::Watch).to have_received(:spawn) do |*argv, **options|
-        expect(argv).to eq(["fake-open", "http://127.0.0.1:53422/"])
-        expect(options).to include(out: File::NULL, err: File::NULL)
-      end
+      expect(described_class::Watch).to have_received(:spawn)
+        .with("fake-open", "http://127.0.0.1:53422/", out: File::NULL, err: File::NULL)
       expect(Process).to have_received(:detach).with(4242)
     end
 
-    it "degrades to a note when the platform has no known opener" do
-      server = instance_double(TCPServer, addr: ["AF_INET", 53_422, "localhost", "127.0.0.1"])
-      allow(described_class::Open).to receive(:browser_opener).and_return(nil)
-      allow(Process).to receive(:spawn)
+    # An IPv6 literal needs brackets before it can be a URL host, the
+    # same as the banner's address.
+    it "brackets an IPv6 address in the URL it opens" do
+      server = instance_double(TCPServer, addr: ["AF_INET6", 53_422, "localhost", "::1"])
+      allow(described_class::Open).to receive(:browser_opener).and_return(["fake-open"])
+      allow(described_class::Watch).to receive(:spawn).and_return(4242)
+      allow(Process).to receive(:detach)
 
       described_class::Watch.launch_browser(server, stderr)
 
-      expect(Process).not_to have_received(:spawn)
-      expect(stderr.string).to include("http://127.0.0.1:53422/").and include("open it yourself")
+      expect(described_class::Watch).to have_received(:spawn)
+        .with("fake-open", "http://[::1]:53422/", out: File::NULL, err: File::NULL)
+    end
+
+    # The note is the whole answer: with no opener there is nothing to
+    # spawn, and the URL must not be handed to a shell as if it were a
+    # command of its own. Stubbed on Watch itself, which is where the
+    # bare `spawn` resolves.
+    it "degrades to a note when the platform has no known opener" do
+      server = instance_double(TCPServer, addr: ["AF_INET", 53_422, "localhost", "127.0.0.1"])
+      allow(described_class::Open).to receive(:browser_opener).and_return(nil)
+      allow(described_class::Watch).to receive(:spawn)
+      allow(Process).to receive(:detach)
+
+      described_class::Watch.launch_browser(server, stderr)
+
+      expect(described_class::Watch).not_to have_received(:spawn)
+      expect(Process).not_to have_received(:detach)
+      expect(stderr.string).to eq("simplecov watch: no known browser opener for this platform, " \
+                                  "open it yourself: http://127.0.0.1:53422/\n")
+    end
+
+    # The listener is the session's, and it belongs to the session's
+    # lifetime: through a whole watch each of these costs a runner
+    # subprocess and a poll interval.
+    describe ".serve_session" do
+      let(:listener) { TCPServer.new("127.0.0.1", 0) }
+      let(:session) { instance_double(described_class::Watch::Session, run: 7) }
+
+      before do
+        allow(described_class::Watch).to receive_messages(session_for: session, launch_browser: nil)
+      end
+
+      after { listener.close unless listener.closed? }
+
+      it "answers the session's status and closes the listener behind it" do
+        opts = {open: false, interval: 0.25}
+
+        expect(described_class::Watch.serve_session(listener, %w[rake test], opts, stdout, stderr)).to eq(7)
+
+        expect(described_class::Watch).to have_received(:session_for).with(%w[rake test], opts, stdout, stderr)
+        expect(session).to have_received(:run).with(listener)
+        expect(described_class::Watch).not_to have_received(:launch_browser)
+        expect(listener).to be_closed
+      end
+
+      it "opens the browser on the listener under --open" do
+        described_class::Watch.serve_session(listener, %w[rake], {open: true}, stdout, stderr)
+
+        expect(described_class::Watch).to have_received(:launch_browser).with(listener, stderr)
+      end
+
+      # The listener outlives nothing: a session that dies still frees
+      # the port for the next run of the same command.
+      it "closes the listener even when the session raises" do
+        allow(session).to receive(:run).and_raise("boom")
+
+        expect { described_class::Watch.serve_session(listener, %w[rake], {open: false}, stdout, stderr) }
+          .to raise_error("boom")
+        expect(listener).to be_closed
+      end
     end
 
     describe SimpleCov::CLI::Watch::Poller do
       let(:poller) { described_class.new }
       let(:file) { File.join(tmp, "a.rb") }
+
+      it "watches nothing until it is given paths" do
+        expect(poller.size).to eq(0)
+        expect(poller.changes).to eq([])
+      end
 
       it "reports nothing while mtimes hold still" do
         File.write(file, "a")
@@ -8461,6 +8544,19 @@ RSpec.describe SimpleCov::CLI do
         expect(poller.changes).to eq([])
       end
 
+      it "reports every path whose mtime moved, and only those" do
+        other = File.join(tmp, "b.rb")
+        File.write(file, "a")
+        File.write(other, "b")
+        poller.watch([file, other])
+
+        FileUtils.touch(other, mtime: Time.now + 2)
+        expect(poller.changes).to eq([other])
+
+        FileUtils.touch([file, other], mtime: Time.now + 4)
+        expect(poller.changes).to eq([file, other])
+      end
+
       it "reports a vanished file and an appearing one" do
         File.write(file, "a")
         poller.watch([file])
@@ -8471,15 +8567,339 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    # The session's step, asked directly: through a running watch each
+    # of these costs a server, a runner and a poll interval.
+    describe SimpleCov::CLI::Watch::Session do
+      let(:session) do
+        described_class.new(command: %w[true], dir: tmp, interval: 0, stdout: stdout, stderr: stderr)
+      end
+
+      let(:poller) { instance_double(SimpleCov::CLI::Watch::Poller) }
+
+      before { session.instance_variable_set(:@poller, poller) }
+
+      describe "#settled_changes" do
+        # Nothing changed is the common case, and it must not wait out
+        # another interval before saying so.
+        it "answers at once when nothing changed" do
+          allow(poller).to receive(:changes).and_return([])
+          expect(session.send(:settled_changes)).to eq([])
+          expect(poller).to have_received(:changes).once
+        end
+
+        # Editors save in bursts, so the first detection opens a window
+        # that stays open until an interval passes with nothing new.
+        it "collects a burst until an interval brings nothing new" do
+          allow(poller).to receive(:changes).and_return(["a.rb"], ["b.rb"], ["a.rb"], [])
+          expect(session.send(:settled_changes)).to eq(%w[a.rb b.rb])
+        end
+
+        # The window is what collects the burst. Without the wait the
+        # loop spins as fast as the filesystem answers, and a save that
+        # is still being written looks like a settled one.
+        it "waits an interval before looking again" do
+          waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
+                                        stdout: stdout, stderr: stderr)
+          waiting.instance_variable_set(:@poller, poller)
+          allow(poller).to receive(:changes).and_return(["a.rb"], [])
+
+          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          expect(waiting.send(:settled_changes)).to eq(["a.rb"])
+          expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.05
+        end
+      end
+
+      describe "#step" do
+        it "does nothing at all when nothing changed" do
+          allow(poller).to receive(:changes).and_return([])
+          allow(session).to receive(:run_tests)
+
+          session.send(:step)
+
+          expect(session).not_to have_received(:run_tests)
+          expect(stdout.string).to be_empty
+        end
+
+        it "says so and runs nothing when no recorded test touches the change" do
+          allow(poller).to receive(:changes).and_return(["#{Dir.pwd}/lib/a.rb"], [])
+          allow(session).to receive(:run_tests)
+          allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: false, tests: [])
+
+          session.send(:step)
+
+          expect(session).not_to have_received(:run_tests)
+          expect(stdout.string).to eq("lib/a.rb changed, no recorded test touches it\n")
+        end
+
+        it "reruns the selected tests, reloads the open tabs and reports the delta" do
+          live = session.instance_variable_get(:@live)
+          allow(live).to receive(:broadcast)
+          allow(poller).to receive(:changes).and_return(["#{Dir.pwd}/lib/a.rb"], [])
+          allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: true, tests: %w[spec/a_spec.rb])
+          allow(session).to receive(:run_tests)
+          session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 90.0}}})
+          allow(session).to receive(:refresh) do
+            session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 95.0}}})
+          end
+
+          session.send(:step)
+
+          expect(session).to have_received(:run_tests).with(%w[spec/a_spec.rb])
+          expect(live).to have_received(:broadcast)
+          expect(stdout.string).to eq("lib/a.rb changed, running 1 file... 95.00% (+5.00%)\n")
+        end
+
+        # A run that leaves the report unreadable ends the line there:
+        # there is nothing new to reload a tab for, and no percentage
+        # to report.
+        it "stops after a run that leaves the report unreadable" do
+          live = session.instance_variable_get(:@live)
+          allow(live).to receive(:broadcast)
+          allow(poller).to receive(:changes).and_return(["#{Dir.pwd}/lib/a.rb"], [])
+          allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: true, tests: nil)
+          allow(session).to receive_messages(run_tests: nil, refresh: false)
+
+          session.send(:step)
+
+          expect(live).not_to have_received(:broadcast)
+          expect(stdout.string).to eq("lib/a.rb changed, running the full suite... " \
+                                      "the report did not regenerate\n")
+        end
+      end
+
+      describe "#run" do
+        let(:server) { instance_double(TCPServer, addr: ["AF_INET", 4321, "localhost", "127.0.0.1"]) }
+
+        before do
+          allow(session).to receive_messages(accept_loop: nil, run_tests: nil)
+          allow(session).to receive(:poll_forever).and_raise(Interrupt)
+          allow(poller).to receive_messages(watch: nil, size: 3)
+        end
+
+        it "announces the session it is serving and answers 0 when interrupted" do
+          File.write(File.join(tmp, "coverage.json"), JSON.dump("coverage" => {}))
+
+          expect(session.run(server)).to eq(0)
+
+          expect(session).to have_received(:accept_loop).with(server)
+          expect(session).not_to have_received(:run_tests)
+          expect(stdout.string).to eq("watching 3 files, serving http://127.0.0.1:4321/\n" \
+                                      "Press Ctrl-C to stop.\n\nsimplecov watch: stopping\n")
+        end
+
+        # Nothing to serve yet: the command has to produce the first
+        # report before there is a watch set to poll.
+        it "runs the command once for a report that isn't there yet" do
+          expect(session.run(server)).to eq(1)
+
+          expect(session).to have_received(:run_tests).with(nil)
+          expect(stdout.string).to be_empty
+          expect(stderr.string).to start_with("simplecov watch: ")
+        end
+      end
+
+      describe "#refresh" do
+        it "adopts the regenerated report and watches every path it names" do
+          allow(poller).to receive(:watch)
+          session.instance_variable_set(:@root, File.expand_path("/proj"))
+          document = {"coverage" => {"/x/a.rb" => {"lines" => [1]}}, "contexts" => ["spec/a_spec.rb:1"]}
+          File.write(File.join(tmp, "coverage.json"), JSON.dump(document))
+
+          expect(session.send(:refresh)).to eq(document)
+
+          expect(session.instance_variable_get(:@document)).to eq(document)
+          expect(poller).to have_received(:watch).with(["/x/a.rb", File.expand_path("/proj/spec/a_spec.rb")])
+        end
+
+        # A plain no, which is what `run` and `step` both branch on.
+        it "answers false, under the watch command's own name, for a report it cannot read" do
+          File.write(File.join(tmp, "coverage.json"), "{")
+
+          expect(session.send(:refresh)).to be(false)
+          expect(stderr.string).to start_with("simplecov watch: ")
+        end
+      end
+
+      describe "#accept_loop" do
+        # One connection is not a server: the loop has to come back
+        # round for the next tab. Closing the listener under it at
+        # shutdown is not an error either, which is why nothing is
+        # reported when this example's server goes away.
+        it "keeps accepting connections after the first, out of the report directory" do
+          File.write(File.join(tmp, "index.html"), "<html>report</html>")
+          File.write(File.join(tmp, "extra.txt"), "static")
+          server = TCPServer.new("127.0.0.1", 0)
+          session.send(:accept_loop, server)
+
+          bodies = ["/", "/extra.txt"].collect do |path|
+            Net::HTTP.start("127.0.0.1", server.addr[1], open_timeout: 5, read_timeout: 5) do |http|
+              http.get(path).body
+            end
+          end
+
+          expect(bodies.first).to include("<html>report</html>").and include("EventSource('/events')")
+          expect(bodies.last).to eq("static")
+        ensure
+          server&.close
+        end
+      end
+
+      describe "#run_tests" do
+        before { allow(Kernel).to receive(:system) }
+
+        # The day-long merge window is what lets subset re-runs keep
+        # merging into a whole report across a long session.
+        it "runs the named tests with a day-long merge window" do
+          session.send(:run_tests, %w[spec/a_spec.rb])
+
+          expect(Kernel).to have_received(:system)
+            .with({"SIMPLECOV_MERGE_TIMEOUT" => "86400"}, "true", "spec/a_spec.rb")
+        end
+
+        it "runs the command alone when no tests are named" do
+          session.send(:run_tests, nil)
+
+          expect(Kernel).to have_received(:system).with({"SIMPLECOV_MERGE_TIMEOUT" => "86400"}, "true")
+        end
+      end
+
+      describe "#plan_for" do
+        # The report keys its paths relative to the project root, so
+        # that is what the plan is asked for.
+        it "asks for a plan in paths relative to the project root" do
+          allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: true, tests: nil)
+          session.instance_variable_set(:@root, "/proj")
+          session.instance_variable_set(:@document, {"contexts" => []})
+
+          expect(session.send(:plan_for, ["/proj/lib/a.rb", "/elsewhere/b.rb"])).to eq(run: true, tests: nil)
+
+          expect(SimpleCov::CLI::Watch::TestPlan).to have_received(:build).with(
+            ["lib/a.rb", "/elsewhere/b.rb"], {"contexts" => []},
+            root: "/proj", input: File.join(tmp, "coverage.json"), stderr: stderr
+          )
+        end
+      end
+
+      describe "#poll_forever" do
+        # The interval is the whole point of a poller: without the wait
+        # it spins the CPU as fast as the filesystem answers.
+        it "waits an interval between steps" do
+          waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
+                                        stdout: stdout, stderr: stderr)
+          stamps = []
+          allow(waiting).to receive(:step) do
+            stamps << Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            raise Interrupt if stamps.size == 3
+          end
+
+          expect { waiting.poll_forever }.to raise_error(Interrupt)
+          expect(stamps.last - stamps.first).to be >= 0.05
+        end
+      end
+
+      describe "#total_percent" do
+        it "has no percentage to report before a report has been read" do
+          expect(session.send(:total_percent)).to be_nil
+        end
+
+        it "follows the report's own primary criterion" do
+          session.instance_variable_set(:@document,
+                                        {"meta" => {"primary_coverage" => "branch"},
+                                         "total" => {"lines" => {"percent" => 90.0},
+                                                     "branches" => {"percent" => 75.5}}})
+
+          expect(session.send(:total_percent)).to eq(75.5)
+        end
+
+        # Reports from before meta carried a primary criterion.
+        it "falls back to line coverage for a report that names no criterion" do
+          session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 88.5}}})
+
+          expect(session.send(:total_percent)).to eq(88.5)
+        end
+
+        # A hand-written report can carry a whole number, and the
+        # result line formats a float.
+        it "reads a whole-number total as a percentage" do
+          session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 90}}})
+
+          expect(session.send(:total_percent)).to eq(90.0).and be_a(Float)
+        end
+
+        it "reads only a number as a percentage" do
+          session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => "90.0"}}})
+
+          expect(session.send(:total_percent)).to be_nil
+        end
+      end
+    end
+
     describe SimpleCov::CLI::Watch::Narrator do
+      let(:narrator) { described_class.new(stdout, "/root") }
+
+      # Element 3 is the numeric address. Element 2 is the reverse
+      # lookup, which is not a URL host.
+      def server_at(host)
+        instance_double(TCPServer, addr: ["AF_INET", 4321, "localhost", host])
+      end
+
+      it "counts the watched files, and says one in the singular" do
+        narrator.banner(server_at("127.0.0.1"), 1)
+        expect(stdout.string).to eq("watching 1 file, serving http://127.0.0.1:4321/\nPress Ctrl-C to stop.\n")
+      end
+
+      # An IPv6 literal needs brackets before it can be a URL host.
+      it "brackets an IPv6 address so the URL parses" do
+        narrator.banner(server_at("::1"), 2)
+        expect(stdout.string).to eq("watching 2 files, serving http://[::1]:4321/\nPress Ctrl-C to stop.\n")
+      end
+
+      # The count is of the files beyond the one the burst is named by,
+      # so a three-file save says two more.
       it "names a burst by its first file and counts the rest" do
-        narrator = described_class.new(stdout, "/root")
-        narrator.change(["/root/a.rb", "/root/b.rb"], {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
-        expect(stdout.string).to eq("a.rb and 1 more changed, running 2 files...")
+        narrator.change(["/root/a.rb", "/root/b.rb", "/root/c.rb"],
+                        {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
+        expect(stdout.string).to eq("a.rb and 2 more changed, running 2 files...")
+      end
+
+      it "names a lone change by itself" do
+        narrator.change(["/root/a.rb"], {run: true, tests: nil})
+        expect(stdout.string).to eq("a.rb changed, running the full suite...")
+      end
+
+      # Ctrl-C arrives mid-line often enough that the goodbye opens its
+      # own line.
+      it "says it is stopping, on a line of its own" do
+        narrator.stopping
+        expect(stdout.string).to eq("\nsimplecov watch: stopping\n")
       end
     end
 
     describe SimpleCov::CLI::Watch::TestPlan do
+      # The plan a report and a change produce, asked directly: through
+      # a session each shape costs a server, a runner and a poll cycle.
+      def plan(document, changed = ["lib/a.rb"])
+        described_class.build(changed, document, root: "/proj", input: "coverage.json", stderr: stderr)
+      end
+
+      # A context list is a list of recorded test ids. One carrying
+      # something else is no map, and the whole suite runs.
+      it "runs everything for a context list that is not all ids" do
+        expect(plan("contexts" => ["spec/a_spec.rb:1", 42])).to eq(run: true, tests: nil)
+        expect(plan("contexts" => "junk")).to eq(run: true, tests: nil)
+      end
+
+      it "runs everything when the report has no map at all" do
+        expect(plan({})).to eq(run: true, tests: nil)
+      end
+
+      # The report covers the file, and nothing recorded touches it.
+      it "runs nothing when no recorded test touches the change" do
+        document = {"contexts" => ["spec/a_spec.rb:1"],
+                    "coverage" => {File.expand_path("/proj/lib/b.rb") => {"lines" => [1]}}}
+        expect(plan(document, ["lib/b.rb"])).to eq(run: false, tests: [])
+      end
+
       it "fails open to the full command on a selection trigger" do
         document = {
           "contexts" => ["spec/ghost_spec.rb:1"],
@@ -8496,6 +8916,46 @@ RSpec.describe SimpleCov::CLI do
         paths = described_class.watched_paths({"contexts" => ["spec/a_spec.rb:1"]}, tmp)
         expect(paths).to eq([File.join(tmp, "spec/a_spec.rb")])
       end
+
+      # A file the report carries no data for: the map cannot answer
+      # for it, so the whole command runs.
+      it "runs everything for a change the report has no data for" do
+        expect(plan({"contexts" => ["spec/a_spec.rb:1"], "coverage" => {}}, ["README.md"]))
+          .to eq(run: true, tests: nil)
+      end
+
+      # The whole line, because the input the plan was built from is
+      # what the complaint has to name for it to be actionable.
+      it "runs everything when the report's coverage section is malformed" do
+        expect(plan("contexts" => ["spec/a_spec.rb:1"], "coverage" => "junk")).to eq(run: true, tests: nil)
+        expect(stderr.string).to eq(
+          %(simplecov affected: input file "coverage.json" isn't valid JSON ("coverage" must be an object)\n)
+        )
+      end
+
+      it "runs just the recorded tests that touch the change" do
+        document = {"contexts" => ["spec/code_spec.rb:1"],
+                    "coverage" => {File.join(tmp, "lib/code.rb") => {"lines" => [1], "contexts" => {"0" => "1"}}}}
+
+        built = described_class.build(["lib/code.rb"], document, root: tmp, input: "coverage.json", stderr: stderr)
+
+        expect(built).to eq(run: true, tests: ["spec/code_spec.rb"])
+      end
+
+      # The watch set is the tracked files plus the recorded tests'
+      # files, counted once each: a recorded test file the report also
+      # covers is one path to watch, not two.
+      it "derives the watch set from the report's own paths" do
+        document = {"coverage" => {"/x/a.rb" => {}, File.join(tmp, "spec/a_spec.rb") => {}},
+                    "contexts" => ["spec/a_spec.rb:1", 42]}
+
+        expect(described_class.watched_paths(document, tmp))
+          .to eq(["/x/a.rb", File.join(tmp, "spec/a_spec.rb")])
+      end
+
+      it "watches nothing a malformed report names" do
+        expect(described_class.watched_paths({"coverage" => "junk", "contexts" => "junk"}, tmp)).to eq([])
+      end
     end
 
     describe SimpleCov::CLI::Watch::LiveReport do
@@ -8504,7 +8964,7 @@ RSpec.describe SimpleCov::CLI do
         server = TCPServer.new("127.0.0.1", 0)
         client = TCPSocket.new("127.0.0.1", server.addr[1])
         served = server.accept
-        thread = Thread.new { live.stream(served) }
+        thread = Thread.new { live.send(:stream, served) }
         wait_for { live.instance_variable_get(:@queues).size == 1 }
         wait_for { client.readline.strip.empty? } # drain response headers
         served.close
@@ -8516,6 +8976,73 @@ RSpec.describe SimpleCov::CLI do
         server&.close
       end
 
+      # The connection is opened once and then held: every broadcast
+      # after the first has to reach the tab down the same stream.
+      it "opens the stream with SSE headers and forwards every broadcast" do
+        live = described_class.new(tmp)
+        server = TCPServer.new("127.0.0.1", 0)
+        client = TCPSocket.new("127.0.0.1", server.addr[1])
+        served = server.accept
+        thread = Thread.new { live.send(:stream, served) }
+        wait_for { live.instance_variable_get(:@queues).size == 1 }
+
+        header = +""
+        header << client.readline until header.end_with?("\r\n\r\n")
+        expect(header).to eq("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n" \
+                             "Cache-Control: no-cache\r\n\r\n")
+
+        live.broadcast
+        live.broadcast("again")
+        expect(Timeout.timeout(10) { Array.new(4) { client.readline } })
+          .to eq(["data: reload\n", "\n", "data: again\n", "\n"])
+
+        served.close
+        live.broadcast
+        thread.join(5)
+      ensure
+        client&.close
+        server&.close
+      end
+
+      it "hands every open tab the event it was given, and a reload by default" do
+        live = described_class.new(tmp)
+        queues = [Queue.new, Queue.new]
+        live.instance_variable_set(:@queues, queues)
+
+        live.broadcast
+        live.broadcast("again")
+
+        expect(queues.collect { |queue| Array.new(2) { queue.pop(true) } })
+          .to eq([%w[reload again], %w[reload again]])
+      end
+
+      it "mounts the live page on both index paths" do
+        live = described_class.new(tmp)
+
+        expect(live.routes.keys).to eq(["/events", "/", "/index.html"])
+        expect(live.routes["/"]).to eq(live.routes["/index.html"])
+      end
+
+      it "serves the report page with the reload listener appended" do
+        File.write(File.join(tmp, "index.html"), "<html>report</html>")
+        live = described_class.new(tmp)
+        server = TCPServer.new("127.0.0.1", 0)
+        thread = Thread.new do
+          SimpleCov::CLI::Serve::StaticFileHandler.handle_connection(server.accept, tmp, live.routes)
+        end
+        sock = TCPSocket.new("127.0.0.1", server.addr[1])
+        sock.write("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n")
+
+        response = Timeout.timeout(10) { sock.read }
+
+        expect(response).to start_with("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n")
+        expect(response).to end_with("<html>report</html>#{described_class::RELOAD_SCRIPT}")
+      ensure
+        sock&.close
+        thread&.join(2)
+        server&.close
+      end
+
       it "answers 404 for the page before a report exists" do
         live = described_class.new(tmp)
         server = TCPServer.new("127.0.0.1", 0)
@@ -8524,7 +9051,7 @@ RSpec.describe SimpleCov::CLI do
         end
         sock = TCPSocket.new("127.0.0.1", server.addr[1])
         sock.write("GET / HTTP/1.1\r\nHost: x\r\n\r\n")
-        expect(sock.read).to start_with("HTTP/1.1 404")
+        expect(Timeout.timeout(10) { sock.read }).to start_with("HTTP/1.1 404")
       ensure
         sock&.close
         thread&.join(2)

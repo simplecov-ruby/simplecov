@@ -13,17 +13,17 @@ module SimpleCov
         end
 
         def banner(server, count)
-          host = Serve.url_host(server.addr[3])
-          @stdout.puts("watching #{count} file#{'s' unless count == 1}, " \
-                       "serving http://#{host}:#{server.addr[1]}/")
+          host = Serve.url_host(server.addr.fetch(3))
+          @stdout.puts("watching #{count} file#{'s' unless count.eql?(1)}, " \
+                       "serving http://#{host}:#{server.addr.fetch(1)}/")
           @stdout.puts("Press Ctrl-C to stop.")
         end
 
         def change(changed, plan)
           named = name(changed)
-          return @stdout.puts("#{named} changed, no recorded test touches it") unless plan[:run]
+          return @stdout.puts("#{named} changed, no recorded test touches it") unless plan.fetch(:run)
 
-          @stdout.print("#{named} changed, #{action(plan[:tests])}...")
+          @stdout.print("#{named} changed, #{action(plan.fetch(:tests))}...")
         end
 
         # " 95.00% (+5.00%)" on the line `change` opened.
@@ -44,9 +44,12 @@ module SimpleCov
 
       private
 
+        # A burst is named by the file that opened it, so the line stays
+        # one line however many files a save touched.
         def name(changed)
           relative = changed.map { |path| path.delete_prefix("#{@root}/") }
-          relative.size == 1 ? relative.first : "#{relative.first} and #{relative.size - 1} more"
+          named = relative.first
+          relative.size.eql?(1) ? named : "#{named} and #{relative.size - 1} more"
         end
 
         def action(tests)

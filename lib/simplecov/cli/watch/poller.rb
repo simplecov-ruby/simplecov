@@ -29,7 +29,7 @@ module SimpleCov
           changed = [] #: Array[String]
           @snapshot.each_key do |path|
             now = stamp(path)
-            next if now == @snapshot[path]
+            next if now.eql?(@snapshot.fetch(path))
 
             @snapshot[path] = now
             changed << path

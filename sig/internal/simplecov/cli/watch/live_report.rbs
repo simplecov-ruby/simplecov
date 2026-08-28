@@ -15,11 +15,18 @@ module SimpleCov
 
         def broadcast: (?String event) -> untyped
 
+        private
+
         def stream: (untyped client) -> untyped
 
         def forward: (untyped client, Thread::Queue queue) -> untyped
 
+        # The next broadcast, waiting on the queue until one arrives.
+        def next_event: (Thread::Queue queue) -> untyped
+
         def page: (untyped client) -> untyped
+
+        def with_queues: () { (Array[Thread::Queue]) -> untyped } -> untyped
       end
     end
   end
