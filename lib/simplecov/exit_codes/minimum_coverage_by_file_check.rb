@@ -14,13 +14,13 @@ module SimpleCov
       end
 
       def exit_code
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        MINIMUM_COVERAGE
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.minimum_by_file(result, thresholds, @overrides, baseline: @baseline)
+        CoverageViolations.minimum_by_file(result, thresholds, @overrides, baseline: @baseline)
       end
 
       def report_violation(violation)
@@ -28,7 +28,7 @@ module SimpleCov
           "%<criterion>s coverage by file (%<actual>s) is below the expected minimum coverage " \
           "(%<expected>.2f%%) in %<filename>s.",
           criterion: violation.fetch(:criterion).capitalize,
-          actual: SimpleCov::Color.colorize_percent(violation.fetch(:actual)),
+          actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected),
           filename: violation.fetch(:project_filename)
         )

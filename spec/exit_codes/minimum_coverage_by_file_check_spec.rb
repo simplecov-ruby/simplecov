@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
+RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByFileCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage_by_file, overrides) }
 
   let(:result) do
@@ -199,5 +201,22 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck do
 
       it { is_expected.to be_failing }
     end
+  end
+
+  # Overrides are optional: a project that names no per-file exception
+  # still gets a check that reads its floors.
+  it "needs no overrides to be built" do
+    built = described_class.new(result, {line: 90.0})
+
+    expect(built.instance_variable_get(:@overrides)).to eq({})
+    expect(built).to be_failing
+  end
+
+  it "names the file that fell short, and by how much" do
+    allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+
+    expect { described_class.new(result, {line: 90.0}).report }
+      .to output("Line coverage by file (80.00%) is below the expected minimum coverage " \
+                 "(90.00%) in lib/foo.rb.\n").to_stderr
   end
 end
