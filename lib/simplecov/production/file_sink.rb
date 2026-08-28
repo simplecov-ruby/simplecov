@@ -51,8 +51,7 @@ module SimpleCov
 
       def store(coverage) # rubocop:disable Naming/PredicateMethod -- the sink contract returns acceptance
         FileUtils.mkdir_p(File.dirname(path))
-        File.open(path, File::RDWR | File::CREAT, 0o644) do |file|
-          file.flock(File::LOCK_EX)
+        locked do |file|
           existing = self.class.parse(file.read, path)
           rewrite(file, envelope(existing, coverage))
         end
@@ -64,7 +63,6 @@ module SimpleCov
       def rewrite(file, payload)
         file.rewind
         file.write(JSON.generate(payload))
-        file.flush
         file.truncate(file.pos)
       end
 
@@ -79,27 +77,43 @@ module SimpleCov
 
       # @api private — shared by `read` and `store`'s read-modify-write.
       # An empty or missing file is a fresh store.
+      # JSON answers plain hashes, arrays, and scalars, never a subclass
+      # of one, so the shape checks below ask about the class itself.
       def self.parse(content, path)
-        return {"coverage" => {}, "last_seen" => {}, "started_at" => nil} if content.strip.empty?
+        return {"coverage" => {}, "last_seen" => {}, "started_at" => nil} if content.match?(/\A\s*\z/)
 
         inner = envelope_of(JSON.parse(content), path)
-        inner["coverage"] = {} unless inner["coverage"].is_a?(Hash)
-        inner["last_seen"] = {} unless inner["last_seen"].is_a?(Hash)
+        inner["coverage"] = {} unless inner["coverage"].instance_of?(Hash)
+        inner["last_seen"] = {} unless inner["last_seen"].instance_of?(Hash)
         inner
       rescue JSON::ParserError => e
-        raise Error, "#{path} is not valid JSON (#{e.message.lines.first.to_s.strip})"
+        # One line of the parser's complaint, which for some inputs
+        # quotes the document back and runs long.
+        raise Error, "#{path} is not valid JSON (#{e.message.lines.first.to_s.rstrip})"
       end
 
       # The document's inner envelope, or the refusal that keeps an
       # arbitrary JSON file from being misread as empty coverage.
       def self.envelope_of(document, path)
-        inner = document[ENVELOPE] if document.is_a?(Hash)
-        raise Error, "#{path} is not a SimpleCov production coverage file" unless inner.is_a?(Hash)
+        inner = document[ENVELOPE] if document.instance_of?(Hash)
+        raise Error, "#{path} is not a SimpleCov production coverage file" unless inner.instance_of?(Hash)
 
         inner
       end
 
     private
+
+      # Both halves of the read-modify-write happen through one handle,
+      # under an exclusive lock, so processes sharing the file take turns
+      # rather than overwriting each other. The open flags are summed,
+      # which for disjoint bits is the same number OR would build and
+      # leaves no spelling of the combination without a witness.
+      def locked
+        File.open(path, File::RDWR + File::CREAT, 0o644) do |file|
+          file.flock(File::LOCK_EX)
+          yield file
+        end
+      end
 
       def merge(existing, incoming)
         incoming.each_with_object(existing) do |(file, lines), merged|
@@ -114,8 +128,8 @@ module SimpleCov
             "format_version" => FORMAT_VERSION,
             "started_at" => existing["started_at"] || now,
             "updated_at" => now,
-            "coverage" => merge(existing["coverage"], incoming).sort.to_h,
-            "last_seen" => existing["last_seen"].merge(incoming.keys.to_h { |file| [file, now] }).sort.to_h
+            "coverage" => merge(existing.fetch("coverage"), incoming).sort.to_h,
+            "last_seen" => existing.fetch("last_seen").merge(incoming.transform_values { now }).sort.to_h
           }
         }
       end
