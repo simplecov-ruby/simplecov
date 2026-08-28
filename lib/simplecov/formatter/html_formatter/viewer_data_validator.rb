@@ -36,20 +36,20 @@ module SimpleCov
         private
 
           def validate_section!(data, key)
-            return if data[key].is_a?(Hash)
+            return if data[key].instance_of?(Hash)
 
-            raise SimpleCov::CoverageJSON::Error, "#{key.inspect} must be an object"
+            raise CoverageJSON::Error, "#{key.inspect} must be an object"
           end
 
           def validate_file!(filename, file)
-            unless file.is_a?(Hash)
-              raise SimpleCov::CoverageJSON::Error, "coverage entry #{filename.inspect} must be an object"
+            unless file.instance_of?(Hash)
+              raise CoverageJSON::Error, "coverage entry #{filename.inspect} must be an object"
             end
 
             source = file["source"]
-            return if source.is_a?(Array) && source.all?(String)
+            return if source.instance_of?(Array) && source.all?(String)
 
-            raise SimpleCov::CoverageJSON::Error,
+            raise CoverageJSON::Error,
                   "coverage entry #{filename.inspect} must include an array of source strings; " \
                   "regenerate with source_in_json true"
           end
@@ -58,11 +58,11 @@ module SimpleCov
           # present, the viewer decodes both halves, so both are checked.
           def validate_contexts!(data)
             contexts = data["contexts"]
-            unless contexts.nil? || (contexts.is_a?(Array) && contexts.all?(String))
-              raise SimpleCov::CoverageJSON::Error, '"contexts" must be an array of strings'
+            unless contexts.nil? || (contexts.instance_of?(Array) && contexts.all?(String))
+              raise CoverageJSON::Error, '"contexts" must be an array of strings'
             end
 
-            count = contexts.is_a?(Array) ? contexts.size : 0
+            count = Array(contexts).size
             data.fetch("coverage").each { |filename, file| validate_context_table!(filename, file["contexts"], count) }
           end
 
@@ -70,15 +70,17 @@ module SimpleCov
           # document's context list with it, and walks each value as hex
           # nibbles, so keys and values are held to exactly that contract.
           def validate_context_table!(filename, table, count)
-            return if table.nil? || (table.is_a?(Hash) && table.all? { |key, value| context_entry?(key, value, count) })
+            return if table.nil? || (table.instance_of?(Hash) && table.all? do |key, value|
+              context_entry?(key, value, count)
+            end)
 
-            raise SimpleCov::CoverageJSON::Error,
+            raise CoverageJSON::Error,
                   "coverage entry #{filename.inspect} contexts must map recorded context indices to hex bitmaps"
           end
 
           def context_entry?(key, value, count)
-            key.is_a?(String) && key.match?(/\A\d+\z/) && key.to_i < count &&
-              value.is_a?(String) && value.match?(/\A\h+\z/)
+            key.instance_of?(String) && key.match?(/\A\d+\z/) && Integer(key) < count &&
+              value.instance_of?(String) && value.match?(/\A\h+\z/)
           end
 
           # Optional: a report without a configured production store
@@ -90,7 +92,7 @@ module SimpleCov
             production = data["production"]
             return if production.nil?
 
-            raise SimpleCov::CoverageJSON::Error, '"production" must be an object' unless production.is_a?(Hash)
+            raise CoverageJSON::Error, '"production" must be an object' unless production.instance_of?(Hash)
 
             files = validate_type!(production, "files", Hash, "production")
             files.each { |filename, entry| validate_production_file!(filename, entry) }
@@ -98,17 +100,18 @@ module SimpleCov
 
           def validate_production_file!(filename, entry)
             unless production_lines?(entry)
-              raise SimpleCov::CoverageJSON::Error,
+              raise CoverageJSON::Error,
                     "production entry #{filename.inspect} must list sorted line numbers"
             end
-            return if entry["last_seen"].nil? || entry["last_seen"].is_a?(String)
+            last_seen = entry["last_seen"]
+            return if last_seen.nil? || last_seen.instance_of?(String)
 
-            raise SimpleCov::CoverageJSON::Error, "production entry #{filename.inspect} last_seen must be a string"
+            raise CoverageJSON::Error, "production entry #{filename.inspect} last_seen must be a string"
           end
 
           def production_lines?(entry)
-            lines = entry["lines"] if entry.is_a?(Hash)
-            lines.is_a?(Array) && lines.all? { |line| line.is_a?(Integer) && line.positive? }
+            lines = entry["lines"] if entry.instance_of?(Hash)
+            lines.instance_of?(Array) && lines.all? { |line| line.instance_of?(Integer) && line.positive? }
           end
 
           def validate_meta!(meta)
@@ -117,7 +120,7 @@ module SimpleCov
             Time.iso8601(meta.fetch("timestamp"))
             COVERAGE_FLAGS.each_key { |key| validate_boolean!(meta, key) }
           rescue ArgumentError
-            raise SimpleCov::CoverageJSON::Error, "meta.timestamp must be an ISO 8601 date-time"
+            raise CoverageJSON::Error, "meta.timestamp must be an ISO 8601 date-time"
           end
 
           # Optional: documents from before the key exists carry only the
@@ -126,9 +129,9 @@ module SimpleCov
           # be an array of strings.
           def validate_command_names!(meta)
             names = meta["command_names"]
-            return if names.nil? || (names.is_a?(Array) && names.all?(String))
+            return if names.nil? || (names.instance_of?(Array) && names.all?(String))
 
-            raise SimpleCov::CoverageJSON::Error, "meta.command_names must be an array of strings"
+            raise CoverageJSON::Error, "meta.command_names must be an array of strings"
           end
 
           def validate_statistics!(statistics, meta, location)
@@ -141,11 +144,11 @@ module SimpleCov
           end
 
           def validate_group!(name, group, meta)
-            raise SimpleCov::CoverageJSON::Error, "group #{name.inspect} must be an object" unless group.is_a?(Hash)
+            raise CoverageJSON::Error, "group #{name.inspect} must be an object" unless group.instance_of?(Hash)
 
             files = group["files"]
-            unless files.is_a?(Array) && files.all?(String)
-              raise SimpleCov::CoverageJSON::Error, "group #{name.inspect}.files must be an array of strings"
+            unless files.instance_of?(Array) && files.all?(String)
+              raise CoverageJSON::Error, "group #{name.inspect}.files must be an array of strings"
             end
 
             validate_statistics!(group, meta, "group #{name.inspect}")
@@ -155,13 +158,13 @@ module SimpleCov
             value = object[key]
             return value if value.is_a?(type)
 
-            raise SimpleCov::CoverageJSON::Error, "#{location}.#{key} must be a #{type.name.downcase}"
+            raise CoverageJSON::Error, "#{location}.#{key} must be a #{type.name.downcase}"
           end
 
           def validate_boolean!(meta, key)
             return if [true, false].include?(meta[key])
 
-            raise SimpleCov::CoverageJSON::Error, "meta.#{key} must be a boolean"
+            raise CoverageJSON::Error, "meta.#{key} must be a boolean"
           end
         end
       end
