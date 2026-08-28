@@ -72,4 +72,36 @@ RSpec.describe SimpleCov::ViewCoverage do
       expect(described_class.compile_unrendered).to be_empty
     end
   end
+
+  describe ".discover" do
+    # Only the filters that can decide from a path alone: a template
+    # that was never rendered has no coverage for the others to read.
+    it "rejects by the filters that need no coverage to decide" do
+      path_only = SimpleCov::StringFilter.new("nothing")
+      needs_source = SimpleCov::BlockFilter.new(->(_source_file) { true })
+      allow(SimpleCov).to receive(:filters).and_return([path_only, needs_source])
+      allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return([])
+
+      described_class.discover
+      expect(SimpleCov::UnloadedFileInjector)
+        .to have_received(:discover).with(anything, root: root, reject: [path_only])
+    end
+
+    it "looks for nothing when no globs were configured" do
+      allow(SimpleCov).to receive(:view_globs).and_return(nil)
+      allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return([])
+
+      described_class.discover
+      expect(SimpleCov::UnloadedFileInjector).to have_received(:discover).with([], root: root, reject: [])
+    end
+  end
+
+  describe ".measured_paths" do
+    # Answered as a set: every template discovered is asked whether it
+    # is in here, and a list would answer each of those by scanning.
+    it "answers the measured paths as a set" do
+      expect(described_class.measured_paths).to eq(Set[rendered])
+      expect(described_class.measured_paths).to be_a(Set)
+    end
+  end
 end

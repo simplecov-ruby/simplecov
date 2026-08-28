@@ -21,7 +21,7 @@ module SimpleCov
   # didn't reach is compiled here, which lands it in the report at 0%.
   #
   module ViewCoverage
-  module_function
+    extend self
 
     # Compiles every configured template the run never rendered. Returns the
     # paths that were compiled, which is also what the specs assert on.
