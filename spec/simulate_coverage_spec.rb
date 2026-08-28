@@ -237,4 +237,24 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
     end
   end
+
+  # Older rubies have no `line_stub`, and a stub is the only thing this
+  # can offer without one.
+  it "synthesizes no lines where Coverage cannot stub them" do
+    allow(Coverage).to receive(:respond_to?).and_call_original
+    allow(Coverage).to receive(:respond_to?).with(:line_stub).and_return(false)
+
+    expect(described_class.send(:coverage_stub, __FILE__, ["a = 1\n"])).to be_nil
+  end
+
+  # Exactly the two kinds of tuple, whatever else the extractor saw fit
+  # to report: what is synthesized here stands in for Coverage's own
+  # answer, which carries these and nothing else.
+  it "carries the branch and method tuples, and nothing besides" do
+    allow(SimpleCov::StaticCoverageExtractor).to receive(:call)
+      .and_return("branches" => {b: 1}, "methods" => {m: 2}, "lines" => [1])
+
+    expect(described_class.send(:synthesized_tuples, ["a = 1\n"], true))
+      .to eq("branches" => {b: 1}, "methods" => {m: 2})
+  end
 end

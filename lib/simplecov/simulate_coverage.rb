@@ -8,7 +8,7 @@ module SimpleCov
   # Responsible for producing file coverage metrics.
   #
   module SimulateCoverage
-  module_function
+    extend self
 
     #
     # Simulate a file coverage report for a file that was tracked but never
@@ -64,7 +64,7 @@ module SimpleCov
       empty = {"branches" => {}, "methods" => {}} #: Hash[String, Hash[untyped, untyped]]
       synthesized = (StaticCoverageExtractor.call(source_lines.join) if synthesize) || empty
 
-      {"branches" => synthesized["branches"], "methods" => synthesized["methods"]}
+      {"branches" => synthesized.fetch("branches"), "methods" => synthesized.fetch("methods")}
     end
 
     # SystemCallError, not just ENOENT: a `track_files` glob can sweep
@@ -86,10 +86,12 @@ module SimpleCov
     def coverage_stub(path, source_lines)
       return nil unless Coverage.respond_to?(:line_stub)
 
-      stub = Coverage.line_stub(path)
-      classifier_output = LinesClassifier.new.classify(source_lines)
-      stub.each_index { |idx| stub[idx] = nil if classifier_output[idx].nil? }
-      stub
+      # Paired off rather than indexed: the two lists describe the same
+      # file line for line, and zip says so without an index to spell
+      # another way. A line the classifier has no verdict for keeps the
+      # nil it would have been set to.
+      relevance = LinesClassifier.new.classify(source_lines)
+      Coverage.line_stub(path).zip(relevance).map { |hits, relevant| hits if relevant }
     rescue SystemCallError, SyntaxError
       # SystemCallError for the same reason as read_lines above:
       # line_stub reads the file itself, so EACCES/EISDIR surface here
