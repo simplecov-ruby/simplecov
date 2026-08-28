@@ -29,7 +29,11 @@ module SimpleCov
 
         def self?.sum_stats: (untyped rows, untyped criterion) -> { covered: ::Integer, relevant: ::Integer }
 
-        def self?.pct: (untyped stats) -> ::Float
+        def self?.only: (Array[Integer] run) -> String
+
+      def self?.span: (Array[Integer] run) -> String
+
+      def self?.pct: (untyped stats) -> ::Float
 
         # No --minimum is report-only (exit 0); with one, line and (when present)
         # branch patch coverage must both clear the floor.

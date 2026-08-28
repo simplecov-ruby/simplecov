@@ -22,7 +22,7 @@ module SimpleCov
           "a" => "\a", "b" => "\b", "f" => "\f", "v" => "\v"
         }.freeze
 
-      module_function
+        extend self
 
         # nil signals "could not diff" (already reported); empty changes are
         # a valid result meaning the change touched no lines at all.
@@ -82,10 +82,12 @@ module SimpleCov
 
           argv = ["-C", root, "-c", "core.quotePath=false", "diff", "--unified=0",
                   "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
-                  "--src-prefix=a/", "--dst-prefix=b/",
+                  "--dst-prefix=b/",
                   find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
           stdout, detail, success = Git.capture(*argv)
-          success ? [stdout, nil] : [nil, detail]
+          # What git produced, or nothing when it failed, and whatever it
+          # had to say either way.
+          [(stdout if success), detail]
         end
 
         # The files git tracks nowhere: a brand-new file that was never
@@ -99,10 +101,11 @@ module SimpleCov
           success ? (_ = stdout).scrub.split("\0") : []
         end
 
+        # Answers nothing, which is what `call` hands back as "could not
+        # diff": `puts` is a report, and a report has no answer.
         def report_git_error(stderr, base, detail)
           reason = detail.to_s.empty? ? "is this a git working tree, and does the ref exist?" : detail
           stderr.puts("simplecov patch: could not run `git diff` against #{base.inspect} (#{reason})")
-          nil
         end
 
         # Parse `git diff --unified=0` into {new_path => [added line numbers]}.
@@ -114,7 +117,8 @@ module SimpleCov
         # and misdirecting the rest of the file's hunks.
         def parse_diff(output)
           changes = {} #: Hash[String, Array[Integer]]
-          output.split(/^(?=diff --git )/).each do |section|
+          sections = output.split(/^(?=diff --git )/)
+          sections.each do |section|
             path = section_path(section) or next
             section.each_line do |line|
               match = HUNK_HEADER.match(line)
@@ -127,13 +131,13 @@ module SimpleCov
         # The new-file path from a diff section: its first `+++` line, which
         # precedes the first hunk. `+++ /dev/null` (a deletion) yields nil.
         def section_path(section)
-          header = section[/^\+\+\+ .*/]
+          header = section[/^\+\+\+ .+/]
           header && diff_path(header)
         end
 
         def record_hunk(changes, path, match)
-          start = match[1].to_i
-          count = match[2] ? match[2].to_i : 1
+          start = Integer(match[1])
+          count = match[2] ? Integer(match[2]) : 1
           return if count.zero? # a pure-deletion hunk adds nothing
 
           (changes[path] ||= []).concat((start...(start + count)).to_a)
@@ -145,7 +149,7 @@ module SimpleCov
           raw = unquote(line[4..].to_s.chomp)
           # git's own literal token for an absent side, not this host's null
           # device, so File::NULL (which is "NUL" on Windows) would be wrong.
-          return nil if raw == "/dev/null" # rubocop:disable Style/FileNull
+          return nil if raw.eql?("/dev/null") # rubocop:disable Style/FileNull
 
           raw.sub(%r{\A[ab]/}, "")
         end
@@ -160,12 +164,15 @@ module SimpleCov
 
           # Unescaped as raw bytes: an octal escape is a bare byte, and
           # mixing one into a UTF-8 string would raise mid-gsub.
-          unquoted = raw.b[1..-2].to_s.gsub(/\\(?:[0-7]{1,3}|.)/) { |escape| unescape(escape) }
+          # The slice is never nil: the guard above took paths shorter
+          # than the two quotes.
+          unquoted = (_ = raw.b[1..-2]).gsub(/\\(?:[0-7]{1,3}|.)/) { |escape| unescape(escape) }
           unquoted.force_encoding(raw.encoding).scrub
         end
 
         def unescape(escape)
-          body = escape[1..].to_s
+          # An escape is a backslash and at least one more character.
+          body = _ = escape[1..]
           body.match?(/\A[0-7]/) ? Integer(body, 8).chr : UNQUOTE.fetch(body, body)
         end
       end

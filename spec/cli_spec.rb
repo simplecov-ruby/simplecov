@@ -4757,7 +4757,282 @@ RSpec.describe SimpleCov::CLI do
   # Tagged for the renderer alone, which makes these the tests its
   # subjects answer to: they exercise it directly, where the
   # subcommand's own examples reach it through a built git repository.
-  describe "patch subcommand" do
+  describe "patch output", mutant_expression: "SimpleCov::CLI::Patch::Output*" do
+    let(:renderer) { SimpleCov::CLI::Patch::Output }
+    let(:stdout) { StringIO.new }
+    let(:rows) do
+      [{file: "lib/a.rb",
+        line: {covered: 22, relevant: 25, missing: [41, 42, 43, 47]},
+        branch: {covered: 1, relevant: 2, missing: [39]},
+        method: nil},
+       {file: "lib/b.rb",
+        line: {covered: 4, relevant: 4, missing: []},
+        branch: nil,
+        method: {covered: 0, relevant: 0, missing: []}}]
+    end
+
+    # Worst first, every cell aligned, the missing ranges collapsed, and
+    # a criterion the touched lines never carried left out rather than
+    # printed as a hollow 0/0.
+    it "prints the rows worst first, with a total beneath them" do
+      renderer.emit_text(stdout, rows, false)
+
+      # Written as literal lines rather than a squiggly heredoc, whose
+      # indent stripping would eat the two-space gutter under test.
+      expect(stdout.string).to eq(
+        [
+          "   88.00% (22/25) lines   50.00% (1/2) branches  lib/a.rb  missing 41-43, 47  branch 39",
+          "  100.00% (4/4) lines  lib/b.rb",
+          "  Patch coverage:  89.66% (26/29) lines,  50.00% (1/2) branches"
+        ].join("\n").concat("\n")
+      )
+    end
+
+    it "sorts by coverage first and by filename only to break a tie" do
+      unsorted = [
+        {file: "a.rb", line: {covered: 1, relevant: 1, missing: []}, branch: nil, method: nil},
+        {file: "z.rb", line: {covered: 0, relevant: 2, missing: [1, 2]}, branch: nil, method: nil},
+        {file: "m.rb", line: {covered: 0, relevant: 2, missing: [1, 2]}, branch: nil, method: nil}
+      ]
+      renderer.emit_text(stdout, unsorted, false)
+
+      expect(stdout.string.lines.filter_map { |line| line[/\S+\.rb/] }).to eq(["m.rb", "z.rb", "a.rb"])
+    end
+
+    it "totals every criterion the rows measured, methods included" do
+      with_methods = rows.collect do |row|
+        row.merge(method: {covered: 1, relevant: 2, missing: [8]})
+      end
+      renderer.emit_text(stdout, with_methods, false)
+
+      expect(stdout.string.lines.last)
+        .to eq("  Patch coverage:  89.66% (26/29) lines,  50.00% (1/2) branches,  50.00% (2/4) methods\n")
+    end
+
+    it "says so plainly when the change touched no coverable line" do
+      renderer.emit_text(stdout, [], false)
+
+      expect(stdout.string).to eq("simplecov patch: no coverable lines changed\n")
+    end
+
+    it "emits the same rows as data, each criterion carrying its percent" do
+      expect(renderer.json_rows(rows)).to eq(
+        [{file: "lib/a.rb",
+          line: {covered: 22, relevant: 25, missing: [41, 42, 43, 47], percent: 88.0},
+          branch: {covered: 1, relevant: 2, missing: [39], percent: 50.0}},
+         {file: "lib/b.rb",
+          line: {covered: 4, relevant: 4, missing: [], percent: 100.0}}]
+      )
+    end
+
+    it "collapses runs of lines into ranges, and single lines into themselves" do
+      expect(renderer.ranges([41, 42, 43, 47])).to eq("41-43, 47")
+      expect(renderer.ranges([1])).to eq("1")
+      expect(renderer.ranges([1, 3, 5])).to eq("1, 3, 5")
+      expect(renderer.ranges([1, 2])).to eq("1-2")
+    end
+
+    # The show subcommand borrows this with a bare comma for its
+    # greppable form, so the separator has to reach the joins.
+    it "joins the ranges with the separator it was given" do
+      expect(renderer.ranges([1, 3], ",")).to eq("1,3")
+      expect(renderer.ranges([1, 3])).to eq("1, 3")
+      expect(renderer.ranges([1, 2, 3], ",")).to eq("1-3")
+    end
+
+    it "scores a change that touched nothing relevant as complete" do
+      expect(renderer.pct(covered: 0, relevant: 0)).to eq(100.0)
+      expect(renderer.pct(covered: 1, relevant: 3)).to eq(33.33)
+    end
+
+    # Branch stats are nil on rows from a line-only report, and 0/0 when
+    # the change touched none: neither counts as measured.
+    it "counts only the rows that measured a criterion into its total" do
+      expect(renderer.sum_stats(rows, :branch)).to eq(covered: 1, relevant: 2)
+      expect(renderer.sum_stats(rows, :line)).to eq(covered: 26, relevant: 29)
+      expect(renderer.measured?(nil)).to be false
+      expect(renderer.measured?(covered: 0, relevant: 0)).to be false
+      expect(renderer.measured?(covered: 0, relevant: 1)).to be true
+    end
+
+    it "colorizes a shortfall red and a full cell green" do
+      renderer.emit_text(stdout, rows, true)
+
+      expect(stdout.string).to include("\e[31m 88.00%\e[0m").and include("\e[32m100.00%\e[0m")
+    end
+
+    # The total is a row like any other, so it takes the same colour.
+    it "colorizes the total line too" do
+      renderer.emit_text(stdout, rows, true)
+
+      expect(stdout.string.lines.last).to include("\e[31m 89.66%\e[0m")
+    end
+
+    it "counts a Hash subclass of statistics as measured" do
+      expect(renderer.measured?(Class.new(Hash).new.merge!(covered: 0, relevant: 1))).to be true
+    end
+
+    # Full is full, and nothing short of it counts: a cell at or past
+    # complete is green, and one a fraction below is not.
+    it "colours a cell at or past complete green, and anything below red" do
+      expect(renderer.criterion_cell("lines", {covered: 3, relevant: 2, missing: []}, true))
+        .to include("\e[32m")
+      expect(renderer.criterion_cell("lines", {covered: 199, relevant: 200, missing: []}, true))
+        .to include("\e[31m")
+    end
+
+    it "colours every cell of a row, not only its first" do
+      renderer.emit_text(stdout, rows, true)
+
+      expect(stdout.string.lines.first).to include("\e[31m 88.00%\e[0m").and include("\e[31m 50.00%\e[0m")
+    end
+
+    it "colours a method cell too" do
+      row = {file: "f", line: {covered: 1, relevant: 1, missing: []},
+             branch: nil, method: {covered: 0, relevant: 2, missing: [3]}}
+
+      expect(renderer.criterion_cells(row, true).last).to include("\e[31m")
+    end
+
+    # Whether colour is on is decided from the stream being written to,
+    # so the stream is what has to be asked about.
+    it "asks about the stream it is writing to" do
+      allow(described_class).to receive(:color_enabled?).and_return(false)
+
+      renderer.emit(stdout, rows, json: false)
+
+      expect(described_class).to have_received(:color_enabled?).with({json: false}, stdout)
+    end
+
+    # A criterion that measured nothing has no missing lines to name,
+    # however its stats hash is shaped.
+    it "notes nothing for a criterion that measured nothing" do
+      row = {file: "f", line: {covered: 1, relevant: 1, missing: []},
+             branch: {covered: 0, relevant: 0, missing: [3]}, method: nil}
+
+      expect(renderer.missing_note(row)).to eq("")
+    end
+
+    # A criterion the change touched none of is still a Hash, so the
+    # cell is left out on what it measured rather than on its presence.
+    it "leaves out a branch cell the change touched none of" do
+      row = {file: "f", line: {covered: 1, relevant: 1, missing: []},
+             branch: {covered: 0, relevant: 0, missing: []}, method: nil}
+
+      expect(renderer.criterion_cells(row, false)).to eq(["100.00% (1/1) lines"])
+    end
+
+    describe "emit" do
+      it "prints the rows as data under --json, and as text otherwise" do
+        renderer.emit(stdout, rows, json: true)
+        expect(JSON.parse(stdout.string)).to eq(
+          [{"file" => "lib/a.rb",
+            "line" => {"covered" => 22, "relevant" => 25, "missing" => [41, 42, 43, 47], "percent" => 88.0},
+            "branch" => {"covered" => 1, "relevant" => 2, "missing" => [39], "percent" => 50.0}},
+           {"file" => "lib/b.rb",
+            "line" => {"covered" => 4, "relevant" => 4, "missing" => [], "percent" => 100.0}}]
+        )
+
+        plain = StringIO.new
+        renderer.emit(plain, rows, json: false, no_color: true)
+        expect(plain.string).to start_with("   88.00%")
+      end
+
+      it "leaves colour to the shared rule, which --no-color turns off" do
+        renderer.emit(stdout, rows, json: false, no_color: true)
+        expect(stdout.string).not_to include("\e[")
+      end
+
+      it "colorizes when the shared rule says to" do
+        allow(described_class).to receive(:color_enabled?).and_return(true)
+        renderer.emit(stdout, rows, json: false)
+        expect(stdout.string).to include("\e[")
+      end
+    end
+
+    # The exit status of `patch --minimum N`. The arithmetic is
+    # cross-multiplied rather than compared as percentages, so the
+    # boundary cases the code reasons about are the ones asserted here.
+    describe "the minimum gate" do
+      def row(covered, relevant, criterion: :line)
+        base = {file: "lib/a.rb", line: {covered: 0, relevant: 0, missing: []}, branch: nil, method: nil}
+        base.merge(criterion => {covered: covered, relevant: relevant, missing: []})
+      end
+
+      it "reports without gating when no minimum was asked for" do
+        expect(renderer.gate([row(0, 10)], nil)).to eq(0)
+      end
+
+      it "passes a patch that clears the floor and fails one that does not" do
+        expect(renderer.gate([row(9, 10)], 90)).to eq(0)
+        expect(renderer.gate([row(8, 10)], 90)).to eq(1)
+      end
+
+      it "holds every measured criterion to the floor, not just lines" do
+        expect(renderer.gate([row(10, 10).merge(branch: {covered: 0, relevant: 2, missing: []})], 100)).to eq(1)
+        expect(renderer.gate([row(10, 10).merge(method: {covered: 0, relevant: 1, missing: []})], 100)).to eq(1)
+      end
+
+      it "never fails a criterion the change touched none of" do
+        expect(renderer.short?({covered: 0, relevant: 0}, 100)).to be false
+        expect(renderer.gate([row(10, 10)], 100)).to eq(0)
+      end
+
+      # Rounding the displayed percent would pass this against 100.
+      it "fails a patch that is short by a line however small the shortfall" do
+        expect(renderer.short?({covered: 19_999, relevant: 20_000}, 100)).to be true
+      end
+
+      # Float division makes 23/40 compute as 57.4999…, which would fail
+      # a patch that is exactly at the floor.
+      it "passes a patch sitting exactly on the floor" do
+        expect(renderer.short?({covered: 23, relevant: 40}, 57.5)).to be false
+      end
+
+      # 64.4 is not representable in binary, so 64.4 * 250 lands just
+      # above the integer the patch actually reached.
+      it "passes a floor whose decimal has no exact binary form" do
+        expect(renderer.short?({covered: 161, relevant: 250}, 64.4)).to be false
+      end
+    end
+
+    describe "the cells and notes a row carries" do
+      it "prints a branch or method cell only when the change touched one" do
+        both = {file: "f", line: {covered: 1, relevant: 2, missing: [2]},
+                branch: {covered: 1, relevant: 4, missing: [3]},
+                method: {covered: 3, relevant: 4, missing: [7]}}
+        expect(renderer.criterion_cells(both, false))
+          .to eq([" 50.00% (1/2) lines", " 25.00% (1/4) branches", " 75.00% (3/4) methods"])
+
+        neither = both.merge(branch: nil, method: {covered: 0, relevant: 0, missing: []})
+        expect(renderer.criterion_cells(neither, false)).to eq([" 50.00% (1/2) lines"])
+      end
+
+      it "notes the missing lines, then each measured criterion's own" do
+        row = {file: "f", line: {covered: 0, relevant: 2, missing: [1, 2]},
+               branch: {covered: 0, relevant: 1, missing: [5]},
+               method: {covered: 0, relevant: 1, missing: [9]}}
+        expect(renderer.missing_note(row)).to eq("missing 1-2  branch 5  method 9")
+      end
+
+      # A criterion can be measured and still have nothing missing, and
+      # an empty range list would print a bare label with no lines.
+      it "notes only the criteria that actually missed something" do
+        row = {file: "f", line: {covered: 2, relevant: 2, missing: []},
+               branch: {covered: 2, relevant: 2, missing: []},
+               method: {covered: 0, relevant: 1, missing: [4]}}
+        expect(renderer.missing_note(row)).to eq("method 4")
+      end
+
+      it "says nothing about a row with nothing missing" do
+        row = {file: "f", line: {covered: 1, relevant: 1, missing: []}, branch: nil, method: nil}
+        expect(renderer.missing_note(row)).to eq("")
+        expect(renderer.format_row(row, false)).to eq("  100.00% (1/1) lines  f")
+      end
+    end
+  end
+
+  describe "patch subcommand", mutant_expression: "SimpleCov::CLI::Patch*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }
 
@@ -4786,15 +5061,17 @@ RSpec.describe SimpleCov::CLI do
       write_report(file, line_hits, branches, methods) if cover
     end
 
+    # One git process rather than five. The settings are appended to the
+    # config file the init just wrote, which is the same file four
+    # `git config` runs would have edited one line at a time. The empty
+    # template keeps git from copying its sixteen sample hooks into
+    # every repository an example builds.
+    #
+    # git 2.46+ forks a detached `git maintenance` after commits; its
+    # transient .git/objects/maintenance.lock races the after-hook's
+    # directory removal, so the fixture repo opts out of both.
     def init_repo
-      git("init", "-q", "-b", "main")
-      git("config", "user.email", "t@example.com")
-      git("config", "user.name", "Test")
-      # git 2.46+ forks a detached `git maintenance` after commits; its
-      # transient .git/objects/maintenance.lock races the after-hook's
-      # directory removal, so the fixture repo opts out.
-      git("config", "maintenance.auto", "false")
-      git("config", "gc.auto", "0")
+      GitFixture.init_repo(tmp)
     end
 
     def commit(message)
@@ -5145,6 +5422,32 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("lib/brand_new.rb").and include("(1/2)").and include("missing 2")
     end
 
+    # An ignored file is untracked on purpose. Scoring it would fail the
+    # gate over generated output nobody wrote.
+    # `git ls-files` hands back raw bytes, and a filename on disk need not
+    # be valid UTF-8. Splitting on the NUL separator raises on such a
+    # string, which would take the whole patch run down over a filename.
+    it "scrubs bytes from git that are not valid UTF-8" do
+      allow(SimpleCov::CLI::Git)
+        .to receive(:capture)
+        .and_return([(+"lib/ca\xFFe.rb\0lib/ok.rb\0").force_encoding(Encoding::UTF_8), "", true])
+
+      expect(SimpleCov::CLI::Patch::ChangedLines.send(:untracked_files, "/anywhere"))
+        .to eq(["lib/ca\uFFFDe.rb", "lib/ok.rb"])
+    end
+
+    it "leaves an ignored file out of the untracked ones" do
+      init_repo
+      write("lib/base.rb", "a\n")
+      write(".gitignore", "lib/generated.rb\n")
+      commit("base")
+      write("lib/generated.rb", "a\n") # untracked, but ignored
+      write_report("lib/generated.rb", [0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(0)
+      expect(stdout.string).not_to include("lib/generated.rb")
+    end
+
     it "fails --minimum on an uncovered untracked file" do
       init_repo
       write("lib/base.rb", "a\n")
@@ -5230,12 +5533,553 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
     end
 
-    it "undoes git's C-quoting escapes" do
-      unquote = SimpleCov::CLI::Patch::ChangedLines.method(:unquote)
-      expect(unquote.call(%("b/a\\tb.rb"))).to eq("b/a\tb.rb")
-      expect(unquote.call(%("b/caf\\303\\251.rb"))).to eq("b/café.rb")
-      expect(unquote.call(%("b/a\\zb.rb"))).to eq("b/azb.rb") # unknown escape keeps its letter
-      expect(unquote.call("b/plain.rb")).to eq("b/plain.rb")
+    # The diff is pinned against a user's git config so it cannot skew
+    # the numbers, run code, or throw off the parse. Each of these
+    # configures the repository the way a real one might be configured
+    # and checks the score is the same.
+    describe "a diff pinned against the repository's own configuration" do
+      before { build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0]) }
+
+      {
+        "colour turned on" => ["color.diff", "always"],
+        "prefixes turned off" => ["diff.noprefix", "true"],
+        "a source prefix of its own" => ["diff.srcPrefix", "src/"],
+        "a destination prefix of its own" => ["diff.dstPrefix", "dst/"],
+        "quoted paths" => ["core.quotePath", "true"],
+        "context between hunks" => ["diff.interHunkContext", "5"],
+        "renames found by default" => ["diff.renames", "true"]
+      }.each do |description, (setting, value)|
+        it "scores the same change with #{description}" do
+          git("config", setting, value)
+
+          expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+          expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+        end
+      end
+
+      # Two changes a few lines apart are two hunks, and merging them
+      # would score the untouched lines between as this change's work.
+      it "keeps hunks apart that a merged context would join" do
+        git("checkout", "-q", "main")
+        write("lib/foo.rb", "a\nb\nc\nd\ne\n")
+        commit("five lines")
+        git("checkout", "-q", "-B", "feature")
+        write("lib/foo.rb", "A\nb\nc\nd\nE\n")
+        commit("both ends")
+        write_report("lib/foo.rb", [1, 0, 0, 0, 1], nil)
+        git("config", "diff.interHunkContext", "5")
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+        expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(2/2\)})
+      end
+
+      # An external diff driver, or a textconv filter, replaces what git
+      # prints with whatever a configured command says — including
+      # nothing a hunk parser can read.
+      it "scores the same change with an external diff driver configured" do
+        git("config", "diff.external", "true")
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+        expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+      end
+
+      # A textconv filter that answers with fewer lines than the file has
+      # would renumber every hunk after it.
+      it "scores the same change with a textconv filter configured" do
+        git("config", "diff.firstline.textconv", "head -1")
+        write(".gitattributes", "*.rb diff=firstline\n")
+        commit("textconv")
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+        expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+      end
+
+      # The merge base, not the branch tip: a base that has moved on
+      # independently must not read as this change's work.
+      it "scores against the merge base rather than the base's tip" do
+        git("checkout", "-q", "main")
+        write("lib/other.rb", "x\ny\n")
+        commit("moved on")
+        git("checkout", "-q", "feature")
+        write_report("lib/foo.rb", [1, 1, 0], nil)
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+        expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+      end
+    end
+
+    # A ref that begins with a dash is an option to git, not a
+    # revision: `--output=FILE` writes to disk and `--line-prefix=`
+    # empties the diff so a `--minimum` gate passes over the change.
+    it "refuses a base that git would read as an option" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "--base", "--output=/tmp/pwned", "--input", cov)).to eq(1)
+      expect(stderr.string)
+        .to eq(%(simplecov patch: could not run `git diff` against "--output=/tmp/pwned" ) +
+               %((a ref cannot begin with "-")\n))
+    end
+
+    # Outside a working tree there is nothing to diff, and the failure
+    # is reported once rather than again on the way out.
+    it "reports a missing working tree once, naming the base" do
+      File.write(cov, JSON.dump("coverage" => {}))
+      plain = Dir.mktmpdir("simplecov-cli-patch-nogit-")
+
+      expect(Dir.chdir(plain) { run("patch", "--base", "main", "--input", cov) }).to eq(1)
+      expect(stderr.string).to eq(%(simplecov patch: could not run `git diff` against "main" ) +
+                                 %((is this a git working tree, and does the ref exist?)\n))
+    ensure
+      FileUtils.remove_entry(plain)
+    end
+
+    it "names the subcommand when the report cannot be read" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", "/no/such.json")).to eq(1)
+      expect(stderr.string).to start_with("simplecov patch: ")
+    end
+
+    it "names the stray positional, and what to write instead" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "feature-x", "other", "--input", cov)).to eq(1)
+      expect(stderr.string)
+        .to eq(%(simplecov patch: unexpected argument "feature-x" (did you mean `--base feature-x`?)\n))
+    end
+
+    # `--base` left out falls back to the repository's own default
+    # branch rather than to nothing.
+    it "falls back to the repository's default branch" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      expect(run_in_repo("patch", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
+    end
+
+    # A minimum is a number, not the string it arrived as: compared as
+    # text, "9" would sit above "50".
+    it "takes a fractional minimum" do
+      build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "50.5")).to eq(1)
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "49.5")).to eq(0)
+    end
+
+    it "refuses a minimum that is not a number" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "lots")).to eq(1)
+      expect(stderr.string).to include("invalid argument")
+    end
+
+    # The merge base, not the base's tip: work the base has done since
+    # the branch point is not this change's work, and a plain diff would
+    # read the base's own deletions as this change adding them back.
+    it "scores against the merge base, not against the base's tip" do
+      init_repo
+      write("lib/foo.rb", "a\nb\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      write("lib/foo.rb", "a\nb\nc\n")
+      commit("head")
+      git("checkout", "-q", "main")
+      write("lib/foo.rb", "a\n")
+      commit("main moved on")
+      git("checkout", "-q", "feature")
+      write_report("lib/foo.rb", [1, 0, 0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+0\.00%\s+\(0/1\)})
+    end
+
+    # Without the end-of-options marker, a ref that is also a filename
+    # is ambiguous and git refuses to diff at all.
+    it "diffs a ref that shares its name with a file" do
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+      write("main", "a file named like the branch\n")
+      commit("ambiguous")
+      write_report("lib/foo.rb", [1, 1], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
+    end
+
+    # A moved file reads as all-new unless renames are asked for, which
+    # is what keeps a move from scoring as one changed line.
+    it "scores a moved file as all-new unless it is asked to find renames" do
+      init_repo
+      write("lib/foo.rb", "a\nb\nc\n")
+      commit("base")
+      git("checkout", "-q", "-b", "feature")
+      git("mv", "lib/foo.rb", "lib/bar.rb")
+      write("lib/bar.rb", "a\nb\nd\n")
+      commit("head")
+      write_report("lib/bar.rb", [1, 1, 0], nil)
+
+      expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+66\.67%\s+\(2/3\)})
+
+      stdout.truncate(0) && stdout.rewind
+      expect(run_in_repo("patch", "--base", "main", "--input", cov, "--find-renames")).to eq(0)
+      expect(stdout.string).to match(%r{Patch coverage:\s+0\.00%\s+\(0/1\)})
+    end
+
+    # Branch and method misses are counted the same way lines are, and
+    # two arms of one branch sit on the same line.
+    describe "counting a file's touched branches" do
+      def entry_stats(entries, changed)
+        SimpleCov::CLI::Patch.send(:entry_stats, entries, changed)
+      end
+
+      it "counts one missing line per line, however many arms missed it" do
+        entries = [{"start_line" => 2, "coverage" => 0}, {"start_line" => 2, "coverage" => 0}]
+
+        expect(entry_stats(entries, [2])).to eq(covered: 0, relevant: 2, missing: [2])
+      end
+
+      it "lists the missing lines in order, whatever order the entries arrived in" do
+        entries = [{"start_line" => 5, "coverage" => 0}, {"start_line" => 2, "coverage" => 0}]
+
+        expect(entry_stats(entries, [2, 5])).to eq(covered: 0, relevant: 2, missing: [2, 5])
+      end
+
+      it "counts nothing for entries that are not a list" do
+        expect(entry_stats(nil, [1])).to be_nil
+        expect(entry_stats(7, [1])).to be_nil
+      end
+    end
+
+    # The missing lines are what the report prints, so they come out in
+    # order however the hunks arrived, and a line the report says
+    # nothing countable about is not a missing line.
+    describe "counting a file's touched lines" do
+      def line_stats(hits, changed)
+        SimpleCov::CLI::Patch.send(:line_stats, hits, changed)
+      end
+
+      it "lists the missing lines in order, whatever order they changed in" do
+        expect(line_stats([0, 1, 0], [3, 1])).to eq(covered: 0, relevant: 2, missing: [1, 3])
+      end
+
+      it "counts only the lines the report can count" do
+        expect(line_stats([1, nil, "junk", 0], [1, 2, 3, 4]))
+          .to eq(covered: 1, relevant: 2, missing: [4])
+      end
+
+      it "counts nothing at all for an entry with no line list" do
+        expect(line_stats(nil, [1, 2])).to eq(covered: 0, relevant: 0, missing: [])
+        expect(line_stats("junk", [1, 2])).to eq(covered: 0, relevant: 0, missing: [])
+        expect(line_stats(7, [1, 2])).to eq(covered: 0, relevant: 0, missing: [])
+      end
+    end
+
+    # The report may key a file by its absolute path or by the path the
+    # diff names, and a file the report does not carry at all is simply
+    # out of scope.
+    describe "matching a changed file to its report entry" do
+      def rows(coverage, changes, root: "/repo")
+        SimpleCov::CLI::Patch.send(:compute_rows, coverage, {root: root, changes: changes}, StringIO.new)
+      end
+
+      it "finds an entry keyed the way the diff names the file" do
+        found = rows({"lib/a.rb" => {"lines" => [1, 0]}}, {"lib/a.rb" => [1, 2]})
+
+        expect(found.map { |row| row[:file] }).to eq(["lib/a.rb"])
+      end
+
+      # Expanded, so the key carries the drive letter the matcher's own
+      # expansion gains on Windows.
+      it "finds an entry keyed by its absolute path" do
+        found = rows({File.expand_path("/repo/lib/a.rb") => {"lines" => [1, 0]}}, {"lib/a.rb" => [1, 2]})
+
+        expect(found.map { |row| row[:file] }).to eq(["lib/a.rb"])
+      end
+
+      it "passes over a file the report does not carry" do
+        expect(rows({"lib/other.rb" => {"lines" => [1]}}, {"lib/a.rb" => [1]})).to eq([])
+      end
+
+      it "passes over an entry that is not an object" do
+        expect(rows({"lib/a.rb" => "junk"}, {"lib/a.rb" => [1]})).to eq([])
+        expect(rows({"lib/a.rb" => 7}, {"lib/a.rb" => [1]})).to eq([])
+      end
+    end
+
+    # A hunk header carries where the new side starts and how many
+    # lines it runs for; a pure deletion runs for none.
+    describe "reading hunk headers" do
+      def parse_diff(output)
+        SimpleCov::CLI::Patch::ChangedLines.send(:parse_diff, output)
+      end
+
+      it "counts one line for a header that names no count" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1 +2 @@\n+b\n"
+
+        expect(parse_diff(diff)).to eq("lib/a.rb" => [2])
+      end
+
+      it "counts the lines a header says it runs for" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1,0 +2,3 @@\n+b\n+c\n+d\n"
+
+        expect(parse_diff(diff)).to eq("lib/a.rb" => [2, 3, 4])
+      end
+
+      it "counts nothing for a hunk that only deletes" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1,2 +1,0 @@\n-a\n-b\n"
+
+        expect(parse_diff(diff)).to eq({})
+      end
+
+      # An added line whose own text begins with "++ " renders as a
+      # "+++" line inside the hunk, and only the section's first one is
+      # the header.
+      it "reads the section's own header, not a line that looks like one" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1,0 +2 @@\n+++ not/a/header.rb\n"
+
+        expect(parse_diff(diff)).to eq("lib/a.rb" => [2])
+      end
+
+      it "passes over a section for a file that is only deleted" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-a\n-b\n"
+
+        expect(parse_diff(diff)).to eq({})
+      end
+
+      # The sections after a skipped one are still this change's work.
+      it "keeps reading past a section it cannot name" do
+        diff = "diff --git a/lib/gone.rb b/lib/gone.rb\n+++ /dev/null\n@@ -1 +0,0 @@\n-a\n" \
+               "diff --git a/lib/no-header.rb b/lib/no-header.rb\n@@ -1,0 +1 @@\n+a\n" \
+               "diff --git a/lib/kept.rb b/lib/kept.rb\n+++ b/lib/kept.rb\n@@ -1,0 +2 @@\n+b\n"
+
+        expect(parse_diff(diff)).to eq("lib/kept.rb" => [2])
+      end
+
+      it "reads every hunk of a file, not just its first" do
+        diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n" \
+               "@@ -1,0 +2 @@\n+b\n@@ -5,0 +7,2 @@\n+g\n+h\n"
+
+        expect(parse_diff(diff)).to eq("lib/a.rb" => [2, 7, 8])
+      end
+    end
+
+    # An untracked file is in no diff at all, so every line the report
+    # knows about is this change's work, counted once.
+    describe "which lines a change touched" do
+      def changed_for(lines, payload)
+        SimpleCov::CLI::Patch.send(:changed_for, lines, payload)
+      end
+
+      it "counts each changed line once, however often the diff named it" do
+        expect(changed_for([3, 1, 3], {"lines" => [1, 1, 1]})).to eq([3, 1])
+      end
+
+      it "takes every line of an untracked file the report carries" do
+        expect(changed_for(:all, {"lines" => [1, nil, 0]})).to eq([1, 2, 3])
+      end
+
+      it "takes no lines from an untracked file the report says nothing about" do
+        expect(changed_for(:all, {"lines" => nil})).to eq([])
+        expect(changed_for(:all, {})).to eq([])
+        expect(changed_for(:all, {"lines" => "junk"})).to eq([])
+        expect(changed_for(:all, {"lines" => 7})).to eq([])
+      end
+    end
+
+    # Branch and method entries come out of a report that may have been
+    # written by an older SimpleCov, or hand-edited, so each entry is
+    # taken only when it carries what it is read for.
+    describe "picking the touched entries out of a report" do
+      def touched(entries, changed)
+        found = []
+        SimpleCov::CLI::Patch.send(:each_touched, entries, changed) { |line, hits| found << [line, hits] }
+        found
+      end
+
+      it "reads an entry by its report line, falling back to where it starts" do
+        entries = [{"report_line" => 3, "start_line" => 9, "coverage" => 1},
+                   {"start_line" => 4, "coverage" => 0},
+                   {"report_line" => 5, "coverage" => 2}]
+
+        expect(touched(entries, [3, 4, 5])).to eq([[3, 1], [4, 0], [5, 2]])
+      end
+
+      it "passes over an entry that says nowhere at all" do
+        expect(touched([{"coverage" => 1}, {"start_line" => 5, "coverage" => 2}], [5])).to eq([[5, 2]])
+      end
+
+      it "passes over an entry that carries no coverage at all" do
+        expect(touched([{"start_line" => 4}, {"start_line" => 5, "coverage" => 1}], [4, 5])).to eq([[5, 1]])
+      end
+
+      it "passes over an entry that is not an object at all" do
+        entries = [nil, "junk", [1, 2], {"start_line" => 4, "coverage" => 2}]
+
+        expect(touched(entries, [4])).to eq([[4, 2]])
+      end
+
+      it "passes over an entry whose coverage is not a count" do
+        entries = [{"start_line" => 4, "coverage" => nil}, {"start_line" => 5, "coverage" => "1"},
+                   {"start_line" => 6, "coverage" => 3}]
+
+        expect(touched(entries, [4, 5, 6])).to eq([[6, 3]])
+      end
+
+      it "passes over an entry the change never touched" do
+        expect(touched([{"start_line" => 9, "coverage" => 1}], [4])).to eq([])
+      end
+    end
+
+    # A report written before the change it is being scored against
+    # cannot say anything about the new lines, and saying so is more
+    # useful than scoring them as uncovered.
+    describe "noticing a stale report" do
+      let(:stderr_io) { StringIO.new }
+
+      def warn_stale(payload, changed)
+        SimpleCov::CLI::Patch.send(:warn_stale, "lib/foo.rb", payload, changed, stderr_io)
+        stderr_io.string
+      end
+
+      it "warns when a changed line is past the end of the entry" do
+        expect(warn_stale({"lines" => [1, 1]}, [1, 3]))
+          .to include("lib/foo.rb changed beyond the 2-line entry")
+      end
+
+      it "stays quiet when the last changed line is the entry's last" do
+        expect(warn_stale({"lines" => [1, 1]}, [1, 2])).to be_empty
+      end
+
+      it "stays quiet when every changed line sits inside the entry" do
+        expect(warn_stale({"lines" => [1, 1, 1]}, [1])).to be_empty
+      end
+
+      it "stays quiet about a line list that is not a list" do
+        expect(warn_stale({"lines" => "junk"}, [1, 3])).to be_empty
+        expect(warn_stale({"lines" => 7}, [1, 3])).to be_empty
+      end
+
+      it "stays quiet when nothing changed" do
+        expect(warn_stale({"lines" => [1, 1]}, [])).to be_empty
+      end
+
+      it "stays quiet about an entry that carries no line list" do
+        expect(warn_stale({"lines" => nil}, [1, 3])).to be_empty
+        expect(warn_stale({"lines" => "junk"}, [1, 3])).to be_empty
+      end
+
+      # The furthest changed line decides, not the first or the nearest.
+      it "warns on the furthest changed line, wherever it sits in the list" do
+        expect(warn_stale({"lines" => [1, 1]}, [3, 1])).to include("changed beyond")
+      end
+    end
+
+    # A row is worth showing when the change touched something that could
+    # be measured: a coverable line, a branch, or a method.
+    describe "what counts as a scored row" do
+      def scored?(line_relevant, branch: nil, method: nil)
+        SimpleCov::CLI::Patch.send(:scored?, {line: {relevant: line_relevant}, branch: branch, method: method})
+      end
+
+      it "counts a row with a coverable touched line" do
+        expect(scored?(1)).to be true
+      end
+
+      it "counts a row with only a touched branch" do
+        expect(scored?(0, branch: {relevant: 2, covered: 1})).to be true
+      end
+
+      it "counts a row with only a touched method" do
+        expect(scored?(0, method: {relevant: 1, covered: 1})).to be true
+      end
+
+      it "counts out a row that touched nothing measurable" do
+        expect(scored?(0)).to be false
+        expect(scored?(0, branch: {relevant: 0, covered: 0}, method: {relevant: 0, covered: 0})).to be false
+      end
+    end
+
+    # The `+++` header names the file a hunk belongs to, and its own
+    # shape is what the parser reads: a prefix git was told to emit, a
+    # trailing newline, and git's literal token for a side that is not
+    # there.
+    describe "reading a diff header's path" do
+      subject(:diff_path) { SimpleCov::CLI::Patch::ChangedLines.method(:diff_path) }
+
+      it "strips the prefix git was told to emit" do
+        expect(diff_path.call("+++ b/lib/foo.rb\n")).to eq("lib/foo.rb")
+        expect(diff_path.call("--- a/lib/foo.rb\n")).to eq("lib/foo.rb")
+      end
+
+      it "answers nothing for a side that is not there" do
+        expect(diff_path.call("+++ /dev/null\n")).to be_nil
+      end
+
+      it "strips only the leading prefix, not one inside the path" do
+        expect(diff_path.call("+++ b/lib/b/foo.rb\n")).to eq("lib/b/foo.rb")
+      end
+
+      it "reads a header that carries no newline" do
+        expect(diff_path.call("+++ b/lib/foo.rb")).to eq("lib/foo.rb")
+      end
+
+      it "reads a header with nothing after the marker as no path at all" do
+        expect(diff_path.call("+++")).to eq("")
+      end
+
+      it "unquotes a header path git had to quote" do
+        expect(diff_path.call(%(+++ "b/we\\"ird.rb"\n))).to eq(%(we"ird.rb))
+      end
+    end
+
+    # git C-quotes a path carrying a quote, a backslash, or a control
+    # character, even under core.quotePath=false, and a path left quoted
+    # matches no coverage key at all.
+    describe "undoing git's C-quoting" do
+      subject(:unquote) { SimpleCov::CLI::Patch::ChangedLines.method(:unquote) }
+
+      {
+        %("b/a\\tb.rb") => "b/a\tb.rb",
+        %("b/caf\\303\\251.rb") => "b/café.rb",
+        %("b/a\\zb.rb") => "b/azb.rb",
+        %("b/we\\"ird.rb") => %(b/we"ird.rb),
+        %("b/back\\\\slash.rb") => "b/back\\slash.rb",
+        %("b/line\\nbreak.rb") => "b/line\nbreak.rb",
+        %("b/ret\\rurn.rb") => "b/ret\rurn.rb",
+        %("b/bel\\a.rb") => "b/bel\a.rb",
+        %("b/back\\bspace.rb") => "b/back\bspace.rb",
+        %("b/form\\ffeed.rb") => "b/form\ffeed.rb",
+        %("b/vert\\vtab.rb") => "b/vert\vtab.rb",
+        %("") => ""
+      }.each do |quoted, unquoted|
+        it "reads #{quoted} as #{unquoted.inspect}" do
+          expect(unquote.call(quoted)).to eq(unquoted)
+        end
+      end
+
+      # Only a path quoted at both ends is a quoted path; anything else
+      # is a path that happens to carry a quote.
+      ["b/plain.rb", %("b/half.rb), %(b/half.rb"), %("), ""].each do |raw|
+        it "leaves #{raw.inspect} exactly as it is" do
+          expect(unquote.call(raw)).to eq(raw)
+        end
+      end
+
+      # A path can carry a character git left alone beside a byte it
+      # escaped, and a raw byte cannot be substituted into a string that
+      # is already holding multibyte characters. Unescaped as bytes
+      # throughout, the two live together and the unreadable one is
+      # replaced at the end.
+      it "reads a path that mixes a real character with an escaped byte" do
+        expect(unquote.call(%("b/\u00e9\\377.rb"))).to eq("b/\u00e9\uFFFD.rb")
+      end
+
+      # An octal escape is a byte, not a character: mixing one into a
+      # UTF-8 string mid-substitution is what the byte-wise pass avoids.
+      it "keeps a path whose bytes are not UTF-8 readable" do
+        expect(unquote.call(%("b/latin\\351.rb")).encoding).to eq(Encoding::UTF_8)
+        expect(unquote.call(%("b/latin\\351.rb"))).to eq("b/latin\uFFFD.rb")
+      end
     end
 
     it "scores changes outside the current subdirectory" do
