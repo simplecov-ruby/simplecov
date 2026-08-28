@@ -28,7 +28,9 @@ module SimpleCov
     # no guarding. Defaults to `SIMPLECOV_CONCURRENCY`, or 1 when that is
     # unset. See `SimpleCov::ParallelResultMerger`.
     #
-    def collate(result_filenames, profile = nil, processes: ENV.fetch("SIMPLECOV_CONCURRENCY", 1).to_i,
+    # The concurrency needs no default of its own: an unset variable
+    # reads as nothing, and the floor below turns that into one process.
+    def collate(result_filenames, profile = nil, processes: ENV["SIMPLECOV_CONCURRENCY"].to_i,
                 ignore_timeout: true, &)
       raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
 
@@ -59,11 +61,11 @@ module SimpleCov
       # If we're using merging of results, store the current result
       # first (if there is one), then merge the results and return those
       if use_merging
-        SimpleCov::ResultMerger.store_result(@result) if result?
+        ResultMerger.store_result(@result) if result?
         return @result unless merge_finalization_owner?
 
         wait_for_other_processes
-        @result = SimpleCov::ResultMerger.merged_result
+        @result = ResultMerger.merged_result
       end
 
       @result
@@ -80,13 +82,16 @@ module SimpleCov
     end
 
     # Returns nil if the result has not been computed, otherwise the result.
+    # The cast restores what `defined?` used to narrow for steep: asking
+    # the object whether it holds the variable tells the checker nothing
+    # about what is in it.
     def result?
-      defined?(@result) && @result
+      instance_variable_defined?(:@result) && (_ = @result)
     end
 
     # @api private — true while `SimpleCov.collate` is running its finalizer.
     def collating_result?
-      defined?(@collating_result) && @collating_result
+      instance_variable_defined?(:@collating_result) && @collating_result
     end
 
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
@@ -95,7 +100,7 @@ module SimpleCov
       filters.each do |filter|
         result = result.reject { |source_file| filter.matches?(source_file) }
       end
-      SimpleCov::FileList.new result
+      FileList.new result
     end
 
     # Bin the given source files by group filter. `groups:` defaults to
@@ -103,16 +108,16 @@ module SimpleCov
     # different group config (e.g., the snapshot a Result captured at
     # construction). Files matched by no group fall into the implicit
     # "Ungrouped" bucket.
-    def grouped(files, groups: SimpleCov.groups)
+    def grouped(files, groups: default_groups)
       return {} if GroupNames.validate!(groups.keys).empty?
 
       grouped = groups.transform_values do |filter|
-        SimpleCov::FileList.new(files.select { |source_file| filter.matches?(source_file) })
+        FileList.new(files.select { |source_file| filter.matches?(source_file) })
       end
 
       in_group  = grouped_file_set(grouped)
       ungrouped = files.reject { |source_file| in_group.include?(source_file) }
-      grouped[GroupNames::UNGROUPED] = SimpleCov::FileList.new(ungrouped) if ungrouped.any?
+      grouped[GroupNames::UNGROUPED] = FileList.new(ungrouped) if ungrouped.any?
 
       grouped
     end
@@ -130,7 +135,7 @@ module SimpleCov
     # @api private — persist the per-criterion coverage percentages
     # rounded down (see #679) so the next run can compute drift.
     def write_last_run(result)
-      SimpleCov::LastRun.write(
+      LastRun.write(
         result: result.coverage_statistics.transform_values { |stats| round_coverage(stats.percent) }
       )
     end
@@ -207,9 +212,9 @@ module SimpleCov
       # they arrive at 0% below rather than being absent. Needs a live Coverage
       # and ActionView, which rules out the merge point that does the same job
       # for unloaded `.rb` files.
-      SimpleCov::ViewCoverage.compile_unrendered
-      raw = SimpleCov::UselessResultsRemover.call(Coverage.result)
-      adapted = SimpleCov::ResultAdapter.call(raw)
+      ViewCoverage.compile_unrendered
+      raw = UselessResultsRemover.call(Coverage.result)
+      adapted = ResultAdapter.call(raw)
       # What this process was told to track and did not load. Subtracting what
       # it loaded matters because `Result#to_hash` serializes coverage after
       # filtering: a file this process loaded and then filtered out would
@@ -217,9 +222,9 @@ module SimpleCov
       # and the merge would simulate it back in as never-loaded. See #1250.
       tracked = tracked_file_paths - adapted.keys
       result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
-      @result = SimpleCov::Result.new(
-        result, not_loaded_files: not_loaded, tracked_files: tracked, run_id: SimpleCov.run_id,
-                worker_id: SimpleCov.worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
+      @result = Result.new(
+        result, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
+                worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
       )
     end
   end
