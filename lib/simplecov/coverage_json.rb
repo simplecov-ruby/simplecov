@@ -14,11 +14,11 @@ module SimpleCov
       raise Error, "input is not valid UTF-8" unless source.valid_encoding?
 
       document = JSON.parse(source)
-      return document if document.is_a?(Hash)
+      return document if document.instance_of?(Hash)
 
       raise Error, "top-level value must be an object"
     rescue JSON::ParserError => e
-      raise Error, e.message
+      raise Error, e
     end
   end
 end
