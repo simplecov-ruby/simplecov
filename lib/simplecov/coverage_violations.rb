@@ -139,10 +139,9 @@ module SimpleCov
       # Walk the overrides in declaration order, merging each one that matches
       # the file's project path into the running effective threshold (so the
       # most-specific or latest-declared override wins per criterion). Returns
-      # the defaults Hash unchanged when nothing matches.
+      # the defaults Hash unchanged when nothing matches, which the reduce
+      # already does for an empty override set.
       def effective_per_file_thresholds(file, defaults, overrides)
-        return defaults if overrides.empty?
-
         path = file.project_filename
         overrides.reduce(defaults) do |acc, (pattern, criterion_thresholds)|
           path_matches?(path, pattern) ? acc.merge(criterion_thresholds) : acc
@@ -154,6 +153,12 @@ module SimpleCov
       # match `project_filename` exactly. Regexps are tested via `match?`.
       # The configuration setter rejects anything other than String/Regexp,
       # so no dead `else` branch is needed here.
+      #
+      # Both operands of the exact match are always Strings, and String's
+      # `==` and `eql?` are indistinguishable for a String argument, so
+      # that mutation is equivalent and no test can tell it apart. The
+      # override examples pin every arm of this method instead.
+      # mutant:disable
       def path_matches?(project_filename, pattern)
         return project_filename.match?(pattern) if pattern.is_a?(Regexp)
         return project_filename.start_with?(pattern) if pattern.end_with?("/")
@@ -227,7 +232,7 @@ module SimpleCov
         case mode
         when :median then median_baseline
         when :branch then branch_baseline
-        else last_run_baseline(last_run || SimpleCov::LastRun.read)
+        else last_run_baseline(last_run || LastRun.read)
         end
       end
 
@@ -237,7 +242,9 @@ module SimpleCov
       # :covered_percent key is the pre-criteria file format's spelling
       # of the line percent.
       def last_run_baseline(last_run)
-        previous = last_run.is_a?(Hash) ? (_ = last_run)[:result] : nil
+        return nil unless last_run.is_a?(Hash)
+
+        previous = (_ = last_run)[:result]
         return nil unless previous.is_a?(Hash)
 
         previous = _ = previous
@@ -247,22 +254,23 @@ module SimpleCov
 
       # The per-criterion median over every recorded run, so one run
       # that dipped for an unrelated reason cannot quietly become the
-      # baseline the next run is judged against.
+      # baseline the next run is judged against. An empty history yields
+      # an empty baseline, which the drop check reads as nothing to
+      # compare against, so it needs no separate guard.
       def median_baseline
         totals = history_totals
-        return nil if totals.empty?
-
         baseline = {} #: Hash[Symbol, untyped]
         %i[line branch method].each do |criterion|
-          values = totals.filter_map { |entry| entry[criterion.to_s] }.grep(Numeric)
+          values = totals.map { |entry| entry[criterion.to_s] }.grep(Numeric)
           baseline[criterion] = median(values) unless values.empty?
         end
         baseline
       end
 
+      # The guard proves the key is there, so the read states it.
       def history_totals
-        SimpleCov::History.read.filter_map do |entry|
-          entry["totals"] if entry.is_a?(Hash) && entry["totals"].is_a?(Hash)
+        History.read.filter_map do |entry|
+          entry.fetch("totals") if entry.is_a?(Hash) && entry["totals"].is_a?(Hash)
         end
       end
 
@@ -277,10 +285,10 @@ module SimpleCov
       # most recently anywhere. Detached or non-git checkouts (and
       # branches with no recorded run) have nothing to compare against.
       def branch_baseline
-        branch, = SimpleCov::History.git_info
+        branch, = History.git_info
         return nil unless branch
 
-        entry = SimpleCov::History.read.reverse_each.find { |candidate| branch_entry?(candidate, branch) }
+        entry = History.read.reverse_each.find { |candidate| branch_entry?(candidate, branch) }
         return nil unless entry
 
         totals = {} #: Hash[Symbol, untyped]
@@ -288,6 +296,10 @@ module SimpleCov
         totals
       end
 
+      # Both operands of the branch comparison are Strings, where `==`
+      # and `eql?` are indistinguishable, so that mutation is equivalent.
+      # The branch-baseline examples pin every clause of this predicate.
+      # mutant:disable
       def branch_entry?(candidate, branch)
         candidate.is_a?(Hash) && candidate["branch"] == branch && candidate["totals"].is_a?(Hash)
       end
