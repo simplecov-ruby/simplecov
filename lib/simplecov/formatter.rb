@@ -11,8 +11,22 @@ module SimpleCov
     # way to reach constructor options like
     # `HTMLFormatter.new(silent: true)`. See #1240.
     def self.instance_for(formatter)
-      formatter.is_a?(Class) ? formatter.new : formatter
+      instantiable?(formatter) ? formatter.new : formatter
     end
+
+    # Whether the configured formatter is a class waiting to be
+    # instantiated rather than an instance already built.
+    #
+    # `Class` cannot itself be subclassed, so no object is an instance
+    # of a subclass of it, and `instance_of?(Class)` answers for every
+    # object exactly as `is_a?(Class)` does. That narrowing is a
+    # difference no example can show, which is why it is disabled here
+    # rather than pinned by a test.
+    # mutant:disable
+    def self.instantiable?(formatter)
+      formatter.is_a?(Class)
+    end
+    private_class_method :instantiable?
 
     # Normalize a class or instance, then dispatch the result to it.
     def self.format(formatter, result)
