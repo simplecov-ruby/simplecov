@@ -12,7 +12,7 @@ module SimpleCov
       # recency stamp. File keys match the `coverage` section's, so
       # consumers (the HTML viewer included) cross the two by key.
       module ProductionSectionFormatter
-      module_function
+        extend self
 
         # The section for the configured store, or nil — not configured,
         # or unreadable. An unreadable store warns instead of raising:
@@ -22,23 +22,33 @@ module SimpleCov
         def call(path = SimpleCov.production_coverage)
           return nil unless path
 
-          section(SimpleCov::Production::FileSink.read(path))
-        rescue SystemCallError, SimpleCov::Production::Error => e
-          warn "[SimpleCov] skipping production coverage (#{e.message})"
-          nil
+          section(Production::FileSink.read(path))
+        rescue SystemCallError, Production::Error => e
+          # Interpolating the exception renders its message, and `warn`
+          # answers nil, which is what an unreadable store reports.
+          warn "[SimpleCov] skipping production coverage (#{e})"
         end
 
+        # Each end of the window is read once and then tested, rather
+        # than read again inside the guard: a second read of a value the
+        # guard has already vouched for is a step nothing can observe.
         def section(store)
           section = {} #: Hash[Symbol, untyped]
-          section[:started_at] = store["started_at"] if store["started_at"]
-          section[:updated_at] = store["updated_at"] if store["updated_at"]
+          started_at = store["started_at"]
+          updated_at = store["updated_at"]
+          section[:started_at] = started_at if started_at
+          section[:updated_at] = updated_at if updated_at
           section[:files] = files(store)
           section
         end
 
+        # `coverage` and `last_seen` are the two keys a parsed store
+        # always carries (FileSink.parse substitutes an empty Hash for
+        # either one a document is missing), so the reads state that.
+        # The window stamps get no such guarantee and stay `[]` reads.
         def files(store)
-          last_seen = store["last_seen"]
-          store["coverage"].sort.to_h do |file, lines|
+          last_seen = store.fetch("last_seen")
+          store.fetch("coverage").sort.to_h do |file, lines|
             entry = {lines: lines} #: Hash[Symbol, untyped]
             stamp = last_seen[file]
             entry[:last_seen] = stamp if stamp

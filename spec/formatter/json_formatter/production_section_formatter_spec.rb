@@ -17,8 +17,36 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
                                }))
   end
 
+  # A store carrying only what it has to: the two window stamps are
+  # optional keys, not keys with a null value.
+  def write_windowless_store(coverage:)
+    File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE => {
+                                 "format_version" => 1, "coverage" => coverage, "last_seen" => {}
+                               }))
+  end
+
   it "returns nil when no store is configured" do
     expect(described_class.call(nil)).to be_nil
+  end
+
+  # The path argument exists for the tests and for a caller with a store
+  # in hand; the report itself asks for no path and gets the configured
+  # one.
+  it "reads the configured store when called without a path" do
+    write_store(coverage: {"lib/a.rb" => [1]})
+    allow(SimpleCov).to receive(:production_coverage).and_return(path)
+
+    expect(described_class.call).to eq(
+      started_at: "2026-08-01T05:00:00Z",
+      updated_at: "2026-08-25T11:00:00Z",
+      files: {"lib/a.rb" => {lines: [1]}}
+    )
+  end
+
+  it "returns nil when no store is configured and no path is given" do
+    allow(SimpleCov).to receive(:production_coverage).and_return(nil)
+
+    expect(described_class.call).to be_nil
   end
 
   it "carries the window and each file's lines and stamp" do
@@ -37,10 +65,26 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
     )
   end
 
-  it "omits a window the store does not carry" do
+  # Hash equality ignores insertion order, so the sort needs an
+  # assertion that does not: the section is written to a file consumers
+  # diff between runs, and a store whose paths arrived in arrival order
+  # would otherwise reshuffle every night.
+  it "orders the files by path" do
+    write_store(coverage: {"lib/c.rb" => [3], "lib/a.rb" => [1], "lib/b.rb" => [2]})
+
+    expect(described_class.call(path).fetch(:files).keys).to eq(%w[lib/a.rb lib/b.rb lib/c.rb])
+  end
+
+  it "omits a window the store carries as null" do
     write_store(coverage: {"lib/a.rb" => [1]}, started_at: nil, updated_at: nil)
 
-    expect(described_class.call(path).keys).to eq([:files])
+    expect(described_class.call(path)).to eq(files: {"lib/a.rb" => {lines: [1]}})
+  end
+
+  it "omits a window the store has no key for" do
+    write_windowless_store(coverage: {"lib/a.rb" => [1]})
+
+    expect(described_class.call(path)).to eq(files: {"lib/a.rb" => {lines: [1]}})
   end
 
   # The store lives outside the repository and outside the suite's
@@ -61,6 +105,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
     stderr = capture_stderr { section = described_class.call(path) }
 
     expect(section).to be_nil
-    expect(stderr).to include(path)
+    expect(stderr).to eq(
+      "[SimpleCov] skipping production coverage (#{path} is not a SimpleCov production coverage file)\n"
+    )
   end
 end
