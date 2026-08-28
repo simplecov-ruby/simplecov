@@ -15,18 +15,18 @@ module SimpleCov
       extend CommandHelpers
 
       TOTAL_LABEL = "All Files"
-      SECTIONS = [%w[Line lines], %w[Branch branches], %w[Method methods]].freeze
+      SECTIONS = [%w[Line lines], %w[Branch branches], %w[Method methods]].freeze #: Array[[String, String]]
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:)
         opts, = parse_common(args)
-        return 1 unless (data = load_data(opts[:input], stderr))
+        return 1 unless (data = load_data(opts.fetch(:input), stderr))
 
-        if opts[:json]
+        if opts.fetch(:json)
           emit_json(stdout, data)
         else
-          emit_text(stdout, data, SimpleCov::CLI.color_enabled?(opts, stdout))
+          emit_text(stdout, data, CLI.color_enabled?(opts, stdout))
         end
         0
       end
@@ -40,12 +40,13 @@ module SimpleCov
         return unless data
 
         none = {} #: Hash[String, untyped]
-        unless data.fetch("total", none).is_a?(Hash)
+        # JSON answers plain objects, never a subclass of one.
+        unless data.fetch("total", none).instance_of?(Hash)
           return CoverageFile.report_invalid(stderr, "report", input, '"total" must be an object')
         end
 
         groups = data.fetch("groups", none)
-        return data if groups.is_a?(Hash) && groups.each_value.all?(Hash)
+        return data if groups.instance_of?(Hash) && groups.each_value.all?(Hash)
 
         CoverageFile.report_invalid(stderr, "report", input, '"groups" must be an object of objects')
       end
@@ -54,7 +55,7 @@ module SimpleCov
         none = {} #: Hash[String, untyped]
         emit_totals(stdout, TOTAL_LABEL, data.fetch("total", none), color)
         data.fetch("groups", none).each do |name, group|
-          label = name == TOTAL_LABEL ? "#{name} (group)" : name
+          label = name.eql?(TOTAL_LABEL) ? "#{name} (group)" : name
           emit_totals(stdout, label, group, color)
         end
       end
@@ -66,12 +67,12 @@ module SimpleCov
       end
 
       def emit_section(stdout, display, section, color)
-        return unless section.is_a?(Hash) && section["total"].to_i.positive?
+        return unless section.instance_of?(Hash) && section["total"].to_i.positive?
 
         stdout.puts(stats_row(display,
-                              SimpleCov::Color.colorize_percent(section["percent"].to_f, enabled: color),
+                              Color.colorize_percent(section["percent"].to_f, enabled: color),
                               section["covered"],
-                              section["total"]))
+                              section.fetch("total")))
       end
 
       def emit_json(stdout, data)
@@ -85,10 +86,10 @@ module SimpleCov
         sections = {} #: Hash[String, untyped]
         SECTIONS.each_with_object(sections) do |(_, key), out|
           section = totals[key]
-          next unless section.is_a?(Hash) && section["total"].to_i.positive?
+          next unless section.instance_of?(Hash) && section["total"].to_i.positive?
 
-          out[key.to_s] = {
-            "percent" => section["percent"], "covered" => section["covered"], "total" => section["total"]
+          out[key] = {
+            "percent" => section["percent"], "covered" => section["covered"], "total" => section.fetch("total")
           }
         end
       end

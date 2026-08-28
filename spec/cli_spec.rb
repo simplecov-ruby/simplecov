@@ -1505,7 +1505,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "report subcommand" do
+  describe "report subcommand", mutant_expression: ["SimpleCov::CLI::Report*", "SimpleCov::CLI::CommandHelpers*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-report-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
 
@@ -1533,6 +1533,27 @@ RSpec.describe SimpleCov::CLI do
 
     after { FileUtils.remove_entry(tmp) }
 
+    # The whole block, not fragments of it: the totals row, then each
+    # group in the order the report carries them, each criterion aligned
+    # in its own column, and a blank line between blocks. A criterion
+    # with nothing relevant is left out rather than printed as 0/0.
+    it "prints the totals and every group, whole" do
+      expect(run("report", "--input", json_path, "--no-color")).to eq(0)
+      expect(stdout.string).to eq(<<~TEXT)
+        All Files
+          Line:   80.00% (80 / 100)
+          Branch: 90.00% (9 / 10)
+
+        Models
+          Line:   80.00% (40 / 50)
+          Branch: 100.00% (5 / 5)
+
+        All Files (group)
+          Line:   50.00% (1 / 2)
+
+      TEXT
+    end
+
     it "prints the All Files totals" do
       expect(run("report", "--input", json_path)).to eq(0)
       expect(stdout.string).to include("All Files")
@@ -1540,9 +1561,103 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Branch:\s+90\.00%\s+\(9 / 10\)})
     end
 
+    # Valid JSON is not enough: a wrong-typed section used to reach the
+    # emitters and crash with a backtrace instead of a one-line error.
+    it "refuses a totals section that is not an object" do
+      File.write(json_path, JSON.dump("total" => "junk"))
+
+      expect(run("report", "--input", json_path)).to eq(1)
+      expect(stderr.string)
+        .to eq(%(simplecov report: input file #{json_path.inspect} isn't valid JSON ("total" must be an object)\n))
+    end
+
+    it "refuses a groups section that is not an object of objects" do
+      ["junk", {"Models" => "junk"}].each do |groups|
+        File.write(json_path, JSON.dump("total" => {}, "groups" => groups))
+        stderr.truncate(0) && stderr.rewind
+
+        expect(run("report", "--input", json_path)).to eq(1), "for #{groups.inspect}"
+        prefix = %(simplecov report: input file #{json_path.inspect} isn't valid JSON)
+        expect(stderr.string).to eq(%(#{prefix} ("groups" must be an object of objects)\n))
+      end
+    end
+
+    it "prints nothing but a blank line for a report carrying no sections" do
+      File.write(json_path, JSON.dump({}))
+
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("All Files\n\n")
+    end
+
     it "skips a criterion with zero relevant entries" do
       expect(run("report", "--input", json_path)).to eq(0)
       expect(stdout.string).not_to include("Method:")
+    end
+
+    # Sections the report never carried, and sections carrying half of
+    # what they should: the row is either printed from what is there or
+    # left out, never a crash.
+    it "prints what a half-filled section carries and skips one with no total" do
+      File.write(json_path, JSON.dump(
+                              "total" => {
+                                "lines" => {"covered" => 8, "total" => 10},
+                                "branches" => {"percent" => 50.0, "covered" => 1},
+                                "methods" => {"percent" => 50.0, "total" => 4}
+                              }
+                            ))
+
+      expect(run("report", "--input", json_path, "--no-color")).to eq(0)
+      expect(stdout.string).to eq("All Files\n  Line:   0.00% (8 / 10)\n  Method: 50.00% (0 / 4)\n\n")
+    end
+
+    it "prints a report with no total and no groups at all" do
+      File.write(json_path, JSON.dump("coverage" => {}))
+
+      expect(run("report", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("All Files\n\n")
+    end
+
+    it "emits an empty payload for a report with no total and no groups at all" do
+      File.write(json_path, JSON.dump("coverage" => {}))
+
+      expect(run("report", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq("total" => {}, "groups" => {})
+    end
+
+    it "carries a half-filled section into the payload as it stands" do
+      File.write(json_path, JSON.dump(
+                              "total" => {
+                                "lines" => {"covered" => 8, "total" => 10},
+                                "branches" => {"percent" => 50.0, "covered" => 1},
+                                "methods" => {"percent" => 50.0, "total" => 4}
+                              },
+                              "groups" => {"Models" => {"lines" => {"total" => 0}, "branches" => [1, 2]}}
+                            ))
+
+      expect(run("report", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string)).to eq(
+        "total" => {
+          "lines" => {"percent" => nil, "covered" => 8, "total" => 10},
+          "methods" => {"percent" => 50.0, "covered" => nil, "total" => 4}
+        },
+        "groups" => {"Models" => {}}
+      )
+    end
+
+    # A section carrying something other than an object is as much a
+    # non-section as one carrying nothing.
+    it "skips a criterion whose section is not an object" do
+      File.write(json_path, JSON.dump("total" => {"lines" => [1, 2]}))
+
+      expect(run("report", "--input", json_path, "--no-color")).to eq(0)
+      expect(stdout.string).to eq("All Files\n\n")
+    end
+
+    it "prints a percentage as reported, to the digit" do
+      File.write(json_path, JSON.dump("total" => {"lines" => {"percent" => 66.67, "covered" => 2, "total" => 3}}))
+
+      expect(run("report", "--input", json_path, "--no-color")).to eq(0)
+      expect(stdout.string).to eq("All Files\n  Line:   66.67% (2 / 3)\n\n")
     end
 
     it "prints group totals after the All Files row" do
@@ -1557,9 +1672,9 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("All Files (group)\n")
     end
 
-    it "errors when the input file is missing" do
+    it "errors when the input file is missing, naming the subcommand" do
       expect(run("report", "--input", "/no/such.json")).to eq(1)
-      expect(stderr.string).to include("not found")
+      expect(stderr.string).to eq("simplecov report: /no/such.json not found\n")
     end
 
     it "emits namespaced totals and groups as JSON under --json" do
@@ -1581,6 +1696,14 @@ RSpec.describe SimpleCov::CLI do
         # 80% is yellow, 90% is green
         expect(stdout.string).to match(/\e\[33m80\.00%\e\[0m/)
         expect(stdout.string).to match(/\e\[32m90\.00%\e\[0m/)
+      end
+
+      it "colorizes a group's percentages too, not just the totals row" do
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+        expect(run("report", "--input", json_path)).to eq(0)
+        models = stdout.string.split("Models\n").last
+        expect(models).to match(/\e\[33m80\.00%\e\[0m/)
       end
 
       it_behaves_like "a --no-color subcommand" do

@@ -14,7 +14,7 @@ module SimpleCov
 
       TOTAL_LABEL: ::String
 
-      SECTIONS: ::Array[::Array[::String]]
+      SECTIONS: ::Array[[::String, ::String]]
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> (1 | 0)
 
