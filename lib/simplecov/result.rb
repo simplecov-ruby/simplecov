@@ -58,8 +58,11 @@ module SimpleCov
     # configuration so existing call sites are unchanged. Pass a custom
     # FilterConfig to opt out — useful for tests that build synthetic Results
     # and don't want the project's filters or groups applied.
+    #
+    # `tracked_files` accepts any collection that answers `to_a` (the
+    # merge passes a Set), and nil for a run that tracked nothing.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   tracked_files: [], run_id: nil, worker_id: nil, contexts: nil, report: false,
+                   tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, report: false,
                    filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
@@ -68,7 +71,7 @@ module SimpleCov
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
-      warn_about_missing_source_files(builder.missing_source_files, original_result.size) if report
+      warn_about_missing_source_files(builder.missing_source_files) if report
       apply_cover_filters!(filter_config.cover_filters)
       apply_filters!(filter_config.filters)
     end
@@ -84,7 +87,7 @@ module SimpleCov
     # project-relative one.
     def source_file_for(path)
       target = File.expand_path(path, SimpleCov.root)
-      files.find { |file| file.filename == target }
+      files.find { |file| file.filename.eql?(target) }
     end
 
     # Returns the {line:/branch:/method:} coverage_statistics hash for the
@@ -113,7 +116,7 @@ module SimpleCov
       # clobber-prevention backstop can tell a report was produced even
       # when this run's checks or tests failed (unlike .last_run.json,
       # which only successful runs write).
-      SimpleCov::ReportStamp.touch
+      ReportStamp.touch
       formatted
     end
 
@@ -136,8 +139,8 @@ module SimpleCov
     # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       hash.map do |command_name, data|
-        new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data["timestamp"]),
-                                    tracked_files: data["tracked_files"] || [], run_id: data["run_id"],
+        new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data.fetch("timestamp")),
+                                    tracked_files: data["tracked_files"], run_id: data["run_id"],
                                     worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]))
       end
     end
@@ -151,7 +154,7 @@ module SimpleCov
       @contexts = contexts
     end
 
-    def warn_about_missing_source_files(missing, input_size)
+    def warn_about_missing_source_files(missing)
       return if missing.empty?
 
       # Emit only from the process that writes the final report. The merged
@@ -165,18 +168,16 @@ module SimpleCov
       # See issues #980 and #1171.
       return unless SimpleCov.final_result_process?
 
-      MissingSourceFilesReporter.new(
-        missing,
-        input_size: input_size,
-        every_entry_dropped: @files.empty? && missing.size == input_size
-      ).warn!
+      # Every built file survives (only the missing ones are dropped), so
+      # an empty file list is exactly the "nothing was found" case.
+      MissingSourceFilesReporter.new(missing, every_entry_dropped: @files.empty?).warn!
     end
 
     # Applies the given filter chain to `@files`, dropping each source
     # file that any filter matches.
     def apply_filters!(filters)
       filters.each do |filter|
-        @files = SimpleCov::FileList.new(@files.reject { |source_file| filter.matches?(source_file) })
+        @files = FileList.new(@files.reject { |source_file| filter.matches?(source_file) })
       end
     end
 
@@ -187,7 +188,7 @@ module SimpleCov
     def apply_cover_filters!(cover_filters)
       return if cover_filters.empty?
 
-      @files = SimpleCov::FileList.new(
+      @files = FileList.new(
         @files.select { |source_file| cover_filters.any? { |filter| filter.matches?(source_file) } }
       )
     end

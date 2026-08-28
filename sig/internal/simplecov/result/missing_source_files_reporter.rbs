@@ -9,11 +9,9 @@ module SimpleCov
     class MissingSourceFilesReporter
       @missing_paths: untyped
 
-      @input_size: untyped
-
       @every_entry_dropped: untyped
 
-      def initialize: (untyped missing_paths, input_size: untyped, every_entry_dropped: untyped) -> void
+      def initialize: (untyped missing_paths, every_entry_dropped: untyped) -> void
 
       def warn!: () -> untyped
 

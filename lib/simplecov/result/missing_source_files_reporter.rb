@@ -9,14 +9,13 @@ module SimpleCov
     # the typical cause (`SimpleCov.collate` invoked from a machine or path
     # different from where the resultsets were generated). See #980.
     class MissingSourceFilesReporter
-      def initialize(missing_paths, input_size:, every_entry_dropped:)
+      def initialize(missing_paths, every_entry_dropped:)
         @missing_paths = missing_paths
-        @input_size = input_size
         @every_entry_dropped = every_entry_dropped
       end
 
       def warn!
-        warn SimpleCov::Color.colorize(message, :yellow)
+        warn Color.colorize(message, :yellow)
       end
 
       def message

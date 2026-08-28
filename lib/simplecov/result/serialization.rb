@@ -32,7 +32,14 @@ module SimpleCov
         map = contexts
         return unless map
 
-        data["contexts"] = map.to_h(only: Set.new(filenames))
+        data["contexts"] = map.to_h(only: context_filenames)
+      end
+
+      # This result's own files as a Set, which is what keeps the
+      # restriction one membership test per recorded file rather than a
+      # scan of the whole list.
+      def context_filenames
+        Set.new(filenames)
       end
 
       # A live result's criterion keys are Symbols (`:lines`, `:branches`),

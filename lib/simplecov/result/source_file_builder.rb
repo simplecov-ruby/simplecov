@@ -16,7 +16,7 @@ module SimpleCov
       end
 
       def call
-        SimpleCov::FileList.new(
+        FileList.new(
           @original_result
             .filter_map { |filename, coverage| build_source_file(filename, coverage) }
             .sort_by(&:filename)
@@ -31,7 +31,7 @@ module SimpleCov
           return
         end
 
-        SimpleCov::SourceFile.new(
+        SourceFile.new(
           filename,
           stringify_outer_keys(coverage),
           loaded: !@not_loaded_files.include?(filename)

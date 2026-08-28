@@ -31,8 +31,39 @@ RSpec.describe SimpleCov::Result do
     context "when a simple cov result initialized from that" do
       subject(:result) { described_class.new(original_result) }
 
+      # The Coverage.result the process hands over is shared with the
+      # merge, so a Result must not be able to edit it underfoot.
+      it "freezes the coverage hash it was handed" do
+        expect(result.original_result).to be_frozen
+      end
+
+      it "stamps itself with the current time when no created_at is given" do
+        expect(result.created_at).to be_within(60).of(Time.now)
+      end
+
+      it "falls back to the configured command name" do
+        allow(SimpleCov).to receive(:command_name).and_return("Fixture Suite")
+
+        expect(described_class.new(original_result).command_name).to eq("Fixture Suite")
+      end
+
+      # The merge hands over a Set of every path its workers tracked; the
+      # resultset entry is a list.
+      it "reads tracked files from any collection, not only an Array" do
+        tracked = described_class.new(original_result, tracked_files: Set["/x/one.rb"])
+
+        expect(tracked.tracked_files).to eq(["/x/one.rb"])
+      end
+
       it "has 3 filenames" do
         expect(result.filenames.count).to eq(3)
+      end
+
+      # A Set is what keeps the restriction one membership test per
+      # recorded file, so the type is part of the promise.
+      it "carries its own filenames as a Set for the context restriction" do
+        expect(result.send(:context_filenames)).to be_a(Set)
+        expect(result.send(:context_filenames)).to eq(Set.new(result.filenames))
       end
 
       it "has 3 source files" do
@@ -83,6 +114,29 @@ RSpec.describe SimpleCov::Result do
         # always has. See #1250.
         it "omits tracked_files when nothing was tracked" do
           expect(result.to_hash.values.first).not_to have_key("tracked_files")
+        end
+
+        # Only the keys a run actually carries are written, so an entry
+        # never claims an identity or a file list it does not have.
+        it "writes nothing but coverage and timestamp for a plain run" do
+          plain = described_class.new(original_result, command_name: "t")
+
+          expect(plain.to_hash.fetch("t").keys).to eq(%w[coverage timestamp])
+        end
+
+        it "writes every optional key the run does carry" do
+          full = described_class.new(
+            original_result, command_name: "t", run_id: "run-1", worker_id: "worker-2",
+                             tracked_files: ["/x/one.rb"], contexts: SimpleCov::ContextMap.new
+          )
+
+          expect(full.to_hash.fetch("t").keys).to eq(%w[coverage timestamp run_id worker_id tracked_files contexts])
+        end
+
+        it "writes the timestamp as a float, which is what Time.at reads back" do
+          stamped = described_class.new(original_result, command_name: "t", created_at: Time.at(100.75))
+
+          expect(stamped.to_hash.fetch("t").fetch("timestamp")).to eq(100.75)
         end
 
         it "round-trips tracked_files when they were recorded" do
@@ -216,11 +270,36 @@ RSpec.describe SimpleCov::Result do
         )
       end
 
+      # The dump carries the files the report carries: a filtered-out file
+      # has no place in the entry another process merges against.
+      it "serializes coverage only for the files that survived the filters" do
+        filtered = described_class.new(original_result, command_name: "t")
+
+        expect(filtered.to_hash.fetch("t").fetch("coverage").keys).to eq(
+          [source_fixture("app/controllers/sample_controller.rb"), source_fixture("app/models/user.rb")]
+        )
+      end
+
       it "restricts the file set to those matching a cover filter (when any are passed)" do
         only_sample = SimpleCov::GlobFilter.new("spec/fixtures/sample.rb")
         filter_config = SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [only_sample])
         result = described_class.new(original_result, filter_config: filter_config)
         expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly("sample.rb")
+        expect(result.files).to be_a(SimpleCov::FileList)
+      end
+
+      # Several `cover` matchers union rather than intersect: a file is
+      # kept when any one of them claims it.
+      it "keeps a file matched by only one of several cover filters" do
+        filter_config = SimpleCov::Result::FilterConfig.new(
+          filters: [],
+          cover_filters: [SimpleCov::StringFilter.new("user.rb"), SimpleCov::StringFilter.new("sample_controller.rb")]
+        )
+        result = described_class.new(original_result, filter_config: filter_config)
+
+        expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly(
+          "user.rb", "sample_controller.rb"
+        )
       end
     end
 
@@ -239,6 +318,15 @@ RSpec.describe SimpleCov::Result do
 
       it "has 3 groups" do
         expect(result.groups.length).to eq(3)
+      end
+
+      # The groups come from the configuration the Result was built with,
+      # which is not always the singleton's.
+      it "groups by an explicitly-passed configuration instead of the singleton's" do
+        filter_config = SimpleCov::Result::FilterConfig.new(groups: {"Only Models" => SimpleCov::StringFilter.new("app/models")})
+        grouped = described_class.new(original_result, filter_config: filter_config)
+
+        expect(grouped.groups.keys).to eq(["Only Models", "Ungrouped"])
       end
 
       it "has user.rb in 'Models' group" do
@@ -397,6 +485,38 @@ RSpec.describe SimpleCov::Result do
         expect(sorted.map { |r| r.created_at.to_i }).to eq [created_at, created_at]
         expect(sorted.map(&:original_result)).to eq [other_result, original_result]
       end
+
+      it "restores the timestamp as a Time, and every identity the entry carries" do
+        input = {
+          "rspec" => {
+            "coverage" => original_result,
+            "timestamp" => 100.75,
+            "run_id" => "run-1",
+            "worker_id" => "worker-2",
+            "tracked_files" => ["/x/one.rb"],
+            "contexts" => {"version" => 1, "contexts" => ["spec/sample_spec.rb:3"], "files" => {}}
+          }
+        }
+
+        restored = described_class.from_hash(input).first
+
+        expect(restored).to have_attributes(
+          command_name: "rspec",
+          created_at: Time.at(100.75),
+          run_id: "run-1",
+          worker_id: "worker-2",
+          tracked_files: ["/x/one.rb"]
+        )
+        expect(restored.contexts.contexts).to eq(["spec/sample_spec.rb:3"])
+      end
+
+      it "leaves an entry without identities or a context map empty-handed" do
+        input = {"rspec" => {"coverage" => original_result, "timestamp" => 100.75}}
+
+        restored = described_class.from_hash(input).first
+
+        expect(restored).to have_attributes(run_id: nil, worker_id: nil, contexts: nil, tracked_files: [])
+      end
     end
 
     describe "#source_file_for and #coverage_for" do
@@ -411,6 +531,19 @@ RSpec.describe SimpleCov::Result do
       it "looks up by path relative to SimpleCov.root" do
         relative = Pathname.new(user_path).relative_path_from(Pathname.new(SimpleCov.root)).to_s
         expect(result.source_file_for(relative).filename).to eq(user_path)
+      end
+
+      # Resolution is against SimpleCov.root, not the working directory,
+      # so a relative path means the same thing wherever it is looked up.
+      it "resolves a relative path against SimpleCov.root, not the process's cwd" do
+        relative = Pathname.new(user_path).relative_path_from(Pathname.new(SimpleCov.root)).to_s
+        looked_up = result
+
+        Dir.mktmpdir do |elsewhere|
+          Dir.chdir(elsewhere) do
+            expect(looked_up.source_file_for(relative).filename).to eq(user_path)
+          end
+        end
       end
 
       it "returns nil for an unknown path" do
@@ -488,6 +621,105 @@ RSpec.describe SimpleCov::Result do
         stderr = capture_stderr { described_class.new(many_missing, report: true) }
         expect(stderr).to include("(+3 more)")
       end
+    end
+  end
+
+  # Reached only through Result#initialize in production, so the shapes it
+  # has to survive (symbol criterion keys, a path whose source is gone) are
+  # pinned here rather than through a whole formatted report.
+  describe SimpleCov::Result::SourceFileBuilder do
+    let(:sample) { source_fixture("json/sample.rb") }
+    let(:user) { source_fixture("app/models/user.rb") }
+    let(:missing) { "/does/not/exist/foo.rb" }
+
+    def builder_for(coverage, not_loaded_files: Set.new)
+      described_class.new(coverage, not_loaded_files: not_loaded_files)
+    end
+
+    it "builds one source file per path, sorted by filename" do
+      builder = builder_for({user => {"lines" => [1]}, sample => {"lines" => [1, 0, 1]}})
+      files = builder.call
+
+      expect(files).to be_a(SimpleCov::FileList)
+      expect(files.map(&:filename)).to eq([user, sample])
+      expect(builder.missing_source_files).to be_empty
+    end
+
+    # The report drops what it cannot read, and hands the caller the list so
+    # the drop can be said out loud. See #980.
+    it "collects the paths whose source is gone instead of building them" do
+      builder = builder_for({missing => {"lines" => [1]}, sample => {"lines" => [1, 0, 1]}})
+
+      expect(builder.call.map(&:filename)).to eq([sample])
+      expect(builder.missing_source_files).to eq([missing])
+    end
+
+    # `Coverage.result` keys the criteria with Symbols; a resultset read
+    # back from disk uses Strings, and SourceFile reads Strings.
+    it "stringifies the criterion keys a live Coverage.result carries" do
+      file = builder_for({sample => {lines: [1, 0, 1]}}).call.first
+
+      expect(file.coverage_statistics(:line)).to have_attributes(covered: 2, missed: 1)
+    end
+
+    it "marks a file nobody loaded as not loaded, and every other file as loaded" do
+      files = builder_for({user => {"lines" => [1]}, sample => {"lines" => [1, 0, 1]}},
+                          not_loaded_files: Set[sample]).call
+
+      expect(files.map(&:not_loaded?)).to eq([false, true])
+    end
+  end
+
+  # The warning behind issue #980: a resultset naming source files that
+  # don't exist here produces an empty "0 / 0 (100.00%)" report that looks
+  # like success. These are the exact lines it prints.
+  describe SimpleCov::Result::MissingSourceFilesReporter do
+    subject(:reporter) { described_class.new(paths, every_entry_dropped: false) }
+
+    let(:paths) { ["/gone/one.rb"] }
+
+    before { allow(SimpleCov::Color).to receive(:enabled?).and_return(true) }
+
+    def message_for(paths, every_entry_dropped:)
+      described_class.new(paths, every_entry_dropped: every_entry_dropped).message
+    end
+
+    it "points at collate's usual cause when the result kept nothing at all" do
+      expect(message_for(["/gone/one.rb", "/gone/two.rb"], every_entry_dropped: true)).to eq(
+        "SimpleCov dropped all 2 source file(s) from the result — none of the paths in the " \
+        "resultset exist on this filesystem: /gone/one.rb, /gone/two.rb. If you're running " \
+        "`SimpleCov.collate`, the source files must be available at the same absolute paths as " \
+        "when the individual resultsets were generated."
+      )
+    end
+
+    it "stays quieter when only some of the files went missing" do
+      expect(message_for(["/gone/one.rb"], every_entry_dropped: false)).to eq(
+        "SimpleCov dropped 1 source file(s) from the result because they don't exist on this " \
+        "filesystem: /gone/one.rb. They were tracked in the resultset but have since moved or " \
+        "been removed."
+      )
+    end
+
+    it "lists five paths without a suffix" do
+      five = (1..5).map { |index| "/gone/file#{index}.rb" }
+
+      expect(message_for(five, every_entry_dropped: false)).to include(
+        "filesystem: /gone/file1.rb, /gone/file2.rb, /gone/file3.rb, /gone/file4.rb, /gone/file5.rb. They were"
+      )
+    end
+
+    it "lists the first five paths and counts the rest" do
+      six = (1..6).map { |index| "/gone/file#{index}.rb" }
+
+      expect(message_for(six, every_entry_dropped: false)).to include(
+        "filesystem: /gone/file1.rb, /gone/file2.rb, /gone/file3.rb, /gone/file4.rb, " \
+        "/gone/file5.rb (+1 more). They were"
+      )
+    end
+
+    it "warns in yellow, the color of a report that looks fine but isn't" do
+      expect(capture_stderr { reporter.warn! }).to eq("\e[33m#{reporter.message}\e[0m\n")
     end
   end
 end
