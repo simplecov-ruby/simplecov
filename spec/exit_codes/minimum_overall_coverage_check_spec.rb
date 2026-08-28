@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
+RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MinimumOverallCoverageCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage) }
 
   let(:result) do
@@ -99,5 +101,66 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck do
       output = capture_stderr { check.report }
       expect(output).not_to include("lib/missing.rb")
     end
+  end
+
+  it "fails the run with the minimum-coverage code" do
+    expect(described_class.new(result, {line: 90.0}).exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+  end
+
+  describe "the lowest-coverage hint" do
+    def source_file(path, percent)
+      instance_double(
+        SimpleCov::SourceFile, project_filename: path,
+                               coverage_statistics: {line: instance_double(SimpleCov::CoverageStatistics, percent: percent)}
+      )
+    end
+
+    let(:minimum_coverage) { {line: 90.0} }
+    let(:files) do
+      [source_file("f.rb", 60.0), source_file("b.rb", 20.0), source_file("e.rb", 50.0),
+       source_file("a.rb", 10.0), source_file("d.rb", 40.0), source_file("c.rb", 30.0),
+       source_file("whole.rb", 100.0), source_file("nearly.rb", 99.5)]
+    end
+
+    # The worst five, worst first. A file at 100% is no hint at all, and
+    # one just short of it still is.
+    it "names the five lowest, and only files with something missing" do
+      expect(check.send(:worst_files_for, :line))
+        .to eq([["a.rb", 10.0], ["b.rb", 20.0], ["c.rb", 30.0], ["d.rb", 40.0], ["e.rb", 50.0]])
+    end
+
+    it "keeps a file that is short by a fraction" do
+      allow(result).to receive(:files).and_return([source_file("nearly.rb", 99.5)])
+      expect(check.send(:worst_files_for, :line)).to eq([["nearly.rb", 99.5]])
+    end
+
+    # Oneshot lines are recorded under the line statistics, so the
+    # criterion has to be read through the key it is stored under.
+    it "reads oneshot line coverage from the line statistics" do
+      allow(result).to receive(:files).and_return([source_file("a.rb", 10.0)])
+      expect(check.send(:worst_files_for, :oneshot_line)).to eq([["a.rb", 10.0]])
+    end
+
+    it "prints each of them under a heading, aligned" do
+      allow(result).to receive(:files).and_return([source_file("a.rb", 10.0)])
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+
+      expect { check.send(:report_worst_files, :line) }
+        .to output("  Lowest-coverage files (line):\n     10.00%  a.rb\n").to_stderr
+    end
+
+    it "prints nothing when every file is covered" do
+      allow(result).to receive(:files).and_return([source_file("whole.rb", 100.0)])
+      expect { check.send(:report_worst_files, :line) }.not_to output.to_stderr
+    end
+  end
+
+  # The message names the criterion, the coverage reached and the one
+  # expected, and each is read from its own place in the violation.
+  it "reports what fell short, and by how much" do
+    allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+
+    expect { described_class.new(result, {line: 90.0}).report }
+      .to output("Line coverage (80.00%) is below the expected minimum coverage (90.00%).\n").to_stderr
   end
 end

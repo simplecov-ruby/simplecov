@@ -6,7 +6,7 @@ module SimpleCov
     # below the configured minimum.
     class MinimumOverallCoverageCheck < Check
       def exit_code
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        MINIMUM_COVERAGE
       end
 
     private
@@ -15,7 +15,7 @@ module SimpleCov
       private_constant :WORST_FILES_LIMIT
 
       def compute_violations
-        SimpleCov::CoverageViolations.minimum_overall(result, thresholds)
+        CoverageViolations.minimum_overall(result, thresholds)
       end
 
       def report_violation(violation)
@@ -24,7 +24,7 @@ module SimpleCov
         ExitCodes.print_error format(
           "%<criterion>s coverage (%<actual>s) is below the expected minimum coverage (%<expected>.2f%%).",
           criterion: criterion.capitalize,
-          actual: SimpleCov::Color.colorize_percent(actual),
+          actual: Color.colorize_percent(actual),
           expected: violation.fetch(:expected)
         )
         report_worst_files(criterion)
@@ -38,7 +38,7 @@ module SimpleCov
         worst.each do |path, percent|
           ExitCodes.print_error format(
             "    %<percent>s  %<path>s",
-            percent: SimpleCov::Color.colorize_percent(percent, format("%6.2f%%", percent)),
+            percent: Color.colorize_percent(percent, format("%6.2f%%", percent)),
             path: path
           )
         end
