@@ -2,7 +2,8 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck do
+RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MaximumMissedCheck*", "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_missed) }
 
   let(:result) do
@@ -64,5 +65,17 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck do
     it "returns MINIMUM_COVERAGE" do
       expect(check.exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
     end
+  end
+
+  it "reports the misses and the cap they passed, in the criterion's own units" do
+    expect { described_class.new(result, {line: 10}).report }
+      .to output("Missed lines (12) exceed the configured maximum_missed (10).\n").to_stderr
+  end
+
+  # Oneshot lines are recorded under the line statistics, so their units
+  # are read through the key they are stored under.
+  it "names oneshot lines as lines" do
+    expect { described_class.new(result, {oneshot_line: 10}).report }
+      .to output("Missed lines (12) exceed the configured maximum_missed (10).\n").to_stderr
   end
 end

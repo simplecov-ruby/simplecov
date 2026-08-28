@@ -8,19 +8,19 @@ module SimpleCov
     # the criterion's own units.
     class MaximumMissedCheck < Check
       def exit_code
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        MINIMUM_COVERAGE
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.maximum_missed(result, thresholds)
+        CoverageViolations.maximum_missed(result, thresholds)
       end
 
       def report_violation(violation)
         ExitCodes.print_error format(
           "Missed %<units>s (%<actual>d) exceed the configured maximum_missed (%<maximum>d).",
-          units: ExitCodes::UNITS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion))),
+          units: UNITS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion))),
           actual: violation.fetch(:actual),
           maximum: violation.fetch(:maximum)
         )
