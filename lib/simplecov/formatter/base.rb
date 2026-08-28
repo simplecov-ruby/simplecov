@@ -78,12 +78,12 @@ module SimpleCov
 
       # Subclasses override to name the report's entry-point file
       # (e.g. `index.html` for HTML, `coverage.json` for JSON), which
-      # gets appended to the directory in the status line. Default nil
-      # leaves the bare directory in place for any third-party formatter
-      # that has no single canonical entry point.
-      def entry_point_filename
-        nil
-      end
+      # gets appended to the directory in the status line. The empty
+      # body answers nil, which leaves the bare directory in place for
+      # any third-party formatter that has no single canonical entry
+      # point. Spelling that nil out would only add a mutation site no
+      # example could tell apart from the empty body.
+      def entry_point_filename; end
 
       # Emit one summary line per criterion that the run actually
       # measured. The header line ("Coverage report generated for X
@@ -102,15 +102,18 @@ module SimpleCov
       # Showing "Branch coverage: 0 / 0 (100.00%)" is noise; the older
       # output specifically suppressed it.
       def stats_line(criterion, stat)
-        return if criterion != :line && !stat.total.positive?
+        return if !criterion.equal?(:line) && !stat.total.positive?
 
         percent = SimpleCov.round_coverage(stat.percent)
+        # `Symbol#capitalize` answers a Symbol, which `%<label>s` renders
+        # as its capitalized name, so the label needs no `to_s` step of
+        # its own.
         Kernel.format(
           "%<label>s coverage: %<covered>d / %<total>d (%<percent>s)",
-          label: criterion.to_s.capitalize,
+          label: criterion.capitalize,
           covered: stat.covered,
           total: stat.total,
-          percent: SimpleCov::Color.colorize_percent(percent)
+          percent: Color.colorize_percent(percent)
         )
       end
     end
