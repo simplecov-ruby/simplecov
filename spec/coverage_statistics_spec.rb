@@ -16,16 +16,28 @@ RSpec.describe SimpleCov::CoverageStatistics do
       expect(statistics.strength).to eq 1.4
     end
 
-    it "defaults omitted to 0" do
+    it "defaults omitted to exactly the Integer zero" do
       statistics = described_class.new(covered: 4, missed: 6)
 
-      expect(statistics.omitted).to eq 0
+      expect(statistics.omitted).to be 0
     end
 
-    it "can omitted the total strength defaulting to 0.0" do
+    it "defaults the total strength to nothing, and still answers a Float" do
       statistics = described_class.new(covered: 4, missed: 6)
 
-      expect(statistics.strength).to eq 0.0
+      expect(statistics.strength).to be 0.0
+    end
+
+    it "answers a Float strength for an Integer total strength" do
+      statistics = described_class.new(covered: 4, missed: 6, total_strength: 14)
+
+      expect(statistics.strength).to be 1.4
+    end
+
+    it "keeps a percent it was handed instead of computing one" do
+      statistics = described_class.new(covered: 1, missed: 1, percent: 12.34)
+
+      expect(statistics.percent).to be 12.34
     end
 
     it "can deal with it if everything is 0" do
@@ -81,5 +93,27 @@ RSpec.describe SimpleCov::CoverageStatistics do
       percent: 100.0,
       strength: 0.0
     )
+  end
+
+  describe "the percent it reports" do
+    # A percent given outright is the percent reported: the merge hands
+    # one down rather than having it recomputed from counts it rounded.
+    it "keeps a percent it was given" do
+      expect(described_class.new(covered: 8, missed: 2, percent: 42.0).percent).to eq(42.0)
+    end
+
+    it "works one out from the counts when none was given" do
+      expect(described_class.new(covered: 8, missed: 2).percent).to eq(80.0)
+    end
+  end
+
+  # Strength is the average hit count; with no total recorded there is
+  # nothing to average and it reads as zero.
+  it "starts from no strength when none was recorded" do
+    expect(described_class.new(covered: 8, missed: 2).strength).to eq(0.0)
+  end
+
+  it "averages the recorded strength over the lines it covers" do
+    expect(described_class.new(covered: 8, missed: 2, total_strength: 30.0).strength).to eq(3.0)
   end
 end

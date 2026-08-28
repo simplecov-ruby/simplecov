@@ -36,7 +36,7 @@ module SimpleCov
     # Requires only covered, missed and strength to be initialized.
     #
     # Other values are computed by this class.
-    def initialize(covered:, missed:, omitted: 0, total_strength: 0.0, percent: nil)
+    def initialize(covered:, missed:, omitted: 0, total_strength: 0, percent: nil)
       @covered  = covered
       @missed   = missed
       @omitted  = omitted
@@ -53,10 +53,12 @@ module SimpleCov
       covered * 100.0 / total
     end
 
+    # `fdiv` both coerces and divides, so an Integer default needs no
+    # separate conversion on its way to a Float answer.
     def compute_strength(total_strength, total)
       return 0.0 if total.zero?
 
-      total_strength.to_f / total
+      total_strength.fdiv(total)
     end
   end
 end
