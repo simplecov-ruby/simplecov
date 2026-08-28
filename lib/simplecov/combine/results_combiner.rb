@@ -10,7 +10,7 @@ module SimpleCov
     # To unite the results on file basis, it leverages
     # the combine of lines and branches inside each file within given results.
     module ResultsCombiner
-    module_function
+      extend self
 
       #
       # Combine process explanation

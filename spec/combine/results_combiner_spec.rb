@@ -141,6 +141,26 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
     end
   end
 
+  # A caller with nothing to merge still gets a coverage hash back, so it
+  # does not have to tell "nothing to merge" apart from "merged nothing"
+  # before it can report. `CoverageAccumulator` keeps that distinction for
+  # the callers that do need it.
+  describe "with nothing to merge" do
+    it "combines no results at all into an empty coverage" do
+      expect(described_class.combine).to eq({})
+    end
+
+    it "combines results that carried no coverage into an empty coverage" do
+      expect(described_class.combine(nil, nil)).to eq({})
+    end
+
+    it "keeps the coverage of the one result that carried any" do
+      coverage = {source_fixture("sample.rb") => {"lines" => [nil, 1, 3]}}
+
+      expect(described_class.combine(nil, coverage)).to eq(coverage)
+    end
+  end
+
   it "merges frozen resultsets" do
     first_resultset = {
       source_fixture("sample.rb").freeze => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
