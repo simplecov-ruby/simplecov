@@ -49,7 +49,7 @@ module SimpleCov
             # appended, carried for tools that draw trends. Present
             # only when past runs are recorded: one point is not a
             # trend.
-            history = SimpleCov::History.entries_with(result)
+            history = History.entries_with(result)
             document[:history] = history if history.length > 1
             # Production coverage (see `SimpleCov.production_coverage`),
             # present only when a store is configured and readable.
@@ -74,14 +74,14 @@ module SimpleCov
           def format_meta(result)
             {
               schema_version: SCHEMA_VERSION,
-              simplecov_version: SimpleCov::VERSION,
+              simplecov_version: VERSION,
               command_name: result.command_name, command_names: result.command_names,
               project_name: SimpleCov.project_name,
               timestamp: result.created_at.iso8601(3),
               root: SimpleCov.root,
               commit: git_commit,
-              primary_coverage: SimpleCov.primary_coverage.to_s
-            }.merge!(coverage_flags)
+              primary_coverage: SimpleCov.primary_coverage.to_s, **coverage_flags
+            }
           end
 
           # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
@@ -91,8 +91,8 @@ module SimpleCov
           # coverage.json. stderr is captured (not forwarded) so a non-git project
           # doesn't print git's diagnostics to the build.
           def git_commit
-            output, status = Open3.capture2e("git", "-C", SimpleCov.root.to_s, "rev-parse", "HEAD")
-            status.success? ? output.strip : nil
+            output, status = Open3.capture2e("git", "-C", SimpleCov.root, "rev-parse", "HEAD")
+            output.strip if status.success?
           rescue StandardError
             nil
           end
@@ -105,11 +105,19 @@ module SimpleCov
             }
           end
 
+          # A criterion the run did not measure is absent from
+          # `statistics` entirely, and gets no section. Each one is read
+          # once and then tested, rather than read again inside the
+          # guard: a second read of a value the guard already vouched
+          # for is a step nothing can observe.
           def format_coverage_statistics(statistics)
             result = {} #: Hash[Symbol, untyped]
-            result[:lines]    = format_line_statistic(statistics[:line])      if statistics[:line]
-            result[:branches] = format_single_statistic(statistics[:branch])  if statistics[:branch]
-            result[:methods]  = format_single_statistic(statistics[:method])  if statistics[:method]
+            line = statistics[:line]
+            branch = statistics[:branch]
+            method_stat = statistics[:method]
+            result[:lines]    = format_line_statistic(line)          if line
+            result[:branches] = format_single_statistic(branch)      if branch
+            result[:methods]  = format_single_statistic(method_stat) if method_stat
             result
           end
 
