@@ -10,7 +10,7 @@ module SimpleCov
   class << self
     # @api private
     def final_result_process?
-      adapter = SimpleCov::ParallelAdapters.current
+      adapter = ParallelAdapters.current
       # No recognized parallel-test adapter. A subprocess forked while
       # coverage was running is never the final reporter — the process that
       # spawned it merges every slice and produces the report. Without this,
@@ -24,7 +24,7 @@ module SimpleCov
 
     # @api private
     def wait_for_other_processes
-      adapter = SimpleCov::ParallelAdapters.current
+      adapter = ParallelAdapters.current
       return unless adapter && final_result_process?
 
       # Native synchronization first (adapters that wrap a runner with a
@@ -47,7 +47,7 @@ module SimpleCov
     # before the wait deadline. Defaults to true outside a parallel
     # run (when `wait_for_other_processes` is a no-op).
     def parallel_results_complete?
-      defined?(@parallel_results_complete) ? @parallel_results_complete : true
+      instance_variable_defined?(:@parallel_results_complete) ? @parallel_results_complete : true
     end
 
     # @api private — seconds the resultset count must hold steady, after a
@@ -86,22 +86,30 @@ module SimpleCov
       end
     end
 
+    # The run's own identity is read without a receiver: these methods
+    # are mixed into this module's singleton, so naming it says nothing
+    # a mutation could be told apart from.
     def current_parallel_worker_count
-      resultset = SimpleCov::ResultMerger.read_resultset
-      SimpleCov::ResultMerger.worker_identities_for_run(resultset, SimpleCov.run_id, SimpleCov.process_start_time).size
+      resultset = ResultMerger.read_resultset
+      ResultMerger.worker_identities_for_run(resultset, run_id, process_start_time).size
     end
 
     # Track whether the resultset count has held steady (and positive) for
     # `PARALLEL_RESULTS_SETTLE` seconds. `tracker` carries the last count and
     # the time it last changed across poll iterations.
+    # Answered through an if/else rather than an early return because
+    # falling through after a climb would read the clock a second time
+    # and answer the same `false` anyway, which leaves nothing to tell
+    # the guard apart from its absence. Both keys are the tracker's own
+    # and always set, so both are read with `fetch`.
     def resultset_count_settled?(tracker, count)
-      if count > tracker[:count]
+      if count > tracker.fetch(:count)
         tracker[:count] = count
         tracker[:since] = monotonic_time
-        return false
+        false
+      else
+        count.positive? && (monotonic_time - tracker.fetch(:since)) >= PARALLEL_RESULTS_SETTLE
       end
-
-      count.positive? && (monotonic_time - tracker[:since]) >= PARALLEL_RESULTS_SETTLE
     end
 
     def monotonic_time
@@ -121,7 +129,7 @@ module SimpleCov
     def warn_about_incomplete_parallel_results(expected, seen)
       return unless print_errors
 
-      warn SimpleCov::Color.colorize(
+      warn Color.colorize(
         "Only #{seen} of #{expected} parallel-test workers reported within " \
         "#{parallel_wait_timeout}s, so coverage totals are partial and minimum / " \
         "maximum coverage checks are skipped for this run. Increase " \
