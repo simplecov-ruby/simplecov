@@ -25,7 +25,7 @@ module SimpleCov
       # method from method totals. Without line info there is nothing to
       # report against, so such a method stays skipped.
       def skipped?
-        return @skipped if defined?(@skipped)
+        return @skipped if instance_variable_defined?(:@skipped)
 
         @skipped = lines.empty?
       end
