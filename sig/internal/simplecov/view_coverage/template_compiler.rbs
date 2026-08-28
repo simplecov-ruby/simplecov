@@ -16,6 +16,8 @@ module SimpleCov
 
       # The format the template renders (`show.html.erb` is `:html`), taken
       # from the extension in front of the handler's.
+      def self?.compile_into_throwaway_module: (untyped template) -> void
+
       def self?.format_for: (String path) -> Symbol?
 
       # The single place ActionView is named.

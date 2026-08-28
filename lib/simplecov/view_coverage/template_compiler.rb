@@ -24,7 +24,7 @@ module SimpleCov
     # filters those out before calling here.
     #
     module TemplateCompiler
-    module_function
+      extend self
 
       # Whether this process can compile templates at all. False in any
       # project that doesn't load ActionView, which is the common case and
@@ -41,11 +41,20 @@ module SimpleCov
         template = build_template(path, File.binread(path))
         return false unless template
 
-        template.send(:compile, Module.new)
+        compile_into_throwaway_module(template)
         true
       rescue StandardError, ScriptError => e
         warn "[SimpleCov]: Skipping #{path}, which did not compile (#{e.class})"
         false
+      end
+
+      # ActionView keeps `compile` private, and the module it compiles
+      # into is thrown away: what is wanted is the coverage the compile
+      # records, not the method it defines.
+      #
+      # mutant:disable — `send` and `__send__` are the same call.
+      def compile_into_throwaway_module(template)
+        template.send(:compile, Module.new)
       end
 
       # The format the template renders, taken from the extension in front of
@@ -72,11 +81,11 @@ module SimpleCov
       # load; covered by the rails sandbox specs, which run in a subprocess
       def build_template(path, source)
         extension = File.extname(path).delete_prefix(".")
-        handler = ::ActionView::Template.registered_template_handler(extension)
+        handler = ActionView::Template.registered_template_handler(extension)
         return nil unless handler
 
         no_locals = [] #: Array[Symbol]
-        ::ActionView::Template.new(source, path, handler, locals: no_locals, format: format_for(path))
+        ActionView::Template.new(source, path, handler, locals: no_locals, format: format_for(path))
       end
       # simplecov:enable
     end
