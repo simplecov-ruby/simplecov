@@ -22,7 +22,7 @@ module SimpleCov
       # @api private — the live per-test recorder, present only while
       # tracking runs with `track_tests` enabled.
       def test_tracker
-        defined?(@test_tracker) ? @test_tracker : nil
+        @test_tracker
       end
 
       # @api private — called from `start_coverage_measurement`. Reuses the

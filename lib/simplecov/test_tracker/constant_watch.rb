@@ -17,11 +17,11 @@ module SimpleCov
     # constant definition, which is as close to free as Ruby gets.
     #
     class ConstantWatch < Module
+      # No `super`: it would forward the implicit block even given
+      # explicit arguments, and `Module#initialize` module_evals any
+      # block it gets. The callback is for later, not for now, and
+      # `Module#initialize` has nothing else to contribute.
       def initialize(name, &on_added)
-        # `super` forwards the implicit block even with explicit
-        # arguments, and `Module#initialize` module_evals any block it
-        # gets — the callback must not run now, so pass none.
-        super(&nil)
         @name = name
         @on_added = on_added
         watch = self #: ConstantWatch
@@ -43,7 +43,8 @@ module SimpleCov
 
       # @api private — the prepended callback funnels here.
       def notice(added)
-        return unless added == @name
+        # Symbols are interned, so identity is the whole of the question.
+        return unless added.equal?(@name)
 
         callback = @on_added
         return unless callback

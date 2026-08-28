@@ -22,7 +22,7 @@ module SimpleCov
         after.each do |path, file_coverage|
           # Memoized: the regex runs once per file the process ever loads,
           # not once per file per test.
-          in_root = @in_root.fetch(path) { @in_root[path] = path.match?(@root_regex) }
+          in_root = @in_root.fetch(path) { @in_root[path] = @root_regex.match?(path) }
           next unless in_root
 
           bitmap = line_delta(lines_in(before[path]), lines_in(file_coverage))
@@ -49,17 +49,19 @@ module SimpleCov
         return 0 unless after_lines
         # The overwhelmingly common case: the test never entered this file.
         # Array equality is a fast C compare, the per-line loop is not.
-        return 0 if before_lines == after_lines
+        return 0 if before_lines.eql?(after_lines)
 
-        # Built as a binary string, highest line first, so the
+        # Built as a binary string, one pass over the lines, so the
         # arbitrary-precision math happens once per file rather than one
-        # bignum OR per executed line. The leading zero keeps the parse
-        # valid for an all-zero delta without changing any value.
-        bits = +"0"
-        (after_lines.size - 1).downto(0) do |index|
-          bits << (grew?(after_lines[index], before_lines && before_lines[index]) ? "1" : "0")
+        # bignum OR per executed line. The string reads lowest line
+        # first and the number wants it the other way round; the leading
+        # zero keeps the parse valid for an all-zero delta without
+        # changing any value.
+        bits = +""
+        after_lines.each_with_index do |count, index|
+          bits << (grew?(count, before_lines&.at(index)) ? "1" : "0")
         end
-        Integer(bits, 2)
+        Integer("0#{bits.reverse}", 2)
       end
 
       # A line belongs to the test when its count grew across the two peeks.

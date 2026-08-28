@@ -18,6 +18,14 @@ RSpec.describe SimpleCov::TestTracker do
     allow(Coverage).to receive(:peek_result).and_return(before, after)
   end
 
+  # The tracker takes its granularity from configuration, which has
+  # already vetted it; a direct caller gets the same answer rather than
+  # a tracker that quietly attributes to the wrong thing.
+  it "refuses a granularity it does not know" do
+    expect { described_class.new(granularity: :sentence) }
+      .to raise_error(ArgumentError, "unknown granularity :sentence, expected one of [:test, :file]")
+  end
+
   describe "#track" do
     it "attributes the lines whose count grew, and only those, to the test" do
       idle_file = File.join(project_root, "lib/idle.rb")
@@ -198,7 +206,8 @@ RSpec.describe SimpleCov::TestTracker do
   # At :file granularity every test in a file shares one context: ids
   # truncate to the file, consecutive same-file tests share one segment,
   # and a whole suite pays one peek per test file instead of per test.
-  describe "file granularity" do
+  describe "file granularity", mutant_expression: ["SimpleCov::TestTracker*",
+                                                   "SimpleCov::TestTracker#track"] do
     subject(:tracker) do
       described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i, granularity: :file)
     end
@@ -228,6 +237,30 @@ RSpec.describe SimpleCov::TestTracker do
       tracker.track("FakeNativeTest#object_id") { :ran }
 
       expect(tracker.recorded_map.contexts).to eq(["FakeNativeTest#object_id"])
+    end
+
+    # Only a `path:line` tail is a line number to drop. A colon in an id
+    # that names something else is part of the name, and an id that is
+    # nothing but digits has no path in front of it to keep.
+    {
+      "a colon followed by something that is not a line" => "MyTest:setup",
+      "an id that is only a line number" => "12"
+    }.each do |description, id|
+      it "keeps #{description} whole" do
+        allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+
+        tracker.track(id) { :ran }
+
+        expect(tracker.recorded_map.contexts).to eq([id])
+      end
+    end
+
+    it "truncates a line number of any length" do
+      allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+
+      tracker.track("spec/first_spec.rb:123") { :ran }
+
+      expect(tracker.recorded_map.contexts).to eq(["spec/first_spec.rb"])
     end
   end
 
@@ -271,7 +304,67 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  # The owner is taken at depth zero and the depth is what unwinds, so a
+  # test that nests twice in one thread is still one thread's work.
+  describe "nested tracks in one thread" do
+    it "stays trustworthy across sequential nested tracks" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+
+      tracker.track("spec/outer_spec.rb:1") do
+        tracker.track("spec/first_inner_spec.rb:2") { :ran }
+        tracker.track("spec/second_inner_spec.rb:3") { :ran }
+      end
+
+      expect(tracker.poisoned?).to be(false)
+      expect(tracker.recorded_map).not_to be_nil
+    end
+  end
+
+  # The depth and the owning thread are what tell a nested track from a
+  # concurrent one, and they are read and written from every thread that
+  # tracks anything.
+  describe "the tracker's own bookkeeping" do
+    it "takes the lock around both halves of a track" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+      lock = tracker.instance_variable_get(:@lock)
+      allow(lock).to receive(:synchronize).and_call_original
+
+      tracker.track("spec/thing_spec.rb:1") { :ran }
+
+      expect(lock).to have_received(:synchronize).twice
+    end
+
+    # The poisoning can land while a nested track is in flight, and what
+    # it recorded before that is no more trustworthy than the rest.
+    it "records nothing for a track another thread poisoned mid-flight" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+
+      capture_stderr do
+        tracker.track("spec/outer_spec.rb:1") do
+          tracker.track("spec/inner_spec.rb:2") do
+            Thread.new { tracker.track("spec/other_spec.rb:3") { :ran } }.value
+          end
+        end
+      end
+
+      expect(tracker.map.contexts).to eq([])
+    end
+  end
+
   describe "#recorded_map" do
+    # At process exit `Coverage.result` has already stopped measurement,
+    # so result-building hands over the coverage it just took rather
+    # than asking for a peek that would answer with nothing.
+    it "closes the open segment against a snapshot it is given" do
+      allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0, 0]}})
+
+      tracker.track("spec/thing_spec.rb:1") { :ran }
+      map = tracker.recorded_map(closing: {lib_file => {lines: [1, 0]}})
+
+      expect(Coverage).to have_received(:peek_result).once
+      expect(map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+    end
+
     it "is the map while attribution is trustworthy, and nil once poisoned" do
       allow(Coverage).to receive(:peek_result).and_return({})
 
@@ -313,7 +406,9 @@ RSpec.describe SimpleCov::TestTracker do
       allow(example).to receive(:run)
       allow(SimpleCov).to receive(:track_test).and_yield
 
-      around_blocks.first.call(example)
+      # RSpec instance-execs the block in the example group, so anything
+      # it reaches has to be named in full rather than called on self.
+      Object.new.instance_exec(example, &around_blocks.first)
 
       expect(SimpleCov).to have_received(:track_test).with("spec/a_spec.rb:12")
       expect(example).to have_received(:run)
@@ -328,6 +423,14 @@ RSpec.describe SimpleCov::TestTracker do
 
       expect(around_blocks.size).to eq(1)
       expect(second).not_to have_received(:configure)
+    end
+
+    it "finds the RSpec this process has when it is handed none" do
+      allow(RSpec).to receive(:configure)
+
+      described_class.install_rspec_hook
+
+      expect(RSpec).to have_received(:configure)
     end
 
     it "does nothing without an RSpec to configure" do
@@ -446,19 +549,73 @@ RSpec.describe SimpleCov::TestTracker do
       expect(wrapped?(test_case)).to be true
     end
 
+    # Every watch left armed is a name comparison on every constant the
+    # host ever defines, so the deferred halves arm one watch and only
+    # when there is something to wait for.
+    it "arms no watch when Minitest::Test is already there" do
+      minitest = Module.new
+      minitest.const_set(:Test, test_case)
+      root.const_set(:Minitest, minitest)
+      allow(SimpleCov::TestTracker::ConstantWatch).to receive(:new).and_call_original
+
+      described_class.install_minitest_hook_when_loaded(root)
+
+      expect(SimpleCov::TestTracker::ConstantWatch).not_to have_received(:new)
+    end
+
+    it "arms one watch when Minitest is there without its Test" do
+      root.const_set(:Minitest, Module.new)
+      allow(SimpleCov::TestTracker::ConstantWatch).to receive(:new).and_call_original
+
+      described_class.install_minitest_hook_when_loaded(root)
+
+      expect(SimpleCov::TestTracker::ConstantWatch).to have_received(:new).once
+    end
+
+    # Outside of tests the host is Object, where a required Minitest
+    # lands.
+    it "watches Object when it is handed no root" do
+      watch = instance_double(SimpleCov::TestTracker::ConstantWatch, attach: nil)
+      allow(described_class).to receive(:loaded_const).and_return(nil)
+      allow(SimpleCov::TestTracker::ConstantWatch).to receive(:new).and_return(watch)
+
+      described_class.install_minitest_hook_when_loaded
+
+      expect(watch).to have_received(:attach).with(equal(Object))
+    end
+
     # const_added fires when an autoload is declared, before anything is
     # loaded — and installing a coverage hook must never be what requires
-    # a test framework, so a declared-not-loaded Minitest is left alone.
+    # a test framework, so a declared-not-loaded Minitest is left alone,
+    # with nothing to attach a second watch to either.
     it "never forces an autoload to resolve" do
       described_class.install_minitest_hook_when_loaded(root)
+      allow(SimpleCov::TestTracker::ConstantWatch).to receive(:new).and_call_original
 
       root.autoload(:Minitest, "some/nonexistent/minitest")
 
       expect(root.autoload?(:Minitest)).not_to be_nil
+      expect(SimpleCov::TestTracker::ConstantWatch).not_to have_received(:new)
     end
   end
 
   describe SimpleCov::TestTracker::ConstantWatch do
+    it "answers itself when attached, so a watch can be armed in one breath" do
+      watch = described_class.new(:Target) { :never }
+
+      expect(watch.attach(Module.new)).to be(watch)
+    end
+
+    # `Module#initialize` module_evals any block it is given, and this
+    # one is a callback for later, not a module body.
+    it "does not run its callback while being built" do
+      ran = false
+
+      described_class.new(:Target) { ran = true }
+
+      expect(ran).to be(false)
+    end
+
     it "runs its callback exactly once, keeping the host's const_added chain intact" do
       host = Module.new
       calls = []
@@ -474,7 +631,199 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  # The peek-diff arithmetic: which in-root lines grew between two
+  # coverage snapshots, as one bitmap per file.
+  describe SimpleCov::TestTracker::Delta do
+    subject(:delta) { described_class.new(root_regex: /\A#{Regexp.escape('/app')}/) }
+
+    def lines(counts) = {lines: counts}
+
+    it "sets a bit for each line whose count grew, lowest line as the lowest bit" do
+      before = {"/app/a.rb" => lines([1, 0, nil, 2])}
+      after = {"/app/a.rb" => lines([1, 1, nil, 5])}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b1010)
+    end
+
+    it "leaves out a file no line of which grew" do
+      unchanged = {"/app/a.rb" => lines([1, 2, 3])}
+
+      expect(delta.call(unchanged, unchanged)).to eq({})
+    end
+
+    # A file absent from the earlier peek was loaded by this test, so
+    # everything it has executed belongs to it.
+    it "claims every executed line of a file the test loaded itself" do
+      after = {"/app/a.rb" => lines([1, 0, nil, 3])}
+
+      expect(delta.call({}, after)).to eq("/app/a.rb" => 0b1001)
+    end
+
+    it "ignores files outside the root" do
+      before = {"/elsewhere/a.rb" => lines([0])}
+      after = {"/elsewhere/a.rb" => lines([1])}
+
+      expect(delta.call(before, after)).to eq({})
+    end
+
+    # A peek covers every file the process has loaded, and the ones it
+    # must skip come interleaved with the ones it must keep.
+    it "keeps reading past a file outside the root" do
+      before = {"/elsewhere/a.rb" => lines([0]), "/app/a.rb" => lines([0])}
+      after = {"/elsewhere/a.rb" => lines([1]), "/app/a.rb" => lines([1])}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b1)
+    end
+
+    # The regex runs once per file the process ever loads, not once per
+    # file per test: at a thousand tests over a thousand files that is
+    # the difference between a thousand matches and a million.
+    it "asks the root regex about a file once, however many tests it appears in" do
+      asked = []
+      regex = Object.new
+      regex.define_singleton_method(:match?) do |path|
+        asked << path
+        path.start_with?("/app")
+      end
+
+      memoizing = described_class.new(root_regex: regex)
+      2.times { memoizing.call({}, {"/app/a.rb" => lines([1])}) }
+
+      expect(asked).to eq(["/app/a.rb"])
+    end
+
+    # Identical line arrays are the overwhelmingly common case (the test
+    # never entered the file), and the per-line walk is what the fast
+    # compare is there to skip.
+    it "does not walk the lines of a file nothing touched" do
+      before = {"/app/a.rb" => lines([1, 2, 3])}
+      after = {"/app/a.rb" => lines([1, 2, 3])}
+      walker = described_class.new(root_regex: /\A#{Regexp.escape('/app')}/)
+      allow(walker).to receive(:grew?).and_call_original
+
+      walker.call(before, after)
+
+      expect(walker).not_to have_received(:grew?)
+    end
+
+    # Coverage's per-file data is a criteria hash when SimpleCov started
+    # it, and a bare array under the older lines-only form.
+    it "reads both shapes of per-file coverage" do
+      expect(delta.call({"/app/a.rb" => [0]}, {"/app/a.rb" => [1]})).to eq("/app/a.rb" => 0b1)
+      expect(delta.call({"/app/a.rb" => lines([0])}, {"/app/a.rb" => lines([1])})).to eq("/app/a.rb" => 0b1)
+    end
+
+    it "finds nothing to diff when the run measured no lines at all" do
+      expect(delta.call({"/app/a.rb" => {branches: {}}}, {"/app/a.rb" => {branches: {}}})).to eq({})
+    end
+
+    it "treats a line that stopped being executable as not grown" do
+      expect(delta.call({"/app/a.rb" => lines([1, 1])}, {"/app/a.rb" => lines([1, nil])})).to eq({})
+    end
+
+    # A count that fell cannot belong to this test either, which only a
+    # peek pair from another process could produce.
+    it "treats a count that fell as not grown" do
+      expect(delta.call({"/app/a.rb" => lines([5])}, {"/app/a.rb" => lines([2])})).to eq({})
+    end
+
+    it "handles a file whose lines are all zero without producing an entry" do
+      expect(delta.call({}, {"/app/a.rb" => lines([0, 0])})).to eq({})
+    end
+
+    it "handles a file with no lines at all" do
+      expect(delta.call({}, {"/app/a.rb" => lines([])})).to eq({})
+    end
+
+    # The two peeks need not describe the same number of lines, and the
+    # earlier one being shorter means those lines are new.
+    it "reads a shorter earlier peek as having nothing on the lines it lacks" do
+      expect(delta.call({"/app/a.rb" => lines([1])}, {"/app/a.rb" => lines([1, 2])}))
+        .to eq("/app/a.rb" => 0b10)
+    end
+
+    # A criterion the later peek dropped leaves nothing to diff, even
+    # where the earlier peek had lines to diff against.
+    it "finds nothing to diff when only the earlier peek measured lines" do
+      expect(delta.call({"/app/a.rb" => lines([1])}, {"/app/a.rb" => {branches: {}}})).to eq({})
+    end
+  end
+
+  # A constant one of the host's ancestors happens to carry is not the
+  # host's, and every module's ancestry runs through Object, where the
+  # real Minitest would sit.
+  describe ".loaded_const" do
+    it "ignores a constant that belongs to an ancestor" do
+      ancestor = Module.new
+      ancestor.const_set(:Target, Class.new)
+      host = Module.new
+      host.include(ancestor)
+
+      expect(described_class.loaded_const(host, :Target)).to be_nil
+    end
+
+    it "leaves a constant that is only declared for autoload alone" do
+      host = Module.new
+      host.autoload(:Target, "some/nonexistent/target")
+
+      expect(described_class.loaded_const(host, :Target)).to be_nil
+    end
+
+    it "answers a constant of its own that an ancestor merely autoloads" do
+      ancestor = Module.new
+      ancestor.autoload(:Target, "some/nonexistent/target")
+      host = Module.new
+      host.include(ancestor)
+      host.const_set(:Target, :loaded)
+
+      expect(described_class.loaded_const(host, :Target)).to eq(:loaded)
+    end
+  end
+
   describe ".minitest_test_id" do
+    # The id is the definition site, made relative to the project root,
+    # which is what lets `simplecov tests` hand it to a runner.
+    it "names a test by where its method is defined, relative to the root" do
+      klass = Class.new do
+        def name = "test_example"
+
+        def test_example; end
+      end
+      stub_const("FakeLocatedTest", klass)
+      _, line = klass.instance_method(:test_example).source_location
+
+      expect(described_class.minitest_test_id(klass.new)).to eq("spec/test_tracker_spec.rb:#{line}")
+    end
+
+    # A test defined outside the project keeps its whole path: there is
+    # no root to make it relative to.
+    it "keeps the whole path of a test defined outside the project" do
+      # Evaluated with a path of its own, which is what puts the method's
+      # source location outside the project without touching the disk.
+      # rubocop:disable Style/EvalWithLocation
+      klass = Class.new
+      klass.class_eval("def name = \"test_outside\"\n\ndef test_outside; end\n", "/outside/a_test.rb", 1)
+      # rubocop:enable Style/EvalWithLocation
+
+      expect(described_class.minitest_test_id(klass.new)).to eq("/outside/a_test.rb:3")
+    end
+
+    # Runners are free to keep their test methods private; the id is
+    # about where the method is, not who may call it.
+    it "names a test method the runner kept private" do
+      klass = Class.new do
+        def name = "test_hidden"
+
+      private
+
+        def test_hidden; end
+      end
+      stub_const("FakePrivateTest", klass)
+      _, line = klass.instance_method(:test_hidden).source_location
+
+      expect(described_class.minitest_test_id(klass.new)).to eq("spec/test_tracker_spec.rb:#{line}")
+    end
+
     it "falls back to Class#method for a test method with no source location" do
       test = Class.new { def name = "object_id" }.new
       stub_const("FakeNativeTest", test.class)
@@ -514,6 +863,7 @@ RSpec.describe SimpleCov::TestTracker do
         SimpleCov.instance_variable_set(:@test_tracker, tracker)
 
         expect(SimpleCov.track_test("spec/a_spec.rb:1") { :ran }).to eq(:ran)
+        expect(tracker).to have_received(:track).with("spec/a_spec.rb:1")
       end
     end
 
@@ -534,6 +884,24 @@ RSpec.describe SimpleCov::TestTracker do
 
         expect(SimpleCov.test_tracker).to be_a(SimpleCov::TestTracker)
         expect(SimpleCov::TestTracker).to have_received(:install_framework_hooks)
+      end
+
+      # The map is built from execution-count deltas, which oneshot lines
+      # do not produce, and a misconfiguration should fail the run rather
+      # than record nothing.
+      it "refuses to start tracking a run that cannot produce deltas" do
+        SimpleCov.track_tests
+        allow(SimpleCov).to receive(:coverage_criterion_enabled?).with(:line).and_return(false)
+
+        expect { SimpleCov.start_test_tracking }.to raise_error(SimpleCov::ConfigurationError, /track_tests/)
+      end
+
+      it "builds the tracker at the configured granularity" do
+        SimpleCov.track_tests(granularity: :file)
+
+        SimpleCov.start_test_tracking
+
+        expect(SimpleCov.test_tracker.instance_variable_get(:@granularity)).to eq(:file)
       end
 
       it "keeps the tracker (and its recordings) across a restart, wiring hooks only once" do

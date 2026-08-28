@@ -18,9 +18,7 @@ module SimpleCov
       # suite is an RSpec suite (the runner loads the helper that calls
       # `SimpleCov.start`). Installs once per process no matter how often
       # tracking is restarted.
-      # simplecov:disable branch — the RSpec-less side of the default is unreachable from an RSpec-driven suite
-      def install_rspec_hook(rspec = (::RSpec if defined?(::RSpec.configure)))
-        # simplecov:enable branch
+      def install_rspec_hook(rspec = rspec_module)
         return unless rspec
         return if @rspec_hook_installed
 
@@ -29,10 +27,21 @@ module SimpleCov
           # The block runs instance-eval'd in the example group, so
           # everything it touches must be fully qualified.
           config.around do |example|
-            SimpleCov.track_test(SimpleCov::TestTracker.rspec_example_id(example)) { example.run }
+            SimpleCov.track_test(TestTracker.rspec_example_id(example)) { example.run }
           end
         end
       end
+
+      # The RSpec this process has, if it has one. A Minitest-only suite
+      # has none, and no example can make this process into one: hiding
+      # the RSpec constant takes down the very runner asking the
+      # question, which was tried.
+      # simplecov:disable branch — the RSpec-less arm is unreachable from an RSpec-driven suite
+      # mutant:disable
+      def rspec_module
+        ::RSpec if defined?(::RSpec.configure)
+      end
+      # simplecov:enable branch
 
       # @api private — test seam, so specs can exercise installation
       # repeatedly without touching the process-wide guard for real.
@@ -44,8 +53,10 @@ module SimpleCov
       # minitest plugin (`lib/minitest/simplecov_plugin.rb`) under
       # minitest 5, and by the constant watch below under minitest 6,
       # whose autorun no longer discovers plugins. Idempotent.
-      def install_minitest_hook(test_case = (::Minitest::Test if defined?(::Minitest::Test)))
-        return if test_case.nil? || test_case < MinitestRun
+      # Prepending a module already in the chain is a no-op, which is
+      # the whole of the idempotence.
+      def install_minitest_hook(test_case = (Minitest::Test if defined?(Minitest::Test)))
+        return if test_case.nil?
 
         test_case.prepend(MinitestRun)
       end
@@ -93,7 +104,7 @@ module SimpleCov
         return nil unless mod.const_defined?(name, false)
         return nil if mod.autoload?(name, false)
 
-        mod.const_get(name, false)
+        mod.const_get(name)
       end
 
       # A Minitest test's identity: the `path:line` where the test method
@@ -101,14 +112,20 @@ module SimpleCov
       # `ClassName#method_name` when the method has no source location
       # (defined in C or via eval without a filename).
       def minitest_test_id(test)
-        path, line = test.method(test.name).source_location
+        path, line = definition_site(test)
         return "#{test.class}##{test.name}" unless path
 
         "#{path.delete_prefix(File.join(SimpleCov.root, ''))}:#{line}"
+      end
+
+      # Where the test method is defined, or nothing: a method defined in
+      # C or through an eval without a filename has no site, and a runner
+      # exotic enough to name a method it never defined deserves an id
+      # over an exception out of the middle of its run.
+      def definition_site(test)
+        test.method(test.name).source_location
       rescue NameError
-        # A runner exotic enough to name a method it never defined still
-        # deserves an id over an exception out of the middle of its run.
-        "#{test.class}##{test.name}"
+        nil
       end
     end
 

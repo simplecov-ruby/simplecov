@@ -5,14 +5,22 @@ module SimpleCov
   class TestTracker
     @delta: Delta
     @granularity: Symbol
-    @segment_id: String?
-    @segment_opening: Hash[String, untyped]?
+    @segment: Segment?
     @lock: Mutex
     @owner: Thread?
     @depth: Integer
     @poisoned: bool
 
     self.@rspec_hook_installed: bool?
+
+    # The open segment: the context id everything since the last
+    # boundary belongs to, and the peek that boundary took.
+    class Segment < ::Struct[untyped]
+      attr_accessor id: String
+      attr_accessor opening: Hash[String, untyped]
+
+      def self.new: (String id, Hash[String, untyped] opening) -> Segment
+    end
 
     attr_reader map: ContextMap
 
@@ -37,6 +45,9 @@ module SimpleCov
     # process.
     def self.install_rspec_hook: (?untyped rspec) -> void
 
+    # The RSpec this process has, if it has one.
+    def self.rspec_module: () -> untyped
+
     # @api private — test seam for the process-wide install guard.
     def self.reset_rspec_hook!: () -> void
 
@@ -56,6 +67,9 @@ module SimpleCov
     def self.rspec_example_id: (untyped example) -> String
 
     def self.minitest_test_id: (untyped test) -> String
+
+    # Where the test method is defined, or nothing.
+    def self.definition_site: (untyped test) -> Array[untyped]?
 
     # Prepended to `Minitest::Test`, wrapping each test method run.
     module MinitestRun : ::Minitest::Test
@@ -79,17 +93,17 @@ module SimpleCov
 
     private
 
-    def enter: (String id) -> (:segment | Hash[String, untyped] | nil)
+    def enter: (String id) -> Hash[String, untyped]?
 
     def note_entry: () -> bool
 
-    def settle: (String id, (:segment | Hash[String, untyped])? entry) -> void
+    def settle: (String id, Hash[String, untyped]? entry) -> void
 
     def open_segment: (String id) -> void
 
     def close_segment: (Hash[String, untyped] closing) -> void
 
-    def flush_segment: (?Hash[String, untyped]? closing) -> void
+    def flush_segment: (Hash[String, untyped]? closing) -> void
 
     def context_id: (String test_id) -> String
 

@@ -31,7 +31,17 @@ module SimpleCov
     # The `ContextMap` accumulated so far.
     attr_reader :map
 
+    # The open segment: the context id everything since the last
+    # boundary belongs to, and the peek that boundary took.
+    Segment = Struct.new(:id, :opening)
+    private_constant :Segment
+
     def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test)
+      unless Configuration::TRACK_TESTS_GRANULARITIES.include?(granularity)
+        raise ArgumentError, "unknown granularity #{granularity.inspect}, " \
+                             "expected one of #{Configuration::TRACK_TESTS_GRANULARITIES.inspect}"
+      end
+
       @map = ContextMap.new
       # Only files under the project root are attributed, judged by the
       # same regex the report's own universe is rooted with, case
@@ -41,10 +51,9 @@ module SimpleCov
       # serialization would drop anyway.
       @delta = Delta.new(root_regex: root_regex)
       @granularity = granularity
-      @segment_id = nil #: String?
-      @segment_opening = nil #: Hash[String, untyped]?
+      # The open segment and the thread that owns the current tracks are
+      # left unset until there are any, which reads as nil.
       @lock = Mutex.new
-      @owner = nil
       @depth = 0
       @poisoned = false
     end
@@ -86,9 +95,9 @@ module SimpleCov
 
   private
 
-    # Returns :segment for an outermost track (the segment machinery owns
-    # its peeks), a fresh opening peek for a nested one, or nil when
-    # nothing may be recorded. Same-thread reentrancy is fine — a line
+    # Returns the opening peek a nested track records against, and
+    # nothing (nil) for an outermost track, whose segment machinery owns
+    # its peeks, or when nothing may be recorded at all. Same-thread reentrancy is fine — a line
     # the inner test executed was executed on the outer test's watch too,
     # so attributing to both is the truth — but a second thread means
     # concurrent tests, and `Coverage`'s counters are process-global:
@@ -100,7 +109,7 @@ module SimpleCov
       return Coverage.peek_result unless outermost
 
       open_segment(id)
-      :segment
+      nil
     end
 
     def note_entry
@@ -111,19 +120,19 @@ module SimpleCov
           poison
         end
         @depth += 1
-        @depth == 1
+        # Both are small Integers, so identity settles it.
+        @depth.equal?(1)
       end
     end
 
     # A nested track records immediately against its own opening peek;
     # an outermost one leaves its segment open for the next boundary.
+    # The owner needs no clearing here: the next track to find the depth
+    # back at zero takes ownership itself.
     def settle(id, entry)
-      @map.record(id, @delta.call(entry, Coverage.peek_result)) if entry.is_a?(Hash) && !@poisoned
+      @map.record(id, @delta.call(entry, Coverage.peek_result)) if entry && !@poisoned
     ensure
-      @lock.synchronize do
-        @depth -= 1
-        @owner = nil if @depth.zero?
-      end
+      @lock.synchronize { @depth -= 1 }
     end
 
     # Peeking is the dominant cost of tracking (the copy covers every
@@ -134,33 +143,30 @@ module SimpleCov
     # next. In-root code that runs between two segments is attributed to
     # the later one, the documented price of the batching.
     def open_segment(id)
-      return if @segment_id == id
+      return if @segment&.id.eql?(id)
 
       boundary = Coverage.peek_result
       close_segment(boundary)
-      @segment_id = id
-      @segment_opening = boundary
+      @segment = Segment.new(id, boundary)
     end
 
     def close_segment(closing)
-      id = @segment_id
-      opening = @segment_opening
-      @map.record(id, @delta.call(opening, closing)) if id && opening
+      segment = @segment
+      @map.record(segment.id, @delta.call(segment.opening, closing)) if segment
     end
 
-    def flush_segment(closing = nil)
-      return unless @segment_id
+    def flush_segment(closing)
+      return unless @segment
 
       close_segment(closing || Coverage.peek_result)
-      @segment_id = nil
-      @segment_opening = nil
+      @segment = nil
     end
 
     # The identity a test contributes to: itself, or at :file granularity
     # its file, read by truncating the `path:line` id at the line number.
     # An id with no line tail (an exotic runner's fallback) stays whole.
     def context_id(test_id)
-      return test_id unless @granularity == :file
+      return test_id unless @granularity.equal?(:file)
 
       path, sep, tail = test_id.rpartition(":")
       sep.empty? || !tail.match?(/\A\d+\z/) ? test_id : path
