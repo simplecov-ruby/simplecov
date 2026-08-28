@@ -18,6 +18,40 @@ RSpec.describe SimpleCov::SourceFile::Branch do
     end
   end
 
+  it "keeps every attribute it was built with" do
+    branch = described_class.new(start_line: 5, end_line: 8, coverage: 3, inline: false, type: :then)
+
+    expect(branch.start_line).to eq(5)
+    expect(branch.end_line).to eq(8)
+    expect(branch.coverage).to eq(3)
+    expect(branch.type).to eq(:then)
+    expect(branch.inline?).to be false
+    expect(branch.skipped?).to be false
+  end
+
+  it "is inline when it was built inline" do
+    branch = described_class.new(start_line: 5, end_line: 5, coverage: 1, inline: true, type: :then)
+
+    expect(branch.inline?).to be true
+  end
+
+  # An inline branch is reported where it sits. A block branch is
+  # reported a line higher, on the condition itself, so that the report
+  # highlights the `if` rather than the first line of the arm.
+  describe "#report_line" do
+    it "reports an inline branch on its own first line" do
+      branch = described_class.new(start_line: 5, end_line: 5, coverage: 1, inline: true, type: :then)
+
+      expect(branch.report_line).to eq(5)
+    end
+
+    it "reports a block branch on the line above its first" do
+      branch = described_class.new(start_line: 5, end_line: 8, coverage: 1, inline: false, type: :then)
+
+      expect(branch.report_line).to eq(4)
+    end
+  end
+
   context "when A source branch with coverage" do
     let(:covered_branch) do
       described_class.new(start_line: 1, end_line: 3, coverage: 1, inline: false, type: :then)
@@ -71,7 +105,9 @@ RSpec.describe SimpleCov::SourceFile::Branch do
     end
   end
 
-  describe "#overlaps_with?(range)" do
+  # The group name doubles as mutant's test selector, so it has to be the
+  # method name and nothing else.
+  describe "#overlaps_with?" do
     subject(:branch) { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, type: :then) }
 
     it "doesn't overlap with a range beyond its lines" do
