@@ -18,34 +18,34 @@ module SimpleCov
 
       DEFAULT_TOP = 10
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
         issue = precheck(opts)
         return error(stderr, issue) if issue
 
-        keys = CoverageFile::CRITERIA[opts[:criterion]]
-        return unknown_criterion(opts[:criterion], stderr) unless keys
+        keys = CoverageFile::CRITERIA[opts.fetch(:criterion)]
+        return unknown_criterion(opts.fetch(:criterion), stderr) unless keys
 
-        opts[:missing] = true if opts[:annotate]
+        opts[:missing] = true if opts.fetch(:annotate)
         report(opts, keys, stdout, stderr)
       end
 
       def precheck(opts)
-        return nil unless opts[:annotate]
-        unless opts[:annotate] == "github"
-          return "unknown --annotate #{opts[:annotate].inspect} (only github is supported)"
+        return nil unless opts.fetch(:annotate)
+        unless opts.fetch(:annotate).eql?("github")
+          return "unknown --annotate #{opts.fetch(:annotate).inspect} (only github is supported)"
         end
 
-        "cannot combine --annotate with --json" if opts[:json]
+        "cannot combine --annotate with --json" if opts.fetch(:json)
       end
 
       def report(opts, keys, stdout, stderr)
-        coverage = CoverageFile.load_coverage(opts[:input], command: "uncovered", stderr: stderr)
+        coverage = CoverageFile.load_coverage(opts.fetch(:input), command: "uncovered", stderr: stderr)
         return 1 unless coverage
 
-        files = rank(coverage, opts, keys).first(opts[:top])
+        files = rank(coverage, opts, keys).first(opts.fetch(:top))
         return empty(opts, stdout) if files.empty?
 
         emit(stdout, files, opts)
@@ -55,7 +55,7 @@ module SimpleCov
       # An empty annotate run stays silent — a clean CI step is the
       # answer — while the listing forms say so.
       def empty(opts, stdout)
-        stdout.puts(empty_message(opts[:json])) unless opts[:annotate]
+        stdout.puts(empty_message(opts.fetch(:json))) unless opts.fetch(:annotate)
         0
       end
 
@@ -65,9 +65,9 @@ module SimpleCov
       end
 
       def emit(stdout, files, opts)
-        return Misses.annotate(stdout, files) if opts[:annotate]
+        return Misses.annotate(stdout, files) if opts.fetch(:annotate)
 
-        opts[:json] ? emit_json(stdout, files) : emit_text(stdout, files, SimpleCov::CLI.color_enabled?(opts, stdout))
+        opts.fetch(:json) ? emit_json(stdout, files) : emit_text(stdout, files, CLI.color_enabled?(opts, stdout))
       end
 
       def parse(args)
@@ -121,23 +121,23 @@ module SimpleCov
       end
 
       def row_for(fname, payload, opts, keys)
-        return unless payload.is_a?(Hash) && payload[keys[:total]].to_i.positive?
+        return unless payload.instance_of?(Hash) && payload[keys.fetch(:total)].to_i.positive?
 
-        pct = payload[keys[:percent]].to_f
-        return if pct >= opts[:threshold]
+        pct = payload[keys.fetch(:percent)].to_f
+        return if pct >= opts.fetch(:threshold)
 
         build_row(fname, pct, payload, opts, keys)
       end
 
       def build_row(fname, pct, payload, opts, keys)
-        row = [fname, pct, payload[keys[:covered]].to_i, payload[keys[:total]].to_i]
-        row << Misses.missed_for(payload, opts[:criterion]) if opts[:missing]
+        row = [fname, pct, payload[keys.fetch(:covered)].to_i, payload.fetch(keys.fetch(:total)).to_i]
+        row << Misses.missed_for(payload, opts.fetch(:criterion)) if opts.fetch(:missing)
         row
       end
 
       def format_row(fname, pct, covered, total, color)
         format("%<pct>s  %<covered>d/%<total>d  %<fname>s",
-               pct: SimpleCov::Color.colorize_percent(pct, format("%6.2f%%", pct), enabled: color),
+               pct: Color.colorize_percent(pct, format("%6.2f%%", pct), enabled: color),
                covered: covered, total: total, fname: fname)
       end
     end

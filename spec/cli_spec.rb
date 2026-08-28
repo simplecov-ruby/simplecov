@@ -3539,7 +3539,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "uncovered subcommand" do
+  describe "uncovered subcommand", mutant_expression: "SimpleCov::CLI::Uncovered*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-uncovered-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
 
@@ -3553,7 +3553,8 @@ RSpec.describe SimpleCov::CLI do
                                   "total_lines" => 10, "covered_lines" => 5, "lines_covered_percent" => 50.0
                                 },
                                 "/abs/lib/c.rb" => {
-                                  "total_lines" => 10, "covered_lines" => 1, "lines_covered_percent" => 10.0
+                                  "total_lines" => 10, "covered_lines" => 1, "lines_covered_percent" => 10.0,
+                                  "lines" => [1, 0, 0, nil, 0, nil, nil, nil, nil, nil]
                                 }
                               }
                             ))
@@ -3645,13 +3646,251 @@ RSpec.describe SimpleCov::CLI do
 
       it "rejects an unknown annotation format" do
         expect(run("uncovered", "--input", json_path, "--annotate", "gitlab")).to eq(1)
-        expect(stderr.string).to include("only github is supported")
+        expect(stderr.string).to eq(%(simplecov uncovered: unknown --annotate "gitlab" (only github is supported)\n))
       end
 
       it "refuses to combine --annotate with --json" do
         expect(run("uncovered", "--input", json_path, "--annotate", "github", "--json")).to eq(1)
         expect(stderr.string).to include("--json")
       end
+    end
+
+    # Counts arrive from JSON, which carries numbers as whatever wrote
+    # them. A row's covered and total columns are whole counts.
+    it "counts a float covered and total as whole numbers" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 4.0, "covered_lines" => 2.0, "lines_covered_percent" => 50.0
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string.strip).to eq("50.00%  2/4  /abs/lib/b.rb")
+    end
+
+    # JSON carries the counts through unformatted, so that is where a
+    # float total shows if it was never made whole.
+    it "carries whole counts into the JSON rows" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 4.0, "covered_lines" => 2.0, "lines_covered_percent" => 50.25
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
+      row = JSON.parse(stdout.string).first
+      expect(row["covered"]).to be(2)
+      expect(row["total"]).to be(4)
+      expect(row["percent"]).to be(50.25)
+    end
+
+    # A percent the report leaves out is no percent, and reads as none.
+    it "counts an absent percent as none" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {"/abs/lib/b.rb" => {"total_lines" => 4, "covered_lines" => 2}}
+                            ))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string.strip).to eq("0.00%  2/4  /abs/lib/b.rb")
+    end
+
+    # A percent the report wrote as a whole number is still a percent.
+    it "carries a whole-number percent as a fraction" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 4, "covered_lines" => 2, "lines_covered_percent" => 50
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string).first["percent"]).to be(50.0)
+    end
+
+    # Counts are read as far as they are numbers. A report written by
+    # something else may carry them as text, and a row is still better
+    # than a crash.
+    it "reads a count that carries trailing text as far as it is a number" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => "10 lines", "covered_lines" => "2 lines",
+                                  "lines_covered_percent" => 20.0
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string.strip).to eq("20.00%  2/10  /abs/lib/b.rb")
+    end
+
+    # No --missing, so the rows carry no missed-line column even for a
+    # file whose line data would fill one.
+    it "leaves the missed lines out of the rows unless they are asked for" do
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string).to include("/abs/lib/c.rb")
+      expect(stdout.string).not_to include("missing")
+    end
+
+    it "leaves the missed lines out of the JSON rows too" do
+      expect(run("uncovered", "--input", json_path, "--json")).to eq(0)
+      expect(JSON.parse(stdout.string).map(&:keys).flatten.uniq)
+        .to contain_exactly("file", "percent", "covered", "total")
+    end
+
+    # The worst files first, so a cap keeps the worst rather than the
+    # best.
+    it "keeps the worst files when --top caps the list" do
+      expect(run("uncovered", "--input", json_path, "--top", "1")).to eq(0)
+      expect(stdout.string.strip).to end_with("/abs/lib/c.rb")
+    end
+
+    # Counts arrive from JSON as whatever wrote them, a string included.
+    it "counts a string covered and total as whole numbers" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => "4", "covered_lines" => "2", "lines_covered_percent" => 50.0
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string.strip).to eq("50.00%  2/4  /abs/lib/b.rb")
+    end
+
+    # An entry that is not an object has no counts to rank it by. A
+    # list is the discriminating shape: a String answers nil to a string
+    # key where a list refuses one outright.
+    it "passes over an entry that is not an object" do
+      File.write(json_path, JSON.dump("coverage" => {"/abs/lib/b.rb" => "junk", "/abs/lib/c.rb" => [1, 2]}))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string).to eq("simplecov uncovered: nothing to report\n")
+    end
+
+    # A count the report omits is no count, and reads as zero.
+    it "counts an absent covered figure as none" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {"/abs/lib/b.rb" => {"total_lines" => 4, "lines_covered_percent" => 0.0}}
+                            ))
+
+      expect(run("uncovered", "--input", json_path)).to eq(0)
+      expect(stdout.string.strip).to eq("0.00%  0/4  /abs/lib/b.rb")
+    end
+
+    # Line data is a list of counts. Anything else under that key is no
+    # more usable than nothing.
+    it "reports no missed lines for line data that is not a list" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 4, "covered_lines" => 2,
+                                  "lines_covered_percent" => 50.0, "lines" => "junk"
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--missing")).to eq(0)
+      expect(stdout.string).not_to include("missing")
+    end
+
+    # The missed lines a criterion reports arrive per branch or method,
+    # in the order the report lists them, and one line can carry more
+    # than one of either.
+    it "lists each missed line once, in order" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_branches" => 4, "covered_branches" => 0,
+                                  "branches_covered_percent" => 0.0,
+                                  "branches" => [{"report_line" => 7, "coverage" => 0},
+                                                 {"report_line" => 2, "coverage" => 0},
+                                                 {"report_line" => 7, "coverage" => 0}]
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--missing", "--criterion", "branch")).to eq(0)
+      expect(stdout.string.strip).to end_with("missing 2,7")
+    end
+
+    # A payload the criterion has no data in at all.
+    it "reports no missed lines for a criterion the entry omits" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_branches" => 2, "covered_branches" => 0, "branches_covered_percent" => 0.0
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--missing", "--criterion", "branch")).to eq(0)
+      expect(stdout.string).not_to include("missing")
+    end
+
+    it "reports no missed lines for a method criterion the entry omits" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_methods" => 2, "covered_methods" => 0, "methods_covered_percent" => 0.0
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--missing", "--criterion", "method")).to eq(0)
+      expect(stdout.string).not_to include("missing")
+    end
+
+    # No missed lines at all is still an answer, and the JSON row says
+    # so rather than leaving the key out.
+    it "carries an empty missing list for line data it cannot read" do
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                "/abs/lib/b.rb" => {
+                                  "total_lines" => 4, "covered_lines" => 2,
+                                  "lines_covered_percent" => 50.0, "lines" => "junk"
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--missing", "--json")).to eq(0)
+      expect(JSON.parse(stdout.string).first["missing"]).to eq([])
+    end
+
+    # Paths are shown project-relative, and a root that has not been
+    # expanded yet is still that root.
+    it "trims an unexpanded root off the annotated paths" do
+      allow(SimpleCov).to receive(:root).and_return(File.join(tmp, "lib", ".."))
+      File.write(json_path, JSON.dump(
+                              "coverage" => {
+                                File.join(tmp, "lib/b.rb") => {
+                                  "total_lines" => 2, "covered_lines" => 0,
+                                  "lines_covered_percent" => 0.0, "lines" => [0, 0]
+                                }
+                              }
+                            ))
+
+      expect(run("uncovered", "--input", json_path, "--annotate", "github")).to eq(0)
+      expect(stdout.string).to eq("::warning file=lib/b.rb,line=1,endLine=2::Not covered by tests\n")
+    end
+
+    it "names itself and the criterion it does not know" do
+      expect(run("uncovered", "--input", json_path, "--criterion", "nope")).to eq(1)
+      expect(stderr.string)
+        .to eq("simplecov uncovered: unknown --criterion :nope (expected line, branch, or method)\n")
+    end
+
+    it "names itself and the input it cannot find" do
+      missing = File.join(tmp, "nope.json")
+
+      expect(run("uncovered", "--input", missing)).to eq(1)
+      expect(stderr.string).to eq("simplecov uncovered: #{missing} not found\n")
     end
 
     it "honours --threshold" do

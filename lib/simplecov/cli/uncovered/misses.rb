@@ -7,14 +7,14 @@ module SimpleCov
       # (reusing the show subcommand's walkers) and the GitHub workflow
       # annotations built from the ranges.
       module Misses
-      module_function
+        extend self
 
         # The missed line numbers behind the chosen criterion's
         # shortfall: zero-hit lines, or the lines missed branches and
         # methods report on.
         def missed_for(payload, criterion)
           case criterion
-          when :line then payload["lines"].is_a?(Array) ? Show::Annotator.missed_lines(payload) : []
+          when :line then payload["lines"].instance_of?(Array) ? Show::Annotator.missed_lines(payload) : []
           when :branch then collect(payload["branches"])
           else collect(payload["methods"])
           end
