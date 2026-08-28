@@ -59,8 +59,6 @@ module SimpleCov
     # can pass either an absolute path or a project-relative one, like
     # `Result#source_file_for`.
     def covering(path, line)
-      return [] unless line.positive?
-
       table = @files[File.expand_path(path, SimpleCov.root)]
       return [] unless table
 
