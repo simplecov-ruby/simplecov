@@ -58,6 +58,10 @@ module SimpleCov
     # merges). The path is resolved against `SimpleCov.root`, so callers
     # can pass either an absolute path or a project-relative one, like
     # `Result#source_file_for`.
+    #
+    # A line number below 1 needs no guard of its own: it shifts the
+    # probe bit right off the end of the bitmap, leaving a mask no
+    # recorded line can match.
     def covering(path, line)
       table = @files[File.expand_path(path, SimpleCov.root)]
       return [] unless table
@@ -96,7 +100,12 @@ module SimpleCov
     # list is never restricted: which contexts ran is true regardless of
     # which files survived filtering.
     def to_h(only: nil)
-      tables = only ? @files.slice(*only.to_a) : @files
+      # Selected rather than sliced: `only` is a Set, and splatting one
+      # into `slice` is a call `to_a` answers for, which makes dropping
+      # the `to_a` a mutation nothing can observe. Asking each path
+      # whether it survived has no such spare step, and membership is
+      # what a Set is for.
+      tables = only ? @files.select { |path, _table| only.include?(path) } : @files # rubocop:disable Style/HashSlice
       serialized = tables.transform_values { |table| serialize_table(table) }
       {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized}
     end
@@ -125,11 +134,14 @@ module SimpleCov
       # silent gaps, and the merge already has the right treatment for an
       # absent map — drop it consistently rather than keep a wrong one.
       def from_hash(data)
-        return nil unless data.is_a?(Hash) && data["version"] == VERSION
+        # `eql?` rather than `==`: a version written as 1.0 is not this
+        # format, and reading it as if it were is exactly what the
+        # version gate exists to prevent.
+        return nil unless data.instance_of?(Hash) && data["version"].eql?(VERSION)
 
         contexts = data["contexts"]
         files = data["files"]
-        return nil unless contexts.is_a?(Array) && contexts.all?(String) && files.is_a?(Hash)
+        return nil unless contexts.instance_of?(Array) && contexts.all?(String) && files.instance_of?(Hash)
 
         build(contexts, files)
       end
@@ -140,7 +152,7 @@ module SimpleCov
         map = new
         contexts.each { |context_id| map.intern(context_id) }
         files.each do |path, table|
-          return nil unless path.is_a?(String) && table.is_a?(Hash)
+          return nil unless path.instance_of?(String) && table.instance_of?(Hash)
           return nil unless absorb_table(map, contexts, path, table)
         end
         map
@@ -158,14 +170,14 @@ module SimpleCov
       # entry's own context list. Anything else — including an
       # out-of-range index — makes the whole map malformed.
       def parse_index(index, size)
-        return nil unless index.is_a?(String) && index.match?(/\A\d+\z/)
+        return nil unless index.instance_of?(String) && index.match?(/\A\d+\z/)
 
         value = index.to_i
-        value < size ? value : nil
+        value if value < size
       end
 
       def parse_bitmap(encoded)
-        return nil unless encoded.is_a?(String) && encoded.match?(/\A\h+\z/)
+        return nil unless encoded.instance_of?(String) && encoded.match?(/\A\h+\z/)
 
         encoded.to_i(16)
       end
