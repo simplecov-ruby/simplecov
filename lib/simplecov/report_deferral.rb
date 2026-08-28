@@ -27,7 +27,7 @@ module SimpleCov
     def existing_report_newer_than_us?
       return false unless process_start_time
 
-      [SimpleCov::LastRun.last_run_path, SimpleCov::ReportStamp.path].any? do |path|
+      [LastRun.last_run_path, ReportStamp.path].any? do |path|
         File.mtime(path) > process_start_time
       rescue SystemCallError
         false
@@ -37,7 +37,7 @@ module SimpleCov
     def warn_about_deferred_report
       return unless print_errors
 
-      ExitCodes.print_error SimpleCov::Color.colorize(
+      ExitCodes.print_error Color.colorize(
         "Skipping SimpleCov report — this process tracked no application code and a newer " \
         "report already exists at #{coverage_path}. This usually means SimpleCov.start ran in a " \
         "parent process (e.g. a Rakefile or Rails' Bundler.require) that shelled out to the test " \
