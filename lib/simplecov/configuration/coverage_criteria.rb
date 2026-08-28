@@ -15,7 +15,11 @@ module SimpleCov
     # Enable one or more coverage criteria. `:eval` is accepted as a
     # shorthand for the standalone eval-coverage toggle.
     def enable_coverage(*criteria)
-      criteria.each { |criterion| criterion == :eval ? enable_eval_coverage : add_coverage_criterion(criterion) }
+      # The casts admit :eval, which the identity check above has already
+      # taken out of the union Steep still carries here.
+      criteria.each do |criterion|
+        criterion.equal?(:eval) ? enable_eval_coverage : add_coverage_criterion(_ = criterion)
+      end
     end
 
     # Remove `criterion` from the set of enabled coverage criteria.
@@ -24,11 +28,11 @@ module SimpleCov
     # `start_tracking` (not here), so config files that toggle criteria
     # in arbitrary order don't have to worry about transient empty states.
     def disable_coverage(criterion)
-      return disable_eval_coverage if criterion == :eval
+      return disable_eval_coverage if criterion.equal?(:eval)
 
-      raise_if_criterion_unsupported(criterion)
-      coverage_criteria.delete(criterion)
-      @primary_coverage = nil if @primary_coverage == criterion
+      raise_if_criterion_unsupported(_ = criterion)
+      coverage_criteria.delete(_ = criterion)
+      @primary_coverage = nil if @primary_coverage.equal?(criterion)
     end
 
     def primary_coverage(criterion = nil)
@@ -59,7 +63,7 @@ module SimpleCov
     def validate_coverage_criteria!
       return unless coverage_criteria.empty?
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "At least one coverage criterion must be enabled. " \
             "Re-enable one with `enable_coverage :line`, `:branch`, or `:method`."
     end
@@ -98,10 +102,17 @@ module SimpleCov
     # dogfood report, which runs on a newer Ruby.
     # simplecov:disable
     def coverage_criterion_supported?(criterion)
-      require "coverage"
+      load_coverage
       return Coverage.supported?(criterion) if Coverage.respond_to?(:supported?)
 
-      criterion != :eval && RUBY_ENGINE != "jruby"
+      !criterion.eql?(:eval) && !RUBY_ENGINE.eql?("jruby")
+    end
+
+    # Loading `simplecov/configuration` on its own leaves Coverage
+    # undefined, and this question is asked at configuration time, so
+    # the require earns its place. It answers what `require` answers.
+    def load_coverage
+      require "coverage"
     end
     # simplecov:enable
 
@@ -130,8 +141,8 @@ module SimpleCov
       # `coverage :eval` by itself IS supported — it's a standalone
       # toggle, never in the enabled-criteria set — so the generic
       # "unsupported criterion" message below would mislead here.
-      if criterion == :eval
-        raise SimpleCov::ConfigurationError,
+      if criterion.equal?(:eval)
+        raise ConfigurationError,
               "Coverage criterion :eval only toggles measuring eval'd code; " \
               "it cannot carry thresholds or serve as the primary criterion"
       end
@@ -139,7 +150,7 @@ module SimpleCov
       raise_if_criterion_unsupported(criterion)
       return if coverage_criterion_enabled?(criterion)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "Coverage criterion #{criterion}, is disabled! " \
             "Please enable it first through enable_coverage #{criterion} (if supported)"
     end
@@ -147,7 +158,7 @@ module SimpleCov
     def raise_if_criterion_unsupported(criterion)
       return if SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
     end
   end

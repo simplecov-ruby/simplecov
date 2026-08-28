@@ -9,6 +9,18 @@ module SimpleCov
       @groups ||= {}
     end
 
+    # The group set `SimpleCov.grouped` bins against when its caller
+    # names none. It reads through a method of its own because the
+    # keyword it defaults shadows this reader's name, so the default
+    # has to name a receiver, and every spelling of that receiver is
+    # the same call.
+    #
+    # mutant:disable — for that reason: `SimpleCov.groups`,
+    # `self.groups` and `groups()` cannot be told apart.
+    def default_groups
+      groups
+    end
+
     def groups=(new_groups)
       new_groups = new_groups.to_h { |name, filter| [GroupNames.normalize(name), filter] }
       GroupNames.validate!(new_groups.keys)
@@ -32,7 +44,7 @@ module SimpleCov
                 else
                   "`SimpleCov.group #{group_name.inspect}, #{filter_argument.inspect}`"
                 end
-      SimpleCov::Deprecation.warn(
+      Deprecation.warn(
         "`SimpleCov.add_group` is deprecated. " \
         "Replace with `SimpleCov.group` (same arguments, same behavior). Example: #{example}."
       )

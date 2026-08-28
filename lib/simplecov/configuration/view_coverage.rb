@@ -44,7 +44,7 @@ module SimpleCov
     # called. Nil rather than an empty Array so "not asked for" stays
     # distinguishable from "asked for, with nothing to match".
     def view_globs
-      @view_globs if defined?(@view_globs)
+      @view_globs
     end
 
     # Whether templates should be measured. False when eval coverage couldn't

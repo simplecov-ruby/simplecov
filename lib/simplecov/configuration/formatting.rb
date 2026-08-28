@@ -16,6 +16,13 @@ module SimpleCov
     }.freeze
     private_constant :BUILT_IN_FORMATS
 
+    # The bundled formats that live outside the always-loaded core,
+    # and where each is required from. Looked up rather than compared
+    # for, because every spelling of a Symbol comparison is the same
+    # comparison.
+    LAZY_FORMAT_REQUIRES = {html: "../../simplecov-html"}.freeze
+    private_constant :LAZY_FORMAT_REQUIRES
+
     #
     # The symbol front door to formatter selection: name the bundled
     # formatters instead of spelling their constants.
@@ -68,8 +75,9 @@ module SimpleCov
         configured = formatter
         configured ? [configured] : []
       else
+        # An assignment answers with what it was given, which is what a
+        # caller chaining from this reads.
         self.formatters = formatters
-        formatters
       end
     end
 
@@ -81,8 +89,7 @@ module SimpleCov
     # `false` normalized like `formatter false` does, since `Array(false)`
     # would otherwise smuggle it in as a "formatter" that can only fail.
     def formatters=(formatters)
-      formatters = Array(formatters || nil)
-      @formatter = formatters.empty? ? nil : SimpleCov::Formatter::MultiFormatter.new(formatters)
+      @formatter = combined_formatter(Array(formatters || nil))
     end
 
     #
@@ -96,9 +103,9 @@ module SimpleCov
     # `--combine-stderr`, log multiplexers, some CI runners). See #1157.
     #
     def color(value = :__no_arg__)
-      return defined?(@color) ? @color : :auto if value == :__no_arg__
+      return instance_variable_defined?(:@color) ? @color : :auto if value.eql?(:__no_arg__)
 
-      @color = value
+      @color = _ = value
     end
 
     #
@@ -109,9 +116,9 @@ module SimpleCov
     # SimpleCov entirely when parsing tooling output (see issue #1155).
     #
     def print_errors(value = :__no_arg__)
-      return defined?(@print_error_status) ? @print_error_status : true if value == :__no_arg__
+      return instance_variable_defined?(:@print_error_status) ? @print_error_status : true if value.eql?(:__no_arg__)
 
-      @print_error_status = value
+      @print_error_status = _ = value
     end
 
     #
@@ -131,16 +138,16 @@ module SimpleCov
     #     end
     #
     def source_in_json(value = :__no_arg__)
-      return defined?(@source_in_json) ? @source_in_json : true if value == :__no_arg__
+      return instance_variable_defined?(:@source_in_json) ? @source_in_json : true if value.eql?(:__no_arg__)
 
-      @source_in_json = value
+      @source_in_json = _ = value
     end
 
     # DEPRECATED: alias for `print_errors`. Same value, same behavior.
     def print_error_status
-      SimpleCov::Deprecation.warn("`SimpleCov.print_error_status` is deprecated. " \
-                                  "Replace with `SimpleCov.print_errors` (same value).")
-      defined?(@print_error_status) ? @print_error_status : true
+      Deprecation.warn("`SimpleCov.print_error_status` is deprecated. " \
+                       "Replace with `SimpleCov.print_errors` (same value).")
+      instance_variable_defined?(:@print_error_status) ? @print_error_status : true
     end
 
     #
@@ -150,8 +157,8 @@ module SimpleCov
     # be removed in a future release.
     #
     def nocov_token(nocov_token = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
-                                  "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.")
+      Deprecation.warn("`SimpleCov.nocov_token` and `SimpleCov.skip_token` are deprecated. " \
+                       "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.")
       current_nocov_token(nocov_token)
     end
     alias skip_token nocov_token
@@ -160,7 +167,7 @@ module SimpleCov
     # markers without emitting the public-API deprecation warning. Will
     # be removed alongside the deprecated `nocov_token` setter.
     def current_nocov_token(value = nil)
-      return @nocov_token if defined?(@nocov_token) && value.nil?
+      return @nocov_token if instance_variable_defined?(:@nocov_token) && value.nil?
 
       @nocov_token = value || "nocov"
     end
@@ -171,18 +178,33 @@ module SimpleCov
     # else passes through as a formatter of its own. `:html` requires
     # the HTML formatter lazily, since under SIMPLECOV_NO_DEFAULTS
     # nothing else has loaded it.
+    # One formatter standing for the list, and nothing at all for an
+    # empty one: an empty list is how a project opts out of formatting.
+    def combined_formatter(formatters)
+      return if formatters.empty?
+
+      Formatter::MultiFormatter.new(formatters)
+    end
+
     def resolve_format(name)
-      return name unless name.is_a?(Symbol)
+      return name unless name.instance_of?(Symbol)
 
       constant = BUILT_IN_FORMATS[name]
       unless constant
-        raise SimpleCov::ConfigurationError,
+        raise ConfigurationError,
               "Unknown format #{name.inspect}. Built-in formats are :html, :json, :simple, and :baseline; " \
               "pass a formatter class or instance for anything else."
       end
 
-      require_relative "../../simplecov-html" if name == :html
-      SimpleCov::Formatter.const_get(constant)
+      require_html_formatter(name)
+      Formatter.const_get(constant)
+    end
+
+    # What makes `formats :html` work in a process that never required
+    # the HTML formatter.
+    def require_html_formatter(name)
+      path = LAZY_FORMAT_REQUIRES[name]
+      require_relative(path) if path
     end
   end
 end

@@ -31,7 +31,7 @@ module SimpleCov
     #
     def cover(*args, &block)
       args.each { |arg| cover_filters << build_cover_filter(arg) }
-      cover_filters << SimpleCov::BlockFilter.new(block) if block
+      cover_filters << BlockFilter.new(block) if block
       cover_filters
     end
 
@@ -56,8 +56,8 @@ module SimpleCov
     # historical `track_files` behavior) and restricts the report to the
     # matching set.
     def track_files(glob)
-      SimpleCov::Deprecation.warn("`SimpleCov.track_files` is deprecated. " \
-                                  "#{track_files_replacement_hint(glob)}")
+      Deprecation.warn("`SimpleCov.track_files` is deprecated. " \
+                       "#{track_files_replacement_hint(glob)}")
       @tracked_files = glob
     end
 
@@ -77,8 +77,10 @@ module SimpleCov
     end
 
     # Returns the glob used to include files that were not explicitly required.
+    # Nil until `cover` names a glob: an unset ivar reads as nil, so the
+    # absence needs no guard of its own.
     def tracked_files
-      @tracked_files if defined?(@tracked_files)
+      @tracked_files
     end
 
     # Returns the list of configured exclusion filters added via `skip`
@@ -100,17 +102,20 @@ module SimpleCov
     # DEPRECATED: alias for `skip`. Same matcher grammar, identical behavior.
     def add_filter(filter_argument = nil, &block)
       example = block ? "`SimpleCov.skip { ... }`" : "`SimpleCov.skip #{filter_argument.inspect}`"
-      SimpleCov::Deprecation.warn("`SimpleCov.add_filter` is deprecated. " \
-                                  "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}.")
+      Deprecation.warn("`SimpleCov.add_filter` is deprecated. " \
+                       "Replace with `SimpleCov.skip` (same arguments, same behavior). Example: #{example}.")
       skip(filter_argument, &block)
     end
 
     # Remove any filters whose `filter_argument` equals the given value.
     # Returns true when at least one filter was removed, false otherwise.
+    # `reject!` answers nil when it rejected nothing, which is the whole
+    # of "was anything removed".
     def remove_filter(filter_argument) # rubocop:disable Naming/PredicateMethod
-      before = filters.size
-      filters.reject! { |filter| filter.respond_to?(:filter_argument) && filter.filter_argument == filter_argument }
-      filters.size != before
+      rejected = filters.reject! do |filter|
+        filter.respond_to?(:filter_argument) && filter.filter_argument.eql?(filter_argument)
+      end
+      !rejected.nil?
     end
 
     # Remove every filter from the chain, including the defaults installed
@@ -135,18 +140,18 @@ module SimpleCov
 
       raise ArgumentError, "Please specify either a filter or a block to filter with" unless filter
 
-      SimpleCov::Filter.build_filter(filter)
+      Filter.build_filter(filter)
     end
 
     # Build a filter for a `cover` argument. Strings are treated as
     # globs (not substrings — that's `skip`/`add_filter`'s semantics);
     # everything else dispatches exactly like `add_filter`.
     def build_cover_filter(arg)
-      SimpleCov::Filter.build_filter(arg, string_filter: SimpleCov::GlobFilter)
-    rescue SimpleCov::ConfigurationError
-      raise SimpleCov::ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
-                                           "expected a String glob, Regexp, Proc, " \
-                                           "SimpleCov::Filter, or Array of those."
+      Filter.build_filter(arg, string_filter: GlobFilter)
+    rescue ConfigurationError
+      raise ConfigurationError, "Unsupported `cover` argument #{arg.inspect}; " \
+                                "expected a String glob, Regexp, Proc, " \
+                                "SimpleCov::Filter, or Array of those."
     end
 
     # Walk a list of cover filters and return the string globs they hold,
@@ -154,8 +159,8 @@ module SimpleCov
     def collect_cover_globs(filter_list)
       filter_list.flat_map do |filter|
         case filter
-        when SimpleCov::GlobFilter  then filter.filter_argument
-        when SimpleCov::ArrayFilter then collect_cover_globs(filter.filter_argument)
+        when GlobFilter  then filter.filter_argument
+        when ArrayFilter then collect_cover_globs(filter.filter_argument)
         else []
         end
       end

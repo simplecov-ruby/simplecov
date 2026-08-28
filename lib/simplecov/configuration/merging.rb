@@ -11,7 +11,7 @@ module SimpleCov
     # Defaults to false.
     #
     def merge_subprocesses(value = nil)
-      return @enable_for_subprocesses if defined?(@enable_for_subprocesses) && value.nil?
+      return @enable_for_subprocesses if instance_variable_defined?(:@enable_for_subprocesses) && value.nil?
 
       @enable_for_subprocesses = value || false
     end
@@ -19,7 +19,7 @@ module SimpleCov
     # @api private — predicate used by `start_tracking` to decide
     # whether to install the fork hook.
     def enabled_for_subprocesses?
-      defined?(@enable_for_subprocesses) ? @enable_for_subprocesses : false
+      !!@enable_for_subprocesses
     end
 
     #
@@ -29,15 +29,15 @@ module SimpleCov
     # (nil). See #1018.
     #
     def parallel_tests(value = :__no_arg__)
-      return defined?(@parallel_tests) ? @parallel_tests : nil if value == :__no_arg__
+      return @parallel_tests if value.eql?(:__no_arg__)
 
-      @parallel_tests = value
+      @parallel_tests = _ = value
     end
 
     # DEPRECATED: alias for `merge_subprocesses`. Same value/behavior.
     def enable_for_subprocesses(value = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.enable_for_subprocesses` is deprecated. " \
-                                  "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior).")
+      Deprecation.warn("`SimpleCov.enable_for_subprocesses` is deprecated. " \
+                       "Replace with `SimpleCov.merge_subprocesses` (same value, same behavior).")
       merge_subprocesses(value)
     end
 
@@ -48,7 +48,9 @@ module SimpleCov
     #
     def merging(use = nil)
       @use_merging = use unless use.nil?
-      @use_merging = true unless defined?(@use_merging) && @use_merging == false
+      # Unset reads as nil, and only an explicit `merging false` turns
+      # it off.
+      @use_merging = true if @use_merging.nil?
       @use_merging
     end
 
@@ -62,13 +64,17 @@ module SimpleCov
     # is enabled. Those runs are likely using an external `SimpleCov.collate`
     # step to finalize the merge.
     #
-    def finalize_merge(value = :__no_arg__)
-      unless value == :__no_arg__
-        @finalize_merge = value
+    # Splatted rather than defaulted: false is a value someone sets on
+    # purpose, so "given nothing" cannot be told from it by looking at
+    # the argument.
+    def finalize_merge(*value)
+      unless value.empty?
+        explicit, = value
+        @finalize_merge = _ = explicit
         @finalize_merge_explicit = true
       end
 
-      return @finalize_merge if defined?(@finalize_merge_explicit) && @finalize_merge_explicit
+      return @finalize_merge if @finalize_merge_explicit
 
       inferred = inferred_finalize_merge?
       warn_about_inferred_finalize_merge unless inferred
@@ -90,8 +96,8 @@ module SimpleCov
     # false, because the final expression was the skipped guard
     # assignment rather than the stored value.
     def use_merging(use = nil)
-      SimpleCov::Deprecation.warn("`SimpleCov.use_merging` is deprecated. " \
-                                  "Replace with `SimpleCov.merging` (same value, same behavior).")
+      Deprecation.warn("`SimpleCov.use_merging` is deprecated. " \
+                       "Replace with `SimpleCov.merging` (same value, same behavior).")
       merging(use)
     end
 
@@ -106,7 +112,7 @@ module SimpleCov
     # configuration is not an option.
     #
     def merge_timeout(seconds = nil)
-      @merge_timeout = seconds if seconds.is_a?(Integer)
+      @merge_timeout = seconds if seconds.instance_of?(Integer)
       # Memoized through a local rather than `|| (@merge_timeout ||= 600)`:
       # steep 2.0's logic-type interpreter crashes on an or-assignment
       # nested in a logical operand (UnknownNodeError), abandoning this
@@ -119,7 +125,7 @@ module SimpleCov
 
     def env_merge_timeout
       value = ENV.fetch("SIMPLECOV_MERGE_TIMEOUT", nil)
-      value&.match?(/\A\d+\z/) ? Integer(value, 10) : nil
+      Integer(value, 10) if value&.match?(/\A\d+\z/)
     end
 
     #
@@ -131,7 +137,7 @@ module SimpleCov
     # skipped against a partial total.
     #
     def parallel_wait_timeout(seconds = nil)
-      @parallel_wait_timeout = seconds if seconds.is_a?(Integer)
+      @parallel_wait_timeout = seconds if seconds.instance_of?(Integer)
       @parallel_wait_timeout ||= 60
     end
 
@@ -140,7 +146,7 @@ module SimpleCov
     def inferred_finalize_merge?
       return true unless merging
 
-      adapter = SimpleCov::ParallelAdapters.current
+      adapter = ParallelAdapters.current
       return true unless adapter
       return true unless adapter.expected_worker_count > 1
       return true unless parallel_worker_environment?
@@ -156,20 +162,19 @@ module SimpleCov
     def explicit_custom_coverage_destination?
       return false unless explicit_coverage_destination?
 
-      coverage_path != File.expand_path("coverage", root)
+      !coverage_path.eql?(File.expand_path("coverage", root))
     end
 
     def explicit_coverage_destination?
-      (defined?(@coverage_path_explicit) && @coverage_path_explicit) ||
-        (defined?(@coverage_dir_explicit) && @coverage_dir_explicit)
+      @coverage_path_explicit || @coverage_dir_explicit
     end
 
     def warn_about_inferred_finalize_merge
-      return if defined?(@finalize_merge_inference_warned) && @finalize_merge_inference_warned
+      return if @finalize_merge_inference_warned
       return unless print_errors
 
       @finalize_merge_inference_warned = true
-      warn SimpleCov::Color.colorize(inferred_finalize_merge_warning, :yellow)
+      warn Color.colorize(inferred_finalize_merge_warning, :yellow)
     end
 
     def inferred_finalize_merge_warning

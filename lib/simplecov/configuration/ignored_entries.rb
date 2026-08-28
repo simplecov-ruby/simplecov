@@ -17,8 +17,8 @@ module SimpleCov
     # records without enabling (see #1033, #1046 for why the setting is
     # accepted regardless of enablement order).
     def ignore_branches(*types)
-      SimpleCov::Deprecation.warn("`SimpleCov.ignore_branches` is deprecated. " \
-                                  "Replace with `coverage(:branch) { ignore #{types.map(&:inspect).join(', ')} }`.")
+      Deprecation.warn("`SimpleCov.ignore_branches` is deprecated. " \
+                       "Replace with `coverage(:branch) { ignore #{types.map(&:inspect).join(', ')} }`.")
       store_ignored_branches(types)
     end
 
@@ -33,8 +33,8 @@ module SimpleCov
     # DEPRECATED: use `coverage(:method) { ignore :eval_generated }`.
     # See `ignore_branches` for the enablement difference.
     def ignore_methods(*types)
-      SimpleCov::Deprecation.warn("`SimpleCov.ignore_methods` is deprecated. " \
-                                  "Replace with `coverage(:method) { ignore #{types.map(&:inspect).join(', ')} }`.")
+      Deprecation.warn("`SimpleCov.ignore_methods` is deprecated. " \
+                       "Replace with `coverage(:method) { ignore #{types.map(&:inspect).join(', ')} }`.")
       store_ignored_methods(types)
     end
 
@@ -66,7 +66,7 @@ module SimpleCov
     def raise_if_branch_type_unsupported(type)
       return if IGNORABLE_BRANCH_TYPES.member?(type)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "Unsupported branch type #{type.inspect} for `ignore_branches`. " \
             "Supported values are #{IGNORABLE_BRANCH_TYPES.inspect}"
     end
@@ -74,7 +74,7 @@ module SimpleCov
     def raise_if_method_type_unsupported(type)
       return if IGNORABLE_METHOD_TYPES.member?(type)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "Unsupported method type #{type.inspect} for `ignore_methods`. " \
             "Supported values are #{IGNORABLE_METHOD_TYPES.inspect}"
     end

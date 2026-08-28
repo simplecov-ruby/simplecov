@@ -23,11 +23,9 @@ module SimpleCov
     # tests.
     #
     def production_coverage(path = nil)
-      return defined?(@production_coverage) ? @production_coverage : nil if path.nil?
+      return @production_coverage if path.nil?
 
-      unless path.is_a?(String)
-        raise SimpleCov::ConfigurationError, "production_coverage takes a path, got #{path.inspect}"
-      end
+      raise ConfigurationError, "production_coverage takes a path, got #{path.inspect}" unless path.is_a?(String)
 
       @production_coverage = File.expand_path(path, root)
     end

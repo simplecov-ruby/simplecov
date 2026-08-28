@@ -70,8 +70,8 @@ module SimpleCov
       coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
       defaults, overrides = partition_per_file_thresholds(coverage)
 
-      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_file` is deprecated. " \
-                                  "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}")
+      Deprecation.warn("`SimpleCov.minimum_coverage_by_file` is deprecated. " \
+                       "Replace it with:\n#{per_file_coverage_replacement(defaults, overrides)}")
 
       raise_on_invalid_coverage(defaults, "minimum_coverage_by_file")
       overrides.each_value { |criteria| raise_on_invalid_coverage(criteria, "minimum_coverage_by_file") }
@@ -92,8 +92,8 @@ module SimpleCov
     def minimum_coverage_by_group(coverage = nil)
       return @minimum_coverage_by_group ||= {} unless coverage
 
-      SimpleCov::Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
-                                  "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
+      Deprecation.warn("`SimpleCov.minimum_coverage_by_group` is deprecated. " \
+                       "Replace it with:\n#{per_group_coverage_replacement(coverage)}")
       @minimum_coverage_by_group = coverage.to_h do |group_name, group_coverage|
         [GroupNames.normalize(group_name), normalized_threshold(group_coverage, "minimum_coverage_by_group")]
       end
@@ -114,8 +114,7 @@ module SimpleCov
     # per-criterion hash is validated before it is stored.
     def normalized_threshold(coverage, setting)
       coverage = {primary_coverage => coverage} if coverage.is_a?(Numeric)
-      raise_on_invalid_coverage(coverage, setting)
-      coverage
+      coverage.tap { |thresholds| raise_on_invalid_coverage(thresholds, setting) }
     end
 
     # Split a `minimum_coverage_by_file` argument into Symbol-keyed
@@ -124,19 +123,20 @@ module SimpleCov
     # so downstream code only has one shape to handle.
     def partition_per_file_thresholds(coverage)
       coverage.each_key { |key| validate_per_file_key(key) }
-      pairs = coverage.partition { |key, _| key.is_a?(Symbol) }
       # The assertions restate what the partition predicate guarantees:
       # Symbol keys carry per-criterion Numeric defaults, the rest are paths.
-      defaults = pairs[0].to_h #: coverage_thresholds
-      raw = pairs[1].to_h #: Hash[String | Regexp, Numeric | coverage_thresholds]
+      symbol_pairs, path_pairs = coverage.partition { |key, _| key.instance_of?(Symbol) }
+      defaults = symbol_pairs.to_h #: coverage_thresholds
+      raw = path_pairs.to_h #: Hash[String | Regexp, Numeric | coverage_thresholds]
       overrides = raw.transform_values { |value| value.is_a?(Numeric) ? {primary_coverage => value} : value }
       [defaults, overrides]
     end
 
     def validate_per_file_key(key)
-      return if key.is_a?(Symbol) || key.is_a?(String) || key.is_a?(Regexp)
+      # Symbols have no subclasses; paths and patterns may.
+      return if key.instance_of?(Symbol) || key.is_a?(String) || key.is_a?(Regexp)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got #{key.inspect}"
     end
 

@@ -65,7 +65,7 @@ module SimpleCov
     def apply_threshold_options(configurator, options)
       options.each do |verb, value|
         unless COVERAGE_THRESHOLD_OPTIONS.include?(verb)
-          raise SimpleCov::ConfigurationError,
+          raise ConfigurationError,
                 "Unknown `coverage` option #{verb.inspect}. " \
                 "Supported options are #{COVERAGE_THRESHOLD_OPTIONS.inspect}."
         end
@@ -85,9 +85,7 @@ module SimpleCov
     def resolve_criterion_variant(criterion, oneshot)
       return criterion unless oneshot
 
-      unless criterion == :line
-        raise SimpleCov::ConfigurationError, "`oneshot: true` is only valid for `coverage :line`"
-      end
+      raise ConfigurationError, "`oneshot: true` is only valid for `coverage :line`" unless criterion.equal?(:line)
 
       ONESHOT_LINE_COVERAGE_CRITERION
     end
@@ -96,13 +94,13 @@ module SimpleCov
     # write the same `@minimum_coverage` / `@maximum_coverage` / ... hashes the
     # flat threshold methods populate, so the exit-code checks are unchanged.
     def store_overall_threshold(setting, criterion, percent)
-      raise_on_invalid_coverage({criterion => percent}, setting.to_s)
+      raise_on_invalid_coverage({criterion => percent}, setting)
       public_send(setting)[criterion] = percent
     end
 
     def store_missed_cap(setting, criterion, count)
       raise_if_criterion_disabled(criterion)
-      raise_on_invalid_missed_cap(count, setting.to_s)
+      raise_on_invalid_missed_cap(count, setting)
       public_send(setting)[criterion] = count
     end
 
@@ -112,7 +110,7 @@ module SimpleCov
       return maximum_missed_per_file[criterion] = count if target.nil?
 
       unless target.is_a?(String) || target.is_a?(Regexp)
-        raise SimpleCov::ConfigurationError, "`only:` must be a String path or Regexp, got #{target.inspect}"
+        raise ConfigurationError, "`only:` must be a String path or Regexp, got #{target.inspect}"
       end
 
       (maximum_missed_per_file_overrides[target] ||= {})[criterion] = count
@@ -123,7 +121,7 @@ module SimpleCov
       return minimum_coverage_by_file[criterion] = percent if target.nil?
 
       unless target.is_a?(String) || target.is_a?(Regexp)
-        raise SimpleCov::ConfigurationError, "`only:` must be a String path or Regexp, got #{target.inspect}"
+        raise ConfigurationError, "`only:` must be a String path or Regexp, got #{target.inspect}"
       end
 
       (minimum_coverage_by_file_overrides[target] ||= {})[criterion] = percent
@@ -160,10 +158,10 @@ module SimpleCov
       #   minimum 95,  per: group("Models")
       def minimum(percent, per: nil)
         case per
-        when nil                then @config.send(:store_overall_threshold, :minimum_coverage, @criterion, percent)
-        when :file              then @config.send(:store_minimum_per_file, @criterion, percent, nil)
-        when String, Regexp     then @config.send(:store_minimum_per_file, @criterion, percent, per)
-        when GroupTarget        then @config.send(:store_minimum_per_group, @criterion, percent, per.name)
+        when nil                then @config.__send__(:store_overall_threshold, :minimum_coverage, @criterion, percent)
+        when :file              then @config.__send__(:store_minimum_per_file, @criterion, percent, nil)
+        when String, Regexp     then @config.__send__(:store_minimum_per_file, @criterion, percent, per)
+        when GroupTarget        then @config.__send__(:store_minimum_per_group, @criterion, percent, per.name)
         else raise_invalid_per(per)
         end
       end
@@ -171,7 +169,7 @@ module SimpleCov
       # Overall maximum: fails the build if coverage rises above it. Paired with
       # `minimum` (or via `exact`) this pins coverage so an unexpected jump fails.
       def maximum(percent)
-        @config.send(:store_overall_threshold, :maximum_coverage, @criterion, percent)
+        @config.__send__(:store_overall_threshold, :maximum_coverage, @criterion, percent)
       end
 
       # Pin coverage to an exact figure (sets both `minimum` and `maximum`).
@@ -182,7 +180,7 @@ module SimpleCov
 
       # Maximum allowed drop between runs (`maximum_drop 0` refuses any drop).
       def maximum_drop(percent)
-        @config.send(:store_overall_threshold, :maximum_coverage_drop, @criterion, percent)
+        @config.__send__(:store_overall_threshold, :maximum_coverage_drop, @criterion, percent)
       end
 
       # Cap on the number of misses (uncovered lines, branch arms, or
@@ -196,11 +194,11 @@ module SimpleCov
       #   maximum_missed 0, per: "lib/critical.rb"
       def maximum_missed(count, per: nil)
         case per
-        when nil                then @config.send(:store_missed_cap, :maximum_missed, @criterion, count)
-        when :file              then @config.send(:store_maximum_missed_per_file, @criterion, count, nil)
-        when String, Regexp     then @config.send(:store_maximum_missed_per_file, @criterion, count, per)
+        when nil                then @config.__send__(:store_missed_cap, :maximum_missed, @criterion, count)
+        when :file              then @config.__send__(:store_maximum_missed_per_file, @criterion, count, nil)
+        when String, Regexp     then @config.__send__(:store_maximum_missed_per_file, @criterion, count, per)
         when GroupTarget
-          raise SimpleCov::ConfigurationError,
+          raise ConfigurationError,
                 "maximum_missed does not support `per: group(...)` yet; see docs/Configuration_Roadmap.md"
         else raise_invalid_per(per)
         end
@@ -220,10 +218,10 @@ module SimpleCov
       # arrives as a single argument (`ignore: %i[implicit_else]`).
       def ignore(*types)
         case @criterion
-        when :branch then @config.send(:store_ignored_branches, types.flatten)
-        when :method then @config.send(:store_ignored_methods, types.flatten)
+        when :branch then @config.__send__(:store_ignored_branches, types.flatten)
+        when :method then @config.__send__(:store_ignored_methods, types.flatten)
         else
-          raise SimpleCov::ConfigurationError,
+          raise ConfigurationError,
                 "`ignore` is supported for `coverage :branch` and `coverage :method`, not #{@criterion.inspect}"
         end
       end
@@ -231,23 +229,23 @@ module SimpleCov
       # DEPRECATED: use `minimum N, per: :file` (or `per: "path"` /
       # `per: %r{regexp}` for an override).
       def minimum_per_file(percent, only: nil)
-        SimpleCov::Deprecation.warn("`minimum_per_file` is deprecated. " \
-                                    "Replace with `minimum #{percent}, per: #{(only || :file).inspect}`.")
-        @config.send(:store_minimum_per_file, @criterion, percent, only)
+        Deprecation.warn("`minimum_per_file` is deprecated. " \
+                         "Replace with `minimum #{percent}, per: #{(only || :file).inspect}`.")
+        @config.__send__(:store_minimum_per_file, @criterion, percent, only)
       end
 
       # DEPRECATED: use `minimum N, per: group("Name")`.
       def minimum_per_group(percent, only:)
-        SimpleCov::Deprecation.warn("`minimum_per_group` is deprecated. " \
-                                    "Replace with `minimum #{percent}, per: group(#{only.inspect})`.")
-        @config.send(:store_minimum_per_group, @criterion, percent, only)
+        Deprecation.warn("`minimum_per_group` is deprecated. " \
+                         "Replace with `minimum #{percent}, per: group(#{only.inspect})`.")
+        @config.__send__(:store_minimum_per_group, @criterion, percent, only)
       end
 
       # DEPRECATED: use `maximum_missed N, per: :file` (or `per: "path"`).
       def maximum_missed_per_file(count, only: nil)
-        SimpleCov::Deprecation.warn("`maximum_missed_per_file` is deprecated. " \
-                                    "Replace with `maximum_missed #{count}, per: #{(only || :file).inspect}`.")
-        @config.send(:store_maximum_missed_per_file, @criterion, count, only)
+        Deprecation.warn("`maximum_missed_per_file` is deprecated. " \
+                         "Replace with `maximum_missed #{count}, per: #{(only || :file).inspect}`.")
+        @config.__send__(:store_maximum_missed_per_file, @criterion, count, only)
       end
 
       # Make this criterion the report's primary (leading) criterion.
@@ -264,7 +262,7 @@ module SimpleCov
     private
 
       def raise_invalid_per(per)
-        raise SimpleCov::ConfigurationError,
+        raise ConfigurationError,
               "`per:` must be :file, a String path, a Regexp, or group(\"Name\"), got #{per.inspect}"
       end
     end

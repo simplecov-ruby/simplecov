@@ -22,7 +22,7 @@ module SimpleCov
 
     def track_tests(enabled = nil, granularity: nil)
       if granularity && !TRACK_TESTS_GRANULARITIES.include?(granularity)
-        raise SimpleCov::ConfigurationError,
+        raise ConfigurationError,
               "Unsupported track_tests granularity #{granularity.inspect}, " \
               "supported values are #{TRACK_TESTS_GRANULARITIES.inspect}"
       end
@@ -34,7 +34,7 @@ module SimpleCov
     end
 
     def track_tests?
-      defined?(@track_tests) ? !!@track_tests : false
+      !!@track_tests
     end
 
     # What one recorded context stands for: a test (`:test`, the default)
@@ -43,8 +43,7 @@ module SimpleCov
     # recorder pays one coverage snapshot per test file instead of per
     # test, and test selection needs no more than file identity anyway.
     def track_tests_granularity
-      configured = defined?(@track_tests_granularity) ? @track_tests_granularity : nil
-      configured || :test
+      @track_tests_granularity || :test
     end
 
     # @api private — called from `SimpleCov.start_tracking`. The map is
@@ -55,7 +54,7 @@ module SimpleCov
       return unless track_tests?
       return if coverage_criterion_enabled?(DEFAULT_COVERAGE_CRITERION)
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "`track_tests` needs line coverage with execution counts. " \
             "Enable it with `enable_coverage :line` (`:oneshot_line` cannot record per-test data)."
     end

@@ -23,7 +23,7 @@ module SimpleCov
       return @deprecations ||= :warn unless mode
 
       unless DEPRECATION_MODES.include?(mode)
-        raise SimpleCov::ConfigurationError,
+        raise ConfigurationError,
               "deprecations takes :warn or :raise, got #{mode.inspect}"
       end
 

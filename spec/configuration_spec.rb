@@ -11,11 +11,45 @@ RSpec.describe SimpleCov::Configuration do
   end
   let(:config) { config_class.new }
 
+  describe "#load_coverage" do
+    it "requires the stdlib Coverage library and answers what require answers" do
+      allow(config).to receive(:require).and_return(false)
+
+      expect(config.send(:load_coverage)).to be(false)
+      expect(config).to have_received(:require).with("coverage")
+    end
+  end
+
+  describe "#require_html_formatter" do
+    it "requires the bundled HTML formatter when :html is asked for" do
+      allow(config).to receive(:require_relative)
+
+      config.send(:require_html_formatter, :html)
+
+      expect(config).to have_received(:require_relative).with("../../simplecov-html")
+    end
+
+    it "requires nothing for a format the core already carries" do
+      allow(config).to receive(:require_relative)
+
+      config.send(:require_html_formatter, :json)
+
+      expect(config).not_to have_received(:require_relative)
+    end
+  end
+
   # The criterion-first `coverage` method is a uniform front-end over the same
   # threshold stores the flat `minimum_coverage` family writes, so these
   # examples assert against those stores.
   describe "#coverage" do
     after { config.clear_coverage_criteria }
+
+    # The criterion comes back, which is what a configuration file
+    # chains from and what the oneshot variant answers with.
+    it "answers the criterion it configured" do
+      expect(config.coverage(:branch)).to eq(:branch)
+      expect(config.coverage(:line, oneshot: true)).to eq(:oneshot_line)
+    end
 
     describe "enabling" do
       it "enables the named criterion just by mentioning it" do
@@ -205,6 +239,34 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.maximum_missed_per_file).to eq(line: 5)
       end
 
+      # Every per-file setter validates its criterion and its value
+      # before storing anything, so a typo fails at configuration time
+      # rather than at the exit check.
+      it "refuses a per-file floor for a criterion that is not enabled" do
+        expect { config.send(:store_minimum_per_file, :branch, 80, nil) }
+          .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
+      end
+
+      # A floor above what coverage can reach is a warning rather than a
+      # refusal: it can never pass, but it is not malformed.
+      it "warns about a per-file floor above what coverage can reach" do
+        stderr = capture_stderr { config.send(:store_minimum_per_file, :line, 101, nil) }
+
+        expect(stderr).to eq("The coverage you set for minimum_coverage_by_file is greater than 100%\n")
+      end
+
+      it "refuses a per-file miss cap for a criterion that is not enabled" do
+        expect { config.send(:store_maximum_missed_per_file, :branch, 5, nil) }
+          .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
+      end
+
+      it "refuses a per-file miss cap that is not a count of misses" do
+        expect { config.send(:store_maximum_missed_per_file, :line, -1, nil) }
+          .to raise_error(SimpleCov::ConfigurationError, /non-negative integer count/)
+        expect { config.send(:store_maximum_missed_per_file, :line, 1.5, nil) }
+          .to raise_error(SimpleCov::ConfigurationError, /non-negative integer count/)
+      end
+
       it "minimum_per_file still rejects a non-String/Regexp only: target" do
         capture_stderr do
           expect { config.coverage(:line) { minimum_per_file 100, only: :line } }
@@ -236,11 +298,27 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.print_errors).to be false
       end
     end
+
+    # Turning it back on has to write, not read: only the no-argument
+    # call is a getter, and `true` is both a legitimate value and the
+    # default it would otherwise be confused with.
+    it "switches back on after being switched off" do
+      config.print_errors false
+      config.print_errors true
+      expect(config.print_errors).to be true
+    end
   end
 
   describe "#production_coverage" do
     it "defaults to nil" do
       expect(config.production_coverage).to be_nil
+    end
+
+    # A path is a path whatever kind of String it is.
+    it "takes a String subclass" do
+      config.production_coverage Class.new(String).new("tmp/production.json")
+
+      expect(config.production_coverage).to eq(File.expand_path("tmp/production.json"))
     end
 
     it "stores the path, expanded against the root" do
@@ -256,7 +334,33 @@ RSpec.describe SimpleCov::Configuration do
 
     it "rejects a non-string path" do
       expect { config.production_coverage 42 }
-        .to raise_error(SimpleCov::ConfigurationError, /production_coverage/)
+        .to raise_error(SimpleCov::ConfigurationError, "production_coverage takes a path, got 42")
+    end
+
+    # Inspected, so the refused value is quoted the way it was written
+    # rather than flattened into the sentence.
+    it "names the value it refused, as written" do
+      expect { config.production_coverage(:store) }
+        .to raise_error(SimpleCov::ConfigurationError, "production_coverage takes a path, got :store")
+    end
+
+    it "keeps a stored path when read again" do
+      config.production_coverage "tmp/production.json"
+      stored = config.production_coverage
+      expect(config.production_coverage).to eq(stored)
+    end
+
+    it "expands against the root in force at the time it is set" do
+      config.root("/one")
+      config.production_coverage "prod.json"
+      config.root("/two")
+      expect(config.production_coverage).to eq(File.expand_path("/one/prod.json"))
+    end
+
+    it "replaces a stored path with a later one" do
+      config.production_coverage "first.json"
+      config.production_coverage "second.json"
+      expect(config.production_coverage).to eq(File.expand_path("second.json", config.root))
     end
   end
 
@@ -332,6 +436,78 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  # Ruby 3.2 and later answer for themselves; older runtimes cannot be
+  # asked, and the historical engine check stands in. That fallback is
+  # unreachable on the Ruby this suite runs, so it is reached by taking
+  # the question away.
+  describe "#clear_coverage_criteria" do
+    it "puts the criteria back to the lazy default, not only the primary one" do
+      config.enable_coverage :branch
+
+      config.clear_coverage_criteria
+
+      expect(config.coverage_criteria).to eq(Set[:line])
+    end
+
+    it "puts the leading criterion back as well" do
+      config.enable_coverage :branch
+      config.primary_coverage :branch
+
+      config.clear_coverage_criteria
+
+      expect(config.primary_coverage).to eq(:line)
+    end
+  end
+
+  describe "#coverage_criterion_supported?" do
+    # Loading this file on its own leaves Coverage undefined, so the
+    # question loads it first rather than assuming a caller did.
+    it "loads Coverage before asking it anything" do
+      allow(config).to receive(:load_coverage).and_call_original
+
+      config.coverage_criterion_supported?(:branches)
+
+      expect(config).to have_received(:load_coverage)
+    end
+
+    it "answers whatever the runtime says, either way" do
+      allow(Coverage).to receive(:supported?).with(:branches).and_return(true)
+      expect(config.coverage_criterion_supported?(:branches)).to be true
+
+      allow(Coverage).to receive(:supported?).with(:branches).and_return(false)
+      expect(config.coverage_criterion_supported?(:branches)).to be false
+    end
+
+    context "when the runtime cannot be asked" do
+      before do
+        allow(Coverage).to receive(:respond_to?).and_call_original
+        allow(Coverage).to receive(:respond_to?).with(:supported?).and_return(false)
+      end
+
+      # Stubbed like the JRuby example below, because the answer differs
+      # by engine and the suite really runs on more than one.
+      it "supports the measured criteria" do
+        stub_const("RUBY_ENGINE", "ruby")
+
+        expect(config.coverage_criterion_supported?(:line)).to be true
+        expect(config.coverage_criterion_supported?(:branch)).to be true
+      end
+
+      # `:eval` arrived after those Rubies, so there is nothing to
+      # support it with.
+      it "does not support eval" do
+        expect(config.coverage_criterion_supported?(:eval)).to be false
+      end
+
+      it "supports nothing on JRuby, which never emitted this data" do
+        stub_const("RUBY_ENGINE", "jruby")
+
+        expect(config.coverage_criterion_supported?(:line)).to be false
+        expect(config.coverage_criterion_supported?(:eval)).to be false
+      end
+    end
+  end
+
   describe "#project_name" do
     it "uses the basename of the configured root, capitalized" do
       config.root("/Users/erik/Code/my_app")
@@ -341,6 +517,49 @@ RSpec.describe SimpleCov::Configuration do
     it "does not raise when root is the filesystem root" do
       config.root("/")
       expect { config.project_name }.not_to raise_error
+    end
+
+    # Every underscore becomes a space, not just the first, and only the
+    # first letter is touched: a name derived from a directory should
+    # read like a title without rewriting the words in it.
+    it "spaces every underscore and leaves the rest of the case alone" do
+      config.root("/Code/my_awesome_API_app")
+      expect(config.project_name).to eq("My awesome api app")
+    end
+
+    it "takes a name given to it" do
+      config.root("/Code/my_app")
+      expect(config.project_name("Chosen")).to eq("Chosen")
+      expect(config.project_name).to eq("Chosen")
+    end
+
+    # A getter must not overwrite a name already chosen, and a
+    # non-String argument is not a name: neither may quietly replace one.
+    it "keeps the name it was given when read again or handed a non-name" do
+      config.project_name("Chosen")
+      expect(config.project_name(nil)).to eq("Chosen")
+      expect(config.project_name(:symbol)).to eq("Chosen")
+      expect(config.project_name).to eq("Chosen")
+    end
+
+    it "derives a name once and keeps answering with it" do
+      config.root("/Code/my_app")
+      derived = config.project_name
+      config.root("/Code/other_app")
+      expect(config.project_name).to eq(derived)
+    end
+
+    # Any String will do, including one a caller built by subclassing it.
+    it "takes a name given as a String subclass" do
+      config.project_name(Class.new(String).new("Chosen"))
+
+      expect(config.project_name).to eq("Chosen")
+    end
+
+    it "renames over a derived name" do
+      config.root("/Code/my_app")
+      expect(config.project_name).to eq("My app")
+      expect(config.project_name("Renamed")).to eq("Renamed")
     end
   end
 
@@ -387,9 +606,17 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     it "honours a value previously set via #nocov_token" do
-      capture_stderr { config.nocov_token("skippit") }
+      capture_stderr { config.current_nocov_token("skippit") }
 
       expect(config.current_nocov_token).to eq "skippit"
+    end
+
+    # A token already set is not frozen: passing a new one replaces it,
+    # while passing nothing keeps reading the one in force.
+    it "replaces a token already set" do
+      config.current_nocov_token("first")
+      expect(config.current_nocov_token("second")).to eq "second"
+      expect(config.current_nocov_token).to eq "second"
     end
   end
 
@@ -604,8 +831,11 @@ RSpec.describe SimpleCov::Configuration do
       it "reserves Ungrouped for files that match no configured group" do
         config.group "Models", "app/models"
 
+        # The name is quoted in the message, so a group called
+        # "Ungrouped is fine" is not mistaken for the reserved one.
         expect { config.group "Ungrouped", // }
-          .to raise_error(SimpleCov::ConfigurationError, /reserved/)
+          .to raise_error(SimpleCov::ConfigurationError,
+                          %("Ungrouped" is reserved for files that do not match a configured group))
         expect(config.groups.keys).to eq ["Models"]
       end
 
@@ -854,6 +1084,69 @@ RSpec.describe SimpleCov::Configuration do
         allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
 
         expect(config.finalize_merge).to be true
+      end
+
+      # Two workers is already a parallel run: the inference is about
+      # whether anything else is doing the merging, not about scale.
+      it "infers false for a two-worker run, the smallest parallel one" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "2"
+        two_workers = Class.new(SimpleCov::ParallelAdapters::Base) do
+          def self.expected_worker_count
+            2
+          end
+        end
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(two_workers)
+
+        expect(capture_stderr { config.finalize_merge }).to include("[DEPRECATION]").or include("")
+        expect(config.finalize_merge).to be false
+      end
+
+      # Either variable on its own says a parallel worker is running.
+      %w[TEST_ENV_NUMBER PARALLEL_TEST_GROUPS].each do |variable|
+        it "recognises a worker environment from #{variable} alone" do
+          ENV[variable] = "1"
+          config.merging true
+          config.coverage_dir "coverage/turbo_tests/1"
+          allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+          capture_stderr { expect(config.finalize_merge).to be false }
+        end
+      end
+
+      # A coverage directory set explicitly to the default one is not a
+      # custom destination: nothing about it says another process is
+      # collating.
+      it "does not infer false when the explicit destination is the default one" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+
+        expect(config.finalize_merge).to be true
+      end
+
+      # The warning is for the inference that turns finalization off; an
+      # inference that leaves it on has nothing to say.
+      it "colours the inference warning, so it is not lost in the run's output" do
+        ENV["TEST_ENV_NUMBER"] = "1"
+        ENV["PARALLEL_TEST_GROUPS"] = "3"
+        config.merging true
+        config.coverage_dir "coverage/turbo_tests/1"
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+        allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+
+        expect(capture_stderr { config.finalize_merge }).to start_with("\e[33m")
+      end
+
+      it "stays silent when it infers that this process should finalize" do
+        config.merging true
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(nil)
+
+        expect(capture_stderr { expect(config.finalize_merge).to be true }).to be_empty
       end
 
       it "does not infer false outside a parallel worker environment" do
@@ -2411,6 +2704,999 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  # Setters that answer with what they stored, which is what a
+  # configuration file reads back and what the DSL chains from.
+  describe "what the stores answer" do
+    after { config.clear_coverage_criteria }
+
+    it "answers the cover filters after adding one" do
+      expect(config.cover("lib/**/*.rb")).to be(config.cover_filters)
+      expect(config.cover_filters.size).to eq(1)
+    ensure
+      config.cover_filters.clear
+    end
+
+    it "answers the formatters after setting them" do
+      expect(config.formatters(SimpleCov::Formatter::SimpleFormatter)).to be_a(Object)
+      expect(config.formatters.size).to eq(1)
+    ensure
+      config.instance_variable_set(:@formatter, nil)
+    end
+
+    it "answers the ignored method types after storing them" do
+      stored = nil
+      config.coverage(:method) { stored = ignore :eval_generated }
+
+      expect(stored).to eq([:eval_generated])
+    end
+
+    it "answers the thresholds it normalised" do
+      config.minimum_coverage 90
+
+      expect(config.minimum_coverage).to eq(line: 90)
+    end
+
+    # The timeout is memoized so a later read does not fall back to the
+    # default when the environment carries none.
+    it "keeps the timeout it worked out for later reads" do
+      config.merge_timeout
+
+      expect(config.instance_variable_get(:@merge_timeout)).to eq(600)
+    ensure
+      config.remove_instance_variable(:@merge_timeout) if config.instance_variable_defined?(:@merge_timeout)
+    end
+
+    # A threshold table can carry a criterion with nothing set for it,
+    # which is not a threshold above 100%.
+    it "passes over a criterion with no threshold at all" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+
+      expect { config.coverage(:line) { minimum_per_file nil, only: "lib/a.rb" } }.not_to raise_error
+    end
+  end
+
+  # Every deprecation says the same three things: that it is one, what
+  # to write instead, and the setting it came from. The wrapper is what
+  # makes the first of those true.
+  describe "how a deprecation reads" do
+    after { config.clear_coverage_criteria }
+
+    {
+      "ignore_methods" => ->(config) { config.ignore_methods :eval_generated },
+      "the block's maximum_missed_per_file" =>
+        ->(config) { config.coverage(:line) { maximum_missed_per_file 5 } },
+      "the block's minimum_per_group" =>
+        ->(config) { config.coverage(:line) { minimum_per_group 90, only: "Models" } }
+    }.each do |description, invocation|
+      it "marks #{description} as deprecated" do
+        stderr = capture_stderr { invocation.call(config) }
+
+        expect(stderr).to include("[DEPRECATION]")
+      end
+    end
+
+    it "renders one line per criterion, each on its own" do
+      config.enable_coverage :branch
+      stderr = capture_stderr { config.minimum_coverage_by_file line: 90, branch: 80 }
+
+      expect(stderr).to include("  coverage(:line) { minimum 90, per: :file }\n  " \
+                                "coverage(:branch) { minimum 80, per: :file }")
+    end
+
+    it "names the setting a deprecated per-file cap belongs to" do
+      expect { capture_stderr { config.maximum_missed_per_file(-1) } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "maximum_missed_per_file takes a non-negative integer count of misses, got -1")
+    end
+
+    it "names the setting a deprecated per-file threshold belongs to" do
+      stderr = capture_stderr { config.minimum_coverage_by_file 101 }
+
+      expect(stderr).to include("The coverage you set for minimum_coverage_by_file is greater than 100%")
+    end
+
+    it "names the setting a per-path override belongs to" do
+      stderr = capture_stderr { config.minimum_coverage_by_file("lib/a.rb" => 101) }
+
+      expect(stderr).to include("The coverage you set for minimum_coverage_by_file is greater than 100%")
+    end
+
+    it "shows a key that is neither a criterion nor a path as it was written" do
+      expect { capture_stderr { config.minimum_coverage_by_file(nil => 90) } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got nil")
+    end
+  end
+
+  # A path or a pattern is taken by kind wherever a per-file target is
+  # accepted, and shown as it was written when it is neither.
+  describe "per-file targets, everywhere they are taken" do
+    after { config.clear_coverage_criteria }
+
+    it "takes a Regexp subclass as a per-file threshold target" do
+      pattern = Class.new(Regexp).new("lib/.*")
+      config.coverage(:line) { minimum 90, per: pattern }
+
+      expect(config.minimum_coverage_by_file_overrides.keys).to eq([pattern])
+    end
+
+    it "takes a Regexp subclass as a per-file threshold key" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+      pattern = Class.new(Regexp).new("lib/.*")
+      config.minimum_coverage_by_file(pattern => 90)
+
+      expect(config.minimum_coverage_by_file_overrides.keys).to eq([pattern])
+    end
+
+    it "shows a symbol where a cap's target belongs as it was written" do
+      expect { capture_stderr { config.coverage(:line) { maximum_missed_per_file 5, only: :nope } } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "`only:` must be a String path or Regexp, got :nope")
+    end
+
+    it "takes a String subclass as a production coverage path" do
+      path = Class.new(String).new("tmp/production.json")
+
+      expect(config.production_coverage(path)).to eq(File.expand_path("tmp/production.json"))
+    ensure
+      config.remove_instance_variable(:@production_coverage) if config.instance_variable_defined?(:@production_coverage)
+    end
+  end
+
+  # The remaining small answers: each is read by something else, and
+  # each had nothing saying what it answers.
+  describe "the small answers" do
+    after { config.clear_coverage_criteria }
+
+    it "answers a result already assembled as a session, whatever the result is" do
+      allow(SimpleCov).to receive(:result?).and_return(instance_double(SimpleCov::Result))
+      allow(Coverage).to receive(:running?).and_return(false)
+
+      expect(config.send(:active_session?)).to be true
+    end
+
+    it "answers false, not nothing, about subprocesses nobody enabled" do
+      expect(config.enabled_for_subprocesses?).to be false
+    end
+
+    it "reads the baseline once per resolved path" do
+      allow(SimpleCov::Baseline).to receive(:read).and_return(SimpleCov::Baseline.new({}))
+
+      first = config.baseline
+
+      expect(config.baseline).to be(first)
+      expect(SimpleCov::Baseline).to have_received(:read).once
+    ensure
+      %i[@baseline @baseline_path].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+    end
+
+    it "clears the leading criterion along with the criteria" do
+      config.enable_coverage :branch
+      config.primary_coverage :branch
+
+      config.clear_coverage_criteria
+
+      expect(config.primary_coverage).to eq(:line)
+    end
+
+    it "clears the filters to an empty chain, not to nothing" do
+      config.skip "vendor"
+
+      expect(config.clear_filters).to eq([])
+      expect(config.filters).to eq([])
+    end
+
+    it "asks the runtime whether it can measure eval'd code, and believes the yes" do
+      allow(Coverage).to receive(:supported?).with(:eval).and_return(true)
+
+      expect(config.coverage_for_eval_supported?).to be true
+    end
+
+    it "answers that a branch type nobody ignored is not ignored" do
+      config.coverage(:branch) { ignore :implicit_else }
+
+      expect(config.ignored_branch?(:implicit_else)).to be true
+      expect(config.ignored_branch?(:eval_generated)).to be false
+    end
+
+    it "answers the ignored types it stored" do
+      stored = nil
+      config.coverage(:branch) { stored = ignore :implicit_else }
+
+      expect(stored).to eq([:implicit_else])
+    end
+
+    it "takes a merge timeout in seconds, and ignores one that is not" do
+      config.merge_timeout 120
+      expect(config.merge_timeout).to eq(120)
+
+      config.merge_timeout "600"
+      expect(config.merge_timeout).to eq(120)
+    ensure
+      config.remove_instance_variable(:@merge_timeout) if config.instance_variable_defined?(:@merge_timeout)
+    end
+
+    # Ownership needs both halves: this process finalizing, and it being
+    # the last one out.
+    it "owns the merge only when it finalizes and is the final process" do
+      allow(config).to receive_messages(collating_result?: false, final_result_process?: true)
+      config.finalize_merge false
+
+      expect(config.merge_finalization_owner?).to be false
+
+      config.finalize_merge true
+      expect(config.merge_finalization_owner?).to be true
+    ensure
+      %i[@finalize_merge @finalize_merge_explicit].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+    end
+  end
+
+  # Groups are named filters, and both spellings validate the name and
+  # keep the filter that goes with it.
+  describe "naming a group" do
+    after { config.groups.clear }
+
+    it "takes a name and a block, with no filter argument at all" do
+      config.group("Models") { |source_file| source_file.filename.include?("model") }
+
+      expect(config.groups.keys).to eq(["Models"])
+      expect(config.groups.fetch("Models")
+                   .matches?(instance_double(SimpleCov::SourceFile, filename: "app/models/a.rb"))).to be true
+    end
+
+    it "refuses a name the report reserves" do
+      expect { config.group("Ungrouped", "lib") }
+        .to raise_error(SimpleCov::ConfigurationError, /Ungrouped/)
+    end
+
+    it "keeps each filter when the whole table is set at once" do
+      config.groups = {"Models" => SimpleCov::StringFilter.new("models")}
+
+      expect(config.groups.fetch("Models")
+                   .matches?(instance_double(SimpleCov::SourceFile, project_filename: "app/models/a.rb"))).to be true
+    end
+
+    it "refuses a reserved name in a table set at once" do
+      expect { config.groups = {"Ungrouped" => SimpleCov::StringFilter.new("models")} }
+        .to raise_error(SimpleCov::ConfigurationError, /Ungrouped/)
+    end
+  end
+
+  # What the `coverage` DSL and the formats setter answer, which is what
+  # a configuration file chains from.
+  describe "what the setters answer" do
+    after { config.clear_coverage_criteria }
+
+    it "answers the formatters it resolved, and the ones it has when asked for none" do
+      expect(config.formats).to eq([])
+
+      expect(config.formats(:simple)).to eq(config.formatters)
+      expect(config.formats.size).to eq(1)
+      expect(config.formatters.size).to eq(1)
+    ensure
+      config.instance_variable_set(:@formatter, nil)
+    end
+
+    # Either half being set outright makes the destination explicit.
+    it "counts a path set outright, and a directory set outright, each on its own" do
+      expect(config.send(:explicit_coverage_destination?)).to be_falsey
+
+      config.coverage_dir "elsewhere"
+      expect(config.send(:explicit_coverage_destination?)).to be_truthy
+
+      config.remove_instance_variable(:@coverage_dir_explicit)
+      config.coverage_path File.expand_path("tmp/elsewhere")
+      expect(config.send(:explicit_coverage_destination?)).to be_truthy
+    ensure
+      %i[@coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+    end
+  end
+
+  # Odds and ends the rest of the configuration reads: each answers
+  # something a mutation could replace with a constant nobody would
+  # notice from a suite that always configures these first.
+  describe "the answers nothing else configures" do
+    it "guesses a command name when nothing named the run" do
+      forgotten = config_class.new
+
+      expect(forgotten.command_name).to eq(SimpleCov::CommandGuesser.guess)
+    end
+
+    it "keeps the command name it was given" do
+      config.command_name "Cucumber"
+
+      expect(config.command_name).to eq("Cucumber")
+    end
+
+    it "reads a merge timeout out of the environment in base ten" do
+      previous = ENV.fetch("SIMPLECOV_MERGE_TIMEOUT", nil)
+      ENV["SIMPLECOV_MERGE_TIMEOUT"] = "010"
+
+      expect(config.send(:env_merge_timeout)).to eq(10)
+    ensure
+      ENV["SIMPLECOV_MERGE_TIMEOUT"] = previous
+    end
+
+    it "reads no merge timeout out of an environment that carries none" do
+      previous = ENV.fetch("SIMPLECOV_MERGE_TIMEOUT", nil)
+      ENV.delete("SIMPLECOV_MERGE_TIMEOUT")
+
+      expect(config.send(:env_merge_timeout)).to be_nil
+    ensure
+      ENV["SIMPLECOV_MERGE_TIMEOUT"] = previous
+    end
+
+    # View coverage needs both halves: somewhere to look, and the eval
+    # measurement that sees compiled templates at all.
+    it "measures view coverage only with globs and eval coverage both" do
+      allow(config).to receive(:coverage_for_eval_enabled?).and_return(true)
+      expect(config.view_coverage?).to be false
+
+      config.cover_views "app/views/**/*.erb"
+      allow(config).to receive(:coverage_for_eval_enabled?).and_return(false)
+      expect(config.view_coverage?).to be false
+
+      allow(config).to receive(:coverage_for_eval_enabled?).and_return(true)
+      expect(config.view_coverage?).to be true
+    ensure
+      config.instance_variable_set(:@view_globs, nil)
+    end
+
+    it "asks the runtime whether it can measure eval'd code" do
+      allow(Coverage).to receive(:supported?).with(:eval).and_return(false)
+
+      expect(config.coverage_for_eval_supported?).to be false
+    end
+
+    it "registers a block filter that decides for itself" do
+      registered = config.cover { |source_file| source_file.filename.end_with?("a.rb") }
+
+      expect(registered).to be(config.cover_filters)
+      expect(config.cover_filters.size).to eq(1)
+      expect(config.cover_filters.first.matches?(instance_double(SimpleCov::SourceFile, filename: "lib/a.rb")))
+        .to be true
+    ensure
+      config.cover_filters.clear
+    end
+  end
+
+  # Group thresholds read back as a hash, and the DSL's `per: group(...)`
+  # writes the same store the flat setter does.
+  describe "group thresholds, read and written" do
+    after { config.clear_coverage_criteria }
+
+    it "answers an empty table before anything sets one" do
+      expect(config.minimum_coverage_by_group).to eq({})
+    end
+
+    it "answers what a group threshold was set to, from either spelling" do
+      capture_stderr { config.minimum_coverage_by_group("Models" => 90) }
+      config.coverage(:line) { minimum 80, per: group("Views") }
+
+      expect(config.minimum_coverage_by_group).to eq("Models" => {line: 90}, "Views" => {line: 80})
+    end
+
+    it "warns about an impossible threshold, naming the group setting" do
+      stderr = capture_stderr { config.minimum_coverage_by_group("Models" => 101) }
+
+      expect(stderr).to include("The coverage you set for minimum_coverage_by_group is greater than 100%")
+    end
+
+    it "refuses a group threshold for a criterion nothing measures" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+
+      expect { config.minimum_coverage_by_group("Models" => {branch: 90}) }
+        .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
+    end
+
+    it "warns about an impossible group threshold set through the block" do
+      stderr = capture_stderr { config.coverage(:line) { minimum 101, per: group("Models") } }
+
+      expect(stderr).to include("The coverage you set for minimum_coverage_by_group is greater than 100%")
+    end
+
+    it "refuses a group threshold for a criterion nothing measures, from the block" do
+      expect { config.coverage(:branch, enabled: false) { minimum 90, per: group("Models") } }
+        .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
+    end
+
+    # The deprecated flat setter renders the block form as its
+    # replacement, one line per group and criterion.
+    it "renders the block form as the replacement for the flat setter" do
+      stderr = capture_stderr { config.minimum_coverage_by_group("Models" => 90) }
+
+      expect(stderr).to include(%(  coverage(:line) { minimum 90, per: group("Models") }))
+    end
+
+    it "renders a criterion-keyed group threshold as its own line" do
+      config.enable_coverage :branch
+      stderr = capture_stderr { config.minimum_coverage_by_group("Models" => {branch: 80}) }
+
+      expect(stderr).to include(%(  coverage(:branch) { minimum 80, per: group("Models") }))
+    end
+  end
+
+  # Line coverage leads the report whenever it is measured, whatever
+  # order the criteria were enabled in.
+  describe "which criterion leads" do
+    after { config.clear_coverage_criteria }
+
+    it "prefers line coverage even when another criterion was enabled first" do
+      config.disable_coverage :line
+      config.enable_coverage :branch
+      config.enable_coverage :line
+
+      expect(config.coverage_criteria.first).to eq(:branch)
+      expect(config.primary_coverage).to eq(:line)
+    end
+  end
+
+  # The at_exit hook is what formats the report, and it belongs to
+  # whichever process is finalizing the merge.
+  describe "#at_exit" do
+    after { config.instance_variable_set(:@at_exit, nil) }
+
+    it "formats the result when this process owns the merge" do
+      result = instance_double(SimpleCov::Result, format!: nil)
+      allow(SimpleCov).to receive_messages(result: result, merge_finalization_owner?: true, result?: true)
+
+      config.at_exit.call
+
+      expect(result).to have_received(:format!)
+    end
+
+    it "does nothing when another process owns the merge" do
+      result = instance_double(SimpleCov::Result, format!: nil)
+      allow(SimpleCov).to receive_messages(result: result, merge_finalization_owner?: false, result?: true)
+
+      config.at_exit.call
+
+      expect(result).not_to have_received(:format!)
+    end
+
+    # Collation can leave this process with nothing to format.
+    it "does nothing when there is no result to format" do
+      allow(SimpleCov).to receive_messages(result: nil, merge_finalization_owner?: true, result?: true)
+
+      expect { config.at_exit.call }.not_to raise_error
+    end
+
+    it "answers a hook that does nothing at all outside a session" do
+      allow(SimpleCov).to receive_messages(result?: false, result: nil)
+      allow(Coverage).to receive(:running?).and_return(false)
+
+      expect(config.at_exit.call).to be_nil
+      expect(SimpleCov).not_to have_received(:result)
+    end
+
+    it "keeps the block it was given" do
+      hook = proc { :mine }
+
+      expect(config.at_exit(&hook)).to be(hook)
+      expect(config.at_exit).to be(hook)
+    end
+  end
+
+  # Ignoring synthetic entries is per criterion, and the list is a set:
+  # naming a type twice is naming it once.
+  describe "ignoring synthetic entries" do
+    after { config.clear_coverage_criteria }
+
+    it "keeps one entry per type, however it is spelled" do
+      ignored = nil
+      config.coverage(:method) { ignore :eval_generated }
+      config.coverage(:method) { ignored = ignore [:eval_generated] }
+
+      expect(ignored).to eq([:eval_generated])
+      expect(config.ignored_methods).to eq([:eval_generated])
+    end
+
+    it "refuses to ignore anything for a criterion that has nothing to ignore" do
+      expect { config.coverage(:line) { ignore :eval_generated } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "`ignore` is supported for `coverage :branch` and `coverage :method`, not :line")
+    end
+  end
+
+  # The deprecation warnings carry a copy-pastable replacement, so what
+  # they render is part of the interface.
+  describe "what a deprecation offers instead" do
+    after { config.clear_coverage_criteria }
+
+    it "renders one coverage block per criterion, a line each" do
+      config.enable_coverage :branch
+      stderr = capture_stderr { config.maximum_missed_per_file line: 5, branch: 2 }
+
+      expect(stderr).to include("  coverage(:line) { maximum_missed 5, per: :file }\n  " \
+                                "coverage(:branch) { maximum_missed 2, per: :file }")
+    end
+
+    it "renders a bare count against the leading criterion" do
+      stderr = capture_stderr { config.maximum_missed_per_file 5 }
+
+      expect(stderr).to include("  coverage(:line) { maximum_missed 5, per: :file }")
+    end
+  end
+
+  # Answers other parts of the configuration lean on, each of which a
+  # mutation could replace with a plausible constant.
+  describe "what the configuration works out for itself" do
+    after { config.clear_coverage_criteria }
+
+    it "leads with line coverage while it is measured, and with what is left when it is not" do
+      expect(config.primary_coverage).to eq(:line)
+
+      config.enable_coverage :branch
+      config.disable_coverage :line
+
+      expect(config.primary_coverage).to eq(:branch)
+    end
+
+    it "has something to do at exit when a result is already assembled" do
+      allow(SimpleCov).to receive(:result?).and_return(true)
+      allow(Coverage).to receive(:running?).and_return(false)
+
+      expect(config.send(:active_session?)).to be true
+    end
+
+    it "has nothing to do at exit with no result and no measurement" do
+      allow(SimpleCov).to receive(:result?).and_return(false)
+      allow(Coverage).to receive(:running?).and_return(false)
+
+      expect(config.send(:active_session?)).to be false
+    end
+
+    it "has something to do at exit while measurement is running" do
+      allow(SimpleCov).to receive(:result?).and_return(false)
+      allow(Coverage).to receive(:running?).and_return(true)
+
+      expect(config.send(:active_session?)).to be true
+    end
+
+    # A configuration loaded on its own has no Coverage to ask, which
+    # is not something a suite that measures coverage can be.
+    it "has nothing to do at exit when there is no Coverage to ask" do
+      allow(SimpleCov).to receive(:result?).and_return(false)
+      hide_const("Coverage")
+
+      expect(config.send(:active_session?)).to be false
+    end
+
+    # A destination is custom when it was set outright and is not the
+    # folder the defaults would have produced anyway.
+    it "tells a custom coverage destination from the default one" do
+      expect(config.send(:explicit_custom_coverage_destination?)).to be false
+
+      config.root "tmp/destination"
+      config.coverage_dir "coverage"
+      expect(config.send(:explicit_custom_coverage_destination?)).to be false
+
+      config.coverage_dir "elsewhere"
+      expect(config.send(:explicit_custom_coverage_destination?)).to be true
+
+      # A destination that differs from the default but that nobody set
+      # is not a custom one: something else moved the root under it.
+      config.remove_instance_variable(:@coverage_dir_explicit)
+      expect(config.send(:explicit_custom_coverage_destination?)).to be false
+    ensure
+      %i[@root @coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+    end
+
+    # Reading the directory is not setting it: only an argument makes
+    # the destination an explicit one.
+    it "does not call a directory explicit for having been read" do
+      config.coverage_dir
+
+      expect(config.send(:explicit_coverage_destination?)).to be_falsey
+    ensure
+      %i[@coverage_dir @coverage_dir_explicit].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+    end
+
+    it "leaves a foreign object in the filter chain alone" do
+      config.filters << Object.new
+      config.skip "vendor"
+
+      expect(config.remove_filter("vendor")).to be true
+      expect(config.remove_filter("vendor")).to be false
+      expect(config.filters.size).to eq(1)
+    ensure
+      config.clear_filters
+    end
+  end
+
+  # The root and the coverage directory are memoized, and each is the
+  # other half of the path the report is written to: setting either has
+  # to drop a path computed from the old pair, unless that path was set
+  # outright.
+  describe "where the report is written" do
+    around do |example|
+      previous = %i[@root @coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit]
+                 .filter_map do |ivar|
+        if config.instance_variable_defined?(ivar)
+          [ivar,
+           config.instance_variable_get(ivar)]
+        end
+      end
+      example.run
+    ensure
+      %i[@root @coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit].each do |ivar|
+        config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)
+      end
+      previous.each { |ivar, value| config.instance_variable_set(ivar, value) }
+    end
+
+    def forget(*ivars)
+      ivars.each { |ivar| config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar) }
+    end
+
+    it "answers the working directory before anything sets a root" do
+      forget(:@root)
+
+      expect(config.root).to eq(File.expand_path(Dir.getwd))
+    end
+
+    it "answers the default directory before anything sets one" do
+      forget(:@coverage_dir)
+
+      expect(config.coverage_dir).to eq("coverage")
+    end
+
+    it "resolves a root it is given against the working directory" do
+      config.root "tmp/somewhere"
+
+      expect(config.root).to eq(File.expand_path("tmp/somewhere"))
+    end
+
+    it "keeps answering the root it was given" do
+      config.root "tmp/somewhere"
+
+      expect(config.root).to eq(File.expand_path("tmp/somewhere"))
+      expect(config.root(nil)).to eq(File.expand_path("tmp/somewhere"))
+    end
+
+    it "drops a coverage path computed from the old root" do
+      config.root "tmp/first"
+      first = config.coverage_path
+
+      config.root "tmp/second"
+
+      expect(config.coverage_path).not_to eq(first)
+      expect(config.coverage_path).to eq(File.join(File.expand_path("tmp/second"), "coverage"))
+    ensure
+      FileUtils.rm_rf([File.expand_path("tmp/first"), File.expand_path("tmp/second")])
+    end
+
+    it "drops a coverage path computed from the old directory" do
+      config.root "tmp/first"
+      config.coverage_dir "cov"
+
+      expect(config.coverage_path).to eq(File.join(File.expand_path("tmp/first"), "cov"))
+    ensure
+      FileUtils.rm_rf(File.expand_path("tmp/first"))
+    end
+
+    # A path set outright is not derived from either half, so neither
+    # setting a root nor a directory may drop it.
+    it "keeps a coverage path that was set outright" do
+      config.root "tmp/first"
+      config.coverage_path File.expand_path("tmp/explicit")
+
+      config.root "tmp/second"
+
+      expect(config.coverage_path).to eq(File.expand_path("tmp/explicit"))
+    ensure
+      FileUtils.rm_rf([File.expand_path("tmp/first"), File.expand_path("tmp/second"),
+                       File.expand_path("tmp/explicit")])
+    end
+  end
+
+  # The getters and setters that share one method, where the sentinel
+  # tells "read me" from "write me this", and where a mutation can turn
+  # a write into a read of something else.
+  describe "reading and writing the formatter" do
+    after { config.instance_variable_set(:@formatter, nil) }
+
+    it "answers no formatters before one is set, and the one after" do
+      expect(config.formatters).to eq([])
+
+      config.formatters SimpleCov::Formatter::SimpleFormatter
+
+      expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
+      expect(config.formatters.size).to eq(1)
+    end
+
+    it "answers what it was handed, so a chained call sees it" do
+      formatters = [SimpleCov::Formatter::SimpleFormatter]
+
+      expect(config.formatters(formatters)).to be(formatters)
+    end
+
+    # The documented way to turn formatting off entirely.
+    it "opts out of formatting when handed an empty list" do
+      config.formatters SimpleCov::Formatter::SimpleFormatter
+      expect(config.formatters.size).to eq(1)
+
+      config.formatters = []
+
+      expect(config.formatter).to be_nil
+      expect(config.formatters).to eq([])
+    end
+
+    it "keeps the formatter it is handed, and normalises false to none at all" do
+      config.formatter SimpleCov::Formatter::SimpleFormatter
+      expect(config.formatter).to be(SimpleCov::Formatter::SimpleFormatter)
+
+      config.formatter false
+      expect(config.formatter).to be_nil
+    end
+
+    it "resolves the built-in format names, and refuses the rest" do
+      config.formats :simple
+
+      expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
+      expect(config.formats).to eq(config.formatters)
+      expect { config.formats :yaml }
+        .to raise_error(SimpleCov::ConfigurationError, /Unknown format :yaml/)
+    end
+
+    # A class or instance passes through as it stands: only names are
+    # looked up.
+    it "leaves a formatter that is not a name alone" do
+      formatter = SimpleCov::Formatter::SimpleFormatter.new
+
+      expect(config.send(:resolve_format, formatter)).to be(formatter)
+    end
+
+    it "answers the HTML formatter for :html, having required it" do
+      expect(config.send(:resolve_format, :html)).to eq(SimpleCov::Formatter::HTMLFormatter)
+    end
+
+    # The require is what makes :html work in a process that never
+    # loaded the formatter, and only :html asks for it.
+    it "loads the HTML formatter for that name and no other" do
+      allow(config).to receive(:require_html_formatter)
+
+      config.send(:resolve_format, :html)
+      config.send(:resolve_format, :simple)
+
+      expect(config).to have_received(:require_html_formatter).with(:html).once
+    end
+  end
+
+  # An expected coverage is a minimum and a maximum at once, and asking
+  # for it without one is asking what the minimum is.
+  describe "#expected_coverage" do
+    after { config.clear_coverage_criteria }
+
+    it "answers the minimum when it is not given one" do
+      config.minimum_coverage 80
+
+      expect(config.expected_coverage).to eq(line: 80)
+    end
+
+    it "pins coverage from both ends when it is given one" do
+      config.expected_coverage 90
+
+      expect(config.minimum_coverage).to eq(line: 90)
+      expect(config.maximum_coverage).to eq(line: 90)
+    end
+  end
+
+  # Small answers the rest of the configuration leans on, each of which
+  # a mutation could hand back a plausible constant instead.
+  describe "what the configuration answers about itself" do
+    it "keeps the primary criterion when a different one is disabled" do
+      config.enable_coverage :branch
+      config.enable_coverage :method
+      config.primary_coverage :branch
+
+      config.disable_coverage :method
+
+      expect(config.primary_coverage).to eq(:branch)
+    ensure
+      config.clear_coverage_criteria
+    end
+
+    it "answers no branch or method coverage on a runtime that cannot measure it" do
+      config.enable_coverage :branch
+      config.enable_coverage :method
+      allow(Coverage).to receive(:supported?).and_return(false)
+
+      expect(config.branch_coverage?).to be false
+      expect(config.method_coverage?).to be false
+    ensure
+      config.clear_coverage_criteria
+    end
+
+    it "answers that a method type nobody ignored is not ignored" do
+      config.coverage(:method) { ignore :eval_generated }
+
+      expect(config.ignored_method?(:eval_generated)).to be true
+      expect(config.ignored_method?(:accessor)).to be false
+    ensure
+      config.clear_coverage_criteria
+    end
+
+    it "keeps a filter that has no argument to compare" do
+      config.filters << SimpleCov::BlockFilter.new(->(source_file) { source_file.lines.count < 5 })
+      config.skip "vendor"
+
+      expect(config.remove_filter("vendor")).to be true
+      expect(config.filters.size).to eq(1)
+    ensure
+      config.clear_filters
+    end
+
+    it "answers a profiles registry, not the registry class" do
+      expect(config.profiles).to be_a(SimpleCov::Profiles)
+    end
+
+    # The hook belongs to SimpleCov, whoever holds the configuration it
+    # came from: a forked child reconfigures the real thing.
+    it "reconfigures SimpleCov itself when the fork hook fires" do
+      allow(SimpleCov).to receive(:command_name).and_return("Parent Suite")
+      allow(SimpleCov).to receive(:print_errors)
+      allow(SimpleCov).to receive(:formatter)
+      allow(SimpleCov).to receive(:minimum_coverage)
+      allow(SimpleCov).to receive(:start)
+
+      config.at_fork.call(123)
+
+      expect(SimpleCov).to have_received(:command_name).with(/\AParent Suite \(subprocess: \d+\)\z/)
+      expect(SimpleCov).to have_received(:formatter).with(SimpleCov::Formatter::SimpleFormatter)
+      expect(SimpleCov).to have_received(:print_errors).with(false)
+      expect(SimpleCov).to have_received(:minimum_coverage).with(0)
+      expect(SimpleCov).to have_received(:start)
+    end
+  end
+
+  # Everything here is about what a value's own spelling looks like in a
+  # message, so the values are ones whose inspected form differs from
+  # their plain one.
+  describe "what a refusal shows of the value" do
+    {
+      "a string where a count belongs" =>
+        [->(config) { config.coverage(:line) { maximum_missed "5" } },
+         %(maximum_missed takes a non-negative integer count of misses, got "5")],
+      "a symbol where a path belongs" =>
+        [->(config) { config.coverage(:line) { minimum 90, per: :nope } },
+         %(`per:` must be :file, a String path, a Regexp, or group("Name"), got :nope)],
+      "a symbol where a per-file target belongs" =>
+        [->(config) { config.coverage(:line) { minimum_per_file 90, only: :nope } },
+         %(`only:` must be a String path or Regexp, got :nope)],
+      "a string where a history limit belongs" =>
+        [->(config) { config.history_limit("10") },
+         %(history_limit takes a non-negative integer, got "10")]
+    }.each do |description, (invocation, message)|
+      it "shows #{description} as it was written" do
+        expect { capture_stderr { invocation.call(config) } }
+          .to raise_error(SimpleCov::ConfigurationError, message)
+      end
+    end
+
+    # The count is refused before the criterion is looked at, so the
+    # message names the setting the block was writing.
+    it "names the block's own setting when its count is refused" do
+      expect { config.coverage(:line) { maximum_missed(-1) } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "maximum_missed takes a non-negative integer count of misses, got -1")
+    end
+
+    # `enabled: false` configures a criterion without measuring it, and a
+    # cap on something nothing measures is a mistake worth naming.
+    it "refuses a cap for a criterion the run does not measure" do
+      expect { config.coverage(:branch, enabled: false) { maximum_missed 3 } }
+        .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
+    end
+  end
+
+  # A configuration error names the setting it came from and shows the
+  # value it refused, inspected: an unquoted string or a bare nil in
+  # that sentence is what sends someone hunting through their own config
+  # for a setting they never wrote.
+  describe "what a refusal says" do
+    {
+      "a negative suite-wide cap" =>
+        [->(config) { config.maximum_missed(-1) },
+         "maximum_missed takes a non-negative integer count of misses, got -1"],
+      "a fractional per-file cap" =>
+        [->(config) { config.coverage(:line) { maximum_missed 2.5, per: :file } },
+         "maximum_missed_per_file takes a non-negative integer count of misses, got 2.5"],
+      "a per: target that is neither a path nor a pattern" =>
+        [->(config) { config.coverage(:line) { maximum_missed 5, per: 42 } },
+         %(`per:` must be :file, a String path, a Regexp, or group("Name"), got 42)],
+      "a negative history limit" =>
+        [->(config) { config.history_limit(-1) },
+         "history_limit takes a non-negative integer, got -1"],
+      "an unknown drop baseline" =>
+        [->(config) { config.drop_baseline :mean },
+         "drop_baseline takes one of [:last_run, :median, :branch], got :mean"],
+      "an unknown deprecation mode" =>
+        [->(config) { config.deprecations :silence },
+         "deprecations takes :warn or :raise, got :silence"],
+      "a per-file threshold key of the wrong kind" =>
+        [->(config) { config.minimum_coverage_by_file(42 => 90) },
+         "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got 42"],
+      "an unsupported criterion" =>
+        [->(config) { config.enable_coverage :sentence },
+         "Unsupported coverage criterion sentence, supported values are [:line, :branch, :method, :oneshot_line]"]
+    }.each do |description, (invocation, message)|
+      it "names the setting and the value for #{description}" do
+        expect { capture_stderr { invocation.call(config) } }
+          .to raise_error(SimpleCov::ConfigurationError, message)
+      end
+    end
+
+    # `only:` is the deprecated spelling of the same target, and its
+    # refusal has to be as legible as the modern one.
+    it "names the value a deprecated per-file cap refused" do
+      expect { capture_stderr { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } } }
+        .to raise_error(SimpleCov::ConfigurationError,
+                        "`only:` must be a String path or Regexp, got 42")
+    end
+
+    it "names the setting a threshold above 100% belongs to" do
+      stderr = capture_stderr { config.coverage(:line) { maximum 101 } }
+
+      expect(stderr).to include("The coverage you set for maximum_coverage is greater than 100%")
+    end
+  end
+
+  # Paths and patterns are taken by kind, not by exact class, so a
+  # project handing over a String or Regexp subclass is configuring
+  # SimpleCov, not confusing it.
+  describe "what counts as a path or a pattern" do
+    let(:string_subclass) { Class.new(String) }
+    let(:regexp_subclass) { Class.new(Regexp) }
+
+    it "takes a String subclass as a per-file target" do
+      target = string_subclass.new("lib/a.rb")
+      config.coverage(:line) { minimum 90, per: target }
+
+      expect(config.minimum_coverage_by_file_overrides.keys.map(&:to_s)).to eq(["lib/a.rb"])
+    end
+
+    it "takes a String subclass as a per-file cap target" do
+      target = Class.new(String).new("lib/a.rb")
+      config.coverage(:line) { maximum_missed 3, per: target }
+
+      expect(config.maximum_missed_per_file_overrides.keys.map(&:to_s)).to eq(["lib/a.rb"])
+    end
+
+    it "takes a Regexp subclass as a per-file cap target" do
+      pattern = regexp_subclass.new("lib/.*")
+      config.coverage(:line) { maximum_missed 3, per: pattern }
+
+      expect(config.maximum_missed_per_file_overrides.keys).to eq([pattern])
+    end
+
+    it "takes a String subclass as a per-file threshold key" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+      config.minimum_coverage_by_file(string_subclass.new("lib/a.rb") => 90)
+
+      expect(config.minimum_coverage_by_file_overrides.keys.map(&:to_s)).to eq(["lib/a.rb"])
+    end
+
+    # Rational and BigDecimal are Numerics that are not Floats, and a
+    # threshold is a number whatever kind of number it is.
+    it "takes a Numeric that is not a Float as a group threshold" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+      config.minimum_coverage_by_group("Models" => Rational(90, 1))
+
+      expect(config.minimum_coverage_by_group).to eq("Models" => {line: Rational(90, 1)})
+    end
+  end
+
   describe "#track_tests" do
     after { config.clear_coverage_criteria }
 
@@ -2429,6 +3715,23 @@ RSpec.describe SimpleCov::Configuration do
       config.track_tests false
 
       expect(config.track_tests?).to be false
+    end
+
+    it "turns back on with an explicit true" do
+      config.track_tests false
+      config.track_tests true
+
+      expect(config.track_tests?).to be true
+    end
+
+    # A granularity given alone must not disturb the switch, and no
+    # granularity at all must not erase the one in force.
+    it "keeps the granularity it was given when called again without one" do
+      config.track_tests granularity: :file
+      config.track_tests
+
+      expect(config.track_tests_granularity).to eq(:file)
+      expect(config.track_tests?).to be true
     end
 
     describe "granularity" do

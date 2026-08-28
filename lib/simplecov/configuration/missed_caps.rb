@@ -43,8 +43,8 @@ module SimpleCov
     def maximum_missed_per_file(counts = nil)
       return @maximum_missed_per_file ||= {} unless counts
 
-      SimpleCov::Deprecation.warn("`SimpleCov.maximum_missed_per_file` is deprecated. " \
-                                  "Replace it with:\n#{missed_per_file_replacement(counts)}")
+      Deprecation.warn("`SimpleCov.maximum_missed_per_file` is deprecated. " \
+                       "Replace it with:\n#{missed_per_file_replacement(counts)}")
       @maximum_missed_per_file = normalized_missed_caps(counts, "maximum_missed_per_file")
     end
 
@@ -70,9 +70,9 @@ module SimpleCov
     end
 
     def raise_on_invalid_missed_cap(cap, setting)
-      return if cap.is_a?(Integer) && cap >= 0
+      return if cap.instance_of?(Integer) && cap >= 0
 
-      raise SimpleCov::ConfigurationError,
+      raise ConfigurationError,
             "#{setting} takes a non-negative integer count of misses, got #{cap.inspect}"
     end
 

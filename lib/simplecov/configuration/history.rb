@@ -14,8 +14,8 @@ module SimpleCov
     def history_limit(limit = nil)
       return @history_limit ||= 100 if limit.nil?
 
-      unless limit.is_a?(Integer) && limit >= 0
-        raise SimpleCov::ConfigurationError, "history_limit takes a non-negative integer, got #{limit.inspect}"
+      unless limit.instance_of?(Integer) && limit >= 0
+        raise ConfigurationError, "history_limit takes a non-negative integer, got #{limit.inspect}"
       end
 
       @history_limit = limit
@@ -41,8 +41,8 @@ module SimpleCov
       return @drop_baseline ||= :last_run if mode.nil?
 
       unless DROP_BASELINES.include?(mode)
-        raise SimpleCov::ConfigurationError,
-              "drop_baseline takes one of #{DROP_BASELINES.inspect}, got #{mode.inspect}"
+        raise ConfigurationError,
+              "drop_baseline takes one of #{DROP_BASELINES}, got #{mode.inspect}"
       end
 
       @drop_baseline = mode

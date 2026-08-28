@@ -16,7 +16,7 @@ module SimpleCov
     # Configure with SimpleCov.root('/my/project/path')
     #
     def root(root = nil)
-      return @root if defined?(@root) && root.nil?
+      return @root if instance_variable_defined?(:@root) && root.nil?
 
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
@@ -28,7 +28,7 @@ module SimpleCov
     # Configure with SimpleCov.coverage_dir('cov')
     #
     def coverage_dir(dir = nil)
-      return @coverage_dir if defined?(@coverage_dir) && dir.nil?
+      return @coverage_dir if instance_variable_defined?(:@coverage_dir) && dir.nil?
 
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @coverage_dir_explicit = true unless dir.nil?
@@ -67,12 +67,12 @@ module SimpleCov
     #
     def command_name(name = nil)
       @command_name = name unless name.nil?
-      @command_name ||= SimpleCov::CommandGuesser.guess
+      @command_name ||= CommandGuesser.guess
     end
 
     # Returns the hash of available profiles
     def profiles
-      @profiles ||= SimpleCov::Profiles.new
+      @profiles ||= Profiles.new
     end
 
     #
@@ -100,9 +100,9 @@ module SimpleCov
       @at_exit = block if block
       configured = @at_exit
       return configured if configured
-      return proc {} unless active_session?
+      return -> {} unless active_session?
 
-      @at_exit = proc do
+      @at_exit = lambda do
         result = SimpleCov.result
         result.format! if result && SimpleCov.merge_finalization_owner?
       end
@@ -112,7 +112,13 @@ module SimpleCov
     # is actively tracking, or a `@result` has already been assembled
     # (e.g. by `SimpleCov.collate`, which never starts Coverage).
     def active_session?
-      SimpleCov.result? || (defined?(Coverage) && Coverage.running?)
+      !!SimpleCov.result? || coverage_running?
+    end
+
+    # A configuration loaded on its own may have no Coverage to ask,
+    # which is not something a suite that measures coverage can be.
+    def coverage_running?
+      defined?(Coverage) ? Coverage.running? : false
     end
 
     #
@@ -132,7 +138,7 @@ module SimpleCov
         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{SimpleCov.subprocess_serial})"
         # be quiet, the parent process will use the regular formatter
         SimpleCov.print_errors false
-        SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
+        SimpleCov.formatter Formatter::SimpleFormatter
         SimpleCov.minimum_coverage 0
         SimpleCov.start
       }
@@ -142,10 +148,9 @@ module SimpleCov
     # Returns the project name — defaults to the last dirname in
     # SimpleCov.root, capitalized with underscores → spaces.
     #
+    # Only a String renames, and a name already chosen survives anything
+    # else: the assignment below answers with whatever is already there.
     def project_name(new_name = nil)
-      current = defined?(@project_name) ? @project_name : nil
-      return current if current && new_name.nil?
-
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root).capitalize.tr("_", " ")
     end

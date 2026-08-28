@@ -17,7 +17,7 @@ module SimpleCov
     #   end
     #
     def baseline_file(path = nil)
-      return @baseline_file ||= SimpleCov::Baseline::DEFAULT_FILENAME unless path
+      return @baseline_file ||= Baseline::DEFAULT_FILENAME unless path
 
       @baseline_file = path
     end
@@ -28,10 +28,11 @@ module SimpleCov
     # `root`) change between reads is still picked up.
     def baseline
       resolved = File.expand_path(baseline_file, root)
-      return @baseline if defined?(@baseline) && @baseline_path == resolved
+      # An unset path reads as nil, which no resolved path equals.
+      return @baseline if @baseline_path.eql?(resolved)
 
       @baseline_path = resolved
-      @baseline = SimpleCov::Baseline.read(resolved)
+      @baseline = Baseline.read(resolved)
     end
   end
 end
