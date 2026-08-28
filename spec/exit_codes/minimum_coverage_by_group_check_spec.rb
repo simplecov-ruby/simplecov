@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck do
+RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByGroupCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage_by_group) }
 
   let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2), branch: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }
@@ -68,5 +70,13 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck do
     it "returns SimpleCov::ExitCodes::MINIMUM_COVERAGE" do
       expect(check.exit_code).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
     end
+  end
+
+  it "names the group that fell short, and by how much" do
+    allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+
+    expect { described_class.new(result, {"Test Group 1" => {line: 90.0}}).report }
+      .to output("Line coverage by group (80.00%) is below the expected minimum coverage " \
+                 "(90.00%) in Test Group 1.\n").to_stderr
   end
 end

@@ -6,13 +6,13 @@ module SimpleCov
     # threshold for any criterion.
     class MinimumCoverageByGroupCheck < Check
       def exit_code
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        MINIMUM_COVERAGE
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.minimum_by_group(result, thresholds)
+        CoverageViolations.minimum_by_group(result, thresholds)
       end
 
       def report_violation(violation)
@@ -20,7 +20,7 @@ module SimpleCov
           "%<criterion>s coverage by group (%<actual>s) is below the expected minimum coverage " \
           "(%<expected>.2f%%) in %<group_name>s.",
           criterion: violation.fetch(:criterion).capitalize,
-          actual: SimpleCov::Color.colorize_percent(violation.fetch(:actual)),
+          actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected),
           group_name: violation.fetch(:group_name)
         )
