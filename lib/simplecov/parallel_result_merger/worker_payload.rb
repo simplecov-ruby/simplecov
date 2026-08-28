@@ -10,7 +10,7 @@ module SimpleCov
     # nothing loaded) and of the maps (to judge the all-or-nothing rule
     # over the whole run rather than per slice).
     module WorkerPayload
-    module_function
+      extend self
 
       # The payload for one worker's slice of the resultset files.
       def build(chunk, ignore_timeout:)

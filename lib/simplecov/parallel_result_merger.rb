@@ -24,7 +24,7 @@ module SimpleCov
   # resultsets would silently understate it.
   #
   module ParallelResultMerger
-  module_function
+    extend self
 
     #
     # `ResultMerger.merge_and_store` across `processes` forked workers. One
@@ -108,7 +108,7 @@ module SimpleCov
     # refusing a process we expected to get — EAGAIN at RLIMIT_NPROC, ENOMEM
     # under memory pressure. That says something is wrong with the machine
     # rather than with the merge, and quietly absorbing it would hide it.
-    def fan_out(chunks, ignore_timeout:, tracked_files: Set.new, context_maps: ContextMap::Union.new)
+    def fan_out(chunks, ignore_timeout:, tracked_files:, context_maps:)
       workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
       payloads = collect(workers)
       return nil unless payloads
@@ -119,21 +119,19 @@ module SimpleCov
 
     def spawn_workers(chunks, ignore_timeout:)
       workers = [] #: Array[Hash[Symbol, untyped]]
-
       chunks.each do |chunk|
         workers << spawn_worker(chunk, ignore_timeout: ignore_timeout)
       rescue StandardError
         abandon(workers)
         raise
       end
-
       workers
     end
 
     def abandon(workers)
       workers.each do |worker|
-        worker[:reader].close
-        succeeded?(worker[:pid])
+        worker.fetch(:reader).close
+        succeeded?(worker.fetch(:pid))
       end
     end
 
@@ -173,7 +171,7 @@ module SimpleCov
       writer.close
       0
     rescue StandardError => e
-      warn "[SimpleCov]: parallel merge worker failed: #{e.class}: #{e.message}" if SimpleCov.print_errors
+      warn "[SimpleCov]: parallel merge worker failed: #{e.class}: #{e}" if SimpleCov.print_errors
       1
     end
 
@@ -186,17 +184,18 @@ module SimpleCov
     # serial fold rather than report a subset of the resultsets as the whole.
     def collect(workers)
       payloads = drain(workers)
-      failed = workers.count { |worker| !succeeded?(worker[:pid]) }
-      return payloads if failed.zero? && payloads.all?
+      failed = workers.count { |worker| !succeeded?(worker.fetch(:pid)) }
+      # Nothing rather than a partial merge, so the caller redoes the
+      # fold serially: the warning answers nothing, which is the answer.
+      return warn_about_failed_workers(failed, workers.size) unless failed.zero? && payloads.all?
 
-      warn_about_failed_workers(failed, workers.size)
-      nil
+      payloads
     ensure
-      workers.each { |worker| worker[:reader].close }
+      workers.each { |worker| worker.fetch(:reader).close }
     end
 
     def drain(workers)
-      workers.map { |worker| Thread.new { read_payload(worker[:reader]) } }.map(&:value)
+      workers.map { |worker| Thread.new { read_payload(worker.fetch(:reader)) } }.map(&:value)
     end
 
     def read_payload(reader)
