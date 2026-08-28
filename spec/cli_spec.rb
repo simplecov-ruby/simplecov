@@ -2946,7 +2946,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "diff subcommand" do
+  describe "diff subcommand", mutant_expression: "SimpleCov::CLI::Diff*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-diff-spec-") }
     let(:current) { File.join(tmp, "current.json") }
     let(:baseline) { File.join(tmp, "baseline.json") }
@@ -3023,6 +3023,158 @@ RSpec.describe SimpleCov::CLI do
     it "errors when the baseline argument is missing" do
       expect(run("diff")).to eq(1)
       expect(stderr.string).to include("missing baseline argument")
+    end
+
+    # The threshold is a distance, so the sign the user typed says
+    # nothing: --threshold -5 asks for the same files --threshold 5 does.
+    # Read without the abs, a negative floor admits every row, since any
+    # delta at all is greater than a negative number.
+    it "reads a negative threshold as the same distance as a positive one" do
+      write_coverage(baseline, "lib/small.rb" => 80, "lib/big.rb" => 50)
+      write_coverage(current,  "lib/small.rb" => 83, "lib/big.rb" => 56)
+
+      expect(run("diff", "--input", current, "--threshold", "-5", baseline)).to eq(0)
+      expect(stdout.string).to include("lib/big.rb")
+      expect(stdout.string).not_to include("lib/small.rb")
+    end
+
+    # A file Coverage measured no lines of reports 100%, which is not a
+    # coverage level so much as the absence of one. Counted as 100 it
+    # cancels against a real 100 and the file vanishes from the diff.
+    it "reads a file with nothing to cover as 0%, not as fully covered" do
+      write_coverage(baseline, "lib/a.rb" => {"total_lines" => 0, "covered_lines" => 0,
+                                              "lines_covered_percent" => 100.0})
+      write_coverage(current,  "lib/a.rb" => {"total_lines" => 100, "covered_lines" => 100,
+                                              "lines_covered_percent" => 100.0})
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("lib/a.rb")
+      expect(stdout.string).to match(/\+\s*100\.00%/)
+    end
+
+    # `include` cannot see a part that is missing, an extra separator, or
+    # a nil rendered into the join, so the whole line is pinned.
+    it "renders a row as sign, width-aligned delta, criterion and file" do
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(current,  "lib/a.rb" => 85)
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string).to eq("  +  5.00% lines  lib/a.rb\n")
+    end
+
+    it "renders every criterion that moved, and only those" do
+      write_coverage(baseline,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 10, "covered_branches" => 5,
+                                    "branches_covered_percent" => 50.0,
+                                    "total_methods" => 10, "covered_methods" => 4,
+                                    "methods_covered_percent" => 40.0})
+      write_coverage(current,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 10, "covered_branches" => 7,
+                                    "branches_covered_percent" => 70.0,
+                                    "total_methods" => 10, "covered_methods" => 3,
+                                    "methods_covered_percent" => 30.0})
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string).to eq("    0.00% lines  + 20.00% branches  -10.00% methods  lib/a.rb\n")
+    end
+
+    it "marks an added file and a removed one by name" do
+      write_coverage(baseline, "lib/gone.rb" => 80)
+      write_coverage(current,  "lib/new.rb" => 60)
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string.lines.map(&:chomp)).to contain_exactly(
+        "  -80.00% lines  lib/gone.rb  (removed)",
+        "  + 60.00% lines  lib/new.rb  (new file)"
+      )
+    end
+
+    # The default floor is zero, not one: a move smaller than a full
+    # percent is still a move, and only EPSILON-scale noise is dropped.
+    it "lists a sub-one-percent move under the default threshold" do
+      write_coverage(baseline, "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0})
+      write_coverage(current,  "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.5})
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string).to include("lib/a.rb")
+    end
+
+    # A payload that is not an object has no fields to read, and asking
+    # an Array for a string key raises rather than answering nil.
+    it "reads a non-object payload as 0%, whatever it is" do
+      File.write(current, JSON.dump("coverage" => {"lib/a.rb" => [1, 2, 3]}))
+      write_coverage(baseline, "lib/a.rb" => 80)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("lib/a.rb").and include("-80.00%")
+    end
+
+    # Two positional arguments, so the one that is read is identified by
+    # position rather than by being the only one there.
+    it "reads the baseline from the first positional argument" do
+      other = File.join(tmp, "other.json")
+      write_coverage(baseline, "lib/a.rb" => 80)
+      write_coverage(other,    "lib/a.rb" => 10)
+      write_coverage(current,  "lib/a.rb" => 85)
+
+      run("diff", "--input", current, baseline, other)
+      expect(stdout.string).to include("+  5.00%")
+    end
+
+    # coverage.json is JSON someone else may have written, so a percent
+    # can arrive as a string. Read without the coercion it reaches the
+    # subtraction as one and raises.
+    it "coerces a percent that arrived as a string" do
+      File.write(baseline, JSON.dump("coverage" => {"lib/a.rb" => {
+                                       "total_lines" => 100, "covered_lines" => 80,
+                                       "lines_covered_percent" => "80.0"
+                                     }}))
+      write_coverage(current, "lib/a.rb" => 85)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("+  5.00%")
+    end
+
+    it "colorizes every criterion it prints, not only the first" do
+      allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
+      write_coverage(baseline,
+                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                                    "total_branches" => 10, "covered_branches" => 5,
+                                    "branches_covered_percent" => 50.0,
+                                    "total_methods" => 10, "covered_methods" => 4,
+                                    "methods_covered_percent" => 40.0})
+      write_coverage(current,
+                     "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
+                                    "total_branches" => 10, "covered_branches" => 7,
+                                    "branches_covered_percent" => 70.0,
+                                    "total_methods" => 10, "covered_methods" => 3,
+                                    "methods_covered_percent" => 30.0})
+
+      run("diff", "--input", current, baseline)
+      expect(stdout.string).to include("\e[32m+  5.00% lines\e[0m")
+        .and include("\e[32m+ 20.00% branches\e[0m")
+        .and include("\e[31m-10.00% methods\e[0m")
+    end
+
+    # A payload can count lines without carrying the percent alongside
+    # them, and a missing percent is a file to read as uncovered rather
+    # than an input to abort on.
+    it "reads a payload that counts lines but omits the percent as 0%" do
+      File.write(baseline, JSON.dump("coverage" => {"lib/a.rb" => {"total_lines" => 100,
+                                                                   "covered_lines" => 80}}))
+      write_coverage(current, "lib/a.rb" => 85)
+
+      expect(run("diff", "--input", current, baseline)).to eq(0)
+      expect(stdout.string).to include("+ 85.00%")
+    end
+
+    it "names the subcommand in the error when the baseline cannot be read" do
+      write_coverage(current, "lib/a.rb" => 80)
+
+      run("diff", "--input", current, baseline)
+      expect(stderr.string).to start_with("simplecov diff:")
     end
 
     it "errors when the baseline file is missing" do
