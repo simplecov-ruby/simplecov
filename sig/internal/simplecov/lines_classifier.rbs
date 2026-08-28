@@ -22,7 +22,18 @@ module SimpleCov
 
     private
 
-    def classify_line: (untyped line, untyped line_number, untyped directive_disabled, Array[bool] skip_state) -> untyped
+    # Whether the lines being classified are inside a `:nocov:` pair.
+    class SkipState
+      @skipping: bool
+
+      def initialize: () -> void
+
+      def skipping?: () -> bool
+
+      def toggle: () -> bool
+    end
+
+    def classify_line: (untyped line, untyped line_number, untyped directive_disabled, SkipState skip_state) -> untyped
 
     def directive_disabled_line_set: (untyped lines) -> untyped
   end

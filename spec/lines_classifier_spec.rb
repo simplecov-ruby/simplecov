@@ -2,11 +2,30 @@
 
 require "helper"
 require "simplecov/lines_classifier"
+require "stringio"
 
 RSpec.describe SimpleCov::LinesClassifier do
   subject(:classifier) { described_class.new }
 
   describe "#classify" do
+    # `classify` walks its lines twice: once to find the directive-disabled
+    # ranges, once to give each line a verdict. A source that can only be
+    # read through once is the case that proves it materializes them first.
+    it "classifies a stream of lines it can only read through once" do
+      lines = StringIO.new("puts 'hi'\nputs 'there'\n").each_line
+
+      classified = classifier.classify(lines)
+
+      expect(classified.length).to eq(2)
+      expect(classified).to all be_relevant
+    end
+
+    it "takes lines from anything that can list them, not only an array" do
+      lines = %w[a=1 b=2].each
+
+      expect(classifier.classify(lines).length).to eq(2)
+    end
+
     describe "relevant lines" do
       it "determines code as relevant" do
         classified_lines = classifier.classify [
@@ -143,7 +162,12 @@ RSpec.describe SimpleCov::LinesClassifier do
         end
       end
 
-      describe "# simplecov:disable line / enable line directives" do
+      # Named without a leading "#": mutant derives a subject expression
+      # from the first token of an example's full description, and this
+      # group sits under a class-named describe, so a leading "#" glues
+      # into an expression nothing can parse and takes every example in
+      # the group out of mutant's view.
+      describe "the disable line and enable line directives" do
         it "marks lines inside a paired disable/enable block as not-relevant" do
           classified_lines = classifier.classify [
             "puts 'before'",
@@ -205,6 +229,38 @@ RSpec.describe SimpleCov::LinesClassifier do
   RSpec::Matchers.define :be_irrelevant do
     match do |actual|
       actual == SimpleCov::LinesClassifier::NOT_RELEVANT
+    end
+  end
+
+  # The lines are read twice, once to find the directives and once to
+  # classify. A source that can only be read once is spent by the first
+  # pass unless it is taken into an array first.
+  it "classifies lines that can only be read once" do
+    lines = Object.new.tap do |source|
+      remaining = ["a = 1\n", "\n", "b = 2\n"]
+      source.define_singleton_method(:each) { |&block| remaining.each(&block).tap { remaining = [] } }
+      source.extend(Enumerable)
+    end
+
+    expect(classifier.classify(lines)).to eq([
+                                               SimpleCov::LinesClassifier::RELEVANT,
+                                               SimpleCov::LinesClassifier::NOT_RELEVANT,
+                                               SimpleCov::LinesClassifier::RELEVANT
+                                             ])
+  end
+
+  describe SimpleCov::LinesClassifier::SkipState do
+    subject(:skip_state) { described_class.new }
+
+    # Answered false rather than merely falsey: the state is a question
+    # about the lines, and "not yet decided" is not one of its answers.
+    it "starts outside a :nocov: pair" do
+      expect(skip_state.skipping?).to be(false)
+    end
+
+    it "turns over, and back" do
+      expect { skip_state.toggle }.to change(skip_state, :skipping?).from(false).to(true)
+      expect { skip_state.toggle }.to change(skip_state, :skipping?).from(true).to(false)
     end
   end
 end

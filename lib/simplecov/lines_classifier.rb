@@ -41,13 +41,30 @@ module SimpleCov
       false
     end
 
+    # Whether the lines being classified are inside a `:nocov:` pair.
+    # A named state rather than a one-slot array, so reading it and
+    # turning it over each have the one spelling.
+    class SkipState
+      def initialize
+        @skipping = false
+      end
+
+      def skipping?
+        @skipping
+      end
+
+      def toggle
+        @skipping = !@skipping
+      end
+    end
+
     def classify(lines)
       lines = lines.to_a
       directive_disabled = directive_disabled_line_set(lines)
       # The `:nocov:` skip state lives in a one-slot box owned by this
       # call, not in an ivar, so one classifier instance can serve
       # concurrent `classify` calls without the toggles interleaving.
-      skip_state = [false]
+      skip_state = SkipState.new
 
       lines.map.with_index(1) do |line, line_number|
         classify_line(line, line_number, directive_disabled, skip_state)
@@ -61,11 +78,15 @@ module SimpleCov
     # code cannot be a marker, and no longer pays to be checked against
     # one. That matters because this runs per line of every
     # tracked-but-unloaded file, once in every process of a parallel run.
+    # mutant:disable — `NOT_RELEVANT` is nil, so naming it and writing
+    # the literal are the same value, and so is an `unless` that falls
+    # off its end. The name is kept because it says which of the two
+    # verdicts a line got, which nil alone does not.
     def classify_line(line, line_number, directive_disabled, skip_state)
       if self.class.whitespace_line?(line)
-        skip_state[0] = !skip_state[0] if self.class.no_cov_line?(line)
+        skip_state.toggle if self.class.no_cov_line?(line)
         NOT_RELEVANT
-      elsif skip_state[0] || directive_disabled.include?(line_number)
+      elsif skip_state.skipping? || directive_disabled.include?(line_number)
         NOT_RELEVANT
       else
         RELEVANT
