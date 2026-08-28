@@ -16,6 +16,12 @@ module SimpleCov
     module LocationConventions
       LEGACY_COVERAGE_LOCATIONS = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.4")
 
+      # Every resolver here answers a source range: a Prism node, one of
+      # its locations, or the point below. All three answer the four
+      # position accessors the emitted tuples are built from, and a node
+      # answers them with its own location's, so whichever is nearest to
+      # hand is what gets returned.
+      #
       # A zero-width stand-in for Prism locations, for the arms Coverage
       # anchors to a point rather than a range.
       PointLocation = Data.define(:start_line, :start_column, :end_line, :end_column)
@@ -34,14 +40,14 @@ module SimpleCov
       # end an `elsif` clause's range at its last content instead of the
       # shared `end` keyword the clause doesn't own.
       def if_like_location(node, type)
-        return node.location unless LEGACY_COVERAGE_LOCATIONS && type == :if && elsif_node?(node)
+        return node unless LEGACY_COVERAGE_LOCATIONS && type.equal?(:if) && elsif_node?(node)
 
-        span(node.location, legacy_content_end(node))
+        span(node, legacy_content_end(node))
       end
 
       def elsif_node?(node)
         keyword = node.if_keyword_loc
-        !keyword.nil? && keyword.slice == "elsif"
+        !keyword.nil? && keyword.slice.eql?("elsif")
       end
 
       # Where an if/elsif chain's content ends, for the legacy range
@@ -49,15 +55,15 @@ module SimpleCov
       # clause's predicate / `else` keyword when its body is empty.
       def legacy_content_end(node)
         tail = node
-        while tail.is_a?(::Prism::IfNode)
+        while tail.instance_of?(Prism::IfNode)
           sub = PrismCompat.subsequent(tail)
           break unless sub
 
           tail = sub
         end
-        return (tail.statements || tail.predicate).location if tail.is_a?(::Prism::IfNode)
+        return tail.statements || tail.predicate if tail.instance_of?(Prism::IfNode)
 
-        tail.statements ? tail.statements.location : tail.else_keyword_loc
+        tail.statements || tail.else_keyword_loc
       end
 
       # Location of the then arm. Coverage uses the body statements'
@@ -67,8 +73,8 @@ module SimpleCov
       # trailing statement discards its value). In value (tail) position,
       # legacy Rubies and `unless` fall back to the node's range.
       def if_like_then_location(node, type)
-        return node.statements.location if node.statements
-        return point_at_end(node.predicate.location) if empty_arm_collapses?(node, type)
+        return node.statements if node.statements
+        return point_at_end(node.predicate) if empty_arm_collapses?(node, type)
 
         if_like_location(node, type)
       end
@@ -84,8 +90,8 @@ module SimpleCov
         # An `elsif` arrives as a nested IfNode. Coverage attributes the
         # outer else arm to the clause's own range, not its then body
         # (which is what created phantom unmergeable arms).
-        return if_like_location(sub, :if) if sub.is_a?(::Prism::IfNode)
-        return sub.statements.location if sub.statements
+        return if_like_location(sub, :if) if sub.instance_of?(Prism::IfNode)
+        return sub.statements if sub.statements
 
         empty_else_location(node, sub, type)
       end
@@ -95,8 +101,10 @@ module SimpleCov
       # at the `else` keyword's end; otherwise (legacy value position, or
       # `unless`) it uses the condition's range.
       def empty_else_location(node, sub, type)
-        return sub.location if !LEGACY_COVERAGE_LOCATIONS && type == :if
-        return point_at_end(sub.else_keyword_loc) if LEGACY_COVERAGE_LOCATIONS && !value_position?(node)
+        return sub if !LEGACY_COVERAGE_LOCATIONS && type.equal?(:if)
+        # Void position is a legacy distinction: a Ruby that does not
+        # need the value-position pass answers every node as value.
+        return point_at_end(sub.else_keyword_loc) unless value_position?(node)
 
         if_like_location(node, type)
       end
@@ -107,34 +115,36 @@ module SimpleCov
       # `when` a point at the clause's end in void position or the tail
       # convention (keyword through the case's remaining content) in value.
       def case_arm_location(case_node, when_node, when_type)
-        return when_node.statements.location if when_node.statements
-        return when_node.location unless LEGACY_COVERAGE_LOCATIONS
-        return point_at_end(when_node.pattern.location) if when_type == :in
-        return point_at_end(when_node.location) unless value_position?(case_node)
+        return when_node.statements if when_node.statements
+        return when_node unless LEGACY_COVERAGE_LOCATIONS
+        return point_at_end(when_node.pattern) if when_type.equal?(:in)
+        return point_at_end(when_node) unless value_position?(case_node)
 
         legacy_when_value_location(case_node, when_node)
       end
 
       def legacy_when_value_location(case_node, when_node)
-        span(when_node.location, legacy_case_tail_end(case_node, when_node))
+        span(when_node, legacy_case_tail_end(case_node, when_node))
       end
 
       # The last body content in the case after `when_node`, falling
-      # back to the clause's final condition value.
+      # back to the clause's final condition value. Only a `when` reaches
+      # here, and a `when` always carries at least one condition.
       def legacy_case_tail_end(case_node, when_node)
-        following_case_content(case_node, when_node).last ||
-          (when_node.conditions.last || when_node).location
+        following_case_content(case_node, when_node).last || when_node.conditions.last
       end
 
       def following_case_content(case_node, when_node)
         clauses = case_node.conditions
-        index = clauses.index { |clause| clause.equal?(when_node) } || 0
-        # A when-clause's own location ends where its body ends (or at its
-        # condition when empty), so the whole clause extends the range
-        # through trailing EMPTY clauses that have no `statements`.
-        content = clauses.drop(index + 1).map(&:location)
+        # The clause is always one of the case's own, so the index is
+        # always found. A when-clause's own location ends where its body
+        # ends (or at its condition when empty), so the whole clause
+        # extends the range through trailing EMPTY clauses that have no
+        # `statements`.
+        index = clauses.index { |clause| clause.equal?(when_node) }
+        content = clauses.drop(index + 1)
         else_statements = PrismCompat.else_clause(case_node)&.statements
-        content << else_statements.location if else_statements
+        content += [else_statements] if else_statements
         content
       end
 
@@ -145,14 +155,14 @@ module SimpleCov
       # Rubies or the case's full range on legacy ones.
       def else_arm_location(node)
         else_clause = PrismCompat.else_clause(node)
-        return node.location unless else_clause
-        return else_clause.statements.location if else_clause.statements
-        return else_clause.location unless LEGACY_COVERAGE_LOCATIONS
+        return node unless else_clause
+        return else_clause.statements if else_clause.statements
+        return else_clause unless LEGACY_COVERAGE_LOCATIONS
         # Empty explicit `else`: a point at the `else` keyword's end in void
         # position, the whole case's range in value position.
         return point_at_end(else_clause.else_keyword_loc) unless value_position?(node)
 
-        node.location
+        node
       end
 
       # An empty loop body falls back to the loop's range on modern
@@ -160,10 +170,10 @@ module SimpleCov
       # ones.
       def loop_body_location(node)
         return legacy_do_while_body_location(node) if LEGACY_COVERAGE_LOCATIONS && begin_modifier_loop?(node)
-        return node.statements.location if node.statements
-        return point_at_end(node.predicate.location) if LEGACY_COVERAGE_LOCATIONS
+        return node.statements if node.statements
+        return point_at_end(node.predicate) if LEGACY_COVERAGE_LOCATIONS
 
-        node.location
+        node
       end
 
       # `begin ... end while/until cond` (the do-while form) parses as a
@@ -172,14 +182,17 @@ module SimpleCov
       # generic `node.statements.location` already yields), but 3.3 uses
       # the begin's inner statements instead — or a point at the end of
       # the `begin` keyword when the body is empty.
+      # The accessor arrived in Prism 0.25, and this gem supports older
+      # ones, where nothing answers the question.
       def begin_modifier_loop?(node)
         node.respond_to?(:begin_modifier?) && node.begin_modifier?
       end
 
       def legacy_do_while_body_location(node)
-        begin_node = node.statements.body.first
+        # The do-while's sole statement is the `begin` block itself.
+        begin_node, = node.statements.body
         inner = begin_node.statements
-        inner ? inner.location : point_at_end(begin_node.begin_keyword_loc)
+        inner || point_at_end(begin_node.begin_keyword_loc)
       end
 
       # Coverage's safe-navigation branch spans the receiver through the
@@ -192,7 +205,7 @@ module SimpleCov
       # This convention is the same on legacy and modern Rubies. See
       # issue #1233.
       def safe_navigation_location(node)
-        span(node.location, node.closing_loc || node.arguments&.location || node.message_loc)
+        span(node, node.closing_loc || node.arguments || node.message_loc)
       end
 
       # The range from `from`'s start through `to`'s end.
@@ -214,7 +227,7 @@ module SimpleCov
       # end. Modern Coverage does this for every `if` (but not `unless`);
       # legacy Coverage does it only in void position, for both.
       def empty_arm_collapses?(node, type)
-        return type == :if unless LEGACY_COVERAGE_LOCATIONS
+        return type.equal?(:if) unless LEGACY_COVERAGE_LOCATIONS
 
         !value_position?(node)
       end

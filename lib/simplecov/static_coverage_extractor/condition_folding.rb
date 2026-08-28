@@ -99,7 +99,7 @@ module SimpleCov
       # methods never register, so the dead arm is visited with method
       # collection suppressed.
       def visit_folded_arms(verdict, truthy_arm, falsy_arm)
-        live, dead = verdict == :truthy ? [truthy_arm, falsy_arm] : [falsy_arm, truthy_arm]
+        live, dead = verdict.equal?(:truthy) ? [truthy_arm, falsy_arm] : [falsy_arm, truthy_arm]
         visit(live)
         # simplecov:disable branch — the taken arm is fixed by the running Ruby's version
         visit_dead_arm(dead) if DEAD_ARM_BRANCHES_SURVIVE
@@ -137,14 +137,14 @@ module SimpleCov
         unwrapped = unwrap_parentheses(node)
         return nil unless foldable?(node, unwrapped)
 
-        FALSY_CONDITION_TYPES.any? { |type| unwrapped.is_a?(type) } ? :falsy : :truthy
+        FALSY_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) } ? :falsy : :truthy
       end
 
       # A folding literal, minus the ones parentheses shield from the
       # fold (`unwrapped` differing from `node` is what says parentheses
       # were seen through).
       def foldable?(node, unwrapped)
-        return false unless STATIC_CONDITION_TYPES.any? { |type| unwrapped.is_a?(type) }
+        return false unless STATIC_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) }
 
         # simplecov:disable — which of these lines runs is fixed by the
         # running Ruby's version: on 3.2 the early return always fires and
@@ -152,7 +152,7 @@ module SimpleCov
         # from line coverage too, not only branch coverage.
         return true if PARENS_ALWAYS_TRANSPARENT
 
-        unwrapped.equal?(node) || PAREN_OPAQUE_TYPES.none? { |type| unwrapped.is_a?(type) }
+        unwrapped.equal?(node) || PAREN_OPAQUE_TYPES.none? { |type| unwrapped.instance_of?(type) }
         # simplecov:enable
       end
 
@@ -164,9 +164,11 @@ module SimpleCov
       def unwrap_parentheses(node)
         # @type var current: untyped
         current = node
-        while current.is_a?(::Prism::ParenthesesNode)
+        while current.instance_of?(Prism::ParenthesesNode)
+          # Empty parentheses carry no statements node at all, so a
+          # body that is one always holds at least one statement.
           body = current.body
-          break unless body.is_a?(::Prism::StatementsNode) && !body.body.empty?
+          break unless body.instance_of?(Prism::StatementsNode)
 
           statements = body.body
           break unless statements.take(statements.size - 1).all? { |leading| eliminable_when_discarded?(leading) }
@@ -180,10 +182,10 @@ module SimpleCov
       # discarded.
       def eliminable_when_discarded?(node)
         return true if static_container_literal?(node)
-        return true if ELIMINABLE_READ_TYPES.any? { |type| node.is_a?(type) }
+        return true if ELIMINABLE_READ_TYPES.any? { |type| node.instance_of?(type) }
 
-        node.is_a?(::Prism::ParenthesesNode) &&
-          node.body.is_a?(::Prism::StatementsNode) &&
+        node.instance_of?(Prism::ParenthesesNode) &&
+          node.body.instance_of?(Prism::StatementsNode) &&
           node.body.body.all? { |statement| eliminable_when_discarded?(statement) }
       end
 
@@ -192,7 +194,7 @@ module SimpleCov
       # CONTAINER_CONTENTS_NEED_STATIC_LITERALS). Container elimination
       # only exists from 3.3 on.
       def static_container_literal?(node)
-        return true if STATIC_LITERAL_LEAF_TYPES.any? { |type| node.is_a?(type) }
+        return true if STATIC_LITERAL_LEAF_TYPES.any? { |type| node.instance_of?(type) }
         # simplecov:disable — which of these lines runs is fixed by the
         # running Ruby's version: parse.y (3.2) never eliminates
         # container literals, so there the early return always fires and
@@ -207,9 +209,9 @@ module SimpleCov
       # exercise it directly on every supported Ruby, 3.2 included.
       def static_container?(node)
         case node
-        when ::Prism::ArrayNode then static_array_literal?(node)
-        when ::Prism::HashNode  then static_hash_literal?(node)
-        when ::Prism::RangeNode then static_range_literal?(node)
+        when Prism::ArrayNode then static_array_literal?(node)
+        when Prism::HashNode  then static_hash_literal?(node)
+        when Prism::RangeNode then static_range_literal?(node)
         else false
         end
       end
@@ -220,7 +222,7 @@ module SimpleCov
 
       def static_hash_literal?(node)
         node.elements.all? do |element|
-          element.is_a?(::Prism::AssocNode) &&
+          element.instance_of?(Prism::AssocNode) &&
             container_contents_eliminable?(element.key) && container_contents_eliminable?(element.value)
         end
       end

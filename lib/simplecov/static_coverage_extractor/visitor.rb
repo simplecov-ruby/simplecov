@@ -16,7 +16,7 @@ module SimpleCov
     # intern on source span and the report output drops ids, so nothing
     # downstream compares them. Only defined when Prism is loadable;
     # `StaticCoverageExtractor.available?` is the runtime gate.
-    class Visitor < ::Prism::Visitor
+    class Visitor < Prism::Visitor
       # Method tuples and the class/module nesting that names them are
       # collected by this mixin; this class focuses on branch extraction.
       include MethodCollector
@@ -29,6 +29,11 @@ module SimpleCov
 
       attr_reader :branches, :methods
 
+      # Prism's Visitor is a stateless dispatch table whose initializer
+      # is Object's, so nothing here can observe whether this one chains
+      # to it and no mutation of the `super` call can be told apart. It
+      # stays for the day that stops being true.
+      # mutant:disable
       def initialize
         super
         @branches = {}
@@ -107,12 +112,12 @@ module SimpleCov
       # `=>` uses the whole expression, `in` uses just the pattern.
       # simplecov:disable branch — legacy-only arms; unreachable on the modern dogfood Ruby
       def visit_match_required_node(node)
-        emit_oneline_pattern(node, node.location) if LEGACY_COVERAGE_LOCATIONS
+        emit_oneline_pattern(node, node) if LEGACY_COVERAGE_LOCATIONS
         super
       end
 
       def visit_match_predicate_node(node)
-        emit_oneline_pattern(node, node.pattern.location) if LEGACY_COVERAGE_LOCATIONS
+        emit_oneline_pattern(node, node.pattern) if LEGACY_COVERAGE_LOCATIONS
         super
       end
       # simplecov:enable branch
@@ -152,10 +157,10 @@ module SimpleCov
       end
 
       # simplecov:disable — legacy-only (3.4 emits no branch for one-line patterns)
-      def emit_oneline_pattern(node, else_location)
-        @branches[build_tuple(:case, node.location)] = {
-          build_tuple(:in, node.pattern.location) => 0,
-          build_tuple(:else, else_location) => 0
+      def emit_oneline_pattern(node, else_span)
+        @branches[build_tuple(:case, node)] = {
+          build_tuple(:in, node.pattern) => 0,
+          build_tuple(:else, else_span) => 0
         }
       end
       # simplecov:enable
@@ -165,18 +170,22 @@ module SimpleCov
           [build_tuple(when_type, case_arm_location(node, when_node, when_type)), 0]
         end
         arms[build_tuple(:else, else_arm_location(node))] = 0
-        @branches[build_tuple(:case, node.location)] = arms
+        @branches[build_tuple(:case, node)] = arms
       end
 
       def emit_loop(node, type)
-        cond_tuple = build_tuple(type, node.location)
+        cond_tuple = build_tuple(type, node)
         @branches[cond_tuple] = {build_tuple(:body, loop_body_location(node)) => 0}
       end
 
-      def build_tuple(type, location)
+      # `span` is anything that answers the four position accessors: a
+      # location from LocationConventions, or the node itself where the
+      # range wanted is the node's own, since a node answers them with
+      # its location's.
+      def build_tuple(type, span)
         id = @next_id
         @next_id += 1
-        [type, id, location.start_line, location.start_column, location.end_line, location.end_column]
+        [type, id, span.start_line, span.start_column, span.end_line, span.end_column]
       end
     end
   end

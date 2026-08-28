@@ -15,14 +15,14 @@ module SimpleCov
     # them after those files were loaded worked only while the references
     # happened at call time — a load-order trap for the next editor.
     module PrismCompat
-    module_function
+      extend self
 
       # `Prism::IfNode#subsequent` was renamed from `consequent`. The
       # not-taken arm on whichever Prism version we're on can't be
       # exercised by our own dogfood (we only run on one Prism at a time).
       # simplecov:disable
       IF_NODE_SUBSEQUENT_METHOD =
-        if ::Prism::IfNode.method_defined?(:subsequent)
+        if Prism::IfNode.method_defined?(:subsequent)
           :subsequent
         else
           :consequent
@@ -33,7 +33,7 @@ module SimpleCov
       # `else_clause`). All three renamed together, so one constant
       # (probed off CaseNode) covers them.
       ELSE_CLAUSE_METHOD =
-        if ::Prism::CaseNode.method_defined?(:else_clause)
+        if Prism::CaseNode.method_defined?(:else_clause)
           :else_clause
         else
           :consequent
@@ -44,7 +44,7 @@ module SimpleCov
       # nested IfNode for `elsif`), or the `else` clause of anything else
       # that has one, under whichever accessor this Prism exposes.
       def subsequent(node)
-        node.is_a?(::Prism::IfNode) ? node.public_send(IF_NODE_SUBSEQUENT_METHOD) : else_clause(node)
+        node.instance_of?(Prism::IfNode) ? node.public_send(IF_NODE_SUBSEQUENT_METHOD) : else_clause(node)
       end
 
       def else_clause(node)

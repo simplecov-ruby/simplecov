@@ -56,5 +56,11 @@ module SimpleCov
     # Returns nil when Prism is unavailable or parsing fails, signaling
     # callers to keep every Coverage entry (no false drops).
     def self?.real_source_positions: (untyped source) -> (nil | { branches: untyped, methods: untyped })
+
+    # Both read a coverage key's parts by binding them, so the start line
+    # is named rather than indexed.
+    def self?.branch_start_line: (untyped, untyped, untyped, *untyped) -> untyped
+
+    def self?.method_identity: (untyped, untyped, untyped, *untyped) -> Array[untyped]
   end
 end

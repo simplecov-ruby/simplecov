@@ -30,9 +30,10 @@ module SimpleCov
         return super if @suppress_methods
 
         # simplecov:enable branch
-        loc = node.location
+        # The node answers the same span readers its location does, which
+        # is the convention the visitor's `build_tuple` already follows.
         class_name = @class_stack.last || "Object"
-        key = [class_name, node.name, loc.start_line, loc.start_column, loc.end_line, loc.end_column]
+        key = [class_name, node.name, node.start_line, node.start_column, node.end_line, node.end_column]
         @methods[key] = 0
         super
       end

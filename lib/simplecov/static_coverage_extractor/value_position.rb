@@ -22,7 +22,7 @@ module SimpleCov
     # names the constructs that forward tail position and everything else
     # falls through to the void default.
     module ValuePositions
-    module_function
+      extend self
 
       # simplecov:disable
       # This whole pass runs only on legacy Rubies (the modern dogfood
@@ -40,7 +40,7 @@ module SimpleCov
       end
 
       def mark(node, in_value, positions)
-        return unless node.is_a?(::Prism::Node)
+        return unless node.is_a?(Prism::Node)
 
         positions[node] = true if in_value
         children = tail_children(node, in_value)
@@ -55,16 +55,16 @@ module SimpleCov
       # is included regardless of `in_value`.
       def tail_children(node, in_value)
         # A method body is a tail context even when the `def` is not.
-        return [node.body] if node.is_a?(::Prism::DefNode)
+        return [node.body] if node.instance_of?(Prism::DefNode)
         return [] unless in_value
 
         # `case/in` (CaseMatchNode) is intentionally not a tail construct:
         # its `in` arms and `else` both discard tail position.
         case node
-        when ::Prism::StatementsNode then [node.body.last]
-        when ::Prism::IfNode, ::Prism::UnlessNode then [node.statements, PrismCompat.subsequent(node)]
-        when ::Prism::CaseNode then [*node.conditions, PrismCompat.else_clause(node)]
-        when ::Prism::ElseNode, ::Prism::WhenNode, ::Prism::BeginNode, ::Prism::ProgramNode then [node.statements]
+        when Prism::StatementsNode then [node.body.last]
+        when Prism::IfNode, Prism::UnlessNode then [node.statements, PrismCompat.subsequent(node)]
+        when Prism::CaseNode then [*node.conditions, PrismCompat.else_clause(node)]
+        when Prism::ElseNode, Prism::WhenNode, Prism::BeginNode, Prism::ProgramNode then [node.statements]
         else []
         end
       end

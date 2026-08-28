@@ -68,13 +68,13 @@ module SimpleCov
 
       def emit_safe_navigation: (untyped node) -> untyped
 
-      def emit_oneline_pattern: (untyped node, untyped else_location) -> untyped
+      def emit_oneline_pattern: (untyped node, untyped else_span) -> untyped
 
       def emit_case_like: (untyped node, untyped when_type) -> untyped
 
       def emit_loop: (untyped node, untyped type) -> untyped
 
-      def build_tuple: (untyped type, untyped location) -> ::Array[untyped]
+      def build_tuple: (untyped type, untyped span) -> ::Array[untyped]
     end
   end
 end
