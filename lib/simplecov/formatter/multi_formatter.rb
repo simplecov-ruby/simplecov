@@ -12,8 +12,10 @@ module SimpleCov
           formatters.map do |formatter|
             Formatter.format(formatter, result)
           rescue StandardError => e
-            warn("Formatter #{formatter} failed with #{e.class}: #{e.message} (#{(_ = e.backtrace).first})")
-            nil
+            # Interpolating the exception renders its message, and
+            # `warn` answers nil, which is this formatter's contribution
+            # to the returned list.
+            warn("Formatter #{formatter} failed with #{e.class}: #{e} (#{(_ = e.backtrace).first})")
           end
         end
       end
