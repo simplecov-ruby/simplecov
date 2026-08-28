@@ -17,7 +17,7 @@ module SimpleCov
 
       def report_violation: (untyped violation) -> untyped
 
-      def missed_clause: (untyped violation) -> String
+      def missed_clause: (untyped violation) -> String?
     end
   end
 end

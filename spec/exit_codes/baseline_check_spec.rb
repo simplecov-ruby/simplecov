@@ -2,7 +2,8 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::BaselineCheck do
+RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::BaselineCheck*", "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, baseline) }
 
   let(:result) { instance_double(SimpleCov::Result, files: files) }
@@ -127,6 +128,38 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck do
       output = capture_stderr { check.report }
       expect(output).to include("Branch coverage")
       expect(output).to include("3 uncovered branches")
+    end
+  end
+
+  # The baseline is not a threshold: it is kept apart so the per-file
+  # checks can exempt the pairs it covers.
+  it "carries the baseline rather than a threshold" do
+    expect(check.send(:thresholds)).to be_nil
+    expect(check.instance_variable_get(:@baseline)).to be(baseline)
+  end
+
+  describe "what it reports" do
+    let(:floor_percent) { 90.0 }
+    let(:floor_missed) { 1 }
+
+    before { allow(SimpleCov::Color).to receive(:enabled?).and_return(false) }
+
+    it "names the file, the coverage reached and the floor it fell under" do
+      expect { check.report }
+        .to output("Line coverage (80.00%) dropped below its baseline floor (90.0%) in lib/foo.rb " \
+                   "(2 uncovered lines, 1 allowed).\n").to_stderr
+    end
+
+    # Oneshot lines are recorded under the line statistics, so their
+    # units are read through the key they are stored under.
+    it "names oneshot lines as lines" do
+      violation = {criterion: :oneshot_line, allowed_missed: 1, actual_missed: 2}
+
+      expect(check.send(:missed_clause, violation)).to eq(" (2 uncovered lines, 1 allowed)")
+    end
+
+    it "says nothing about misses where no count was recorded" do
+      expect(check.send(:missed_clause, {criterion: :line, allowed_missed: nil})).to be_nil
     end
   end
 end

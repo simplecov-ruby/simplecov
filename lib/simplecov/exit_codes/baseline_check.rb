@@ -15,20 +15,20 @@ module SimpleCov
       end
 
       def exit_code
-        SimpleCov::ExitCodes::MINIMUM_COVERAGE
+        MINIMUM_COVERAGE
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.baseline(result, @baseline)
+        CoverageViolations.baseline(result, @baseline)
       end
 
       def report_violation(violation)
         message = format(
           "%<criterion>s coverage (%<actual>s) dropped below its baseline floor (%<expected>s%%) in %<filename>s",
           criterion: violation.fetch(:criterion).capitalize,
-          actual: SimpleCov::Color.colorize_percent(violation.fetch(:actual)),
+          actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected),
           filename: violation.fetch(:project_filename)
         )
@@ -39,7 +39,7 @@ module SimpleCov
       # missed count was ever recorded.
       def missed_clause(violation)
         allowed = violation.fetch(:allowed_missed)
-        return "" unless allowed
+        return unless allowed
 
         units = UNITS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion)))
         " (#{violation.fetch(:actual_missed)} uncovered #{units}, #{allowed} allowed)"
