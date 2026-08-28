@@ -1138,7 +1138,9 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "coverage JSON input errors" do
+  describe "coverage JSON input errors",
+           mutant_expression: ["SimpleCov::CLI::CoverageFile*", "SimpleCov::CLI::CommandHelpers*",
+                               "SimpleCov::CoverageJSON*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-json-errors-spec-") }
     let(:invalid) { File.join(tmp, "invalid.json") }
     let(:valid) { File.join(tmp, "valid.json") }
@@ -1197,7 +1199,9 @@ RSpec.describe SimpleCov::CLI do
       File.write(invalid, JSON.dump("coverage" => []))
 
       expect(run("uncovered", "--input", invalid)).to eq(1)
-      expect(stderr.string).to include('"coverage" must be an object')
+      expect(stderr.string).to eq(
+        %(simplecov uncovered: input file #{invalid.inspect} isn't valid JSON ("coverage" must be an object)\n)
+      )
     end
 
     it "handles an input path that cannot be read as a file" do
@@ -3681,7 +3685,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "CoverageFile.lookup" do
+  describe "CoverageFile.lookup", mutant_expression: "SimpleCov::CLI::CoverageFile*" do
     def lookup(hash, path)
       SimpleCov::CLI::CoverageFile.lookup(hash, path)
     end
@@ -3712,8 +3716,191 @@ RSpec.describe SimpleCov::CLI do
     it "returns nil when nothing matches" do
       expect(lookup({"other.rb" => "V"}, "missing.rb")).to be_nil
     end
+
+    # The suffix carries a leading slash so a subpath matches whole path
+    # segments rather than the tail of a longer name.
+    it "does not let a subpath match the end of a longer filename" do
+      expect(lookup({"/x/barfoo.rb" => "V"}, "foo.rb")).to be_nil
+      expect(lookup({"/x/foo.rb" => "V"}, "foo.rb")).to eq(["/x/foo.rb", "V"])
+    end
+
+    describe "the failure message" do
+      def message(hash, path)
+        SimpleCov::CLI::CoverageFile.not_found_message(hash, path, "coverage/coverage.json")
+      end
+
+      # An ambiguous subpath names its candidates: "no entry" would send
+      # someone hunting for a typo in a path that exists twice.
+      it "names every candidate of an ambiguous subpath, sorted" do
+        hash = {"lib/models/foo.rb" => "LIB", "app/models/foo.rb" => "APP"}
+
+        expect(message(hash, "models/foo.rb")).to eq(
+          "models/foo.rb matches 2 files in coverage/coverage.json: " \
+          "app/models/foo.rb, lib/models/foo.rb (use a longer path to pick one)"
+        )
+      end
+
+      it "reports a path nothing matches as simply absent" do
+        expect(message({"other.rb" => "V"}, "missing.rb"))
+          .to eq("no entry for missing.rb in coverage/coverage.json")
+      end
+
+      # One match is not an ambiguity: it resolved, and any later failure
+      # is about something else.
+      it "reports a single suffix match as absent rather than ambiguous" do
+        expect(message({"/x/lib/a.rb" => "V"}, "lib/a.rb"))
+          .to eq("no entry for lib/a.rb in coverage/coverage.json")
+      end
+    end
+
+    # The exact index is what `patch` resolves changed files through,
+    # where a suffix fallback could bind a path to the wrong entry.
+    describe "the exact index" do
+      def index(hash)
+        SimpleCov::CLI::CoverageFile.exact_index(hash)
+      end
+
+      it "holds every key under its own spelling" do
+        expect(index({"lib/a.rb" => "A", "lib/b.rb" => "B"}))
+          .to include("lib/a.rb" => "A", "lib/b.rb" => "B")
+      end
+
+      # A symlinked root (macOS puts temporary directories behind one)
+      # would otherwise split a resolved path from the report's key.
+      it "holds a real path under its resolved spelling too" do
+        Dir.mktmpdir("simplecov-exact-index-") do |dir|
+          file = File.join(dir, "a.rb")
+          File.write(file, "x")
+
+          built = index({file => "A"})
+
+          expect(built[file]).to eq("A")
+          expect(built[File.realdirpath(file)]).to eq("A")
+        end
+      end
+
+      it "keeps the literal spelling of a key whose file is gone" do
+        expect(index({"/nonexistent/gone.rb" => "A"})).to eq("/nonexistent/gone.rb" => "A")
+      end
+
+      # First writer wins, so a key reached through a symlink cannot
+      # replace the entry that already claimed the resolved spelling.
+      it "lets the first entry keep a spelling two keys share" do
+        Dir.mktmpdir("simplecov-exact-index-link-") do |dir|
+          real = File.join(dir, "real")
+          FileUtils.mkdir_p(real)
+          File.write(File.join(real, "a.rb"), "x")
+          FileUtils.ln_s(real, File.join(dir, "linked"))
+
+          built = index(File.join(real, "a.rb") => "REAL", File.join(dir, "linked", "a.rb") => "VIA_LINK")
+
+          expect(built[File.realdirpath(File.join(real, "a.rb"))]).to eq("REAL")
+          expect(built[File.join(dir, "linked", "a.rb")]).to eq("VIA_LINK")
+        end
+      end
+    end
+
+    describe "reporting an unusable input file" do
+      let(:stderr) { StringIO.new }
+
+      it "names a missing file under the command that looked for it" do
+        expect(SimpleCov::CLI::CoverageFile.load_document("/nope.json", command: "report", stderr: stderr))
+          .to be_nil
+        expect(stderr.string).to eq("simplecov report: /nope.json not found\n")
+      end
+
+      it "names an unreadable file and the reason, on one line" do
+        Dir.mktmpdir("simplecov-unreadable-") do |dir|
+          expect(SimpleCov::CLI::CoverageFile.load_document(dir, command: "report", stderr: stderr)).to be_nil
+          expect(stderr.string).to start_with("simplecov report: cannot read #{dir.inspect} (")
+          expect(stderr.string.lines.length).to eq(1)
+        end
+      end
+
+      it "reduces a multi-line reason to its first line" do
+        SimpleCov::CLI::CoverageFile.report_invalid(stderr, "report", "x.json", "first line\nsecond line")
+
+        expect(stderr.string).to eq(%(simplecov report: input file "x.json" isn't valid JSON (first line)\n))
+      end
+
+      # Trimmed at both ends: a parser's message often arrives indented,
+      # and the reason sits inside parentheses where that would show.
+      it "trims the reason at both ends, not just the right" do
+        SimpleCov::CLI::CoverageFile.report_invalid(stderr, "report", "x.json", "  padded  \nrest")
+
+        expect(stderr.string).to eq(%(simplecov report: input file "x.json" isn't valid JSON (padded)\n))
+      end
+
+      it "trims an unreadable reason at both ends too" do
+        SimpleCov::CLI::CoverageFile.report_unreadable(stderr, "report", "x.json", "  padded  \nrest")
+
+        expect(stderr.string).to eq(%(simplecov report: cannot read "x.json" (padded)\n))
+      end
+
+      # A document with no coverage section at all reads as an empty one
+      # rather than as a malformed report.
+      it "reads a document with no coverage section as carrying none" do
+        Dir.mktmpdir("simplecov-no-coverage-") do |dir|
+          path = File.join(dir, "coverage.json")
+          File.write(path, JSON.dump("meta" => {}))
+
+          expect(SimpleCov::CLI::CoverageFile.load_coverage(path, command: "report", stderr: stderr)).to eq({})
+          expect(stderr.string).to be_empty
+        end
+      end
+
+      # An exception with an empty message still has to produce a line
+      # rather than raise from inside the error path.
+      it "reports a reason that is empty" do
+        SimpleCov::CLI::CoverageFile.report_invalid(stderr, "report", "x.json", "")
+
+        expect(stderr.string).to eq(%(simplecov report: input file "x.json" isn't valid JSON ()\n))
+      end
+
+      it "reports an unreadable reason that is empty" do
+        SimpleCov::CLI::CoverageFile.report_unreadable(stderr, "report", "x.json", "")
+
+        expect(stderr.string).to eq(%(simplecov report: cannot read "x.json" ()\n))
+      end
+
+      # Any Hash of coverage will do, including one a document reader
+      # hands back as a subclass of it.
+      # The command name is what tells one refusal from another in a log,
+      # so the coverage-section refusal carries it too.
+      it "names the command when refusing a coverage section" do
+        Dir.mktmpdir("simplecov-bad-coverage-") do |dir|
+          path = File.join(dir, "coverage.json")
+          File.write(path, JSON.dump("coverage" => "junk"))
+
+          SimpleCov::CLI::CoverageFile.load_coverage(path, command: "uncovered", stderr: stderr)
+
+          expect(stderr.string)
+            .to eq(%(simplecov uncovered: input file #{path.inspect} isn't valid JSON ("coverage" must be an object)\n))
+        end
+      end
+
+      it "accepts a coverage section that arrives as a Hash subclass" do
+        coverage = Class.new(Hash).new.merge!("lib/a.rb" => {})
+        allow(SimpleCov::CoverageJSON).to receive(:load).and_return("coverage" => coverage)
+
+        expect(SimpleCov::CLI::CoverageFile.load_coverage("x.json", command: "report", stderr: stderr))
+          .to eq(coverage)
+      end
+
+      it "reduces a multi-line unreadable reason too" do
+        SimpleCov::CLI::CoverageFile.report_unreadable(stderr, "report", "x.json", "first line\nsecond line")
+
+        expect(stderr.string).to eq(%(simplecov report: cannot read "x.json" (first line)\n))
+      end
+    end
   end
 
+  # The rendering half of `patch`, driven directly: the command's own
+  # examples build a git repository per case, which is the wrong shape
+  # for pinning the layout of every cell, note, and total.
+  # Tagged for the renderer alone, which makes these the tests its
+  # subjects answer to: they exercise it directly, where the
+  # subcommand's own examples reach it through a built git repository.
   describe "patch subcommand" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }

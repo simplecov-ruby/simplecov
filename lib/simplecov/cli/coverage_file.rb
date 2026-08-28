@@ -21,7 +21,7 @@ module SimpleCov
                  covered: "covered_methods", missed: "missed_methods", total: "total_methods"}
       }.freeze
 
-    module_function
+      extend self
 
       # Resolve a user-typed path to its coverage entry. An exact match —
       # the absolute path or the literal string passed — wins over a
@@ -33,15 +33,15 @@ module SimpleCov
       # as it looks up every changed file against a large report.
       def lookup(coverage_hash, path)
         absolute = File.expand_path(path)
-        return [absolute, coverage_hash[absolute]] if coverage_hash.key?(absolute)
-        return [path, coverage_hash[path]] if coverage_hash.key?(path)
+        return [absolute, coverage_hash.fetch(absolute)] if coverage_hash.key?(absolute)
+        return [path, coverage_hash.fetch(path)] if coverage_hash.key?(path)
 
         # A subpath can end more than one key (e.g. "models/foo.rb" under
         # both app/ and lib/). Resolve only an unambiguous single match;
         # leave a collision as "not found" for the caller rather than
         # scoring whichever key happens to sit first in the hash.
         matches = suffix_matches(coverage_hash, path)
-        matches.first if matches.size == 1
+        matches.first if matches.one?
       end
 
       # The [key, entry] pairs a subpath suffix-matches, for `lookup`'s
@@ -90,10 +90,10 @@ module SimpleCov
       end
 
       def load_document(path, command:, stderr:)
-        SimpleCov::CoverageJSON.load(path)
+        CoverageJSON.load(path)
       rescue Errno::ENOENT
         report_missing(stderr, command, path)
-      rescue SimpleCov::CoverageJSON::Error => e
+      rescue CoverageJSON::Error => e
         report_invalid(stderr, command, path, e.message)
       rescue SystemCallError => e
         report_unreadable(stderr, command, path, e.message)
@@ -112,19 +112,18 @@ module SimpleCov
 
       def report_invalid(stderr, command, path, reason)
         detail = reason.lines.first.to_s.strip
+        # `puts` answers nil, which is what an unusable input reports.
         stderr.puts("simplecov #{command}: input file #{path.inspect} isn't valid JSON (#{detail})")
-        nil
       end
 
       def report_missing(stderr, command, path)
+        # `puts` answers nil, which is what a failed read reports.
         stderr.puts("simplecov #{command}: #{path} not found")
-        nil
       end
 
       def report_unreadable(stderr, command, path, reason)
         detail = reason.lines.first.to_s.strip
         stderr.puts("simplecov #{command}: cannot read #{path.inspect} (#{detail})")
-        nil
       end
     end
   end
