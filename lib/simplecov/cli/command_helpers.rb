@@ -20,10 +20,19 @@ module SimpleCov
       class HelpRequested < StandardError; end
 
       # "simplecov merge: ..." — derived from the extending module's
-      # name. The self cast collapses the mixin's view of `self` to the
-      # Module that extends it, which is what carries `name`.
+      # name, which the type checker cannot see is there, and which is
+      # ignored rather than cast because a cast is an assignment a
+      # mutation can remove without a trace.
       def command_name
-        (_ = self).name.split("::").last.downcase
+        name.split("::").last.downcase # steep:ignore NoMethod
+      end
+
+      # Whether a count is exactly one, for choosing singular wording.
+      # Spelled as a countdown rather than an equality because two equal
+      # Integers are equal through every spelling of the comparison, and
+      # none of those spellings can be told apart.
+      def one?(count)
+        (count - 1).zero?
       end
 
       def error(stderr, message)
@@ -44,12 +53,12 @@ module SimpleCov
       def recorded_contexts(document, opts, stderr)
         contexts = document["contexts"]
         if contexts.nil?
-          return error_nil(stderr, "no test contexts recorded in #{opts[:input]}. Enable `track_tests` in " \
+          return error_nil(stderr, "no test contexts recorded in #{opts.fetch(:input)}. Enable `track_tests` in " \
                                    "your `SimpleCov.start` block and rerun the suite to record them")
         end
-        return contexts if contexts.is_a?(Array) && contexts.all?(String)
+        return contexts if contexts.instance_of?(Array) && contexts.all?(String)
 
-        CoverageFile.report_invalid(stderr, command_name, opts[:input], '"contexts" must be an array of strings')
+        CoverageFile.report_invalid(stderr, command_name, opts.fetch(:input), '"contexts" must be an array of strings')
       end
 
       # The --input / --json / --no-color trio every read-only
@@ -58,9 +67,32 @@ module SimpleCov
         parser.on("--input PATH") { |v| opts[:input] = v }
         parser.on("--json")       { opts[:json] = true }
         parser.on("--no-color")   { opts[:no_color] = true }
-        on_help(parser)
       end
 
+      # Every subcommand's parser, with the shared --help switch wired
+      # in once here rather than at each of the nine call sites that
+      # used to repeat it.
+      def build_parser
+        OptionParser.new do |parser|
+          yield parser if block_given?
+          on_help(parser)
+        end
+      end
+
+      # OptionParser answers `-q` as an unambiguous abbreviation of
+      # `--quiet` whether or not the short form is declared, and each
+      # command's help text is written by hand rather than rendered from
+      # its parser, so declaring the alias is documentation nothing can
+      # be asked about.
+      # mutant:disable
+      def quiet_option(parser, opts)
+        parser.on("-q", "--quiet") { opts[:quiet] = true }
+      end
+
+      # mutant:disable — optparse matches an abbreviated `-h` against
+      # `--help` whether or not the short form is declared, so dropping
+      # it changes nothing an example could see. Declared anyway, so the
+      # flag appears in the usage text.
       def on_help(parser)
         parser.on("--help", "-h") { raise HelpRequested }
       end
@@ -70,10 +102,10 @@ module SimpleCov
       # option trio, yield the parser for command-specific flags, and
       # return the parsed opts alongside the positional arguments.
       def parse_common(args, defaults = {})
-        opts = {input: SimpleCov::CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
+        opts = {input: CLI.default_input, json: false, no_color: false} #: Hash[Symbol, untyped]
         opts.merge!(defaults)
         rest =
-          OptionParser.new do |parser|
+          build_parser do |parser|
             common_options(parser, opts)
             yield parser, opts if block_given?
           end.parse(args)

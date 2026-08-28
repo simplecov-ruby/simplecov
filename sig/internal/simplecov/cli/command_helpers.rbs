@@ -13,8 +13,16 @@ module SimpleCov
 
       def on_help: (untyped parser) -> untyped
 
+      def build_parser: () ?{ (untyped parser) -> untyped } -> untyped
+
       # "simplecov merge: ..." — derived from the extending module's name.
       def command_name: () -> ::String
+
+      # Declares -q/--quiet on a parser, setting opts[:quiet].
+      def quiet_option: (untyped parser, Hash[Symbol, untyped] opts) -> untyped
+
+      # Whether a count is exactly one, for choosing singular wording.
+      def one?: (::Integer count) -> bool
 
       def error: (untyped stderr, untyped message) -> 1
 
