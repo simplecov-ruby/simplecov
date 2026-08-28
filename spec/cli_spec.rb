@@ -3492,7 +3492,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "dead-code subcommand" do
+  describe "dead-code subcommand", mutant_expression: "SimpleCov::CLI::DeadCode*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-dead-code-spec-") }
     let(:input) { File.join(tmp, "coverage.json") }
     let(:production_path) { File.join(tmp, "production.json") }
@@ -3513,6 +3513,237 @@ RSpec.describe SimpleCov::CLI do
     end
 
     after { FileUtils.remove_entry(tmp) }
+
+    # A hand-written production file, for the shapes a sink would not
+    # write but a reader still meets.
+    def write_production(coverage:, last_seen: {}, started_at: "2026-01-01T00:00:00Z",
+                         updated_at: "2026-02-01T00:00:00Z")
+      window = {"format_version" => 1, "coverage" => coverage, "last_seen" => last_seen}
+      window["started_at"] = started_at if started_at
+      window["updated_at"] = updated_at if updated_at
+      File.write(production_path, JSON.dump("simplecov_production" => window))
+    end
+
+    describe "the shape of the printed report" do
+      before do
+        File.write(input, JSON.dump("coverage" => {"lib/dead.rb" => {"lines" => [0]},
+                                                   "lib/possible.rb" => {"lines" => [1]}}))
+        write_production(coverage: {})
+      end
+
+      # Whole output: the header, the blank line under it, both headings
+      # with their rows, the blank line after each, and the summary.
+      it "prints each section under its heading, and counts them at the end" do
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).to eq(<<~REPORT)
+          Production coverage: #{production_path} (window 2026-01-01T00:00:00Z to 2026-02-01T00:00:00Z)
+
+          Dead code (not run in production, not covered by tests):
+            lib/dead.rb:1 (entire file)
+
+          Possibly dead (not run in production, covered only by tests):
+            lib/possible.rb:1 (entire file)
+
+          1 dead line, 1 possibly dead line
+        REPORT
+      end
+
+      it "lists the files in a category in a settled order" do
+        File.write(input, JSON.dump("coverage" => {"lib/zebra.rb" => {"lines" => [0]},
+                                                   "lib/apple.rb" => {"lines" => [0]}}))
+
+        expect(run_dead_code).to eq(0)
+        listed = stdout.string.lines.grep(/\.rb:/).map(&:strip)
+        expect(listed.first).to start_with("lib/apple.rb:")
+        expect(listed.last).to start_with("lib/zebra.rb:")
+      end
+
+      it "prints neither heading nor blank line for a category with nothing in it" do
+        File.write(input, JSON.dump("coverage" => {"lib/dead.rb" => {"lines" => [0]}}))
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).not_to include("Possibly dead")
+      end
+
+      it "says so plainly when there is nothing to report" do
+        File.write(input, JSON.dump("coverage" => {}))
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).to eq(<<~REPORT)
+          Production coverage: #{production_path} (window 2026-01-01T00:00:00Z to 2026-02-01T00:00:00Z)
+
+          No dead code found.
+        REPORT
+      end
+
+      it "says so plainly when nothing untested is running in production" do
+        File.write(input, JSON.dump("coverage" => {}))
+
+        expect(run_dead_code("--untested-in-production")).to eq(0)
+        expect(stdout.string).to end_with("No untested production code found.\n")
+      end
+    end
+
+    describe "the window the production data spans" do
+      before { File.write(input, JSON.dump("coverage" => {})) }
+
+      it "names the window when the store recorded both ends of it" do
+        write_production(coverage: {})
+        run_dead_code
+        expect(stdout.string).to start_with(
+          "Production coverage: #{production_path} (window 2026-01-01T00:00:00Z to 2026-02-01T00:00:00Z)"
+        )
+      end
+
+      # Half a window is not a window, so neither half alone is named.
+      it "names no window when only its start was recorded" do
+        write_production(coverage: {}, updated_at: nil)
+        run_dead_code
+        expect(stdout.string).to start_with("Production coverage: #{production_path}\n")
+      end
+
+      it "names no window when only its end was recorded" do
+        write_production(coverage: {}, started_at: nil)
+        run_dead_code
+        expect(stdout.string).to start_with("Production coverage: #{production_path}\n")
+      end
+    end
+
+    describe "dating a file the store last saw" do
+      before { File.write(input, JSON.dump("coverage" => {"lib/dead.rb" => {"lines" => [0]}})) }
+
+      it "dates the row from the stamp the store kept" do
+        write_production(coverage: {}, last_seen: {"lib/dead.rb" => "2026-03-04T05:06:07Z"})
+
+        run_dead_code
+        expect(stdout.string).to include("lib/dead.rb:1 (entire file, last run 2026-03-04)")
+      end
+
+      it "dates nothing from a stamp that is not one" do
+        write_production(coverage: {}, last_seen: {"lib/dead.rb" => 20_260_304})
+
+        run_dead_code
+        expect(stdout.string).to include("lib/dead.rb:1 (entire file)")
+      end
+
+      it "carries the whole stamp into JSON, and omits it when there is none" do
+        write_production(coverage: {}, last_seen: {"lib/dead.rb" => 20_260_304})
+
+        run_dead_code("--json")
+        expect(JSON.parse(stdout.string).fetch("dead").first).to eq("file" => "lib/dead.rb", "lines" => [1])
+      end
+    end
+
+    describe "the JSON payload" do
+      it "carries the window and every category, each in a settled order" do
+        File.write(input, JSON.dump("coverage" => {"lib/zebra.rb" => {"lines" => [0]},
+                                                   "lib/apple.rb" => {"lines" => [0]}}))
+        write_production(coverage: {}, last_seen: {"lib/apple.rb" => "2026-03-04T05:06:07Z"})
+
+        expect(run_dead_code("--json")).to eq(0)
+        expect(JSON.parse(stdout.string)).to eq(
+          "window" => {"started_at" => "2026-01-01T00:00:00Z", "updated_at" => "2026-02-01T00:00:00Z"},
+          "dead" => [{"file" => "lib/apple.rb", "lines" => [1], "last_seen" => "2026-03-04T05:06:07Z"},
+                     {"file" => "lib/zebra.rb", "lines" => [1]}],
+          "possibly_dead" => [], "untested_in_production" => []
+        )
+      end
+
+      it "carries a window the store never recorded as empty" do
+        File.write(input, JSON.dump("coverage" => {}))
+        write_production(coverage: {}, started_at: nil, updated_at: nil)
+
+        run_dead_code("--json")
+        expect(JSON.parse(stdout.string).fetch("window")).to eq("started_at" => nil, "updated_at" => nil)
+      end
+    end
+
+    describe "reading a report that is not shaped like one" do
+      it "skips a file whose lines are not a list" do
+        File.write(input, JSON.dump("coverage" => {"lib/odd.rb" => {"lines" => "0,1,0"}}))
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).to include("No dead code found.")
+      end
+
+      # Nothing relevant was measured, so nothing about the file is
+      # known, and a file nothing is known about is not a candidate for
+      # deletion.
+      it "does not call a file with no relevant lines entirely dead" do
+        File.write(input, JSON.dump("coverage" => {"lib/blank.rb" => {"lines" => [nil, nil]}}))
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).not_to include("entire file")
+      end
+
+      it "calls a file entirely dead only when every relevant line is unhit" do
+        File.write(input, JSON.dump("coverage" => {"lib/all.rb" => {"lines" => [0, 1]}}))
+        SimpleCov::Production::FileSink.new(path: production_path).store("lib/other.rb" => [1])
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).to include("entire file")
+      end
+
+      it "leaves a file with one line still running out of the entire-file mark" do
+        File.write(input, JSON.dump("coverage" => {"lib/some.rb" => {"lines" => [0, 1]}}))
+        SimpleCov::Production::FileSink.new(path: production_path).store("lib/some.rb" => [2])
+
+        expect(run_dead_code).to eq(0)
+        expect(stdout.string).not_to include("entire file")
+      end
+    end
+
+    describe "reporting what it could not read" do
+      it "names the report it could not find, under its own name" do
+        expect(run("dead-code", "--input", File.join(tmp, "absent.json"),
+                   "--production", production_path)).to eq(1)
+        expect(stderr.string).to eq("simplecov dead-code: #{File.join(tmp, 'absent.json')} not found\n")
+      end
+
+      it "names the production file it could not find" do
+        absent = File.join(tmp, "absent-production.json")
+
+        expect(run("dead-code", "--input", input, "--production", absent)).to eq(1)
+        expect(stderr.string).to eq("simplecov dead-code: #{absent} not found\n")
+      end
+
+      it "reports what was wrong with a production file it could not read" do
+        File.write(production_path, "not json at all")
+
+        expect(run_dead_code).to eq(1)
+        expect(stderr.string).to start_with("simplecov dead-code:")
+        expect(stderr.string).not_to include("#<")
+      end
+
+      it "refuses a stray positional argument, naming the first one" do
+        expect(run_dead_code("stray", "another")).to eq(1)
+        expect(stderr.string).to eq("simplecov dead-code: unexpected argument \"stray\"\n")
+      end
+    end
+
+    # A hand-written store can carry a file's lines in any order; the
+    # row that reports them puts them in reading order.
+    it "sorts the lines of a file the report never tracked" do
+      File.write(input, JSON.dump("coverage" => {}))
+      write_production(coverage: {"lib/prod_only.rb" => [9, 2, 5]})
+
+      expect(run_dead_code("--untested-in-production")).to eq(0)
+      expect(stdout.string).to include("lib/prod_only.rb:2,5,9")
+    end
+
+    # Files the report never tracked are listed in a settled order, and
+    # so are the lines within each.
+    it "sorts the production-only files and their lines" do
+      File.write(input, JSON.dump("coverage" => {}))
+      SimpleCov::Production::FileSink.new(path: production_path).store(
+        "lib/zebra.rb" => [9, 2], "lib/apple.rb" => [4]
+      )
+
+      expect(run_dead_code("--untested-in-production")).to eq(0)
+      listed = stdout.string.lines.grep(/\.rb:/).map(&:strip)
+      expect(listed.first).to start_with("lib/apple.rb:4")
+      expect(listed.last).to start_with("lib/zebra.rb:2,9")
+    end
 
     def run_dead_code(*extra)
       run("dead-code", "--input", input, "--production", production_path, *extra)

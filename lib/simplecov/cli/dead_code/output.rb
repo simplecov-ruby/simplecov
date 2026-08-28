@@ -9,15 +9,17 @@ module SimpleCov
       # `path:ranges` rows and summary counts, and the JSON payload,
       # which always carries every category regardless of the view.
       module Output
-      module_function
+        extend CommandHelpers
+
+        extend self
 
         def emit(stdout, opts, matrix, production)
-          return stdout.puts(JSON.generate(json_payload(matrix, production))) if opts[:json]
+          return stdout.puts(JSON.generate(json_payload(matrix, production))) if opts.fetch(:json)
 
-          stdout.puts("Production coverage: #{opts[:production]}#{window_suffix(production)}")
+          stdout.puts("Production coverage: #{opts.fetch(:production)}#{window_suffix(production)}")
           stdout.puts
           last_seen = production.fetch("last_seen")
-          opts[:untested] ? emit_untested(stdout, matrix, last_seen) : emit_dead(stdout, matrix, last_seen)
+          opts.fetch(:untested) ? emit_untested(stdout, matrix, last_seen) : emit_dead(stdout, matrix, last_seen)
         end
 
         def emit_dead(stdout, matrix, last_seen)
@@ -43,7 +45,7 @@ module SimpleCov
         # print nothing, not even their heading) and return the row
         # count.
         def section(stdout, heading, matrix, bucket, last_seen)
-          rows = matrix[bucket].sort
+          rows = matrix.fetch(bucket).sort
           return 0 if rows.empty?
 
           stdout.puts(heading)
@@ -62,33 +64,31 @@ module SimpleCov
         # saw the file at all. Both can hold at once.
         def markers(matrix, file, last_seen)
           markers = [] #: Array[String]
-          markers << "entire file" if matrix[:entire].include?(file)
+          markers << "entire file" if matrix.fetch(:entire).include?(file)
           stamp = last_seen[file]
-          markers << "last run #{stamp[0, 10]}" if stamp.is_a?(String)
-          markers.empty? ? "" : " (#{markers.join(', ')})"
+          markers << "last run #{stamp[0, 10]}" if stamp.instance_of?(String)
+          " (#{markers.join(', ')})" unless markers.empty?
         end
 
         def count(matrix, bucket)
-          matrix[bucket].sum { |_file, lines| lines.size }
+          matrix.fetch(bucket).sum { |_file, lines| lines.size }
         end
 
         def pluralize(number, noun)
-          "#{number} #{noun}#{'s' unless number == 1}"
+          "#{number} #{noun}#{'s' unless one?(number)}"
         end
 
         def window_suffix(production)
           started = production["started_at"]
           updated = production["updated_at"]
-          return "" unless started && updated
-
-          " (window #{started} to #{updated})"
+          " (window #{started} to #{updated})" if started && updated
         end
 
         def json_payload(matrix, production)
           last_seen = production.fetch("last_seen")
           payload = {window: {started_at: production["started_at"], updated_at: production["updated_at"]}}
           %i[dead possibly_dead untested_in_production].each do |bucket|
-            payload[bucket] = matrix[bucket].sort.map { |file, lines| json_entry(file, lines, last_seen) }
+            payload[bucket] = matrix.fetch(bucket).sort.map { |file, lines| json_entry(file, lines, last_seen) }
           end
           payload
         end
@@ -98,7 +98,7 @@ module SimpleCov
         def json_entry(file, lines, last_seen)
           entry = {file: file, lines: lines} #: Hash[Symbol, untyped]
           stamp = last_seen[file]
-          entry[:last_seen] = stamp if stamp.is_a?(String)
+          entry[:last_seen] = stamp if stamp.instance_of?(String)
           entry
         end
       end

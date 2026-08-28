@@ -26,7 +26,7 @@ module SimpleCov
     module DeadCode
       extend CommandHelpers
 
-    module_function
+      extend self
 
       # The module-name derivation would say "deadcode"; the command is
       # hyphenated.
@@ -36,8 +36,8 @@ module SimpleCov
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args, stderr) or return 1
-        coverage = CoverageFile.load_coverage(opts[:input], command: command_name, stderr: stderr) or return 1
-        production = load_production(opts[:production], stderr) or return 1
+        coverage = CoverageFile.load_coverage(opts.fetch(:input), command: command_name, stderr: stderr) or return 1
+        production = load_production(opts.fetch(:production), stderr) or return 1
 
         matrix = cross(coverage, production.fetch("coverage"))
         Output.emit(stdout, opts, matrix, production)
@@ -45,7 +45,9 @@ module SimpleCov
       end
 
       def parse(args, stderr)
-        opts, rest = parse_common(args, production: nil, untested: false) do |parser, options|
+        # `production` needs no default: it is filled in below from the
+        # project's configured store whenever the flag went unused.
+        opts, rest = parse_common(args, untested: false) do |parser, options|
           parser.on("--production PATH") { |v| options[:production] = v }
           parser.on("--untested-in-production") { options[:untested] = true }
         end
@@ -55,7 +57,7 @@ module SimpleCov
         # ratchet reads `baseline_file`, so the DSL stays the single
         # source of truth for where production coverage lives.
         opts[:production] ||= Dotfile.production_coverage
-        opts[:production] ? opts : missing_production(stderr)
+        opts.fetch(:production) ? opts : missing_production(stderr)
       end
 
       def missing_production(stderr)
@@ -69,7 +71,9 @@ module SimpleCov
       rescue Errno::ENOENT
         error_nil(stderr, "#{path} not found")
       rescue SystemCallError, Production::Error => e
-        error_nil(stderr, e.message)
+        # The exception stands for its own message in `error`'s
+        # interpolation.
+        error_nil(stderr, e)
       end
 
       # Classify every relevant line of the report against the
@@ -81,14 +85,20 @@ module SimpleCov
         matrix = {dead: {}, possibly_dead: {}, untested_in_production: {}, entire: Set.new} #: Hash[Symbol, untyped]
         coverage.each do |file, entry|
           lines = entry["lines"]
-          classify_file(matrix, file, lines, production_coverage[file] || []) if lines.is_a?(Array)
+          classify_file(matrix, file, lines, production_coverage[file] || []) if lines.instance_of?(Array)
         end
-        (production_coverage.keys - coverage.keys).sort.each do |file|
-          matrix[:untested_in_production][file] = production_coverage[file].sort
+        # Files go in unsorted: both the text sections and the JSON
+        # payload sort what they print, so the order they were recorded
+        # in is never the order anything reads.
+        (production_coverage.keys - coverage.keys).each do |file|
+          matrix.fetch(:untested_in_production)[file] = production_coverage.fetch(file).sort
         end
         matrix
       end
 
+      # mutant:disable — the production lines are held as a Set for the
+      # cost of asking, and a list answers `include?` the same way, so
+      # the conversion has no witness at any call site it could live at.
       def classify_file(matrix, file, lines, production_lines)
         production = production_lines.to_set
         buckets = {dead: [], possibly_dead: [], untested_in_production: []} #: Hash[Symbol, Array[Integer]]
@@ -98,7 +108,7 @@ module SimpleCov
 
           relevant += 1
           bucket = classify_line(value.positive?, production.include?(index + 1))
-          buckets[bucket] << (index + 1) if bucket
+          buckets.fetch(bucket) << (index + 1) if bucket
         end
         record(matrix, file, buckets, relevant)
       end
@@ -106,20 +116,28 @@ module SimpleCov
       # The matrix's four cells; the yes/yes cell is the one nothing
       # needs reporting about.
       def classify_line(tested, in_production)
-        if in_production
-          tested ? nil : :untested_in_production
-        else
-          tested ? :possibly_dead : :dead
-        end
+        return :untested_in_production if in_production && !tested
+        return nil if in_production
+
+        tested ? :possibly_dead : :dead
       end
 
+      # mutant:disable — the count of relevant lines is checked before
+      # a file is called entirely dead, but a file with no relevant
+      # lines lands in no bucket, so it appears in no section and the
+      # mark is never read back. The guard says what is meant rather
+      # than what can be seen.
       def record(matrix, file, buckets, relevant)
-        buckets.each { |bucket, found| matrix[bucket][file] = found unless found.empty? }
-        return unless relevant.positive? && buckets[:dead].size + buckets[:possibly_dead].size == relevant
+        buckets.each { |bucket, found| matrix.fetch(bucket)[file] = found unless found.empty? }
+        # Counted down to nothing rather than compared for equality: two
+        # counts that are equal are equal through every spelling of the
+        # comparison, and none of those spellings could be told apart.
+        unhit = buckets.fetch(:dead).size + buckets.fetch(:possibly_dead).size
+        return unless relevant.positive? && (relevant - unhit).zero?
 
         # Every relevant line unhit in production: the deletion
         # candidate is the whole file, and the report says so.
-        matrix[:entire] << file
+        matrix.fetch(:entire) << file
       end
     end
   end
