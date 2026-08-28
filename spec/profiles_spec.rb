@@ -2,7 +2,7 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::Profiles do
+RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", "SimpleCov::Configuration*"] do
   subject(:profiles) { described_class.new }
 
   describe "#define" do
@@ -11,17 +11,65 @@ RSpec.describe SimpleCov::Profiles do
       expect(profiles[:foo]).to be_a(Proc)
     end
 
-    it "raises when defining a duplicate name" do
+    it "raises when defining a duplicate name, naming the profile" do
       profiles.define("foo") { add_filter "x" }
       expect { profiles.define("foo") { add_filter "y" } }
-        .to raise_error(SimpleCov::ConfigurationError, /already defined/)
+        .to raise_error(SimpleCov::ConfigurationError, "SimpleCov Profile 'foo' is already defined")
     end
   end
 
   describe "#fetch_proc" do
     it "raises with a clear message when no such profile exists and autoload turns up nothing" do
       expect { profiles.fetch_proc("__nope__") }
-        .to raise_error(SimpleCov::ConfigurationError, /Could not find SimpleCov Profile/)
+        .to raise_error(SimpleCov::ConfigurationError, "Could not find SimpleCov Profile called '__nope__'")
+    end
+
+    it "answers the profile that was defined under that name" do
+      block = proc { add_filter "x" }
+      profiles.define("foo", &block)
+
+      expect(profiles.fetch_proc("foo")).to be(block)
+      expect(profiles.fetch_proc(:foo)).to be(block)
+    end
+
+    # What a registry requires on a first lookup, watched on a registry
+    # of its own so the subject is never stubbed.
+    context "when the name has to be autoloaded" do
+      let(:registry) { described_class.new }
+      let(:block) { proc { add_filter "x" } }
+
+      # A profile is looked for among the bundled ones and then among
+      # the plugin gems, and only a name neither turns up is unknown.
+      it "looks in both places before giving up on the name" do
+        allow(registry).to receive(:require).and_raise(LoadError)
+
+        expect { registry.fetch_proc("__nope__") }.to raise_error(SimpleCov::ConfigurationError)
+        expect(registry).to have_received(:require).with("simplecov/profiles/__nope__")
+        expect(registry).to have_received(:require).with("simplecov-profile-__nope__")
+      end
+
+      # A name already registered is answered from the registry, without
+      # asking the load path for it again.
+      it "loads nothing for a profile it already has" do
+        allow(registry).to receive(:require)
+        registry.define("known", &block)
+
+        expect(registry.fetch_proc("known")).to be(block)
+        expect(registry).not_to have_received(:require)
+      end
+
+      it "answers a profile the autoload defined" do
+        allow(registry).to receive(:require) { |_| registry[:late] = block }
+
+        expect(registry.fetch_proc("late")).to be(block)
+      end
+
+      it "asks the plugin gems only for a name the bundled profiles do not carry" do
+        allow(registry).to receive(:require).with("simplecov/profiles/bundled") { |_| registry[:bundled] = block }
+
+        expect(registry.fetch_proc("bundled")).to be(block)
+        expect(registry).not_to have_received(:require).with("simplecov-profile-bundled")
+      end
     end
   end
 
