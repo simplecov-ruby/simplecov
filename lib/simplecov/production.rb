@@ -63,8 +63,10 @@ module SimpleCov
         true
       end
 
+      # Both are small Integers, so identity settles it: a measurement
+      # belongs to the process that started it and to no other.
       def running?
-        !!@running && @pid == Process.pid
+        !!@running && @pid.equal?(Process.pid)
       end
 
       # Drain the runtime's oneshot table and hand the accumulated delta
@@ -93,7 +95,7 @@ module SimpleCov
         @mutex.synchronize do
           pull_pending
           push_pending
-          ::Coverage.result(stop: true, clear: true)
+          Coverage.result(stop: true, clear: true)
         end
         true
       end
@@ -118,7 +120,7 @@ module SimpleCov
         validate_jitter!(flush_jitter)
         raise Error, "sample_rate must be within (0, 1]" unless sample_rate.positive? && sample_rate <= 1
         raise Error, "max_buffered_lines must be positive" unless max_buffered_lines.positive?
-        return unless sample_rate < 1 && !::Coverage.respond_to?(:suspend)
+        return unless sample_rate < 1 && !Coverage.respond_to?(:suspend)
 
         raise Error, "sample_rate below 1.0 needs Coverage.suspend (Ruby 3.2 or later)"
       end
@@ -136,19 +138,19 @@ module SimpleCov
       # the child inherits the measurement and only needs its own flush
       # thread.
       def claim_coverage
-        if ::Coverage.running?
-          return true if @started_coverage && @pid && @pid != Process.pid
+        if Coverage.running?
+          return true if @started_coverage && @pid && !@pid.equal?(Process.pid)
 
           return warn_decline("Coverage is already running (a test suite or another tool owns it)")
         end
         return warn_decline("this runtime has no oneshot lines support") unless oneshot_supported?
 
-        ::Coverage.start(oneshot_lines: true)
+        Coverage.start(oneshot_lines: true)
         @started_coverage = true
       end
 
       def oneshot_supported?
-        !::Coverage.respond_to?(:supported?) || ::Coverage.supported?(:oneshot_lines)
+        !Coverage.respond_to?(:supported?) || Coverage.supported?(:oneshot_lines)
       end
 
       def configure(root, sink, flush_interval:, flush_jitter:, sample_rate:, max_buffered_lines:)
@@ -192,7 +194,7 @@ module SimpleCov
       # starting them all) would otherwise contend on the shared sink at
       # the same instant every interval, forever.
       def next_wait
-        @flush_jitter.zero? ? @flush_interval : @flush_interval + (rand * @flush_jitter)
+        @flush_interval + (rand * @flush_jitter)
       end
 
       # Both call sites run only after `configure` (stop requires
@@ -215,13 +217,13 @@ module SimpleCov
       # steady-state overhead while every line still gets its chance
       # over time. The first interval after `start` always measures.
       def resample
-        return if @sample_rate >= 1
+        return unless @sample_rate < 1
 
         wanted = rand < @sample_rate
         if wanted && !@measuring
-          ::Coverage.resume
+          Coverage.resume
         elsif !wanted && @measuring
-          ::Coverage.suspend
+          Coverage.suspend
         end
         @measuring = wanted
       end
@@ -230,7 +232,7 @@ module SimpleCov
       # Clearing on read means a line executed again later re-reports,
       # which is what lets a dropped buffer heal for still-hot code.
       def pull_pending
-        ::Coverage.result(stop: false, clear: true).each do |path, data|
+        Coverage.result(stop: false, clear: true).each do |path, data|
           lines = data[:oneshot_lines]
           next if lines.nil? || lines.empty?
 
@@ -252,7 +254,7 @@ module SimpleCov
         @pending.clear
         true
       rescue StandardError => e
-        warn "[SimpleCov::Production] flush failed (#{e.class}: #{e.message}); retrying next interval"
+        warn "[SimpleCov::Production] flush failed (#{e.class}: #{e}); retrying next interval"
         enforce_ceiling
         false
       end
@@ -286,17 +288,11 @@ module SimpleCov
         at_exit do
           # simplecov:disable — at_exit fires after the suite's own
           # dogfood report has been generated, so this frame can never
-          # be observed by it. `at_exit_stop` carries the logic and is
-          # covered directly.
-          at_exit_stop
+          # be observed by it. `stop` carries the logic, declines when
+          # nothing is running, and is covered directly.
+          stop
           # simplecov:enable
         end
-      end
-
-      # The at_exit body: a final flush for the common production
-      # topology where nothing calls `stop` before the process dies.
-      def at_exit_stop
-        stop if running?
       end
     end
   end
