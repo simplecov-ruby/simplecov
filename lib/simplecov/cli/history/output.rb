@@ -62,7 +62,7 @@ module SimpleCov
           branch_width = entries.map { |entry| (entry["branch"] || "-").length }.max
           entries.each do |entry|
             branch = (entry["branch"] || "-").ljust(branch_width)
-            commit = ((entry["commit"] || "-")[0, 7] || "-").ljust(7)
+            commit = (entry["commit"] || "-")[0, 7].ljust(7)
             stdout.puts("  #{entry['created_at']}  #{branch}  #{commit}  #{yield(entry)}")
           end
         end
