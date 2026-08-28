@@ -10,7 +10,7 @@ module SimpleCov
     # this loop, so updating them in place can't reach data a caller
     # still holds.
     module InternedCounts
-    module_function
+      extend self
 
       # @return [Hash] `target`
       def absorb_counts(target, source, identities)
