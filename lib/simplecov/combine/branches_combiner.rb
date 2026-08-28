@@ -11,7 +11,7 @@ module SimpleCov
     #
     # Should be called through `CoverageAccumulator`.
     module BranchesCombiner
-    module_function
+      extend self
 
       #
       # Return merged branches or the existed branch if other is missing.
@@ -41,7 +41,7 @@ module SimpleCov
 
         coverage.each do |condition, branches_inside|
           entry = target[identities[condition]] ||= new_condition(condition)
-          InternedCounts.absorb_counts(entry[1], branches_inside, identities)
+          InternedCounts.absorb_counts(entry.fetch(1), branches_inside, identities)
         end
 
         target
