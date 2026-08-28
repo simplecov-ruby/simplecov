@@ -15,13 +15,13 @@ module SimpleCov
     module Tests
       extend CommandHelpers
 
-    module_function
+      extend self
 
       def run(args, stdout:, stderr:)
         opts = parse(args)
-        return error(stderr, "line number must be positive") if opts[:line]&.zero?
+        return error(stderr, "line number must be positive") if opts.fetch(:line)&.zero?
 
-        document = CoverageFile.load_document(opts[:input], command: "tests", stderr: stderr)
+        document = CoverageFile.load_document(opts.fetch(:input), command: "tests", stderr: stderr)
         return 1 unless document
 
         ids = resolve(document, opts, stderr)
@@ -36,7 +36,9 @@ module SimpleCov
           parser.on("--redundant") { options[:redundant] = true }
         end
         opts[:target] = rest.first
-        opts.merge!(split_target(rest.first))
+        split = split_target(rest.first)
+        opts[:path] = split.fetch(:path)
+        opts[:line] = split.fetch(:line)
         opts
       end
 
@@ -70,28 +72,30 @@ module SimpleCov
       end
 
       def selected_ids(document, contexts, opts, stderr)
-        return contexts.sort unless opts[:path]
+        return contexts.sort unless opts.fetch(:path)
 
         entry = locate_entry(document, opts, stderr)
         return unless entry
 
         table = context_table(entry, contexts, opts, stderr)
-        table && ids_from(table, contexts, opts[:line])
+        table && ids_from(table, contexts, opts.fetch(:line))
       end
 
       def locate_entry(document, opts, stderr)
         coverage = document["coverage"]
+        input = opts.fetch(:input)
         unless coverage.is_a?(Hash)
-          return CoverageFile.report_invalid(stderr, "tests", opts[:input], '"coverage" must be an object')
+          return CoverageFile.report_invalid(stderr, "tests", input, '"coverage" must be an object')
         end
 
-        match = CoverageFile.lookup(coverage, opts[:path])
-        return error_nil(stderr, CoverageFile.not_found_message(coverage, opts[:path], opts[:input])) unless match
+        path = opts.fetch(:path)
+        match = CoverageFile.lookup(coverage, path)
+        return error_nil(stderr, CoverageFile.not_found_message(coverage, path, input)) unless match
         # A found entry of the wrong type is malformed input, not a
         # missing file — the same distinction `simplecov coverage` draws.
         return match.last if match.last.is_a?(Hash)
 
-        CoverageFile.report_invalid(stderr, "tests", opts[:input], "entry for #{opts[:path]} must be an object")
+        CoverageFile.report_invalid(stderr, "tests", input, "entry for #{path} must be an object")
       end
 
       # The file's decoded `index => bitmap` table. An absent key is an
@@ -100,17 +104,21 @@ module SimpleCov
       # all-or-nothing tolerance the resultset reader applies.
       def context_table(entry, contexts, opts, stderr)
         raw = entry["contexts"] || {}
-        table = raw.is_a?(Hash) ? decode_table(raw, contexts.size) : nil
+        table = decode_table(raw, contexts.size) if raw.is_a?(Hash)
         return table if table
 
-        CoverageFile.report_invalid(stderr, "tests", opts[:input],
-                                    "entry for #{opts[:path]} carries a malformed \"contexts\" table")
+        CoverageFile.report_invalid(stderr, "tests", opts.fetch(:input),
+                                    "entry for #{opts.fetch(:path)} carries a malformed \"contexts\" table")
       end
 
       def decode_table(raw, context_count)
         table = {} #: Hash[Integer, Integer]
         raw.each do |index, hex|
-          return nil unless index.is_a?(String) && index.match?(/\A\d+\z/) && hex.is_a?(String) && hex.match?(/\A\h+\z/)
+          # Both halves arrive from JSON, so both are plain strings: a
+          # decimal index naming a recorded test, and a hexadecimal
+          # bitmap of the lines it covered.
+          return nil unless index.is_a?(String) && index.match?(/\A\d+\z/)
+          return nil unless hex.is_a?(String) && hex.match?(/\A\h+\z/)
 
           position = Integer(index, 10)
           return nil unless position < context_count
@@ -126,7 +134,7 @@ module SimpleCov
       end
 
       def emit(ids, opts, stdout, stderr)
-        return stdout.puts(JSON.pretty_generate(ids)) if opts[:json]
+        return stdout.puts(JSON.pretty_generate(ids)) if opts.fetch(:json)
         return note_empty(opts, stderr) if ids.empty?
 
         ids.each { |id| stdout.puts(id) }
@@ -142,12 +150,13 @@ module SimpleCov
       end
 
       def empty_message(opts)
-        if opts[:redundant] && !opts[:no_recording]
-          return "no redundant test covers #{opts[:target]}" if opts[:target]
+        target = opts.fetch(:target)
+        if opts[:redundant] && !opts.fetch(:no_recording)
+          return "no redundant test covers #{target}" if target
 
           "no redundant tests, every recorded test covers at least one line uniquely"
-        elsif opts[:target]
-          "no recorded test covers #{opts[:target]}"
+        elsif target
+          "no recorded test covers #{target}"
         else
           "no tests recorded"
         end

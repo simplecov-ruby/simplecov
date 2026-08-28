@@ -2012,7 +2012,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "tests subcommand" do
+  describe "tests subcommand", mutant_expression: ["SimpleCov::CLI::Tests*", "SimpleCov::CLI::CommandHelpers*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-tests-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:result_file) { "/abs/project/lib/result.rb" }
@@ -2081,8 +2081,10 @@ RSpec.describe SimpleCov::CLI do
     it "explains what to enable when the document carries no contexts" do
       File.write(json_path, JSON.dump({"coverage" => {}}))
       expect(run("tests", "--input", json_path)).to eq(1)
-      expect(stderr.string).to include("no test contexts recorded")
-      expect(stderr.string).to include("track_tests")
+      expect(stderr.string).to eq(
+        "simplecov tests: no test contexts recorded in #{json_path}. Enable `track_tests` in " \
+        "your `SimpleCov.start` block and rerun the suite to record them\n"
+      )
     end
 
     # A found-but-wrong-typed entry is malformed input, not a missing
@@ -2090,8 +2092,10 @@ RSpec.describe SimpleCov::CLI do
     it "reports a wrong-typed entry as invalid input, not as missing" do
       File.write(json_path, JSON.dump(payload.merge("coverage" => {result_file => "junk"})))
       expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
-      expect(stderr.string).to include("entry for lib/result.rb must be an object")
-      expect(stderr.string).not_to include("no entry")
+      expect(stderr.string).to eq(
+        "simplecov tests: input file #{json_path.inspect} isn't valid JSON " \
+        "(entry for lib/result.rb must be an object)\n"
+      )
     end
 
     it "documents its --json in the usage text" do
@@ -2101,7 +2105,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "reports an unknown file like the coverage subcommand does" do
       expect(run("tests", "--input", json_path, "lib/nope.rb")).to eq(1)
-      expect(stderr.string).to include("no entry for lib/nope.rb")
+      expect(stderr.string).to eq("simplecov tests: no entry for lib/nope.rb in #{json_path}\n")
     end
 
     it "names the candidates for an ambiguous subpath" do
@@ -2109,12 +2113,21 @@ RSpec.describe SimpleCov::CLI do
       File.write(json_path, JSON.dump(payload))
 
       expect(run("tests", "--input", json_path, "result.rb")).to eq(1)
-      expect(stderr.string).to include("matches 2 files")
+      expect(stderr.string).to eq(
+        "simplecov tests: result.rb matches 2 files in #{json_path}: " \
+        "/abs/project/app/result.rb, /abs/project/lib/result.rb (use a longer path to pick one)\n"
+      )
     end
 
     it "rejects a non-positive line number as a parse error" do
       expect(run("tests", "--input", json_path, "lib/result.rb:0")).to eq(1)
-      expect(stderr.string).to include("line number must be positive")
+      expect(stderr.string).to eq("simplecov tests: line number must be positive\n")
+    end
+
+    it "reports a missing input file under its own command name" do
+      missing = File.join(tmp, "nope.json")
+      expect(run("tests", "--input", missing)).to eq(1)
+      expect(stderr.string).to eq("simplecov tests: #{missing} not found\n")
     end
 
     it "treats a malformed per-file contexts table as invalid input" do
@@ -2123,20 +2136,123 @@ RSpec.describe SimpleCov::CLI do
         File.write(json_path, JSON.dump(payload))
         stderr.truncate(0) && stderr.rewind
         expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1), "expected 1 for #{malformed.inspect}"
-        expect(stderr.string).to include("isn't valid")
+        expect(stderr.string).to eq(
+          "simplecov tests: input file #{json_path.inspect} isn't valid JSON " \
+          "(entry for lib/result.rb carries a malformed \"contexts\" table)\n"
+        )
       end
     end
 
     it "treats a non-object coverage section as invalid input for a file query" do
       File.write(json_path, JSON.dump(payload.merge("coverage" => "junk")))
       expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
-      expect(stderr.string).to include("isn't valid")
+      expect(stderr.string).to eq(
+        %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+      )
+    end
+
+    it "treats an absent coverage section as invalid input for a file query" do
+      File.write(json_path, JSON.dump({"contexts" => payload["contexts"]}))
+      expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
+      expect(stderr.string).to eq(
+        %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+      )
     end
 
     it "treats a malformed document-level contexts list as invalid input" do
       File.write(json_path, JSON.dump(payload.merge("contexts" => "junk")))
       expect(run("tests", "--input", json_path)).to eq(1)
-      expect(stderr.string).to include("isn't valid")
+      expect(stderr.string).to eq(
+        %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("contexts" must be an array of strings)\n)
+      )
+    end
+
+    # Unit examples over the query helpers, pinning behavior the composed
+    # CLI examples can't tell apart operator by operator.
+    describe "query helpers" do
+      let(:tests) { SimpleCov::CLI::Tests }
+
+      it "splits a target into path and line the way the docs promise" do
+        expect(tests.split_target(nil)).to eq(path: nil, line: nil)
+        expect(tests.split_target("a.rb")).to eq(path: "a.rb", line: nil)
+        expect(tests.split_target("a.rb:42")).to eq(path: "a.rb", line: 42)
+        expect(tests.split_target("a.rb:4x")).to eq(path: "a.rb:4x", line: nil)
+        expect(tests.split_target("C:/x.rb")).to eq(path: "C:/x.rb", line: nil)
+        expect(tests.split_target("a.rb:42:7")).to eq(path: "a.rb:42", line: 7)
+      end
+
+      it "decodes well-formed index and bitmap pairs, multi-digit and zero-padded included" do
+        expect(tests.decode_table({"2" => "ff", "0" => "1", "10" => "a", "08" => "1"}, 11))
+          .to eq(2 => 255, 0 => 1, 10 => 10, 8 => 1)
+      end
+
+      it "poisons the whole table on any malformed index or bitmap" do
+        malformed = [{"1" => "6"}, {"x" => "6"}, {"0abc" => "1"}, {"abc0" => "1"},
+                     {"0" => "zz"}, {"0" => "6g"}, {"0" => "g6"}, {0 => "6"}, {"0" => 6}]
+        expect(malformed.map { |raw| tests.decode_table(raw, 1) }).to all(be_nil)
+      end
+
+      it "selects ids by line bit, sorted, and all ids without a line" do
+        expect(tests.ids_from({0 => 0b10, 1 => 0b01}, %w[b a], 2)).to eq(["b"])
+        expect(tests.ids_from({1 => 0b1, 0 => 0b1}, %w[a z], nil)).to eq(%w[a z])
+      end
+
+      it "keeps the first positional argument as the target" do
+        opts = tests.parse(["a.rb:1", "z.rb:2"])
+        expect(opts[:target]).to eq("a.rb:1")
+        expect(opts[:path]).to eq("a.rb")
+        expect(opts[:line]).to eq(1)
+      end
+
+      it "reads an all-digit target as a path, not a line" do
+        expect(tests.split_target("42")).to eq(path: "42", line: nil)
+      end
+
+      it "reads a zero-padded line number in base ten" do
+        expect(tests.split_target("a.rb:08")).to eq(path: "a.rb", line: 8)
+      end
+
+      it "keeps ids the answer's only stdout even for an empty answer" do
+        out = StringIO.new
+        expect(tests.emit([], {json: false, target: nil, redundant: nil}, out, StringIO.new)).to be_nil
+        expect(out.string).to be_empty
+      end
+
+      it "ignores a redundant key whose value says off" do
+        document = {"contexts" => %w[a b], "coverage" => {"/f.rb" => {"contexts" => {"0" => "1"}}}}
+        opts = {path: nil, line: nil, redundant: nil, input: "x"}
+        expect(tests.resolve(document, opts, StringIO.new)).to eq(%w[a b])
+      end
+
+      it "accepts String subclasses in a decoded table" do
+        subclass = Class.new(String)
+        expect(tests.decode_table({subclass.new("0") => subclass.new("6")}, 1)).to eq(0 => 6)
+      end
+
+      it "reads the redundant decision from the value, not the key's presence" do
+        expect(tests.empty_message({redundant: nil, target: "t"})).to eq("no recorded test covers t")
+      end
+
+      it "stops at the first reported defect even under --redundant" do
+        io = StringIO.new
+        document = {"contexts" => ["t"], "coverage" => "junk"}
+        expect(tests.resolve(document, {path: "p", redundant: true, input: "i"}, io)).to be_nil
+        expect(io.string.lines.count).to eq(1)
+      end
+
+      it "locates the very entry through Hash-subclass document sections" do
+        subclass = Class.new(Hash)
+        entry = subclass.new.merge!("contexts" => {"0" => "1"})
+        coverage = subclass.new.merge!("/abs/x.rb" => entry)
+        opts = {path: "/abs/x.rb", input: "x"}
+        expect(tests.locate_entry({"coverage" => coverage}, opts, StringIO.new)).to equal(entry)
+      end
+
+      it "reads an absent or Hash-subclass contexts key for the file's table" do
+        expect(tests.context_table({}, [], {}, StringIO.new)).to eq({})
+        raw = Class.new(Hash).new.merge!("0" => "6")
+        expect(tests.context_table({"contexts" => raw}, ["a"], {}, StringIO.new)).to eq(0 => 6)
+      end
     end
 
     describe "--redundant" do
@@ -2144,13 +2260,15 @@ RSpec.describe SimpleCov::CLI do
 
       # Four contexts: :10 uniquely covers line 2 of result.rb and shares
       # line 3, :20 covers only that shared line, :30 uniquely covers
-      # other.rb, and :40 ran without covering anything.
+      # other.rb, and :40 ran without covering anything. The recording
+      # order deliberately differs from the sorted order, so an unsorted
+      # answer is distinguishable.
       let(:payload) do
         {
-          "contexts" => ["spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30", "spec/d_spec.rb:40"],
+          "contexts" => ["spec/d_spec.rb:40", "spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30"],
           "coverage" => {
-            result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
-            other_file => {"lines" => [1], "contexts" => {"2" => "1"}},
+            result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"1" => "6", "2" => "4"}},
+            other_file => {"lines" => [1], "contexts" => {"3" => "1"}},
             quiet_file => {"lines" => [1, nil]}
           }
         }
@@ -2176,7 +2294,7 @@ RSpec.describe SimpleCov::CLI do
       # two could go, but not both, so the list is per-test rather than
       # a deletable set.
       it "lists both of two tests covering exactly the same lines" do
-        payload["coverage"][result_file]["contexts"] = {"0" => "6", "1" => "6"}
+        payload["coverage"][result_file]["contexts"] = {"1" => "6", "2" => "6"}
         File.write(json_path, JSON.dump(payload))
         expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
         expect(stdout.string).to eq("spec/a_spec.rb:10\nspec/b_spec.rb:20\nspec/d_spec.rb:40\n")
@@ -2208,28 +2326,98 @@ RSpec.describe SimpleCov::CLI do
 
       # The sweep reads every file's table, so a malformed table poisons
       # the whole answer even when no query names its file — the same
-      # all-or-nothing tolerance the targeted queries apply.
+      # all-or-nothing tolerance the targeted queries apply. The stderr
+      # assertions are exact: the complaint must name the right file and
+      # the right defect, under the command's own name, with nothing else.
       it "treats a malformed contexts table anywhere in the sweep as invalid input" do
         [{"9" => "1"}, "junk"].each do |malformed|
           payload["coverage"][other_file]["contexts"] = malformed
           File.write(json_path, JSON.dump(payload))
           stderr.truncate(0) && stderr.rewind
           expect(run("tests", "--input", json_path, "--redundant")).to eq(1), "expected 1 for #{malformed.inspect}"
-          expect(stderr.string).to include("isn't valid")
+          expect(stderr.string).to eq(
+            %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ) +
+            %[(entry for #{other_file} carries a malformed "contexts" table)\n]
+          )
         end
       end
 
       it "treats a non-object coverage section as invalid input for the bare sweep" do
         File.write(json_path, JSON.dump(payload.merge("coverage" => "junk")))
         expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
-        expect(stderr.string).to include("isn't valid")
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+        )
+      end
+
+      it "treats an absent coverage section like any other non-object one" do
+        File.write(json_path, JSON.dump({"contexts" => payload["contexts"]}))
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+        )
       end
 
       it "treats a wrong-typed entry anywhere in the sweep as invalid input" do
         payload["coverage"][quiet_file] = "junk"
         File.write(json_path, JSON.dump(payload))
         expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
-        expect(stderr.string).to include("entry for #{quiet_file} must be an object")
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ) +
+          %((entry for #{quiet_file} must be an object)\n)
+        )
+      end
+
+      # Unit examples over the pure helpers: the composed CLI examples
+      # can't distinguish every operator, so these pin the arithmetic
+      # (and the sweep's tolerance for a Hash subclass) directly.
+      describe "sweep helpers" do
+        let(:redundancy) { SimpleCov::CLI::Tests::Redundancy }
+
+        it "extracts the bits set in exactly one bitmap" do
+          expect(redundancy.lone_bits({})).to eq(0)
+          expect(redundancy.lone_bits({0 => 0b1})).to eq(0b1)
+          expect(redundancy.lone_bits({0 => 0b0110, 1 => 0b0100, 2 => 0b1100})).to eq(0b1010)
+          expect(redundancy.lone_bits({0 => 0b1, 1 => 0b1, 2 => 0b1})).to eq(0)
+        end
+
+        it "credits each uniquely covered bit to its owning context" do
+          expect(redundancy.unique_owners([{0 => 0b11, 1 => 0b10}], 3)).to eq([true, false, false])
+          expect(redundancy.unique_owners([{0 => 0b1}, {1 => 0b10}], 2)).to eq([true, true])
+        end
+
+        it "decodes a table arriving as a Hash subclass" do
+          raw = Class.new(Hash).new
+          raw["0"] = "6"
+          expect(redundancy.swept_table({"contexts" => raw}, ["spec/a_spec.rb:1"])).to eq(0 => 6)
+        end
+
+        it "complains about the table, not the entry, for a Hash-subclass entry" do
+          entry = Class.new(Hash).new
+          expect(redundancy.complaint("/p.rb", entry)).to eq(%(entry for /p.rb carries a malformed "contexts" table))
+          expect(redundancy.complaint("/p.rb", "junk")).to eq("entry for /p.rb must be an object")
+        end
+
+        it "renders a nil input path rather than raising" do
+          io = StringIO.new
+          expect(redundancy.invalid({input: nil}, io, "why")).to be_nil
+          expect(io.string).to eq(%(simplecov tests: input file nil isn't valid JSON (why)\n))
+        end
+
+        it "sweeps a document built from Hash subclasses" do
+          subclass = Class.new(Hash)
+          raw = subclass.new.merge!("0" => "1")
+          entry = subclass.new.merge!("contexts" => raw)
+          coverage = subclass.new.merge!("/f.rb" => entry)
+          expect(redundancy.sweep_tables({"coverage" => coverage}, ["a"], {input: "x"}, StringIO.new)).to eq([{0 => 1}])
+        end
+
+        it "answers sorted ids regardless of the recording order" do
+          document = {"coverage" => {"/f.rb" => {"contexts" => {"2" => "1"}}}}
+          contexts = ["z_spec.rb:9", "m_spec.rb:5", "a_spec.rb:1"]
+          expect(redundancy.redundant_ids(document, contexts, {input: "x"}, StringIO.new))
+            .to eq(["m_spec.rb:5", "z_spec.rb:9"])
+        end
       end
 
       it "documents --redundant in the usage text" do

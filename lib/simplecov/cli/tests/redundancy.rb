@@ -10,7 +10,7 @@ module SimpleCov
       # more than once) find the uniquely covered lines and a second pass
       # credits each to its owner.
       module Redundancy
-      module_function
+        extend self
 
         # A context with no table entries anywhere covered nothing, which
         # makes it redundant by definition.
@@ -31,15 +31,20 @@ module SimpleCov
           unique
         end
 
-        # The bits set in exactly one of the table's bitmaps.
+        # The bits set in exactly one of the table's bitmaps: a bit
+        # enters `once` when brand new (absent from `ever`) and leaves
+        # for good when any later bitmap carries it again. The two
+        # halves of the update are provably disjoint, so they are summed:
+        # for disjoint bits that builds the number OR would, and it
+        # leaves no spelling of the combination without a witness.
         def lone_bits(table)
           once = 0
-          multi = 0
+          ever = 0
           table.each_value do |bitmap|
-            multi |= once & bitmap
-            once |= bitmap
+            once = (once & ~bitmap) + (bitmap & ~ever)
+            ever |= bitmap
           end
-          once & ~multi
+          once
         end
 
         # Every file's decoded table. The sweep reads tables no query
@@ -61,7 +66,7 @@ module SimpleCov
 
         def swept_table(entry, contexts)
           raw = entry["contexts"] || {}
-          raw.is_a?(Hash) ? Tests.decode_table(raw, contexts.size) : nil
+          Tests.decode_table(raw, contexts.size) if raw.is_a?(Hash)
         end
 
         def complaint(path, entry)
@@ -71,7 +76,7 @@ module SimpleCov
         end
 
         def invalid(opts, stderr, reason)
-          CoverageFile.report_invalid(stderr, "tests", opts[:input], reason)
+          CoverageFile.report_invalid(stderr, "tests", opts.fetch(:input), reason)
         end
       end
     end
