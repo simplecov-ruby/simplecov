@@ -3,8 +3,8 @@
 require "helper"
 require "coverage"
 
-RSpec.describe SimpleCov do
-  describe ".install_at_exit_hook" do
+RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configuration*"] do
+  describe ".install_at_exit_hook", mutant_expression: "SimpleCov.install_at_exit_hook" do
     around do |example|
       previous_installed = described_class.instance_variable_get(:@at_exit_hook_installed)
       previous_external  = described_class.external_at_exit
@@ -71,6 +71,17 @@ RSpec.describe SimpleCov do
         expect(fake_minitest.after_run_blocks.size).to eq(1)
       end
 
+      it "does not defer in a forked child, whose deferral target can never fire" do
+        allow(Kernel).to receive(:at_exit)
+        allow(described_class).to receive(:forked_subprocess?).and_return(true)
+        allow(fake_minitest).to receive(:after_run)
+
+        described_class.install_at_exit_hook
+
+        expect(described_class).not_to be_external_at_exit
+        expect(fake_minitest).not_to have_received(:after_run)
+      end
+
       it "the after_run block invokes at_exit_behavior" do
         allow(Kernel).to receive(:at_exit)
         allow(described_class).to receive(:at_exit_behavior)
@@ -107,7 +118,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".start" do
+  describe ".start", mutant_expression: "SimpleCov.start" do
     it "delegates to initial_setup, start_tracking, and install_at_exit_hook" do
       # Stub the three pieces so this spec doesn't actually load a
       # profile, mutate global filter state, or restart Coverage.
@@ -122,6 +133,36 @@ RSpec.describe SimpleCov do
       expect(described_class).to have_received(:initial_setup)
       expect(described_class).to have_received(:start_tracking)
       expect(described_class).to have_received(:install_at_exit_hook)
+    end
+
+    it "hands the profile and the block it was called with to initial_setup" do
+      received_args = nil
+      received_block = nil
+      allow(described_class).to receive(:initial_setup) do |*args, &block|
+        received_args = args
+        received_block = block
+      end
+      allow(described_class).to receive_messages(start_tracking: nil, install_at_exit_hook: nil)
+      block = proc {}
+
+      described_class.start("rails", &block)
+
+      expect(received_args).to eq(["rails"])
+      expect(received_block).to be(block)
+    end
+
+    it "says nothing about `.simplecov` when it is not the autoloader calling" do
+      previous = described_class.instance_variable_get(:@autoloading_dot_simplecov)
+      described_class.instance_variable_set(:@autoloading_dot_simplecov, nil)
+      allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
+                                                 install_at_exit_hook: nil,
+                                                 warn_about_start_in_dot_simplecov: nil)
+
+      described_class.start
+
+      expect(described_class).not_to have_received(:warn_about_start_in_dot_simplecov)
+    ensure
+      described_class.instance_variable_set(:@autoloading_dot_simplecov, previous)
     end
 
     # See issue #581 for the rationale: `.simplecov` should be config only.
@@ -176,7 +217,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".with_dot_simplecov_autoload" do
+  describe ".with_dot_simplecov_autoload", mutant_expression: "SimpleCov.with_dot_simplecov_autoload" do
     it "sets the flag during the block and restores it after" do
       described_class.instance_variable_set(:@autoloading_dot_simplecov, false)
       observed = nil
@@ -194,21 +235,36 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".initial_setup" do
+  describe ".initial_setup", mutant_expression: "SimpleCov.initial_setup" do
     it "loads the profile when given" do
       allow(described_class).to receive_messages(load_profile: nil, configure: nil)
       described_class.send(:initial_setup, "rails")
       expect(described_class).to have_received(:load_profile).with("rails")
     end
 
-    it "calls configure when a block is given" do
-      allow(described_class).to receive(:configure)
-      described_class.send(:initial_setup, nil, &proc {})
-      expect(described_class).to have_received(:configure)
+    it "calls configure with the block it was given" do
+      received = nil
+      allow(described_class).to receive(:configure) { |&block| received = block }
+      block = proc {}
+
+      described_class.send(:initial_setup, nil, &block)
+
+      expect(received).to be(block)
+    end
+
+    it "leaves configure alone when no block is given" do
+      allow(described_class).to receive_messages(load_profile: nil, configure: nil)
+
+      described_class.send(:initial_setup, "rails")
+
+      expect(described_class).not_to have_received(:configure)
     end
   end
 
-  describe ".start_tracking with all criteria disabled" do
+  # Named for the caller it protects, but what it exercises is the
+  # validation itself, which is where its coverage belongs.
+  describe "starting with all criteria disabled",
+           mutant_expression: "SimpleCov::Configuration#validate_coverage_criteria!" do
     it "raises a ConfigurationError" do
       previous = described_class.coverage_criteria.dup
       previous.each { |c| described_class.disable_coverage(c) }
@@ -217,6 +273,119 @@ RSpec.describe SimpleCov do
     ensure
       previous.each { |c| described_class.enable_coverage(c) }
     end
+
+    it "says nothing while a criterion is still enabled" do
+      expect(described_class.coverage_criteria).not_to be_empty
+
+      expect { described_class.validate_coverage_criteria! }.not_to raise_error
+    end
+  end
+
+  describe ".start_tracking", mutant_expression: "SimpleCov.start_tracking" do
+    # Everything it sets up, watched rather than executed: starting
+    # measurement for real would instrument the process running these
+    # examples.
+    let(:previous) { {pid: described_class.pid, started: described_class.process_start_time} }
+
+    before do
+      previous
+      allow(described_class).to receive(:start_coverage_measurement)
+      allow(SimpleCov::RunIdentity).to receive(:prepare)
+    end
+
+    after do
+      described_class.pid = previous.fetch(:pid)
+      described_class.process_start_time = previous.fetch(:started)
+    end
+
+    it "forgets any result the process was holding" do
+      described_class.instance_variable_set(:@result, :stale)
+
+      described_class.start_tracking
+      expect(described_class.instance_variable_get(:@result)).to be_nil
+    end
+
+    # The pid is what tells a forked child it is not the process that
+    # started, so it has to be this process's own.
+    it "records the process it started in" do
+      described_class.pid = -1
+
+      described_class.start_tracking
+      expect(described_class.pid).to eq(Process.pid)
+    end
+
+    it "records when it started" do
+      described_class.process_start_time = nil
+
+      described_class.start_tracking
+      expect(described_class.process_start_time).to be_within(5).of(Time.now)
+    end
+
+    # Both are settled before anything can fork, so every child inherits
+    # one answer rather than deciding its own.
+    it "settles the run identity before measurement begins" do
+      described_class.start_tracking
+
+      expect(SimpleCov::RunIdentity).to have_received(:prepare).ordered
+      expect(described_class).to have_received(:start_coverage_measurement).ordered
+    end
+
+    it "refuses to start when no criterion is left to measure" do
+      criteria = described_class.coverage_criteria.dup
+      criteria.each { |criterion| described_class.disable_coverage(criterion) }
+
+      expect { described_class.start_tracking }.to raise_error(SimpleCov::ConfigurationError)
+      expect(described_class).not_to have_received(:start_coverage_measurement)
+    ensure
+      criteria.each { |criterion| described_class.enable_coverage(criterion) }
+    end
+
+    # Watched rather than performed: loading the hook prepends a fork
+    # wrapper to Process for the rest of this process's life.
+    describe "the subprocess fork hook" do
+      before { allow(described_class).to receive(:require_relative) }
+
+      it "is loaded when subprocess support is on and the hook point exists" do
+        allow(described_class).to receive(:enabled_for_subprocesses?).and_return(true)
+        allow(Process).to receive(:respond_to?).and_call_original
+        allow(Process).to receive(:respond_to?).with(:_fork).and_return(true)
+
+        described_class.start_tracking
+        expect(described_class).to have_received(:require_relative).with("simplecov/process")
+      end
+
+      it "is left alone when subprocess support is off" do
+        allow(described_class).to receive(:enabled_for_subprocesses?).and_return(false)
+
+        described_class.start_tracking
+        expect(described_class).not_to have_received(:require_relative)
+      end
+
+      # Older rubies have no `_fork` to hook, so there is nothing the
+      # setting can turn on.
+      it "is left alone where Process has no fork hook to prepend to" do
+        allow(described_class).to receive(:enabled_for_subprocesses?).and_return(true)
+        allow(Process).to receive(:respond_to?).and_call_original
+        allow(Process).to receive(:respond_to?).with(:_fork).and_return(false)
+
+        described_class.start_tracking
+        expect(described_class).not_to have_received(:require_relative)
+      end
+    end
+
+    it "makes sure Coverage is loaded before measuring with it" do
+      allow(described_class).to receive(:require)
+
+      described_class.start_tracking
+      expect(described_class).to have_received(:require).with("coverage")
+    end
+
+    it "says so where JRuby cannot report full traces" do
+      allow(described_class).to receive(:warn_if_jruby_full_trace_disabled)
+
+      described_class.start_tracking
+      expect(described_class).to have_received(:warn_if_jruby_full_trace_disabled)
+    end
   end
 
   # `Result#to_hash` serializes coverage after filtering, so a file this process
@@ -224,7 +393,7 @@ RSpec.describe SimpleCov do
   # still listed as tracked, and a merge elsewhere would simulate it back in as
   # never-loaded. Recording only what was tracked and not loaded avoids that.
   # See #1250.
-  describe "the tracked paths recorded on a result" do
+  describe "the tracked paths recorded on a result", mutant_expression: "SimpleCov.process_coverage_result" do
     around do |example|
       previous_cover = described_class.cover_filters.dup
       previous_filters = described_class.filters.dup
@@ -232,6 +401,116 @@ RSpec.describe SimpleCov do
     ensure
       described_class.instance_variable_set(:@cover_filters, previous_cover)
       described_class.instance_variable_set(:@filters, previous_filters)
+    end
+
+    # Every step the method takes, watched: templates compiled in,
+    # entries outside the root dropped, the raw hash adapted, and the
+    # result built from the pieces those produced.
+    describe "what it does with the coverage it collected" do
+      let(:sample) { File.expand_path("spec/fixtures/sample.rb", described_class.root) }
+      let(:raw) { {sample => {"lines" => [1, 1]}} }
+
+      before do
+        allow(Coverage).to receive_messages(running?: true, result: raw)
+        allow(SimpleCov::ViewCoverage).to receive(:compile_unrendered)
+      end
+
+      it "compiles the templates nothing rendered, so they arrive at nothing rather than absent" do
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(SimpleCov::ViewCoverage).to have_received(:compile_unrendered)
+      end
+
+      it "drops what lies outside the project before anything else reads it" do
+        allow(SimpleCov::UselessResultsRemover).to receive(:call).and_return({})
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(SimpleCov::UselessResultsRemover).to have_received(:call).with(raw)
+        expect(described_class.result.filenames).to be_empty
+      end
+
+      it "adapts the raw hash that survived the filtering" do
+        allow(SimpleCov::UselessResultsRemover).to receive(:call).and_return(raw)
+        allow(SimpleCov::ResultAdapter).to receive(:call).and_call_original
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(SimpleCov::ResultAdapter).to have_received(:call).with(raw)
+      end
+
+      # Handed the adapted coverage and the paths that were tracked but
+      # not loaded, in that order: the first says what is there, the
+      # second what has to be filled in.
+      it "injects the tracked files it was asked to, and carries what was injected" do
+        described_class.cover "spec/fixtures/*.rb"
+        allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set["injected.rb"]])
+        allow(SimpleCov::Result).to receive(:new).and_call_original
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: true)
+
+        expect(described_class).to have_received(:inject_unloaded_files)
+          .with(a_hash_including(sample), a_collection_including(a_string_ending_with(".rb")))
+        expect(SimpleCov::Result)
+          .to have_received(:new).with({}, hash_including(not_loaded_files: Set["injected.rb"]))
+      end
+
+      # Injection is what the at-exit path wants, so it is what a caller
+      # gets without saying so.
+      it "injects by default" do
+        allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
+
+        described_class.send(:process_coverage_result, report: false)
+        expect(described_class).to have_received(:inject_unloaded_files)
+      end
+
+      it "injects nothing when it was asked not to, and carries the coverage as adapted" do
+        allow(described_class).to receive(:inject_unloaded_files)
+        allow(SimpleCov::Result).to receive(:new).and_call_original
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(described_class).not_to have_received(:inject_unloaded_files)
+        expect(SimpleCov::Result).to have_received(:new).with(anything, hash_including(not_loaded_files: Set.new))
+      end
+
+      # The identity is stamped on the result so a merge can tell which
+      # run and which worker produced it.
+      it "stamps the run and the worker on the result" do
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(described_class.result.run_id).to eq(described_class.run_id)
+        expect(described_class.result.worker_id).to eq(described_class.worker_id)
+      end
+
+      it "carries whether the result is the one to report" do
+        allow(SimpleCov::Result).to receive(:new).and_call_original
+
+        described_class.send(:process_coverage_result, report: true, inject_unloaded: false)
+        expect(SimpleCov::Result).to have_received(:new).with(anything, hash_including(report: true))
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+        expect(SimpleCov::Result).to have_received(:new).with(anything, hash_including(report: false))
+      end
+
+      # The map is taken while the coverage that closed it is in hand,
+      # since reading it later would find measurement already stopped.
+      it "closes the test map against the coverage it just read" do
+        tracker = instance_double(SimpleCov::TestTracker, recorded_map: :the_map)
+        allow(described_class).to receive(:test_tracker).and_return(tracker)
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+
+        expect(tracker).to have_received(:recorded_map).with(closing: raw)
+        expect(described_class.result.contexts).to be(:the_map)
+      end
+
+      it "records no contexts where nothing was tracking tests" do
+        allow(described_class).to receive(:test_tracker).and_return(nil)
+
+        described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
+        expect(described_class.result.contexts).to be_nil
+      end
     end
 
     it "excludes files this process loaded" do
@@ -307,13 +586,16 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".inject_unloaded_files" do
+  describe ".inject_unloaded_files", mutant_expression: "SimpleCov.inject_unloaded_files" do
     # Discovery and injection are separate now, so exercise them as the pair
     # `process_coverage_result` uses.
     def inject_tracked(result)
       SimpleCov.inject_unloaded_files(result, SimpleCov.send(:tracked_file_paths))
     end
 
+    # What the injector is asked for, rather than what it produces:
+    # parsing a file it need not parse is the cost this defaulting
+    # exists to avoid.
     around do |example|
       previous_tracked = described_class.tracked_files
       previous_cover = described_class.cover_filters.dup
@@ -321,6 +603,66 @@ RSpec.describe SimpleCov do
     ensure
       described_class.instance_variable_set(:@tracked_files, previous_tracked)
       described_class.instance_variable_set(:@cover_filters, previous_cover)
+    end
+
+    describe "what it asks the injector to synthesize" do
+      before { allow(SimpleCov::UnloadedFileInjector).to receive(:call).and_return([{}, Set.new]) }
+
+      def inject(**options)
+        described_class.inject_unloaded_files({}, ["lib/a.rb"], **options)
+      end
+
+      it "asks for nothing when there are no candidates, without troubling the injector" do
+        expect(described_class.inject_unloaded_files({"a" => 1}, [])).to eq([{"a" => 1}, Set.new])
+        expect(SimpleCov::UnloadedFileInjector).not_to have_received(:call)
+      end
+
+      it "synthesizes tuples when branch coverage is measured" do
+        allow(described_class).to receive_messages(branch_coverage?: true, method_coverage?: false)
+
+        inject
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with({}, ["lib/a.rb"], hash_including(synthesize: true))
+      end
+
+      it "synthesizes tuples when method coverage is measured" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
+
+        inject
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with(anything, anything, hash_including(synthesize: true))
+      end
+
+      # Nothing reads those tuples when neither criterion is on, and
+      # producing them means parsing every file that was never loaded.
+      it "synthesizes nothing when neither criterion is measured" do
+        allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
+
+        inject
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with(anything, anything, hash_including(synthesize: false))
+      end
+
+      it "takes the caller's word over the criteria" do
+        allow(described_class).to receive_messages(branch_coverage?: true, method_coverage?: true,
+                                                   line_coverage?: true)
+
+        inject(synthesize: false, lines: false)
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with(anything, anything, {synthesize: false, lines: false})
+      end
+
+      it "simulates lines when line coverage is measured, and not otherwise" do
+        allow(described_class).to receive(:line_coverage?).and_return(true)
+        inject
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with(anything, anything, hash_including(lines: true))
+
+        allow(described_class).to receive(:line_coverage?).and_return(false)
+        inject
+        expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
+          .with(anything, anything, hash_including(lines: false))
+      end
     end
 
     it "returns the input unchanged when no discovery glob is configured" do
@@ -411,7 +753,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".ready_to_process_results?" do
+  describe ".ready_to_process_results?", mutant_expression: "SimpleCov.ready_to_process_results?" do
     around do |example|
       previous_defined = described_class.instance_variable_defined?(:@collating_result)
       previous = described_class.instance_variable_get(:@collating_result) if previous_defined
@@ -421,6 +763,43 @@ RSpec.describe SimpleCov do
         described_class.instance_variable_set(:@collating_result, previous)
       elsif described_class.instance_variable_defined?(:@collating_result)
         described_class.remove_instance_variable(:@collating_result)
+      end
+    end
+
+    # Every way the answer can be no, and the two ways it can be yes.
+    describe "what has to be true before results are processed" do
+      before do
+        allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
+                                                   collating_result?: false,
+                                                   parallel_results_complete?: true)
+      end
+
+      it "is false in a process that does not own the finalization" do
+        allow(described_class).to receive(:merge_finalization_owner?).and_return(false)
+        expect(described_class.ready_to_process_results?).to be(false)
+      end
+
+      it "is false where there is no result to process" do
+        allow(described_class).to receive(:result?).and_return(false)
+        expect(described_class.ready_to_process_results?).to be(false)
+      end
+
+      # A collate has every resultset by definition, so it never waits
+      # on siblings.
+      it "is true for a collate, whatever the siblings did" do
+        allow(described_class).to receive_messages(collating_result?: true,
+                                                   parallel_results_complete?: false)
+        expect(described_class.ready_to_process_results?).to be(true)
+      end
+
+      it "is true for a run whose siblings all reported" do
+        expect(described_class.ready_to_process_results?).to be(true)
+      end
+
+      # A partial total would fail thresholds that the whole run passes.
+      it "is false for a run still missing a sibling" do
+        allow(described_class).to receive(:parallel_results_complete?).and_return(false)
+        expect(described_class.ready_to_process_results?).to be(false)
       end
     end
 
@@ -443,7 +822,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".forked_subprocess?" do
+  describe ".forked_subprocess?", mutant_expression: "SimpleCov.forked_subprocess?" do
     around do |example|
       defined = described_class.instance_variable_defined?(:@forked_subprocess)
       previous = described_class.instance_variable_get(:@forked_subprocess)
@@ -456,6 +835,19 @@ RSpec.describe SimpleCov do
       described_class.instance_variable_set(:@forked_subprocess, previous) if defined
     end
 
+    # Three states, not two: never marked, marked and cleared, marked.
+    it "is false where the mark was set and taken back" do
+      described_class.instance_variable_set(:@forked_subprocess, false)
+      expect(described_class.forked_subprocess?).to be(false)
+    end
+
+    # Answered as a boolean whatever the mark holds, because callers
+    # compare it to one.
+    it "answers a boolean even where the mark holds something else" do
+      described_class.instance_variable_set(:@forked_subprocess, "yes")
+      expect(described_class.forked_subprocess?).to be(true)
+    end
+
     it "is false until the process is marked as a forked subprocess" do
       expect(described_class.forked_subprocess?).to be false
     end
@@ -466,7 +858,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".final_result_process?" do
+  describe ".final_result_process?", mutant_expression: "SimpleCov.final_result_process?" do
     it "is true when ParallelTests isn't loaded" do
       expect(described_class.send(:final_result_process?)).to be_truthy
     end
@@ -533,13 +925,87 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".wait_for_other_processes" do
-    it "returns early when ParallelTests is not loaded" do
+  describe ".wait_for_other_processes", mutant_expression: "SimpleCov.wait_for_other_processes" do
+    let(:adapter) do
+      class_double(SimpleCov::ParallelAdapters::Base, wait_for_siblings: nil,
+                                                      expected_worker_count: 3, native_wait?: true)
+    end
+
+    around do |example|
+      had = described_class.instance_variable_defined?(:@parallel_results_complete)
+      previous = described_class.instance_variable_get(:@parallel_results_complete) if had
+      example.run
+    ensure
+      described_class.remove_instance_variable(:@parallel_results_complete) if
+        described_class.instance_variable_defined?(:@parallel_results_complete)
+      described_class.instance_variable_set(:@parallel_results_complete, previous) if had
+    end
+
+    it "returns early when no parallel runner is driving the suite" do
+      allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(nil)
+
       expect(described_class.send(:wait_for_other_processes)).to be_nil
+      expect(adapter).not_to have_received(:wait_for_siblings)
+    end
+
+    # Only the process that will write the report waits; the others have
+    # nothing to wait for and would deadlock each other if they did.
+    it "returns early in a worker that is not the one reporting" do
+      allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+      allow(described_class).to receive(:final_result_process?).and_return(false)
+
+      expect(described_class.send(:wait_for_other_processes)).to be_nil
+      expect(adapter).not_to have_received(:wait_for_siblings)
+    end
+
+    context "when this is the process that will report" do
+      before do
+        allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
+        allow(described_class).to receive_messages(final_result_process?: true, wait_for_parallel_results: true)
+      end
+
+      # The runner's own wait first, where there is one, then the poll:
+      # a native wait can return before the siblings have finished
+      # writing, and an adapter without one has nothing else.
+      it "waits on the runner before polling for resultsets" do
+        described_class.send(:wait_for_other_processes)
+
+        expect(adapter).to have_received(:wait_for_siblings).ordered
+        expect(described_class).to have_received(:wait_for_parallel_results).ordered
+      end
+
+      it "polls for as many workers as the adapter expects, saying whether it waited natively" do
+        described_class.send(:wait_for_other_processes)
+
+        expect(described_class).to have_received(:wait_for_parallel_results).with(3, native_wait: true)
+      end
+
+      # An adapter with no wait primitive of its own says so, and the
+      # poll is what has to be patient in that case.
+      it "says when there was no native wait to lean on" do
+        allow(adapter).to receive(:native_wait?).and_return(false)
+
+        described_class.send(:wait_for_other_processes)
+        expect(described_class).to have_received(:wait_for_parallel_results).with(3, native_wait: false)
+      end
+
+      it "remembers that every sibling reported" do
+        described_class.send(:wait_for_other_processes)
+        expect(described_class.parallel_results_complete?).to be(true)
+      end
+
+      # Recorded so the threshold checks can tell a partial total from a
+      # complete one and stay quiet about it.
+      it "remembers when they did not" do
+        allow(described_class).to receive(:wait_for_parallel_results).and_return(false)
+
+        described_class.send(:wait_for_other_processes)
+        expect(described_class.parallel_results_complete?).to be(false)
+      end
     end
   end
 
-  describe ".wait_for_parallel_results" do
+  describe ".wait_for_parallel_results", mutant_expression: "SimpleCov.wait_for_parallel_results" do
     it "returns true immediately when expected worker count is 1 (single-process or single-group)" do
       expect(described_class.send(:wait_for_parallel_results, 1)).to be(true)
     end
@@ -556,6 +1022,75 @@ RSpec.describe SimpleCov do
       }
       allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
       expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
+    end
+
+    # More workers than expected is still every worker: the count is a
+    # floor, not a target to match exactly.
+    it "is satisfied by more reports than it expected" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 3, sleep: nil)
+
+      expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
+    end
+
+    # Without a native wait there is nothing to say the siblings have
+    # exited, so a steady count proves nothing and the poll runs on.
+    it "does not accept a settled count when no native wait ran" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(false, false, true)
+
+      expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
+    end
+
+    # A steady count only means something after a native wait proved the
+    # siblings had exited; on its own it is just a count that has not
+    # moved yet.
+    it "ignores a settled count when no native wait ran" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
+                                                 resultset_count_settled?: true)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
+
+      expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
+    end
+
+    # The count starts at nothing and the clock starts now, which is
+    # what makes the first report look like movement.
+    it "starts tracking from no workers seen, timed from the moment it began" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
+                                                 resultset_count_settled?: false)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
+
+      described_class.send(:wait_for_parallel_results, 4, native_wait: true)
+      expect(described_class).to have_received(:resultset_count_settled?)
+        .with({count: 0, since: an_instance_of(Float)}, 1)
+    end
+
+    # A caller that says nothing is a caller with no native wait behind
+    # it, so a settled count means nothing to them either.
+    it "polls without a native wait unless told there was one" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
+                                                 resultset_count_settled?: true)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
+
+      expect(described_class.send(:wait_for_parallel_results, 4)).to be(false)
+    end
+
+    # The deadline it was given, the count it wants and the count it has:
+    # all three decide whether waiting longer is worth it.
+    it "asks about the timeout with the deadline, the expected count and what it has seen" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
+
+      described_class.send(:wait_for_parallel_results, 4)
+      expect(described_class).to have_received(:parallel_wait_timed_out?)
+        .with(an_instance_of(Float), 4, 1)
+    end
+
+    it "pauses between polls rather than spinning" do
+      allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil)
+      allow(described_class).to receive(:parallel_wait_timed_out?).and_return(false, true)
+
+      described_class.send(:wait_for_parallel_results, 4)
+      expect(described_class).to have_received(:sleep).with(0.1)
     end
 
     it "does not count stale entries or forked children as current workers" do
@@ -608,7 +1143,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".parallel_results_complete?" do
+  describe ".parallel_results_complete?", mutant_expression: "SimpleCov.parallel_results_complete?" do
     around do |example|
       ivar = :@parallel_results_complete
       previous_defined = described_class.instance_variable_defined?(ivar)
@@ -634,18 +1169,38 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".at_exit_behavior" do
+  describe ".at_exit_behavior", mutant_expression: "SimpleCov.at_exit_behavior" do
     around do |example|
       previous_pid = described_class.pid
       example.run
       described_class.pid = previous_pid
     end
 
+    # Everything downstream is let through, so the process check is the
+    # only thing that can stop this.
     it "is a no-op when called from a different process than start" do
       described_class.pid = -1 # never matches Process.pid
-      allow(described_class).to receive(:run_exit_tasks!)
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive_messages(defer_to_existing_report?: false, run_exit_tasks!: nil)
+
       described_class.at_exit_behavior
       expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+
+    # The status is read before the deferral probe, whose freshness check
+    # rescues filesystem errors, and completing a rescue inside an
+    # at_exit handler resets the error the suite exited with.
+    it "reads the suite's exit status before probing for a fresher report" do
+      described_class.pid = Process.pid
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive_messages(exit_status_from_exception: 7,
+                                                 defer_to_existing_report?: false, run_exit_tasks!: nil)
+
+      described_class.at_exit_behavior
+
+      expect(described_class).to have_received(:exit_status_from_exception).ordered
+      expect(described_class).to have_received(:defer_to_existing_report?).ordered
+      expect(described_class).to have_received(:run_exit_tasks!).with(7)
     end
 
     it "runs exit tasks when in the same process and Coverage is running" do
@@ -691,12 +1246,41 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".defer_to_existing_report?" do
+  describe ".defer_to_existing_report?", mutant_expression: "SimpleCov.defer_to_existing_report?" do
     let(:tmp) { Dir.mktmpdir }
     let(:last_run_path) { File.join(tmp, ".last_run.json") }
 
     before { allow(described_class).to receive(:coverage_path).and_return(tmp) }
     after { FileUtils.remove_entry(tmp) }
+
+    # A report that is newer than us but has nothing in it is the case
+    # this stands down for; one with files is a report we may replace.
+    describe "when there is a newer report on disk" do
+      before { allow(described_class).to receive(:existing_report_newer_than_us?).and_return(true) }
+
+      it "stands down, and says so, when this run has no result at all" do
+        allow(described_class).to receive_messages(result: nil, warn_about_deferred_report: nil)
+
+        expect(described_class.defer_to_existing_report?).to be(true)
+        expect(described_class).to have_received(:warn_about_deferred_report)
+      end
+
+      it "stands down, and says so, when this run measured nothing" do
+        allow(described_class).to receive_messages(result: SimpleCov::Result.new({}),
+                                                   warn_about_deferred_report: nil)
+
+        expect(described_class.defer_to_existing_report?).to be(true)
+        expect(described_class).to have_received(:warn_about_deferred_report)
+      end
+
+      it "carries on quietly when this run has something to report" do
+        result = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [1]}})
+        allow(described_class).to receive_messages(result: result, warn_about_deferred_report: nil)
+
+        expect(described_class.defer_to_existing_report?).to be(false)
+        expect(described_class).not_to have_received(:warn_about_deferred_report)
+      end
+    end
 
     it "is false when process_start_time is unset" do
       allow(described_class).to receive(:process_start_time).and_return(nil)
@@ -779,7 +1363,58 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".run_exit_tasks!" do
+  describe ".run_exit_tasks!", mutant_expression: "SimpleCov.run_exit_tasks!" do
+    # The project's own at_exit block runs first, and it runs whatever
+    # the branches below decide.
+    it "runs the configured at_exit block before deciding anything" do
+      ran = []
+      allow(described_class).to receive_messages(at_exit: -> { ran << :at_exit },
+                                                 exit_status_from_exception: nil,
+                                                 previous_error?: false, ready_to_process_results?: true)
+      allow(described_class).to receive(:process_results_and_report_error) { ran << :processed }
+
+      described_class.run_exit_tasks!
+      expect(ran).to eq(%i[at_exit processed])
+    end
+
+    it "processes nothing when the run is not ready to be processed" do
+      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
+                                                 previous_error?: false, ready_to_process_results?: false)
+      allow(described_class).to receive(:process_results_and_report_error)
+
+      described_class.run_exit_tasks!
+      expect(described_class).not_to have_received(:process_results_and_report_error)
+    end
+
+    it "reports no previous error when there was none" do
+      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
+                                                 previous_error?: false, ready_to_process_results?: false)
+      allow(described_class).to receive(:exit_and_report_previous_error)
+
+      described_class.run_exit_tasks!
+      expect(described_class).not_to have_received(:exit_and_report_previous_error)
+    end
+
+    # The status the suite exited with is what both branches are asked
+    # about, and a caller may hand its own in.
+    it "asks about the status it was given rather than looking it up again" do
+      allow(described_class).to receive_messages(at_exit: proc {}, previous_error?: false,
+                                                 ready_to_process_results?: false,
+                                                 exit_status_from_exception: 9)
+
+      described_class.run_exit_tasks!(4)
+      expect(described_class).to have_received(:previous_error?).with(4)
+    end
+
+    it "looks the status up when a caller hands none in" do
+      allow(described_class).to receive_messages(at_exit: proc {}, previous_error?: false,
+                                                 ready_to_process_results?: false,
+                                                 exit_status_from_exception: 9)
+
+      described_class.run_exit_tasks!
+      expect(described_class).to have_received(:previous_error?).with(9)
+    end
+
     it "calls at_exit, then handles previous-error and result-processing branches" do
       proc_double = proc {}
       allow(described_class).to receive(:exit_and_report_previous_error)
@@ -803,7 +1438,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".collate finalization" do
+  describe ".collate finalization", mutant_expression: "SimpleCov.collate" do
     after { described_class.clear_result }
 
     it "finalizes and writes last_run even when ordinary worker finalization is disabled" do
@@ -824,9 +1459,17 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".previous_error?" do
+  describe ".previous_error?", mutant_expression: "SimpleCov.previous_error?" do
     it "is truthy for a non-success exit status" do
       expect(described_class).to be_previous_error(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+    end
+
+    it "answers with a boolean rather than the status it was handed" do
+      expect(described_class.previous_error?(SimpleCov::ExitCodes::MINIMUM_COVERAGE)).to be(true)
+    end
+
+    it "answers false, not nil, for a status it was never given" do
+      expect(described_class.previous_error?(nil)).to be(false)
     end
 
     it "is falsey for SUCCESS" do
@@ -838,7 +1481,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".exit_and_report_previous_error" do
+  describe ".exit_and_report_previous_error", mutant_expression: "SimpleCov.exit_and_report_previous_error" do
     it "warns when print_errors is true and exits with the given status" do
       allow(described_class).to receive(:print_errors).and_return(true)
       allow(Kernel).to receive(:exit)
@@ -853,9 +1496,20 @@ RSpec.describe SimpleCov do
       stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
       expect(stderr).to be_empty
     end
+
+    it "colors the notice yellow, the shade it reserves for someone else's error" do
+      allow(described_class).to receive(:print_errors).and_return(true)
+      allow(Kernel).to receive(:exit)
+      allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
+
+      capture_stderr { described_class.exit_and_report_previous_error(2) }
+
+      expect(SimpleCov::Color)
+        .to have_received(:colorize).with(/\AStopped processing SimpleCov /, :yellow)
+    end
   end
 
-  describe ".process_results_and_report_error" do
+  describe ".process_results_and_report_error", mutant_expression: "SimpleCov.process_results_and_report_error" do
     it "exits with the coverage-related error status when process_result returns positive" do
       allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: true)
       allow(Kernel).to receive(:exit)
@@ -873,6 +1527,29 @@ RSpec.describe SimpleCov do
       expect(Kernel).not_to have_received(:exit)
     end
 
+    it "processes the result this run collected" do
+      collected = double
+      allow(described_class).to receive_messages(result: collected, process_result: 0)
+      # Stubbed even though a zero status should never reach it: a
+      # mutation that drops the guard would otherwise exit this worker
+      # cleanly, which mutant reads as a passing run.
+      allow(Kernel).to receive(:exit)
+
+      described_class.process_results_and_report_error
+
+      expect(described_class).to have_received(:process_result).with(collected)
+    end
+
+    it "colors the failure red, the shade it reserves for its own" do
+      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: true)
+      allow(Kernel).to receive(:exit)
+      allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
+
+      capture_stderr { described_class.process_results_and_report_error }
+
+      expect(SimpleCov::Color).to have_received(:colorize).with(/\ASimpleCov failed with exit /, :red)
+    end
+
     it "stays silent when print_errors is false but still exits" do
       allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: false)
       allow(Kernel).to receive(:exit)
@@ -882,7 +1559,7 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".grouped" do
+  describe ".grouped", mutant_expression: "SimpleCov.grouped" do
     let(:files) do
       [
         instance_double(SimpleCov::SourceFile, filename: "/abs/lib/foo.rb", project_filename: "lib/foo.rb"),
@@ -909,6 +1586,15 @@ RSpec.describe SimpleCov do
       expect(result["Ungrouped"].map(&:project_filename)).to eq(["test/foo.rb"])
     end
 
+    it "hands back file lists, which is what a group is asked to report on" do
+      described_class.group("Lib", "lib")
+
+      result = described_class.grouped(files)
+
+      expect(result["Lib"]).to be_a(SimpleCov::FileList)
+      expect(result["Ungrouped"]).to be_a(SimpleCov::FileList)
+    end
+
     it "skips Ungrouped when every file matches a group" do
       described_class.group("All", //)
       result = described_class.grouped(files)
@@ -923,7 +1609,40 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".result" do
+  describe ".unloaded_file_discovery_globs", mutant_expression: "SimpleCov.unloaded_file_discovery_globs" do
+    it "lays the cover globs out beside the tracked-files one rather than nesting them" do
+      allow(described_class).to receive_messages(tracked_files: "lib/**/*.rb",
+                                                 cover_globs: ["app/**/*.rb", "config/**/*.rb"])
+
+      expect(described_class.send(:unloaded_file_discovery_globs))
+        .to eq(["lib/**/*.rb", "app/**/*.rb", "config/**/*.rb"])
+    end
+
+    it "drops the tracked-files glob when none was configured" do
+      allow(described_class).to receive_messages(tracked_files: nil, cover_globs: ["app/**/*.rb"])
+
+      expect(described_class.send(:unloaded_file_discovery_globs)).to eq(["app/**/*.rb"])
+    end
+  end
+
+  describe ".write_last_run", mutant_expression: "SimpleCov.write_last_run" do
+    it "records each criterion's percentage rounded down to two decimals" do
+      result = instance_double(
+        SimpleCov::Result,
+        coverage_statistics: {
+          line: instance_double(SimpleCov::CoverageStatistics, percent: 89.456789),
+          branch: instance_double(SimpleCov::CoverageStatistics, percent: 74.999999)
+        }
+      )
+      allow(SimpleCov::LastRun).to receive(:write)
+
+      described_class.write_last_run(result)
+
+      expect(SimpleCov::LastRun).to have_received(:write).with(result: {line: 89.45, branch: 74.99})
+    end
+  end
+
+  describe ".result", mutant_expression: "SimpleCov.result" do
     before do
       described_class.clear_result
       allow(Coverage).to receive(:result).once.and_return({})
@@ -1103,7 +1822,17 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".exit_status_from_exception" do
+  describe ".exit_status_from_exception", mutant_expression: "SimpleCov.exit_status_from_exception" do
+    # A deliberate exit carries its own status, and a subclass of one is
+    # still a deliberate exit.
+    context "when a subclass of SystemExit has occurred" do
+      it "returns that exit's status" do
+        raise Class.new(SystemExit), 3
+      rescue SystemExit
+        expect(described_class.exit_status_from_exception).to eq(3)
+      end
+    end
+
     context "when no exception has occurred" do
       it "returns nil" do
         expect(described_class.exit_status_from_exception).to be_nil
@@ -1127,8 +1856,50 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".process_result" do
+  describe ".process_result", mutant_expression: "SimpleCov.process_result" do
     let(:result) { SimpleCov::Result.new({}) }
+
+    # A run that passed becomes both the baseline the next run compares
+    # against and a point in the recorded trend. A run that failed
+    # becomes neither, so a red build cannot lower the bar.
+    describe "what a run leaves behind" do
+      before do
+        allow(described_class).to receive(:write_last_run)
+        allow(SimpleCov::History).to receive(:record)
+      end
+
+      it "records the run against itself and in the trend when it passed" do
+        allow(described_class).to receive(:result_exit_status).and_return(SimpleCov::ExitCodes::SUCCESS)
+
+        expect(described_class.process_result(result)).to eq(SimpleCov::ExitCodes::SUCCESS)
+        expect(described_class).to have_received(:write_last_run).with(result)
+        expect(SimpleCov::History).to have_received(:record).with(result)
+      end
+
+      it "records neither when it failed" do
+        allow(described_class).to receive(:result_exit_status)
+          .and_return(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+
+        expect(described_class.process_result(result)).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
+        expect(described_class).not_to have_received(:write_last_run)
+        expect(SimpleCov::History).not_to have_received(:record)
+      end
+
+      # Any non-success status, not merely the one the thresholds raise.
+      it "records neither when the run ended in an exception" do
+        allow(described_class).to receive(:result_exit_status).and_return(SimpleCov::ExitCodes::EXCEPTION)
+
+        described_class.process_result(result)
+        expect(described_class).not_to have_received(:write_last_run)
+      end
+
+      it "judges the result it was handed" do
+        allow(described_class).to receive(:result_exit_status).and_return(SimpleCov::ExitCodes::SUCCESS)
+
+        described_class.process_result(result)
+        expect(described_class).to have_received(:result_exit_status).with(result)
+      end
+    end
 
     context "when minimum coverage is 100%" do
       before do
@@ -1186,19 +1957,12 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".collate" do
-    let(:first_resultset) do
-      {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
+  describe ".collate", mutant_expression: "SimpleCov.collate" do
+    # What collating asks of its collaborators, rather than what they
+    # produce, so the arguments it passes are visible.
+    let(:collated) do
+      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
     end
-
-    let(:second_resultset) do
-      {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
-    end
-
-    let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
-
-    let(:resultset_folder) { File.dirname(resultset_path) }
-
     let(:merged_result) do
       {
         "result1, result2" => {
@@ -1210,9 +1974,109 @@ RSpec.describe SimpleCov do
         }
       }
     end
+    let(:resultset_folder) { File.dirname(resultset_path) }
+    let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
+    # A coverage folder of this block's own: collating reads every shard
+    # it finds beside the resultset, and the suite's own folder is where
+    # every other example leaves theirs.
+    let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-spec-") }
+    let(:second_resultset) do
+      {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
+    end
+    let(:first_resultset) do
+      {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
+    end
 
-    let(:collated) do
-      JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
+    after { FileUtils.remove_entry(coverage_folder) }
+    before { allow(described_class).to receive_messages(coverage_path: coverage_folder, coverage_dir: coverage_folder) }
+
+    describe "the merge it asks for" do
+      before do
+        allow(SimpleCov::ParallelResultMerger).to receive(:merge_and_store).and_return(SimpleCov::Result.new({}))
+        allow(described_class).to receive_messages(initial_setup: nil, run_exit_tasks!: nil)
+      end
+
+      it "refuses to collate nothing, saying why" do
+        expect { described_class.collate([]) }
+          .to raise_error(ArgumentError, "There are no reports to be merged")
+        expect(SimpleCov::ParallelResultMerger).not_to have_received(:merge_and_store)
+      end
+
+      it "sets up with the profile it was given before merging anything" do
+        described_class.collate(["a.json"], :rails)
+
+        expect(described_class).to have_received(:initial_setup).with(:rails).ordered
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store).ordered
+      end
+
+      it "sets up with no profile when none was named" do
+        described_class.collate(["a.json"])
+        expect(described_class).to have_received(:initial_setup).with(nil)
+      end
+
+      # A configuration block is the other way to set a collate up, so
+      # it has to reach the setup along with the profile.
+      it "hands the configuration block on to the setup" do
+        block = proc { add_filter "x" }
+        described_class.collate(["a.json"], &block)
+
+        expect(described_class).to have_received(:initial_setup) do |_profile, &given|
+          expect(given).to be(block)
+        end
+      end
+
+      it "merges in one process when the environment says nothing" do
+        with_env("SIMPLECOV_CONCURRENCY" => nil) do
+          described_class.collate(["a.json"])
+        end
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store)
+          .with(anything, hash_including(processes: 1))
+      end
+
+      # One process is the floor: a concurrency of nought or less would
+      # merge nothing at all.
+      it "merges with at least one process, however few were asked for" do
+        described_class.collate(["a.json"], processes: 0)
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store)
+          .with("a.json", hash_including(processes: 1))
+      end
+
+      it "merges with as many processes as were asked for" do
+        described_class.collate(["a.json"], processes: 4)
+
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store)
+          .with("a.json", hash_including(processes: 4))
+      end
+
+      it "ignores the merge timeout by default, and honours it when told to" do
+        described_class.collate(["a.json"])
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store)
+          .with(anything, hash_including(ignore_timeout: true))
+
+        described_class.collate(["a.json"], ignore_timeout: false)
+        expect(SimpleCov::ParallelResultMerger).to have_received(:merge_and_store)
+          .with(anything, hash_including(ignore_timeout: false))
+      end
+
+      # The flag says the result being reported came from a collate, and
+      # it is put back whatever happens, including when the merge raises.
+      it "marks the run as collating while the exit tasks run" do
+        seen = nil
+        allow(described_class).to receive(:run_exit_tasks!) { seen = described_class.collating_result? }
+
+        described_class.collate(["a.json"])
+        expect(seen).to be(true)
+        expect(described_class.collating_result?).to be(false)
+      end
+
+      it "stops marking it even when the merge fails" do
+        allow(SimpleCov::ParallelResultMerger).to receive(:merge_and_store).and_raise(RuntimeError)
+
+        expect { described_class.collate(["a.json"]) }.to raise_error(RuntimeError)
+        expect(described_class.collating_result?).to be(false)
+      end
     end
 
     context "when no files to be merged" do
@@ -1322,14 +2186,19 @@ RSpec.describe SimpleCov do
     end
   end
 
-  describe ".collate across processes" do
+  describe ".collate across processes", mutant_expression: "SimpleCov.collate" do
+    # As above: the shards this block collates are its own, in a folder
+    # nothing else writes to.
+    let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-processes-spec-") }
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
-
     let(:resultset_folder) { File.dirname(resultset_path) }
-
     let(:collated) do
       JSON.parse(File.read(resultset_path)).transform_values { |data| data.reject { |key| key == "timestamp" } }
     end
+
+    before { allow(described_class).to receive_messages(coverage_path: coverage_folder, coverage_dir: coverage_folder) }
+
+    after { FileUtils.remove_entry(coverage_folder) }
 
     context "when no files to be merged" do
       it "shows an error message" do
@@ -1424,7 +2293,7 @@ RSpec.describe SimpleCov do
 
   # Normally wouldn't test private methods but just start has side effects that
   # cause errors so for time this is pragmatic (tm)
-  describe ".start_coverage_measurement" do
+  describe ".start_coverage_measurement", mutant_expression: "SimpleCov.start_coverage_measurement" do
     after do
       # SimpleCov is a Singleton/global object so once any test enables
       # any kind of coverage data it stays there.
@@ -1440,6 +2309,33 @@ RSpec.describe SimpleCov do
       # the test would fail when run with the dogfood bootstrap, which
       # starts Coverage before requiring simplecov.)
       allow(Coverage).to receive(:running?).and_return(false)
+    end
+
+    # Measurement is started once. A process that already has Coverage
+    # running joins it rather than restarting and losing what it holds.
+    it "does not start measuring again where Coverage is already running" do
+      allow(Coverage).to receive_messages(running?: true, start: nil)
+      allow(described_class).to receive(:start_test_tracking)
+
+      described_class.send(:start_coverage_measurement)
+      expect(Coverage).not_to have_received(:start)
+    end
+
+    # Per-test attribution rides on the measurement, so it is started
+    # either way: the process that joined an existing run still tracks.
+    it "starts per-test tracking whether or not it started the measurement" do
+      # The first half runs down the "not running" arm, so `Coverage.start`
+      # has to be stubbed: whether this process really has measurement up
+      # is a property of whatever ran before, and starting it twice raises.
+      allow(Coverage).to receive(:start)
+      allow(described_class).to receive(:start_test_tracking)
+
+      described_class.send(:start_coverage_measurement)
+      expect(described_class).to have_received(:start_test_tracking)
+
+      allow(Coverage).to receive_messages(running?: true, start: nil)
+      described_class.send(:start_coverage_measurement)
+      expect(described_class).to have_received(:start_test_tracking).twice
     end
 
     it "starts coverage in lines mode by default" do
@@ -1498,6 +2394,652 @@ RSpec.describe SimpleCov do
     ensure
       described_class.clear_coverage_criteria
       previous&.each { |c| described_class.enable_coverage(c) }
+    end
+  end
+
+  describe ".subprocess_serial", mutant_expression: "SimpleCov.subprocess_serial" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@subprocess_serial)
+      example.run
+      described_class.instance_variable_set(:@subprocess_serial, previous)
+    end
+
+    it "starts at zero, so a first run and a re-run name their workers alike" do
+      if described_class.instance_variable_defined?(:@subprocess_serial)
+        described_class.remove_instance_variable(:@subprocess_serial)
+      end
+
+      expect(described_class.subprocess_serial).to eq(0)
+    end
+
+    it "keeps a serial that has already been handed out" do
+      described_class.instance_variable_set(:@subprocess_serial, 3)
+
+      expect(described_class.subprocess_serial).to eq(3)
+    end
+  end
+
+  describe ".next_subprocess_serial!", mutant_expression: "SimpleCov.next_subprocess_serial!" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@subprocess_serial)
+      example.run
+      described_class.instance_variable_set(:@subprocess_serial, previous)
+    end
+
+    it "hands back the next ordinal and keeps it" do
+      described_class.instance_variable_set(:@subprocess_serial, 4)
+
+      expect(described_class.next_subprocess_serial!).to eq(5)
+      expect(described_class.subprocess_serial).to eq(5)
+    end
+
+    it "counts up from the unset serial" do
+      if described_class.instance_variable_defined?(:@subprocess_serial)
+        described_class.remove_instance_variable(:@subprocess_serial)
+      end
+
+      expect(described_class.next_subprocess_serial!).to eq(1)
+    end
+  end
+
+  describe ".mark_forked_subprocess!", mutant_expression: "SimpleCov.mark_forked_subprocess!" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@forked_subprocess)
+      example.run
+      described_class.instance_variable_set(:@forked_subprocess, previous)
+    end
+
+    it "marks this process as one that was forked mid-run" do
+      described_class.instance_variable_set(:@forked_subprocess, nil)
+
+      described_class.mark_forked_subprocess!
+
+      expect(described_class).to be_forked_subprocess
+    end
+  end
+
+  describe ".external_at_exit?", mutant_expression: "SimpleCov.external_at_exit?" do
+    around do |example|
+      previous = described_class.external_at_exit
+      example.run
+      described_class.external_at_exit = previous
+    end
+
+    it "answers false, not nil, when nobody claimed the at_exit" do
+      described_class.external_at_exit = nil
+
+      expect(described_class.external_at_exit?).to be(false)
+    end
+
+    it "answers a boolean rather than whatever was assigned" do
+      described_class.external_at_exit = "the minitest plugin"
+
+      expect(described_class.external_at_exit?).to be(true)
+    end
+  end
+
+  describe ".coverage_statistics_key", mutant_expression: "SimpleCov.coverage_statistics_key" do
+    it "folds oneshot lines into the line bucket, where ResultAdapter puts them" do
+      expect(described_class.coverage_statistics_key(:oneshot_line)).to be(:line)
+    end
+
+    it "leaves every other criterion under its own name" do
+      expect(described_class.coverage_statistics_key(:branch)).to be(:branch)
+      expect(described_class.coverage_statistics_key(:method)).to be(:method)
+      expect(described_class.coverage_statistics_key(:line)).to be(:line)
+    end
+  end
+
+  describe ".minitest_autorun_pending?", mutant_expression: "SimpleCov.minitest_autorun_pending?" do
+    it "is false where Minitest was never loaded" do
+      hide_const("Minitest")
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(false)
+    end
+
+    it "is false where a Minitest-like constant cannot be asked about after_run" do
+      stub_const("Minitest", Module.new)
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(false)
+    end
+
+    it "is false where the constant never armed autorun" do
+      stub_const("Minitest", Class.new { def self.after_run; end })
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(false)
+    end
+
+    it "is false where the constant carries autorun's mark but cannot be asked to defer" do
+      impostor = Class.new
+      impostor.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+      stub_const("Minitest", impostor)
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(false)
+    end
+
+    it "answers with what autorun recorded" do
+      armed = Class.new { def self.after_run; end }
+      armed.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+      stub_const("Minitest", armed)
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(true)
+    end
+
+    it "answers false where autorun recorded that it is not armed" do
+      disarmed = Class.new { def self.after_run; end }
+      disarmed.class_variable_set(:@@installed_at_exit, false) # rubocop:disable Style/ClassVars
+      stub_const("Minitest", disarmed)
+
+      expect(described_class.send(:minitest_autorun_pending?)).to be(false)
+    end
+  end
+
+  describe ".defer_to_minitest_after_run", mutant_expression: "SimpleCov.defer_to_minitest_after_run" do
+    around do |example|
+      previous = described_class.external_at_exit
+      example.run
+      described_class.external_at_exit = previous
+    end
+
+    it "stands its own at_exit down and reports from Minitest.after_run instead" do
+      blocks = []
+      fake_minitest = Class.new
+      fake_minitest.define_singleton_method(:after_run) { |&block| blocks << block }
+      stub_const("Minitest", fake_minitest)
+      described_class.external_at_exit = false
+      allow(described_class).to receive(:at_exit_behavior)
+
+      described_class.send(:defer_to_minitest_after_run)
+
+      expect(described_class.external_at_exit?).to be(true)
+      expect(blocks.size).to eq(1)
+      blocks.each(&:call)
+      expect(described_class).to have_received(:at_exit_behavior)
+    end
+  end
+
+  describe ".warn_about_start_in_dot_simplecov",
+           mutant_expression: "SimpleCov.warn_about_start_in_dot_simplecov" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@dot_simplecov_start_warned)
+      described_class.instance_variable_set(:@dot_simplecov_start_warned, nil)
+      example.run
+      described_class.instance_variable_set(:@dot_simplecov_start_warned, previous)
+    end
+
+    it "names the deprecation, the file, and where the call belongs instead" do
+      stderr = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
+
+      expect(stderr).to include("[DEPRECATION]")
+      expect(stderr).to include("`.simplecov`")
+      expect(stderr).to include("spec_helper.rb")
+      expect(stderr).to include("581")
+    end
+
+    it "says it once, however many times `.simplecov` calls start" do
+      first  = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
+      second = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
+
+      expect(first).not_to be_empty
+      expect(second).to be_empty
+    end
+  end
+
+  describe ".monotonic_time", mutant_expression: "SimpleCov.monotonic_time" do
+    it "reads the clock that cannot be set backwards under it" do
+      allow(Process).to receive(:clock_gettime).and_return(123.5)
+
+      expect(described_class.send(:monotonic_time)).to eq(123.5)
+      expect(Process).to have_received(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+    end
+  end
+
+  describe ".round_coverage", mutant_expression: "SimpleCov.round_coverage" do
+    it "rounds down rather than to nearest, so a shortfall is never rounded away" do
+      expect(described_class.round_coverage(89.999)).to eq(89.99)
+    end
+
+    it "keeps two decimals of a value that already fits" do
+      expect(described_class.round_coverage(90.12)).to eq(90.12)
+    end
+  end
+
+  describe ".clear_result", mutant_expression: "SimpleCov.clear_result" do
+    around do |example|
+      previous = described_class.instance_variable_get(:@result)
+      example.run
+      described_class.instance_variable_set(:@result, previous)
+    end
+
+    it "forgets the result it had computed" do
+      described_class.instance_variable_set(:@result, instance_double(SimpleCov::Result))
+
+      described_class.clear_result
+
+      expect(described_class.result?).to be_nil
+    end
+  end
+
+  describe ".result?", mutant_expression: "SimpleCov.result?" do
+    around do |example|
+      held = described_class.instance_variable_defined?(:@result)
+      previous = described_class.instance_variable_get(:@result)
+      example.run
+      if held
+        described_class.instance_variable_set(:@result, previous)
+      elsif described_class.instance_variable_defined?(:@result)
+        described_class.remove_instance_variable(:@result)
+      end
+    end
+
+    it "is falsey before anything has computed a result" do
+      described_class.remove_instance_variable(:@result) if described_class.instance_variable_defined?(:@result)
+
+      expect(described_class.result?).to be(false)
+    end
+
+    it "hands back the result once one is held" do
+      result = instance_double(SimpleCov::Result)
+      described_class.instance_variable_set(:@result, result)
+
+      expect(described_class.result?).to be(result)
+    end
+
+    it "is nil once the result has been cleared" do
+      described_class.instance_variable_set(:@result, nil)
+
+      expect(described_class.result?).to be_nil
+    end
+  end
+
+  describe ".collating_result?", mutant_expression: "SimpleCov.collating_result?" do
+    around do |example|
+      held = described_class.instance_variable_defined?(:@collating_result)
+      previous = described_class.instance_variable_get(:@collating_result)
+      example.run
+      if held
+        described_class.instance_variable_set(:@collating_result, previous)
+      elsif described_class.instance_variable_defined?(:@collating_result)
+        described_class.remove_instance_variable(:@collating_result)
+      end
+    end
+
+    it "is falsey before collate has ever run" do
+      if described_class.instance_variable_defined?(:@collating_result)
+        described_class.remove_instance_variable(:@collating_result)
+      end
+
+      expect(described_class.collating_result?).to be(false)
+    end
+
+    it "is true while the collate finalizer holds the flag" do
+      described_class.instance_variable_set(:@collating_result, true)
+
+      expect(described_class.collating_result?).to be(true)
+    end
+
+    it "is false once the finalizer puts it down" do
+      described_class.instance_variable_set(:@collating_result, false)
+
+      expect(described_class.collating_result?).to be(false)
+    end
+  end
+
+  describe ".load_profile", mutant_expression: "SimpleCov.load_profile" do
+    it "asks the profile registry for the profile it was named" do
+      allow(described_class.profiles).to receive(:load)
+
+      described_class.load_profile("rails")
+
+      expect(described_class.profiles).to have_received(:load).with("rails")
+    end
+  end
+
+  describe ".grouped_file_set", mutant_expression: "SimpleCov.grouped_file_set" do
+    it "unions the files across every group, not just the first" do
+      lib  = instance_double(SimpleCov::SourceFile, filename: "lib/foo.rb")
+      test = instance_double(SimpleCov::SourceFile, filename: "test/foo.rb")
+
+      expect(described_class.send(:grouped_file_set, {"Lib" => [lib], "Test" => [test]}))
+        .to eq(Set[lib, test])
+    end
+
+    it "is empty when there are no groups" do
+      expect(described_class.send(:grouped_file_set, {})).to eq(Set.new)
+    end
+  end
+
+  describe ".filtered", mutant_expression: "SimpleCov.filtered" do
+    let(:lib_file) do
+      instance_double(SimpleCov::SourceFile, filename: "/abs/lib/foo.rb", project_filename: "lib/foo.rb")
+    end
+    let(:spec_file) do
+      instance_double(SimpleCov::SourceFile, filename: "/abs/spec/foo.rb", project_filename: "spec/foo.rb")
+    end
+
+    around do |example|
+      previous = described_class.filters
+      described_class.filters = []
+      example.run
+      described_class.filters = previous
+    end
+
+    it "drops what a filter matches and keeps what it does not" do
+      described_class.skip "spec"
+
+      expect(described_class.filtered([lib_file, spec_file]).map(&:filename)).to eq(["/abs/lib/foo.rb"])
+    end
+
+    it "applies every filter, not only the first" do
+      described_class.skip "spec"
+      described_class.skip "lib"
+
+      expect(described_class.filtered([lib_file, spec_file])).to be_empty
+    end
+
+    it "hands back a file list, which is what the formatters are given" do
+      expect(described_class.filtered([lib_file])).to be_a(SimpleCov::FileList)
+    end
+
+    it "hands back a list that behaves like an array whatever it was given" do
+      expect(described_class.filtered(Set[lib_file]).to_ary).to eq([lib_file])
+    end
+
+    it "leaves the collection it was handed alone" do
+      described_class.skip "spec"
+      files = [lib_file, spec_file]
+
+      described_class.filtered(files)
+
+      expect(files).to eq([lib_file, spec_file])
+    end
+  end
+
+  describe ".collect_own_coverage", mutant_expression: "SimpleCov.collect_own_coverage" do
+    it "collects nothing where measurement is not running" do
+      allow(Coverage).to receive(:running?).and_return(false)
+      allow(described_class).to receive(:process_coverage_result)
+
+      described_class.send(:collect_own_coverage, standalone: true)
+
+      expect(described_class).not_to have_received(:process_coverage_result)
+    end
+
+    it "collects nothing where the Coverage library was never loaded" do
+      hide_const("Coverage")
+      allow(described_class).to receive(:process_coverage_result)
+
+      described_class.send(:collect_own_coverage, standalone: true)
+
+      expect(described_class).not_to have_received(:process_coverage_result)
+    end
+
+    it "reports and injects when this slice is the final result" do
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive(:process_coverage_result)
+
+      described_class.send(:collect_own_coverage, standalone: true)
+
+      expect(described_class)
+        .to have_received(:process_coverage_result).with(report: true, inject_unloaded: true)
+    end
+
+    it "leaves both to the merged result when a merge follows" do
+      allow(Coverage).to receive(:running?).and_return(true)
+      allow(described_class).to receive(:process_coverage_result)
+
+      described_class.send(:collect_own_coverage, standalone: false)
+
+      expect(described_class)
+        .to have_received(:process_coverage_result).with(report: false, inject_unloaded: false)
+    end
+  end
+
+  describe ".tracked_file_paths", mutant_expression: "SimpleCov.tracked_file_paths" do
+    it "discovers the globs under the root, minus what the path-only filters reject" do
+      path_only = instance_double(SimpleCov::StringFilter, path_only?: true)
+      content   = instance_double(SimpleCov::BlockFilter, path_only?: false)
+      allow(described_class).to receive_messages(unloaded_file_discovery_globs: ["lib/**/*.rb"],
+                                                 root: "/project", filters: [path_only, content])
+      allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return(Set.new)
+
+      described_class.send(:tracked_file_paths)
+
+      expect(SimpleCov::UnloadedFileInjector)
+        .to have_received(:discover).with(["lib/**/*.rb"], root: "/project", reject: [path_only])
+    end
+
+    it "hands back what the injector discovered" do
+      allow(described_class).to receive_messages(unloaded_file_discovery_globs: [], root: "/project", filters: [])
+      allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return(Set["/project/lib/foo.rb"])
+
+      expect(described_class.send(:tracked_file_paths)).to eq(Set["/project/lib/foo.rb"])
+    end
+  end
+
+  describe ".build_coverage_limits", mutant_expression: "SimpleCov.build_coverage_limits" do
+    around do |example|
+      previous = described_class.minimum_coverage
+      example.run
+      described_class.minimum_coverage(previous)
+    end
+
+    it "snapshots every limit under the name of the reader that supplies it" do
+      limits = described_class.send(:build_coverage_limits)
+
+      limits.class.members.each do |name|
+        expect(limits.public_send(name)).to eq(described_class.public_send(name))
+      end
+    end
+
+    it "reads the limits as they stand rather than as they were defined" do
+      described_class.minimum_coverage(line: 42.5)
+
+      expect(described_class.send(:build_coverage_limits).minimum_coverage).to eq(line: 42.5)
+    end
+  end
+
+  describe ".result_exit_status", mutant_expression: "SimpleCov.result_exit_status" do
+    it "asks the exit-code handling about this result against the limits as they stand" do
+      result = instance_double(SimpleCov::Result)
+      limits = instance_double(described_class.singleton_class::CoverageLimits)
+      allow(described_class).to receive(:build_coverage_limits).and_return(limits)
+      allow(SimpleCov::ExitCodes::ExitCodeHandling).to receive(:call).and_return(7)
+
+      expect(described_class.result_exit_status(result)).to eq(7)
+      expect(SimpleCov::ExitCodes::ExitCodeHandling)
+        .to have_received(:call).with(result, coverage_limits: limits)
+    end
+  end
+
+  describe ".existing_report_newer_than_us?",
+           mutant_expression: "SimpleCov.existing_report_newer_than_us?" do
+    it "is false where this process never recorded when it started" do
+      allow(described_class).to receive(:process_start_time).and_return(nil)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(false)
+    end
+
+    it "asks about the last-run file and the report stamp alike" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).and_return(50)
+
+      described_class.send(:existing_report_newer_than_us?)
+
+      expect(File).to have_received(:mtime).with(SimpleCov::LastRun.last_run_path)
+      expect(File).to have_received(:mtime).with(SimpleCov::ReportStamp.path)
+    end
+
+    it "is false where every report on disk predates this process" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).and_return(50)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(false)
+    end
+
+    it "is false where a report was written at the very moment this process started" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).and_return(100)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(false)
+    end
+
+    it "is true where the report stamp is the newer one" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).with(SimpleCov::LastRun.last_run_path).and_return(50)
+      allow(File).to receive(:mtime).with(SimpleCov::ReportStamp.path).and_return(150)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(true)
+    end
+
+    it "is true where the last-run file is the newer one" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).with(SimpleCov::LastRun.last_run_path).and_return(150)
+      allow(File).to receive(:mtime).with(SimpleCov::ReportStamp.path).and_return(50)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(true)
+    end
+
+    it "treats a file that vanished mid-exit as not newer" do
+      allow(described_class).to receive(:process_start_time).and_return(100)
+      allow(File).to receive(:mtime).and_raise(Errno::ENOENT)
+
+      expect(described_class.send(:existing_report_newer_than_us?)).to be(false)
+    end
+  end
+
+  describe ".warn_about_deferred_report", mutant_expression: "SimpleCov.warn_about_deferred_report" do
+    it "says nothing where print_errors is off" do
+      allow(described_class).to receive(:print_errors).and_return(false)
+
+      expect(capture_stderr { described_class.send(:warn_about_deferred_report) }).to be_empty
+    end
+
+    it "explains what was skipped, where the report is, and why this happens" do
+      allow(described_class).to receive(:print_errors).and_return(true)
+
+      stderr = capture_stderr { described_class.send(:warn_about_deferred_report) }
+
+      expect(stderr).to include("Skipping SimpleCov report")
+      expect(stderr).to include(described_class.coverage_path)
+      expect(stderr).to include("581")
+    end
+
+    it "colors the notice yellow, the shade it reserves for a run it did not spoil" do
+      allow(described_class).to receive(:print_errors).and_return(true)
+      allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
+
+      capture_stderr { described_class.send(:warn_about_deferred_report) }
+
+      expect(SimpleCov::Color)
+        .to have_received(:colorize).with(/\ASkipping SimpleCov report /, :yellow)
+    end
+  end
+
+  describe ".current_parallel_worker_count",
+           mutant_expression: "SimpleCov.current_parallel_worker_count" do
+    it "counts the workers that reported into this run, not every worker on record" do
+      resultset = {"a" => {}}
+      allow(SimpleCov::ResultMerger).to receive_messages(read_resultset: resultset,
+                                                         worker_identities_for_run: %w[w1 w2 w3])
+      allow(described_class).to receive_messages(run_id: "run-1", process_start_time: 99.5)
+
+      expect(described_class.send(:current_parallel_worker_count)).to eq(3)
+      expect(SimpleCov::ResultMerger)
+        .to have_received(:worker_identities_for_run).with(resultset, "run-1", 99.5)
+    end
+  end
+
+  describe ".resultset_count_settled?", mutant_expression: "SimpleCov.resultset_count_settled?" do
+    it "is unsettled while the count is still climbing, and notes when it last moved" do
+      allow(described_class).to receive(:monotonic_time).and_return(50.0)
+      tracker = {count: 1, since: 10.0}
+
+      expect(described_class.send(:resultset_count_settled?, tracker, 2)).to be(false)
+      expect(tracker).to eq(count: 2, since: 50.0)
+    end
+
+    it "is unsettled at zero, however long nothing has arrived" do
+      allow(described_class).to receive(:monotonic_time).and_return(1000.0)
+
+      expect(described_class.send(:resultset_count_settled?, {count: 0, since: 0.0}, 0)).to be(false)
+    end
+
+    it "is unsettled until a steady count has held for the settle window" do
+      allow(described_class).to receive(:monotonic_time).and_return(10.4)
+
+      expect(described_class.send(:resultset_count_settled?, {count: 2, since: 10.0}, 2)).to be(false)
+    end
+
+    it "is settled once a positive count has held for the whole settle window" do
+      allow(described_class).to receive(:monotonic_time).and_return(10.5)
+
+      expect(described_class.send(:resultset_count_settled?, {count: 2, since: 10.0}, 2)).to be(true)
+    end
+
+    it "stays settled well past the window, rather than only at its edge" do
+      allow(described_class).to receive(:monotonic_time).and_return(40.0)
+
+      expect(described_class.send(:resultset_count_settled?, {count: 2, since: 10.0}, 2)).to be(true)
+    end
+
+    it "leaves the tracker alone when the count did not climb" do
+      allow(described_class).to receive(:monotonic_time).and_return(10.5)
+      tracker = {count: 2, since: 10.0}
+
+      described_class.send(:resultset_count_settled?, tracker, 1)
+
+      expect(tracker).to eq(count: 2, since: 10.0)
+    end
+  end
+
+  describe ".parallel_wait_timed_out?", mutant_expression: "SimpleCov.parallel_wait_timed_out?" do
+    it "has not timed out while the deadline is still ahead, and says nothing" do
+      allow(described_class).to receive_messages(monotonic_time: 10.0, warn_about_incomplete_parallel_results: nil)
+
+      expect(described_class.send(:parallel_wait_timed_out?, 20.0, 4, 1)).to be(false)
+      expect(described_class).not_to have_received(:warn_about_incomplete_parallel_results)
+    end
+
+    it "has not timed out at the deadline itself" do
+      allow(described_class).to receive_messages(monotonic_time: 20.0, warn_about_incomplete_parallel_results: nil)
+
+      expect(described_class.send(:parallel_wait_timed_out?, 20.0, 4, 1)).to be(false)
+    end
+
+    it "has timed out past the deadline, and says how many of how many reported" do
+      allow(described_class).to receive_messages(monotonic_time: 21.0, warn_about_incomplete_parallel_results: nil)
+
+      expect(described_class.send(:parallel_wait_timed_out?, 20.0, 4, 1)).to be(true)
+      expect(described_class).to have_received(:warn_about_incomplete_parallel_results).with(4, 1)
+    end
+  end
+
+  describe ".warn_about_incomplete_parallel_results",
+           mutant_expression: "SimpleCov.warn_about_incomplete_parallel_results" do
+    it "says nothing where print_errors is off" do
+      allow(described_class).to receive(:print_errors).and_return(false)
+
+      expect(capture_stderr { described_class.send(:warn_about_incomplete_parallel_results, 4, 1) }).to be_empty
+    end
+
+    it "names how many of how many reported, how long it waited, and what to raise" do
+      allow(described_class).to receive_messages(print_errors: true, parallel_wait_timeout: 30)
+
+      stderr = capture_stderr { described_class.send(:warn_about_incomplete_parallel_results, 4, 1) }
+
+      expect(stderr).to include("Only 1 of 4 parallel-test workers reported within 30s")
+      expect(stderr).to include("totals are partial")
+      expect(stderr).to include("SimpleCov.parallel_wait_timeout")
+    end
+
+    it "colors the notice yellow, the shade it reserves for a partial answer" do
+      allow(described_class).to receive_messages(print_errors: true, parallel_wait_timeout: 30)
+      allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
+
+      capture_stderr { described_class.send(:warn_about_incomplete_parallel_results, 4, 1) }
+
+      expect(SimpleCov::Color).to have_received(:colorize).with(/\AOnly 1 of 4 /, :yellow)
     end
   end
 end

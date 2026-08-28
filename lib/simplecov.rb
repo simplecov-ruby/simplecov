@@ -49,7 +49,9 @@ module SimpleCov
     # consulted when no parallel-test adapter is active, since adapters answer
     # `first_worker?` themselves. See issue #1171.
     def forked_subprocess?
-      !!(defined?(@forked_subprocess) && @forked_subprocess)
+      # Reading a mark that was never set answers nil, which is the
+      # answer wanted, and no Ruby this gem supports warns about it.
+      !!@forked_subprocess
     end
 
     # @api private — marked in the child immediately after a fork.
@@ -63,8 +65,10 @@ module SimpleCov
     # `:oneshot_line` data is folded into the `:line` bucket of
     # `coverage_statistics` by `ResultAdapter`, so use `:line` to look
     # up stats for either criterion.
+    # The cast is steep's: it narrows a union on `==` but not on
+    # `equal?`, and identity is what comparing interned symbols means.
     def coverage_statistics_key(criterion)
-      criterion == :oneshot_line ? :line : criterion
+      criterion.equal?(:oneshot_line) ? :line : _ = criterion
     end
 
     # Coerce to a proper boolean so rspec-mocks 4's predicate matcher
@@ -135,10 +139,13 @@ module SimpleCov
       # there and the child's resultset would be silently dropped. See
       # issue #1227.
       defer_to_minitest_after_run if minitest_autorun_pending? && !forked_subprocess?
+      # Called without a receiver: the block closes over this module as
+      # its `self`, so naming it adds nothing a mutation could be told
+      # apart from.
       Kernel.at_exit do
-        next if SimpleCov.external_at_exit?
+        next if external_at_exit?
 
-        SimpleCov.at_exit_behavior
+        at_exit_behavior
       end
     end
 
@@ -154,12 +161,13 @@ module SimpleCov
       warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
       # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
-      require_relative "simplecov/process" if SimpleCov.enabled_for_subprocesses? &&
-                                              ::Process.respond_to?(:_fork)
+      # There is no SimpleCov::Process, so the top-level one is the one
+      # this resolves to, and the scope operator says nothing extra.
+      require_relative "simplecov/process" if enabled_for_subprocesses? && Process.respond_to?(:_fork)
       # simplecov:enable
 
       # Select the parallel adapter and generate identities before any forks.
-      SimpleCov::RunIdentity.prepare
+      RunIdentity.prepare
 
       @result = nil
       self.pid = Process.pid
@@ -204,13 +212,17 @@ module SimpleCov
 
     def defer_to_minitest_after_run
       self.external_at_exit = true
-      Minitest.after_run { SimpleCov.at_exit_behavior }
+      # Called without a receiver for the reason the `at_exit` block above
+      # is: the block closes over this module as its `self`.
+      Minitest.after_run { at_exit_behavior }
     end
 
     # JRuby coverage data is unreliable unless full-trace mode is enabled.
     # @see https://github.com/jruby/jruby/issues/1196
     # @see https://github.com/simplecov-ruby/simplecov/issues/420
     # @see https://github.com/simplecov-ruby/simplecov/issues/86
+    # mutant:disable — every line below the guard is JRuby-only, and no
+    # example running on the engine this suite runs on can reach one.
     def warn_if_jruby_full_trace_disabled
       return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
 
