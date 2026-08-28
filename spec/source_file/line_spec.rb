@@ -142,15 +142,78 @@ RSpec.describe SimpleCov::SourceFile::Line do
     end
   end
 
+  # A skipped line is skipped whatever its coverage says, so each of the
+  # three coverage shapes needs its own example: the skip has to win over
+  # a hit, over a miss, and over no coverage at all.
+  context "when a skipped line" do
+    it "is not covered, though it was hit" do
+      line = described_class.new("# the ruby source", 5, 3).tap(&:skipped!)
+
+      expect(line.covered?).to be false
+      expect(line.status).to eq("skipped")
+    end
+
+    it "is not missed, though it was never hit" do
+      line = described_class.new("# the ruby source", 5, 0).tap(&:skipped!)
+
+      expect(line.missed?).to be false
+      expect(line.status).to eq("skipped")
+    end
+
+    it "is not never, though it carries no coverage" do
+      line = described_class.new("# the ruby source", 5, nil).tap(&:skipped!)
+
+      expect(line.never?).to be false
+      expect(line.status).to eq("skipped")
+    end
+  end
+
+  it "starts out unskipped" do
+    line = described_class.new("# the ruby source", 5, 3)
+
+    expect(line.skipped).to be false
+    expect(line.skipped?).to be false
+  end
+
+  # The guard asks whether the source is a String, not whether it is
+  # exactly one, so a subclass is source as much as a String is.
+  it "accepts a String subclass as its source" do
+    subclass = Class.new(String)
+
+    expect(described_class.new(subclass.new("some source"), 5, 3).src).to eq("some source")
+  end
+
+  # Same question one type over: the guards ask whether the line number and
+  # the coverage are an Integer, not whether they are exactly one. Integer
+  # has no subclass to say that with, so answering the question is the only
+  # way an object can.
+  it "accepts a line number and a coverage that answer to Integer" do
+    integer_like = Class.new do
+      def is_a?(klass)
+        klass.equal?(Integer)
+      end
+    end
+    line_number = integer_like.new
+    coverage = integer_like.new
+
+    line = described_class.new("some source", line_number, coverage)
+
+    expect(line.line_number).to be(line_number)
+    expect(line.coverage).to be(coverage)
+  end
+
   it "raises ArgumentError when initialized with invalid src" do
-    expect { described_class.new(:symbol, 5, 3) }.to raise_error(ArgumentError)
+    expect { described_class.new(:symbol, 5, 3) }
+      .to raise_error(ArgumentError, "Only String accepted for source")
   end
 
   it "raises ArgumentError when initialized with invalid line_number" do
-    expect { described_class.new("some source", "five", 3) }.to raise_error(ArgumentError)
+    expect { described_class.new("some source", "five", 3) }
+      .to raise_error(ArgumentError, "Only Integer accepted for line_number")
   end
 
   it "raises ArgumentError when initialized with invalid coverage" do
-    expect { described_class.new("some source", 5, "three") }.to raise_error(ArgumentError)
+    expect { described_class.new("some source", 5, "three") }
+      .to raise_error(ArgumentError, "Only Integer and nil accepted for coverage")
   end
 end

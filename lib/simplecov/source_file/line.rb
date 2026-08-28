@@ -35,14 +35,21 @@ module SimpleCov
         @skipped     = false
       end
 
-      # Returns true if this is a line that should have been covered, but was not
+      # Returns true if this is a line that should have been covered, but
+      # was not: a relevant line, not skipped, that `covered?` does not
+      # claim. Asking `covered?` rather than reading the count a second
+      # time keeps the two answers from ever disagreeing, and `never?`
+      # ahead of it is what keeps a line with no coverage at all out of
+      # the missed column.
       def missed?
-        !never? && !skipped? && coverage.to_i.zero?
+        !never? && !skipped? && !covered?
       end
 
-      # Returns true if this is a line that has been covered
+      # Returns true if this is a line that has been covered. A never
+      # line needs no exclusion of its own: its nil coverage counts as
+      # zero, which is not positive.
       def covered?
-        !never? && !skipped? && coverage.to_i.positive?
+        !skipped? && coverage.to_i.positive?
       end
 
       # Returns true if this line is not relevant for coverage
@@ -68,9 +75,8 @@ module SimpleCov
         return "never" if never?
         return "missed" if missed?
 
-        # simplecov:disable — defensive: covered? is the only state left after the three above
-        "covered" if covered?
-        # simplecov:enable
+        # Covered is the only state left once the three above are out.
+        "covered"
       end
     end
   end
