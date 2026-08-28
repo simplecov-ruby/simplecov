@@ -2,7 +2,7 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::Filter do
+RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "SimpleCov::Configuration*"] do
   let(:source_file) do
     SimpleCov::SourceFile.new(source_fixture("sample.rb"), [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
   end
@@ -300,7 +300,66 @@ RSpec.describe SimpleCov::Filter do
     end
   end
 
+  describe ".build_filter" do
+    it "keeps a filter that is already one" do
+      filter = SimpleCov::StringFilter.new("lib")
+      expect(described_class.build_filter(filter)).to be(filter)
+    end
+
+    it "builds the string filter it was told to build" do
+      built = described_class.build_filter("lib", string_filter: SimpleCov::GlobFilter)
+      expect(built).to be_a(SimpleCov::GlobFilter)
+    end
+
+    it "defaults to matching a string by segment" do
+      expect(described_class.build_filter("lib")).to be_a(SimpleCov::StringFilter)
+    end
+
+    # The list's members get the same treatment the list would have got
+    # on its own, the chosen string filter included.
+    it "threads its choice of string filter through a list" do
+      built = described_class.build_filter(%w[lib spec], string_filter: SimpleCov::GlobFilter)
+
+      expect(built).to be_a(SimpleCov::ArrayFilter)
+      expect(built.filter_argument).to all(be_a(SimpleCov::GlobFilter))
+    end
+
+    it "builds from the argument's own type when it is neither" do
+      expect(described_class.build_filter(/re/)).to be_a(SimpleCov::RegexFilter)
+      expect(described_class.build_filter(->(_) { true })).to be_a(SimpleCov::BlockFilter)
+    end
+  end
+
+  describe ".filter_classes_by_argument_type" do
+    # Built fresh: the table is memoized on the class, so an earlier
+    # example would otherwise answer this one.
+    around do |example|
+      memo = :@filter_classes_by_argument_type
+      saved = described_class.remove_instance_variable(memo) if described_class.instance_variable_defined?(memo)
+      example.run
+    ensure
+      described_class.remove_instance_variable(memo) if described_class.instance_variable_defined?(memo)
+      described_class.instance_variable_set(memo, saved) if saved
+    end
+
+    it "names a class for each type of argument, and answers the same table each time" do
+      table = described_class.send(:filter_classes_by_argument_type)
+
+      expect(table).to eq(String => SimpleCov::StringFilter, Regexp => SimpleCov::RegexFilter,
+                          Array => SimpleCov::ArrayFilter, Proc => SimpleCov::BlockFilter)
+      expect(table).to be_frozen
+      expect(described_class.send(:filter_classes_by_argument_type)).to be(table)
+    end
+  end
+
   describe ".class_for_argument" do
+    # A subclass of a type this knows about is that type: the argument
+    # has to be asked what it is, not what it is exactly.
+    it "recognizes a subclass of a type it knows" do
+      subclass = Class.new(String)
+      expect(described_class.class_for_argument(subclass.new("lib"))).to eq(SimpleCov::StringFilter)
+    end
+
     it "returns SimpleCov::StringFilter for a string" do
       expect(described_class.class_for_argument("filestring")).to eq(SimpleCov::StringFilter)
     end
@@ -331,8 +390,10 @@ RSpec.describe SimpleCov::Filter do
       expect(SimpleCov::GlobFilter.new("**/foo.rb")).to be_path_only
     end
 
+    # Answered false rather than merely falsey: a custom filter is never
+    # guessed at, and "no opinion" would read the same as "no".
     it "is false for a block filter, which is handed the source file" do
-      expect(SimpleCov::BlockFilter.new(->(_source_file) { true })).not_to be_path_only
+      expect(SimpleCov::BlockFilter.new(->(_source_file) { true }).path_only?).to be(false)
     end
 
     # The default is false so a custom filter is never guessed at.

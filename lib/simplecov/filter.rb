@@ -35,27 +35,27 @@ module SimpleCov
     # StringFilter's segment-substring match for `add_filter`/`skip`,
     # GlobFilter for `cover` — and threads through Array elements so a
     # list gets the same treatment as its members.
-    def self.build_filter(filter_argument, string_filter: SimpleCov::StringFilter)
+    def self.build_filter(filter_argument, string_filter: StringFilter)
       case filter_argument
-      when SimpleCov::Filter then filter_argument
-      when String            then string_filter.new(filter_argument)
+      when Filter then filter_argument
+      when String then string_filter.new(filter_argument)
       when Array
-        SimpleCov::ArrayFilter.new(filter_argument.map { |arg| build_filter(arg, string_filter: string_filter) })
+        ArrayFilter.new(filter_argument.map { |arg| build_filter(arg, string_filter: string_filter) })
       else class_for_argument(filter_argument).new(filter_argument)
       end
     end
 
     def self.class_for_argument(filter_argument)
       filter_classes_by_argument_type.find { |type, _| filter_argument.is_a?(type) }&.last ||
-        raise(SimpleCov::ConfigurationError, "You have provided an unrecognized filter type")
+        raise(ConfigurationError, "You have provided an unrecognized filter type")
     end
 
     def self.filter_classes_by_argument_type
       @filter_classes_by_argument_type ||= {
-        String => SimpleCov::StringFilter,
-        Regexp => SimpleCov::RegexFilter,
-        Array => SimpleCov::ArrayFilter,
-        Proc => SimpleCov::BlockFilter
+        String => StringFilter,
+        Regexp => RegexFilter,
+        Array => ArrayFilter,
+        Proc => BlockFilter
       }.freeze
     end
     private_class_method :filter_classes_by_argument_type
@@ -63,7 +63,7 @@ module SimpleCov
 
   # Filter that matches when the source file's project path contains the
   # configured string at a path-segment boundary.
-  class StringFilter < SimpleCov::Filter
+  class StringFilter < Filter
     # Returns true when the given source file's filename matches the
     # string configured when initializing this Filter with StringFilter.new('somestring').
     # Matching is path-segment-aware: the argument must appear immediately after a "/"
@@ -107,7 +107,7 @@ module SimpleCov
 
   # Filter that matches when the source file's project path matches the
   # configured Regexp.
-  class RegexFilter < SimpleCov::Filter
+  class RegexFilter < Filter
     # Returns true when the given source file's filename matches the
     # regex configured when initializing this Filter with RegexFilter.new(/someregex/).
     # Uses `Regexp#match?` so the predicate returns a real boolean — `=~`
@@ -124,7 +124,7 @@ module SimpleCov
 
   # Filter that matches when the configured block returns truthy for the
   # source file.
-  class BlockFilter < SimpleCov::Filter
+  class BlockFilter < Filter
     # Returns true if the block given when initializing this filter with BlockFilter.new {|src_file| ... }
     # returns true for the given source file.
     def matches?(source_file)
@@ -136,7 +136,7 @@ module SimpleCov
   # configured shell glob (e.g. "lib/**/*.rb"). Used by `cover` and
   # `skip` when callers want glob semantics instead of the substring
   # match of `StringFilter`.
-  class GlobFilter < SimpleCov::Filter
+  class GlobFilter < Filter
     def matches?(source_file)
       File.fnmatch?(filter_argument, source_file.project_filename, File::FNM_PATHNAME | File::FNM_EXTGLOB)
     end
@@ -148,7 +148,7 @@ module SimpleCov
 
   # Filter that matches when any of its component filters (built from the
   # array's elements) match the source file.
-  class ArrayFilter < SimpleCov::Filter
+  class ArrayFilter < Filter
     def initialize(filter_argument)
       filter_objects = filter_argument.map do |arg|
         Filter.build_filter(arg)
