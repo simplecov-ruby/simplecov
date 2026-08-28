@@ -9,13 +9,13 @@ module SimpleCov
     # and surface unexpected increases instead of silently absorbing them.
     class MaximumOverallCoverageCheck < Check
       def exit_code
-        SimpleCov::ExitCodes::MAXIMUM_COVERAGE
+        MAXIMUM_COVERAGE
       end
 
     private
 
       def compute_violations
-        SimpleCov::CoverageViolations.maximum_overall(result, thresholds)
+        CoverageViolations.maximum_overall(result, thresholds)
       end
 
       def report_violation(violation)
@@ -23,7 +23,7 @@ module SimpleCov
           "%<criterion>s coverage (%<actual>s) is above the expected maximum coverage (%<expected>.2f%%). " \
           "Time to bump the threshold!",
           criterion: violation.fetch(:criterion).capitalize,
-          actual: SimpleCov::Color.colorize_percent(violation.fetch(:actual)),
+          actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected)
         )
       end

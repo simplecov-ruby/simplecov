@@ -2,7 +2,9 @@
 
 require "helper"
 
-RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck do
+RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
+               mutant_expression: ["SimpleCov::ExitCodes::MaximumOverallCoverageCheck*",
+                                   "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_coverage) }
 
   let(:result) do
@@ -80,5 +82,13 @@ RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck do
       expect(output).to include("above the expected maximum coverage")
       expect(output).to include("Time to bump the threshold!")
     end
+  end
+
+  it "reports what rose above the ceiling, and invites raising it" do
+    allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
+
+    expect { described_class.new(result, {line: 70.0}).report }
+      .to output("Line coverage (80.00%) is above the expected maximum coverage (70.00%). " \
+                 "Time to bump the threshold!\n").to_stderr
   end
 end
