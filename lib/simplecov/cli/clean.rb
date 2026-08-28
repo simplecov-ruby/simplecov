@@ -57,9 +57,14 @@ module SimpleCov
         protected_paths.none? { |path| path == target || descendant_of?(path, target) }
       end
 
+      # The working directory, which a coverage directory must not be or
+      # contain. The `.simplecov` project root was listed here too until
+      # it was shown to be unreachable: `Dotfile.find` walks up from the
+      # working directory, so the root it finds is always at or above it,
+      # and any target containing that root contains the working
+      # directory as well, which this entry already refuses.
       def protected_paths
-        project_root = SimpleCov::CLI::Dotfile.find
-        [Dir.pwd, (File.dirname(project_root) if project_root)].compact.map { |path| canonical_path(path) }.uniq
+        [canonical_path(Dir.pwd)]
       end
 
       # Canonical paths only carry a trailing separator on a filesystem
