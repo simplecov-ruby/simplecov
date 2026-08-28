@@ -5,7 +5,7 @@ module SimpleCov
     # Runs every coverage check against the result and returns the exit
     # code from the first failing one (or SUCCESS if all pass).
     module ExitCodeHandling
-    module_function
+      extend self
 
       def call(result, coverage_limits:)
         checks = coverage_checks(result, coverage_limits)
@@ -15,7 +15,7 @@ module SimpleCov
           failing_check.report if SimpleCov.print_errors
           failing_check.exit_code
         else
-          SimpleCov::ExitCodes::SUCCESS
+          SUCCESS
         end
       end
 
