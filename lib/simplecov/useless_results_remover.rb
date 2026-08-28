@@ -14,7 +14,7 @@ module SimpleCov
     # where the on-disk path's case can differ from `SimpleCov.root`'s.
     def self.root_regex
       root = SimpleCov.root
-      return @root_regex if root == @root_regex_root
+      return @root_regex if root.eql?(@root_regex_root)
 
       @root_regex_root = root
       @root_regex = /\A#{Regexp.escape(root.chomp(File::SEPARATOR) + File::SEPARATOR)}/i

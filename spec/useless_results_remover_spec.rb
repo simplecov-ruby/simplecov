@@ -59,4 +59,76 @@ RSpec.describe SimpleCov::UselessResultsRemover do
       expect(remover.keys).to contain_exactly("/test/server/foo_test.rb", "/app/src/foo.rb")
     end
   end
+
+  describe ".root_regex" do
+    around do |example|
+      previous = SimpleCov.root
+      example.run
+    ensure
+      SimpleCov.root previous
+    end
+
+    # Memoized against the root it was built for, so a root that changes
+    # mid-process is answered with a pattern for the new one.
+    # The probes are expanded the same way the setter expands the root,
+    # so they stay inside it when expansion adds a drive letter.
+    it "rebuilds the pattern when the root changes" do
+      one = File.expand_path("/one")
+      two = File.expand_path("/two")
+
+      SimpleCov.root one
+      first = described_class.root_regex
+      expect(first.match?("#{one}/lib/a.rb")).to be(true)
+
+      SimpleCov.root two
+      rebuilt = described_class.root_regex
+      expect(rebuilt).not_to be(first)
+      expect(rebuilt.match?("#{two}/lib/a.rb")).to be(true)
+      expect(rebuilt.match?("#{one}/lib/a.rb")).to be(false)
+    end
+
+    # Memoized on what the root says, not on which object said it: a
+    # root that answers an equal string each time is the same root.
+    it "answers the same pattern while the root stands still" do
+      described_class.instance_variable_set(:@root_regex_root, nil)
+      allow(SimpleCov).to receive(:root) { +"/one" }
+
+      first = described_class.root_regex
+      expect(described_class.root_regex).to be(first)
+    end
+
+    # A root is a path, not a pattern: whatever it contains is matched
+    # literally.
+    it "reads a root that looks like a pattern as a path" do
+      described_class.instance_variable_set(:@root_regex_root, nil)
+      allow(SimpleCov).to receive(:root).and_return("/one+two")
+
+      expect(described_class.root_regex.match?("/one+two/lib/a.rb")).to be(true)
+      expect(described_class.root_regex.match?("/oneetwo/lib/a.rb")).to be(false)
+    end
+
+    # The separator is part of the prefix, so a sibling directory whose
+    # name merely starts the same way is not inside the root.
+    it "matches the root as a directory, not as a prefix" do
+      SimpleCov.root "/one"
+      expect(described_class.root_regex.match?("/oneother/lib/a.rb")).to be(false)
+    end
+
+    # A root given with a trailing separator is the same root: the
+    # separator is added once, not twice. Stubbed rather than set,
+    # because the setter expands the path and drops the separator.
+    it "reads a root that already ends in a separator" do
+      described_class.instance_variable_set(:@root_regex_root, nil)
+      allow(SimpleCov).to receive(:root).and_return("/one/")
+
+      expect(described_class.root_regex.match?("/one/lib/a.rb")).to be(true)
+    end
+
+    # The on-disk case can differ from the configured root on Windows
+    # and macOS.
+    it "matches a root whose case differs on disk" do
+      SimpleCov.root File.expand_path("/One")
+      expect(described_class.root_regex.match?("#{File.expand_path('/one')}/lib/a.rb")).to be(true)
+    end
+  end
 end
