@@ -29,13 +29,13 @@ module SimpleCov
         private
 
           def format_minimum_overall(result, errors)
-            SimpleCov::CoverageViolations.minimum_overall(result, SimpleCov.minimum_coverage).each do |violation|
+            CoverageViolations.minimum_overall(result, SimpleCov.minimum_coverage).each do |violation|
               bucket(errors, :minimum_coverage)[key_for(violation)] = expected_actual(violation)
             end
           end
 
           def format_minimum_by_file(result, errors)
-            violations = SimpleCov::CoverageViolations.minimum_by_file(
+            violations = CoverageViolations.minimum_by_file(
               result, SimpleCov.minimum_coverage_by_file, SimpleCov.minimum_coverage_by_file_overrides,
               baseline: SimpleCov.baseline
             )
@@ -47,7 +47,7 @@ module SimpleCov
           # payload adds the two missed counts the floor was judged by;
           # `allowed_missed` is absent for a percent-only floor.
           def format_baseline(result, errors)
-            SimpleCov::CoverageViolations.baseline(result, SimpleCov.baseline).each do |violation|
+            CoverageViolations.baseline(result, SimpleCov.baseline).each do |violation|
               by_file = bucket(errors, :baseline)
               file_bucket = by_file[violation.fetch(:project_filename)] ||= {} #: Hash[untyped, untyped]
               payload = expected_actual(violation).merge(actual_missed: violation.fetch(:actual_missed))
@@ -64,7 +64,7 @@ module SimpleCov
           end
 
           def format_minimum_by_group(result, errors)
-            violations = SimpleCov::CoverageViolations.minimum_by_group(result, SimpleCov.minimum_coverage_by_group)
+            violations = CoverageViolations.minimum_by_group(result, SimpleCov.minimum_coverage_by_group)
             return if violations.empty?
 
             # `bucket` lazily creates the errors key, so only touch it when
@@ -77,25 +77,25 @@ module SimpleCov
           end
 
           def format_maximum_overall(result, errors)
-            SimpleCov::CoverageViolations.maximum_overall(result, SimpleCov.maximum_coverage).each do |violation|
+            CoverageViolations.maximum_overall(result, SimpleCov.maximum_coverage).each do |violation|
               bucket(errors, :maximum_coverage)[key_for(violation)] = expected_actual(violation)
             end
           end
 
           def format_maximum_drop(result, errors)
-            SimpleCov::CoverageViolations.maximum_drop(result, SimpleCov.maximum_coverage_drop).each do |violation|
+            CoverageViolations.maximum_drop(result, SimpleCov.maximum_coverage_drop).each do |violation|
               bucket(errors, :maximum_coverage_drop)[key_for(violation)] = maximum_actual(violation)
             end
           end
 
           def format_maximum_missed(result, errors)
-            SimpleCov::CoverageViolations.maximum_missed(result, SimpleCov.maximum_missed).each do |violation|
+            CoverageViolations.maximum_missed(result, SimpleCov.maximum_missed).each do |violation|
               bucket(errors, :maximum_missed)[key_for(violation)] = maximum_actual(violation)
             end
           end
 
           def format_maximum_missed_per_file(result, errors)
-            violations = SimpleCov::CoverageViolations.maximum_missed_by_file(
+            violations = CoverageViolations.maximum_missed_by_file(
               result, SimpleCov.maximum_missed_per_file, SimpleCov.maximum_missed_per_file_overrides,
               baseline: SimpleCov.baseline
             )
