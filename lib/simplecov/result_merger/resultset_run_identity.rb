@@ -21,12 +21,15 @@ module SimpleCov
       end
 
       def current_run_entry?(entry, run_id, started_at)
-        return false unless entry.is_a?(Hash)
+        return false unless entry.instance_of?(Hash)
 
         entry_run_id = entry["run_id"]
         return fresh_entry?(entry, started_at) unless entry_run_id
-        return false unless run_id && entry_run_id == run_id
-        return true if SimpleCov::RunIdentity.authoritative?
+        # `eql?` rather than `==`: run ids are strings, and value equality
+        # already answers false for the nil run id a caller with no identity
+        # of its own passes.
+        return false unless entry_run_id.eql?(run_id)
+        return true if RunIdentity.authoritative?
 
         fresh_entry?(entry, started_at)
       end
@@ -46,9 +49,9 @@ module SimpleCov
       # counting (`worker_identities_for_run`), where admitting a stale
       # entry would end a sibling wait early.
       def concurrent_runner_entry?(entry, incoming = nil)
-        return false unless entry.is_a?(Hash)
+        return false unless entry.instance_of?(Hash)
 
-        incoming_run_id = incoming["run_id"] if incoming.is_a?(Hash)
+        incoming_run_id = incoming["run_id"] if incoming.instance_of?(Hash)
         started_at = SimpleCov.process_start_time
         return true if current_run_entry?(entry, incoming_run_id, started_at)
 

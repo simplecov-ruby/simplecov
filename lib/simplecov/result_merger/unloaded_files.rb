@@ -13,7 +13,7 @@ module SimpleCov
     # process meant N workers simulated the same file up to N times and the
     # merge threw all but one away. See #1250.
     module UnloadedFiles
-    module_function
+      extend self
 
       # The union of what every contributing process was told to track. Absent
       # from resultsets written before this was recorded, in which case those
@@ -93,9 +93,11 @@ module SimpleCov
       def never_executed(coverage)
         coverage.each_with_object(Set.new) do |(filename, file_coverage), set|
           counts = Array(file_coverage["lines"]) #: Array[Integer?]
-          next unless counts.any? { |count| !count.nil? }
+          # A line count is an Integer or nil, and every Integer is truthy,
+          # so a truthy element is exactly a relevant line.
+          next unless counts.any?
 
-          set << filename unless Combine::CoverageAccumulator.executed?(file_coverage["lines"])
+          set << filename unless Combine::CoverageAccumulator.executed?(counts)
         end
       end
     end

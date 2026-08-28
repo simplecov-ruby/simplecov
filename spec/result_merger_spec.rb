@@ -5,6 +5,23 @@ require "tempfile"
 require "timeout"
 
 RSpec.describe SimpleCov::ResultMerger do
+  # `.resultset.json` lives at one path per coverage directory, and these
+  # examples read back what they just wrote to it. Anything else running
+  # against the same coverage directory at the same time — a mutation
+  # run's concurrent forks, another suite in the same checkout — deletes
+  # a file mid-example or contributes an entry the example never stored.
+  # A coverage directory per example makes the resultset under test
+  # private to the process that wrote it.
+  around do |example|
+    previous_dir = SimpleCov.coverage_dir
+    Dir.mktmpdir("simplecov-resultset") do |dir|
+      SimpleCov.coverage_dir(dir)
+      example.run
+    ensure
+      SimpleCov.coverage_dir(previous_dir)
+    end
+  end
+
   before do
     # Several examples write the resultset cache directly. SimpleCov.coverage_path
     # only creates the directory when called with an explicit path, so depending on
@@ -88,6 +105,25 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(entry["methods"]).not_to be_empty
     end
 
+    # The mirror of the case above, deciding on the other criterion: branch
+    # data on the merged files and no method data at all.
+    it "synthesizes tuples when the merged files carry branches alone",
+       if: SimpleCov::StaticCoverageExtractor.available? do
+      allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
+
+      entry = injected(loaded => {"lines" => [1, 1], "branches" => {}})
+
+      expect(entry["methods"]).not_to be_empty
+    end
+
+    # Line data is decided the same way: the merged files carry it, so a
+    # simulated file has to, whatever this process measures.
+    it "gives a simulated file lines when the merged files carry them" do
+      allow(SimpleCov).to receive(:line_coverage?).and_return(false)
+
+      expect(injected(loaded => {"lines" => [1, 1]})).to have_key("lines")
+    end
+
     it "leaves them empty when the merged files carry none",
        if: SimpleCov::StaticCoverageExtractor.available? do
       allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: true)
@@ -105,6 +141,30 @@ RSpec.describe SimpleCov::ResultMerger do
 
       expect(result.original_result.fetch(never_loaded)).not_to have_key("lines")
     end
+
+    it "takes lines from this process's criteria too when the merge carried no files" do
+      allow(SimpleCov).to receive_messages(line_coverage?: true, branch_coverage?: false, method_coverage?: false)
+
+      result = described_class.send(:create_result, ["merged"], {}, tracked_files: Set[never_loaded])
+
+      expect(result.original_result.fetch(never_loaded)).to have_key("lines")
+    end
+  end
+
+  # The merged result is the authoritative one users see, so it is the one
+  # that warns about source files dropped because they no longer exist on
+  # disk. The per-process slices stay quiet, or a parallel run would print
+  # the same warning once per worker. See #980.
+  describe "warning about merged files that are no longer on disk" do
+    it "names what the merge dropped" do
+      allow(SimpleCov).to receive(:final_result_process?).and_return(true)
+
+      stderr = capture_stderr do
+        described_class.send(:create_result, ["merged"], {"/gone/missing.rb" => {"lines" => [1]}}, tracked_files: [])
+      end
+
+      expect(stderr).to include("SimpleCov dropped all 1 source file(s)").and include("/gone/missing.rb")
+    end
   end
 
   # A CI matrix collates one resultset per worker, and joining every
@@ -113,7 +173,7 @@ RSpec.describe SimpleCov::ResultMerger do
   # See #1284.
   describe "the merged command name" do
     def named(command_names)
-      described_class.send(:create_result, command_names, {})
+      described_class.send(:create_result, command_names, {}, tracked_files: [])
     end
 
     it "dedupes repeated names" do
@@ -167,6 +227,17 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(result.files.find { |f| f.filename == never_loaded }).to be_not_loaded
     end
 
+    # A branch-only or method-only run reports no line data at all, so a file
+    # simulated alongside it has none either and the merged line counts cannot
+    # say it was never loaded. What injection added is the only thing that can.
+    it "flags a simulated file that carries no line data" do
+      result = described_class.send(:create_result, ["merged"],
+                                    {loaded => {"branches" => {}, "methods" => {}}},
+                                    tracked_files: Set[never_loaded])
+
+      expect(result.files.find { |f| f.filename == never_loaded }).to be_not_loaded
+    end
+
     it "leaves a file some process loaded alone" do
       result = described_class.send(:create_result, ["merged"], coverage,
                                     tracked_files: Set[loaded, never_loaded])
@@ -176,7 +247,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "injects nothing when the resultsets recorded no tracked files" do
-      result = described_class.send(:create_result, ["merged"], coverage)
+      result = described_class.send(:create_result, ["merged"], coverage, tracked_files: [])
 
       expect(result.original_result.keys).to contain_exactly(loaded)
     end
@@ -219,8 +290,229 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
+  # The groups below call one merge-side collaborator at a time. Reached only
+  # through the whole pipeline, a wrong answer from any of them is easily
+  # absorbed by the next step and shows up as a quietly incomplete report.
+
+  describe "the criteria the merged coverage carries" do
+    let(:unloaded_files) { SimpleCov::ResultMerger::UnloadedFiles }
+
+    it "answers yes when any merged file carries the criterion" do
+      coverage = {"a.rb" => {"lines" => []}, "b.rb" => {"lines" => [], "branches" => {}}}
+
+      expect(unloaded_files.carries?(coverage, "branches")).to be true
+    end
+
+    # `Combine` short-circuits to the non-nil side, so a merged file can carry
+    # the key with nothing under it. Nothing there to be consistent with.
+    it "answers no for a criterion whose key is present but empty" do
+      expect(unloaded_files.carries?({"a.rb" => {"lines" => nil}}, "lines")).to be false
+    end
+
+    # A merge of resultsets that carried no files at all has nothing to be
+    # consistent with, so it answers from the configuration instead. Both
+    # ways round, since a fallback that always answers the same thing is
+    # not a fallback.
+    it "answers from the configuration when the merge carried no files" do
+      allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
+      expect(unloaded_files.carries?({}, "branches")).to be true
+
+      allow(SimpleCov).to receive(:branch_coverage?).and_return(false)
+      expect(unloaded_files.carries?({}, "branches")).to be false
+    end
+  end
+
+  describe "the tracked paths a merge injects" do
+    let(:unloaded_files) { SimpleCov::ResultMerger::UnloadedFiles }
+
+    it "leaves a combined entry alone when neither side tracked anything" do
+      expect(unloaded_files.carry_tracked({"coverage" => {}}, {}, {})).to eq("coverage" => {})
+    end
+
+    # The injector asks whether the paths are empty before iterating them,
+    # which not every collection the merge might hand over answers to.
+    it "converts the paths before the injector sees them" do
+      never_loaded = source_fixture("resultset1.rb")
+      coverage = {source_fixture("sample.rb") => {"lines" => [nil, 1]}}
+
+      injected, added = unloaded_files.inject(coverage, [never_loaded].each)
+
+      expect(added).to eq(Set[never_loaded])
+      expect(injected.keys).to contain_exactly(source_fixture("sample.rb"), never_loaded)
+    end
+  end
+
+  describe "collecting what each resultset contributed" do
+    let(:surviving) do
+      {
+        "a" => {"coverage" => {}, "tracked_files" => ["/x/one.rb"]},
+        "b" => {"coverage" => {}, "tracked_files" => ["/x/two.rb"]}
+      }
+    end
+
+    it "gathers the tracked paths into the set it was handed" do
+      into = Set.new
+
+      SimpleCov::ResultMerger::UnloadedFiles.collector(into).call(surviving)
+
+      expect(into).to eq(Set["/x/one.rb", "/x/two.rb"])
+    end
+
+    # One block feeds every merge-side accumulator, so an accumulator left out
+    # of it goes unnoticed until a merged report is missing what it collected.
+    it "feeds the tracked paths as well as the map union" do
+      tracked = Set.new
+
+      described_class.entry_collector(tracked, SimpleCov::ContextMap::Union.new).call(surviving)
+
+      expect(tracked).to eq(Set["/x/one.rb", "/x/two.rb"])
+    end
+  end
+
+  describe "folding the runs of several resultsets together" do
+    let(:one) { [["result1"], {"a.rb" => {"lines" => [1, nil]}}] }
+    let(:two) { [["result2"], {"a.rb" => {"lines" => [1, 1]}}] }
+
+    it "answers an unnamed run and no coverage when there is nothing to fold" do
+      expect(described_class.merge_coverage).to eq([[""], nil])
+    end
+
+    it "hands back the one run it was given, unfolded" do
+      expect(described_class.merge_coverage(one)).to be(one)
+    end
+
+    it "folds two runs into one" do
+      expect(described_class.merge_coverage(one, two)).to eq([%w[result1 result2], {"a.rb" => {"lines" => [2, 1]}}])
+    end
+  end
+
+  # An expired resultset contributes nothing to the merge, and the runs it
+  # came from are named out loud rather than being a silent hole in the report.
+  describe "dropping the results that are past the merge timeout" do
+    let(:fresh) { {"timestamp" => Time.now.to_f, "coverage" => {}} }
+    let(:expired) { {"timestamp" => Time.now.to_f - (SimpleCov.merge_timeout * 2), "coverage" => {}} }
+
+    it "hands back the results it was given when every one of them is fresh" do
+      results = {"a" => fresh, "b" => fresh}
+      kept = nil
+
+      stderr = capture_stderr { kept = described_class.drop_expired_results(results) }
+
+      expect(kept).to be(results)
+      expect(stderr).to be_empty
+    end
+
+    it "keeps the fresh results and names the expired ones in sorted order" do
+      results = {"z-stale" => expired, "current" => fresh, "a-stale" => expired}
+      kept = nil
+
+      stderr = capture_stderr { kept = described_class.drop_expired_results(results) }
+
+      expect(kept).to eq("current" => fresh)
+      expect(stderr).to eq(
+        "[SimpleCov]: Excluded 2 result(s) older than merge_timeout " \
+        "(#{SimpleCov.merge_timeout}s) from the merged report: a-stale, z-stale. " \
+        "Increase SimpleCov.merge_timeout to include them.\n"
+      )
+    end
+  end
+
+  # Two concurrent runners sharing a command name have their maps unioned when
+  # both recorded one and dropped when either did not: a partial map would
+  # present one runner's tests as the pair's.
+  describe "carrying the context maps of a combined entry" do
+    let(:contexts) { SimpleCov::ResultMerger::Contexts }
+    let(:path) { source_fixture("sample.rb") }
+
+    def recorded(test_id, bitmap)
+      {"contexts" => SimpleCov::ContextMap.new.record(test_id, path => bitmap).to_h}
+    end
+
+    it "unions the maps when both entries carry one" do
+      incoming = recorded("spec/b_spec.rb:2", 0b10)
+
+      carried = contexts.carry(incoming, recorded("spec/a_spec.rb:1", 0b1), incoming)
+
+      map = SimpleCov::ContextMap.from_hash(carried.fetch("contexts"))
+      expect(map.covering(path, 1)).to eq(["spec/a_spec.rb:1"])
+      expect(map.covering(path, 2)).to eq(["spec/b_spec.rb:2"])
+    end
+
+    # The entry starts as a copy of the incoming one, so dropping the map has
+    # to remove the key rather than merely decline to add it.
+    it "drops the map when only the incoming entry carries one" do
+      incoming = recorded("spec/a_spec.rb:1", 0b1)
+
+      expect(contexts.carry(incoming, {}, incoming)).to eq({})
+    end
+
+    it "drops the map when only the existing entry carries one" do
+      existing = recorded("spec/a_spec.rb:1", 0b1)
+
+      expect(contexts.carry({"coverage" => {}}, existing, {})).to eq("coverage" => {})
+    end
+  end
+
+  # Entries come out of a resultset, which is JSON: an entry can be any shape
+  # at all, and a key can be missing as easily as it can be wrong.
+  describe "recognizing an entry written by a concurrent runner" do
+    before { allow(SimpleCov).to receive(:process_start_time).and_return(Time.at(100.5)) }
+
+    it "answers false for an entry that is not a hash" do
+      expect(described_class.concurrent_runner_entry?([["timestamp", 100.75]])).to be false
+    end
+
+    it "ignores an incoming entry that is not a hash instead of reading a run id off it" do
+      expect(described_class.concurrent_runner_entry?({"timestamp" => 100.75}, [%w[run_id x]])).to be true
+    end
+
+    # Our own run's entry, stamped at the very instant we started, which the
+    # strictly-later test on its own would read as leftover from a past run.
+    it "counts an entry of our own run stamped at our start time" do
+      allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(false)
+      entry = {"run_id" => "r", "timestamp" => 100.5}
+
+      expect(described_class.concurrent_runner_entry?(entry, "run_id" => "r")).to be true
+    end
+
+    it "answers false for a current-run entry that is not a hash" do
+      expect(described_class.current_run_entry?([%w[run_id r]], "r", Time.at(100.5))).to be false
+    end
+
+    it "answers false for an entry carrying no timestamp at all" do
+      expect(described_class.fresh_entry?({}, Time.at(100.5))).to be false
+      expect(described_class.written_after_start?({}, Time.at(100.5))).to be false
+    end
+
+    it "counts an entry stamped at our start time as fresh, but not as later" do
+      expect(described_class.fresh_entry?({"timestamp" => 100.5}, Time.at(100.5))).to be true
+      expect(described_class.written_after_start?({"timestamp" => 100.5}, Time.at(100.5))).to be false
+    end
+
+    it "answers false for a timestamp that is not a number" do
+      expect(described_class.written_after_start?({"timestamp" => "100.9"}, Time.at(100.5))).to be false
+    end
+  end
+
+  # The paths come from the resultsets rather than this process's own
+  # configuration, which a standalone `collate` would not have. See #1250.
+  describe "tracked paths from a stored resultset" do
+    it "simulates a file the stored run tracked and nobody loaded" do
+      never_loaded = source_fixture("resultset1.rb")
+      described_class.store_result(
+        SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+                              command_name: "RSpec", tracked_files: [never_loaded])
+      )
+
+      merged = described_class.merged_result
+
+      expect(merged.original_result.keys).to include(never_loaded)
+      expect(merged.tracked_files).to eq([never_loaded])
+    end
+  end
+
   describe "not-loaded files in a merged result" do
-    subject(:result) { described_class.send(:create_result, ["merged"], coverage) }
+    subject(:result) { described_class.send(:create_result, ["merged"], coverage, tracked_files: []) }
 
     let(:executed) { source_fixture("sample.rb") }
     let(:never_executed) { source_fixture("resultset1.rb") }
@@ -301,10 +593,27 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe "resultset handling" do
-    # See GitHub issue #6
+    it "puts the resultset in the coverage directory" do
+      expect(described_class.resultset_path).to eq(File.join(SimpleCov.coverage_path, ".resultset.json"))
+    end
+
+    # See GitHub issue #6. An empty file and a file holding only whitespace
+    # both mean "no results yet", which is not the corruption the warnings
+    # below are for, so neither says anything.
     it "returns an empty hash when the resultset cache file is empty" do
-      File.open(described_class.resultset_path, "w+") { |f| f.puts "" }
-      expect(described_class.read_resultset).to be_empty
+      File.write(described_class.resultset_path, "")
+
+      stderr = capture_stderr { expect(described_class.read_resultset).to eq({}) }
+
+      expect(stderr).to be_empty
+    end
+
+    it "returns an empty hash when the resultset cache file holds only whitespace" do
+      File.write(described_class.resultset_path, "  \n\t\n")
+
+      stderr = capture_stderr { expect(described_class.read_resultset).to eq({}) }
+
+      expect(stderr).to be_empty
     end
 
     # See GitHub issue #6
@@ -338,22 +647,43 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(stderr).to include("Parsing JSON content of resultset file failed")
     end
 
+    # Valid JSON that iterates like a resultset without being one: a top-level
+    # array of pairs would survive the malformed-entry filter and reach the
+    # merge in place of the decoded Hash.
+    it "warns and returns an empty hash for a top-level array of entries" do
+      File.write(described_class.resultset_path,
+                 JSON.dump([["RSpec", {"timestamp" => Time.now.to_f, "coverage" => {}}]]))
+
+      stderr = capture_stderr { expect(described_class.read_resultset).to eq({}) }
+
+      expect(stderr).to include("Parsing JSON content of resultset file failed")
+    end
+
     it "keeps treating a null resultset as empty, without a warning" do
       File.write(described_class.resultset_path, "null")
       stderr = capture_stderr { expect(described_class.read_resultset).to be_empty }
       expect(stderr).to be_empty
     end
 
+    # Every shape a hand-edited or truncated resultset can hold in place of an
+    # entry: no entry at all, one that isn't a Hash, and Hashes missing or
+    # mistyping each of the two keys the merge relies on.
     it "warns and drops malformed entries while keeping well-formed ones" do
       malformed = {
         "good" => {"timestamp" => Time.now.to_f, "coverage" => {}},
         "null-entry" => nil,
+        "array-entry" => [1, 2],
         "no-timestamp" => {"coverage" => {}},
+        "text-timestamp" => {"timestamp" => "1700000000", "coverage" => {}},
+        "no-coverage" => {"timestamp" => Time.now.to_f},
         "string-coverage" => {"timestamp" => Time.now.to_f, "coverage" => "x"}
       }
       File.write(described_class.resultset_path, JSON.dump(malformed))
+
       stderr = capture_stderr { expect(described_class.read_resultset.keys).to eq(["good"]) }
-      expect(stderr).to include("malformed resultset entries: no-timestamp, null-entry, string-coverage")
+
+      expect(stderr).to eq("[SimpleCov]: Warning! Ignoring malformed resultset entries: array-entry, " \
+                           "no-coverage, no-timestamp, null-entry, string-coverage, text-timestamp\n")
     end
 
     it "merges through a resultset containing a malformed entry instead of crashing" do
@@ -498,7 +828,7 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".merge_and_store" do
-    let(:resultset_prefix) { "test_resultset" }
+    let(:resultset_prefix) { File.join(SimpleCov.coverage_path, "test_resultset") }
     let(:resultset1_path) { "#{resultset_prefix}1.json" }
     let(:resultset2_path) { "#{resultset_prefix}2.json" }
 
@@ -644,7 +974,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     context "when pre 0.18 result format" do
-      let(:file_path) { "old_resultset.json" }
+      let(:file_path) { File.join(SimpleCov.coverage_path, "old_resultset.json") }
       let(:content) { {source_fixture("three.rb") => [nil, 1, 2]} }
 
       before do
@@ -674,7 +1004,7 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".absorb_results" do
-    let(:resultset_prefix) { "fold_test_resultset" }
+    let(:resultset_prefix) { File.join(SimpleCov.coverage_path, "fold_test_resultset") }
     let(:paths) { [1, 2].map { |index| "#{resultset_prefix}#{index}.json" } }
 
     before do
@@ -698,6 +1028,139 @@ RSpec.describe SimpleCov::ResultMerger do
 
       expect(paths).to eq(["#{resultset_prefix}1.json", "#{resultset_prefix}2.json"])
     end
+
+    # A big CI matrix's memory ceiling is one resultset rather than all
+    # of them, and that holds only while each one is folded in before the
+    # next is read. Mapping eagerly parses them all up front instead, and
+    # an Enumerator handed in as the path list can say which happened.
+    it "folds each resultset in before reading the next" do
+      events = []
+      accumulator = SimpleCov::Combine::CoverageAccumulator.new
+      allow(SimpleCov::Combine::CoverageAccumulator).to receive(:new).and_return(accumulator)
+      allow(accumulator).to receive(:absorb).and_wrap_original do |fold_in, coverage|
+        events << :folded
+        fold_in.call(coverage)
+      end
+      read_on_demand = Enumerator.new do |yielder|
+        paths.each_with_index do |path, index|
+          events << [:read, index]
+          yielder << path
+        end
+      end
+
+      described_class.absorb_results(read_on_demand, ignore_timeout: true) { events << :parsed }
+
+      expect(events).to eq([[:read, 0], :parsed, :folded, [:read, 1], :parsed, :folded])
+    end
+
+    context "when both resultsets are past the merge timeout" do
+      let(:first_result) { outdated(super()) }
+      let(:second_result) { outdated(super()) }
+
+      # No `ignore_timeout:` at all: the default has to be the honouring
+      # one, or `simplecov merge` would quietly resurrect stale runs.
+      it "honours the merge timeout when the caller states no preference" do
+        command_names = nil
+        coverage = nil
+        capture_stderr { command_names, coverage = described_class.absorb_results(paths) }
+
+        expect(command_names).to eq(["", ""])
+        expect(coverage).to be_nil
+      end
+
+      it "keeps both when told to ignore the timeout" do
+        command_names, coverage = described_class.absorb_results(paths, ignore_timeout: true)
+
+        expect(command_names).to eq(%w[result1 result2])
+        expect(coverage).to eq(merged_resultsets)
+      end
+    end
+  end
+
+  describe ".valid_results" do
+    let(:single_path) { File.join(SimpleCov.coverage_path, "valid_results_resultset.json") }
+
+    it "yields the entries that survived to the caller's block" do
+      store_result(first_result, path: single_path)
+      surviving = nil
+
+      described_class.valid_results(single_path) { |entries| surviving = entries }
+
+      expect(surviving.keys).to eq(["result1"])
+    end
+
+    # No `ignore_timeout:` at all: left to itself the merge honours the
+    # timeout, so a stale worker's resultset cannot rejoin a later run.
+    it "drops an expired entry when the caller states no preference" do
+      store_result(outdated(first_result), path: single_path)
+
+      command_names = nil
+      coverage = nil
+      capture_stderr { command_names, coverage = described_class.valid_results(single_path) }
+
+      expect(command_names).to eq([""])
+      expect(coverage).to be_nil
+    end
+
+    it "keeps an expired entry when told to ignore the timeout" do
+      store_result(outdated(first_result), path: single_path)
+
+      command_names, coverage = described_class.valid_results(single_path, ignore_timeout: true)
+
+      expect(command_names).to eq(["result1"])
+      expect(coverage).to eq(first_resultset)
+    end
+  end
+
+  describe ".merge_results" do
+    let(:single_path) { File.join(SimpleCov.coverage_path, "merge_results_resultset.json") }
+
+    it "merges a resultset without being told what to do about the timeout" do
+      store_result(first_result, path: single_path)
+
+      expect(described_class.merge_results(single_path).original_result).to eq(first_resultset)
+    end
+
+    it "keeps an expired resultset when told to ignore the timeout" do
+      store_result(outdated(first_result), path: single_path)
+
+      expect(described_class.merge_results(single_path, ignore_timeout: true).original_result).to eq(first_resultset)
+    end
+
+    # What each resultset recorded is collected as it is parsed, so the merge
+    # can simulate a file none of the contributing runs loaded. See #1250.
+    it "injects a file the merged resultset tracked and nobody loaded" do
+      never_loaded = source_fixture("resultset1.rb")
+      tracked = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
+                                      command_name: "result1", tracked_files: [never_loaded])
+      store_result(tracked, path: single_path)
+
+      merged = described_class.merge_results(single_path)
+
+      expect(merged.original_result.keys).to include(never_loaded)
+      expect(merged.tracked_files).to eq([never_loaded])
+    end
+
+    it "carries the per-test map the merged resultset recorded" do
+      map = SimpleCov::ContextMap.new
+      map.record("spec/a_spec.rb:1", source_fixture("sample.rb") => 0b10)
+      mapped = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+                                     command_name: "result1", contexts: map)
+      store_result(mapped, path: single_path)
+
+      merged = described_class.merge_results(single_path)
+
+      expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
+    end
+
+    it "answers nil when the timeout leaves nothing to merge" do
+      store_result(outdated(first_result), path: single_path)
+
+      merged = nil
+      capture_stderr { merged = described_class.merge_results(single_path) }
+
+      expect(merged).to be_nil
+    end
   end
 
   describe ".store_result" do
@@ -720,6 +1183,32 @@ RSpec.describe SimpleCov::ResultMerger do
       allow(described_class).to receive(:synchronize_resultset)
       described_class.store_result({})
       expect(described_class).to have_received(:synchronize_resultset)
+    end
+
+    it "answers true" do
+      expect(described_class.store_result(first_result)).to be true
+    end
+
+    # The read, the merge and the write are one critical section. A sibling
+    # process reading between our read and our write would write back a
+    # resultset without whatever we were in the middle of adding, so it is
+    # not enough that each of the two file accesses takes the lock in turn.
+    it "reads, merges and writes under a single lock" do
+      events = []
+      store = SimpleCov::ResultMerger::ResultsetStore
+      allow(store).to receive(:with_flock).and_wrap_original do |original, &block|
+        events << :locked
+        original.call(&block)
+        events << :unlocked
+      end
+      allow(store).to receive(:write).and_wrap_original do |original, resultset|
+        events << :wrote
+        original.call(resultset)
+      end
+
+      described_class.store_result(first_result)
+
+      expect(events).to eq(%i[locked wrote unlocked])
     end
 
     # The per-test map follows the same union-or-drop rule everywhere: the
@@ -968,6 +1457,17 @@ RSpec.describe SimpleCov::ResultMerger do
   describe ".synchronize_resultset" do
     let(:resultset_store) { SimpleCov::ResultMerger::ResultsetStore }
 
+    # Reading `SimpleCov.coverage_path` does not create the directory, so the
+    # codepaths that write into it have to. Nothing else in a `collate` run
+    # necessarily has.
+    it "creates the coverage directory before taking the lock" do
+      FileUtils.rm_rf(SimpleCov.coverage_path)
+
+      described_class.synchronize_resultset { :locked }
+
+      expect(Dir.exist?(SimpleCov.coverage_path)).to be true
+    end
+
     it "takes the file lock once across nested and sibling calls" do
       allow(resultset_store).to receive(:with_flock).and_call_original
 
@@ -1079,5 +1579,45 @@ private
   def expect_resultset_1_and_2_merged(result_hash)
     merged_coverage = result_hash.fetch("result1, result2").fetch("coverage")
     expect(merged_coverage).to eq(merged_resultsets)
+  end
+  describe "the write lock" do
+    let(:store) { SimpleCov::ResultMerger::ResultsetStore }
+    let(:tmp) { Dir.mktmpdir("simplecov-writelock-spec-") }
+    let(:lock_path) { File.join(tmp, ".resultset.json.lock") }
+
+    before { allow(store).to receive(:writelock_path).and_return(lock_path) }
+
+    after { FileUtils.remove_entry(tmp) }
+
+    # flock contention is per open file description, so a second handle
+    # in this very process can observe the lock the first one holds.
+    it "holds an exclusive flock while the block runs, against readers and writers alike" do
+      store.send(:holding_writelock) do
+        File.open(lock_path) do |probe|
+          expect(probe.flock(File::LOCK_EX | File::LOCK_NB)).to be(false)
+          expect(probe.flock(File::LOCK_SH | File::LOCK_NB)).to be(false)
+        end
+      end
+    end
+
+    it "answers what the block answers and lets the lock go afterwards" do
+      expect(store.send(:holding_writelock) { :written }).to be(:written)
+
+      File.open(lock_path) do |probe|
+        expect(probe.flock(File::LOCK_EX | File::LOCK_NB)).to be(0)
+      end
+    end
+
+    # `Kernel#open` reads a leading pipe as a command to run; `File.open`
+    # reads it as a filename. The lock file must be a file.
+    it "opens the lock path as a file even when it starts with a pipe" do
+      skip "a pipe is not a legal filename character on Windows" if Gem.win_platform?
+
+      allow(store).to receive(:writelock_path).and_return("|true")
+
+      Dir.chdir(tmp) { store.send(:holding_writelock) { nil } }
+
+      expect(File).to exist(File.join(tmp, "|true"))
+    end
   end
 end

@@ -7,7 +7,7 @@ module SimpleCov
     # that they're still considered we can adapt them). See
     # https://github.com/simplecov-ruby/simplecov/pull/824#issuecomment-576049747
     module LegacyFormatAdapter
-    module_function
+      extend self
 
       def call(result)
         pre_0_18?(result) ? upgrade(result) : result
@@ -17,7 +17,7 @@ module SimpleCov
       # line coverage rather than a `{"lines" => [...]}` hash.
       def pre_0_18?(result)
         _key, data = result.first
-        data.is_a?(Array)
+        data.instance_of?(Array)
       end
 
       def upgrade(result)

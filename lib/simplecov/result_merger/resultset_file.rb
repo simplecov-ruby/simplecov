@@ -10,7 +10,7 @@ module SimpleCov
     # success returns the decoded Hash with any malformed entries
     # warned about and dropped.
     module ResultsetFile
-    module_function
+      extend self
 
       def parse(path)
         data = read(path)
@@ -42,7 +42,7 @@ module SimpleCov
         # fine), but everything downstream iterates command => data
         # pairs, so anything else would crash out of the middle of a
         # merge. Same tolerance as a parse failure: warn and move on.
-        parsed.is_a?(Hash) ? drop_malformed_entries(parsed) : invalid_resultset
+        parsed.instance_of?(Hash) ? drop_malformed_entries(parsed) : invalid_resultset
       rescue StandardError
         invalid_resultset
       end
@@ -62,7 +62,7 @@ module SimpleCov
       end
 
       def well_formed_entry?(data)
-        data.is_a?(Hash) && data["timestamp"].is_a?(Numeric) && data["coverage"].is_a?(Hash)
+        data.instance_of?(Hash) && data["timestamp"].is_a?(Numeric) && data["coverage"].instance_of?(Hash)
       end
 
       def invalid_resultset

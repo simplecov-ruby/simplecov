@@ -8,7 +8,7 @@ module SimpleCov
     # cross-resultset half is `ContextMap::Union`, which the merge feeds
     # through `ResultMerger.entry_collector`.
     module Contexts
-    module_function
+      extend self
 
       # The same union-or-drop rule the cross-suite merge applies: the
       # union when both sides recorded a map, no map at all when either

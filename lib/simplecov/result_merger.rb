@@ -123,7 +123,11 @@ module SimpleCov
              "Increase SimpleCov.merge_timeout to include them."
       end
 
-      def create_result(command_names, coverage, tracked_files: Set.new, contexts: nil)
+      # `tracked_files:` has no default: only the caller knows what the
+      # contributing processes were told to track, and quietly reading an
+      # omission as "nothing was tracked" would drop every never-loaded
+      # file from the merged report.
+      def create_result(command_names, coverage, tracked_files:, contexts: nil)
         return nil unless coverage
 
         # Deduped: a CI matrix collates one resultset per worker, and
@@ -135,19 +139,21 @@ module SimpleCov
         # it's the one that warns about source files dropped because they no
         # longer exist on disk (issue #980). The per-process slices built in
         # `process_coverage_result` stay quiet to avoid one warning per worker.
-        SimpleCov::Result.new(
+        Result.new(
           coverage,
           command_name: distinct_names.join(", "), contexts: contexts, report: true,
           not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
-          tracked_files: tracked_files.to_a
+          tracked_files: tracked_files
         ).tap { |result| result.command_names = distinct_names }
       end
 
       def merge_coverage(*results)
         return [[""], nil] if results.empty?
-        return results.first if results.size == 1
 
-        Combine::CoverageAccumulator.fold(results)
+        # Destructured rather than counted: the single-result fast path then
+        # hands back the very result it checked for, not a second lookup.
+        only, *rest = results
+        rest.empty? ? only : Combine::CoverageAccumulator.fold(results)
       end
 
       #
@@ -190,7 +196,7 @@ module SimpleCov
         return incoming unless concurrent_runner_entry?(existing, incoming)
 
         merged = incoming.merge(
-          "coverage" => Combine::ResultsCombiner.combine(existing["coverage"], incoming["coverage"])
+          "coverage" => Combine::ResultsCombiner.combine(existing.fetch("coverage"), incoming.fetch("coverage"))
         )
         merged = Contexts.carry(merged, existing, incoming)
         UnloadedFiles.carry_tracked(merged, existing, incoming)

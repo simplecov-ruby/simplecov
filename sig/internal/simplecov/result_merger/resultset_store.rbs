@@ -17,6 +17,8 @@ module SimpleCov
       def self?.synchronize: () { () -> untyped } -> untyped
 
       def self?.with_flock: () { () -> untyped } -> untyped
+
+      def self?.holding_writelock: () { () -> untyped } -> untyped
     end
   end
 end

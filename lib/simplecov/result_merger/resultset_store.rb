@@ -14,7 +14,7 @@ module SimpleCov
       LOCK_MONITOR = Monitor.new
       private_constant :LOCK_MONITOR
 
-    module_function
+      extend self
 
       def resultset_path
         File.join(SimpleCov.coverage_path, ".resultset.json")
@@ -41,10 +41,14 @@ module SimpleCov
         LOCK_MONITOR.synchronize { with_flock(&) }
       end
 
-      def with_flock
+      def with_flock(&)
         FileUtils.mkdir_p(SimpleCov.coverage_path)
-        File.open(writelock_path, "w+") do |f|
-          f.flock(File::LOCK_EX)
+        holding_writelock(&)
+      end
+
+      def holding_writelock
+        File.open(writelock_path, "w+") do |file|
+          file.flock(File::LOCK_EX)
           yield
         end
       end
