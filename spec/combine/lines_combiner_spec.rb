@@ -12,6 +12,23 @@ RSpec.describe SimpleCov::Combine::LinesCombiner do
       expect(described_class.merge_into([1, 0, nil], [1, 1, nil, 1, nil])).to eq([2, 1, nil, 1, nil])
     end
 
+    it "leaves the target's tail alone when the source is the shorter side" do
+      expect(described_class.merge_into([3, 7, 5], [4, 2])).to eq([7, 9, 5])
+    end
+
+    it "sums the whole overlap when the two sides are the same length" do
+      expect(described_class.merge_into([3, 7], [4, 2])).to eq([7, 9])
+    end
+
+    # The whole point of folding rather than building a third array: the
+    # accumulated side is updated in place.
+    it "returns the target itself rather than a copy of it" do
+      target = [3, 7]
+
+      expect(described_class.merge_into(target, [4, 2])).to be(target)
+      expect(target).to eq([7, 9])
+    end
+
     # The relevance rules: nil + nil = nil, nil + int = int (preserving a
     # relevant-but-uncovered 0 rather than dropping the line from the
     # denominator), int + int = sum.
@@ -40,6 +57,64 @@ RSpec.describe SimpleCov::Combine::LinesCombiner do
     # counts to a wrong answer instead of raising mid-merge.
     it "coerces malformed counts instead of raising" do
       expect(described_class.merge_into(["2", nil], [1, "3", 1.0])).to eq([3, 3, 1])
+    end
+
+    # Same doctrine one level up: a "lines" entry a hand-edited or foreign
+    # resultset wrote as something other than an array merges to a wrong
+    # answer rather than taking the merge down with it.
+    it "contributes nothing from a source that is not a lines array" do
+      expect(described_class.merge_into([3, 7], {"a" => 1})).to eq([3, 7])
+    end
+  end
+
+  describe ".sum_into" do
+    it "sums each position and answers the target it folded into" do
+      target = [3, nil, 7]
+
+      expect(described_class.sum_into(target, [5, 4, 2], 3)).to be(target)
+      expect(target).to eq([8, 4, 9])
+    end
+
+    # Counts are read as far as they are numbers. A resultset written by
+    # something else may carry one as text, and a merge is better than a
+    # crash.
+    it "reads a count that carries trailing text as far as it is a number" do
+      expect(described_class.sum_into([3], ["5 hits"], 1)).to eq([8])
+    end
+
+    it "stops at the size it was given" do
+      expect(described_class.sum_into([3, 7], [5, 4], 1)).to eq([8, 7])
+    end
+
+    it "leaves a position the source says nothing about alone" do
+      expect(described_class.sum_into([3, 7], [nil, 4], 2)).to eq([3, 11])
+    end
+
+    it "makes a position only the source considers relevant relevant" do
+      expect(described_class.sum_into([nil, nil], [0, 4], 2)).to eq([0, 4])
+    end
+
+    it "coerces malformed counts on both sides instead of raising" do
+      expect(described_class.sum_into([nil, "6"], ["3", 4.7], 2)).to eq([3, 10])
+    end
+
+    # nil + nil = nil. A line neither side ran and neither side considers
+    # relevant must not turn into a relevant-but-uncovered 0, which would
+    # add a line to the denominator that no run ever reported.
+    it "leaves a position neither side considers relevant alone" do
+      expect(described_class.sum_into([nil, 3], [nil, 4], 2)).to eq([nil, 7])
+    end
+
+    # The size is the caller's, not the source's: reading past the end of
+    # the source contributes nothing rather than raising.
+    it "contributes nothing from a position the source does not reach" do
+      expect(described_class.sum_into([3, 7], [5], 2)).to eq([8, 7])
+    end
+
+    # And a target shorter than the size grows, so the loop can be run
+    # against a target the caller has not padded first.
+    it "grows a target shorter than the size it was given" do
+      expect(described_class.sum_into([3], [5, 4], 2)).to eq([8, 4])
     end
   end
 end

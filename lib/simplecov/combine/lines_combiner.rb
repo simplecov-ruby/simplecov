@@ -7,7 +7,7 @@ module SimpleCov
     #
     # Should be called through `CoverageAccumulator`.
     module LinesCombiner
-    module_function
+      extend self
 
       # Folds `source` into `target` rather than building a third array.
       # Only for a `target` the caller owns outright: a caller holding a
@@ -38,35 +38,31 @@ module SimpleCov
         return source.dup unless target
 
         size = source.size
-        target.concat(Array.new(size - target.size)) if target.size < size
+        # A shorter target grows to the source's length, and `fill` on a
+        # negative length is the no-op the already-long-enough case wants.
+        target.fill(nil, target.size, size - target.size)
         sum_into(target, source, size)
       end
 
       # Split out only to keep `merge_into` short; it is the same loop.
       #
-      # The `Integer` tests coerce malformed counts (a "3" written by a
-      # hand-edited or foreign resultset, a JSON float) with `to_i`, so
-      # external input merges to a wrong answer instead of raising out of
-      # the middle of a merge. An `is_a?` per count is far cheaper than
-      # the block dispatch this loop exists to avoid, and the well-formed
-      # fast path stays branch-for-branch what it was.
+      # Both sides go through `to_i`, which is what keeps the merge total
+      # over external input: a count a hand-edited or foreign resultset
+      # wrote as "3", or as a JSON float, merges to a wrong answer instead
+      # of raising out of the middle of a merge. On the accumulated side
+      # it doubles as the nil arm, where a line the target does not yet
+      # consider relevant leaves the incoming count standing alone.
+      # `Integer#to_i` answers the receiver, so the well-formed path pays
+      # one immediate call per count and nothing else.
       def sum_into(target, source, size)
         index = 0
         while index < size
           if (value = source[index])
-            value = value.to_i unless value.is_a?(Integer)
-            existing = target[index]
-            target[index] = existing.is_a?(Integer) ? existing + value : coerce_add(existing, value)
+            target[index] = target.at(index).to_i + value.to_i
           end
           index += 1
         end
         target
-      end
-
-      # The rare arm: `existing` is nil (line not yet relevant in the
-      # target) or malformed external input.
-      def coerce_add(existing, value)
-        existing.nil? ? value : existing.to_i + value
       end
     end
   end

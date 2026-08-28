@@ -11,10 +11,9 @@ module SimpleCov
       def self?.merge_into: (untyped target, untyped source) -> untyped
 
       # Split out only to keep `merge_into` short; it is the same loop.
+      # Both sides go through `to_i`, which coerces malformed external
+      # input and doubles as the nil arm of the target.
       def self?.sum_into: (untyped target, untyped source, Integer size) -> untyped
-
-      # The rare arm: existing is nil or malformed external input.
-      def self?.coerce_add: (untyped existing, Integer value) -> Integer
     end
   end
 end
