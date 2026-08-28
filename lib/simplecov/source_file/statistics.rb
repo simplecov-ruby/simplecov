@@ -33,11 +33,14 @@ module SimpleCov
 
       # Files added via track_files but never loaded have no branch/method
       # data. Report 0% instead of the empty-set default of 100% (see #902).
+      # Nothing covered is the whole of the test: a file with missed
+      # entries and none covered already computes to 0%, so only a file
+      # that really has covered entries keeps its computed percentage.
       def branch_statistics
         sf = @source_file
         covered = sf.covered_branches
         missed = sf.missed_branches
-        percent = 0.0 if sf.not_loaded? && covered.empty? && missed.empty?
+        percent = 0.0 if sf.not_loaded? && covered.empty?
 
         {branch: coverage_statistics(covered, missed, percent: percent)}
       end
@@ -46,7 +49,7 @@ module SimpleCov
         sf = @source_file
         covered = sf.covered_methods
         missed = sf.missed_methods
-        percent = 0.0 if sf.not_loaded? && covered.empty? && missed.empty?
+        percent = 0.0 if sf.not_loaded? && covered.empty?
 
         {method: coverage_statistics(covered, missed, percent: percent)}
       end
