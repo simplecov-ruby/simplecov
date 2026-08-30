@@ -18,25 +18,23 @@ module SimpleCov
         CoverageViolations.minimum_overall(result, thresholds)
       end
 
-      def report_violation(violation)
+      def violation_lines(violation)
         criterion = violation.fetch(:criterion)
-        actual = violation.fetch(:actual)
-        ExitCodes.print_error format(
+        headline = format(
           "%<criterion>s coverage (%<actual>s) is below the expected minimum coverage (%<expected>.2f%%).",
           criterion: criterion.capitalize,
-          actual: Color.colorize_percent(actual),
+          actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected)
         )
-        report_worst_files(criterion)
+        [headline, *worst_files_lines(criterion)]
       end
 
-      def report_worst_files(criterion)
+      def worst_files_lines(criterion)
         worst = worst_files_for(criterion)
-        return if worst.empty?
+        return [] if worst.empty?
 
-        ExitCodes.print_error "  Lowest-coverage files (#{criterion}):"
-        worst.each do |path, percent|
-          ExitCodes.print_error format(
+        ["  Lowest-coverage files (#{criterion}):"] + worst.map do |path, percent|
+          format(
             "    %<percent>s  %<path>s",
             percent: Color.colorize_percent(percent, format("%6.2f%%", percent)),
             path: path

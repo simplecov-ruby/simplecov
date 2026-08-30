@@ -18,14 +18,14 @@ module SimpleCov
         CoverageViolations.maximum_overall(result, thresholds)
       end
 
-      def report_violation(violation)
-        ExitCodes.print_error format(
+      def violation_lines(violation)
+        [format(
           "%<criterion>s coverage (%<actual>s) is above the expected maximum coverage (%<expected>.2f%%). " \
           "Time to bump the threshold!",
           criterion: violation.fetch(:criterion).capitalize,
           actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected)
-        )
+        )]
       end
     end
   end

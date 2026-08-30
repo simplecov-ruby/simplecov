@@ -28,7 +28,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
     it { is_expected.to be_failing }
 
     it "reports the count in the criterion's own units" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Missed lines (12)")
       expect(output).to include("maximum_missed (11)")
     end
@@ -39,7 +40,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
 
     it "checks each criterion's own missed count" do
       expect(check).to be_failing
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Missed branches (3)")
       expect(output).not_to include("lines")
     end
@@ -68,14 +70,14 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
   end
 
   it "reports the misses and the cap they passed, in the criterion's own units" do
-    expect { described_class.new(result, {line: 10}).report }
-      .to output("Missed lines (12) exceed the configured maximum_missed (10).\n").to_stderr
+    expect(described_class.new(result, {line: 10}).report_lines)
+      .to eq(["Missed lines (12) exceed the configured maximum_missed (10)."])
   end
 
   # Oneshot lines are recorded under the line statistics, so their units
   # are read through the key they are stored under.
   it "names oneshot lines as lines" do
-    expect { described_class.new(result, {oneshot_line: 10}).report }
-      .to output("Missed lines (12) exceed the configured maximum_missed (10).\n").to_stderr
+    expect(described_class.new(result, {oneshot_line: 10}).report_lines)
+      .to eq(["Missed lines (12) exceed the configured maximum_missed (10)."])
   end
 end

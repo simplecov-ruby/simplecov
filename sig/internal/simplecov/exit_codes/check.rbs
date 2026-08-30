@@ -1,7 +1,7 @@
 module SimpleCov
   module ExitCodes
     # Shared skeleton for the threshold checks. Subclasses supply
-    # `exit_code`, `compute_violations`, and `report_violation`.
+    # `exit_code`, `compute_violations`, and `violation_lines`.
     class Check
       @result: untyped
 
@@ -13,7 +13,13 @@ module SimpleCov
 
       def failing?: () -> untyped
 
+      # The structured violations this check found, as values.
+      def violations: () -> untyped
+
       def report: () -> untyped
+
+      # The whole report as values, one string per line.
+      def report_lines: () -> Array[String]
 
       private
 
@@ -21,11 +27,9 @@ module SimpleCov
 
       attr_reader thresholds: untyped
 
-      def violations: () -> untyped
-
       def compute_violations: () -> untyped
 
-      def report_violation: (untyped violation) -> untyped
+      def violation_lines: (untyped violation) -> Array[String]
     end
   end
 end

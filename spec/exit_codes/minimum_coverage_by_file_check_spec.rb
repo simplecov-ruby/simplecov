@@ -39,7 +39,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     let(:minimum_coverage_by_file) { {line: 90} }
 
     it "prints the violating file with criterion and percentage" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Line coverage by file")
       expect(output).to include("lib/foo.rb")
     end
@@ -80,7 +81,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
       end
 
       it "names the file under the override threshold in the report" do
-        output = capture_stderr { check.report }
+        output = check.report_lines.join("
+")
         expect(output).to include("lib/critical.rb")
         expect(output).to include("(100.00%)")
         expect(output).not_to include("lib/regular.rb")
@@ -100,7 +102,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
 
       it "applies the override to every file under that directory" do
         expect(check).to be_failing
-        output = capture_stderr { check.report }
+        output = check.report_lines.join("
+")
         expect(output).to include("lib/regular.rb")
         expect(output).to include("lib/critical.rb")
       end
@@ -111,7 +114,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
 
       it "matches only files whose project path matches the Regexp" do
         expect(check).to be_failing
-        output = capture_stderr { check.report }
+        output = check.report_lines.join("
+")
         expect(output).to include("lib/critical.rb")
         expect(output).not_to include("lib/regular.rb")
       end
@@ -125,7 +129,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
 
       it "uses the override declared last" do
         expect(check).to be_failing
-        output = capture_stderr { check.report }
+        output = check.report_lines.join("
+")
         expect(output).to include("(100.00%)")
       end
     end
@@ -154,7 +159,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
 
       it "merges defaults with override (override wins per criterion)" do
         expect(check).to be_failing
-        output = capture_stderr { check.report }
+        output = check.report_lines.join("
+")
         # The file's branch at 60% passes the default 50% threshold.
         expect(output).not_to include("Branch coverage")
         # The file's line at 80% fails the override 100% threshold.
@@ -215,8 +221,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
   it "names the file that fell short, and by how much" do
     allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
 
-    expect { described_class.new(result, {line: 90.0}).report }
-      .to output("Line coverage by file (80.00%) is below the expected minimum coverage " \
-                 "(90.00%) in lib/foo.rb.\n").to_stderr
+    expect(described_class.new(result, {line: 90.0}).report_lines)
+      .to eq(["Line coverage by file (80.00%) is below the expected minimum coverage " \
+              "(90.00%) in lib/foo.rb."])
   end
 end

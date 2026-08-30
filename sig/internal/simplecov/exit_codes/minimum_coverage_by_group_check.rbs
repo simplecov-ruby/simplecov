@@ -9,7 +9,7 @@ module SimpleCov
 
       def compute_violations: () -> untyped
 
-      def report_violation: (untyped violation) -> untyped
+      def violation_lines: (untyped violation) -> Array[String]
     end
   end
 end

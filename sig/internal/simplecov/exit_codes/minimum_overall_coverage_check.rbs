@@ -11,9 +11,9 @@ module SimpleCov
 
       def compute_violations: () -> untyped
 
-      def report_violation: (untyped violation) -> untyped
+      def violation_lines: (untyped violation) -> Array[String]
 
-      def report_worst_files: (untyped criterion) -> (nil | untyped)
+      def worst_files_lines: (untyped criterion) -> Array[String]
 
       def worst_files_for: (untyped criterion) -> untyped
     end

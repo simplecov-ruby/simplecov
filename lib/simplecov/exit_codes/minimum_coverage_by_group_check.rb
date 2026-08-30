@@ -15,15 +15,15 @@ module SimpleCov
         CoverageViolations.minimum_by_group(result, thresholds)
       end
 
-      def report_violation(violation)
-        ExitCodes.print_error format(
+      def violation_lines(violation)
+        [format(
           "%<criterion>s coverage by group (%<actual>s) is below the expected minimum coverage " \
           "(%<expected>.2f%%) in %<group_name>s.",
           criterion: violation.fetch(:criterion).capitalize,
           actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected),
           group_name: violation.fetch(:group_name)
-        )
+        )]
       end
     end
   end

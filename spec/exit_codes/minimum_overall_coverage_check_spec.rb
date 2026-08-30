@@ -73,7 +73,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
     end
 
     it "prints the violation and the lowest-coverage files for the criterion" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Line coverage")
       expect(output).to include("Lowest-coverage files (line):")
       expect(output).to include("lib/worst.rb")
@@ -89,7 +90,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
       result_files = files + [file_double("lib/covered.rb", line: 100.0)]
       allow(result).to receive(:files).and_return(result_files)
 
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).not_to include("lib/covered.rb")
     end
 
@@ -98,7 +100,8 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
       result_files = files + [missing]
       allow(result).to receive(:files).and_return(result_files)
 
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).not_to include("lib/missing.rb")
     end
   end
@@ -141,17 +144,17 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
       expect(check.send(:worst_files_for, :oneshot_line)).to eq([["a.rb", 10.0]])
     end
 
-    it "prints each of them under a heading, aligned" do
+    it "renders each of them under a heading, aligned" do
       allow(result).to receive(:files).and_return([source_file("a.rb", 10.0)])
       allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
 
-      expect { check.send(:report_worst_files, :line) }
-        .to output("  Lowest-coverage files (line):\n     10.00%  a.rb\n").to_stderr
+      expect(check.send(:worst_files_lines, :line))
+        .to eq(["  Lowest-coverage files (line):", "     10.00%  a.rb"])
     end
 
-    it "prints nothing when every file is covered" do
+    it "renders nothing when every file is covered" do
       allow(result).to receive(:files).and_return([source_file("whole.rb", 100.0)])
-      expect { check.send(:report_worst_files, :line) }.not_to output.to_stderr
+      expect(check.send(:worst_files_lines, :line)).to eq([])
     end
   end
 
@@ -160,7 +163,7 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
   it "reports what fell short, and by how much" do
     allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
 
-    expect { described_class.new(result, {line: 90.0}).report }
-      .to output("Line coverage (80.00%) is below the expected minimum coverage (90.00%).\n").to_stderr
+    expect(described_class.new(result, {line: 90.0}).report_lines)
+      .to eq(["Line coverage (80.00%) is below the expected minimum coverage (90.00%)."])
   end
 end

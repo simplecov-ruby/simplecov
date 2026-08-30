@@ -23,15 +23,15 @@ module SimpleCov
         CoverageViolations.minimum_by_file(result, thresholds, @overrides, baseline: @baseline)
       end
 
-      def report_violation(violation)
-        ExitCodes.print_error format(
+      def violation_lines(violation)
+        [format(
           "%<criterion>s coverage by file (%<actual>s) is below the expected minimum coverage " \
           "(%<expected>.2f%%) in %<filename>s.",
           criterion: violation.fetch(:criterion).capitalize,
           actual: Color.colorize_percent(violation.fetch(:actual)),
           expected: violation.fetch(:expected),
           filename: violation.fetch(:project_filename)
-        )
+        )]
       end
     end
   end

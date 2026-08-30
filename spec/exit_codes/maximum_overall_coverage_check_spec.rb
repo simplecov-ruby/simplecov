@@ -77,7 +77,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
     let(:maximum_coverage) { {line: 70.0} }
 
     it "prints the violation with criterion and percentages, and a bump hint" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Line coverage")
       expect(output).to include("above the expected maximum coverage")
       expect(output).to include("Time to bump the threshold!")
@@ -87,8 +88,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
   it "reports what rose above the ceiling, and invites raising it" do
     allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
 
-    expect { described_class.new(result, {line: 70.0}).report }
-      .to output("Line coverage (80.00%) is above the expected maximum coverage (70.00%). " \
-                 "Time to bump the threshold!\n").to_stderr
+    expect(described_class.new(result, {line: 70.0}).report_lines)
+      .to eq(["Line coverage (80.00%) is above the expected maximum coverage (70.00%). " \
+              "Time to bump the threshold!"])
   end
 end

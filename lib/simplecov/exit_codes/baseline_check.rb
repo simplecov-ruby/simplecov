@@ -24,7 +24,7 @@ module SimpleCov
         CoverageViolations.baseline(result, @baseline)
       end
 
-      def report_violation(violation)
+      def violation_lines(violation)
         message = format(
           "%<criterion>s coverage (%<actual>s) dropped below its baseline floor (%<expected>s%%) in %<filename>s",
           criterion: violation.fetch(:criterion).capitalize,
@@ -32,7 +32,7 @@ module SimpleCov
           expected: violation.fetch(:expected),
           filename: violation.fetch(:project_filename)
         )
-        ExitCodes.print_error "#{message}#{missed_clause(violation)}."
+        ["#{message}#{missed_clause(violation)}."]
       end
 
       # The dampener detail, absent for a percent-only floor where no

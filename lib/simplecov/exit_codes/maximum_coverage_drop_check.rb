@@ -18,8 +18,8 @@ module SimpleCov
       # The "drop percent" is a delta, not a coverage level — it has no
       # natural green/yellow/red mapping, so the whole line goes red to
       # keep the failure visible at a glance.
-      def report_violation(violation)
-        ExitCodes.print_error Color.colorize(message_for(violation), :red)
+      def violation_lines(violation)
+        [Color.colorize(message_for(violation), :red)]
       end
 
       def message_for(violation)

@@ -17,13 +17,13 @@ module SimpleCov
         CoverageViolations.maximum_missed(result, thresholds)
       end
 
-      def report_violation(violation)
-        ExitCodes.print_error format(
+      def violation_lines(violation)
+        [format(
           "Missed %<units>s (%<actual>d) exceed the configured maximum_missed (%<maximum>d).",
           units: UNITS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion))),
           actual: violation.fetch(:actual),
           maximum: violation.fetch(:maximum)
-        )
+        )]
       end
     end
   end

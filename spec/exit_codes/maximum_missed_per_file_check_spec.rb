@@ -33,7 +33,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
     it { is_expected.to be_failing }
 
     it "names the file with the counts" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Missed lines (5)")
       expect(output).to include("maximum_missed_per_file (4)")
       expect(output).to include("lib/foo.rb")
@@ -92,9 +93,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
   end
 
   it "names the file, its misses and the cap they passed" do
-    expect { described_class.new(result, {line: 2}).report }
-      .to output("Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb.\n")
-      .to_stderr
+    expect(described_class.new(result, {line: 2}).report_lines)
+      .to eq(["Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb."])
   end
 
   # Oneshot lines are recorded under the line statistics, so their units
@@ -102,8 +102,7 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
   it "names oneshot lines as lines" do
     violation = {criterion: :oneshot_line, actual: 5, maximum: 2, project_filename: "lib/foo.rb"}
 
-    expect { described_class.new(result, {line: 2}).send(:report_violation, violation) }
-      .to output("Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb.\n")
-      .to_stderr
+    expect(described_class.new(result, {line: 2}).send(:violation_lines, violation))
+      .to eq(["Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb."])
   end
 end

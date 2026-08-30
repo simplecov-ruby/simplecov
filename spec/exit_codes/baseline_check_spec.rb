@@ -51,7 +51,8 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     it { is_expected.to be_failing }
 
     it "names the file, the floor, and both measurements" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("lib/foo.rb")
       expect(output).to include("90.0%")
       expect(output).to include("2 uncovered lines")
@@ -78,7 +79,8 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     end
 
     it "reports without the missed clause, which was never recorded" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("lib/foo.rb")
       expect(output).not_to include("allowed")
     end
@@ -125,7 +127,8 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     end
 
     it "speaks in the violated criterion's own units" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Branch coverage")
       expect(output).to include("3 uncovered branches")
     end
@@ -145,9 +148,9 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     before { allow(SimpleCov::Color).to receive(:enabled?).and_return(false) }
 
     it "names the file, the coverage reached and the floor it fell under" do
-      expect { check.report }
-        .to output("Line coverage (80.00%) dropped below its baseline floor (90.0%) in lib/foo.rb " \
-                   "(2 uncovered lines, 1 allowed).\n").to_stderr
+      expect(check.report_lines)
+        .to eq(["Line coverage (80.00%) dropped below its baseline floor (90.0%) in lib/foo.rb " \
+                "(2 uncovered lines, 1 allowed)."])
     end
 
     # Oneshot lines are recorded under the line statistics, so their

@@ -97,7 +97,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
     let(:maximum_coverage_drop) { {line: 5} }
 
     it "prints the criterion drop and the maximum allowed" do
-      output = capture_stderr { check.report }
+      output = check.report_lines.join("
+")
       expect(output).to include("Line coverage")
       expect(output).to include("dropped")
       expect(output).to include("maximum allowed")
@@ -118,7 +119,7 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
     it "reports the drop in red" do
       allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
 
-      expect { check.report }.to output(a_string_starting_with("\e[31m")).to_stderr
+      expect(check.report_lines).to all(start_with("\e[31m").and(end_with("\e[0m")))
     end
   end
 end

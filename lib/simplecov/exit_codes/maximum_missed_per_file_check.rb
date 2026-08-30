@@ -24,15 +24,15 @@ module SimpleCov
         CoverageViolations.maximum_missed_by_file(result, thresholds, @overrides, baseline: @baseline)
       end
 
-      def report_violation(violation)
-        ExitCodes.print_error format(
+      def violation_lines(violation)
+        [format(
           "Missed %<units>s (%<actual>d) exceed the configured maximum_missed_per_file (%<maximum>d) " \
           "in %<filename>s.",
           units: UNITS.fetch(SimpleCov.coverage_statistics_key(violation.fetch(:criterion))),
           actual: violation.fetch(:actual),
           maximum: violation.fetch(:maximum),
           filename: violation.fetch(:project_filename)
-        )
+        )]
       end
     end
   end
