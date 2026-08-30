@@ -1363,46 +1363,58 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe ".run_exit_tasks!", mutant_expression: "SimpleCov.run_exit_tasks!" do
-    # The project's own at_exit block runs first, and it runs whatever
-    # the branches below decide.
+  describe ".run_exit_tasks", mutant_expression: "SimpleCov.run_exit_tasks" do
     it "runs the configured at_exit block before deciding anything" do
       ran = []
       allow(described_class).to receive_messages(at_exit: -> { ran << :at_exit },
                                                  exit_status_from_exception: nil,
-                                                 previous_error?: false, ready_to_process_results?: true)
-      allow(described_class).to receive(:process_results_and_report_error) { ran << :processed }
+                                                 previous_error?: false, ready_to_process_results?: true,
+                                                 result: instance_double(SimpleCov::Result))
+      allow(described_class).to receive(:process_result) {
+        ran << :processed
+        0
+      }
 
-      described_class.run_exit_tasks!
+      described_class.run_exit_tasks
       expect(ran).to eq(%i[at_exit processed])
     end
 
-    it "processes nothing when the run is not ready to be processed" do
-      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
-                                                 previous_error?: false, ready_to_process_results?: false)
-      allow(described_class).to receive(:process_results_and_report_error)
+    it "answers the previous error's own status, reported but not processed" do
+      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: 7,
+                                                 ready_to_process_results?: true)
+      allow(described_class).to receive(:report_previous_error)
+      allow(described_class).to receive(:process_result)
 
-      described_class.run_exit_tasks!
-      expect(described_class).not_to have_received(:process_results_and_report_error)
+      expect(described_class.run_exit_tasks).to eq(7)
+      expect(described_class).to have_received(:report_previous_error)
+      expect(described_class).not_to have_received(:process_result)
     end
 
-    it "reports no previous error when there was none" do
+    it "answers what processing this run's result decides when the run is ready" do
+      collected = instance_double(SimpleCov::Result)
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
-                                                 previous_error?: false, ready_to_process_results?: false)
-      allow(described_class).to receive(:exit_and_report_previous_error)
+                                                 ready_to_process_results?: true, result: collected)
+      allow(described_class).to receive(:report_processing_failure) { |status| status }
+      allow(described_class).to receive(:process_result).and_return(3)
 
-      described_class.run_exit_tasks!
-      expect(described_class).not_to have_received(:exit_and_report_previous_error)
+      expect(described_class.run_exit_tasks).to eq(3)
+      expect(described_class).to have_received(:process_result).with(collected)
+      expect(described_class).to have_received(:report_processing_failure).with(3)
     end
 
-    # The status the suite exited with is what both branches are asked
-    # about, and a caller may hand its own in.
+    it "answers success, exactly, when there is nothing to process" do
+      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
+                                                 ready_to_process_results?: false)
+
+      expect(described_class.run_exit_tasks).to eql(SimpleCov::ExitCodes::SUCCESS)
+    end
+
     it "asks about the status it was given rather than looking it up again" do
       allow(described_class).to receive_messages(at_exit: proc {}, previous_error?: false,
                                                  ready_to_process_results?: false,
                                                  exit_status_from_exception: 9)
 
-      described_class.run_exit_tasks!(4)
+      described_class.run_exit_tasks(4)
       expect(described_class).to have_received(:previous_error?).with(4)
     end
 
@@ -1411,30 +1423,55 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
                                                  ready_to_process_results?: false,
                                                  exit_status_from_exception: 9)
 
-      described_class.run_exit_tasks!
+      described_class.run_exit_tasks
       expect(described_class).to have_received(:previous_error?).with(9)
     end
 
-    it "calls at_exit, then handles previous-error and result-processing branches" do
-      proc_double = proc {}
-      allow(described_class).to receive(:exit_and_report_previous_error)
-      allow(described_class).to receive_messages(exit_status_from_exception: 1, at_exit: proc_double,
-                                                 previous_error?: true, ready_to_process_results?: false)
+    it "never ends the process itself, whatever it answers" do
+      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: 7,
+                                                 print_errors: false, ready_to_process_results?: false)
 
-      described_class.run_exit_tasks!
+      expect(described_class.run_exit_tasks).to eq(7)
+      expect(Kernel).not_to have_received(:exit)
+    end
+  end
 
-      expect(described_class).to have_received(:exit_and_report_previous_error).with(1)
+  describe ".run_exit_tasks!", mutant_expression: "SimpleCov.run_exit_tasks!" do
+    it "ends the process with the failing status the tasks answered" do
+      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive(:run_exit_tasks).and_return(3)
+
+      described_class.run_exit_tasks!(3)
+
+      expect(Kernel).to have_received(:exit).with(3)
     end
 
-    it "calls process_results_and_report_error when ready and no previous error" do
-      proc_double = proc {}
-      allow(described_class).to receive_messages(exit_status_from_exception: nil, at_exit: proc_double,
-                                                 previous_error?: false, ready_to_process_results?: true)
-      allow(described_class).to receive(:process_results_and_report_error)
+    it "hands the status it was given through to the tasks" do
+      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive(:run_exit_tasks).and_return(0)
+
+      described_class.run_exit_tasks!(4)
+
+      expect(described_class).to have_received(:run_exit_tasks).with(4)
+    end
+
+    it "looks the status up when a caller hands none in" do
+      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive_messages(exit_status_from_exception: 9, run_exit_tasks: 0)
 
       described_class.run_exit_tasks!
 
-      expect(described_class).to have_received(:process_results_and_report_error)
+      expect(described_class).to have_received(:run_exit_tasks).with(9)
+    end
+
+    it "lets a successful run fall through to the runtime's own exit" do
+      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive(:run_exit_tasks).and_return(SimpleCov::ExitCodes::SUCCESS)
+
+      described_class.run_exit_tasks!
+
+      expect(Kernel).not_to have_received(:exit)
     end
   end
 
@@ -1481,81 +1518,73 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe ".exit_and_report_previous_error", mutant_expression: "SimpleCov.exit_and_report_previous_error" do
-    it "warns when print_errors is true and exits with the given status" do
+  describe ".report_previous_error", mutant_expression: "SimpleCov.report_previous_error" do
+    it "warns when print_errors is true, and does not end the process" do
       allow(described_class).to receive(:print_errors).and_return(true)
       allow(Kernel).to receive(:exit)
-      stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
+      stderr = capture_stderr { described_class.report_previous_error }
       expect(stderr).to include("Stopped processing SimpleCov")
-      expect(Kernel).to have_received(:exit).with(2)
+      expect(Kernel).not_to have_received(:exit)
     end
 
     it "is silent when print_errors is false" do
       allow(described_class).to receive(:print_errors).and_return(false)
-      allow(Kernel).to receive(:exit)
-      stderr = capture_stderr { described_class.exit_and_report_previous_error(2) }
+      stderr = capture_stderr { described_class.report_previous_error }
       expect(stderr).to be_empty
     end
 
     it "colors the notice yellow, the shade it reserves for someone else's error" do
       allow(described_class).to receive(:print_errors).and_return(true)
-      allow(Kernel).to receive(:exit)
       allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
 
-      capture_stderr { described_class.exit_and_report_previous_error(2) }
+      capture_stderr { described_class.report_previous_error }
 
       expect(SimpleCov::Color)
         .to have_received(:colorize).with(/\AStopped processing SimpleCov /, :yellow)
     end
   end
 
-  describe ".process_results_and_report_error", mutant_expression: "SimpleCov.process_results_and_report_error" do
-    it "exits with the coverage-related error status when process_result returns positive" do
-      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: true)
-      allow(Kernel).to receive(:exit)
+  describe ".report_processing_failure", mutant_expression: "SimpleCov.report_processing_failure" do
+    it "answers the failing status it was handed, and explains it" do
+      allow(described_class).to receive(:print_errors).and_return(true)
 
-      stderr = capture_stderr { described_class.process_results_and_report_error }
+      stderr = capture_stderr { expect(described_class.report_processing_failure(2)).to eq(2) }
 
       expect(stderr).to include("SimpleCov failed with exit 2")
-      expect(Kernel).to have_received(:exit).with(2)
     end
 
-    it "is a no-op when process_result returns zero" do
-      allow(described_class).to receive_messages(result: double, process_result: 0)
-      allow(Kernel).to receive(:exit)
-      described_class.process_results_and_report_error
-      expect(Kernel).not_to have_received(:exit)
+    it "answers success silently, which needs no explaining" do
+      allow(described_class).to receive(:print_errors).and_return(true)
+
+      stderr = capture_stderr { expect(described_class.report_processing_failure(0)).to eq(0) }
+
+      expect(stderr).to be_empty
     end
 
-    it "processes the result this run collected" do
-      collected = double
-      allow(described_class).to receive_messages(result: collected, process_result: 0)
-      # Stubbed even though a zero status should never reach it: a
-      # mutation that drops the guard would otherwise exit this worker
-      # cleanly, which mutant reads as a passing run.
-      allow(Kernel).to receive(:exit)
+    it "stays silent when print_errors is off, but still answers the status" do
+      allow(described_class).to receive(:print_errors).and_return(false)
 
-      described_class.process_results_and_report_error
+      stderr = capture_stderr { expect(described_class.report_processing_failure(2)).to eq(2) }
 
-      expect(described_class).to have_received(:process_result).with(collected)
+      expect(stderr).to be_empty
     end
 
     it "colors the failure red, the shade it reserves for its own" do
-      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: true)
-      allow(Kernel).to receive(:exit)
+      allow(described_class).to receive_messages(print_errors: true)
       allow(SimpleCov::Color).to receive(:colorize).and_return("colorized")
 
-      capture_stderr { described_class.process_results_and_report_error }
+      capture_stderr { described_class.report_processing_failure(2) }
 
       expect(SimpleCov::Color).to have_received(:colorize).with(/\ASimpleCov failed with exit /, :red)
     end
 
-    it "stays silent when print_errors is false but still exits" do
-      allow(described_class).to receive_messages(result: double, process_result: 2, print_errors: false)
+    it "never ends the process itself" do
       allow(Kernel).to receive(:exit)
-      stderr = capture_stderr { described_class.process_results_and_report_error }
-      expect(stderr).to be_empty
-      expect(Kernel).to have_received(:exit).with(2)
+      allow(described_class).to receive(:print_errors).and_return(false)
+
+      described_class.report_processing_failure(2)
+
+      expect(Kernel).not_to have_received(:exit)
     end
   end
 

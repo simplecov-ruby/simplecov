@@ -40,13 +40,33 @@ module SimpleCov
       run_exit_tasks!(error_exit_status)
     end
 
-    # @api private — called from the at_exit block (which pre-captures
-    # the status, see there) and by `collate` (the default argument).
-    def run_exit_tasks!(error_exit_status = exit_status_from_exception)
+    # @api private — everything the end of a measured run does, answered
+    # as the exit status the process should end with rather than
+    # performed as an exit. The configured at_exit hook and the result
+    # processing still happen here: the one side effect left to the
+    # caller is ending the process, which is what makes this whole path
+    # answerable from inside a test.
+    def run_exit_tasks(error_exit_status = exit_status_from_exception)
       at_exit.call
 
-      exit_and_report_previous_error(error_exit_status) if previous_error?(error_exit_status)
-      process_results_and_report_error if ready_to_process_results?
+      if previous_error?(error_exit_status)
+        report_previous_error
+        error_exit_status
+      elsif ready_to_process_results?
+        report_processing_failure(process_result(result))
+      else
+        ExitCodes::SUCCESS
+      end
+    end
+
+    # @api private — the exiting adapter over `run_exit_tasks`, called
+    # from the at_exit block (which pre-captures the status, see there)
+    # and by `collate` (the default argument).
+    def run_exit_tasks!(error_exit_status = exit_status_from_exception)
+      status = run_exit_tasks(error_exit_status)
+
+      # Force exit with stored status (see github issue #5)
+      Kernel.exit(status) unless successful?(status)
     end
 
     # @api private — returns the exit status from the exit exception.
@@ -71,15 +91,15 @@ module SimpleCov
       !successful?(error_exit_status)
     end
 
-    # @api private
-    def exit_and_report_previous_error(exit_status)
-      if print_errors
-        ExitCodes.print_error Color.colorize(
-          "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
-          :yellow
-        )
-      end
-      Kernel.exit(exit_status)
+    # @api private — the notice alone; the status it accompanies is the
+    # caller's to answer with.
+    def report_previous_error
+      return unless print_errors
+
+      ExitCodes.print_error Color.colorize(
+        "Stopped processing SimpleCov as a previous error not related to SimpleCov has been detected",
+        :yellow
+      )
     end
 
     # @api private — the process that owns final merge processing is the
@@ -94,18 +114,15 @@ module SimpleCov
         (collating_result? || parallel_results_complete?)
     end
 
-    def process_results_and_report_error
-      exit_status = process_result(result)
-
-      # Force exit with stored status (see github issue #5)
-      return unless exit_status.positive?
-
-      if print_errors
+    # @api private — answers the status it was handed, explaining it
+    # first when it is a coverage failure worth explaining.
+    def report_processing_failure(exit_status)
+      if exit_status.positive? && print_errors
         ExitCodes.print_error Color.colorize(
           "SimpleCov failed with exit #{exit_status} due to a coverage related error", :red
         )
       end
-      Kernel.exit exit_status
+      exit_status
     end
 
     # @api private — `exit_status = SimpleCov.process_result(SimpleCov.result)`.
