@@ -1,6 +1,9 @@
 name: mutation
 
-on: pull_request
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   mutation:
@@ -15,7 +18,7 @@ jobs:
 
     steps:
       # Mutant selects subjects by diffing against a revision, so the
-      # base branch has to be in the clone: a shallow one has nothing to
+      # revision has to be in the clone: a shallow one has nothing to
       # compare against.
       - uses: actions/checkout@v7.0.1
         with:
@@ -28,6 +31,7 @@ jobs:
           bundler-cache: true
 
       - name: Fetch the base branch
+        if: github.event_name == 'pull_request'
         run: git fetch --no-tags origin ${{ github.base_ref }}
 
       # Keeps the analysis to the subjects whose own lines the pull
@@ -38,4 +42,22 @@ jobs:
       # A pull request that touches no library code selects nothing and
       # passes, which is what a docs- or spec-only change should do.
       - name: Analyse the mutations the pull request touches
+        if: github.event_name == 'pull_request'
         run: bundle exec rake "mutant:since[origin/${{ github.base_ref }}]"
+
+      # The same analysis for a push, against the head the push replaced,
+      # so a multi-commit push is diffed as a whole. A force push can
+      # leave that head unreachable. Then the diff falls back to the tip
+      # commit alone, which covers the amend-and-push case that produces
+      # most force pushes here.
+      - name: Analyse the mutations the push touches
+        if: github.event_name == 'push'
+        run: |
+          base="${{ github.event.before }}"
+          if [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="HEAD~1"
+          elif ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$base" 2>/dev/null || base="HEAD~1"
+          fi
+          echo "Comparing against $base"
+          bundle exec rake "mutant:since[$base]"
