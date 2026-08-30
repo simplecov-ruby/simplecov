@@ -25,6 +25,13 @@ module SimpleCov
     def production_coverage(path = nil)
       return @production_coverage if path.nil?
 
+      self.production_coverage = path
+      @production_coverage
+    end
+
+    # The write half of `production_coverage`: a path, expanded against
+    # the root, and nothing else.
+    def production_coverage=(path)
       raise ConfigurationError, "production_coverage takes a path, got #{path.inspect}" unless path.is_a?(String)
 
       @production_coverage = File.expand_path(path, root)

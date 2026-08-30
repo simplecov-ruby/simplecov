@@ -13,6 +13,13 @@ module SimpleCov
     def merge_subprocesses(value = nil)
       return @enable_for_subprocesses if instance_variable_defined?(:@enable_for_subprocesses) && value.nil?
 
+      self.merge_subprocesses = value
+      @enable_for_subprocesses
+    end
+
+    # The write half of `merge_subprocesses`: false stands in for
+    # nothing, so the answer is always a real opt-in or opt-out.
+    def merge_subprocesses=(value)
       @enable_for_subprocesses = value || false
     end
 
@@ -31,7 +38,11 @@ module SimpleCov
     def parallel_tests(value = :__no_arg__)
       return @parallel_tests if value.eql?(:__no_arg__)
 
-      @parallel_tests = _ = value
+      self.parallel_tests = _ = value
+    end
+
+    def parallel_tests=(value)
+      @parallel_tests = value
     end
 
     # DEPRECATED: alias for `merge_subprocesses`. Same value/behavior.
@@ -47,11 +58,15 @@ module SimpleCov
     # coverage report. Defaults to true.
     #
     def merging(use = nil)
-      @use_merging = use unless use.nil?
+      self.merging = use unless use.nil?
       # Unset reads as nil, and only an explicit `merging false` turns
       # it off.
       @use_merging = true if @use_merging.nil?
       @use_merging
+    end
+
+    def merging=(use)
+      @use_merging = use
     end
 
     #
@@ -70,8 +85,7 @@ module SimpleCov
     def finalize_merge(*value)
       unless value.empty?
         explicit, = value
-        @finalize_merge = _ = explicit
-        @finalize_merge_explicit = true
+        self.finalize_merge = _ = explicit
       end
 
       return @finalize_merge if @finalize_merge_explicit
@@ -79,6 +93,13 @@ module SimpleCov
       inferred = inferred_finalize_merge?
       warn_about_inferred_finalize_merge unless inferred
       inferred
+    end
+
+    # The write half of `finalize_merge`: writing is what makes the
+    # answer explicit rather than inferred.
+    def finalize_merge=(value)
+      @finalize_merge = value
+      @finalize_merge_explicit = true
     end
 
     def finalize_merge?
@@ -112,7 +133,7 @@ module SimpleCov
     # configuration is not an option.
     #
     def merge_timeout(seconds = nil)
-      @merge_timeout = seconds if seconds.instance_of?(Integer)
+      self.merge_timeout = seconds
       # Memoized through a local rather than `|| (@merge_timeout ||= 600)`:
       # steep 2.0's logic-type interpreter crashes on an or-assignment
       # nested in a logical operand (UnknownNodeError), abandoning this
@@ -121,6 +142,12 @@ module SimpleCov
       configured = @merge_timeout || 600
       @merge_timeout = configured
       env_merge_timeout || configured
+    end
+
+    # The write half of `merge_timeout`; anything but an Integer is
+    # ignored, the way the dual method always ignored it.
+    def merge_timeout=(seconds)
+      @merge_timeout = seconds if seconds.instance_of?(Integer)
     end
 
     def env_merge_timeout
@@ -137,8 +164,14 @@ module SimpleCov
     # skipped against a partial total.
     #
     def parallel_wait_timeout(seconds = nil)
-      @parallel_wait_timeout = seconds if seconds.instance_of?(Integer)
+      self.parallel_wait_timeout = seconds
       @parallel_wait_timeout ||= 60
+    end
+
+    # The write half of `parallel_wait_timeout`; anything but an
+    # Integer is ignored, the way the dual method always ignored it.
+    def parallel_wait_timeout=(seconds)
+      @parallel_wait_timeout = seconds if seconds.instance_of?(Integer)
     end
 
   private

@@ -39,9 +39,15 @@ module SimpleCov
       if criterion.nil?
         @primary_coverage ||= default_primary_coverage
       else
-        raise_if_criterion_disabled(criterion)
-        @primary_coverage = criterion
+        self.primary_coverage = criterion
       end
+    end
+
+    # The write half of `primary_coverage`; only an enabled criterion
+    # can lead.
+    def primary_coverage=(criterion)
+      raise_if_criterion_disabled(criterion)
+      @primary_coverage = criterion
     end
 
     def coverage_criteria

@@ -18,6 +18,13 @@ module SimpleCov
     def root(root = nil)
       return @root if instance_variable_defined?(:@root) && root.nil?
 
+      self.root = root
+      @root
+    end
+
+    # The write half of `root`: nil means the working directory, the
+    # default the reader would have derived.
+    def root=(root)
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
     end
@@ -30,6 +37,13 @@ module SimpleCov
     def coverage_dir(dir = nil)
       return @coverage_dir if instance_variable_defined?(:@coverage_dir) && dir.nil?
 
+      self.coverage_dir = dir
+      @coverage_dir
+    end
+
+    # The write half of `coverage_dir`: nil means the default
+    # 'coverage', recorded as a derivation rather than a choice.
+    def coverage_dir=(dir)
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @coverage_dir_explicit = true unless dir.nil?
       @coverage_dir = dir || "coverage"
@@ -50,14 +64,18 @@ module SimpleCov
     # directory.
     #
     def coverage_path(path = nil)
-      if path
-        expanded = File.expand_path(path)
-        @coverage_path = expanded
-        @coverage_path_explicit = true
-        FileUtils.mkdir_p expanded
-      end
+      self.coverage_path = path if path
 
       @coverage_path ||= File.expand_path(coverage_dir, root)
+    end
+
+    # The write half of `coverage_path`: assigning is the signal the
+    # caller intends to write there, so the directory is created.
+    def coverage_path=(path)
+      expanded = File.expand_path(path)
+      @coverage_path = expanded
+      @coverage_path_explicit = true
+      FileUtils.mkdir_p expanded
     end
 
     #
@@ -66,8 +84,12 @@ module SimpleCov
     # with SimpleCov.command_name("test:units").
     #
     def command_name(name = nil)
-      @command_name = name unless name.nil?
+      self.command_name = name unless name.nil?
       @command_name ||= CommandGuesser.guess
+    end
+
+    def command_name=(name)
+      @command_name = name
     end
 
     # Returns the hash of available profiles

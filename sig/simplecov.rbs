@@ -229,17 +229,29 @@ module SimpleCov
     # directory. Get, or set with `SimpleCov.root('/my/project/path')`.
     def root: (?String? root) -> String
 
+    # The write half of `root`.
+    def root=: (String? root) -> String
+
     # The name of the output and cache directory. Defaults to "coverage".
     def coverage_dir: (?String? dir) -> String
+
+    # The write half of `coverage_dir`.
+    def coverage_dir=: (String? dir) -> String
 
     # The full path to the output directory. By default `root` +
     # `coverage_dir`; assign an absolute path to pin the destination
     # regardless of later `root` / `coverage_dir` changes (see #716).
     def coverage_path: (?String? path) -> String
 
+    # The write half of `coverage_path`.
+    def coverage_path=: (String path) -> untyped
+
     # The name of the command (a.k.a. test suite) currently running.
     # Auto-detected when not set explicitly.
     def command_name: (?String? name) -> String
+
+    # The write half of `command_name`.
+    def command_name=: (String name) -> String
 
     # The hash of available profiles.
     def profiles: () -> Profiles
@@ -314,6 +326,9 @@ module SimpleCov
     # validates at runtime that the criterion is enabled; the parameter
     # type also rejects unknown criteria statically.
     def primary_coverage: (?(criterion | :oneshot_line)? criterion) -> (criterion | :oneshot_line)
+
+    # The write half of `primary_coverage`.
+    def primary_coverage=: ((criterion | :oneshot_line) criterion) -> (criterion | :oneshot_line)
 
     # The currently enabled criteria. Defaults to `Set[:line]`.
     def coverage_criteria: () -> Set[criterion | :oneshot_line]
@@ -658,13 +673,22 @@ module SimpleCov
     # `:auto` (default — respects TTY, NO_COLOR, and FORCE_COLOR).
     def color: (?(bool | :auto | :__no_arg__) value) -> (bool | :auto)
 
+    # The write half of `color`.
+    def color=: (untyped value) -> untyped
+
     # Whether SimpleCov prints its own diagnostic warnings to stderr.
     # Defaults to true.
     def print_errors: (?(bool | :__no_arg__) value) -> bool
 
+    # The write half of `print_errors`.
+    def print_errors=: (bool value) -> bool
+
     # Whether `coverage.json` embeds the full source text of every
     # file. Defaults to true.
     def source_in_json: (?(bool | :__no_arg__) value) -> bool
+
+    # The write half of `source_in_json`.
+    def source_in_json=: (bool value) -> bool
 
     # DEPRECATED: use `print_errors` instead (same value).
     def print_error_status: () -> bool
@@ -787,12 +811,18 @@ module SimpleCov
     # Defaults to false.
     def merge_subprocesses: (?bool? value) -> bool
 
+    # The write half of `merge_subprocesses`.
+    def merge_subprocesses=: (bool? value) -> untyped
+
     def enabled_for_subprocesses?: () -> bool
 
     # Get or set whether SimpleCov auto-requires the `parallel_tests`
     # gem when it sees its environment variables. nil (the default)
     # means auto-detect. See #1018.
     def parallel_tests: (?(:__no_arg__ | bool)? value) -> bool?
+
+    # The write half of `parallel_tests`.
+    def parallel_tests=: (untyped value) -> untyped
 
     # DEPRECATED: use `merge_subprocesses` instead (same value).
     def enable_for_subprocesses: (?bool? value) -> bool
@@ -801,6 +831,9 @@ module SimpleCov
     # into a single coverage report. Defaults to true.
     def merging: (?bool? use) -> bool
 
+    # The write half of `merging`.
+    def merging=: (bool use) -> bool
+
     # Get or set whether SimpleCov's selected final process owns merge processing:
     # waiting for sibling workers, merging, formatting, enforcing
     # thresholds, and writing `.last_run.json`. Defaults to true except
@@ -808,6 +841,9 @@ module SimpleCov
     # coverage destination (those likely finalize via an external
     # `SimpleCov.collate` step). See #1215.
     def finalize_merge: (*bool value) -> bool
+
+    # The write half of `finalize_merge`.
+    def finalize_merge=: (bool value) -> bool
 
     def finalize_merge?: () -> bool
 
@@ -821,6 +857,9 @@ module SimpleCov
     # in merged results. Defaults to 600.
     def merge_timeout: (?Integer? seconds) -> Integer
 
+    # The write half of `merge_timeout`.
+    def merge_timeout=: (untyped seconds) -> untyped
+
     # A numeric SIMPLECOV_MERGE_TIMEOUT from the environment, or nil.
     def env_merge_timeout: () -> Integer?
 
@@ -828,6 +867,9 @@ module SimpleCov
     # parallel-test workers to write their resultsets before it
     # proceeds with a partial merge. Defaults to 60. See #1171.
     def parallel_wait_timeout: (?Integer? seconds) -> Integer
+
+    # The write half of `parallel_wait_timeout`.
+    def parallel_wait_timeout=: (untyped seconds) -> untyped
 
     private
 
@@ -1915,6 +1957,9 @@ module SimpleCov
 
     def history_limit: (?Integer? limit) -> Integer
 
+    # The write half of `history_limit`.
+    def history_limit=: (Integer limit) -> Integer
+
     def drop_baseline: (?Symbol? mode) -> Symbol
   end
 end
@@ -1931,6 +1976,9 @@ module SimpleCov
     # Get (nil argument) or set the store path; relative paths resolve
     # against `SimpleCov.root`. Defaults to nil: no production section.
     def production_coverage: (?String? path) -> String?
+
+    # The write half of `production_coverage`.
+    def production_coverage=: (String path) -> String
   end
 end
 
@@ -2181,6 +2229,9 @@ module SimpleCov
     # The baseline's path, relative to `SimpleCov.root`; call with an
     # argument to change it.
     def baseline_file: (?String? path) -> String
+
+    # The write half of `baseline_file`.
+    def baseline_file=: (String path) -> String
 
     # The parsed baseline, or nil when the file does not exist.
     def baseline: () -> Baseline?

@@ -11,6 +11,163 @@ RSpec.describe SimpleCov::Configuration do
   end
   let(:config) { config_class.new }
 
+  describe "explicit writers" do
+    # Item 2 of the mutation-testing roadmap, in its non-breaking form:
+    # every dual-purpose setting can also be written the way Ruby spells
+    # writing. Each writer is the dual method's write arm, and the dual
+    # method delegates to it, so the write behaviour lives once.
+
+    it "writes root expanded, and re-derives the coverage path from it" do
+      config.root = "tmp/project"
+
+      expect(config.root).to eq(File.expand_path("tmp/project"))
+      expect(config.coverage_path).to eq(File.expand_path("coverage", config.root))
+    end
+
+    it "resets root to the working directory when written nil" do
+      config.root = nil
+
+      expect(config.root).to eq(File.expand_path(Dir.getwd))
+    end
+
+    it "writes the coverage directory and re-derives the path" do
+      config.root = "tmp/project"
+      config.coverage_dir = "cov"
+
+      expect(config.coverage_dir).to eq("cov")
+      expect(config.coverage_path).to eq(File.expand_path("cov", config.root))
+    end
+
+    it "writes an explicit coverage path, expanded and created" do
+      Dir.mktmpdir do |tmp|
+        config.coverage_path = File.join(tmp, "out")
+
+        expect(config.coverage_path).to eq(File.join(tmp, "out"))
+        expect(File).to be_directory(File.join(tmp, "out"))
+      end
+    end
+
+    it "keeps an explicitly written coverage path across a later root change" do
+      Dir.mktmpdir do |tmp|
+        config.coverage_path = File.join(tmp, "out")
+        config.root = "somewhere/else"
+
+        expect(config.coverage_path).to eq(File.join(tmp, "out"))
+      end
+    end
+
+    it "writes the command name" do
+      config.command_name = "Unit Tests"
+
+      expect(config.command_name).to eq("Unit Tests")
+    end
+
+    it "writes the primary coverage criterion it validates" do
+      config.enable_coverage :branch
+      config.primary_coverage = :branch
+
+      expect(config.primary_coverage).to eq(:branch)
+    ensure
+      config.clear_coverage_criteria
+    end
+
+    it "refuses a primary criterion that is not enabled" do
+      expect { config.primary_coverage = :branch }.to raise_error(/branch/)
+    end
+
+    it "writes color" do
+      config.color = :never
+
+      expect(config.color).to eq(:never)
+    end
+
+    it "writes print_errors" do
+      config.print_errors = false
+
+      expect(config.print_errors).to be(false)
+    end
+
+    it "writes source_in_json" do
+      config.source_in_json = false
+
+      expect(config.source_in_json).to be(false)
+    end
+
+    it "writes parallel_tests" do
+      config.parallel_tests = false
+
+      expect(config.parallel_tests).to be(false)
+    end
+
+    it "writes merge_subprocesses, with false standing in for nothing" do
+      config.merge_subprocesses = nil
+
+      expect(config.merge_subprocesses).to be(false)
+    end
+
+    it "writes merging" do
+      config.merging = false
+
+      expect(config.merging).to be(false)
+    end
+
+    it "writes finalize_merge as the explicit answer it is" do
+      config.finalize_merge = false
+
+      expect(config.finalize_merge?).to be(false)
+    end
+
+    it "writes merge_timeout, ignoring anything but an Integer" do
+      config.merge_timeout = 300
+      config.merge_timeout = "9"
+
+      expect(config.merge_timeout).to eq(300)
+    end
+
+    it "writes parallel_wait_timeout, ignoring anything but an Integer" do
+      config.parallel_wait_timeout = 90
+      config.parallel_wait_timeout = "9"
+
+      expect(config.parallel_wait_timeout).to eq(90)
+    end
+
+    it "writes the baseline file path" do
+      config.baseline_file = "config/floors.yml"
+
+      expect(config.baseline_file).to eq("config/floors.yml")
+    end
+
+    it "writes a history limit it validates" do
+      config.history_limit = 5
+
+      expect(config.history_limit).to eq(5)
+    end
+
+    it "refuses a history limit below zero" do
+      expect { config.history_limit = -1 }.to raise_error(SimpleCov::ConfigurationError, /non-negative/)
+    end
+
+    it "writes production_coverage expanded against the root" do
+      config.production_coverage = "tmp/production.json"
+
+      expect(config.production_coverage).to eq(File.expand_path("tmp/production.json", config.root))
+    end
+
+    # The dual methods answer their write arms with the stored value,
+    # the way they always did, even though the storing now happens in
+    # the writer.
+    it "answers the stored value when writing through the dual methods" do
+      expect(config.baseline_file("config/floors.yml")).to eq("config/floors.yml")
+      expect(config.history_limit(5)).to eq(5)
+      expect(config.production_coverage("tmp/production.json"))
+        .to eq(File.expand_path("tmp/production.json", config.root))
+    end
+
+    it "refuses a production_coverage that is not a path" do
+      expect { config.production_coverage = 42 }.to raise_error(SimpleCov::ConfigurationError, /path/)
+    end
+  end
+
   describe "#load_coverage" do
     it "requires the stdlib Coverage library and answers what require answers" do
       allow(config).to receive(:require).and_return(false)
@@ -312,6 +469,11 @@ RSpec.describe SimpleCov::Configuration do
   describe "#production_coverage" do
     it "defaults to nil" do
       expect(config.production_coverage).to be_nil
+    end
+
+    it "answers the stored, expanded path when writing" do
+      expect(config.production_coverage("tmp/production.json"))
+        .to eq(File.expand_path("tmp/production.json", config.root))
     end
 
     # A path is a path whatever kind of String it is.

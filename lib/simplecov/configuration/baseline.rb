@@ -19,6 +19,11 @@ module SimpleCov
     def baseline_file(path = nil)
       return @baseline_file ||= Baseline::DEFAULT_FILENAME unless path
 
+      self.baseline_file = path
+      _ = @baseline_file
+    end
+
+    def baseline_file=(path)
       @baseline_file = path
     end
 

@@ -46,6 +46,12 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - "spec/**/*_spec.rb"
 
+Metrics/ModuleLength:
+  Exclude:
+    # One settings module per concern; the explicit writers beside each
+    # dual-purpose reader push this one just past the default.
+    - "lib/simplecov/configuration/merging.rb"
+
 Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
   Exclude:

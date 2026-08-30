@@ -105,7 +105,11 @@ module SimpleCov
     def color(value = :__no_arg__)
       return instance_variable_defined?(:@color) ? @color : :auto if value.eql?(:__no_arg__)
 
-      @color = _ = value
+      self.color = _ = value
+    end
+
+    def color=(value)
+      @color = value
     end
 
     #
@@ -118,7 +122,13 @@ module SimpleCov
     def print_errors(value = :__no_arg__)
       return instance_variable_defined?(:@print_error_status) ? @print_error_status : true if value.eql?(:__no_arg__)
 
-      @print_error_status = _ = value
+      self.print_errors = _ = value
+    end
+
+    # The write half of `print_errors`, stored where the deprecated
+    # `print_error_status` reads.
+    def print_errors=(value)
+      @print_error_status = value
     end
 
     #
@@ -140,7 +150,11 @@ module SimpleCov
     def source_in_json(value = :__no_arg__)
       return instance_variable_defined?(:@source_in_json) ? @source_in_json : true if value.eql?(:__no_arg__)
 
-      @source_in_json = _ = value
+      self.source_in_json = _ = value
+    end
+
+    def source_in_json=(value)
+      @source_in_json = value
     end
 
     # DEPRECATED: alias for `print_errors`. Same value, same behavior.

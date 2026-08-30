@@ -14,6 +14,13 @@ module SimpleCov
     def history_limit(limit = nil)
       return @history_limit ||= 100 if limit.nil?
 
+      self.history_limit = limit
+      _ = @history_limit
+    end
+
+    # The write half of `history_limit`; only a count of runs to keep
+    # makes sense, so anything else is refused.
+    def history_limit=(limit)
       unless limit.instance_of?(Integer) && limit >= 0
         raise ConfigurationError, "history_limit takes a non-negative integer, got #{limit.inspect}"
       end
