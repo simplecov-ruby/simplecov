@@ -82,7 +82,7 @@ passes.
 
 Where the library's own shape makes mutation testing slower or harder than it
 needs to be, and what a major version could do about it, is written down in
-[docs/Mutation_Testing_Roadmap.md](Mutation_Testing_Roadmap.md).
+[docs/Roadmap.md](Roadmap.md).
 
 Three suite conventions keep mutant fast and honest, and touching them breaks
 it quietly, so know they exist:

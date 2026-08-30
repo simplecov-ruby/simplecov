@@ -1,6 +1,8 @@
-# Configuration roadmap
+# Roadmap
 
-Where the configuration DSL is heading, and the path from here to there.
+Where SimpleCov is heading: the target design for the configuration DSL, and the API changes that would make the
+library faster and easier to hold to account under mutation testing. Completed work has been removed from this
+page. What remains is open, and most of it waits on a major version.
 
 *Part of the [SimpleCov](../README.md) documentation.*
 
@@ -9,9 +11,12 @@ Where the configuration DSL is heading, and the path from here to there.
 The configuration surface has grown a keyword at a time for fifteen years, and it shows. The same threshold can be
 spelled two ways (`minimum_coverage 90` and `coverage(:line) { minimum 90 }`), scope used to be encoded three ways
 (in the bare verb, in a `_per_file` suffix, and in an `only:` keyword), old flat names say `_by_file` where newer
-names say `_per_file`, and `:eval` rides the criteria switch despite not being a criterion. This document records the
+names say `_per_file`, and `:eval` rides the criteria switch despite not being a criterion. This section records the
 target design and the deliberate, compatibility-preserving steps to it, so each future change lands as part of one
 plan rather than as another accretion.
+
+Phases 1 and 1.5 (the `per:` scope axis, criterion-scoped `ignore`, `formats`, and `deprecations :raise`) have
+shipped, so the numbering below starts at 2.
 
 ### Principles
 
@@ -51,27 +56,6 @@ end
 The block fixes the criterion so every value is a plain number, and `per:` carries the scope. Anything expressible
 for one criterion is expressible for all of them, and anything expressible for one bound composes with every scope
 the enforcement supports.
-
-### Phase 1: the `per:` axis (done)
-
-`minimum` and `maximum_missed` take `per:` with `:file`, String, Regexp, and `group("Name")` targets. The suffixed
-verbs (`minimum_per_file`, `minimum_per_group`, `maximum_missed_per_file`, and the flat
-`SimpleCov.maximum_missed_per_file` setter) warn and delegate, and the `minimum_coverage_by_file` /
-`minimum_coverage_by_group` deprecation messages now suggest the `per:` grammar instead of the grammar that replaced
-them the first time. `maximum_missed` refuses `per: group(...)` loudly, because the enforcement behind it does not
-exist yet (see Phase 2), and refusing beats silently storing a cap nothing checks.
-
-### Phase 1.5: uniformity groundwork (done)
-
-Three smaller steps shipped on the same principles:
-
-- `coverage(:branch) { ignore :implicit_else, :eval_generated }` and `coverage :method, ignore: :eval_generated`
-  replace `ignore_branches` / `ignore_methods`, which had the criterion baked into their names the way the suffixed
-  threshold verbs did. The flat setters warn and delegate; their one distinct behavior (recording the filter without
-  enabling the criterion) rides out the deprecation period.
-- `formats :html, :json` selects bundled formatters by name, ending the `SimpleCov::Formatter::HTMLFormatter`
-  constant ritual for common combinations. Classes and instances mix beside the names for everything else.
-- `deprecations :raise` makes every deprecated API a `ConfigurationError`, the enforcement lever behind principle 4.
 
 ### Phase 2: fill the matrix
 
@@ -121,7 +105,8 @@ Three grammar unifications, none urgent alone, all worth folding into releases t
 
 - **Booleans.** `use_merging`, `merge_subprocesses`, `print_errors`, and `source_in_json` mix verb-phrase and
   noun-phrase styles. Converge on the noun-value style the rest of the DSL uses, with the old names as
-  warn-and-delegate aliases.
+  warn-and-delegate aliases. Every such setting already has an explicit `setting = value` writer, so the
+  convergence is a naming decision, not a mechanism.
 - **Matchers.** `cover "lib/**/*.rb"` takes a glob while `skip "lib/legacy"` takes a path-segment substring: two
   universe verbs, two String grammars, and the difference is invisible at the call site. Changing `skip`'s String
   semantics would silently alter which files existing configurations exclude, so the unification itself is a 2.0
@@ -173,6 +158,49 @@ a bound verb under principle 2, shipped only when its enforcement ships, per the
 
 ### What stays
 
-The criterion-fixing `coverage` block, the getter-setter duality (`minimum_coverage` with no arguments reads, with
-arguments writes), `cover` / `skip` / `group` as the universe verbs, `cover_views` (named into the `cover` family on
-purpose), and the principle that the `.simplecov` file plus profiles remain the two composition mechanisms.
+The criterion-fixing `coverage` block, `cover` / `skip` / `group` as the universe verbs, `cover_views` (named into
+the `cover` family on purpose), and the principle that the `.simplecov` file plus profiles remain the two
+composition mechanisms. The getter-setter duality (`minimum_coverage` with no arguments reads, with arguments
+writes) stays through 1.x, though the mutation-testing section below records its cost and the open question of
+retiring it at a major version.
+
+## Mutation testing roadmap
+
+The suite is measured by [mutant](https://github.com/mbj/mutant) at the full operator set, and getting there taught
+us where the library's shape fights the tool. Everything that could be done without breaking the API has been done:
+the run's state lives on its own `SimpleCov::CurrentRun` object behind generated delegators, the exit path answers
+its status instead of performing it, the threshold checks answer their reports as values, every dual-purpose
+setting has an explicit writer, and every spec block names the subjects it covers. What remains is the part that
+changes what callers may say.
+
+### What the shape still costs
+
+Mutation analysis re-runs, per mutation, the tests that cover the mutated subject, so a run's length is decided by
+how many tests each subject drags in. Everything the library does still passes through one module: `SimpleCov`
+carries the run's lifecycle and `SimpleCov::Configuration`, mixed into the same singleton, carries the settings.
+Scoping every spec block cut the singleton's selected tests from 3,780 to a few hundred, but a subject on the
+singleton remains a candidate for every example that touches the library at all, where a subject on an extracted
+object selects only the examples about it.
+
+### Split the singleton into objects with their own lives
+
+**What remains, and why it breaks.** The lifecycle itself (start, finish, and the configuration a run reads) still
+passes through the singleton, and the `CurrentRun` object that holds the run's state is internal. Moving the
+lifecycle onto the run object, passing configuration to it rather than reading it from a global, and exposing the
+object as API (with `SimpleCov.start` staying as the delegating front door) changes what the at_exit machinery and
+every integrating formatter may hold a reference to, so it costs a major version.
+
+**What it buys.** A spec names the object it exercises, so its subjects select the examples about them and nothing
+else, and the largest namespaces measure in seconds rather than minutes.
+
+### Retire the dual spelling of the settings
+
+**What remains, and why it breaks.** Each setting's write behaviour now lives once, in its writer, but the
+dual-purpose spelling (`SimpleCov.color(:never)` writes; `SimpleCov.color` reads) still exists, sentinel and all,
+and every such method still carries two behaviours to pin. Retiring the dual spelling in favour of the writers,
+with the DSL block keeping the bare-word spelling by evaluating against a builder, changes what configuration
+files may say. The configuration roadmap above currently keeps the duality; this entry records the cost of keeping
+it, and the two should be decided together at 2.0.
+
+**What it buys.** Half as many behaviours per subject, no sentinel to compare, and defaults that are values to
+assert rather than branches to reach.

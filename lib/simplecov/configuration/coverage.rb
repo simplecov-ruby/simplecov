@@ -187,7 +187,7 @@ module SimpleCov
       # methods, depending on the block's criterion): an absolute
       # burn-down number rather than a ratio. `per:` scopes it the same
       # way `minimum`'s does, except that group targets are not
-      # enforced yet (see docs/Configuration_Roadmap.md).
+      # enforced yet (see docs/Roadmap.md).
       #
       #   maximum_missed 12
       #   maximum_missed 5, per: :file
@@ -199,7 +199,7 @@ module SimpleCov
         when String, Regexp     then @config.__send__(:store_maximum_missed_per_file, @criterion, count, per)
         when GroupTarget
           raise ConfigurationError,
-                "maximum_missed does not support `per: group(...)` yet; see docs/Configuration_Roadmap.md"
+                "maximum_missed does not support `per: group(...)` yet; see docs/Roadmap.md"
         else raise_invalid_per(per)
         end
       end

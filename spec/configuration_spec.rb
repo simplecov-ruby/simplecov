@@ -1555,7 +1555,7 @@ RSpec.describe SimpleCov::Configuration do
 
       # The enforcement for group-scoped miss caps doesn't exist yet, so
       # the target is refused rather than silently stored (see
-      # docs/Configuration_Roadmap.md).
+      # docs/Roadmap.md).
       it "rejects a group target until group caps are enforced" do
         expect { config.coverage(:line) { maximum_missed 5, per: group("Models") } }
           .to raise_error(SimpleCov::ConfigurationError, /per: group/)

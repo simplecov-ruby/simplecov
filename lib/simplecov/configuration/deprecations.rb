@@ -2,7 +2,7 @@
 
 module SimpleCov
   # The deprecation-handling mode, `deprecations`. The configuration DSL
-  # migrates by warn-and-delegate (see docs/Configuration_Roadmap.md),
+  # migrates by warn-and-delegate (see docs/Roadmap.md),
   # which means a project can run on deprecated spellings indefinitely
   # without noticing. `deprecations :raise` turns every deprecated API
   # into a ConfigurationError, so a project that has migrated can guard

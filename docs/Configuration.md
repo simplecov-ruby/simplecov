@@ -169,7 +169,7 @@ end
 
 Every deprecation then raises a `SimpleCov::ConfigurationError` naming the replacement, so CI fails the moment an old
 spelling creeps back in, and early adopters can hold themselves to the current surface as the DSL evolves (see the
-[configuration roadmap](Configuration_Roadmap.md)). The default is `deprecations :warn`. There is deliberately no
+[roadmap](Roadmap.md)). The default is `deprecations :warn`. There is deliberately no
 silencing mode, because a deprecation you cannot see is a migration you never make.
 
 ## Coverage criteria
@@ -808,7 +808,7 @@ and `coverage :branch, primary: true` makes branch the report's leading criterio
 > The suffixed scope verbs (`minimum_per_file`, `minimum_per_group`, `maximum_missed_per_file`, and their `only:`
 > keyword) are **deprecated** in favor of the `per:` argument. They still work but emit a deprecation warning naming
 > the exact replacement. The wider plan for the configuration DSL is recorded in the
-> [configuration roadmap](Configuration_Roadmap.md).
+> [roadmap](Roadmap.md).
 
 ### Suite-wide shortcuts
 
