@@ -5,8 +5,6 @@
 # across test suites via `SimpleCov::ResultMerger`, and exposes the
 # `collate` entry point for stitching disparate resultsets together.
 #
-# rubocop:disable Metrics/ModuleLength -- one façade over one pipeline, and
-# every step of it reads better next to the ones on either side.
 module SimpleCov
   class << self
     #
@@ -37,13 +35,13 @@ module SimpleCov
       initial_setup(profile, &)
 
       # Use the ResultMerger to produce a single, merged result, ready to use.
-      @result = ParallelResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
-                                                                        ignore_timeout: ignore_timeout)
+      current_run.result = ParallelResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
+                                                                                   ignore_timeout: ignore_timeout)
 
-      @collating_result = true
+      current_run.collating_result = true
       run_exit_tasks!
     ensure
-      @collating_result = false
+      current_run.collating_result = false
     end
 
     #
@@ -52,23 +50,24 @@ module SimpleCov
     # and caches the merged result.
     #
     def result
-      return @result if result?
+      return current_run.result if result?
 
-      use_merging = merging
+      merge = merging
+      collect_own_coverage(standalone: !merge)
+      merge_own_slice if merge
+      current_run.result
+    end
 
-      collect_own_coverage(standalone: !use_merging)
+    # The merge dance: store this process's own slice first (if there
+    # is one, read back through `result`, whose memoized answer it is);
+    # only the finalization owner then waits for its siblings and reads
+    # in the merged whole.
+    def merge_own_slice
+      ResultMerger.store_result(result) if result?
+      return unless merge_finalization_owner?
 
-      # If we're using merging of results, store the current result
-      # first (if there is one), then merge the results and return those
-      if use_merging
-        ResultMerger.store_result(@result) if result?
-        return @result unless merge_finalization_owner?
-
-        wait_for_other_processes
-        @result = ResultMerger.merged_result
-      end
-
-      @result
+      wait_for_other_processes
+      current_run.result = ResultMerger.merged_result
     end
 
     # Build this process's slice of the coverage result. `standalone` is true
@@ -79,19 +78,6 @@ module SimpleCov
       return unless defined?(Coverage) && Coverage.running?
 
       process_coverage_result(report: standalone, inject_unloaded: standalone)
-    end
-
-    # Returns nil if the result has not been computed, otherwise the result.
-    # The cast restores what `defined?` used to narrow for steep: asking
-    # the object whether it holds the variable tells the checker nothing
-    # about what is in it.
-    def result?
-      instance_variable_defined?(:@result) && (_ = @result)
-    end
-
-    # @api private — true while `SimpleCov.collate` is running its finalizer.
-    def collating_result?
-      instance_variable_defined?(:@collating_result) && @collating_result
     end
 
     # Applies the configured filters to the given array of SimpleCov::SourceFile items
@@ -129,7 +115,7 @@ module SimpleCov
 
     # Clear out the previously cached .result. Primarily useful in testing.
     def clear_result
-      @result = nil
+      current_run.result = nil
     end
 
     # @api private — persist the per-criterion coverage percentages
@@ -222,11 +208,16 @@ module SimpleCov
       # and the merge would simulate it back in as never-loaded. See #1250.
       tracked = tracked_file_paths - adapted.keys
       result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
-      @result = Result.new(
-        result, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
-                worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
+      current_run.result = build_result(raw, result, not_loaded: not_loaded, tracked: tracked, report: report)
+    end
+
+    # The Result this run's own slice becomes, stamped with the run's
+    # identity and the contexts the tracker recorded.
+    def build_result(raw, coverage, not_loaded:, tracked:, report:)
+      Result.new(
+        coverage, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
+                  worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
       )
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength

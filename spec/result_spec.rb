@@ -608,12 +608,13 @@ RSpec.describe SimpleCov::Result do
       # the suite. A forked subprocess is never the final-result process,
       # so marking the real flag exercises the same gate without stubbing.
       it "stays silent when this isn't the final-result process" do
-        previous = SimpleCov.instance_variable_get(:@forked_subprocess)
+        previous = SimpleCov.current_run
+        SimpleCov.current_run = SimpleCov::CurrentRun.new
         SimpleCov.mark_forked_subprocess!
         stderr = capture_stderr { described_class.new(missing_only, report: true) }
         expect(stderr).to be_empty
       ensure
-        SimpleCov.instance_variable_set(:@forked_subprocess, previous)
+        SimpleCov.current_run = previous
       end
 
       it "caps the listed paths at five with a `+N more` suffix" do

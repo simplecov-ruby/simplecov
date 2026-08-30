@@ -31,13 +31,17 @@ module SimpleCov
 
   extend Configuration
 
-  self.@subprocess_serial: Integer?
-  self.@forked_subprocess: bool?
+  self.@current_run: CurrentRun?
   self.@autoloading_dot_simplecov: bool?
   self.@dot_simplecov_start_warned: bool?
   self.@at_exit_hook_installed: bool?
   self.@run_id: String?
   self.@worker_id: String?
+
+  # The state of the run this process is measuring; a new run is a new object.
+  def self.current_run: () -> CurrentRun
+
+  attr_writer self.current_run: CurrentRun?
 
   attr_accessor self.pid: Integer?
 
@@ -129,7 +133,6 @@ end
 # exposes the `collate` entry point.
 module SimpleCov
   self.@result: Result?
-  self.@collating_result: bool?
 
   # Collate a series of resultset files into a single merged report. By
   # default ignores `merge_timeout` so every listed resultset merges;
@@ -143,6 +146,12 @@ module SimpleCov
   def self.result: () -> Result?
 
   # The memoized result, or false/nil when it has not been computed yet.
+  # The merge dance a merging run's own slice goes through.
+  def self.merge_own_slice: () -> untyped
+
+  # The Result this run's own slice becomes.
+  def self.build_result: (untyped raw, untyped coverage, not_loaded: untyped, tracked: untyped, report: untyped) -> Result
+
   def self.result?: () -> (Result | false | nil)
 
   def self.collating_result?: () -> boolish

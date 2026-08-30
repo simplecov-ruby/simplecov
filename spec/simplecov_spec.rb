@@ -285,24 +285,36 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     # Everything it sets up, watched rather than executed: starting
     # measurement for real would instrument the process running these
     # examples.
-    let(:previous) { {pid: described_class.pid, started: described_class.process_start_time} }
+    around do |example|
+      previous = described_class.current_run
+      described_class.current_run = SimpleCov::CurrentRun.new
+      example.run
+    ensure
+      described_class.current_run = previous
+    end
 
     before do
-      previous
       allow(described_class).to receive(:start_coverage_measurement)
       allow(SimpleCov::RunIdentity).to receive(:prepare)
     end
 
-    after do
-      described_class.pid = previous.fetch(:pid)
-      described_class.process_start_time = previous.fetch(:started)
-    end
-
     it "forgets any result the process was holding" do
-      described_class.instance_variable_set(:@result, :stale)
+      described_class.current_run.result = :stale
 
       described_class.start_tracking
-      expect(described_class.instance_variable_get(:@result)).to be_nil
+      expect(described_class.result?).to be(false)
+    end
+
+    # A forked child restarting tracking must not forget it was forked,
+    # and a parent must not recount its subprocess serials from zero.
+    it "carries the fork genealogy into the new run" do
+      described_class.mark_forked_subprocess!
+      described_class.next_subprocess_serial!
+
+      described_class.start_tracking
+
+      expect(described_class).to be_forked_subprocess
+      expect(described_class.subprocess_serial).to eq(1)
     end
 
     # The pid is what tells a forked child it is not the process that
@@ -755,15 +767,11 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
   describe ".ready_to_process_results?", mutant_expression: "SimpleCov.ready_to_process_results?" do
     around do |example|
-      previous_defined = described_class.instance_variable_defined?(:@collating_result)
-      previous = described_class.instance_variable_get(:@collating_result) if previous_defined
+      previous = described_class.current_run
+      described_class.current_run = SimpleCov::CurrentRun.new
       example.run
     ensure
-      if previous_defined
-        described_class.instance_variable_set(:@collating_result, previous)
-      elsif described_class.instance_variable_defined?(:@collating_result)
-        described_class.remove_instance_variable(:@collating_result)
-      end
+      described_class.current_run = previous
     end
 
     # Every way the answer can be no, and the two ways it can be yes.
@@ -814,47 +822,11 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "is true for a collated result even when worker parallel results are incomplete" do
-      described_class.instance_variable_set(:@collating_result, true)
+      described_class.current_run.collating_result = true
       allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
                                                  parallel_results_complete?: false)
 
       expect(described_class.ready_to_process_results?).to be true
-    end
-  end
-
-  describe ".forked_subprocess?", mutant_expression: "SimpleCov.forked_subprocess?" do
-    around do |example|
-      defined = described_class.instance_variable_defined?(:@forked_subprocess)
-      previous = described_class.instance_variable_get(:@forked_subprocess)
-      described_class.remove_instance_variable(:@forked_subprocess) if defined
-      example.run
-    ensure
-      if described_class.instance_variable_defined?(:@forked_subprocess)
-        described_class.remove_instance_variable(:@forked_subprocess)
-      end
-      described_class.instance_variable_set(:@forked_subprocess, previous) if defined
-    end
-
-    # Three states, not two: never marked, marked and cleared, marked.
-    it "is false where the mark was set and taken back" do
-      described_class.instance_variable_set(:@forked_subprocess, false)
-      expect(described_class.forked_subprocess?).to be(false)
-    end
-
-    # Answered as a boolean whatever the mark holds, because callers
-    # compare it to one.
-    it "answers a boolean even where the mark holds something else" do
-      described_class.instance_variable_set(:@forked_subprocess, "yes")
-      expect(described_class.forked_subprocess?).to be(true)
-    end
-
-    it "is false until the process is marked as a forked subprocess" do
-      expect(described_class.forked_subprocess?).to be false
-    end
-
-    it "is true once mark_forked_subprocess! runs" do
-      described_class.mark_forked_subprocess!
-      expect(described_class.forked_subprocess?).to be true
     end
   end
 
@@ -1671,7 +1643,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe ".result", mutant_expression: "SimpleCov.result" do
+  describe ".result", mutant_expression: ["SimpleCov.result", "SimpleCov.merge_own_slice"] do
     before do
       described_class.clear_result
       allow(Coverage).to receive(:result).once.and_return({})
@@ -2426,64 +2398,44 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe ".subprocess_serial", mutant_expression: "SimpleCov.subprocess_serial" do
+  describe ".current_run", mutant_expression: ["SimpleCov.current_run", "SimpleCov.clear_result"] do
     around do |example|
-      previous = described_class.instance_variable_get(:@subprocess_serial)
+      previous = described_class.current_run
       example.run
-      described_class.instance_variable_set(:@subprocess_serial, previous)
+      described_class.current_run = previous
     end
 
-    it "starts at zero, so a first run and a re-run name their workers alike" do
-      if described_class.instance_variable_defined?(:@subprocess_serial)
-        described_class.remove_instance_variable(:@subprocess_serial)
-      end
+    it "begins a run of its own when the process has none" do
+      described_class.current_run = nil
 
-      expect(described_class.subprocess_serial).to eq(0)
+      expect(described_class.current_run).to be_a(SimpleCov::CurrentRun)
     end
 
-    it "keeps a serial that has already been handed out" do
-      described_class.instance_variable_set(:@subprocess_serial, 3)
+    it "holds one run until a new one begins" do
+      described_class.current_run = SimpleCov::CurrentRun.new
+      held = described_class.current_run
 
-      expect(described_class.subprocess_serial).to eq(3)
-    end
-  end
-
-  describe ".next_subprocess_serial!", mutant_expression: "SimpleCov.next_subprocess_serial!" do
-    around do |example|
-      previous = described_class.instance_variable_get(:@subprocess_serial)
-      example.run
-      described_class.instance_variable_set(:@subprocess_serial, previous)
+      expect(held).to be_a(SimpleCov::CurrentRun)
+      expect(described_class.current_run).to be(held)
     end
 
-    it "hands back the next ordinal and keeps it" do
-      described_class.instance_variable_set(:@subprocess_serial, 4)
+    it "reads and writes the run's state through the delegators" do
+      described_class.current_run = SimpleCov::CurrentRun.new
+      described_class.pid = 4242
 
-      expect(described_class.next_subprocess_serial!).to eq(5)
-      expect(described_class.subprocess_serial).to eq(5)
+      expect(described_class.pid).to eq(4242)
+      expect(described_class.current_run.pid).to eq(4242)
+      expect(described_class.result?).to be(false)
+      expect(described_class).not_to be_forked_subprocess
     end
 
-    it "counts up from the unset serial" do
-      if described_class.instance_variable_defined?(:@subprocess_serial)
-        described_class.remove_instance_variable(:@subprocess_serial)
-      end
+    it "forgets the run's result on clear_result, the way a fresh look requires" do
+      described_class.current_run = SimpleCov::CurrentRun.new
+      described_class.current_run.result = instance_double(SimpleCov::Result)
 
-      expect(described_class.next_subprocess_serial!).to eq(1)
-    end
-  end
+      described_class.clear_result
 
-  describe ".mark_forked_subprocess!", mutant_expression: "SimpleCov.mark_forked_subprocess!" do
-    around do |example|
-      previous = described_class.instance_variable_get(:@forked_subprocess)
-      example.run
-      described_class.instance_variable_set(:@forked_subprocess, previous)
-    end
-
-    it "marks this process as one that was forked mid-run" do
-      described_class.instance_variable_set(:@forked_subprocess, nil)
-
-      described_class.mark_forked_subprocess!
-
-      expect(described_class).to be_forked_subprocess
+      expect(described_class.result?).to be_nil
     end
   end
 
@@ -2630,87 +2582,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "keeps two decimals of a value that already fits" do
       expect(described_class.round_coverage(90.12)).to eq(90.12)
-    end
-  end
-
-  describe ".clear_result", mutant_expression: "SimpleCov.clear_result" do
-    around do |example|
-      previous = described_class.instance_variable_get(:@result)
-      example.run
-      described_class.instance_variable_set(:@result, previous)
-    end
-
-    it "forgets the result it had computed" do
-      described_class.instance_variable_set(:@result, instance_double(SimpleCov::Result))
-
-      described_class.clear_result
-
-      expect(described_class.result?).to be_nil
-    end
-  end
-
-  describe ".result?", mutant_expression: "SimpleCov.result?" do
-    around do |example|
-      held = described_class.instance_variable_defined?(:@result)
-      previous = described_class.instance_variable_get(:@result)
-      example.run
-      if held
-        described_class.instance_variable_set(:@result, previous)
-      elsif described_class.instance_variable_defined?(:@result)
-        described_class.remove_instance_variable(:@result)
-      end
-    end
-
-    it "is falsey before anything has computed a result" do
-      described_class.remove_instance_variable(:@result) if described_class.instance_variable_defined?(:@result)
-
-      expect(described_class.result?).to be(false)
-    end
-
-    it "hands back the result once one is held" do
-      result = instance_double(SimpleCov::Result)
-      described_class.instance_variable_set(:@result, result)
-
-      expect(described_class.result?).to be(result)
-    end
-
-    it "is nil once the result has been cleared" do
-      described_class.instance_variable_set(:@result, nil)
-
-      expect(described_class.result?).to be_nil
-    end
-  end
-
-  describe ".collating_result?", mutant_expression: "SimpleCov.collating_result?" do
-    around do |example|
-      held = described_class.instance_variable_defined?(:@collating_result)
-      previous = described_class.instance_variable_get(:@collating_result)
-      example.run
-      if held
-        described_class.instance_variable_set(:@collating_result, previous)
-      elsif described_class.instance_variable_defined?(:@collating_result)
-        described_class.remove_instance_variable(:@collating_result)
-      end
-    end
-
-    it "is falsey before collate has ever run" do
-      if described_class.instance_variable_defined?(:@collating_result)
-        described_class.remove_instance_variable(:@collating_result)
-      end
-
-      expect(described_class.collating_result?).to be(false)
-    end
-
-    it "is true while the collate finalizer holds the flag" do
-      described_class.instance_variable_set(:@collating_result, true)
-
-      expect(described_class.collating_result?).to be(true)
-    end
-
-    it "is false once the finalizer puts it down" do
-      described_class.instance_variable_set(:@collating_result, false)
-
-      expect(described_class.collating_result?).to be(false)
     end
   end
 

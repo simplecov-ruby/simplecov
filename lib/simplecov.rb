@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "forwardable"
+require_relative "simplecov/current_run"
+
 #
 # Code coverage for ruby. Please check out README for a full introduction.
 #
@@ -20,44 +23,32 @@ module SimpleCov
   }.freeze
 
   class << self
-    attr_accessor :pid
-    # When this process started tracking coverage. Captured by SimpleCov.start
-    # so JSONFormatter can detect when an existing coverage.json was written
-    # by a sibling process running concurrently.
-    attr_accessor :process_start_time
+    extend Forwardable
 
-    # A monotonically increasing serial the parent assigns to each forked
-    # subprocess (see SimpleCov::ProcessForkHook). The default `at_fork`
-    # builds the worker's command_name from this rather than the OS pid:
-    # the serial sequence is the same from one run to the next, so a re-run
-    # overwrites the previous run's resultset entries instead of writing
-    # uniquely-named ones that pile up until merge_timeout. See issue #1171.
-    def subprocess_serial
-      @subprocess_serial ||= 0
+    # The state of the run this process is measuring, held on one object
+    # rather than in instance variables on the singleton, so a new run
+    # is a new object. The methods below read and write through it; the
+    # delegators are generated, which keeps the state's behaviour a
+    # `CurrentRun` question rather than fifty of the singleton's.
+    def current_run
+      @current_run ||= CurrentRun.new
     end
 
-    # @api private — bump the serial in the parent before a fork so the
-    # child inherits its own ordinal via copy-on-write.
-    def next_subprocess_serial!
-      @subprocess_serial = subprocess_serial + 1
-    end
+    # @api private — the seam for beginning again: hand a fresh run in,
+    # or put a saved one back. Tests use it instead of unsetting the
+    # singleton's state by hand.
+    attr_writer :current_run
 
-    # @api private — true in a process that was forked while coverage was
-    # running (set by SimpleCov::ProcessForkHook in the child). Such a child
-    # stores its own slice but must not act as the final-result process: the
-    # process that forked it merges every slice and produces the report. Only
-    # consulted when no parallel-test adapter is active, since adapters answer
-    # `first_worker?` themselves. See issue #1171.
-    def forked_subprocess?
-      # Reading a mark that was never set answers nil, which is the
-      # answer wanted, and no Ruby this gem supports warns about it.
-      !!@forked_subprocess
-    end
-
-    # @api private — marked in the child immediately after a fork.
-    def mark_forked_subprocess!
-      @forked_subprocess = true
-    end
+    # `pid` / `process_start_time`: recorded by `start_tracking` so the
+    # exit path knows whose at_exit this is and JSONFormatter can detect
+    # a sibling process's concurrent report. `forked_subprocess?` is
+    # marked by the fork hook in the child (see issue #1171), and the
+    # subprocess serial is what the default `at_fork` names workers by.
+    def_delegators :current_run, # steep:ignore NoMethod
+                   :pid, :pid=, :process_start_time, :process_start_time=,
+                   :subprocess_serial, :next_subprocess_serial!,
+                   :forked_subprocess?, :mark_forked_subprocess!,
+                   :result?, :collating_result?
     # Should we take care of at_exit behavior or something else? Used by the
     # minitest plugin. See lib/minitest/simplecov_plugin.rb.
     attr_accessor :external_at_exit
@@ -169,7 +160,10 @@ module SimpleCov
       # Select the parallel adapter and generate identities before any forks.
       RunIdentity.prepare
 
-      @result = nil
+      # A new run is a new object: whatever state a previous run left
+      # behind goes with it, result and flags alike. Only the fork
+      # genealogy carries over (see CurrentRun#successor).
+      self.current_run = current_run.successor
       self.pid = Process.pid
       self.process_start_time = Time.now
 
@@ -240,7 +234,6 @@ module SimpleCov
 end
 
 # requires are down here for a load order reason I'm not sure what it is about
-require "forwardable"
 require_relative "simplecov/color"
 require_relative "simplecov/deprecation"
 require_relative "simplecov/group_names"

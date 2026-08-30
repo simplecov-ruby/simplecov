@@ -2329,15 +2329,14 @@ RSpec.describe SimpleCov::Configuration do
 
     describe "#subprocess_serial" do
       around do |example|
-        previous = SimpleCov.instance_variable_get(:@subprocess_serial)
+        previous = SimpleCov.current_run
+        SimpleCov.current_run = SimpleCov::CurrentRun.new
         example.run
       ensure
-        SimpleCov.instance_variable_set(:@subprocess_serial, previous)
+        SimpleCov.current_run = previous
       end
 
       it "defaults to 0 and increments monotonically" do
-        SimpleCov.instance_variable_set(:@subprocess_serial, nil)
-
         expect(SimpleCov.subprocess_serial).to eq(0)
         SimpleCov.next_subprocess_serial!
         SimpleCov.next_subprocess_serial!

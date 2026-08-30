@@ -1,0 +1,39 @@
+module SimpleCov
+  # The state one measured run accumulates in one process: identity,
+  # result, coordination flags, and the forked-subprocess serial.
+  class CurrentRun
+    @collating_result: bool?
+
+    @forked_subprocess: bool?
+
+    @subprocess_serial: Integer?
+
+    attr_accessor pid: Integer?
+
+    attr_accessor process_start_time: Time?
+
+    attr_accessor result: Result?
+
+    attr_writer collating_result: bool?
+
+    # The run that follows this one in the same process, carrying only
+    # the fork genealogy.
+    def successor: () -> CurrentRun
+
+    # Returns nil if the result has not been computed, otherwise the result.
+    def result?: () -> (Result | false | nil)
+
+    def collating_result?: () -> bool
+
+    def forked_subprocess?: () -> bool
+
+    def mark_forked_subprocess!: () -> void
+
+    def subprocess_serial: () -> Integer
+
+    def next_subprocess_serial!: () -> Integer
+
+    # Written only by `successor`, carrying the count across runs.
+    attr_writer subprocess_serial: Integer?
+  end
+end
