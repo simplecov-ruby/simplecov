@@ -1374,11 +1374,15 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class).to have_received(:report_processing_failure).with(3)
     end
 
+    # Not processing is asserted too: without it, a run that processes
+    # anyway can land on the same status and pass by coincidence.
     it "answers success, exactly, when there is nothing to process" do
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
                                                  ready_to_process_results?: false)
+      allow(described_class).to receive(:process_result)
 
       expect(described_class.run_exit_tasks).to eql(SimpleCov::ExitCodes::SUCCESS)
+      expect(described_class).not_to have_received(:process_result)
     end
 
     it "asks about the status it was given rather than looking it up again" do

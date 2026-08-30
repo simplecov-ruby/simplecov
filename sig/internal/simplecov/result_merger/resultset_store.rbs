@@ -19,6 +19,8 @@ module SimpleCov
       def self?.with_flock: () { () -> untyped } -> untyped
 
       def self?.holding_writelock: () { () -> untyped } -> untyped
+
+      def self?.open_file: [T] (String name, String mode) { (File file) -> T } -> T
     end
   end
 end

@@ -16,9 +16,17 @@ module SimpleCov
       def call(filename)
         lines = [] #: Array[String]
         # The default encoding is UTF-8
-        File.open(filename, "rb:UTF-8") do |file|
+        open_file(filename, "rb:UTF-8") do |file|
           read_lines(file, lines, scrub_invalid(file.gets))
         end
+      end
+
+      # mutant:disable — Ruby 4.0 removed Kernel#open's leading-pipe
+      # command mode, so no test can tell `File.open` from `open` here
+      # any more. The explicit receiver is kept: on older rubies it is
+      # what refuses to run a filename as a command.
+      def open_file(name, mode, &)
+        File.open(name, mode, &)
       end
 
       # A line read as UTF-8 can still carry invalid bytes (a Latin-1

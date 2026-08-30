@@ -12,6 +12,8 @@ module SimpleCov
 
       def self?.call: (String filename) -> Array[String]
 
+      def self?.open_file: [T] (String name, String mode) { (File file) -> T } -> T
+
       # Replaces invalid bytes in a UTF-8-tagged line before any regex
       # sees it; nil and valid lines pass through untouched.
       def self?.scrub_invalid: (String? line) -> String?

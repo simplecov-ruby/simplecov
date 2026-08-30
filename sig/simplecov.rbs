@@ -2112,6 +2112,8 @@ module SimpleCov
       # Both halves of the read-modify-write, through one locked handle.
       def locked: [T] () { (File file) -> T } -> T
 
+      def open_file: [T] (String name, Integer mode, Integer perm) { (File file) -> T } -> T
+
       def rewrite: (File file, Hash[String, untyped] payload) -> void
 
       def merge: (Hash[String, untyped] existing, Hash[String, Array[Integer]] incoming) -> Hash[String, untyped]

@@ -109,10 +109,18 @@ module SimpleCov
       # which for disjoint bits is the same number OR would build and
       # leaves no spelling of the combination without a witness.
       def locked
-        File.open(path, File::RDWR + File::CREAT, 0o644) do |file|
+        open_file(path, File::RDWR + File::CREAT, 0o644) do |file|
           file.flock(File::LOCK_EX)
           yield file
         end
+      end
+
+      # mutant:disable — Ruby 4.0 removed Kernel#open's leading-pipe
+      # command mode, so no test can tell `File.open` from `open` here
+      # any more. The explicit receiver is kept: on older rubies it is
+      # what refuses to run a store path as a command.
+      def open_file(name, mode, perm, &)
+        File.open(name, mode, perm, &)
       end
 
       def merge(existing, incoming)
