@@ -24,7 +24,7 @@ module SimpleCov
       # ignored rather than cast because a cast is an assignment a
       # mutation can remove without a trace.
       def command_name
-        name.split("::").last.downcase # steep:ignore NoMethod
+        name.split("::").last.downcase
       end
 
       # Whether a count is exactly one, for choosing singular wording.

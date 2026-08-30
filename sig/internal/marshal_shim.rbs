@@ -1,0 +1,8 @@
+# Marshal.load reads from an IO at runtime, but core RBS's
+# Marshal::_Source interface refuses IO nominally: IO#getbyte and
+# IO#read answer nil at EOF, and the interface admits no nil. This
+# overload records what the runtime accepts.
+module Marshal
+  def self.load: (IO source, ?freeze: boolish) -> untyped
+               | ...
+end

@@ -139,17 +139,18 @@ module SimpleCov
     # cleans up the workers it knows about, but this pipe is ours: the
     # parent's writer end always closes, and the reader closes too when
     # no child was spawned to feed it. Steep cannot type body locals
-    # inside an ensure, hence the ignore markers; the safe navigation
+    # inside an ensure, hence the annotations; the safe navigation
     # keeps the cleanup well-defined when `IO.pipe` itself raised.
     def spawn_worker(chunk, ignore_timeout:)
       reader, writer = IO.pipe
       pid = fork { run_in_child(reader, writer, chunk, ignore_timeout) }
       {pid: pid, reader: reader}
     ensure
-      # steep:ignore:start
+      # @type var writer: IO?
+      # @type var reader: IO?
+      # @type var pid: Integer?
       writer&.close
       reader&.close unless pid
-      # steep:ignore:end
     end
 
     # Everything the child does. `exit!` rather than `exit` because it must
@@ -205,9 +206,7 @@ module SimpleCov
       # truncated, which Marshal reports by raising rather than returning.
       # RBS types `Marshal.load`'s source as `_Source`, which IO satisfies
       # structurally but not nominally.
-      # steep:ignore:start
       Marshal.load(reader) # rubocop:disable Security/MarshalLoad
-      # steep:ignore:end
     rescue StandardError
       nil
     end

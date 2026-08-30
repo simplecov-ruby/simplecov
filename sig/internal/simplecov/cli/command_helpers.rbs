@@ -11,6 +11,10 @@ module SimpleCov
       class HelpRequested < StandardError
       end
 
+      # The extending module's Module#name. Every extender is a named
+      # module, so the nil of an anonymous one cannot happen here.
+      def name: () -> ::String
+
       def on_help: (untyped parser) -> untyped
 
       def build_parser: () ?{ (untyped parser) -> untyped } -> untyped

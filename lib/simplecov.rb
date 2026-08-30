@@ -22,14 +22,29 @@ module SimpleCov
     oneshot_line: :oneshot_lines
   }.freeze
 
-  class << self
-    extend Forwardable
+  # `SingleForwardable` rather than `Forwardable` on the singleton
+  # class, because RBS has no way to speak about the singleton class's
+  # own ancestors, and this spelling means the same thing where Steep
+  # can see it.
+  extend SingleForwardable
 
+  # `pid` / `process_start_time`: recorded by `start_tracking` so the
+  # exit path knows whose at_exit this is and JSONFormatter can detect
+  # a sibling process's concurrent report. `forked_subprocess?` is
+  # marked by the fork hook in the child (see issue #1171), and the
+  # subprocess serial is what the default `at_fork` names workers by.
+  def_delegators :current_run,
+                 :pid, :pid=, :process_start_time, :process_start_time=,
+                 :subprocess_serial, :next_subprocess_serial!,
+                 :forked_subprocess?, :mark_forked_subprocess!,
+                 :result?, :collating_result?
+
+  class << self
     # The state of the run this process is measuring, held on one object
     # rather than in instance variables on the singleton, so a new run
-    # is a new object. The methods below read and write through it; the
-    # delegators are generated, which keeps the state's behaviour a
-    # `CurrentRun` question rather than fifty of the singleton's.
+    # is a new object. The delegators above read and write through it,
+    # which keeps the state's behaviour a `CurrentRun` question rather
+    # than fifty of the singleton's.
     def current_run
       @current_run ||= CurrentRun.new
     end
@@ -38,17 +53,6 @@ module SimpleCov
     # or put a saved one back. Tests use it instead of unsetting the
     # singleton's state by hand.
     attr_writer :current_run
-
-    # `pid` / `process_start_time`: recorded by `start_tracking` so the
-    # exit path knows whose at_exit this is and JSONFormatter can detect
-    # a sibling process's concurrent report. `forked_subprocess?` is
-    # marked by the fork hook in the child (see issue #1171), and the
-    # subprocess serial is what the default `at_fork` names workers by.
-    def_delegators :current_run, # steep:ignore NoMethod
-                   :pid, :pid=, :process_start_time, :process_start_time=,
-                   :subprocess_serial, :next_subprocess_serial!,
-                   :forked_subprocess?, :mark_forked_subprocess!,
-                   :result?, :collating_result?
     # Should we take care of at_exit behavior or something else? Used by the
     # minitest plugin. See lib/minitest/simplecov_plugin.rb.
     attr_accessor :external_at_exit

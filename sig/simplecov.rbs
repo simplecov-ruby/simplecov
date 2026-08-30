@@ -30,6 +30,7 @@ module SimpleCov
   CRITERION_TO_RUBY_COVERAGE: Hash[Symbol, Symbol]
 
   extend Configuration
+  extend SingleForwardable
 
   self.@current_run: CurrentRun?
   self.@autoloading_dot_simplecov: bool?
