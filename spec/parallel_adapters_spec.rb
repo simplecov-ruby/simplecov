@@ -8,7 +8,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
   # adapter, so the around block addresses the registry by its full
   # constant name instead of relying on `described_class` (which would
   # call `reset_current!` on whichever adapter is in scope and explode).
-  # rubocop:disable RSpec/DescribedClass
+  # rubocop:disable-next RSpec/DescribedClass
   around do |example|
     prev_adapters = SimpleCov::ParallelAdapters.instance_variable_get(:@adapters)&.dup
     prev_test_env_number = ENV.fetch("TEST_ENV_NUMBER", nil)
@@ -25,7 +25,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
     ENV["PARALLEL_TEST_GROUPS"] = prev_parallel_test_groups
     ENV["PARALLEL_PID_FILE"] = prev_parallel_pid_file
   end
-  # rubocop:enable RSpec/DescribedClass
 
   describe ".adapters" do
     it "ships ParallelTestsAdapter first and GenericAdapter second" do

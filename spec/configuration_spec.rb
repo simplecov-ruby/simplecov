@@ -2682,22 +2682,20 @@ RSpec.describe SimpleCov::Configuration do
         # base is the configuration source, not this spec. It must be a
         # file that exists: JRuby resolves the base through realpath.
         source_path = File.join(SimpleCov.root, "lib/simplecov.rb")
-        # rubocop:disable Style/EvalWithLocation
+        # rubocop:disable-next Style/EvalWithLocation
         configuration = eval(<<~RUBY, binding, source_path, 1)
           proc { require_relative "simplecov/version" }
         RUBY
-        # rubocop:enable Style/EvalWithLocation
 
         expect { config.configure(&configuration) }.not_to raise_error
       end
 
       it "keeps configuration exceptions anchored to their source" do
         source_path = File.join(SimpleCov.root, "lib/configuration_probe.rb")
-        # rubocop:disable Style/EvalWithLocation
+        # rubocop:disable-next Style/EvalWithLocation
         configuration = eval(<<~RUBY, binding, source_path, 37)
           proc { raise "from config" }
         RUBY
-        # rubocop:enable Style/EvalWithLocation
 
         expect { config.configure(&configuration) }.to raise_error("from config") do |error|
           expect(error.backtrace.first).to start_with("#{source_path}:37:")

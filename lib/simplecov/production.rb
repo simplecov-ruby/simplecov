@@ -25,7 +25,7 @@ module SimpleCov
   # See the file-top comment. One cohesive runtime state machine; kept
   # in one class for the same reason a state machine is not split
   # across files by size alone.
-  # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
+  # rubocop:disable-next Metrics/ModuleLength, Metrics/ClassLength
   module Production
     class << self
       # Begin measuring. Returns true when measurement started, false —
@@ -296,7 +296,6 @@ module SimpleCov
       end
     end
   end
-  # rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
 end
 
 require_relative "production/file_sink"

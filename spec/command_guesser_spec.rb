@@ -261,13 +261,12 @@ RSpec.describe SimpleCov::CommandGuesser do
 
     # stub_const addresses a constant by name, and this one belongs to
     # an anonymous singleton class, so there is no name to give it.
-    # rubocop:disable RSpec/RemoveConst
+    # rubocop:disable-next RSpec/RemoveConst
     def swap_frameworks(singleton, list)
       singleton.send(:remove_const, :DEFINED_CONSTANT_FRAMEWORKS)
       singleton.const_set(:DEFINED_CONSTANT_FRAMEWORKS, list)
       singleton.send(:private_constant, :DEFINED_CONSTANT_FRAMEWORKS)
     end
-    # rubocop:enable RSpec/RemoveConst
 
     it "names the first framework whose constant is there" do
       guesser.original_run_command = "/some/path/unremarkable.rb"

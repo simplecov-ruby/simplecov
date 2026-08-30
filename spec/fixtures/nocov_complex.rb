@@ -1,5 +1,5 @@
 # So much skippping
-# rubocop:disable Metrics/MethodLength, Lint/Void
+# rubocop:disable-next Metrics/MethodLength, Lint/Void
 module NoCovComplex
   def self.call(arg)
     # :nocov:
@@ -24,4 +24,3 @@ module NoCovComplex
     end
   end
 end
-# rubocop:enable Metrics/MethodLength, Lint/Void
