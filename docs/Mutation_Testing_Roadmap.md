@@ -1,7 +1,7 @@
 # Mutation testing roadmap
 
-The API changes that would make this library faster and easier to hold to account, and why each one costs a major
-version.
+The API changes that would make this library faster and easier to hold to account. Each item's non-breaking core is
+implemented; what remains of each is the part that changes what callers may say, and costs a major version.
 
 *Part of the [SimpleCov](../README.md) documentation.*
 
@@ -9,8 +9,8 @@ version.
 
 The suite is measured by [mutant](https://github.com/mbj/mutant) at the full operator set, and getting there taught
 us where the library's shape fights the tool. None of what follows is required to keep mutation coverage at 100%: it
-is all already there. What follows would make holding it there quicker to run and cheaper to maintain, and every
-item needs a major version because it changes what callers may say.
+is all already there. Every item below has been carried as far as it can go without breaking the API, and each notes
+the remainder that cannot be.
 
 The measurements quoted are from the 2026-08-28 sweep on a ten-core machine, where the whole library measures
 51,777 mutations across 1,262 subjects at 100%. A full run takes between two and five hours depending on what else
@@ -47,12 +47,13 @@ for months because the metadata spelled them `SimpleCov::CLI.run` where `extend 
 them they are a sixth of the library's subjects on one object. Reading a setting, starting a run, coordinating
 parallel workers, and deciding an exit status are all `SimpleCov.something`.
 
-**Breaking change.** Move the run's lifecycle to an object (`SimpleCov::Run` or similar) that is created, started and
-finished, and pass configuration to it rather than reading it from a global. `SimpleCov.start` stays as the front
-door and delegates.
+**Done without breaking.** The run's state lives on `SimpleCov::CurrentRun` (see item 3), and the singleton keeps
+its whole surface by delegating to it through generated forwarders, which mutation analysis does not measure. The
+run's behaviour is a `CurrentRun` question with a pool of its own.
 
-**What it buys.** A spec can name the object it exercises, so its subjects select the examples about them and nothing
-else. On the evidence above that is the difference between a namespace measuring in two hours and in under a minute.
+**What remains, and why it breaks.** The lifecycle itself (start, finish, and the configuration a run reads) still
+passes through the singleton. Moving it onto the run object and passing configuration in, with `SimpleCov.start`
+delegating, changes what the at_exit machinery and every subclassing formatter may hold a reference to.
 
 ### 2. Separate reading a setting from writing it
 
@@ -69,11 +70,13 @@ end
 One method, two behaviours, and a sentinel comparison that is itself a mutation surface. Every such method needs its
 read path, its write path, and its default all pinned, and 136 subjects are shaped this way.
 
-**Breaking change.** `SimpleCov.color` reads; `SimpleCov.color = value` writes. The DSL block keeps the bare-word
-spelling by evaluating against a builder, which is where a DSL should have lived anyway.
+**Done without breaking.** Every dual-purpose setting has an explicit writer: `SimpleCov.color = :never`,
+`SimpleCov.merge_timeout = 300`, and fifteen more. The writer holds the whole write behaviour (expansion,
+validation, cache invalidation) and the dual method's write arm delegates to it, so the behaviour lives once.
 
-**What it buys.** Half as many behaviours per subject, no sentinel to compare, and the default becomes a value that
-can be asserted rather than a branch that has to be reached.
+**What remains, and why it breaks.** The dual spelling itself, sentinel and all: retiring `SimpleCov.color(:never)`
+in favour of the writer, with the DSL block keeping the bare-word spelling by evaluating against a builder, changes
+what configuration files may say.
 
 ### 3. Make process state explicit rather than global
 
@@ -82,10 +85,14 @@ them by hand, and several examples in this suite reach for `instance_variable_se
 get a clean slate. State that has to be un-set by hand is state that leaks between examples, which is what makes a
 mutation look killed when the previous example is what killed it.
 
-**Breaking change.** Hold the state on the run object from item 1, and let a new run be a new object.
+**Done without breaking.** The state lives on `SimpleCov::CurrentRun`, and a new run is a new object:
+`start_tracking` begins a successor that carries only the fork genealogy (a forked child must not forget it was
+forked, and a parent must not recount its subprocess serials). Examples that shepherded five instance variables
+through around hooks now swap one run object in and out, and one cross-example leak of exactly the kind this item
+describes died in the move.
 
-**What it buys.** Examples stop resetting globals, which removes a class of order dependence. Two order-dependent
-failures found during this work were of exactly that kind.
+**What remains, and why it breaks.** `@exit_exception` and the at_exit installation flag stay process-global on the
+singleton, and the run object is internal. Exposing it as API is the item-1 remainder.
 
 ### 4. Return violations instead of printing them
 
@@ -101,11 +108,11 @@ Testing the message means capturing stderr, and every check's message needed its
 wrong with the messages, but nothing could see them either: before this work every one of them could be rewritten to
 name a different criterion, a different file, or nothing at all, and the suite still passed.
 
-**Breaking change.** Checks answer structured violations; a reporter renders them. `SimpleCov::ExitCodes.call` keeps
-its signature and does both.
+**Done without breaking.** Checks answer `violations` and `report_lines` as public values, each check renders its
+violations into lines, and printing happens in one place, the base class's `report`. Every message assertion in the
+check specs holds a value instead of capturing stderr. `ExitCodeHandling.call` kept its signature and behaviour.
 
-**What it buys.** Assertions on values rather than on captured output, and one place to test rendering instead of
-eight.
+**What remains.** Nothing that needs a major version: the check classes are internal, so this item is done.
 
 ### 5. Make the exit path callable without exiting
 
@@ -114,11 +121,13 @@ examples do. Those examples are worth having and they are the slowest thing in t
 mutation**: mutant mutates the parent in memory, and the child loads the file from disk unmutated. They are now
 tagged `mutant: false` so mutation analysis stops considering them, which is honest about what they can prove.
 
-**Breaking change.** Make the exit behaviour a call that returns a status and performs no side effect of its own, so
-`at_exit` becomes a one-line adapter over something testable in process.
+**Done without breaking.** `SimpleCov.run_exit_tasks` does everything the end of a measured run does and answers
+the exit status the process should end with; `run_exit_tasks!` is the exiting adapter over it, with the one
+`Kernel.exit`. Every branch of the path is pinned by in-process examples that hold the status as a value and assert
+the process was never ended.
 
-**What it buys.** The behaviour that decides every user's build status becomes answerable in process, where a
-mutation to it can actually be caught.
+**What remains.** Nothing that needs a major version: the sandbox suite still proves the wiring end to end, but the
+behaviour it wires is now answerable in process, so this item is done.
 
 ### 6. Give every spec block a subject expression (done)
 
