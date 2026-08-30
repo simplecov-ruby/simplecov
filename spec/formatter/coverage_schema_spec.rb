@@ -9,7 +9,7 @@ require "json_schemer"
 # published as the public contract for coverage.json consumers, this
 # spec catches drift between code and schema at test time so neither
 # can rot independently.
-describe "coverage.json schema" do # rubocop:disable RSpec/DescribeClass
+describe "coverage.json schema" do
   let(:schema_path) { File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
   let(:schema_doc)  { JSON.parse(File.read(schema_path)) }

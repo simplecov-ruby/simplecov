@@ -7,9 +7,6 @@ module SimpleCov
   # Each method returns an array of violation hashes. All percents are
   # rounded via `SimpleCov.round_coverage` so downstream consumers don't
   # need to round again.
-  # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength -- one check
-  # per threshold family, and each reads better next to the others than
-  # split across files by size alone.
   module CoverageViolations
     class << self
       # @return [Array<Hash>] {:criterion, :expected, :actual}
@@ -320,5 +317,4 @@ module SimpleCov
       end
     end
   end
-  # rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
 end

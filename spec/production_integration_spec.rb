@@ -3,7 +3,7 @@
 require "helper"
 require "simplecov/production"
 
-RSpec.describe "production coverage integration" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "production coverage integration" do
   oneshot_supported = !Coverage.respond_to?(:supported?) || Coverage.supported?(:oneshot_lines)
 
   if oneshot_supported

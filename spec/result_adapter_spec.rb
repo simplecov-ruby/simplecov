@@ -98,7 +98,7 @@ RSpec.describe SimpleCov::ResultAdapter do
     # example. The report must degrade, not crash the host suite (#1236).
     def named_shadowing_module
       mod = Module.new do
-        def inspect(value, max_depth = 2) # rubocop:disable Lint/UnusedMethodArgument
+        def inspect(value, _max_depth = 2)
           value.to_s
         end
         module_function :inspect

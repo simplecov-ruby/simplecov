@@ -1,5 +1,5 @@
 # Adapted from https://github.com/simplecov-ruby/simplecov/pull/694#issuecomment-562097006
-# rubocop:disable all
+# Not linted: a byte-stable fixture whose line numbers matter.
 x = 1
 x.eql?(4) ? "4" : x
 
@@ -47,4 +47,4 @@ else
   puts x
 end
 
-# rubocop:enable all
+# End of fixture.

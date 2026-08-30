@@ -1,5 +1,5 @@
 # So much skippping
-# rubocop:disable-next Metrics/MethodLength, Lint/Void
+# Not linted: a byte-stable fixture whose line numbers matter.
 module NoCovComplex
   def self.call(arg)
     # :nocov:

@@ -2,7 +2,7 @@
 
 require "helper"
 
-RSpec.describe "coverage for eval" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "coverage for eval" do
   if SimpleCov.coverage_for_eval_supported?
     around do |test|
       Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "eval_test")) do

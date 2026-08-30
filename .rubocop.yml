@@ -5,12 +5,10 @@ plugins:
 
 AllCops:
   Exclude:
-    - "spec/fixtures/iso-8859.rb"
-    - "spec/fixtures/utf-8.rb"
-    - "spec/fixtures/utf-8-magic.rb"
-    - "spec/fixtures/euc-jp.rb"
-    - "spec/fixtures/empty_euc-jp.rb"
-    - "spec/fixtures/euc-jp-shebang.rb"
+    # Fixtures are byte-stable test inputs: their line numbers, layout,
+    # and sometimes their encodings are what the specs assert against,
+    # so they are not subject to style.
+    - "spec/fixtures/**/*"
     - "test_projects/**/*"
     - "tmp/**/*"
     - "vendor/bundle/**/*"
@@ -51,6 +49,37 @@ Metrics/ModuleLength:
     # One settings module per concern; the explicit writers beside each
     # dual-purpose reader push this one just past the default.
     - "lib/simplecov/configuration/merging.rb"
+    # One cohesive runtime state machine, kept in one place for the same
+    # reason a state machine is not split across files by size alone.
+    - "lib/simplecov/production.rb"
+    # One check per threshold family; each reads better next to the others.
+    - "lib/simplecov/coverage_violations.rb"
+    # One usage document; its length is the command surface, not logic.
+    - "lib/simplecov/cli/usage.rb"
+    # One home for the per-construct, per-Ruby-version Coverage location
+    # conventions; splitting it would scatter closely-related resolvers.
+    - "lib/simplecov/static_coverage_extractor/location_conventions.rb"
+    # One check per section the viewer reads; the length tracks the
+    # document's surface, not an accumulation of concerns.
+    - "lib/simplecov/formatter/html_formatter/viewer_data_validator.rb"
+    # One cohesive sandbox harness; splitting it would scatter
+    # closely-related helpers.
+    - "spec/support/sandbox_project.rb"
+
+Metrics/ClassLength:
+  Exclude:
+    # The same two one-concern homes the ModuleLength exclusions cover;
+    # this cop counts their `class << self` bodies.
+    - "lib/simplecov/production.rb"
+    - "lib/simplecov/coverage_violations.rb"
+
+Metrics/MethodLength:
+  Exclude:
+    - "spec/support/dogfood_report.rb"
+
+Metrics/AbcSize:
+  Exclude:
+    - "spec/support/dogfood_report.rb"
 
 Metrics/BlockLength:
   Description: Checks if the length of a block exceeds some maximum value.
@@ -69,31 +98,46 @@ Metrics/ParameterLists:
 Naming/FileName:
   Description: makes sure that Ruby source files have snake_case names.
   Exclude:
-    - "spec/fixtures/utf-8.rb"
     - "lib/simplecov-html.rb"
+
+Naming/PredicateMethod:
+  # Commands that report whether they acted. Their names are verbs
+  # because the action is the point and the boolean is the receipt, so
+  # neither a `?` (they are not questions) nor a bare command (callers
+  # do read the answer) would say it better.
+  AllowedMethods:
+    - stop
+    - store
+    - store_result
+    - remove_filter
+    - warn_decline
 
 inherit_mode:
   merge:
     - Exclude
 
-# Spec fixtures are byte-stable test inputs (line numbers and `puts`
-# statements matter for coverage assertions), and spec/support/ holds
-# helper modules — neither directory is a real spec suite, so the
-# RSpec department shouldn't touch them. (The fixture rspec runners
-# under spec/fixtures/frameworks/ are intentionally minimal:
-# `expect(1).to eq(2)` is the point.)
+# spec/support/ holds helper modules, not a spec suite, so the RSpec
+# department shouldn't touch it. (Fixtures are excluded wholesale under
+# AllCops.)
 RSpec:
   Exclude:
-    - "spec/fixtures/**/*"
     - "spec/support/**/*"
-RSpec/ExpectActual:
-  Exclude:
-    - "spec/fixtures/**/*"
 RSpec/DescribeClass:
   Exclude:
-    - "spec/fixtures/**/*"
     # End-to-end sandbox specs describe user-visible behaviors, not classes.
     - "spec/sandbox/**/*"
+    # These specs describe cross-cutting behaviors and contracts —
+    # exit codes, output streams, file formats, build artifacts — that
+    # no single class owns.
+    - "spec/assets_spec.rb"
+    - "spec/config_loader_spec.rb"
+    - "spec/coverage_for_eval_spec.rb"
+    - "spec/deleted_source_spec.rb"
+    - "spec/formatter/coverage_schema_spec.rb"
+    - "spec/gemspec_spec.rb"
+    - "spec/production_integration_spec.rb"
+    - "spec/return_codes_spec.rb"
+    - "spec/stderr_output_spec.rb"
 
 RSpec/ExampleLength:
   Max: 20 # TODO: Lower to 5
@@ -124,13 +168,18 @@ Style/CollectionMethods:
     find: "detect"
     find_all: "select"
 
+Style/ClassVars:
+  Exclude:
+    # The minitest plugin's arming flag is a class variable on
+    # Minitest itself, so the fakes standing in for Minitest here have
+    # to carry one too.
+    - "spec/simplecov_spec.rb"
+
 Style/FrozenStringLiteralComment:
   Description:
     Add the frozen_string_literal comment to the top of files to help transition
     from Ruby 2.3.0 to Ruby 3.0.
   EnforcedStyle: always
-  Exclude:
-    - "spec/fixtures/**/*"
 
 Style/EnvHome:
   # `Dir.home` raises ArgumentError on JRuby when HOME is unset, defeating

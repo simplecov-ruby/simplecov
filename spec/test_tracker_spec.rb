@@ -390,12 +390,12 @@ RSpec.describe SimpleCov::TestTracker do
     # Stand-ins with the sliver of RSpec's surface the hook uses.
     let(:around_blocks) { [] }
     let(:fake_config) do
-      config = double("RSpec configuration") # rubocop:disable RSpec/VerifiedDoubles
+      config = instance_double(RSpec::Core::Configuration)
       allow(config).to receive(:around) { |&block| around_blocks << block }
       config
     end
     let(:fake_rspec) do
-      rspec = double("RSpec") # rubocop:disable RSpec/VerifiedDoubles
+      rspec = class_double(RSpec)
       allow(rspec).to receive(:configure).and_yield(fake_config)
       rspec
     end
@@ -415,7 +415,7 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     it "installs once per process" do
-      second = double("RSpec") # rubocop:disable RSpec/VerifiedDoubles
+      second = class_double(RSpec)
       allow(second).to receive(:configure)
 
       described_class.install_rspec_hook(fake_rspec)

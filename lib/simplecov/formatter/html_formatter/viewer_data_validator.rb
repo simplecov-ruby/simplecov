@@ -9,7 +9,6 @@ module SimpleCov
       # dereferences without defensive fallbacks. One check per section
       # the viewer reads; the module's length tracks the document's
       # surface, not an accumulation of concerns.
-      # rubocop:disable-next Metrics/ModuleLength
       module ViewerDataValidator
         META_STRINGS = %w[simplecov_version command_name project_name timestamp].freeze
         COVERAGE_FLAGS = {

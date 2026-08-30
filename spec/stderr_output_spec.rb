@@ -7,7 +7,7 @@ require "helper"
 # not Ruby warnings, so `Warning.warn` hooks (warning trackers,
 # raise-on-warning test setups) must not intercept them and `-W0` must not
 # swallow them. See #1225.
-RSpec.describe "stderr output contract" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "stderr output contract" do
   before { allow(Warning).to receive(:warn).and_call_original }
 
   def expect_no_warning

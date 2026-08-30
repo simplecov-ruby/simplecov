@@ -111,7 +111,7 @@ module SimpleCov
     # Returns true when at least one filter was removed, false otherwise.
     # `reject!` answers nil when it rejected nothing, which is the whole
     # of "was anything removed".
-    def remove_filter(filter_argument) # rubocop:disable Naming/PredicateMethod
+    def remove_filter(filter_argument)
       rejected = filters.reject! do |filter|
         filter.respond_to?(:filter_argument) && filter.filter_argument.eql?(filter_argument)
       end

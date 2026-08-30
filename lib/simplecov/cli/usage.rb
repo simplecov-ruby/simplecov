@@ -5,8 +5,6 @@ module SimpleCov
     # The `simplecov help` text. A method so its default paths resolve at
     # call time against the active `.simplecov`.
     #
-    # rubocop:disable Metrics/ModuleLength -- the module is one usage
-    # document; its length is the command surface, not logic.
     module Usage
       extend self
 
@@ -153,6 +151,5 @@ module SimpleCov
         USAGE
       end
     end
-    # rubocop:enable Metrics/ModuleLength
   end
 end

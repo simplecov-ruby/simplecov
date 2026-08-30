@@ -4,7 +4,7 @@ require "helper"
 
 # Make sure that exit codes of tests are propagated properly
 # See https://github.com/simplecov-ruby/simplecov/issues/5
-RSpec.describe "return codes" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "return codes" do
   context "when inside fixtures/frameworks" do
     around do |test|
       Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "frameworks")) do

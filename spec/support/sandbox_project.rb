@@ -15,8 +15,6 @@ require "fileutils"
 # reference the simplecov gem by relative path (`path: "../../.."`, with
 # a `"../.."` fallback for in-place development).
 #
-# rubocop:disable Metrics/ModuleLength -- one cohesive sandbox harness;
-# splitting it would scatter closely-related helpers.
 module SandboxProject
   PROJECT_ROOT = File.expand_path("../..", __dir__)
 
@@ -289,7 +287,6 @@ private
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength
 
 RSpec.configure do |config|
   config.include SandboxProject, :sandbox

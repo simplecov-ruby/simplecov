@@ -49,7 +49,7 @@ module SimpleCov
         @path = File.expand_path(path)
       end
 
-      def store(coverage) # rubocop:disable Naming/PredicateMethod -- the sink contract returns acceptance
+      def store(coverage)
         FileUtils.mkdir_p(File.dirname(path))
         locked do |file|
           existing = self.class.parse(file.read, path)

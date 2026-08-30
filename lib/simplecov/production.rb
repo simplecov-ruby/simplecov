@@ -25,7 +25,6 @@ module SimpleCov
   # See the file-top comment. One cohesive runtime state machine; kept
   # in one class for the same reason a state machine is not split
   # across files by size alone.
-  # rubocop:disable-next Metrics/ModuleLength, Metrics/ClassLength
   module Production
     class << self
       # Begin measuring. Returns true when measurement started, false —
@@ -86,7 +85,7 @@ module SimpleCov
       # Stop measuring: wind down the flush thread, deliver the final
       # delta, and halt the runtime's instrumentation. Returns false
       # when nothing was running.
-      def stop # rubocop:disable Naming/PredicateMethod -- a command that reports whether it acted
+      def stop
         return false unless running?
 
         @running = false
@@ -276,7 +275,7 @@ module SimpleCov
         path[@root_prefix.length..]
       end
 
-      def warn_decline(reason) # rubocop:disable Naming/PredicateMethod -- the callers' falsy return value
+      def warn_decline(reason)
         warn "[SimpleCov::Production] not starting: #{reason}"
         false
       end

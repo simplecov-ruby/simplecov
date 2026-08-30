@@ -114,8 +114,6 @@ module DogfoodReport
     SimpleCov::ResultMerger.merge_results(*partial_paths, ignore_timeout: true).original_result
   end
 
-  # rubocop:disable Metrics/MethodLength, Metrics/AbcSize -- one linear
-  # report pipeline; the length is comments explaining each step's why.
   def report(coverage, contexts = nil)
     extra_filters = %w[/spec/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
     # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
@@ -162,7 +160,6 @@ module DogfoodReport
       $stderr = previous_stderr
     end
   end
-  # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
   # ExitCodeHandling.call just needs an object that responds to the
   # limit readers — building a local Data keeps this helper's coupling

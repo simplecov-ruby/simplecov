@@ -10,9 +10,6 @@ module SimpleCov
     # changed several of these conventions, so every resolver here emits
     # whichever shape this Ruby's Coverage uses. See issues #1226 / #1233.
     #
-    # rubocop:disable Metrics/ModuleLength -- one cohesive home for the
-    # per-construct, per-Ruby-version Coverage location conventions;
-    # splitting it would scatter closely-related resolvers.
     module LocationConventions
       LEGACY_COVERAGE_LOCATIONS = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.4")
 
@@ -244,6 +241,5 @@ module SimpleCov
       end
       # simplecov:enable
     end
-    # rubocop:enable Metrics/ModuleLength
   end
 end

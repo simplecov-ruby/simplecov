@@ -4,7 +4,7 @@ require "helper"
 require "open3"
 require "tmpdir"
 
-RSpec.describe "frontend asset compilation" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "frontend asset compilation" do
   it "fails when the CSS minifier exits unsuccessfully" do
     skip "the fake esbuild is a POSIX shell script" if Gem.win_platform?
 

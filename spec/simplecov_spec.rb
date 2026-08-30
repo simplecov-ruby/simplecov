@@ -57,7 +57,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
             @after_run_blocks << block
           end
         end
-        klass.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+        klass.class_variable_set(:@@installed_at_exit, true)
         klass
       end
 
@@ -94,7 +94,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "does not defer to Minitest when it is loaded but autorun has not been called" do
       fake_minitest = Class.new { def self.after_run; end }
-      fake_minitest.class_variable_set(:@@installed_at_exit, false) # rubocop:disable Style/ClassVars
+      fake_minitest.class_variable_set(:@@installed_at_exit, false)
       stub_const("Minitest", fake_minitest)
       allow(Kernel).to receive(:at_exit)
       allow(fake_minitest).to receive(:after_run)
@@ -2496,7 +2496,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "is false where the constant carries autorun's mark but cannot be asked to defer" do
       impostor = Class.new
-      impostor.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+      impostor.class_variable_set(:@@installed_at_exit, true)
       stub_const("Minitest", impostor)
 
       expect(described_class.send(:minitest_autorun_pending?)).to be(false)
@@ -2504,7 +2504,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "answers with what autorun recorded" do
       armed = Class.new { def self.after_run; end }
-      armed.class_variable_set(:@@installed_at_exit, true) # rubocop:disable Style/ClassVars
+      armed.class_variable_set(:@@installed_at_exit, true)
       stub_const("Minitest", armed)
 
       expect(described_class.send(:minitest_autorun_pending?)).to be(true)
@@ -2512,7 +2512,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "answers false where autorun recorded that it is not armed" do
       disarmed = Class.new { def self.after_run; end }
-      disarmed.class_variable_set(:@@installed_at_exit, false) # rubocop:disable Style/ClassVars
+      disarmed.class_variable_set(:@@installed_at_exit, false)
       stub_const("Minitest", disarmed)
 
       expect(described_class.send(:minitest_autorun_pending?)).to be(false)
