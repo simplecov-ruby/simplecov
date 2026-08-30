@@ -19,14 +19,12 @@ module SimpleCov
 
         with_simplecov_loaded { read_from(dotfile) }
       rescue ScriptError, StandardError => e
-        # simplecov:disable — defensive fallback for a bad dotfile; never
-        # fires in the project's own dogfood run. ScriptError covers the
+        # Defensive fallback for a bad dotfile. ScriptError covers the
         # SyntaxError a malformed dotfile raises from `load` (it is not a
         # StandardError) along with LoadError; StandardError covers the
         # rest (EACCES, errors raised by the dotfile's own code, etc.).
         warn "simplecov: failed to read coverage_dir from #{dotfile}: #{e.class}: #{e}"
         "coverage"
-        # simplecov:enable
       end
 
       # The project's configured baseline path (see `simplecov ratchet`),
@@ -40,11 +38,9 @@ module SimpleCov
 
         with_simplecov_loaded { read_baseline_file_from(dotfile) }
       rescue ScriptError, StandardError => e
-        # simplecov:disable — defensive fallback for a bad dotfile,
-        # mirroring coverage_dir's; never fires in the dogfood run.
+        # Defensive fallback for a bad dotfile, mirroring coverage_dir's.
         warn "simplecov: failed to read baseline_file from #{dotfile}: #{e.class}: #{e}"
         Baseline::DEFAULT_FILENAME
-        # simplecov:enable
       end
 
       # The project's configured production coverage store (see
@@ -61,11 +57,9 @@ module SimpleCov
 
         with_simplecov_loaded { read_production_coverage_from(dotfile) }
       rescue ScriptError, StandardError => e
-        # simplecov:disable — defensive fallback for a bad dotfile,
-        # mirroring coverage_dir's; never fires in the dogfood run.
+        # Defensive fallback for a bad dotfile, mirroring coverage_dir's.
         # `warn` answers nil, which is this reader's whole fallback.
         warn "simplecov: failed to read production_coverage from #{dotfile}: #{e.class}: #{e}"
-        # simplecov:enable
       end
 
       # Like `read_from`, snapshotting only the ivar this read is for.

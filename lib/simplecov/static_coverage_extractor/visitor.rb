@@ -50,9 +50,7 @@ module SimpleCov
       # emitting anything. Modern Rubies don't need it (see
       # LocationConventions), so the pass is skipped there.
       def visit_program_node(node)
-        # simplecov:disable branch — legacy-only arm; unreachable on the modern dogfood Ruby
         @value_positions = ValuePositions.call(node) if LEGACY_COVERAGE_LOCATIONS
-        # simplecov:enable branch
         super
       end
 
@@ -110,7 +108,6 @@ module SimpleCov
       # them entirely (no branch), so this is legacy-only. The two forms
       # differ only in where Coverage anchors the synthesized `:else`:
       # `=>` uses the whole expression, `in` uses just the pattern.
-      # simplecov:disable branch — legacy-only arms; unreachable on the modern dogfood Ruby
       def visit_match_required_node(node)
         emit_oneline_pattern(node, node) if LEGACY_COVERAGE_LOCATIONS
         super
@@ -120,7 +117,6 @@ module SimpleCov
         emit_oneline_pattern(node, node.pattern) if LEGACY_COVERAGE_LOCATIONS
         super
       end
-      # simplecov:enable branch
 
       # `while` / `until` loops get a single `:body` arm. No synthetic
       # else (the loop either runs the body or doesn't).
@@ -156,14 +152,12 @@ module SimpleCov
         }
       end
 
-      # simplecov:disable — legacy-only (3.4 emits no branch for one-line patterns)
       def emit_oneline_pattern(node, else_span)
         @branches[build_tuple(:case, node)] = {
           build_tuple(:in, node.pattern) => 0,
           build_tuple(:else, else_span) => 0
         }
       end
-      # simplecov:enable
 
       def emit_case_like(node, when_type)
         arms = node.conditions.to_h do |when_node|

@@ -26,10 +26,8 @@ module SimpleCov
       # stay instrumented but a `def` never registers (see
       # Visitor#visit_dead_arm).
       def visit_def_node(node)
-        # simplecov:disable branch — suppression is reachable on 3.2 only
         return super if @suppress_methods
 
-        # simplecov:enable branch
         # The node answers the same span readers its location does, which
         # is the convention the visitor's `build_tuple` already follows.
         class_name = @class_stack.last || "Object"
@@ -43,14 +41,12 @@ module SimpleCov
       # Render a constant path (e.g., `Foo::Bar`) as its source-form
       # string. Defensive nil / to_s fallbacks: ClassNode and ModuleNode
       # always carry a constant_path in practice.
-      # simplecov:disable
       def constant_name(node)
         return "<anonymous>" if node.nil?
         return node.slice if node.respond_to?(:slice)
 
         node.to_s
       end
-      # simplecov:enable
 
       def with_class(name)
         @class_stack.push(name)

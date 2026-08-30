@@ -47,17 +47,13 @@ module SimpleCov
       begin
         File.rename(temp, path)
       rescue Errno::EACCES
-        # simplecov:disable branch — which arm runs is fixed by the platform
         raise unless Gem.win_platform?
 
-        # simplecov:enable branch
-        # simplecov:disable — Windows-only; unreachable where dogfood runs
         remaining -= 1
         raise if remaining.zero?
 
         sleep(0.01)
         retry
-        # simplecov:enable
       end
     end
     private_class_method :rename_over

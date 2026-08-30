@@ -101,12 +101,9 @@ module SimpleCov
       def visit_folded_arms(verdict, truthy_arm, falsy_arm)
         live, dead = verdict.equal?(:truthy) ? [truthy_arm, falsy_arm] : [falsy_arm, truthy_arm]
         visit(live)
-        # simplecov:disable branch — the taken arm is fixed by the running Ruby's version
         visit_dead_arm(dead) if DEAD_ARM_BRANCHES_SURVIVE
-        # simplecov:enable branch
       end
 
-      # simplecov:disable — 3.2-only; unreachable on the modern dogfood Ruby
       def visit_dead_arm(arm)
         # Save/restore rather than set/clear: a fold nested inside this
         # dead arm re-enters here (possibly with a nil arm) and must not
@@ -119,7 +116,6 @@ module SimpleCov
           @suppress_methods = previous
         end
       end
-      # simplecov:enable
 
       # The compiler's verdict on a condition: `:truthy` or `:falsy` when
       # it folds, nil when it doesn't. The verdict decides which arm
@@ -146,14 +142,9 @@ module SimpleCov
       def foldable?(node, unwrapped)
         return false unless STATIC_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) }
 
-        # simplecov:disable — which of these lines runs is fixed by the
-        # running Ruby's version: on 3.2 the early return always fires and
-        # the opacity check below it is dead code, so it must be excluded
-        # from line coverage too, not only branch coverage.
         return true if PARENS_ALWAYS_TRANSPARENT
 
         unwrapped.equal?(node) || PAREN_OPAQUE_TYPES.none? { |type| unwrapped.instance_of?(type) }
-        # simplecov:enable
       end
 
       # Parentheses are transparent to the fold, and a multi-statement
@@ -195,14 +186,9 @@ module SimpleCov
       # only exists from 3.3 on.
       def static_container_literal?(node)
         return true if STATIC_LITERAL_LEAF_TYPES.any? { |type| node.instance_of?(type) }
-        # simplecov:disable — which of these lines runs is fixed by the
-        # running Ruby's version: parse.y (3.2) never eliminates
-        # container literals, so there the early return always fires and
-        # the dispatch below is dead code.
         return false if PARENS_ALWAYS_TRANSPARENT
 
         static_container?(node)
-        # simplecov:enable
       end
 
       # The container dispatch, version-free: the predicate specs
@@ -232,9 +218,7 @@ module SimpleCov
       end
 
       def container_contents_eliminable?(node)
-        # simplecov:disable branch — which arm runs is fixed by the running Ruby's version
         CONTAINER_CONTENTS_NEED_STATIC_LITERALS ? static_container_literal?(node) : eliminable_when_discarded?(node)
-        # simplecov:enable branch
       end
     end
   end

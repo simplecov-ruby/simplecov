@@ -122,12 +122,7 @@ module SimpleCov
       return nil unless klass.is_a?(Module) && klass.singleton_class?
 
       attached = Class.instance_method(:attached_object).bind_call(klass)
-      # simplecov:disable branch — CRuby only reaches the rescue via a
-      # Module/Class attached object (instance singletons render from the
-      # class name chain without calling user inspect), so the non-Module
-      # arm is defensive.
       name = Module.instance_method(:name).bind_call(attached) if attached.is_a?(Module)
-      # simplecov:enable branch
       name && "#<Class:#{name}>"
     end
 

@@ -77,8 +77,6 @@ module SimpleCov
       # project that has no Haml: ActionView would hand back the raw handler
       # and the template would report as a file of static text.
       #
-      # simplecov:disable — needs ActionView, which the dogfood suite doesn't
-      # load; covered by the rails sandbox specs, which run in a subprocess
       def build_template(path, source)
         extension = File.extname(path).delete_prefix(".")
         handler = ActionView::Template.registered_template_handler(extension)
@@ -87,7 +85,6 @@ module SimpleCov
         no_locals = [] #: Array[Symbol]
         ActionView::Template.new(source, path, handler, locals: no_locals, format: format_for(path))
       end
-      # simplecov:enable
     end
   end
 end

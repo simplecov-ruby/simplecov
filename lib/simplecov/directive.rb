@@ -83,7 +83,7 @@ module SimpleCov
       lines.any? do |line|
         line.include?("simplecov")
       rescue ArgumentError, EncodingError
-        false # simplecov:disable — defensive guard for invalid byte sequences in source
+        false
       end
     end
 
@@ -125,7 +125,7 @@ module SimpleCov
       # are invalid, which is a property of the code after the directive.
       !line.byteslice(0, column).to_s.lstrip.empty?
     rescue ArgumentError, EncodingError
-      false # simplecov:disable — defensive guard for invalid byte sequences
+      false
     end
 
     def self.comments_in(lines)
@@ -134,7 +134,7 @@ module SimpleCov
         [line_number, column, text] if type.equal?(:on_comment)
       end
     rescue ArgumentError, EncodingError
-      [] # simplecov:disable — Ripper.lex can raise on invalid byte sequences
+      []
     end
 
     private_class_method :directives_in, :source_might_contain_directive?,

@@ -41,14 +41,12 @@ module SimpleCov
         # route on. A route may hold the socket for as long as it likes;
         # the ensure below closes it when the route returns.
         def handle_connection(client, root, routes = {})
-          # simplecov:disable branch — support for IO#timeout= is fixed by the engine
           # JRuby and TruffleRuby don't implement IO#timeout=. Without
           # the guard the NoMethodError lands in the wide rescue below
           # and every connection closes with an empty response. On those
           # engines an idle connection pins its thread instead of timing
           # out, which only leaks a thread in an interactive dev server.
           client.timeout = READ_TIMEOUT if client.respond_to?(:timeout=)
-          # simplecov:enable branch
           method, path = client.readline.split
           drain_headers(client)
           # A request line without both tokens used to raise on
@@ -62,10 +60,9 @@ module SimpleCov
           # invalid encoding) shouldn't take the whole server down.
           nil
         ensure
-          # simplecov:disable — `client` is the parameter, never nil here;
-          # the `&.` is purely defensive in case of future refactors
+          # `client` is the parameter, never nil here; the `&.` is
+          # purely defensive in case of future refactors.
           client.close
-          # simplecov:enable
         end
 
         def dispatch(client, method, path, root, routes)
@@ -117,10 +114,9 @@ module SimpleCov
           real = File.realpath(candidate)
           inside?(real, absolute_root) ? real : :forbidden
         rescue Errno::ENOENT
-          # simplecov:disable — TOCTOU: candidate vanished between
-          # File.file? and File.realpath. Treat as "not found".
+          # TOCTOU: candidate vanished between File.file? and
+          # File.realpath. Treat as "not found".
           nil
-          # simplecov:enable
         end
 
         def inside?(path, root)

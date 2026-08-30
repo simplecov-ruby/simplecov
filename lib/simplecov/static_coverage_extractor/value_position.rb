@@ -24,11 +24,9 @@ module SimpleCov
     module ValuePositions
       extend self
 
-      # simplecov:disable
-      # This whole pass runs only on legacy Rubies (the modern dogfood
-      # never calls it), so its lines can't be covered on the CI Ruby that
-      # enforces 100%. Behavior is pinned instead by the differential
-      # tuple-equivalence spec, which runs against real Coverage on 3.3.
+      # This pass runs natively only on legacy Rubies; elsewhere the
+      # specs drive it directly, and its behavior is pinned by the
+      # differential tuple-equivalence spec against real Coverage on 3.3.
 
       # An identity set (a `compare_by_identity` Hash used as a set) of the
       # Prism nodes Coverage treats as being in value position.
@@ -68,7 +66,6 @@ module SimpleCov
         else []
         end
       end
-      # simplecov:enable
     end
   end
 end

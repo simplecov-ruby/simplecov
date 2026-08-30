@@ -155,11 +155,9 @@ module SimpleCov
       require "coverage"
       warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
-      # simplecov:disable — fork-hook is enabled via SimpleCov.enable_for_subprocesses, off by default
       # There is no SimpleCov::Process, so the top-level one is the one
       # this resolves to, and the scope operator says nothing extra.
       require_relative "simplecov/process" if enabled_for_subprocesses? && Process.respond_to?(:_fork)
-      # simplecov:enable
 
       # Select the parallel adapter and generate identities before any forks.
       RunIdentity.prepare

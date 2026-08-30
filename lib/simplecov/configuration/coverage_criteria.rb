@@ -106,7 +106,6 @@ module SimpleCov
     # Rubies its fallback is "always unsupported" rather than the
     # JRuby-only one above. The fallback arm is unreachable from the
     # dogfood report, which runs on a newer Ruby.
-    # simplecov:disable
     def coverage_criterion_supported?(criterion)
       load_coverage
       return Coverage.supported?(criterion) if Coverage.respond_to?(:supported?)
@@ -120,7 +119,6 @@ module SimpleCov
     def load_coverage
       require "coverage"
     end
-    # simplecov:enable
 
   private
 

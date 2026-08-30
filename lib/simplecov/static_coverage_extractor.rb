@@ -33,16 +33,11 @@ module SimpleCov
   module StaticCoverageExtractor
     extend self
 
-    # simplecov:disable branch
-    # The Prism-unavailable arm of this ternary is unreachable when Prism
-    # itself IS loadable, which is every engine that runs the dogfood
-    # report. Callers assert on it, and SimulateCoverage's spec exercises
-    # the fallback by stubbing this to false.
-    #
+    # Callers assert on it, and SimulateCoverage's spec exercises the
+    # fallback by stubbing this to false.
     def available?
       defined?(Prism) ? true : false
     end
-    # simplecov:enable branch
 
     # Parse `source` (a string of Ruby) and return a hash of the form
     # `{"branches" => {...}, "methods" => {...}}` matching the shape that
@@ -59,13 +54,11 @@ module SimpleCov
       visitor.visit(result.value)
       {"branches" => visitor.branches, "methods" => visitor.methods}
     rescue StandardError
-      # simplecov:disable line
       # Parser errors beyond the .failure? check, unsupported AST shapes,
       # or anything else: fall back to empty hashes rather than crashing
       # the whole report. Defensive; hard to trigger from a real source
       # input that Prism accepts at parse time.
       nil
-      # simplecov:enable line
     end
 
     # Summarize a source file's REAL branch and method positions, for the

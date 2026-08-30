@@ -66,9 +66,8 @@ module SimpleCov
         # `SimpleCov.parallel_tests true` (force on) or `false` (force
         # off). See #1018.
         def ensure_loaded
-          return if defined?(::ParallelTests) # simplecov:disable — only true after a previous load
-          return if forced_off? # simplecov:disable — only fires when user opts out
-          # simplecov:disable — env-var-only path
+          return if defined?(::ParallelTests)
+          return if forced_off?
           return unless SimpleCov.parallel_tests || env_suggests_parallel_tests?
 
           # simplecov:disable — only fires under a real parallel_tests setup

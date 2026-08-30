@@ -25,7 +25,6 @@ module SimpleCov
 
     private
 
-      # simplecov:disable
       # Which arm of each conditional below runs is fixed by the running
       # Ruby's version, so no single process can cover both sides, and
       # the legacy-only helpers are unreachable on modern Rubies (and
@@ -239,7 +238,6 @@ module SimpleCov
 
         @value_positions.key?(node)
       end
-      # simplecov:enable
     end
   end
 end

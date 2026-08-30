@@ -635,6 +635,11 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(visitor.send(:foldable?, *paren_pair("(nil)"))).to be false
           end
 
+          it "eliminates a container literal once parens are opaque" do
+            stub_era("PARENS_ALWAYS_TRANSPARENT", false)
+            expect(predicate(:static_container_literal?, "[1, 2]")).to be true
+          end
+
           it "eliminates no container literal" do
             stub_era("PARENS_ALWAYS_TRANSPARENT", true)
             expect(predicate(:static_container_literal?, "[1, 2]")).to be false
@@ -1037,6 +1042,52 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
       expect(visitor.methods).to be_empty
       expect(visitor.branches.keys.map(&:first)).to eq([:if])
+    end
+  end
+
+  # The mirror of the legacy describe below: on a legacy Ruby the
+  # modern arms of the location conventions never run natively, so this
+  # stubs the era constant the other way and pins the modern shapes —
+  # the same tuples the differential battery verifies against real
+  # Coverage on 3.4.
+  describe "the modern branch conventions", if: described_class.available? do
+    before { stub_const("#{described_class}::LocationConventions::LEGACY_COVERAGE_LOCATIONS", false) }
+
+    def modern_branches(source)
+      described_class.call(source)["branches"].to_h do |condition, arms|
+        [CoverageDifferential.tuple_identity(condition),
+         arms.keys.map { |arm| CoverageDifferential.tuple_identity(arm) }.sort_by(&:to_s)]
+      end
+    end
+
+    {
+      "an empty explicit else, spanning else through end" =>
+        ["def fx(a)\n  if a\n    :a\n  else\n  end\nend\n",
+         {["if", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+      "an empty when arm, keeping the clause's own range" =>
+        ["def fx(a)\n  case a\n  when 1\n  end\nend\n",
+         {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 2, 3, 8]]}],
+      "an empty case else, spanning else through end" =>
+        ["def fx(a)\n  case a\n  when 1 then :a\n  else\n  end\nend\n",
+         {["case", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["when", 3, 14, 3, 16]]}],
+      "an empty loop body, falling back to the loop's range" =>
+        ["def fx(a)\n  while a\n  end\nend\n",
+         {["while", 2, 2, 3, 5] => [["body", 2, 2, 3, 5]]}],
+      "an empty then, collapsing to the predicate's end" =>
+        ["def fx(a)\n  if a\n  end\nend\n",
+         {["if", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 6, 2, 6]]}],
+      "an empty unless then, keeping the node's range" =>
+        ["def fx(a)\n  unless a\n  end\nend\n",
+         {["unless", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 2, 3, 5]]}]
+    }.each do |description, (source, expected)|
+      it "places #{description}" do
+        expect(modern_branches(source)).to eq(expected)
+      end
+    end
+
+    it "emits no branch for a one-line pattern match" do
+      expect(described_class.call("a => Integer\n")["branches"]).to be_empty
+      expect(described_class.call("a in Integer\n")["branches"]).to be_empty
     end
   end
 

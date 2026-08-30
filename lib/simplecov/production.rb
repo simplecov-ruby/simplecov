@@ -285,12 +285,9 @@ module SimpleCov
 
         @at_exit_installed = true
         at_exit do
-          # simplecov:disable — at_exit fires after the suite's own
-          # dogfood report has been generated, so this frame can never
-          # be observed by it. `stop` carries the logic, declines when
-          # nothing is running, and is covered directly.
+          # `stop` carries the logic, and declines when nothing is
+          # running.
           stop
-          # simplecov:enable
         end
       end
     end

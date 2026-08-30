@@ -118,19 +118,14 @@ module SimpleCov
 
       # If the command regexps fail, let's try checking defined constants.
       def from_defined_constants
-        # simplecov:disable branch — first iter returns when ::RSpec is defined; later branches unreachable
         DEFINED_CONSTANT_FRAMEWORKS.each { |name, defined_check| return name if defined_check.call }
-        # simplecov:enable branch
 
         # TODO: Provide link to docs/wiki article
-        # simplecov:disable — only fires when no framework is detected, which
-        # is impossible while our own specs are running under rspec
         warn(
           "SimpleCov failed to recognize the test framework and/or suite used. " \
           "Please specify manually using SimpleCov.command_name 'Unit Tests'."
         )
         "Unknown Test Framework"
-        # simplecov:enable
       end
     end
   end
