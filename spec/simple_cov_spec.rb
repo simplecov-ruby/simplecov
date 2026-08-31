@@ -726,8 +726,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     describe "what it asks the injector to synthesize" do
       before { allow(SimpleCov::UnloadedFileInjector).to receive(:call).and_return([{}, Set.new]) }
 
-      def inject(**options)
-        described_class.inject_unloaded_files({}, ["lib/a.rb"], **options)
+      def inject(**)
+        described_class.inject_unloaded_files({}, ["lib/a.rb"], **)
       end
 
       it "asks for nothing when there are no candidates" do

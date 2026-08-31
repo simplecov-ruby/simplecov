@@ -61,6 +61,8 @@ module SimpleCov
       }
     end
 
+    private
+
     # Both keys carry their start line third, after the parts that vary between
     # recordings. Read through a parameter list rather than an index, because
     # every spelling of an index answers the same for a tuple of this fixed
