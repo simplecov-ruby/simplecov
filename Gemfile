@@ -17,19 +17,19 @@ group :development do
   gem "rspec"
   gem "test-unit"
 
+  # Fans `rake spec` out across worker processes. The workers are plain
+  # spawned subprocesses (no fork), so this works on every engine.
+  gem "parallel_tests"
+
   # RBS's native extension fails to build on JRuby, so the type-checking
   # stack stays off there; JRuby runs `rake spec` only. The Rakefile's rbs
-  # and steep tasks rescue the missing require with a warning, and `rake
-  # spec` falls back to a serial run without parallel_tests (the sandbox
-  # specs it fans out don't run on JRuby anyway).
+  # and steep tasks rescue the missing require with a warning.
   unless RUBY_ENGINE == "jruby"
     # Mutation testing (rake mutant). CRuby-only: mutant forks per
     # mutation, which the JVM engines cannot.
     gem "mutant", require: false
     gem "mutant-rspec", require: false
 
-    # Fans `rake spec` out across worker processes.
-    gem "parallel_tests"
     gem "rbs", "~> 4.0.0"
     gem "steep", ">= 1.10", require: false
   end

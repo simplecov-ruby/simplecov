@@ -8227,8 +8227,17 @@ RSpec.describe SimpleCov::CLI do
       thread.join(5)
     end
 
+    # A ceiling, not a sleep: a passing example never waits it out. The
+    # watcher's rerun boots a fresh interpreter per change, and on the
+    # JVM engines that boot can take tens of seconds on a loaded CI
+    # runner whose cores the parallel suite workers already saturate,
+    # so those engines get a higher ceiling.
+    def wait_timeout
+      RUBY_ENGINE == "ruby" ? 10 : 60
+    end
+
     def wait_for
-      Timeout.timeout(10) do
+      Timeout.timeout(wait_timeout) do
         sleep(0.05) until yield
       end
     end
@@ -8267,7 +8276,7 @@ RSpec.describe SimpleCov::CLI do
         touch_code
         wait_for_log
         expect(File.read(log_path)).to include("args=spec/code_spec.rb window=86400")
-        expect(Timeout.timeout(10) { events.readline }).to include("data: reload")
+        expect(Timeout.timeout(wait_timeout) { events.readline }).to include("data: reload")
         wait_for { stdout.string.include?("lib/code.rb changed, running 1 file... 95.00% (+5.00%)") }
       ensure
         events&.close

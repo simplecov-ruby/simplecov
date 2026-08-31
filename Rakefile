@@ -30,8 +30,7 @@ RSpec::Core::RakeTask.new(:"spec:serial")
 # the suite parallelizes almost linearly. The dogfood coverage check
 # merges every worker's slice and enforces its thresholds on the union
 # (see spec/support/dogfood_report.rb). Falls back to the serial task
-# where parallel_tests isn't installed (JRuby, whose Gemfile group skips
-# it and whose platform envelope excludes the sandbox specs anyway).
+# where parallel_tests isn't installed.
 desc "Run the RSpec suite across parallel workers"
 task :spec do
   require "parallel_tests"
