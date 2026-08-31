@@ -2961,6 +2961,17 @@ RSpec.describe SimpleCov::CLI do
       Dir.chdir(tmp) { run(*argv) }
     end
 
+    # The status --run reports for a nonexistent command. CRuby raises
+    # Errno::ENOENT from spawn and the CLI maps it to 127 itself, so the
+    # assertion stays exact there. JRuby hands the command to the
+    # platform shell instead, which exits 127 ("not found", Linux) or
+    # 126 ("cannot execute", macOS).
+    def missing_command_status
+      return eq(127) unless RUBY_ENGINE == "jruby"
+
+      eq(127).or eq(126)
+    end
+
     it "selects the test files whose recorded tests touch the changed code" do
       file!("lib/result.rb", "# changed\n")
       expect(run_in_repo("affected", "--input", json_path)).to eq(0)
@@ -3211,7 +3222,7 @@ RSpec.describe SimpleCov::CLI do
       file!("Gemfile.lock", "# changed\n")
       missing = File.join(tmp, "nope-does-not-exist")
 
-      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to eq(127)
+      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to missing_command_status
       # JRuby's spawn reports a missing command through the child's exit
       # status instead of raising, so there is no message to look for.
       unless RUBY_ENGINE == "jruby"
@@ -3416,7 +3427,7 @@ RSpec.describe SimpleCov::CLI do
       file!("lib/result.rb", "# changed\n")
       missing = File.join(tmp, "nope-does-not-exist")
 
-      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to eq(127)
+      expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to missing_command_status
       # JRuby's spawn reports a missing command through the child's exit
       # status instead of raising, so there is no message to look for.
       expect(stderr.string).to include("cannot run #{missing.inspect}") unless RUBY_ENGINE == "jruby"
