@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "prism_compat"
 require_relative "condition_folding"
 require_relative "location_conventions"
 require_relative "method_collector"
-require_relative "value_position"
 
 module SimpleCov
   module StaticCoverageExtractor
@@ -12,7 +10,7 @@ module SimpleCov
     # Ruby's `Coverage` reports. Tuple ids are sequential across the file like
     # `Coverage`'s, but the numbering order can differ. That's fine: the
     # combiners intern on source span and the report output drops ids, so
-    # nothing downstream compares them. Only defined when Prism is loadable.
+    # nothing downstream compares them.
     class Visitor < Prism::Visitor
       include MethodCollector
       include LocationConventions
@@ -30,16 +28,6 @@ module SimpleCov
         @methods = {}
         @next_id = 0
         @class_stack = []
-        @value_positions = nil
-        @suppress_methods = false
-      end
-
-      # On legacy Rubies the location of an empty branch arm depends on whether
-      # its construct is in value (tail) position, so precompute that once for
-      # the whole tree before emitting anything.
-      def visit_program_node(node)
-        @value_positions = ValuePositions.call(node) if LEGACY_COVERAGE_LOCATIONS
-        super
       end
 
       # `if` / `unless` / postfix / ternary all parse as IfNode (or UnlessNode).
@@ -48,14 +36,12 @@ module SimpleCov
       # Coverage synthesizes a `:else` arm attributed to the whole condition's
       # range, and so do we.
       #
-      # A folded condition emits no tuple, and on modern Rubies only its live
-      # arm is descended into: the compiler eliminates the dead arm's entire
-      # subtree, so a branch or method nested there would be a phantom no
-      # loaded run can produce. On 3.2 the dead arm is visited too, branches
-      # only.
+      # A folded condition emits no tuple, and only its live arm is descended
+      # into: the compiler eliminates the dead arm's entire subtree, so a branch
+      # or method nested there would be a phantom no loaded run can produce.
       def visit_if_node(node)
         verdict = folded_condition(node.predicate)
-        return visit_folded_arms(verdict, node.statements, PrismCompat.subsequent(node)) if verdict
+        return visit_folded_arms(verdict, node.statements, node.subsequent) if verdict
 
         emit_if_like(node, :if)
         super
@@ -63,14 +49,14 @@ module SimpleCov
 
       def visit_unless_node(node)
         verdict = folded_condition(node.predicate)
-        return visit_folded_arms(verdict, PrismCompat.else_clause(node), node.statements) if verdict
+        return visit_folded_arms(verdict, node.else_clause, node.statements) if verdict
 
         emit_if_like(node, :unless)
         super
       end
 
       def visit_call_node(node)
-        emit_safe_navigation(node) if node.respond_to?(:safe_navigation?) && node.safe_navigation?
+        emit_safe_navigation(node) if node.safe_navigation?
         super
       end
 
@@ -83,21 +69,6 @@ module SimpleCov
 
       def visit_case_match_node(node)
         emit_case_like(node, :in)
-        super
-      end
-
-      # One-line pattern matching: `x => pattern` and `x in pattern`. Ruby 3.3's
-      # Coverage reports these as a `:case` with an `:in` and an `:else` arm;
-      # 3.4 dropped them entirely, so this is legacy-only. The two forms differ
-      # only in where Coverage anchors the synthesized `:else`: `=>` uses the
-      # whole expression, `in` uses just the pattern.
-      def visit_match_required_node(node)
-        emit_oneline_pattern(node, node) if LEGACY_COVERAGE_LOCATIONS
-        super
-      end
-
-      def visit_match_predicate_node(node)
-        emit_oneline_pattern(node, node.pattern) if LEGACY_COVERAGE_LOCATIONS
         super
       end
 
@@ -119,7 +90,7 @@ module SimpleCov
       def emit_if_like(node, type)
         then_loc = if_like_then_location(node, type)
         else_loc = if_like_else_location(node, type)
-        @branches[build_tuple(type, if_like_location(node, type))] = {
+        @branches[build_tuple(type, node)] = {
           build_tuple(:then, then_loc) => 0,
           build_tuple(:else, else_loc) => 0
         }
@@ -133,16 +104,9 @@ module SimpleCov
         }
       end
 
-      def emit_oneline_pattern(node, else_span)
-        @branches[build_tuple(:case, node)] = {
-          build_tuple(:in, node.pattern) => 0,
-          build_tuple(:else, else_span) => 0
-        }
-      end
-
       def emit_case_like(node, when_type)
         arms = node.conditions.to_h do |when_node|
-          [build_tuple(when_type, case_arm_location(node, when_node, when_type)), 0]
+          [build_tuple(when_type, case_arm_location(when_node)), 0]
         end
         arms[build_tuple(:else, else_arm_location(node))] = 0
         @branches[build_tuple(:case, node)] = arms

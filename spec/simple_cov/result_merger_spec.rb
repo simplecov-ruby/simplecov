@@ -72,8 +72,7 @@ RSpec.describe SimpleCov::ResultMerger do
       result.original_result.fetch(never_loaded)
     end
 
-    it "synthesizes tuples when the merged files carry them, whatever this process measures",
-      if: SimpleCov::StaticCoverageExtractor.available? do
+    it "synthesizes tuples when the merged files carry them, whatever this process measures" do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "methods" => {}})
@@ -81,8 +80,7 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(entry["methods"]).not_to be_empty
     end
 
-    it "synthesizes tuples when the merged files carry branches alone",
-      if: SimpleCov::StaticCoverageExtractor.available? do
+    it "synthesizes tuples when the merged files carry branches alone" do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "branches" => {}})
@@ -96,8 +94,7 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(injected(loaded => {"lines" => [1, 1]})).to have_key("lines")
     end
 
-    it "leaves them empty when the merged files carry none",
-      if: SimpleCov::StaticCoverageExtractor.available? do
+    it "leaves them empty when the merged files carry none" do
       allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: true)
 
       entry = injected(loaded => {"lines" => [1, 1]})

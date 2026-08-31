@@ -726,8 +726,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     describe "what it asks the injector to synthesize" do
       before { allow(SimpleCov::UnloadedFileInjector).to receive(:call).and_return([{}, Set.new]) }
 
-      def inject(**options)
-        described_class.inject_unloaded_files({}, ["lib/a.rb"], **options)
+      def inject(**)
+        described_class.inject_unloaded_files({}, ["lib/a.rb"], **)
       end
 
       it "asks for nothing when there are no candidates" do
@@ -877,7 +877,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     context "when a criterion that reads the tuples is enabled" do
-      it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
+      it "synthesizes them" do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
         described_class.cover "spec/fixtures/sample.rb"
         result, = inject_tracked({})

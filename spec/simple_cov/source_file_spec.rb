@@ -819,7 +819,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "with ignore_branches :eval_generated configured", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "with ignore_branches :eval_generated configured" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -860,7 +860,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "with ignore_methods :eval_generated configured", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "with ignore_methods :eval_generated configured" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -879,7 +879,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "without the eval_generated filter (default)", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "without the eval_generated filter (default)" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -1747,8 +1747,7 @@ RSpec.describe SimpleCov::SourceFile do
       described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
     end
 
-    it "reports the branch lines and method names of the parsed source",
-      if: SimpleCov::StaticCoverageExtractor.available? do
+    it "reports the branch lines and method names of the parsed source" do
       expect(source_file.real_source_positions).to eq(branches: Set[3, 5, 7], methods: Set[[:call, 2]])
     end
 

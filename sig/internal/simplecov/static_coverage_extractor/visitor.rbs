@@ -15,8 +15,6 @@ module SimpleCov
 
       def initialize: () -> void
 
-      def visit_program_node: (untyped node) -> untyped
-
       def visit_if_node: (untyped node) -> untyped
 
       def visit_unless_node: (untyped node) -> untyped
@@ -27,29 +25,21 @@ module SimpleCov
 
       def visit_case_match_node: (untyped node) -> untyped
 
-      def visit_match_required_node: (untyped node) -> untyped
-
-      def visit_match_predicate_node: (untyped node) -> untyped
-
       def visit_while_node: (untyped node) -> untyped
 
       def visit_until_node: (untyped node) -> untyped
 
       private
 
-      def visit_live_arm: (Symbol verdict, untyped truthy_arm, untyped falsy_arm) -> untyped
-
       def emit_if_like: (untyped node, untyped type) -> untyped
 
       def emit_safe_navigation: (untyped node) -> untyped
-
-      def emit_oneline_pattern: (untyped node, untyped else_span) -> untyped
 
       def emit_case_like: (untyped node, untyped when_type) -> untyped
 
       def emit_loop: (untyped node, untyped type) -> untyped
 
-      def build_tuple: (untyped type, untyped span) -> ::Array[untyped]
+      def build_tuple: (untyped type, untyped location) -> ::Array[untyped]
     end
   end
 end

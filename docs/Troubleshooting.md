@@ -8,9 +8,9 @@ Ruby and framework compatibility notes, common problems, and upgrade guidance.
 
 ### Ruby version compatibility
 
-SimpleCov is built in [Continuous Integration] on Ruby 3.2+ and JRuby 10+. On CRuby, every coverage criterion
-described above is available on the supported versions, with one exception: [eval coverage](Configuration.md#eval-coverage) requires
-CRuby 3.2+.
+SimpleCov is built in [Continuous Integration] on Ruby 3.4+ and JRuby 10+. On CRuby, every coverage criterion
+described above is available on the supported versions, including
+[eval coverage](Configuration.md#eval-coverage), which JRuby does not implement.
 
 ### JRuby
 

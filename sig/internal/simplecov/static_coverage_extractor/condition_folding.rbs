@@ -1,11 +1,6 @@
 module SimpleCov
   module StaticCoverageExtractor
     module ConditionFolding : ::Prism::Visitor
-      FOLDS_SOURCE_FILE: bool
-      PARENS_ALWAYS_TRANSPARENT: bool
-      DEAD_ARM_BRANCHES_SURVIVE: bool
-      CONTAINER_CONTENTS_NEED_STATIC_LITERALS: bool
-
       STATIC_CONDITION_TYPES: Array[untyped]
 
       FALSY_CONDITION_TYPES: Array[untyped]
@@ -14,16 +9,11 @@ module SimpleCov
 
       STATIC_LITERAL_LEAF_TYPES: Array[untyped]
 
-      PRISM_ERA_ELIMINABLE_READS: Array[untyped]
       ELIMINABLE_READ_TYPES: Array[untyped]
-
-      @suppress_methods: bool
 
       private
 
       def visit_folded_arms: (Symbol verdict, untyped truthy_arm, untyped falsy_arm) -> void
-
-      def visit_dead_arm: (untyped arm) -> void
 
       def folded_condition: (untyped node) -> Symbol?
 
@@ -36,8 +26,6 @@ module SimpleCov
       def static_container_literal?: (untyped node) -> bool
 
       def static_container?: (untyped node) -> bool
-
-      def container_contents_eliminable?: (untyped node) -> bool
 
       def static_array_literal?: (untyped node) -> bool
 
