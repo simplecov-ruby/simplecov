@@ -7696,8 +7696,8 @@ RSpec.describe SimpleCov::CLI do
         expect(client.read_timeout).to eq(described_class::Serve::StaticFileHandler::READ_TIMEOUT)
       end
 
-      # JRuby and TruffleRuby have no IO#timeout=, and a connection
-      # there is served without one rather than failing.
+      # JRuby has no IO#timeout=, and a connection there is served
+      # without one rather than failing.
       it "serves a connection that cannot be given a deadline" do
         client = fake_client("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n", timeout: false)
 

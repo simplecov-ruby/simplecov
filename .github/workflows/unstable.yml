@@ -19,6 +19,7 @@ jobs:
         ruby-version:
           - ruby-head
           - jruby-head
+          - truffleruby
           - truffleruby-head
         include:
           - os: macos-latest

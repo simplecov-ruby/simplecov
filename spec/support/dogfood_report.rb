@@ -22,19 +22,18 @@ module DogfoodReport
   PARTIALS_ROOT = "tmp/dogfood-partials"
 
   # Per-engine thresholds. CRuby is the primary target and is held to
-  # 100% on every criterion. JRuby and TruffleRuby `skip` specs that
-  # exercise branch / method coverage paths their Coverage module
-  # doesn't support, so the lib/ lines those specs would have hit stay
-  # uncovered there — set the line threshold a hair below today's
-  # actual to act as a regression guard rather than a strict ceiling.
+  # 100% on every criterion. JRuby `skip`s specs that exercise branch /
+  # method coverage paths its Coverage module doesn't support, so the
+  # lib/ lines those specs would have hit stay uncovered there — set
+  # the line threshold a hair below today's actual to act as a
+  # regression guard rather than a strict ceiling.
   # (Files that are wholly unreachable on an engine are filtered out
   # in `report` instead, so they don't drag this number down.)
   # Engines absent from this hash get an informational report only,
   # no threshold enforcement.
   THRESHOLDS = {
     "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
-    "jruby" => {line: 96.5},
-    "truffleruby" => {line: 97.5}
+    "jruby" => {line: 96.5}
   }.freeze
 
   extend self
@@ -117,7 +116,7 @@ module DogfoodReport
   def report(coverage, contexts = nil)
     extra_filters = %w[/spec/ /test_projects/ /tmp/].map { |path| SimpleCov::StringFilter.new(path) }
     # `ParallelResultMerger`'s fan-out forks, so where the runtime cannot
-    # (JRuby, TruffleRuby, CRuby on Windows) its worker lines are unreachable
+    # (JRuby, CRuby on Windows) its worker lines are unreachable
     # rather than untested. Drop the file on those engines instead of
     # lowering the bar for every other file; CRuby still holds it to 100%.
     extra_filters << SimpleCov::StringFilter.new("parallel_result_merger.rb") unless FORK_SUPPORTED

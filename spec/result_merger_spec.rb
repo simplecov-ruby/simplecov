@@ -1544,9 +1544,9 @@ RSpec.describe SimpleCov::ResultMerger do
       # RbConfig.ruby (not "ruby") so the child runs the same engine as
       # the suite even when PATH resolves to a different interpreter.
       IO.popen([RbConfig.ruby, "-Ilib", "-e", test_script], "r+") do |other_process|
-        # A generous boot timeout: JRuby and TruffleRuby take several
-        # seconds to start a subprocess. The later reads stay snappier
-        # since by then the child is warm.
+        # A generous boot timeout: JRuby takes several seconds to start
+        # a subprocess. The later reads stay snappier since by then the
+        # child is warm.
         expect(Timeout.timeout(30) { other_process.gets }).to eq("ready\n")
 
         described_class.synchronize_resultset do

@@ -44,7 +44,7 @@ module SimpleCov
     # from different processes can be merged. Anonymous class names like
     # "#<Class:0x00007ff19ab24790>" get inconsistent addresses across runs.
     # Address widths vary by runtime (32-bit hosts: 8 hex chars; 64-bit
-    # CRuby: 16; some JVM/TruffleRuby formats may differ), so match any
+    # CRuby: 16; other engines' formats may differ), so match any
     # length of hex digits and collapse to a single placeholder.
     ADDRESS_PATTERN = /0x\h+/
     private_constant :ADDRESS_PATTERN

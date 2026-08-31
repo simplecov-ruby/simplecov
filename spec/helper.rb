@@ -109,8 +109,8 @@ end
 
 # Specs that need real worker processes (see
 # spec/parallel_result_merger_spec.rb) are skipped where this is false: CRuby
-# on Windows, and JRuby / TruffleRuby, which cannot fork on the JVM. The
-# in-process merge those runtimes fall back to is covered on every engine.
+# on Windows, and JRuby, which cannot fork on the JVM. The in-process
+# merge those runtimes fall back to is covered on every engine.
 FORK_SUPPORTED = Process.respond_to?(:fork)
 
 def source_fixture(filename)

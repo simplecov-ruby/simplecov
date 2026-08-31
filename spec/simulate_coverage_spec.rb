@@ -9,10 +9,9 @@ RSpec.describe SimpleCov::SimulateCoverage do
   describe ".call" do
     let(:fixture) { source_fixture("sample.rb") }
 
-    # TruffleRuby doesn't implement Coverage.line_stub at all, and JRuby's
-    # implementation returns the wrong length for multi-line statements.
-    # The contexts below assert the exact shape line_stub produces and are
-    # gated accordingly.
+    # JRuby's Coverage.line_stub implementation returns the wrong length
+    # for multi-line statements. The contexts below assert the exact
+    # shape line_stub produces and are gated accordingly.
     has_line_stub = Coverage.respond_to?(:line_stub)
     line_stub_handles_multiline = has_line_stub && RUBY_ENGINE == "ruby"
 
@@ -157,8 +156,8 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
     end
 
-    # Simulates JRuby / TruffleRuby, where Coverage.line_stub doesn't exist.
-    # Runs on every engine so the fallback branch stays exercised on MRI.
+    # Simulates engines where Coverage.line_stub doesn't exist. Runs on
+    # every engine so the fallback branch stays exercised on MRI.
     context "when Coverage doesn't expose line_stub" do
       it "falls back to LinesClassifier's raw output" do
         allow(Coverage).to receive(:respond_to?).and_call_original

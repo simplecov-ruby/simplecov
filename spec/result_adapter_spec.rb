@@ -9,10 +9,6 @@ RSpec.describe SimpleCov::ResultAdapter do
   let(:existing_file) { source_fixture("app/models/user.rb") }
 
   describe "with oneshot_lines coverage" do
-    before do
-      skip "oneshot_lines coverage not supported on truffleruby" if RUBY_ENGINE == "truffleruby"
-    end
-
     context "when all tracked files exist" do
       let(:result_set) do
         {
@@ -109,8 +105,8 @@ RSpec.describe SimpleCov::ResultAdapter do
 
     # Engines render singleton wrappers differently: CRuby routes a
     # singleton class's `to_s` through the attached object's `#inspect`
-    # (which is what can crash), while JRuby and TruffleRuby render from
-    # the class name chain and never hit the rescue. The invariant on
+    # (which is what can crash), while JRuby renders from
+    # the class name chain and never hits the rescue. The invariant on
     # every engine is: adapting must not raise, and the rendered receiver
     # must carry no unnormalized address. The exact strings are pinned on
     # CRuby only, where the fallback path actually runs.

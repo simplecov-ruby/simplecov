@@ -79,12 +79,11 @@ module SimpleCov
       # one — in both cases the fork and the round trip are pure overhead.
       return nil if processes < 2 || file_paths.size < 2
       # The portable feature test, and the one the rest of the ecosystem uses.
-      # CRuby leaves `fork` undefined on Windows; JRuby and TruffleRuby cannot
-      # fork on the JVM and deliberately answer false here so libraries can
-      # detect that without rescuing an exception — TruffleRuby's compatibility
-      # guide names this as the correct check. They do still define
-      # `Kernel#fork` and raise `NotImplementedError` from it, so probing that
-      # instead would answer true and send them down the fan-out.
+      # CRuby leaves `fork` undefined on Windows; JRuby cannot fork on the
+      # JVM and deliberately answers false here so libraries can detect that
+      # without rescuing an exception. It does still define `Kernel#fork`
+      # and raise `NotImplementedError` from it, so probing that instead
+      # would answer true and send it down the fan-out.
       return nil unless Process.respond_to?(:fork)
 
       fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files,

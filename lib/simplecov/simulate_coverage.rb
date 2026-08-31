@@ -81,8 +81,7 @@ module SimpleCov
     # with `LinesClassifier` (which knows about `# :nocov:` toggles and
     # `# simplecov:disable line` ranges). Returns nil — and the caller
     # falls back to `LinesClassifier` alone — when `Coverage` can't read
-    # or parse the file, or when the runtime doesn't expose `line_stub`
-    # (JRuby and TruffleRuby).
+    # or parse the file, or when the runtime doesn't expose `line_stub`.
     def coverage_stub(path, source_lines)
       return nil unless Coverage.respond_to?(:line_stub)
 

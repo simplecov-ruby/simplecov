@@ -210,7 +210,7 @@ know. Asking for more processes than there are result files simply gives one fil
 taken as 1, so a count computed from arithmetic that can reach zero needs no guarding.
 
 It falls back to merging in the collating process — same report, no error — when the runtime cannot fork (JRuby,
-TruffleRuby, Windows), when there is only one resultset to fold, or when a worker dies.
+Windows), when there is only one resultset to fold, or when a worker dies.
 
 Merging 160 resultsets covering 1,836 files on a 14-core machine (`benchmarks/collate.rb`, so reproduce it on your own
 hardware before budgeting for it):

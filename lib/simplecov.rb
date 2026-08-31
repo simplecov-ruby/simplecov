@@ -176,8 +176,8 @@ module SimpleCov
 
     #
     # Trigger Coverage.start with the configured criteria. Every supported
-    # runtime (CRuby >= 3.2, JRuby >= 10, TruffleRuby >= 22) accepts the
-    # criteria-hash form, so no compatibility fallback is needed.
+    # runtime (CRuby >= 3.2, JRuby >= 10) accepts the criteria-hash form,
+    # so no compatibility fallback is needed.
     #
     def start_coverage_measurement
       start_arguments = coverage_criteria.to_h do |criterion|

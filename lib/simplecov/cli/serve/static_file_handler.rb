@@ -41,11 +41,11 @@ module SimpleCov
         # route on. A route may hold the socket for as long as it likes;
         # the ensure below closes it when the route returns.
         def handle_connection(client, root, routes = {})
-          # JRuby and TruffleRuby don't implement IO#timeout=. Without
-          # the guard the NoMethodError lands in the wide rescue below
-          # and every connection closes with an empty response. On those
-          # engines an idle connection pins its thread instead of timing
-          # out, which only leaks a thread in an interactive dev server.
+          # JRuby doesn't implement IO#timeout=. Without the guard the
+          # NoMethodError lands in the wide rescue below and every
+          # connection closes with an empty response. There an idle
+          # connection pins its thread instead of timing out, which only
+          # leaks a thread in an interactive dev server.
           client.timeout = READ_TIMEOUT if client.respond_to?(:timeout=)
           method, path = client.readline.split
           drain_headers(client)
