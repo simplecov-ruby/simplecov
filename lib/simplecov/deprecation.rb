@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "configuration_error"
+
 module SimpleCov
   # Emits legacy-API deprecation warnings, deduplicated by the source location
   # that triggered them. A deprecated method called in a loop, or a config
@@ -10,6 +12,22 @@ module SimpleCov
   module Deprecation
     extend self
 
+    MODES = %i[warn raise].freeze
+
+    # The mode lives here rather than on the configuration singleton so that
+    # `warn` depends on nothing but itself. `SimpleCov.deprecations` is the
+    # front door that writes it, and the CLI, which loads none of the
+    # configuration surface, can still warn.
+    def mode
+      @mode ||= :warn
+    end
+
+    def mode=(mode)
+      raise ConfigurationError, "deprecations takes :warn or :raise, got #{mode.inspect}" unless MODES.include?(mode)
+
+      @mode = mode
+    end
+
     # `message` is the notice without the `[DEPRECATION]` tag or location
     # prefix, both of which are added here. `deprecations :raise` turns every
     # deprecated API into an error before the dedup: an error is not a notice to
@@ -17,7 +35,7 @@ module SimpleCov
     # the first. A missing backtrace falls back to keying on the message, so it
     # never silently swallows every notice.
     def warn(message, location: caller_location)
-      raise ConfigurationError, message if SimpleCov.deprecations.equal?(:raise)
+      raise ConfigurationError, message if mode.equal?(:raise)
 
       return unless emitted.add?(location || message)
 
@@ -39,6 +57,7 @@ module SimpleCov
 
     def reset!
       @emitted = Set.new
+      @mode = :warn
     end
   end
 end

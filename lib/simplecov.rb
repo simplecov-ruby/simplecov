@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require_relative "simplecov/configuration_error"
 require_relative "simplecov/current_run"
 
 module SimpleCov
-  class ConfigurationError < StandardError; end
-
   # At module scope rather than inside `class << self` so it can be declared in
   # the RBS signatures; lexical scoping keeps references inside the singleton
   # class working.

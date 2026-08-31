@@ -51,7 +51,7 @@ describe SimpleCov::Deprecation do
     end
 
     context "with `SimpleCov.deprecations :raise`" do
-      before { allow(SimpleCov).to receive(:deprecations).and_return(:raise) }
+      before { described_class.mode = :raise }
 
       it "raises instead of warning" do
         expect { deprecated_alias("`SimpleCov.old` is deprecated.") }

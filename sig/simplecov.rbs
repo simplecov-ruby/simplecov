@@ -1678,6 +1678,12 @@ end
 
 module SimpleCov
   module Deprecation
+    MODES: Array[Symbol]
+
+    def self?.mode: () -> Symbol
+
+    def self?.mode=: (Symbol mode) -> Symbol
+
     def self?.warn: (String message, ?location: String?) -> void
 
     def self?.caller_location: () -> String?
@@ -1685,6 +1691,10 @@ module SimpleCov
     @emitted: Set[String]?
 
     self.@emitted: Set[String]?
+
+    @mode: Symbol?
+
+    self.@mode: Symbol?
 
     def self?.emitted: () -> Set[String]
 
