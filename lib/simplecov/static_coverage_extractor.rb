@@ -74,6 +74,8 @@ module SimpleCov
       @prism_loaded = load_prism
     end
 
+    private
+
     # Both keys carry their start line third, after the parts that vary between
     # recordings. Read through a parameter list rather than an index, because
     # every spelling of an index answers the same for a tuple of this fixed
@@ -85,8 +87,6 @@ module SimpleCov
     def method_identity(_class_name, name, start_line, *)
       [name, start_line]
     end
-
-    private
 
     def load_prism
       require_relative "static_coverage_extractor/visitor"

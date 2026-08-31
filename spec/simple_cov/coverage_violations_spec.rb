@@ -323,8 +323,8 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     end
     let(:hashlike) { Class.new(Hash) }
 
-    def drop(thresholds, **options)
-      described_class.maximum_drop(result, thresholds, **options)
+    def drop(thresholds, **)
+      described_class.maximum_drop(result, thresholds, **)
     end
 
     context "with the last run" do

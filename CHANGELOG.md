@@ -1,6 +1,9 @@
 Unreleased
 ==========
 
+## Breaking Changes
+* Dropped support for Ruby 3.3. The minimum supported Ruby is now 3.4 (`required_ruby_version >= 3.4`), with JRuby 10 still supported and TruffleRuby exercised only by the nightly unstable build. Ruby 3.4 rebuilt constant folding and branch-location conventions on the Prism compiler, so the extractor's emulation of the parse.y-based compiler of Ruby 3.3 (value-position analysis, legacy location conventions, the `__FILE__` paren-opacity rule, and the Prism accessor-rename shims) is gone with it.
+
 ## Enhancements
 * SimpleCov no longer warns on JRuby that coverage may be inaccurate without `--debug` (full-trace mode). JRuby's coverage no longer depends on it: SimpleCov's own suite on JRuby 10.0.7 reports every line identically with and without `--debug`, so the warning only told JRuby users to slow their test runs down for nothing.
 
