@@ -1,0 +1,6 @@
+--order random
+--warnings
+--require support/runtime_log_formatter
+--format progress
+--format RuntimeLogFormatter
+--out tmp/parallel_runtime_rspec.log

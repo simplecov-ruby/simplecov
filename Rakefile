@@ -25,9 +25,15 @@ Rake::Task[:build].prerequisites.unshift :fix_permissions
 require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:"spec:serial")
 
-# `rake spec` fans the suite out across CPU-count workers: the sandbox
-# specs spend nearly all their time waiting on fixture subprocesses, so
-# the suite parallelizes almost linearly. The dogfood coverage check
+# `rake spec` fans the suite out across CPU-count workers. Splitting by
+# runtime matters here: the sandbox spec files are tiny on disk but each
+# spends seconds driving fixture subprocesses, so the default file-size
+# split parks them on a couple of workers and the rest finish early. The
+# RuntimeLogger formatter in .rspec_parallel records per-file runtimes
+# during every parallel run, and later runs split by those. The first
+# run has no log yet and splits by size (grouping by a missing log is an
+# error), and --allowed-missing 100 keeps a log that predates new or
+# renamed spec files from failing the run. The dogfood coverage check
 # merges every worker's slice and enforces its thresholds on the union
 # (see spec/support/dogfood_report.rb). Falls back to the serial task
 # where parallel_tests isn't installed.
@@ -35,7 +41,8 @@ desc "Run the RSpec suite across parallel workers"
 task :spec do
   require "parallel_tests"
   rm_rf "tmp/dogfood-partials"
-  sh "bundle exec parallel_rspec --serialize-stdout spec"
+  grouping = File.size?("tmp/parallel_runtime_rspec.log") ? "--group-by runtime --allowed-missing 100 " : ""
+  sh "bundle exec parallel_rspec --serialize-stdout #{grouping}spec"
 rescue LoadError
   Rake::Task[:"spec:serial"].invoke
 end
