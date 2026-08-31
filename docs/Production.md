@@ -4,14 +4,34 @@ Measure what real traffic executes, and cross it with the test report to find de
 
 *Part of the [SimpleCov](../README.md) documentation.*
 
-## Coverage in production
+## Why measure coverage in production
 
-Oneshot lines coverage is cheap enough to leave running in production: each line reports its first execution and
-nothing after, so the steady-state overhead is near zero. `SimpleCov::Production` turns that into a supported mode: a
-live process measures which of its lines ever run and drains the measurements to a shared store on an interval, and
-`simplecov dead-code`, the HTML report, and `coverage.json` later cross that store with what the tests cover. The
-union of a test suite and real traffic answers a question neither answers alone, and coverage over a long enough
-window is far better evidence for deleting Ruby than any static analysis of it.
+Every codebase that has lived a few years carries code nobody is sure about. It has tests, the tests pass, and still
+no one can say whether anything real ever calls it, so it survives every cleanup and keeps taxing every reader, every
+upgrade, and every security audit. The traditional way to find out is to plant a log line in the suspect code and
+watch production for a while, one candidate at a time. Production coverage runs that experiment automatically, for
+every line at once, with nothing added to the code under suspicion.
+
+Nothing else settles the question. A test suite cannot, because a test proves code works, not that anything needs it,
+and dead code's own spec is usually green, which makes the suite the dead code's best defender. Static analysis
+cannot either, because Ruby resolves calls at runtime. Watching real traffic is the only evidence there is, and
+oneshot lines coverage collects it with the least possible impact on performance: each line reports its first
+execution and nothing after, so once a line has fired the process runs at full speed, and the steady-state overhead
+of measuring for weeks is near zero. Any Ruby process can measure, so web workers, background jobs, and scheduled
+tasks all pour their slice of the truth into the same store.
+
+What accumulates is a record of production code usage, and crossing it with the test report turns it into insight
+you can act on. Code that neither tests nor traffic touched is dead, and `simplecov dead-code` prints it with the
+evidence window attached, a deletion list you can trust. Code that production runs but no test covers is the most
+valuable test you have not written yet, a priority list. And where the store carries `last_seen` stamps, each
+candidate comes dated: "this file last ran in March" argues for deletion far better than a bare uncovered bit ever
+could.
+
+## How to set it up and use it
+
+`SimpleCov::Production` is the supported mode behind all of this: a live process measures which of its lines ever run
+and drains the measurements to a shared store on an interval, and `simplecov dead-code`, the HTML report, and
+`coverage.json` later cross that store with what the tests cover.
 
 Nothing here runs unless explicitly started, and `require "simplecov/production"` loads none of the reporting
 machinery, no formatters, and no at-exit report. A process that starts production coverage gets a measurement tap and
