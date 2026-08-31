@@ -57,7 +57,7 @@ RSpec.describe "rspec-rails integration", :sandbox do
       data.fetch("coverage").select { |path, _| path.end_with?(".erb") }
     end
 
-    it "reports the templates the suite rendered and the ones it didn't" do
+    it "reports rendered and unrendered templates under the profile's Views group" do
       result = run_command_and_expect_success("bundle exec rspec", timeout: 120)
       expect_coverage_report_generated(result)
 
@@ -77,12 +77,8 @@ RSpec.describe "rspec-rails integration", :sandbox do
       expect(views.fetch("app/views/layouts/application.html.erb").fetch("lines")).to all(satisfy do |hits|
         hits.nil? || hits.zero?
       end)
-    end
 
-    it "files the templates under the profile's Views group" do
-      run_command_and_expect_success("bundle exec rspec", timeout: 120)
-
-      expect(reported_groups(html_report_data).fetch("Views")).to eq("coverage" => 22.22, "files" => 3)
+      expect(reported_groups(data).fetch("Views")).to eq("coverage" => 22.22, "files" => 3)
     end
   end
 end
