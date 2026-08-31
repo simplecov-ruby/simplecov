@@ -1,9 +1,6 @@
 module SimpleCov
   module StaticCoverageExtractor
     module ConditionFolding : ::Prism::Visitor
-      FOLDS_SOURCE_FILE: bool
-      CONTAINER_CONTENTS_NEED_STATIC_LITERALS: bool
-
       STATIC_CONDITION_TYPES: Array[untyped]
 
       FALSY_CONDITION_TYPES: Array[untyped]
@@ -29,8 +26,6 @@ module SimpleCov
       def static_container_literal?: (untyped node) -> bool
 
       def static_container?: (untyped node) -> bool
-
-      def container_contents_eliminable?: (untyped node) -> bool
 
       def static_array_literal?: (untyped node) -> bool
 
