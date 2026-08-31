@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Breaking Changes
+* Dropped support for Ruby 3.3. The minimum supported Ruby is now 3.4 (`required_ruby_version >= 3.4`), with JRuby 10 still supported and TruffleRuby exercised only by the nightly unstable build. Ruby 3.4 rebuilt constant folding and branch-location conventions on the Prism compiler, so the extractor's emulation of the parse.y-based compiler of Ruby 3.3 (value-position analysis, legacy location conventions, the `__FILE__` paren-opacity rule, and the Prism accessor-rename shims) is gone with it.
+
 1.3.0 (2026-09-12)
 ==================
 

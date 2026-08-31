@@ -15,13 +15,13 @@ RSpec.describe SimpleCov::Production do
       supported?: true, result: result)
   end
 
-  def start(**options)
-    described_class.start(root: root, sink: sink, flush_interval: 600, **options)
+  def start(**)
+    described_class.start(root: root, sink: sink, flush_interval: 600, **)
   end
 
-  def start_without_flush_thread(**options)
+  def start_without_flush_thread(**)
     allow(described_class).to receive(:spawn_flush_thread)
-    start(**options)
+    start(**)
   end
 
   def abs(relative)

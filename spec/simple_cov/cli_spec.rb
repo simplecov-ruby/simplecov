@@ -8840,9 +8840,9 @@ RSpec.describe SimpleCov::CLI do
     describe "the response it writes" do
       let(:handler) { described_class::Serve::StaticFileHandler }
 
-      def respond(*args)
+      def respond(*)
         client = fake_client
-        handler.send(:respond, client, *args)
+        handler.send(:respond, client, *)
         client.written
       end
 

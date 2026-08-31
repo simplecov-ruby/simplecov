@@ -1,10 +1,6 @@
 module SimpleCov
   module StaticCoverageExtractor
     module LocationConventions
-      LEGACY_COVERAGE_LOCATIONS: bool
-
-      @value_positions: untyped
-
       class PointLocation
         attr_reader start_line: Integer
         attr_reader start_column: Integer
@@ -16,43 +12,23 @@ module SimpleCov
 
       private
 
-      def if_like_location: (untyped node, untyped type) -> untyped
-
-      def elsif_node?: (untyped node) -> bool
-
-      def legacy_content_end: (untyped node) -> untyped
+      def else_clause_of: (untyped node, untyped type) -> untyped
 
       def if_like_then_location: (untyped node, untyped type) -> untyped
 
       def if_like_else_location: (untyped node, untyped type) -> untyped
 
-      def empty_else_location: (untyped node, untyped sub, untyped type) -> untyped
-
-      def case_arm_location: (untyped case_node, untyped when_node, untyped when_type) -> untyped
-
-      def legacy_when_value_location: (untyped case_node, untyped when_node) -> untyped
-
-      def legacy_case_tail_end: (untyped case_node, untyped when_node) -> untyped
-
-      def following_case_content: (untyped case_node, untyped when_node) -> Array[untyped]
+      def case_arm_location: (untyped when_node) -> untyped
 
       def else_arm_location: (untyped node) -> untyped
 
       def loop_body_location: (untyped node) -> untyped
-
-      def begin_modifier_loop?: (untyped node) -> bool
-
-      def legacy_do_while_body_location: (untyped node) -> untyped
 
       def safe_navigation_location: (untyped node) -> untyped
 
       def span: (untyped from, untyped to) -> untyped
 
       def point_at_end: (untyped location) -> untyped
-
-      def empty_arm_collapses?: (untyped node, untyped type) -> bool
-
-      def value_position?: (untyped node) -> bool
     end
   end
 end
