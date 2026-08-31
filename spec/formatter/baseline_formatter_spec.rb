@@ -19,7 +19,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   after { FileUtils.remove_entry(tmp) }
 
   def read_baseline
-    SimpleCov::Baseline.read(baseline_path)
+    SimpleCov::Baseline.read_if_exists(baseline_path)
   end
 
   def format_result

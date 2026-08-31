@@ -20,6 +20,8 @@ module SimpleCov
     end
 
     def self.root_regx
+      Deprecation.warn("`SimpleCov::UselessResultsRemover.root_regx` is deprecated. " \
+                       "Replace with `root_regex`.")
       root_regex
     end
   end

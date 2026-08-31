@@ -13,7 +13,7 @@ module SimpleCov
 
       def self?.options: (untyped parser, untyped opts) -> untyped
 
-      def self?.locate: (Hash[String, untyped] coverage, untyped opts, untyped stderr) -> [String, untyped]?
+      def self?.locate_or_report: (Hash[String, untyped] coverage, untyped opts, untyped stderr) -> [String, untyped]?
 
       def self?.render: ([String, untyped] located, untyped opts, untyped stdout, untyped stderr) -> Integer
 

@@ -53,11 +53,11 @@ module SimpleCov
     # test's lines are still attributed when its segment closes.
     def track(test_id)
       id = context_id(test_id)
-      entry = enter(id)
+      nested_opening = begin_track(id)
       begin
         yield
       ensure
-        settle(id, entry)
+        settle(id, nested_opening)
       end
     end
 
@@ -80,13 +80,12 @@ module SimpleCov
 
   private
 
-    # Answers the opening peek a nested track records against, and nil for an
-    # outermost track, whose segment machinery owns its peeks. Same-thread
-    # reentrancy is fine, since a line the inner test executed was executed on
-    # the outer test's watch too, but a second thread means concurrent tests
-    # and `Coverage`'s counters are process-global: their deltas cannot be told
-    # apart, so recording shuts off rather than misattribute.
-    def enter(id)
+    # Same-thread reentrancy is fine, since a line the inner test executed was
+    # executed on the outer test's watch too, but a second thread means
+    # concurrent tests and `Coverage`'s counters are process-global: their
+    # deltas cannot be told apart, so recording shuts off rather than
+    # misattribute.
+    def begin_track(id)
       outermost = note_entry
       return nil if @poisoned
       return Coverage.peek_result unless outermost
@@ -111,8 +110,8 @@ module SimpleCov
     # outermost one leaves its segment open for the next boundary. The owner
     # needs no clearing: the next track to find the depth back at zero takes
     # ownership itself.
-    def settle(id, entry)
-      @map.record(id, @delta.call(entry, Coverage.peek_result)) if entry && !@poisoned
+    def settle(id, nested_opening)
+      @map.record(id, @delta.call(nested_opening, Coverage.peek_result)) if nested_opening && !@poisoned
     ensure
       @lock.synchronize { @depth -= 1 }
     end

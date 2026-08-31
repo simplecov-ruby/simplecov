@@ -25,7 +25,7 @@ RSpec.describe SimpleCov::Production::FileSink do
     before { FileUtils.mkdir_p(File.dirname(path)) }
 
     it "holds an exclusive flock on the store while the block runs" do
-      sink.send(:locked) do |_file|
+      sink.send(:with_exclusive_lock) do |_file|
         File.open(path) do |probe|
           expect(probe.flock(File::LOCK_EX | File::LOCK_NB)).to be(false)
           expect(probe.flock(File::LOCK_SH | File::LOCK_NB)).to be(false)
@@ -34,7 +34,7 @@ RSpec.describe SimpleCov::Production::FileSink do
     end
 
     it "yields a handle open for reading and writing, and answers the block" do
-      result = sink.send(:locked) do |file|
+      result = sink.send(:with_exclusive_lock) do |file|
         file.write("x")
         file.rewind
         expect(file.read).to eq("x")
@@ -46,7 +46,7 @@ RSpec.describe SimpleCov::Production::FileSink do
 
     it "creates the store world-readable and owner-writable" do
       previous = File.umask(0)
-      sink.send(:locked) { |_file| nil }
+      sink.send(:with_exclusive_lock) { |_file| nil }
 
       expect(File.stat(path).mode & 0o777).to eq(0o644)
     ensure
@@ -58,7 +58,7 @@ RSpec.describe SimpleCov::Production::FileSink do
 
       allow(sink).to receive(:path).and_return("|true") # rubocop:disable RSpec/SubjectStub
 
-      Dir.chdir(tmp) { sink.send(:locked) { |_file| nil } }
+      Dir.chdir(tmp) { sink.send(:with_exclusive_lock) { |_file| nil } }
 
       expect(File).to exist(File.join(tmp, "|true"))
     end

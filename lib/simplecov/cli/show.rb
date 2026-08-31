@@ -25,7 +25,7 @@ module SimpleCov
         coverage = CoverageFile.load_coverage(opts.fetch(:input), command: "show", stderr: stderr)
         return 1 unless coverage
 
-        located = locate(coverage, opts, stderr)
+        located = locate_or_report(coverage, opts, stderr)
         return 1 unless located
 
         render(located, opts, stdout, stderr)
@@ -59,9 +59,9 @@ module SimpleCov
         parser.on("--json")           { opts[:json] = true }
       end
 
-      # nil after reporting an unresolvable path, a wrong-typed entry, or a
-      # line-less report, which has no per-line hits to put in a gutter.
-      def locate(coverage, opts, stderr)
+      # A line-less report has no per-line hits to put in a gutter, so it is
+      # reported like an unresolvable path is.
+      def locate_or_report(coverage, opts, stderr)
         path, input = opts.fetch_values(:path, :input)
         match = CoverageFile.lookup(coverage, path)
         return error_nil(stderr, CoverageFile.not_found_message(coverage, path, input)) unless match

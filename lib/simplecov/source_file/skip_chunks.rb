@@ -21,7 +21,7 @@ module SimpleCov
       # source range, and nocov has always meant "exclude everything here". The
       # ranges are 1-based line numbers, so consumers subtract 1 to index into
       # the zero-based lines array.
-      def for(criterion)
+      def chunks_for(criterion)
         nocov_chunks + directive_chunks.fetch(criterion)
       end
 

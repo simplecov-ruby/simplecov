@@ -1427,7 +1427,7 @@ module SimpleCov
 
     def self.flush_loop: () -> void
 
-    def self.next_wait: () -> (Float | Integer)
+    def self.interval_with_jitter: () -> (Float | Integer)
 
     def self.wake_flush_thread: () -> void
 
@@ -1472,7 +1472,7 @@ module SimpleCov
 
       private
 
-      def locked: [T] () { (File file) -> T } -> T
+      def with_exclusive_lock: [T] () { (File file) -> T } -> T
 
       def open_file: [T] (String name, Integer mode, Integer perm) { (File file) -> T } -> T
 
@@ -1509,6 +1509,8 @@ module SimpleCov
     end
 
     type current_floors = Hash[String, Hash[Symbol, {percent: Numeric, missed: Integer}]]
+
+    def self.read_if_exists: (String path) -> Baseline?
 
     def self.read: (String path) -> Baseline?
 

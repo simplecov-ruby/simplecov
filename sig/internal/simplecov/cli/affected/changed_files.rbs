@@ -4,7 +4,7 @@ module SimpleCov
       module ChangedFiles
         def self?.call: (String base, untyped stderr) -> Hash[Symbol, untyped]?
 
-        def self?.toplevel: (untyped stderr) -> String?
+        def self?.repository_toplevel: (untyped stderr) -> String?
 
         def self?.list: (String command, Array[String] argv, untyped stderr) -> Array[String]?
 

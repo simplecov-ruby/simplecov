@@ -18,7 +18,7 @@ module SimpleCov
 
     private
 
-    def self.percent_for: (untyped stats_source, untyped criterion) -> untyped
+    def self.floored_percent_for: (untyped stats_source, untyped criterion) -> untyped
 
     def self.effective_per_file_thresholds: (untyped file, untyped defaults, untyped overrides) -> untyped
 

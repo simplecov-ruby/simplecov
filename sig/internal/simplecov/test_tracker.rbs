@@ -65,7 +65,7 @@ module SimpleCov
 
     private
 
-    def enter: (String id) -> Hash[String, untyped]?
+    def begin_track: (String id) -> Hash[String, untyped]?
 
     def note_entry: () -> bool
 

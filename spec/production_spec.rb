@@ -459,20 +459,20 @@ RSpec.describe SimpleCov::Production do
       start_without_flush_thread(flush_jitter: 60)
       allow(described_class).to receive(:rand).and_return(0.5)
 
-      expect(described_class.send(:next_wait)).to eq(630)
+      expect(described_class.send(:interval_with_jitter)).to eq(630)
     end
 
     it "defaults the jitter to a tenth of the flush interval" do
       start_without_flush_thread
       allow(described_class).to receive(:rand).and_return(1.0)
 
-      expect(described_class.send(:next_wait)).to eq(660)
+      expect(described_class.send(:interval_with_jitter)).to eq(660)
     end
 
     it "waits exactly the interval when the jitter is zero" do
       start(flush_jitter: 0)
 
-      expect(described_class.send(:next_wait)).to eq(600)
+      expect(described_class.send(:interval_with_jitter)).to eq(600)
     end
   end
 

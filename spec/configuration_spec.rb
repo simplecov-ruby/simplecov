@@ -2891,12 +2891,12 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     it "reads the baseline once per resolved path" do
-      allow(SimpleCov::Baseline).to receive(:read).and_return(SimpleCov::Baseline.new({}))
+      allow(SimpleCov::Baseline).to receive(:read_if_exists).and_return(SimpleCov::Baseline.new({}))
 
       first = config.baseline
 
       expect(config.baseline).to be(first)
-      expect(SimpleCov::Baseline).to have_received(:read).once
+      expect(SimpleCov::Baseline).to have_received(:read_if_exists).once
     ensure
       %i[@baseline @baseline_path].each do |ivar|
         config.remove_instance_variable(ivar) if config.instance_variable_defined?(ivar)

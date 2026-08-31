@@ -11,7 +11,7 @@ module SimpleCov
           meta_facts(document).merge(
             totals: totals(document["total"]),
             contexts: (contexts.size if contexts.instance_of?(Array)),
-            resultset_path: resultset_path, resultset: resultset(resultset_path)
+            resultset_path: resultset_path, resultset: readable_resultset(resultset_path)
           )
         end
 
@@ -68,9 +68,9 @@ module SimpleCov
           rows.to_h
         end
 
-        # nil when there is no readable resultset: its absence is a fact, not an
-        # error.
-        def resultset(path)
+        # An unreadable resultset answers nothing rather than raising: its
+        # absence is a fact, not an error.
+        def readable_resultset(path)
           parsed = JSON.parse(File.read(path))
           return nil unless parsed.instance_of?(Hash)
 

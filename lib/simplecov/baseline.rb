@@ -36,10 +36,10 @@ module SimpleCov
     # appears in exactly one).
     Outcome = Data.define(:baseline, :tightened, :pruned, :regressed, :unchanged)
 
-    # nil when the file does not exist. A file that exists but cannot be read
-    # as a baseline raises ConfigurationError: a malformed policy must fail
-    # loudly rather than silently un-enforce every floor it carried.
-    def self.read(path)
+    # A file that exists but cannot be read as a baseline raises
+    # ConfigurationError: a malformed policy must fail loudly rather than
+    # silently un-enforce every floor it carried.
+    def self.read_if_exists(path)
       return nil unless File.exist?(path)
 
       new(Parser.call(YAML.safe_load_file(path), path))
@@ -51,6 +51,11 @@ module SimpleCov
     # `current` is a `{project_filename => {criterion => {percent:, missed:}}}`
     # Hash of the measured state. Everything the report carries gets a floor at
     # its current coverage.
+    def self.read(path)
+      Deprecation.warn("`SimpleCov::Baseline.read` is deprecated. Replace with `read_if_exists`.")
+      read_if_exists(path)
+    end
+
     def self.generate(current)
       new(current.transform_values do |criteria|
         criteria.transform_values { |floor| Floor.new(percent: floor.fetch(:percent), missed: floor.fetch(:missed)) }

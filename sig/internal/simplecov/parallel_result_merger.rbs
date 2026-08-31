@@ -24,7 +24,7 @@ module SimpleCov
 
     def self?.run_worker: (Array[String] chunk, IO writer, ignore_timeout: bool) -> Integer
 
-    def self?.collect: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]?
+    def self?.collect_payloads: (Array[Hash[Symbol, untyped]] workers) -> Array[untyped]?
 
 
     def self?.read_payload: (IO reader) -> untyped

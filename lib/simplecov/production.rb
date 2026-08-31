@@ -146,16 +146,16 @@ module SimpleCov
       def flush_loop
         @mutex.synchronize do
           while @running
-            @waiter.wait(@mutex, next_wait)
+            @waiter.wait(@mutex, interval_with_jitter)
             cycle if @running
           end
         end
       end
 
-      # A fresh random share of the jitter per wait: a fleet of workers booted
-      # together would otherwise contend on the shared sink at the same instant
-      # every interval, forever.
-      def next_wait
+      # A fresh share is drawn per wait: a fleet of workers booted together
+      # would otherwise contend on the shared sink at the same instant every
+      # interval, forever.
+      def interval_with_jitter
         @flush_interval + (rand * @flush_jitter)
       end
 

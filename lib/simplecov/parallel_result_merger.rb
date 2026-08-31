@@ -65,7 +65,7 @@ module SimpleCov
     # than with the merge.
     def fan_out(chunks, ignore_timeout:, tracked_files:, context_maps:)
       workers = spawn_workers(chunks, ignore_timeout: ignore_timeout)
-      payloads = collect(workers)
+      payloads = collect_payloads(workers)
       return nil unless payloads
 
       payloads.each { |payload| WorkerPayload.absorb(payload, tracked_files, context_maps) }
@@ -125,7 +125,7 @@ module SimpleCov
 
     # Answers nil if any worker failed, so the caller redoes the fold serially
     # rather than report a subset of the resultsets as the whole.
-    def collect(workers)
+    def collect_payloads(workers)
       payloads = drain(workers)
       failed = workers.count { |worker| !succeeded?(worker.fetch(:pid)) }
       return warn_about_failed_workers(failed, workers.size) unless failed.zero? && payloads.all?

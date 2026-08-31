@@ -68,7 +68,7 @@ module SimpleCov
       end
 
       def compute(opts, current)
-        existing = Baseline.read(opts.fetch(:baseline)) unless opts.fetch(:init)
+        existing = Baseline.read_if_exists(opts.fetch(:baseline)) unless opts.fetch(:init)
         return [existing.ratchet(current), false] if existing
 
         none = [] #: Array[String]

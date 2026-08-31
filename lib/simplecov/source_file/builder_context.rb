@@ -4,7 +4,7 @@ module SimpleCov
   class SourceFile
     module BuilderContext
       def skip_chunks_for(criterion)
-        (@skip_chunks ||= SkipChunks.new(filename, src)).for(criterion)
+        (@skip_chunks ||= SkipChunks.new(filename, src)).chunks_for(criterion)
       end
 
       # Memoized set of real source positions extracted via Prism. Nil when Prism is

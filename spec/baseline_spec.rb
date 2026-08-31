@@ -4,10 +4,10 @@ require "helper"
 require "tmpdir"
 
 RSpec.describe SimpleCov::Baseline do
-  describe ".read" do
+  describe ".read_if_exists" do
     it "returns nil when the file does not exist" do
       Dir.mktmpdir do |dir|
-        expect(described_class.read(File.join(dir, ".simplecov_baseline.yml"))).to be_nil
+        expect(described_class.read_if_exists(File.join(dir, ".simplecov_baseline.yml"))).to be_nil
       end
     end
 
@@ -50,7 +50,7 @@ RSpec.describe SimpleCov::Baseline do
 
     it "raises a configuration error naming the file for invalid YAML" do
       with_baseline_file("{") do |path|
-        expect { described_class.read(path) }.to raise_error(
+        expect { described_class.read_if_exists(path) }.to raise_error(
           SimpleCov::ConfigurationError,
           /\Abaseline file #{Regexp.escape(path)} is not valid YAML: \S/
         )
@@ -378,8 +378,21 @@ RSpec.describe SimpleCov::Baseline do
     end
   end
 
+  describe ".read" do
+    it "warns and delegates to read_if_exists" do
+      allow(SimpleCov::Deprecation).to receive(:warn)
+      allow(described_class).to receive(:read_if_exists).and_return(:baseline)
+
+      expect(described_class.read("path.yml")).to eq(:baseline)
+      expect(described_class).to have_received(:read_if_exists).with("path.yml")
+      expect(SimpleCov::Deprecation).to have_received(:warn).with(
+        "`SimpleCov::Baseline.read` is deprecated. Replace with `read_if_exists`."
+      )
+    end
+  end
+
   def read_baseline(yaml)
-    with_baseline_file(yaml) { |path| SimpleCov::Baseline.read(path) }
+    with_baseline_file(yaml) { |path| SimpleCov::Baseline.read_if_exists(path) }
   end
 
   def with_baseline_file(yaml)
@@ -392,7 +405,7 @@ RSpec.describe SimpleCov::Baseline do
 
   def expect_rejection(yaml, message)
     with_baseline_file(yaml) do |path|
-      expect { SimpleCov::Baseline.read(path) }
+      expect { SimpleCov::Baseline.read_if_exists(path) }
         .to raise_error(SimpleCov::ConfigurationError, format(message, path: path))
     end
   end

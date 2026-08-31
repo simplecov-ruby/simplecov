@@ -287,13 +287,14 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-  describe ".collect" do
+  describe ".collect_payloads" do
     it "refuses a clean exit that shipped no payload", if: FORK_SUPPORTED do
       reader, writer = IO.pipe
       pid = fork { exit!(0) }
       writer.close
 
-      output = capture_stderr { expect(described_class.send(:collect, [{pid: pid, reader: reader}])).to be_nil }
+      workers = [{pid: pid, reader: reader}]
+      output = capture_stderr { expect(described_class.send(:collect_payloads, workers)).to be_nil }
 
       expect(output).to include("parallel merge did not complete (0 of 1 workers failed)")
     end
@@ -309,7 +310,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
         {pid: pid, reader: reader}
       end
 
-      output = capture_stderr { expect(described_class.send(:collect, workers)).to be_nil }
+      output = capture_stderr { expect(described_class.send(:collect_payloads, workers)).to be_nil }
 
       expect(output).to include("parallel merge did not complete (0 of 2 workers failed)")
     end
@@ -324,7 +325,8 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
       writer.close
 
-      output = capture_stderr { expect(described_class.send(:collect, [{pid: pid, reader: reader}])).to be_nil }
+      workers = [{pid: pid, reader: reader}]
+      output = capture_stderr { expect(described_class.send(:collect_payloads, workers)).to be_nil }
 
       expect(output).to include("parallel merge did not complete (1 of 1 workers failed)")
     end

@@ -25,7 +25,7 @@ module SimpleCov
       return @baseline if @baseline_path.eql?(resolved)
 
       @baseline_path = resolved
-      @baseline = Baseline.read(resolved)
+      @baseline = Baseline.read_if_exists(resolved)
     end
   end
 end

@@ -679,7 +679,7 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    describe "#resultset" do
+    describe "#readable_resultset" do
       let(:path) { File.join(dir, ".resultset.json") }
       let(:dir) { Dir.mktmpdir("simplecov-facts-spec-") }
 
@@ -687,36 +687,36 @@ RSpec.describe SimpleCov::CLI do
 
       it "ages each command against the time it recorded" do
         File.write(path, JSON.dump("RSpec" => {"timestamp" => (Time.now - 300).to_i}))
-        expect(facts.resultset(path)).to eq([{command: "RSpec", age: 300}])
+        expect(facts.readable_resultset(path)).to eq([{command: "RSpec", age: 300}])
       end
 
       it "answers no age for an entry that carries no timestamp" do
         File.write(path, JSON.dump("RSpec" => {"coverage" => {}}))
-        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+        expect(facts.readable_resultset(path)).to eq([{command: "RSpec", age: nil}])
       end
 
       it "answers no age for a timestamp that is not a number" do
         File.write(path, JSON.dump("RSpec" => {"timestamp" => "recently"}))
-        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+        expect(facts.readable_resultset(path)).to eq([{command: "RSpec", age: nil}])
       end
 
       it "answers no age for an entry that is not an object" do
         File.write(path, JSON.dump("RSpec" => []))
-        expect(facts.resultset(path)).to eq([{command: "RSpec", age: nil}])
+        expect(facts.readable_resultset(path)).to eq([{command: "RSpec", age: nil}])
       end
 
       it "answers nil when the resultset is not there" do
-        expect(facts.resultset(File.join(dir, "absent.json"))).to be_nil
+        expect(facts.readable_resultset(File.join(dir, "absent.json"))).to be_nil
       end
 
       it "answers nil when the resultset is not JSON" do
         File.write(path, "not json")
-        expect(facts.resultset(path)).to be_nil
+        expect(facts.readable_resultset(path)).to be_nil
       end
 
       it "answers nil when the resultset is not an object" do
         File.write(path, JSON.dump([1, 2]))
-        expect(facts.resultset(path)).to be_nil
+        expect(facts.readable_resultset(path)).to be_nil
       end
     end
   end
@@ -4260,7 +4260,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     def read_baseline
-      SimpleCov::Baseline.read(baseline_path)
+      SimpleCov::Baseline.read_if_exists(baseline_path)
     end
 
     it "loads the full library before touching Baseline and the dotfile default" do

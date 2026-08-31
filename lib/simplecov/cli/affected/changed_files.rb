@@ -18,7 +18,7 @@ module SimpleCov
         def call(base, stderr)
           return report(stderr, "invalid base ref #{base.inspect}") if Git.option_like_ref?(base)
 
-          root = toplevel(stderr)
+          root = repository_toplevel(stderr)
           return nil unless root
 
           diff = list("diff", ["-C", root, "diff", "--name-only", "-z", "--merge-base", base, "--"], stderr)
@@ -28,9 +28,9 @@ module SimpleCov
           untracked && {root: root, changed: (diff + untracked).uniq}
         end
 
-        # nil stdout from `Git.capture` means git never ran; a run that failed means
-        # the cwd is outside a working tree.
-        def toplevel(stderr)
+        # nil stdout from `Git.capture` means git never ran; a run that failed
+        # means the cwd is outside a working tree.
+        def repository_toplevel(stderr)
           stdout, detail, success = Git.capture("rev-parse", "--show-toplevel")
           return (_ = stdout).chomp if success
           return report(stderr, "cannot run git (#{detail})") if stdout.nil?

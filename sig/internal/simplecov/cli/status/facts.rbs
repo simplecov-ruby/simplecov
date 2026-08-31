@@ -18,7 +18,7 @@ module SimpleCov
 
         def self?.totals: (untyped total) -> Hash[String, untyped]
 
-        def self?.resultset: (String path) -> Array[Hash[Symbol, untyped]]?
+        def self?.readable_resultset: (String path) -> Array[Hash[Symbol, untyped]]?
       end
     end
   end

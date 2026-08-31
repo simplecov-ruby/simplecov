@@ -38,7 +38,7 @@ module SimpleCov
 
       def store(coverage)
         FileUtils.mkdir_p(File.dirname(path))
-        locked do |file|
+        with_exclusive_lock do |file|
           existing = self.class.parse(file.read, path)
           rewrite(file, envelope(existing, coverage))
         end
@@ -87,12 +87,12 @@ module SimpleCov
 
     private
 
-      # Both halves of the read-modify-write happen through one handle, under an
-      # exclusive lock, so processes sharing the file take turns rather than
-      # overwriting each other. The open flags are summed, which for disjoint
-      # bits is the same number OR would build and leaves no spelling of the
-      # combination without a witness.
-      def locked
+      # Both halves of the read-modify-write happen through the one handle, so
+      # processes sharing the file take turns rather than overwriting each
+      # other. The open flags are summed, which for disjoint bits is the same
+      # number OR would build and leaves no spelling of the combination
+      # without a witness.
+      def with_exclusive_lock
         open_file(path, File::RDWR + File::CREAT, 0o644) do |file|
           file.flock(File::LOCK_EX)
           yield file

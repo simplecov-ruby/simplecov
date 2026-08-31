@@ -33,8 +33,13 @@ RSpec.describe SimpleCov::UselessResultsRemover do
     expect(remover[source_path]["lines"]).to be_a(Array)
   end
 
-  it "keeps the legacy root_regx helper as an alias" do
+  it "keeps the legacy root_regx helper as an alias, warning about the spelling" do
+    allow(SimpleCov::Deprecation).to receive(:warn)
+
     expect(described_class.root_regx).to eq(described_class.root_regex)
+    expect(SimpleCov::Deprecation).to have_received(:warn).with(
+      "`SimpleCov::UselessResultsRemover.root_regx` is deprecated. Replace with `root_regex`."
+    )
   end
 
   context "when SimpleCov.root is the filesystem root" do

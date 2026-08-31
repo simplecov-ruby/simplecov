@@ -204,3 +204,22 @@ it, and the two should be decided together at 2.0.
 
 **What it buys.** Half as many behaviours per subject, no sentinel to compare, and defaults that are values to
 assert rather than branches to reach.
+
+## Naming roadmap
+
+Method names that described their own return value in a comment rather than in the name. The renames have
+shipped, so what remains is retiring the two old spellings that had to be kept.
+
+### Retire the superseded spellings
+
+**What remains, and why it breaks.** Two public names now delegate to a clearer one and warn: `Baseline.read`
+(superseded by `read_if_exists`) and `UselessResultsRemover.root_regx`, a typo preserved as an alias of
+`root_regex`. Removing either is a breaking change, so they wait on a major version.
+
+The other renames of this round needed no alias. `SourceFile::SkipChunks#for`, `ParallelResultMerger.collect`,
+`CLI::Show.locate`, `CLI::Status::Facts.resultset`, and `CLI::Affected::ChangedFiles.toplevel` are all declared
+only in `sig/internal`, which the gemspec calls skeleton signatures for internal classes and does not package, so
+they were renamed outright.
+
+**What it buys.** Two fewer public names, two fewer methods to pin under mutation testing, and one spelling per
+question.

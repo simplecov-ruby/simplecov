@@ -15,7 +15,7 @@ module SimpleCov
 
       def initialize: (untyped filename, untyped src) -> void
 
-      def for: (untyped criterion) -> untyped
+      def chunks_for: (untyped criterion) -> untyped
 
       def nocov_chunks: () -> untyped
 

@@ -5,17 +5,16 @@ module SimpleCov
     class << self
       def minimum_overall(result, thresholds)
         thresholds.filter_map do |criterion, expected|
-          actual = percent_for(result, criterion) or next
+          actual = floored_percent_for(result, criterion) or next
           {criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
 
-      # `percent_for` floors the actual percent to two decimal places, so an
-      # actual of 95.4287 is treated as 95.42 and a maximum of 95.42 passes
+      # An actual of 95.4287 floors to 95.42, so a maximum of 95.42 passes
       # (#187).
       def maximum_overall(result, thresholds)
         thresholds.filter_map do |criterion, expected|
-          actual = percent_for(result, criterion) or next
+          actual = floored_percent_for(result, criterion) or next
           {criterion: criterion, expected: expected, actual: actual} if actual > expected
         end
       end
@@ -91,7 +90,7 @@ module SimpleCov
       # configured but not measured by the runtime (`branch: 100` under the
       # "strict" profile on JRuby, say). The config-time
       # `raise_if_criterion_disabled` check catches the genuine mistake earlier.
-      def percent_for(stats_source, criterion)
+      def floored_percent_for(stats_source, criterion)
         stats = stats_source.coverage_statistics[SimpleCov.coverage_statistics_key(criterion)]
         round(stats.percent) if stats
       end
@@ -140,7 +139,7 @@ module SimpleCov
       end
 
       def file_minimum_violation(file, criterion, expected)
-        actual = percent_for(file, criterion) or return
+        actual = floored_percent_for(file, criterion) or return
         return unless actual < expected
 
         {
@@ -154,7 +153,7 @@ module SimpleCov
 
       def group_minimum_violations(group_name, group, minimums)
         minimums.filter_map do |criterion, expected|
-          actual = percent_for(group, criterion) or next
+          actual = floored_percent_for(group, criterion) or next
           {group_name: group_name, criterion: criterion, expected: expected, actual: actual} if actual < expected
         end
       end
@@ -241,7 +240,7 @@ module SimpleCov
         # raising out of the at_exit hook.
         return unless last_coverage_percent.is_a?(Numeric)
 
-        current = percent_for(result, criterion) or return
+        current = floored_percent_for(result, criterion) or return
         (last_coverage_percent - current).floor(10)
       end
 

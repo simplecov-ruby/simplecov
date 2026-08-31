@@ -1701,7 +1701,7 @@ RSpec.describe SimpleCov::SourceFile do
 
     def chunks_for(src, criterion = :line, filename: "chunked.rb")
       chunks = nil
-      capture_stderr { chunks = described_class.new(filename, src).for(criterion) }
+      capture_stderr { chunks = described_class.new(filename, src).chunks_for(criterion) }
       chunks
     end
 
@@ -1737,7 +1737,7 @@ RSpec.describe SimpleCov::SourceFile do
       let(:src) { ["a = 1\n", "b = 2\n", "# :nocov:\n", "c = 3\n", "# :nocov:\n"] }
 
       it "names the file and the first marker's line, and what to write instead" do
-        stderr = capture_stderr { described_class.new("warned.rb", src).for(:line) }
+        stderr = capture_stderr { described_class.new("warned.rb", src).chunks_for(:line) }
 
         expect(stderr).to eq(
           "warned.rb:3: [DEPRECATION] `# :nocov:` is deprecated and will be removed in a future release. " \
@@ -1746,21 +1746,21 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "warns once per file" do
-        capture_stderr { described_class.new("warned.rb", src).for(:line) }
-        stderr = capture_stderr { described_class.new("warned.rb", src).for(:line) }
+        capture_stderr { described_class.new("warned.rb", src).chunks_for(:line) }
+        stderr = capture_stderr { described_class.new("warned.rb", src).chunks_for(:line) }
 
         expect(stderr).to be_empty
       end
 
       it "warns again for a different file" do
-        capture_stderr { described_class.new("warned.rb", src).for(:line) }
-        stderr = capture_stderr { described_class.new("other.rb", src).for(:line) }
+        capture_stderr { described_class.new("warned.rb", src).chunks_for(:line) }
+        stderr = capture_stderr { described_class.new("other.rb", src).chunks_for(:line) }
 
         expect(stderr).to include("other.rb:3:")
       end
 
       it "says nothing about a file with no markers" do
-        expect(capture_stderr { described_class.new("quiet.rb", ["a = 1\n"]).for(:line) }).to be_empty
+        expect(capture_stderr { described_class.new("quiet.rb", ["a = 1\n"]).chunks_for(:line) }).to be_empty
       end
     end
   end
