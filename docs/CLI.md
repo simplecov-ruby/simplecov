@@ -243,7 +243,8 @@ covered lines are all covered by other tests contributes no coverage of its own,
 computed from the same recording with no new measurement. It composes with the narrowing, so
 `simplecov tests --redundant lib/foo.rb` lists the redundant tests among those touching the file.
 
-Read the list the way `dead-code`'s buckets are read: candidates for review, not a delete list. Coverage-redundant
+Read the list the way `dead-code`'s buckets are read: candidates for review, not a delete list
+([Finding redundant tests](Redundant_Tests.md) is the full pruning workflow). Coverage-redundant
 is not useless, since a test can pin behavior with assertions on lines a dozen other tests execute, and its
 mutation-killing power is invisible to coverage. The list is also per-test rather than a deletable set, because two
 tests covering exactly the same lines subsume each other and both are listed, so deleting both would lose the

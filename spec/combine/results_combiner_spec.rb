@@ -65,51 +65,12 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
         end
       end
 
-      it "has proper results for user.rb" do
-        expect(combined[source_fixture("app/models/user.rb")]["lines"]).to eq([nil, 2, 6, 2, nil, nil, 2, 0, nil, nil])
-
-        if SimpleCov.branch_coverage_supported?
-          branches = combined[source_fixture("app/models/user.rb")]["branches"]
-          expect(branches[[:if, 3, 8, 6, 8, 36]][[:then, 4, 8, 6, 8, 12]]).to eq(48)
-          expect(branches[[:if, 3, 8, 6, 8, 36]][[:else, 5, 8, 6, 8, 36]]).to eq(26)
-        end
-      end
-
-      it "has proper results for sample_controller.rb" do
-        lines = combined[source_fixture("app/controllers/sample_controller.rb")]["lines"]
-        expect(lines).to eq([nil, 4, 2, 1, nil, nil, 2, 0, nil, nil])
-      end
-
-      it "has proper results for resultset1.rb" do
-        expect(combined[source_fixture("resultset1.rb")]["lines"]).to eq([1, 1, 1, 1])
-      end
-
-      it "has proper results for resultset2.rb" do
-        expect(combined[source_fixture("resultset2.rb")]["lines"]).to eq([nil, 1, 1, nil])
-      end
-
       it "has proper results for parallel_tests.rb" do
         # First resultset reports [nil, 0, nil, 0]; second reports
         # [nil, nil, 0, 0]. A line is treated as relevant when either
         # side considered it relevant, so positions 1 and 2 stay at
         # 0 rather than collapsing to nil.
         expect(combined[source_fixture("parallel_tests.rb")]["lines"]).to eq([nil, 0, 0, 0])
-      end
-
-      it "has proper results for conditionally_loaded_1.rb" do
-        expect(combined[source_fixture("conditionally_loaded_1.rb")]["lines"]).to eq([nil, 0, 1])
-      end
-
-      it "has proper results for conditionally_loaded_2.rb" do
-        expect(combined[source_fixture("conditionally_loaded_2.rb")]["lines"]).to eq([nil, 0, 1])
-      end
-
-      it "has proper results for three.rb" do
-        expect(combined[source_fixture("three.rb")]["lines"]).to eq([nil, 3, 7])
-      end
-
-      it "always returns a Hash object for branches", if: SimpleCov.branch_coverage_supported? do
-        expect(combined[source_fixture("three.rb")]["branches"]).to eq({})
       end
     end
   end

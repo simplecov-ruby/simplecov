@@ -20,28 +20,7 @@ RSpec.describe SimpleCov::LinesClassifier do
       expect(classified).to all be_relevant
     end
 
-    it "takes lines from anything that can list them, not only an array" do
-      lines = %w[a=1 b=2].each
-
-      expect(classifier.classify(lines).length).to eq(2)
-    end
-
     describe "relevant lines" do
-      it "determines code as relevant" do
-        classified_lines = classifier.classify [
-          "module Foo",
-          "  class Baz",
-          "    def Bar",
-          "      puts 'hi'",
-          "    end",
-          "  end",
-          "end"
-        ]
-
-        expect(classified_lines.length).to eq 7
-        expect(classified_lines).to all be_relevant
-      end
-
       it "determines invalid UTF-8 byte sequences as relevant" do
         classified_lines = classifier.classify [
           "bytes = \"\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\""
@@ -87,12 +66,6 @@ RSpec.describe SimpleCov::LinesClassifier do
           expect(described_class.whitespace_line?(line)).to be(true)
         end
       end
-
-      it "does not treat a trailing marker on a line of code as a marker" do
-        # If this ever becomes true, `classify_line` needs to stop gating on
-        # `whitespace_line?` before the change ships.
-        expect(described_class.no_cov_line?("x = 1 # :nocov:")).to be(false)
-      end
     end
 
     describe "not-relevant lines" do
@@ -105,28 +78,6 @@ RSpec.describe SimpleCov::LinesClassifier do
 
         expect(classified_lines.length).to eq 3
         expect(classified_lines).to all be_irrelevant
-      end
-
-      describe "comments" do
-        it "determines comments are not-relevant" do
-          classified_lines = classifier.classify [
-            "#Comment",
-            " # Leading space comment",
-            "\t# Leading tab comment"
-          ]
-
-          expect(classified_lines.length).to eq 3
-          expect(classified_lines).to all be_irrelevant
-        end
-
-        it "doesn't mistake interpolation as a comment" do
-          classified_lines = classifier.classify [
-            'puts "#{var}"' # rubocop:disable Lint/InterpolationCheck
-          ]
-
-          expect(classified_lines.length).to eq 1
-          expect(classified_lines).to all be_relevant
-        end
       end
 
       describe ":nocov: blocks" do

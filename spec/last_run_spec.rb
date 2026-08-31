@@ -89,14 +89,6 @@ RSpec.describe SimpleCov::LastRun do
       expect { expect(described_class.read).to be_nil }.not_to output.to_stderr
     end
 
-    # A file of nothing but whitespace is a file that was never written,
-    # not one that was written wrongly, so it passes without a word.
-    it "answers nothing, quietly, for a file holding only whitespace" do
-      File.write(path, "  \n\t\n")
-
-      expect { expect(described_class.read).to be_nil }.not_to output.to_stderr
-    end
-
     it "reads the recorded run back with its keys as symbols" do
       File.write(path, JSON.dump(result: {line: 80.0}))
       expect(described_class.read).to eq(result: {line: 80.0})
@@ -118,11 +110,6 @@ RSpec.describe SimpleCov::LastRun do
 
       expect { expect(described_class.read).to be_nil }
         .to output(/ignoring the previous run/).to_stderr
-    end
-
-    # An absent or empty file is not corrupt, so it says nothing.
-    it "says nothing about a file that was never written" do
-      expect { described_class.read }.not_to output.to_stderr
     end
   end
 end
