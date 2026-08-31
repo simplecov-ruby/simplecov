@@ -32,14 +32,10 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       expect(profiles.fetch_proc(:foo)).to be(block)
     end
 
-    # What a registry requires on a first lookup, watched on a registry
-    # of its own so the subject is never stubbed.
     context "when the name has to be autoloaded" do
       let(:registry) { described_class.new }
       let(:block) { proc { add_filter "x" } }
 
-      # A profile is looked for among the bundled ones and then among
-      # the plugin gems, and only a name neither turns up is unknown.
       it "looks in both places before giving up on the name" do
         allow(registry).to receive(:require).and_raise(LoadError)
 
@@ -48,8 +44,6 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
         expect(registry).to have_received(:require).with("simplecov-profile-__nope__")
       end
 
-      # A name already registered is answered from the registry, without
-      # asking the load path for it again.
       it "loads nothing for a profile it already has" do
         allow(registry).to receive(:require)
         registry.define("known", &block)
@@ -86,11 +80,6 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, prev_eval)
     end
 
-    # No engine-conditional logic in the profile itself — every clause
-    # runs unconditionally, and CoverageViolations skips threshold
-    # lookups for criteria the runtime didn't measure. So on JRuby the
-    # branch / method thresholds silently no-op and only :line is
-    # enforced at check time.
     it "enables every criterion and pins each to 100%" do
       SimpleCov.load_profile "strict"
 
@@ -98,11 +87,6 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       expect(SimpleCov.minimum_coverage).to eq(line: 100, branch: 100, method: 100)
     end
 
-    # `:eval` widens the strict universe to include code passed through
-    # `Kernel#eval` (ERB templates, etc.) on runtimes that support it.
-    # On older Rubies the toggle is silently skipped — `enable_coverage
-    # :eval` would otherwise warn about missing runtime support every
-    # time the profile loaded.
     it "enables :eval when the runtime supports it" do
       SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, false)
       SimpleCov.load_profile "strict"

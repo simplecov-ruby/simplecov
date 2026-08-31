@@ -1,19 +1,9 @@
-// Windows large file lists: only the first MAX_VISIBLE_ROWS rows that match
-// the active filters are shown, with the rest behind a "Show all" row. The
-// browser lays out every visible table row after a re-sort, which froze
-// multi-thousand-file reports for seconds. Windowing is presentation only:
-// sorting, filtering, and the totals row still cover every file. See #1171.
-//
-// Filters hide rows via inline style.display (see filter.ts). The window uses
-// a class instead, so the two mechanisms stay independent.
 
 import { fmtNum } from './format';
 
 const MAX_VISIBLE_ROWS = 1000;
 const HIDDEN_CLASS = 't-window-hidden';
 
-// Tables whose "Show all" was clicked. Session-only by design: reopening the
-// report re-windows, which is the fast default.
 const windowDisabled = new WeakSet<Element>();
 
 function affordanceRow(tbody: Element, columns: number): HTMLElement {
@@ -24,8 +14,6 @@ function affordanceRow(tbody: Element, columns: number): HTMLElement {
     const td = document.createElement('td');
     td.colSpan = columns;
     row.appendChild(td);
-    // The listener lives on the row, not the link, so it survives the
-    // innerHTML refresh of the cell on every re-apply.
     row.addEventListener('click', (e) => {
       e.preventDefault();
       windowDisabled.add(tbody);
@@ -36,9 +24,6 @@ function affordanceRow(tbody: Element, columns: number): HTMLElement {
   return row;
 }
 
-// Re-window a table after its rows were reordered or refiltered. Hides
-// filter-matched rows beyond MAX_VISIBLE_ROWS and maintains the "Show all"
-// affordance after the last visible row.
 export function applyRowWindow(table: Element): void {
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
@@ -63,5 +48,5 @@ export function applyRowWindow(table: Element): void {
   row.firstElementChild!.innerHTML =
     `Showing the first ${fmtNum(MAX_VISIBLE_ROWS)} of ${fmtNum(matched)} files. ` +
     '<a href="#" class="t-show-all__link">Show all</a>';
-  tbody.appendChild(row); // keep it below the rows after a re-sort
+  tbody.appendChild(row);
 }

@@ -3,8 +3,8 @@
 require_relative "directive"
 
 module SimpleCov
-  # Classifies whether lines are relevant for code coverage analysis.
-  # Comments & whitespace lines, and :nocov: token blocks, are considered not relevant.
+  # Classifies whether lines are relevant for code coverage analysis. Comments,
+  # whitespace lines, and disabled blocks are considered not relevant.
   class LinesClassifier
     RELEVANT = 0
     NOT_RELEVANT = nil
@@ -27,23 +27,22 @@ module SimpleCov
       /^(\s*)#(\s*)(:#{SimpleCov.current_nocov_token}:)/o
     end
 
+    # A marker is itself a comment, so the cheap whitespace-or-comment test gates
+    # the token match: a line of real code cannot be a marker, and no longer pays
+    # to be checked against one. That matters because this runs per line of every
+    # tracked-but-unloaded file, once in every process of a parallel run.
     def self.no_cov_line?(line)
       no_cov_line.match?(line)
     rescue ArgumentError
-      # E.g., line contains an invalid byte sequence in UTF-8
       false
     end
 
     def self.whitespace_line?(line)
       WHITESPACE_OR_COMMENT_LINE.match?(line)
     rescue ArgumentError
-      # E.g., line contains an invalid byte sequence in UTF-8
       false
     end
 
-    # Whether the lines being classified are inside a `:nocov:` pair.
-    # A named state rather than a one-slot array, so reading it and
-    # turning it over each have the one spelling.
     class SkipState
       def initialize
         @skipping = false
@@ -58,12 +57,12 @@ module SimpleCov
       end
     end
 
+    # The skip state lives in a one-slot box owned by this call rather than in an
+    # ivar, so one classifier instance can serve concurrent `classify` calls
+    # without the toggles interleaving.
     def classify(lines)
       lines = lines.to_a
       directive_disabled = directive_disabled_line_set(lines)
-      # The `:nocov:` skip state lives in a one-slot box owned by this
-      # call, not in an ivar, so one classifier instance can serve
-      # concurrent `classify` calls without the toggles interleaving.
       skip_state = SkipState.new
 
       lines.map.with_index(1) do |line, line_number|
@@ -73,11 +72,6 @@ module SimpleCov
 
   private
 
-    # A `:nocov:` marker is itself a comment, so the cheap
-    # whitespace-or-comment test can gate the token match: a line of real
-    # code cannot be a marker, and no longer pays to be checked against
-    # one. That matters because this runs per line of every
-    # tracked-but-unloaded file, once in every process of a parallel run.
     # mutant:disable — `NOT_RELEVANT` is nil, so naming it and writing
     # the literal are the same value, and so is an `unless` that falls
     # off its end. The name is kept because it says which of the two

@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Watch
-      # The /events SSE endpoint and the reload-injecting index route.
       class LiveReport
         RELOAD_SCRIPT: String
 
@@ -21,7 +20,6 @@ module SimpleCov
 
         def forward: (untyped client, Thread::Queue queue) -> untyped
 
-        # The next broadcast, waiting on the queue until one arrives.
         def next_event: (Thread::Queue queue) -> untyped
 
         def page: (untyped client) -> untyped

@@ -30,9 +30,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(described_class.existing_meta(path)[:command_name]).to eq("Weird } Name")
     end
 
-    # The head scan reads a bounded slice precisely so a multi-megabyte
-    # report is not parsed whole on every write; a meta object sitting
-    # past that bound is what makes the fallback necessary.
     it "falls back to a full parse when meta sits beyond the scanned head" do
       File.write(path, JSON.generate(coverage: {"a.rb" => {"source" => ["x" * 70_000]}},
                                      meta: {timestamp: timestamp, command_name: "RSpec"}))
@@ -42,9 +39,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(described_class).to have_received(:parse_meta_full)
     end
 
-    # This writer pretty-prints, so the meta object it emits spans
-    # several lines: the head scan has to read across them or every
-    # write would fall back to parsing the whole report.
     it "reads a meta object that spans lines, as this writer emits it" do
       File.write(path, JSON.pretty_generate(meta: {timestamp: timestamp, command_name: "RSpec"}))
       allow(described_class).to receive(:parse_meta_full).and_call_original
@@ -53,8 +47,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(described_class).not_to have_received(:parse_meta_full)
     end
 
-    # An empty meta object is still a meta object, and finding it in the
-    # head is what keeps a large report from being parsed whole.
     it "reads an empty meta object out of the head, without a full parse" do
       File.write(path, JSON.generate(meta: {}, coverage: {}))
       allow(described_class).to receive(:parse_meta_full).and_call_original
@@ -83,10 +75,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(described_class.existing_meta(path)).to be_nil
     end
 
-    # Third-party formatters (undercover's among them) rewrite
-    # coverage.json in their own shape with an epoch integer in
-    # meta.timestamp, and the previous run's file is whatever wrote it
-    # last. Reading it must never crash report generation. See #1285.
     it "reads an epoch integer timestamp the way a foreign formatter writes it" do
       moment = Time.at(Time.now.to_i)
       File.write(path, JSON.generate(meta: {timestamp: moment.to_i, command_name: "RSpec"}))
@@ -100,8 +88,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
     end
   end
 
-  # The head scan reads a bounded slice, and `File.read` with a length
-  # answers nil at end of file rather than an empty string.
   it "reads an empty file as carrying no metadata" do
     File.write(path, "")
 
@@ -114,8 +100,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
     expect(described_class.existing_meta(path)).to be_nil
   end
 
-  # A full parse answers whatever the JSON library hands back, and any
-  # Hash of metadata will do.
   it "reads a document that parses to a Hash subclass" do
     allow(described_class).to receive(:parse_meta_head).and_return(nil)
     allow(JSON).to receive(:parse).and_return(Class.new(Hash).new.merge!(meta: {timestamp: timestamp}))
@@ -133,9 +117,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
   describe ".write" do
     let(:result) { instance_double(SimpleCov::Result, command_name: "RSpec") }
 
-    # Run from inside the temporary directory: the path under test is
-    # built from the output directory, and a mutation that drops that
-    # would otherwise write into the repository itself.
     around { |example| Dir.chdir(tmp) { example.run } }
 
     it "writes the document as pretty JSON under the fixed filename, and answers its path" do
@@ -145,11 +126,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(File.read(path)).to eq(%({\n  "meta": {\n    "command_name": "RSpec"\n  }\n}))
     end
 
-    # Written in binary mode so the two formatters that both emit this
-    # file produce identical bytes, rather than differing by whichever
-    # wrote last on a platform that translates newlines. Asserted at the
-    # call, since the mode itself has no effect on a platform that does
-    # not translate them.
     it "writes bytes, not text" do
       allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
 
@@ -170,8 +146,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
     end
   end
 
-  # The warning of issue #1171: a coverage.json newer than this process
-  # is a sibling test runner's, and overwriting it loses their data.
   describe ".warn_if_concurrent_overwrite" do
     let(:started) { Time.now }
     let(:result) { instance_double(SimpleCov::Result, command_name: "RSpec") }
@@ -210,8 +184,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(warning).to be_empty
     end
 
-    # Both formatters write this file through here, so a newer file
-    # carrying our own command name is our own run, not a rival's.
     it "says nothing about our own run's file" do
       write_existing(started + 5, command_name: "RSpec")
 
@@ -228,8 +200,6 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
       expect(warning).to be_empty
     end
 
-    # Without a start time there is nothing to compare against, which is
-    # the state a process that never called start is in.
     it "says nothing when this process has no recorded start time" do
       allow(SimpleCov).to receive(:process_start_time).and_return(nil)
       write_existing(Time.now + 5)

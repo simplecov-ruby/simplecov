@@ -3,14 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# Working with minitest: rake-driven and direct `ruby -I` runs both
-# produce reports, and an empty config with simplecov merely installed
-# does not crash the run (see issue #877).
 RSpec.describe "minitest integration", :sandbox do
   before do
     setup_project("faked_project")
-    # Minitest runs here and nowhere else, so the fixture keeps it in an
-    # optional Gemfile group that only this spec asks for.
     self.bundle_with = "minitest"
     install_dependencies
   end
@@ -55,10 +50,6 @@ RSpec.describe "minitest integration", :sandbox do
       # nothing
     RUBY
 
-    # Path requirements in the Gemfile evaluate the gemspec, which normally
-    # loads the version, which defines SimpleCov, which leads to a different
-    # failure. The variable works around that (carried over from the
-    # cucumber scenario).
     result = run_command_and_expect_success(
       "bundle exec rake minitest",
       env: {"SIMPLECOV_NO_REQUIRE_VERSION" => "0.22.0"}

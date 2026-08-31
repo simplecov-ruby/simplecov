@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# `track_files` adds files that were never required to the report, at 0%
-# coverage, so unrequired code can't silently escape the totals.
 RSpec.describe "tracked files", :sandbox do
   before { setup_project("faked_project") }
 

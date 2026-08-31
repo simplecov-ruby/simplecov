@@ -3,17 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# Defining some groups and filters should give a corresponding coverage
-# report that respects those settings, for both RSpec and Test/Unit runs.
-# The report data (embedded in index.html for the viewer) carries the
-# groups in configuration order with their stats and file lists; the
-# interactive side the cucumber suite clicked through (tab switching,
-# column sorting and the sort indicators) is covered by the bun suite in
-# html_frontend/test/{app,sort}.test.ts.
 RSpec.describe "groups and filters", :sandbox do
   before { setup_project("faked_project") }
 
-  # Asserts one group's displayed percent and exact membership.
   def expect_group(data, name, percent:, files:)
     group = reported_group(data, name)
     expect(displayed_percent(group.fetch("lines").fetch("percent"))).to eq(percent)

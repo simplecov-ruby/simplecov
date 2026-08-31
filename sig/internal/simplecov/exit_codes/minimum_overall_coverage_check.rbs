@@ -1,7 +1,5 @@
 module SimpleCov
   module ExitCodes
-    # Fails when the overall (project-wide) coverage for any criterion is
-    # below the configured minimum.
     class MinimumOverallCoverageCheck < Check
       def exit_code: () -> untyped
 

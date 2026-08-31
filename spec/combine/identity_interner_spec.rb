@@ -3,13 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::Combine::IdentityInterner do
-  # The interned id is only ever a hash key, so its value carries no
-  # meaning beyond "two keys that share an identity share an id". What is
-  # pinned here is that much, plus the caching a fold depends on: an
-  # identity is derived once per raw key, however often the fold asks.
   describe ".build" do
-    # Keys stand in for branch / method tuples: the second element is the
-    # part that varies between processes and is ignored, like a branch id.
     def interner
       described_class.build { |key| key.fetch(0) }
     end

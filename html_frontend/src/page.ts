@@ -1,5 +1,3 @@
-// Full-page assembly from the coverage data, plus the on-demand source-file
-// materializer. Owns the render state that maps file ids back to coverage.
 
 import hljs from 'highlight.js/lib/core';
 import ruby from 'highlight.js/lib/languages/ruby';
@@ -15,20 +13,10 @@ import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './
 import type { CoverageData, FileCoverage, ProductionData } from './types';
 
 hljs.registerLanguage('ruby', ruby);
-// A `.erb` view is markup with Ruby inside it, so it gets its own grammar
-// rather than being fed to the Ruby one, which declines to match markup and
-// leaves the whole file unhighlighted. Registered by name because that is how
-// highlight.js resolves the sub-language `erb` delegates its tags to.
 hljs.registerLanguage('erb', erb);
 hljs.registerLanguage('haml', haml);
 hljs.registerLanguage('slim', slim);
 
-// The favicon is a solid square in the coverage band's colour, drawn at
-// render time from the live palette so it matches the active theme.
-// Reading the band's custom property (--green/--red/--yellow, which the
-// asset build exempts from mangling) keeps it in lockstep with the
-// stylesheet in both themes; controls.ts calls updateFavicon() again
-// whenever the theme changes.
 let faviconBand: string | null = null;
 
 export function updateFavicon(): void {
@@ -51,36 +39,22 @@ export function updateFavicon(): void {
   link.href = canvas.toDataURL('image/png');
 }
 
-// Module-level state populated by renderPage() and consumed by the
-// on-demand source-file materializer. Holding it here (typed) avoids
-// hanging caches off the global Window object.
 interface RenderState {
   idToFilename: Record<string, string>;
   coverage: Record<string, FileCoverage>;
   lineCoverage: boolean;
   branchCoverage: boolean;
   methodCoverage: boolean;
-  // The recorded context ids, or null for a report without recordings.
   contexts: string[] | null;
-  // The production section, or null for a report without one.
   production: ProductionData | null;
 }
 let renderState: RenderState | null = null;
 
-// Per-file decoded context indices, built on first use: only opened files
-// pay the decode, and each pays it once.
 const contextIndexCache = new Map<string, FileContextIndex>();
 
-// How many run names the footer reads aloud before folding the full
-// list behind a disclosure. A merged CI matrix can carry hundreds of
-// distinct names, and enumerating them once filled the whole viewport
-// before the report content began (#1284).
 const FOOTER_RUN_LIMIT = 3;
 
 function runNamesHtml(meta: CoverageData['meta']): string {
-  // Older documents carry only the joined command_name; a run name can
-  // itself contain a comma, so the joined string is never split back
-  // apart into a count.
   const names = meta.command_names && meta.command_names.length ? meta.command_names : [meta.command_name];
   if (names.length <= FOOTER_RUN_LIMIT) return escapeHTML(names.join(', '));
   return `<details class="footer-runs"><summary>${escapeHTML(names[0])} and ${names.length - 1} other runs</summary>` +
@@ -94,7 +68,6 @@ export function renderPage(data: CoverageData): void {
   const methodCoverage = meta.method_coverage;
   const primaryCoverage = activeCoverageType(meta);
 
-  // Page title and favicon
   document.title = `Code coverage for ${meta.project_name}`;
   const allFiles = Object.keys(data.coverage);
   const overall = primaryCoverageStat(data.total, primaryCoverage);
@@ -104,9 +77,6 @@ export function renderPage(data: CoverageData): void {
 
   if (branchCoverage) document.body.setAttribute('data-branch-coverage', 'true');
 
-  // Content: file lists. Building the full markup in memory and assigning
-  // innerHTML once avoids the O(n^2) re-parse that `innerHTML += ...` in a
-  // loop would trigger on reports with many groups.
   const content = document.getElementById('content')!;
   const fileListSections = [
     renderFileList({
@@ -143,8 +113,6 @@ export function renderPage(data: CoverageData): void {
   }
   content.innerHTML = fileListSections.join('');
 
-  // Cache the lookup map and coverage data so the on-demand source file
-  // materializer can resolve an id back to its FileCoverage in O(1).
   const idToFilename: Record<string, string> = {};
   for (const fn of allFiles) idToFilename[fileId(fn)] = fn;
   renderState = {
@@ -154,7 +122,6 @@ export function renderPage(data: CoverageData): void {
   };
   contextIndexCache.clear();
 
-  // Footer
   const timestamp = new Date(meta.timestamp);
   const footerHtml = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
     ` by <a href="https://github.com/simplecov-ruby/simplecov">simplecov</a> v${escapeHTML(meta.simplecov_version)}` +
@@ -162,12 +129,8 @@ export function renderPage(data: CoverageData): void {
   document.getElementById('footer')!.innerHTML = footerHtml;
   document.getElementById('source-dialog-footer')!.innerHTML = footerHtml;
 
-  // Source legend
   const legend = document.getElementById('source-legend')!;
   let legendHtml = '';
-  // A tracked report splits the covered chip in two, renaming green to say
-  // what it then actually means and pairing it with the slate chip for
-  // coverage no recorded test produced.
   if (lineCoverage) {
     const coveredChips = data.contexts
       ? '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered by tests</span>' +
@@ -179,10 +142,6 @@ export function renderPage(data: CoverageData): void {
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>' +
       '</div>';
   }
-  // The production cross marks only its two interesting cells: covered
-  // code the window never ran (a deletion candidate) and missed code it
-  // did (untested code real users are running). Run-and-covered is the
-  // cell nothing needs reporting about.
   if (data.production && lineCoverage) {
     legendHtml += '<div class="source-legend__row source-legend__row--production">' +
       '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--production-never"></span>Never ran in production</span>' +
@@ -217,8 +176,6 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
     renderState.branchCoverage,
     renderState.methodCoverage,
     renderState.contexts || undefined,
-    // undefined: no production section; null: a section that never saw
-    // this file (every relevant line renders as never-ran).
     renderState.production ? (renderState.production.files[targetFilename] || null) : undefined,
   );
   const container = document.querySelector('.source_files')!;
@@ -231,10 +188,6 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
   return el;
 }
 
-// The covering test ids for one line of a materialized source file, or
-// null when the report carries no recordings (or the id is unknown). This
-// is the peek panel's resolver; the ids come back sorted, matching the
-// CLI's answer for the same file and line.
 export function contextsForSourceLine(sourceFileId: string, line: number): string[] | null {
   if (!renderState || !renderState.contexts) return null;
   const filename = renderState.idToFilename[sourceFileId];

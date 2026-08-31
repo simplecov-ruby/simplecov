@@ -3,16 +3,6 @@
 require "helper"
 require "open3"
 
-# Direct examples for the document builder. The whole-formatter specs in
-# spec/formatter/json_formatter_spec.rb compare a parsed report, where
-# every Symbol has already been flattened into a String and the optional
-# sections depend on whatever the environment happened to carry. Here the
-# built hash is inspected before serialization, and each optional section
-# is driven on and off deliberately.
-#
-# `mutant_expression` keeps these examples in the pool the whole
-# JSONFormatter namespace shares, rather than claiming the
-# ResultHashFormatter pool for this file alone.
 RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
                mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
   subject(:document) { described_class.format(result) }
@@ -21,9 +11,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
   let(:fixed_time) { Time.utc(2024, 1, 2, 3, 4, 5, 678_900) }
   let(:sample_path) { source_fixture("json/sample.rb") }
   let(:project_filename) { SimpleCov::SourceFile.new(sample_path, []).project_filename }
-  # Two covered lines and one missed, at the top of a 25-line fixture
-  # whose remaining lines are irrelevant to cover or skipped, which is
-  # where the omitted count comes from.
   let(:coverage_data) { {sample_path => {"lines" => [nil, 1, 1, 0, nil]}} }
 
   let(:result) do
@@ -33,14 +20,9 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
   end
 
   before do
-    # Constrained on the exact command line, so a mutation that reaches
-    # for a different program or a different repository is an
-    # unexpected message rather than a silently identical answer.
     allow(Open3).to receive(:capture2e)
       .with("git", "-C", SimpleCov.root, "rev-parse", "HEAD")
       .and_return(["#{commit}\n", instance_double(Process::Status, success?: true)])
-    # One recorded run is not a trend, so the default carries no history
-    # section and each example that wants one says so.
     allow(SimpleCov::History).to receive(:entries_with).and_return([{"created_at" => "2024-01-01T00:00:00Z"}])
     allow(SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter).to receive(:call).and_return(nil)
   end
@@ -62,8 +44,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
       timestamp: "2024-01-02T03:04:05.678Z",
       root: SimpleCov.root,
       commit: commit,
-      # The configured criterion's own name, spelled out rather than
-      # left as the Symbol the configuration keeps it as.
       primary_coverage: "line",
       line_coverage: true, branch_coverage: false, method_coverage: false
     )
@@ -77,8 +57,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
     )
   end
 
-  # `capture2e` hands back whatever git wrote, newline and all, and the
-  # commit is recorded as the bare SHA with nothing around it.
   it "records the commit with the whitespace around it trimmed" do
     allow(Open3).to receive(:capture2e)
       .with("git", "-C", SimpleCov.root, "rev-parse", "HEAD")
@@ -110,7 +88,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
   it "totals a criterion switched on in place of lines" do
     allow(SimpleCov).to receive_messages(line_coverage?: false, branch_coverage?: true)
 
-    # No `omitted` for branches: only lines can be irrelevant to cover.
     expect(document.fetch(:total)).to eq(
       branches: {covered: 0, missed: 0, total: 0, percent: 100.0, strength: 0.0}
     )
@@ -143,9 +120,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
     expect(document.fetch(:errors)).to eq(minimum_coverage: {lines: {expected: 95, actual: 66.66}})
   end
 
-  # The optional sections. Each is present exactly when the run has
-  # something to say with it, so consumers can tell "recorded and empty"
-  # from "not recorded".
   it "omits contexts, history and production when the run carries none" do
     expect(document.keys).not_to include(:contexts, :history, :production)
   end

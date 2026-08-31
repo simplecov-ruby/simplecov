@@ -17,12 +17,11 @@ module SimpleCov
     #   no         | yes   | possibly dead, a deletion candidate
     #   no         | no    | dead
     #
-    # The default view prints the bottom two rows (the deletion
-    # candidates); `--untested-in-production` prints the second (the
-    # highest-value place to add a test). Coverage over a long enough
-    # window is far better evidence for deleting Ruby than any static
-    # analysis of it, which is why the header names the window the
-    # production data spans.
+    # The default view prints the bottom two rows (the deletion candidates);
+    # `--untested-in-production` prints the second (the highest-value place to
+    # add a test). Coverage over a long enough window is far better evidence
+    # for deleting Ruby than any static analysis of it, which is why the header
+    # names the window the production data spans.
     module DeadCode
       extend CommandHelpers
 
@@ -45,17 +44,17 @@ module SimpleCov
       end
 
       def parse(args, stderr)
-        # `production` needs no default: it is filled in below from the
-        # project's configured store whenever the flag went unused.
+        # `production` needs no default: it is filled in below from the project's
+        # configured store whenever the flag went unused.
         opts, rest = parse_common(args, untested: false) do |parser, options|
           parser.on("--production PATH") { |v| options[:production] = v }
           parser.on("--untested-in-production") { options[:untested] = true }
         end
         return error_nil(stderr, "unexpected argument #{rest.first.inspect}") unless rest.empty?
 
-        # The project's configured store fills in for the flag, the way
-        # ratchet reads `baseline_file`, so the DSL stays the single
-        # source of truth for where production coverage lives.
+        # The project's configured store fills in for the flag, the way ratchet
+        # reads `baseline_file`, so the DSL stays the single source of truth for
+        # where production coverage lives.
         opts[:production] ||= Dotfile.production_coverage
         opts.fetch(:production) ? opts : missing_production(stderr)
       end
@@ -71,34 +70,32 @@ module SimpleCov
       rescue Errno::ENOENT
         error_nil(stderr, "#{path} not found")
       rescue SystemCallError, Production::Error => e
-        # The exception stands for its own message in `error`'s
-        # interpolation.
+        # The exception stands for its own message in `error`'s interpolation.
         error_nil(stderr, e)
       end
 
-      # Classify every relevant line of the report against the
-      # production set, and sweep in production files the report never
-      # tracked (nothing tested them, so every recorded line is
-      # untested-in-production). Lines the report deems irrelevant or
-      # deliberately ignored stay out of every bucket.
+      # Classifies every relevant line of the report against the production set,
+      # and sweeps in production files the report never tracked (nothing tested
+      # them, so every recorded line is untested-in-production). Lines the
+      # report deems irrelevant or deliberately ignored stay out of every
+      # bucket.
       def cross(coverage, production_coverage)
         matrix = {dead: {}, possibly_dead: {}, untested_in_production: {}, entire: Set.new} #: Hash[Symbol, untyped]
         coverage.each do |file, entry|
           lines = entry["lines"]
           classify_file(matrix, file, lines, production_coverage[file] || []) if lines.instance_of?(Array)
         end
-        # Files go in unsorted: both the text sections and the JSON
-        # payload sort what they print, so the order they were recorded
-        # in is never the order anything reads.
+        # Files go in unsorted: both the text sections and the JSON payload sort
+        # what they print.
         (production_coverage.keys - coverage.keys).each do |file|
           matrix.fetch(:untested_in_production)[file] = production_coverage.fetch(file).sort
         end
         matrix
       end
 
-      # mutant:disable — the production lines are held as a Set for the
-      # cost of asking, and a list answers `include?` the same way, so
-      # the conversion has no witness at any call site it could live at.
+      # mutant:disable -- the production lines are held as a Set for the cost of
+      # asking, and a list answers `include?` the same way, so the conversion
+      # has no witness at any call site it could live at.
       def classify_file(matrix, file, lines, production_lines)
         production = production_lines.to_set
         buckets = {dead: [], possibly_dead: [], untested_in_production: []} #: Hash[Symbol, Array[Integer]]
@@ -113,8 +110,8 @@ module SimpleCov
         record(matrix, file, buckets, relevant)
       end
 
-      # The matrix's four cells; the yes/yes cell is the one nothing
-      # needs reporting about.
+      # The matrix's four cells; the yes/yes cell is the one nothing needs
+      # reporting about.
       def classify_line(tested, in_production)
         return :untested_in_production if in_production && !tested
         return nil if in_production
@@ -122,21 +119,19 @@ module SimpleCov
         tested ? :possibly_dead : :dead
       end
 
-      # mutant:disable — the count of relevant lines is checked before
-      # a file is called entirely dead, but a file with no relevant
-      # lines lands in no bucket, so it appears in no section and the
-      # mark is never read back. The guard says what is meant rather
-      # than what can be seen.
+      # mutant:disable -- the count of relevant lines is checked before a file is
+      # called entirely dead, but a file with no relevant lines lands in no
+      # bucket, so the mark is never read back. The guard says what is meant
+      # rather than what can be seen.
       def record(matrix, file, buckets, relevant)
         buckets.each { |bucket, found| matrix.fetch(bucket)[file] = found unless found.empty? }
-        # Counted down to nothing rather than compared for equality: two
-        # counts that are equal are equal through every spelling of the
-        # comparison, and none of those spellings could be told apart.
+        # Counted down to nothing rather than compared for equality: two counts
+        # that are equal are equal through every spelling of the comparison.
         unhit = buckets.fetch(:dead).size + buckets.fetch(:possibly_dead).size
         return unless relevant.positive? && (relevant - unhit).zero?
 
-        # Every relevant line unhit in production: the deletion
-        # candidate is the whole file, and the report says so.
+        # Every relevant line unhit in production: the deletion candidate is the
+        # whole file.
         matrix.fetch(:entire) << file
       end
     end

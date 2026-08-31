@@ -1,11 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov tests [<path>[:<line>]]` — list the recorded tests from a
-    # coverage.json written under `track_tests`: all of them bare, those
-    # touching a file, or those covering one line.
     module Tests
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers

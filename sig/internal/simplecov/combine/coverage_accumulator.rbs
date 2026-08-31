@@ -1,24 +1,10 @@
         module SimpleCov
   module Combine
-    #
-    # Folds any number of resultsets' coverage into one, absorbing them one
-    # at a time, updating state it owns instead of rebuilding the whole
-    # accumulated structure per resultset.
-    #
     class CoverageAccumulator
-      # nil until the first absorb, which is what tells "nothing was
-      # absorbed" apart from "an empty resultset was absorbed".
       @files: Hash[String, untyped]?
 
-      # A file some process actually loaded has at least one executed line;
-      # a simulated (never-loaded) file's lines are all `nil` or `0`. Shared
-      # with `ResultMerger`, which re-derives a merged result's not-loaded set
-      # from the same signal.
       def self.executed?: (untyped lines) -> bool
 
-      # Folds `[command_names, coverage]` pairs into one merged coverage.
-      # `pairs` is only iterated, so a lazy enumerable keeps the caller from
-      # holding more than one resultset in memory.
       def self.fold: (untyped pairs) -> [Array[String], untyped]
 
       @branch_coverage: bool
@@ -26,20 +12,12 @@
 
       def initialize: () -> void
 
-      # Folds one resultset's coverage (filename => per-file coverage) in.
-      # A `nil` coverage is ignored.
       def absorb: (untyped coverage) -> CoverageAccumulator
 
-      # The merged coverage, or `nil` when nothing was absorbed at all.
       def result: () -> untyped
 
-      # The first sighting of a file is kept as-is; the second promotes it
-      # to a `MergedFile` that owns its state.
       private def merge_file: (untyped existing, untyped file_coverage) -> untyped
 
-      #
-      # One file's accumulated coverage.
-      #
       class MergedFile
         @branch_coverage: bool
         @method_coverage: bool
@@ -51,17 +29,12 @@
 
         private def new_table: () -> Hash[untyped, untyped]
 
-        # The executed side's tuples when it has them, otherwise a table only
-        # when this process measures the criterion itself.
         def authoritative_table: (untyped combiner, untyped table, bool keep_empty) -> Hash[untyped, untyped]?
 
         def absorb: (untyped coverage) -> MergedFile
 
         def to_h: () -> Hash[String, untyped]
 
-        # When exactly one side of the merge was actually executed, its
-        # branch and method tuples are authoritative and the other side's
-        # are dropped (issue #1233).
         private def reconcile_synthesized: (untyped coverage) -> void
 
         private def absorb_tuples: (untyped coverage) -> void
@@ -70,10 +43,7 @@
 
         private def drop_incoming_tuples: (untyped coverage) -> void
 
-        # Whether a side can be judged at all. Absent lines mean unknown, not
-        # never ran: a branch-only or method-only run omits them for the files
-        # it loaded.
-        private def judgeable?: (Array[Integer?]? lines) -> bool
+        private def lines_measured?: (Array[Integer?]? lines) -> bool
 
         private def executed?: (Array[Integer?]? lines) -> bool
       end

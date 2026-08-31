@@ -60,9 +60,6 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     end
   end
 
-  # The dampener: a file whose percent slipped (a shrinking file, an
-  # edit that removed covered lines) still passes while it carries no
-  # more misses than its floor recorded.
   context "when the percent dropped but the missed count did not grow" do
     let(:floor_percent) { 90.0 }
     let(:floor_missed) { 2 }
@@ -134,8 +131,6 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
     end
   end
 
-  # The baseline is not a threshold: it is kept apart so the per-file
-  # checks can exempt the pairs it covers.
   it "carries the baseline rather than a threshold" do
     expect(check.send(:thresholds)).to be_nil
     expect(check.instance_variable_get(:@baseline)).to be(baseline)
@@ -153,8 +148,6 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
                 "(2 uncovered lines, 1 allowed)."])
     end
 
-    # Oneshot lines are recorded under the line statistics, so their
-    # units are read through the key they are stored under.
     it "names oneshot lines as lines" do
       violation = {criterion: :oneshot_line, allowed_missed: 1, actual_missed: 2}
 

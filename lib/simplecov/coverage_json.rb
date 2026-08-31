@@ -3,9 +3,6 @@
 require "json"
 
 module SimpleCov
-  # Shared parser for coverage.json consumers. It enforces the encoding and
-  # stable outermost shape while leaving command- or viewer-specific fields to
-  # their respective callers.
   module CoverageJSON
     class Error < StandardError; end
 

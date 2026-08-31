@@ -31,8 +31,6 @@ RSpec.describe SimpleCov::Result do
     context "when a simple cov result initialized from that" do
       subject(:result) { described_class.new(original_result) }
 
-      # The Coverage.result the process hands over is shared with the
-      # merge, so a Result must not be able to edit it underfoot.
       it "freezes the coverage hash it was handed" do
         expect(result.original_result).to be_frozen
       end
@@ -47,8 +45,6 @@ RSpec.describe SimpleCov::Result do
         expect(described_class.new(original_result).command_name).to eq("Fixture Suite")
       end
 
-      # The merge hands over a Set of every path its workers tracked; the
-      # resultset entry is a list.
       it "reads tracked files from any collection, not only an Array" do
         tracked = described_class.new(original_result, tracked_files: Set["/x/one.rb"])
 
@@ -59,8 +55,6 @@ RSpec.describe SimpleCov::Result do
         expect(result.filenames.count).to eq(3)
       end
 
-      # A Set is what keeps the restriction one membership test per
-      # recorded file, so the type is part of the promise.
       it "carries its own filenames as a Set for the context restriction" do
         expect(result.send(:context_filenames)).to be_a(Set)
         expect(result.send(:context_filenames)).to eq(Set.new(result.filenames))
@@ -81,7 +75,6 @@ RSpec.describe SimpleCov::Result do
       end
 
       it "has accurate covered percent" do
-        # in our fixture, there are 13 covered line (result in 1) in all 15 relevant line (result in non-nil)
         expect(result.covered_percent).to eq(86.66666666666667)
       end
 
@@ -108,16 +101,10 @@ RSpec.describe SimpleCov::Result do
           expect(result.to_hash).to be_a Hash
         end
 
-        # Recorded so a merge in another process can inject the files nobody
-        # loaded without needing this process's `cover` / `track_files` config.
-        # Omitted when empty so a run that tracks nothing writes the shape it
-        # always has. See #1250.
         it "omits tracked_files when nothing was tracked" do
           expect(result.to_hash.values.first).not_to have_key("tracked_files")
         end
 
-        # Only the keys a run actually carries are written, so an entry
-        # never claims an identity or a file list it does not have.
         it "writes nothing but coverage and timestamp for a plain run" do
           plain = described_class.new(original_result, command_name: "t")
 
@@ -157,12 +144,6 @@ RSpec.describe SimpleCov::Result do
           expect(restored.worker_id).to eq("worker-2")
         end
 
-        # A live result's criterion keys are Symbols (ResultAdapter keeps
-        # Ruby's Coverage keys), while stored entries parsed back from JSON
-        # carry Strings and the combiners read only Strings. Symbol keys in
-        # the dump meant a live result merged against a stored entry with
-        # the same command name (the #581 concurrent-runner path)
-        # contributed nothing for every shared file.
         it "serializes symbol criterion keys as strings" do
           live = described_class.new(
             {source_fixture("sample.rb") => {lines: [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}},
@@ -197,8 +178,6 @@ RSpec.describe SimpleCov::Result do
           expect(restored.contexts).to eq(["spec/sample_spec.rb:3", "spec/other_spec.rb:9"])
         end
 
-        # Presence of the key (even for an empty map) is what lets a merge
-        # tell "tracked and covered nothing" from "never tracked".
         it "serializes an empty map rather than omitting it" do
           mapped = described_class.new(original_result, command_name: "t", contexts: SimpleCov::ContextMap.new)
 
@@ -263,15 +242,12 @@ RSpec.describe SimpleCov::Result do
         explicit_filter = SimpleCov::StringFilter.new("user.rb")
         filter_config = SimpleCov::Result::FilterConfig.new(filters: [explicit_filter])
         result = described_class.new(original_result, filter_config: filter_config)
-        # Drops user.rb, keeps sample.rb (which the global chain would have filtered)
         expect(result.filenames.map { |f| File.basename(f) }).to contain_exactly(
           "sample.rb",
           "sample_controller.rb"
         )
       end
 
-      # The dump carries the files the report carries: a filtered-out file
-      # has no place in the entry another process merges against.
       it "serializes coverage only for the files that survived the filters" do
         filtered = described_class.new(original_result, command_name: "t")
 
@@ -288,8 +264,6 @@ RSpec.describe SimpleCov::Result do
         expect(result.files).to be_a(SimpleCov::FileList)
       end
 
-      # Several `cover` matchers union rather than intersect: a file is
-      # kept when any one of them claims it.
       it "keeps a file matched by only one of several cover filters" do
         filter_config = SimpleCov::Result::FilterConfig.new(
           filters: [],
@@ -320,8 +294,6 @@ RSpec.describe SimpleCov::Result do
         expect(result.groups.length).to eq(3)
       end
 
-      # The groups come from the configuration the Result was built with,
-      # which is not always the singleton's.
       it "groups by an explicitly-passed configuration instead of the singleton's" do
         filter_config = SimpleCov::Result::FilterConfig.new(groups: {"Only Models" => SimpleCov::StringFilter.new("app/models")})
         grouped = described_class.new(original_result, filter_config: filter_config)
@@ -346,9 +318,6 @@ RSpec.describe SimpleCov::Result do
           expect(result.format!).to be_a String
         end
 
-        # The stamp is the on-disk signal behind the clobber-prevention
-        # backstop; unlike .last_run.json it must appear no matter how
-        # the run ends.
         it "touches the report stamp when formatting" do
           Dir.mktmpdir("simplecov-stamp-spec-") do |dir|
             allow(SimpleCov).to receive(:coverage_path).and_return(dir)
@@ -375,9 +344,6 @@ RSpec.describe SimpleCov::Result do
         end
       end
 
-      # Formatter instances (rather than classes) are how constructor
-      # options like `silent: true` reach the built-in formatters; see
-      # #1240.
       context "when a formatter instance is configured" do
         before do
           SimpleCov.formatter = SimpleCov::Formatter::SimpleFormatter.new
@@ -403,7 +369,6 @@ RSpec.describe SimpleCov::Result do
         end
       end
 
-      # `formatter false` / `formatters []` opts out of formatting; see #964.
       context "when no formatter is configured (opted out)" do
         before { SimpleCov.formatter(false) }
 
@@ -533,8 +498,6 @@ RSpec.describe SimpleCov::Result do
         expect(result.source_file_for(relative).filename).to eq(user_path)
       end
 
-      # Resolution is against SimpleCov.root, not the working directory,
-      # so a relative path means the same thing wherever it is looked up.
       it "resolves a relative path against SimpleCov.root, not the process's cwd" do
         relative = Pathname.new(user_path).relative_path_from(Pathname.new(SimpleCov.root)).to_s
         looked_up = result
@@ -558,10 +521,6 @@ RSpec.describe SimpleCov::Result do
       end
     end
 
-    # Regression for https://github.com/simplecov-ruby/simplecov/issues/980.
-    # When a resultset references source files that don't exist locally,
-    # the silent "0 / 0 (100.00%)" outcome looks like success. Result now
-    # emits a single summary warning naming the missing paths.
     describe "warning when resultset paths don't exist on this filesystem" do
       let(:missing_only) do
         {
@@ -591,22 +550,11 @@ RSpec.describe SimpleCov::Result do
         expect(stderr).to be_empty
       end
 
-      # Per-process slices (process_coverage_result) build with report: false
-      # so the warning isn't emitted once per parallel worker; only the merged
-      # result reports. See issue #1171.
       it "stays silent for a non-reporting result (report: false)" do
         stderr = capture_stderr { described_class.new(missing_only) }
         expect(stderr).to be_empty
       end
 
-      # In a parallel run only the final-result process reports, so the warning
-      # is emitted once rather than once per worker. See issue #1171.
-      #
-      # Real state rather than a partial double: JRuby intermittently kept
-      # dispatching to the original final_result_process? through an
-      # already-compiled call site, letting the warning through and failing
-      # the suite. A forked subprocess is never the final-result process,
-      # so marking the real flag exercises the same gate without stubbing.
       it "stays silent when this isn't the final-result process" do
         previous = SimpleCov.current_run
         SimpleCov.current_run = SimpleCov::CurrentRun.new
@@ -625,9 +573,6 @@ RSpec.describe SimpleCov::Result do
     end
   end
 
-  # Reached only through Result#initialize in production, so the shapes it
-  # has to survive (symbol criterion keys, a path whose source is gone) are
-  # pinned here rather than through a whole formatted report.
   describe SimpleCov::Result::SourceFileBuilder do
     let(:sample) { source_fixture("json/sample.rb") }
     let(:user) { source_fixture("app/models/user.rb") }
@@ -646,8 +591,6 @@ RSpec.describe SimpleCov::Result do
       expect(builder.missing_source_files).to be_empty
     end
 
-    # The report drops what it cannot read, and hands the caller the list so
-    # the drop can be said out loud. See #980.
     it "collects the paths whose source is gone instead of building them" do
       builder = builder_for({missing => {"lines" => [1]}, sample => {"lines" => [1, 0, 1]}})
 
@@ -655,8 +598,6 @@ RSpec.describe SimpleCov::Result do
       expect(builder.missing_source_files).to eq([missing])
     end
 
-    # `Coverage.result` keys the criteria with Symbols; a resultset read
-    # back from disk uses Strings, and SourceFile reads Strings.
     it "stringifies the criterion keys a live Coverage.result carries" do
       file = builder_for({sample => {lines: [1, 0, 1]}}).call.first
 
@@ -671,9 +612,6 @@ RSpec.describe SimpleCov::Result do
     end
   end
 
-  # The warning behind issue #980: a resultset naming source files that
-  # don't exist here produces an empty "0 / 0 (100.00%)" report that looks
-  # like success. These are the exact lines it prints.
   describe SimpleCov::Result::MissingSourceFilesReporter do
     subject(:reporter) { described_class.new(paths, every_entry_dropped: false) }
 

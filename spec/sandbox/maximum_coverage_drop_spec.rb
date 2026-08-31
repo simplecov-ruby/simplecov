@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Exit code should be non-zero if the overall coverage decreases by more
-# than the maximum_coverage_drop threshold.
 RSpec.describe "maximum coverage drop enforcement", :sandbox do
   before { setup_project("faked_project") }
 
@@ -31,8 +29,6 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     RUBY
   end
 
-  # Variant whose failing example also exercises a branch, for the
-  # branch-coverage drop scenarios.
   let(:branchy_failing_spec) do
     <<~RUBY
       require "spec_helper"
@@ -48,13 +44,10 @@ RSpec.describe "maximum coverage drop enforcement", :sandbox do
     JSON.parse(read_file("coverage/.last_run.json"))
   end
 
-  # Plants a previous-run file, e.g. write_last_run("line" => 100.0).
   def write_last_run(result)
     write_file("coverage/.last_run.json", JSON.generate("result" => result))
   end
 
-  # Shared arrangement for the branch-drop scenarios: inject the config,
-  # drop line and branch coverage, and plant a 100%/100% previous run.
   def arrange_branch_drop(simplecov_config)
     configure_simplecov(:test_unit, simplecov_config)
     write_file("lib/faked_project/missed.rb", uncovered_source)

@@ -3,11 +3,9 @@
 module SimpleCov
   module CLI
     module Show
-      # Renders one file's annotated source: a right-aligned line-number
-      # gutter, the hit count beside it (blank for never-relevant and
-      # nocov lines), and a caret line naming each miss under the line
-      # it happened on. Counts and markers colorize under the same rules
-      # every other subcommand follows.
+      # Renders one file's annotated source: a right-aligned line-number gutter,
+      # the hit count beside it, and a caret line naming each miss under the line
+      # it happened on.
       module Annotator
         extend self
 
@@ -28,15 +26,12 @@ module SimpleCov
           stdout.puts(gutter + paint("^ #{labels.join(', ')}", :red, color))
         end
 
-        # The 1-indexed lines the report counts as missed.
         def missed_lines(entry)
           entry.fetch("lines").each_with_index.filter_map do |hit, index|
             index + 1 if hit.instance_of?(Integer) && hit.zero?
           end
         end
 
-        # line number => labels, in the order line, branch, method — a
-        # line missing more than one way joins them on one caret line.
         def markers_for(entry)
           markers = Hash.new { |hash, line| hash[line] = [] } #: Hash[Integer, Array[String]]
           missed_lines(entry).each { |line| markers[line] << "missed" }
@@ -45,7 +40,6 @@ module SimpleCov
           markers
         end
 
-        # Yields the reported line of each item with a zero hit count.
         def each_missed(items)
           return unless items.instance_of?(Array)
 
@@ -55,9 +49,8 @@ module SimpleCov
           end
         end
 
-        # The reported line of a zero-hit item, nil for a covered or
-        # malformed one — the same tolerance the patch subcommand
-        # applies to branch entries.
+        # The reported line of a zero-hit item, nil for a covered or malformed one,
+        # the same tolerance the patch subcommand applies to branch entries.
         def missed_line_of(item)
           return nil unless item.instance_of?(Hash)
 
@@ -68,8 +61,6 @@ module SimpleCov
           line if line.instance_of?(Integer)
         end
 
-        # A block to grep is a block to map: the counted widths, without
-        # the intermediate list of the counts themselves.
         def count_width(entry)
           entry.fetch("lines").grep(Integer) { |hit| hit.to_s.length }.max || 1
         end
@@ -78,8 +69,8 @@ module SimpleCov
           format("%#{widths.fetch(:number)}d  %s  %s", number, count(hit, widths, color), line).rstrip
         end
 
-        # Padded to width before it is painted, so escape codes can't
-        # skew the column, and blank for a line carrying no count.
+        # Padded to width before it is painted, so escape codes can't skew the
+        # column, and blank for a line carrying no count.
         def count(hit, widths, color)
           padded = (hit.instance_of?(Integer) ? hit.to_s : "").rjust(widths.fetch(:count))
           return padded unless hit.instance_of?(Integer)

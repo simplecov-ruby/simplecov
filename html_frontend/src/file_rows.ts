@@ -1,7 +1,3 @@
-// Cache of the currently-visible file rows in the active group. Shared by the
-// table (which invalidates it after filtering) and the viewer's keyboard
-// navigation (which iterates it). Kept in its own module so neither depends on
-// the other.
 
 import { $$ } from './dom';
 

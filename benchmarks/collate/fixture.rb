@@ -7,19 +7,9 @@ require_relative "file_structure"
 require_relative "shape"
 
 module CollateBenchmark
-  # Generates and caches the coverage artifacts a large parallel CI run leaves
-  # behind: N `.resultset-*.json` shards plus the source tree they reference.
-  # See `Shape` for the statistics they reproduce; a fixed seed makes
-  # every machine generate the same paths, line shapes, branch keys and hit
-  # counts (only the shared timestamp differs).
-  #
-  # Everything lands under the repository's own `tmp/`, which is already
-  # git-ignored and already excluded from RuboCop, and is deliberately left
-  # behind after a run so repeated runs and `--baseline` comparisons reuse it.
   module Fixture
     extend self
 
-    # Bumping this invalidates cached fixtures whose layout predates it.
     GENERATOR_VERSION = 1
     SEED = 20_240_517
 
@@ -37,18 +27,11 @@ module CollateBenchmark
       DIR
     end
 
-    # @param scale [Integer] divide `Shape::FILES` by this
-    # @param resultsets [Integer] how many shards to make available
-    # @param force [Boolean] regenerate even if a matching fixture is cached
     def prepare(scale:, resultsets:, force: false)
       build(scale, resultsets) if force || !cached?(scale, resultsets)
       built(resultsets)
     end
 
-    # A cached fixture with *more* shards than we need is still usable — take
-    # the first N. That keeps `COUNT` a runtime knob for quick iteration rather
-    # than a full regeneration trigger. Scale, seed and generator version have
-    # to match exactly, since they change the data itself.
     def cached?(scale, resultsets)
       manifest = manifest_on_disk
       return false unless manifest
@@ -76,8 +59,6 @@ module CollateBenchmark
       )
     end
 
-    # Shards are dotfiles, matching what SimpleCov itself writes, so the glob
-    # has to opt into them. Sorted numerically so a `COUNT` slice is stable.
     def resultset_paths
       Dir.glob(File.join(RESULT_FILES_DIR, ".resultset-*.json"))
          .sort_by { |path| path[/-(\d+)\.json\z/, 1].to_i }
@@ -112,8 +93,6 @@ module CollateBenchmark
       File.write(MANIFEST_PATH, JSON.pretty_generate(manifest))
     end
 
-    # Carriage-return progress is only readable on a terminal; piped into a log
-    # it would be one enormous line, so print just the final count there.
     def progress(done, total, label)
       if $stderr.tty?
         return unless done == total || (done % 25).zero?

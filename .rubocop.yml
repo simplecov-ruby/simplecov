@@ -175,6 +175,11 @@ Style/ClassVars:
     # to carry one too.
     - "spec/simplecov_spec.rb"
 
+Style/Documentation:
+  # Class and module names carry the explanation; a banner comment restating
+  # them is a maintenance liability, not documentation.
+  Enabled: false
+
 Style/FrozenStringLiteralComment:
   Description:
     Add the frozen_string_literal comment to the top of files to help transition

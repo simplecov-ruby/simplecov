@@ -1,9 +1,5 @@
 module SimpleCov
   module ExitCodes
-    # Fails when a file listed in the checked-in baseline drops below
-    # its own floor: a lower percent than the floor records AND more
-    # misses than it allows (the dampener; a percent-only floor is
-    # decided by the percent alone).
     class BaselineCheck < Check
       @baseline: Baseline?
 

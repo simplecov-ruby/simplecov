@@ -41,9 +41,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.contexts).to eq(["spec/thing_spec.rb:5"])
     end
 
-    # The two recordings share line 3 on purpose: a union keeps a line
-    # both of them saw, where any other bitwise fold would cancel or
-    # discard it.
     it "keeps a line two recordings of one test both covered" do
       map.record("spec/thing_spec.rb:5", lib_file => 0b101)
       map.record("spec/thing_spec.rb:5", lib_file => 0b110)
@@ -51,8 +48,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.serialized_bitmaps_for(lib_file)).to eq("0" => "7")
     end
 
-    # A file with nothing to record is skipped, not a full stop: the
-    # rest of the batch still has to land.
     it "records the rest of a batch after a file the context never touched" do
       map.record("spec/thing_spec.rb:5", lib_file => 0, other_file => 0b1)
 
@@ -63,9 +58,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.record("spec/thing_spec.rb:5", lib_file => 0b1)).to be(map)
     end
 
-    # Callers hand in project-relative paths, and the project root is not
-    # necessarily the working directory (`simplecov merge` runs from
-    # wherever the user is).
     it "resolves a relative path against SimpleCov.root, not the working directory" do
       map.record("spec/thing_spec.rb:5", lib_file => 0b1)
 
@@ -109,8 +101,6 @@ RSpec.describe SimpleCov::ContextMap do
     it "merges by test id, re-interning the other map's indices" do
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
       other = described_class.new
-      # Recorded in a different order, so the raw indices disagree on
-      # purpose: index 0 means a different test on each side.
       other.record("spec/b_spec.rb:2", lib_file => 0b10)
       other.record("spec/a_spec.rb:1", lib_file => 0b100)
 
@@ -122,8 +112,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.contexts).to eq(["spec/a_spec.rb:1", "spec/b_spec.rb:2"])
     end
 
-    # Both sides recorded line 1 for the same test, which is what one
-    # test running under two workers looks like: the union keeps it.
     it "keeps a line both maps recorded for the same test" do
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
       other = described_class.new
@@ -165,9 +153,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.serialized_bitmaps_for(other_file)).to eq({})
     end
 
-    # The project root is not necessarily the working directory
-    # (`simplecov merge` runs from wherever the user is), so a relative
-    # path has to resolve against the root and nothing else.
     it "resolves a relative path against SimpleCov.root, not the working directory" do
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
 
@@ -201,8 +186,6 @@ RSpec.describe SimpleCov::ContextMap do
       )
     end
 
-    # A future format change bumps the version, and an older reader must
-    # treat data it cannot interpret as absent rather than misread it.
     it "treats an unknown format version as no map at all" do
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
       dumped = map.to_h
@@ -211,8 +194,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(described_class.from_hash(dumped.except("version"))).to be_nil
     end
 
-    # Recording order varies run to run, so serialization sorts each
-    # file's table by test index to keep stored resultsets diffable.
     it "serializes each file's bitmaps in test-index order" do
       map.record("spec/b_spec.rb:2", {})
       map.record("spec/a_spec.rb:1", {})
@@ -241,8 +222,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(map.contexts).to eq(["spec/a_spec.rb:1"])
     end
 
-    # A test that covered nothing has no entry in any file table, so the
-    # serialized context list is the only record that it ran at all.
     it "restores a test that covered nothing, in its recorded position" do
       map.record("spec/quiet_spec.rb:1", {})
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
@@ -253,8 +232,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(restored.covering(lib_file, 1)).to eq(["spec/a_spec.rb:1"])
     end
 
-    # A bitmap wide enough to need more than one hex digit, read back as
-    # hexadecimal rather than as decimal.
     it "round-trips a multi-digit hex bitmap" do
       map.record("spec/a_spec.rb:1", lib_file => 0xff)
 
@@ -264,8 +241,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(restored.serialized_bitmaps_for(lib_file)).to eq("0" => "ff")
     end
 
-    # An index wide enough to need more than one decimal digit, which a
-    # suite of more than ten tests reaches immediately.
     it "reads a context index past the first ten" do
       contexts = Array.new(11) { |index| "spec/t#{index}_spec.rb:1" }
 
@@ -276,8 +251,6 @@ RSpec.describe SimpleCov::ContextMap do
       expect(restored.covering(lib_file, 1)).to eq(["spec/t10_spec.rb:1"])
     end
 
-    # A decimal index, whatever padding the writer gave it: "010" is index
-    # ten, the way every other reader of this format would take it.
     it "reads a context index written with a leading zero" do
       contexts = Array.new(11) { |index| "spec/t#{index}_spec.rb:1" }
 
@@ -299,13 +272,8 @@ RSpec.describe SimpleCov::ContextMap do
       expect(restored.covering(lib_file, 2)).to eq(["spec/a_spec.rb:1"])
     end
 
-    # All-or-nothing: a partially salvaged map would answer `covering`
-    # queries with silent gaps, and the merge already treats an absent map
-    # correctly (it drops the merged map consistently).
     def expect_rejected(shapes)
       shapes.each do |shape|
-        # Versioned so each input fails on the validation it targets, not
-        # at the version gate.
         malformed = shape.is_a?(Hash) ? shape.merge("version" => 1) : shape
         expect(described_class.from_hash(malformed)).to be_nil, "expected nil for #{malformed.inspect}"
       end
@@ -318,9 +286,6 @@ RSpec.describe SimpleCov::ContextMap do
         [
           nil,
           "junk",
-          # An Array rather than another String: a String answers nil to a
-          # String subscript, so it cannot tell a dropped Hash check apart
-          # from a missing version.
           [1, 2],
           {"files" => valid_files},
           {"contexts" => ["a"]},
@@ -341,8 +306,6 @@ RSpec.describe SimpleCov::ContextMap do
           {"contexts" => ["a"], "files" => {lib_file => {"" => "1"}}},
           {"contexts" => ["a"], "files" => {lib_file => {"x0" => "1"}}},
           {"contexts" => %w[a b], "files" => {lib_file => {"1x" => "1"}}},
-          # A trailing newline is not part of a decimal index, nor of a
-          # bitmap: both are anchored at the very end of the string.
           {"contexts" => %w[a b], "files" => {lib_file => {"1\n" => "1"}}},
           {"contexts" => ["a"], "files" => {lib_file => {"0" => "1\n"}}},
           {"contexts" => ["a"], "files" => {lib_file => {"1" => "1"}}},

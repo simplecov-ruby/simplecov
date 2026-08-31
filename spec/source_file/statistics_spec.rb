@@ -51,8 +51,6 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
     expect(line_statistics.percent).to eq(50.0)
   end
 
-  # Only line coverage has anything to omit: a branch or a method is
-  # either counted or not there at all.
   it "counts the branches and the methods, omitting nothing" do
     expect(statistics.fetch(:branch).covered).to eq(1)
     expect(statistics.fetch(:branch).missed).to eq(1)
@@ -90,8 +88,6 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
     end
   end
 
-  # The zero percent above belongs to unloaded files only. A loaded file
-  # with nothing to cover is covered as fully as it can be.
   context "when a loaded file has nothing to cover" do
     let(:source_file) do
       instance_double(
@@ -112,8 +108,6 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
     end
   end
 
-  # `Line#coverage` is nullable, so the strength sum coerces rather than
-  # raising on an entry that carries no count of its own.
   context "when a covered entry carries no coverage" do
     let(:uncounted_line) { instance_double(SimpleCov::SourceFile::Line, coverage: nil) }
 
@@ -136,9 +130,6 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
     end
   end
 
-  # The zero percent above stands in for data the file never had. A file
-  # that does have covered entries keeps the percentage they earned,
-  # loaded or not.
   context "when a tracked file was not loaded but has coverage anyway" do
     let(:source_file) do
       instance_double(

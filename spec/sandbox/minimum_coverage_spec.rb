@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Exit code should be non-zero if the overall coverage is below the
-# minimum_coverage threshold.
 RSpec.describe "minimum coverage enforcement", :sandbox do
   before { setup_project("faked_project") }
 

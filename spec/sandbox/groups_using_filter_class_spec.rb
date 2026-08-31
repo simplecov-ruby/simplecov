@@ -3,15 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# Next to passing a block or a string to define a group, you can also
-# pass a filter class. The filter class inherits from SimpleCov::Filter
-# and must implement the matches? method, which is used to determine
-# whether or not a file should be added to the group. Exercised for both
-# RSpec and Test/Unit runs.
 RSpec.describe "groups using a custom filter class", :sandbox do
   before { setup_project("faked_project") }
 
-  # Asserts one group's displayed percent and exact membership.
   def expect_group(data, name, percent:, files:)
     group = reported_group(data, name)
     expect(displayed_percent(group.fetch("lines").fetch("percent"))).to eq(percent)

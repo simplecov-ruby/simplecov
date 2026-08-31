@@ -50,8 +50,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
     end
   end
 
-  # A baseline entry exempts the file and criterion the same way it
-  # does for minimum_per_file: the file answers to its own floor.
   context "when the file's criterion is covered by the baseline" do
     let(:maximum_missed_per_file) { {line: 0} }
     let(:baseline) do
@@ -82,8 +80,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
     end
   end
 
-  # Overrides and the baseline are both optional: a project that names
-  # neither still gets a check that reads its caps.
   it "needs neither overrides nor a baseline to be built" do
     built = described_class.new(result, {line: 2})
 
@@ -97,8 +93,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
       .to eq(["Missed lines (5) exceed the configured maximum_missed_per_file (2) in lib/foo.rb."])
   end
 
-  # Oneshot lines are recorded under the line statistics, so their units
-  # are read through the key they are stored under.
   it "names oneshot lines as lines" do
     violation = {criterion: :oneshot_line, actual: 5, maximum: 2, project_filename: "lib/foo.rb"}
 

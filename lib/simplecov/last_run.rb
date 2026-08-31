@@ -4,14 +4,15 @@ require "json"
 require_relative "atomic_file"
 
 module SimpleCov
-  # Reads and writes coverage/.last_run.json — the previous run's coverage
-  # percentages used by MaximumCoverageDropCheck.
   module LastRun
     class << self
       def last_run_path
         File.join(SimpleCov.coverage_path, ".last_run.json")
       end
 
+      # The maximum_coverage_drop check digs into a Hash, so anything else in a
+      # corrupt or hand-edited file counts as "no previous run" rather than
+      # crashing the at_exit hook.
       def read
         return nil unless File.exist?(last_run_path)
 
@@ -19,9 +20,6 @@ module SimpleCov
         return nil if json.match?(/\A\s*\z/)
 
         parsed = JSON.parse(json, symbolize_names: true)
-        # The maximum_coverage_drop check digs into a Hash, so anything
-        # else in a corrupt or hand-edited file counts as "no previous
-        # run" rather than crashing the at_exit hook.
         parsed.instance_of?(Hash) ? parsed : invalid_last_run
       rescue JSON::ParserError
         invalid_last_run
@@ -33,8 +31,6 @@ module SimpleCov
 
     private
 
-      # `warn` answers nil, which is what an unreadable previous run
-      # reports.
       def invalid_last_run
         warn "[SimpleCov]: Warning! Parsing JSON content of .last_run.json failed, ignoring the previous run"
       end

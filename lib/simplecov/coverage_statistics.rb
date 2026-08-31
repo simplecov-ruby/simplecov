@@ -1,22 +1,17 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # Holds the individual data of a coverage result.
-  #
-  # This is uniform across coverage criteria as they all have:
-  #
-  # * total - how many things to cover there are (total relevant loc/branches)
-  # * covered - how many of the coverables are hit
-  # * missed - how many of the coverables are missed
-  # * omitted - how many lines cannot be covered (blank lines/comments); only meaningful for line coverage
-  # * percent - percentage as covered/missed
-  # * strength - average hits per coverable unit (will not exist for one shot lines format)
+  # One coverage criterion's numbers, uniform across criteria: total, covered,
+  # missed, omitted (only meaningful for line coverage), percent, and strength,
+  # the average hits per coverable unit, which the oneshot-lines format has no
+  # way to produce.
   class CoverageStatistics
     attr_reader :total, :covered, :missed, :omitted, :strength, :percent
 
-    # Seed for the reduce in `.from`: covered, missed, omitted, strength.
     ZERO_STATS = [0, 0, 0, 0.0].freeze #: [Integer, Integer, Integer, Float]
 
+    # Strength is remultiplied by loc because files have different strengths and
+    # line counts, giving them a different weight in the total.
     def self.from(coverage_statistics)
       sum_covered, sum_missed, sum_omitted, sum_total_strength =
         coverage_statistics.reduce(ZERO_STATS) do |(covered, missed, omitted, total_strength), stats|
@@ -24,8 +19,6 @@ module SimpleCov
             covered + stats.covered,
             missed + stats.missed,
             omitted + stats.omitted,
-            # gotta remultiply with loc because files have different strength and loc
-            # giving them a different "weight" in total
             total_strength + (stats.strength * stats.total)
           ]
         end
@@ -33,9 +26,6 @@ module SimpleCov
       new(covered: sum_covered, missed: sum_missed, omitted: sum_omitted, total_strength: sum_total_strength)
     end
 
-    # Requires only covered, missed and strength to be initialized.
-    #
-    # Other values are computed by this class.
     def initialize(covered:, missed:, omitted: 0, total_strength: 0, percent: nil)
       @covered  = covered
       @missed   = missed
@@ -53,8 +43,6 @@ module SimpleCov
       covered * 100.0 / total
     end
 
-    # `fdiv` both coerces and divides, so an Integer default needs no
-    # separate conversion on its way to a Float answer.
     def compute_strength(total_strength, total)
       return 0.0 if total.zero?
 

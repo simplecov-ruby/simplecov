@@ -1,21 +1,6 @@
 module SimpleCov
   module Combine
-    # There might be reports from different kinds of tests,
-    # e.g. RSpec and Cucumber. We need to combine their results
-    # into unified one. This class does that.
-    # To unite the results on file basis, it leverages
-    # the combine of lines and branches inside each file within given results.
     module ResultsCombiner
-      #
-      # Combine process explanation
-      # => ResultsCombiner: hand every result to one accumulator.
-      # ==> CoverageAccumulator::MergedFile: hold one file's merged coverage.
-      # ===> LinesCombiner: combine lines results.
-      # ===> BranchesCombiner: combine branches results.
-      # ===> MethodsCombiner: combine methods results.
-      #
-      # @return [Hash]
-      #
       def self?.combine: (*untyped results) -> untyped
     end
   end

@@ -3,14 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# Simply adding the basic simplecov lines to a project should get the
-# user a coverage report after running `cucumber features` — the fixture
-# project's own cucumber suite, run as a subprocess.
 RSpec.describe "cucumber integration", :sandbox do
   before do
     setup_project("faked_project")
-    # Cucumber runs here and nowhere else, so the fixture keeps it in an
-    # optional Gemfile group that only this spec asks for.
     self.bundle_with = "cucumber"
     install_dependencies
   end

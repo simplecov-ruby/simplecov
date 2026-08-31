@@ -1,14 +1,12 @@
 module SimpleCov
   module CLI
     module Watch
-      # What one batch of changed files means for the next run.
       module TestPlan
         def self?.build: (Array[String] changed, untyped document, root: String, input: String, stderr: untyped) -> Hash[Symbol, untyped]
 
         def self?.watched_paths: (untyped document, String root) -> Array[String]
 
 
-        # The files behind the report's recorded test ids.
 
         def self?.recorded_test_files: (untyped document) -> Array[String]
       end

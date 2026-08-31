@@ -2,10 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when the suite's total misses exceed the `maximum_missed`
-    # cap for any criterion. The cap is an absolute burn-down number
-    # ("12 uncovered lines left"), so the report speaks in counts, in
-    # the criterion's own units.
     class MaximumMissedCheck < Check
       def exit_code
         MINIMUM_COVERAGE

@@ -7,8 +7,6 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
   subject(:exit_status) { described_class.call(result, coverage_limits: coverage_limits) }
 
   let(:result) { instance_double(SimpleCov::Result) }
-  # `coverage_limits` is forwarded only to `coverage_checks`, which we
-  # stub out — so its shape doesn't matter for these specs.
   let(:coverage_limits) { double }
 
   context "when a check fails" do
@@ -29,8 +27,6 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
       expect(exit_status).to eq(SimpleCov::ExitCodes::MINIMUM_COVERAGE)
     end
 
-    # Both of them, in that order: the checks are built against the
-    # result being judged and the limits it is judged by.
     it "builds the checks from the result and the limits it was given" do
       exit_status
       expect(described_class).to have_received(:coverage_checks).with(result, coverage_limits)
@@ -63,9 +59,6 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
     end
   end
 
-  # The real list, rather than a stubbed one: every check has to be
-  # built, in the order the first failure is taken from, and each has to
-  # be handed the limit it enforces.
   describe ".coverage_checks" do
     let(:limits) do
       SimpleCov.singleton_class::CoverageLimits.new(
@@ -99,8 +92,6 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
     end
 
     it "hands each check the limit it enforces" do
-      # The baseline check keeps its own baseline rather than a
-      # threshold, so it is the one entry with none.
       expect(checks.map { |check| check.send(:thresholds) }).to eq([
                                                                      {line: 90.0}, {line: 80.0}, nil,
                                                                      {"Libs" => {line: 70.0}},
@@ -110,8 +101,6 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
       expect(checks.fetch(2).instance_variable_get(:@baseline)).to eq("lib/c.rb" => {line: 1})
     end
 
-    # The per-file checks take the overrides and the baseline besides,
-    # since a pair the baseline covers is exempt from both.
     it "hands the per-file checks their overrides and the baseline" do
       by_file, per_file = checks.values_at(1, 7)
 

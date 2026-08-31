@@ -14,9 +14,6 @@ RSpec.describe "loading config" do
     end
   end
 
-  # Some container/CI images set HOME to an empty string. That passed the
-  # set-at-all guard, and `File.expand_path("~")` then raised
-  # ArgumentError (non-absolute home) out of `require "simplecov"`.
   context "with ENV[HOME] set but empty" do
     it "does not raise any errors" do
       home = ENV.fetch("HOME", nil)

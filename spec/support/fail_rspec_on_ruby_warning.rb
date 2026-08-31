@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Borrowed and heavily adjusted from:
-# https://github.com/metricfu/metric_fu/blob/master/spec/capture_warnings.rb
 require "fileutils"
 
 class FailOnWarnings
@@ -36,12 +34,6 @@ private
     lines
   end
 
-  # The :nocov: deprecation warning is fired by fixtures that legitimately
-  # exercise the deprecated toggle. The "Coverage report generated for X
-  # to /path/in/repo" status line is emitted by HTML/JSON formatters that
-  # write into a temp dir under the app root and is on stderr by design.
-  # Filter both so any future app-side deprecation or genuine warning
-  # still fails the build.
   def split_lines(lines)
     nocov_deprecation_marker = "Replace with `# simplecov:disable` / `# simplecov:enable`"
     coverage_report_summary_marker = "Coverage report generated"
@@ -65,9 +57,6 @@ private
   def write_other_warnings_to_tmp(other_warnings)
     output_dir = File.join(@app_root, "tmp")
     FileUtils.mkdir_p(output_dir)
-    # Suffixed with the parallel worker number (captured in spec/helper.rb
-    # before the env scrub) so `rake spec`'s parallel workers don't
-    # overwrite each other's captures.
     worker = defined?(SPEC_PARALLEL_WORKER) ? SPEC_PARALLEL_WORKER : nil
     filename = "warnings#{worker}.txt"
     File.write(File.join(output_dir, filename), other_warnings.join("\n") << "\n")
@@ -81,11 +70,6 @@ private
   end
 end
 
-# Under mutant the warning gate stands down: inserting a mutated method
-# legitimately warns (a literal in a condition, a void-context `nil`),
-# and the after(:suite) abort would kill the kill-fork before it reports
-# its test result back, scoring the mutation alive no matter what the
-# tests said.
 unless defined?(Mutant)
   warning_collector = FailOnWarnings.new
   warning_collector.collect_warnings

@@ -32,8 +32,6 @@ RSpec.describe SimpleCov::SourceFile::Method do
     expect(the_method.to_s).to eq("A#method1")
   end
 
-  # Every position in the key means something different, so the fixture
-  # gives each one a value of its own.
   it "keeps the pieces of the coverage key it was built from" do
     method = described_class.new(source_file, ["A", :method1, 2, 4, 5, 7], 1)
 
@@ -66,9 +64,6 @@ RSpec.describe SimpleCov::SourceFile::Method do
     end
   end
 
-  # Either end of the range can be missing on its own, and a method whose
-  # range is off the end of the file has no lines to report against
-  # either.
   context "with only the last line missing" do
     let(:info) { ["A", :method1, 2, 2, nil, nil] }
 
@@ -149,8 +144,6 @@ RSpec.describe SimpleCov::SourceFile::Method do
       end
     end
 
-    # Either end of the range can be missing on its own, and one end is
-    # no range to compare against.
     context "with only the last line missing" do
       let(:info) { ["A", :method1, 2, 2, nil, nil] }
 

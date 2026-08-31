@@ -3,15 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# `cover_views` reaches any template language the project has registered an
-# ActionView handler for, not just ERB. Haml and Slim generate Ruby that keeps
-# the template's own line structure, so eval coverage lands on the source
-# lines the author wrote, with no mapping on SimpleCov's side.
 RSpec.describe "template language integration", :sandbox do
   before do
     setup_project("rails/rspec_rails")
-    # Haml and Slim run here and nowhere else, so the fixture keeps them in an
-    # optional Gemfile group that only this spec asks for.
     self.bundle_with = "templates"
     install_dependencies
 
@@ -44,10 +38,6 @@ RSpec.describe "template language integration", :sandbox do
     html_report_data.fetch("coverage").select { |path, _| path.start_with?("app/views/pages/") }
   end
 
-  # Both languages get the same page: an output line, a conditional whose body
-  # this run doesn't reach, and a loop whose body it reaches twice. One child
-  # run answers for both templates: a rails boot per assertion is what made
-  # these examples the slowest in the suite.
   shared_examples "a template language" do
     it "records hits against the template's own lines and reports an unrendered template at 0%" do
       result = run_command_and_expect_success("bundle exec rspec", timeout: 120)
@@ -93,10 +83,6 @@ RSpec.describe "template language integration", :sandbox do
     it_behaves_like "a template language"
   end
 
-  # A default `cover_views` glob names `.haml` and `.slim` in every project,
-  # including the ones that have neither. ActionView answers an unregistered
-  # extension with its raw handler, which would compile the file as a lump of
-  # static text and report it as an untested view.
   context "without the template gems installed" do
     let(:language) { "haml" }
     let(:rendered_template) { "%p Never compiled.\n" }

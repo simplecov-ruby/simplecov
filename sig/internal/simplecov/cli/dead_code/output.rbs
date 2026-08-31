@@ -1,9 +1,6 @@
 module SimpleCov
   module CLI
     module DeadCode
-      # Renders the crossed matrix: text views with `path:ranges` rows
-      # and summary counts, and the JSON payload carrying every
-      # category.
       module Output
         include CommandHelpers
 

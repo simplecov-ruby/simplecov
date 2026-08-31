@@ -2,11 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when the overall (project-wide) coverage for any criterion is
-    # above the configured maximum. Pair with
-    # `SimpleCov::ExitCodes::MinimumOverallCoverageCheck` (or use
-    # `SimpleCov.expected_coverage`) to pin coverage to an exact value
-    # and surface unexpected increases instead of silently absorbing them.
     class MaximumOverallCoverageCheck < Check
       def exit_code
         MAXIMUM_COVERAGE

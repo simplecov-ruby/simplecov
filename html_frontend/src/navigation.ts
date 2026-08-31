@@ -1,5 +1,3 @@
-// Keyboard navigation of the file list: tracks the focused row and moves /
-// opens it. The focused-row state lives here and nowhere else.
 
 import { getVisibleFileRows } from './file_rows';
 

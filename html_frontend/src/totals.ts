@@ -1,5 +1,3 @@
-// The per-group totals row: the data-attribute map shared with filtering, and
-// the live recomputation of totals as rows are shown or hidden.
 
 import { $, $$ } from './dom';
 import { pctClass, fmtNum, fmtPct } from './format';
@@ -36,8 +34,6 @@ export function updateTotalsRow(container: Element): void {
       : fmtNum(rows.length) + '/' + fmtNum(totalFiles) + label;
   }
 
-  // Tracked runs (rows carry the attribute) keep the line bar's
-  // outside-tests share accurate as rows are filtered away.
   const tracked = rows.some((r) => (r as HTMLElement).dataset.coveredOutsideLines !== undefined);
 
   for (const type of Object.keys(dataAttrMap)) {

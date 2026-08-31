@@ -7,11 +7,6 @@ require_relative "badge/svg"
 
 module SimpleCov
   module CLI
-    # `simplecov badge` — render the report's percentage as a flat SVG
-    # badge for a README or a CI artifact, with no badge service in the
-    # loop. The percent comes from the totals coverage.json already
-    # carries, so the badge is generated from the same artifact the
-    # other read-only commands consume.
     module Badge
       extend CommandHelpers
 

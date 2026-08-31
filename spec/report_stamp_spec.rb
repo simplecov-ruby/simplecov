@@ -21,8 +21,6 @@ RSpec.describe SimpleCov::ReportStamp do
       end
     end
 
-    # The stamp only powers the deferral heuristic, so a read-only or
-    # vanished coverage dir must not crash the reporting that writes it.
     it "swallows filesystem errors" do
       allow(FileUtils).to receive(:touch).and_raise(Errno::EACCES)
 

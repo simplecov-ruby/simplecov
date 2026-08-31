@@ -3,16 +3,16 @@
 require "securerandom"
 
 module SimpleCov
-  # Identifies one test invocation and each top-level parallel worker within
-  # it. Forked subprocesses inherit both values from their parent worker.
+  # Identifies one test invocation and each top-level parallel worker within it.
+  # Forked subprocesses inherit both values from their parent worker.
   module RunIdentity
     extend self
 
-    # Returns the run id together with its provenance: `true` when the id
-    # alone proves same-run membership (explicitly configured, derived from
-    # parallel_tests' per-invocation pid file, or freshly random), `false`
-    # when it was inferred from the parent pid, which consecutive runs
-    # launched by the same long-lived parent process share.
+    # Answers the run id together with its provenance: true when the id alone
+    # proves same-run membership (explicitly configured, derived from
+    # parallel_tests' per-invocation pid file, or freshly random), false when it
+    # was inferred from the parent pid, which consecutive runs launched by the
+    # same long-lived parent process share.
     def generate
       explicit = ENV.fetch("SIMPLECOV_RUN_ID", nil)
       return [explicit, true] if explicit && !explicit.empty?
@@ -35,10 +35,9 @@ module SimpleCov
       Process.pid.to_s
     end
 
-    # Whether the current run id alone proves same-run membership. Decided
-    # where the id is generated, never re-inferred from the id's shape, so
-    # an explicit SIMPLECOV_RUN_ID that happens to look like an inferred
-    # one is still trusted.
+    # Decided where the id is generated, never re-inferred from the id's shape,
+    # so an explicit SIMPLECOV_RUN_ID that happens to look like an inferred one
+    # is still trusted.
     def authoritative?
       materialize_current
       @authoritative
@@ -63,7 +62,6 @@ module SimpleCov
       SimpleCov.worker_id
     end
 
-    # Mixed into SimpleCov after ParallelAdapters has loaded.
     module Accessors
       def run_id
         RunIdentity.current

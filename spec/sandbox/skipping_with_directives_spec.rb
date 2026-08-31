@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Code wrapped in `# simplecov:disable` / `# simplecov:enable` comment
-# blocks (or trailed by an inline `# simplecov:disable`) does not count
-# against the coverage numbers. Rendering skipped lines is covered by
-# the bun suite (html_frontend/test/render_source.test.ts).
 RSpec.describe "skipping code with simplecov directives", :sandbox do
   before do
     setup_project("faked_project")

@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Watch
-      # Watches a fixed set of paths by polling mtimes.
       class Poller
         @snapshot: Hash[String, untyped]
 

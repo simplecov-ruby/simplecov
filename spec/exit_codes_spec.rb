@@ -4,7 +4,6 @@ require "helper"
 
 RSpec.describe SimpleCov::ExitCodes do
   describe SimpleCov::ExitCodes::Check, mutant_expression: "SimpleCov::ExitCodes::Check*" do
-    # A minimal concrete check: two violations, one rendered line each.
     let(:check_class) do
       Class.new(described_class) do
         def exit_code = 2

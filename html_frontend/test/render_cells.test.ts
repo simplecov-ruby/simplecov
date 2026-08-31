@@ -1,6 +1,3 @@
-// Coverage-cell and summary HTML builders: band classes on bars and cells,
-// totals cells vs sortable file-row cells, filterable column headers, and
-// every variant of the per-criterion summary block.
 import { describe, expect, test } from 'bun:test';
 import {
   renderCoverageBar,
@@ -33,8 +30,6 @@ describe('renderCoverageCells', () => {
   test('file-row cells expose data-order for the sorter and group digits', () => {
     const html = renderCoverageCells(100, 1250, 1250, 'branch', false);
     expect(html).toContain('cell--branch-pct green" data-order="100.00"');
-    // The counts display grouped but sort ungrouped: the sorter parses
-    // data-order, where "1,250" would read as 1 and rank below 999.
     expect(html).toContain('cell--numerator" data-order="1250">1,250/');
     expect(html).toContain('cell--denominator" data-order="1250">1,250');
   });
@@ -119,7 +114,6 @@ describe('renderCoverageBar with recorded contexts', () => {
   });
 
   test('bands the by-tests segment by the overall percent', () => {
-    // 80% total coverage is the yellow band even though only 50% is by tests.
     const html = renderCoverageBar(80, 30);
     expect(html).toContain('coverage-bar__fill--yellow coverage-bar__fill--split" style="width: 50.00%"');
     expect(html).toContain('coverage-bar__fill--outside" style="width: 30.00%"');

@@ -3,16 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# The maximum age at which stored results still merge is customizable
-# via SimpleCov.merge_timeout. A timeout shorter than the gap between
-# two suite runs makes the first suite's results expire, so the second
-# report is based on that suite alone.
 RSpec.describe "merge timeout", :sandbox do
   before { setup_project("faked_project") }
 
-  # Ages what's already stored instead of really sleeping: the merge only
-  # compares the recorded timestamps against merge_timeout, so backdating
-  # the data is equivalent and keeps real wall-clock waits out of the suite.
   def age_stored_resultset(seconds)
     data = resultset_json
     data.each_value { |entry| entry["timestamp"] -= seconds }

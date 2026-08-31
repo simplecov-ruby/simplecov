@@ -19,11 +19,6 @@ RSpec.describe SimpleCov::History do
     ).tap { |r| r.created_at = Time.new(2026, 8, 25, 12, 0, 0, "+00:00") }
   end
 
-  # Run from a directory that is not the coverage path, so a history
-  # written without one lands somewhere this example cleans up, and
-  # somewhere the reads can tell apart from the real thing.
-  # The removal happens out here, after the chdir has returned, because
-  # Windows refuses to remove the directory the process still stands in.
   around do |example|
     elsewhere = File.join(tmp, "cwd")
     FileUtils.mkdir_p(elsewhere)
@@ -70,16 +65,12 @@ RSpec.describe SimpleCov::History do
         .to eq(["2026-08-25T12:01:00Z", "2026-08-25T12:02:00Z"])
     end
 
-    # The history is one of the coverage artifacts, and lives with them
-    # rather than wherever the process happened to be started from.
     it "writes the history into the coverage directory" do
       described_class.record(result)
 
       expect(File.exist?(File.join(tmp, ".history.json"))).to be(true)
     end
 
-    # The envelope is what tells a history from any other JSON file, and
-    # the version is what a later format would be read against.
     it "writes the entries inside a versioned envelope" do
       described_class.record(result)
 
@@ -191,8 +182,6 @@ RSpec.describe SimpleCov::History do
       expect(entries.last.fetch("created_at")).to eq("2026-08-25T12:00:00Z")
     end
 
-    # The embedded history is what the report renders, and it is capped
-    # the same way the recorded one is, keeping the newest.
     it "keeps the newest entries when the limit is reached" do
       allow(SimpleCov).to receive(:history_limit).and_return(2)
       2.times do |index|
@@ -207,8 +196,6 @@ RSpec.describe SimpleCov::History do
         .to eq(["2026-08-25T12:01:00Z", "2026-08-25T12:09:00Z"])
     end
 
-    # Criteria are named the way `.last_run.json` names them, which the
-    # JSON round trip would hide by stringifying symbol keys anyway.
     it "names every criterion as a string, before anything is serialized" do
       entry = described_class.entries_with(result).last
 
@@ -218,8 +205,6 @@ RSpec.describe SimpleCov::History do
   end
 
   describe ".git_info" do
-    # A repository with a branch and a commit of its own, so the answers
-    # are the ones this checkout would give and not the suite's.
     def checkout(dir)
       GitFixture.init_repo(dir, branch: "trunk")
       system("git", "-C", dir, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
@@ -237,8 +222,6 @@ RSpec.describe SimpleCov::History do
       end
     end
 
-    # `SimpleCov.root` is whatever the project configured, and a path
-    # object is as good an answer as a string.
     it "takes a root that is not a string" do
       Dir.mktmpdir("simplecov-history-pathname-") do |dir|
         checkout(dir)
@@ -272,8 +255,6 @@ RSpec.describe SimpleCov::History do
       expect(branch).to be_a(String).or be_nil
     end
 
-    # CI checkouts are usually detached; the literal "HEAD" git reports
-    # there is not a branch and must not be recorded as one.
     it "reports a detached HEAD as no branch" do
       Dir.mktmpdir("simplecov-history-detached-") do |dir|
         GitFixture.init_repo(dir)

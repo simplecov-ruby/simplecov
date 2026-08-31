@@ -2,24 +2,10 @@
 
 require "helper"
 
-# Direct examples for the per-file payload. Reached through a whole
-# formatted document these values have already been through JSON, where
-# a Symbol and its String spelling are the same two bytes and an object
-# that is not a String is serialized by calling `to_s` on it anyway.
-# Comparing the built hash is what tells those apart.
-#
-# `mutant_expression` keeps these examples in the pool the whole
-# JSONFormatter namespace shares, rather than claiming the
-# SourceFileFormatter pool for this file alone.
 RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
                mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
-  # Expanded, because the context lookup expands what it is asked for
-  # and a bare "/project" path gains a drive letter on Windows.
   let(:filename) { File.expand_path("/project/lib/a.rb") }
 
-  # Every line state the payload distinguishes: never, covered, skipped
-  # (which reports as "ignored" rather than as a count), and missed. The
-  # trailing newlines are the ones the source array has to strip.
   let(:lines) do
     [
       line("# a comment\n", 1, nil),
@@ -31,8 +17,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
     ]
   end
 
-  # An inline branch and a block one, because the payload reports
-  # `inline` and derives `report_line` from it.
   let(:inline_branch) do
     SimpleCov::SourceFile::Branch.new(start_line: 3, end_line: 3, coverage: 2, inline: true, type: :then)
   end
@@ -40,9 +24,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
     SimpleCov::SourceFile::Branch.new(start_line: 5, end_line: 6, coverage: 0, inline: false, type: :else)
   end
 
-  # A method reads its lines back off the file to decide whether it was
-  # skipped, so it gets a plain reader rather than the double it is
-  # itself stubbed on.
   let(:line_source) { instance_double(SimpleCov::SourceFile, lines: lines) }
   let(:covered_method) { SimpleCov::SourceFile::Method.new(line_source, ["Foo", :bar, 2, 2, 3, 5], 2) }
   let(:missed_method) { SimpleCov::SourceFile::Method.new(line_source, ["Foo", :baz, 5, 2, 6, 5], 0) }
@@ -62,8 +43,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
   end
 
   before do
-    # Off by default so each example turns on exactly the criteria it
-    # asserts and the sections cannot bleed into one another.
     allow(SimpleCov).to receive_messages(line_coverage?: false, branch_coverage?: false, method_coverage?: false)
   end
 
@@ -82,7 +61,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
     allow(source_file).to receive(:covered_percent).with(no_args).and_return(66.67)
 
     expect(described_class.call(source_file, include_source: false)).to eq(
-      # A skipped line reports as "ignored", and a never line as null.
       lines: [nil, 2, 2, "ignored", 0, nil],
       lines_covered_percent: 66.67,
       covered_lines: 2, missed_lines: 1, omitted_lines: 2, total_lines: 3
@@ -95,8 +73,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
 
     expect(described_class.call(source_file, include_source: false)).to eq(
       branches: [
-        # An inline branch reports on its own first line, a block one on
-        # the line above, where the condition is written.
         {type: :then, start_line: 3, end_line: 3, coverage: 2, inline: true, report_line: 3},
         {type: :else, start_line: 5, end_line: 6, coverage: 0, inline: false, report_line: 4}
       ],
@@ -110,8 +86,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
     allow(source_file).to receive(:covered_percent).with(:method).and_return(50.0)
 
     expect(described_class.call(source_file, include_source: false)).to eq(
-      # The name is the method's own spelling, a String rather than the
-      # Method object JSON would have called `to_s` on regardless.
       methods: [
         {name: "Foo#bar", start_line: 2, end_line: 3, coverage: 2},
         {name: "Foo#baz", start_line: 5, end_line: 6, coverage: 0}
@@ -143,9 +117,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
       .to eq(contexts: {"0" => "6", "1" => "8"})
   end
 
-  # Under a document-level `contexts` array, absence already says "no
-  # recorded context executed this file", so an untouched file spends no
-  # bytes saying it.
   it "omits the contexts key for a file no recorded context touched" do
     contexts = SimpleCov::ContextMap.new
     contexts.record("first test", {"/project/lib/other.rb" => 0b1})

@@ -1,6 +1,3 @@
-// The inline peek panel a tests badge opens beneath its source line: one
-// open at a time, toggled by its badge, dismissed by Escape or an outside
-// click, listing the covering test ids the way the CLI prints them.
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { toggleTestsPeek, closeTestsPeek, setupTestsPeekDismissal } from '../src/tests_peek';
 

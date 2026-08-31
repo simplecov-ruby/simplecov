@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Simply adding the basic simplecov lines to a project should get the
-# user a coverage report after running `rspec`.
 RSpec.describe "rspec integration", :sandbox do
   before { setup_project("faked_project") }
 
@@ -20,8 +18,6 @@ RSpec.describe "rspec integration", :sandbox do
 
     json = coverage_json
     expect(reported_total_percent(json)).to eq(88.09)
-    # spec/* files are filtered out by the default test_frameworks
-    # profile, so only the four lib files appear.
     expect(reported_file_percents(json)).to eq(
       "lib/faked_project.rb" => 100.00,
       "lib/faked_project/some_class.rb" => 80.00,

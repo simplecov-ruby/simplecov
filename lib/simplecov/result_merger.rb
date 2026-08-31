@@ -9,9 +9,8 @@ require_relative "result_merger/unloaded_files"
 
 module SimpleCov
   #
-  # Singleton that is responsible for caching, loading and merging
-  # SimpleCov::Results into a single result for coverage analysis based
-  # upon multiple test suites.
+  # Caching, loading and merging `SimpleCov::Result`s into a single result for
+  # coverage analysis based upon multiple test suites.
   #
   module ResultMerger
     extend ResultsetRunIdentity
@@ -28,9 +27,8 @@ module SimpleCov
       end
 
       def merge_results(*file_paths, ignore_timeout: false)
-        # Tracked paths and test maps are collected as each resultset is
-        # parsed, so files are still read and discarded one at a time.
-        # See #1250.
+        # Tracked paths and test maps are collected as each resultset is parsed,
+        # so files are still read and discarded one at a time (#1250).
         tracked_files = Set.new
         context_maps = ContextMap::Union.new
         command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
@@ -40,7 +38,7 @@ module SimpleCov
 
       # One block over the entries each resultset contributes to the merge,
       # feeding every merge-side accumulator in a single pass: the tracked
-      # paths (see #1250) and the per-test map union.
+      # paths and the per-test map union (#1250).
       def entry_collector(tracked_files, context_maps)
         collectors = [UnloadedFiles.collector(tracked_files), context_maps.collector]
         ->(surviving) { collectors.each { |collector| collector.call(surviving) } }
@@ -50,28 +48,19 @@ module SimpleCov
       # Reads every resultset and folds it into one merged coverage, stopping
       # short of building a `SimpleCov::Result`.
       #
-      # It is intentional here that files are only read in and parsed one at a time.
-      #
-      # In big CI setups you might deal with 100s of CI jobs and each one producing Megabytes
-      # of data. Reading them all in easily produces Gigabytes of memory consumption which
-      # we want to avoid.
-      #
-      # For similar reasons a SimpleCov::Result is only created in the end as that'd create
-      # even more data especially when it also reads in all source files.
+      # Files are only read in and parsed one at a time on purpose. In big CI
+      # setups you might deal with 100s of jobs each producing megabytes of
+      # data, and reading them all in easily produces gigabytes of memory
+      # consumption. For the same reason a `Result` is only created at the end.
       #
       # One accumulator absorbs the whole run, rather than folding each file
-      # into the merged-so-far pairwise: the pairwise form rebuilt every
-      # file's coverage once per resultset, which is what made merging a
-      # large parallel run's results the dominant cost of `collate`.
-      # Absorbing is still one resultset at a time, so the memory ceiling
-      # above is unchanged.
+      # into the merged-so-far pairwise: the pairwise form rebuilt every file's
+      # coverage once per resultset, which is what made merging a large
+      # parallel run's results the dominant cost of `collate`.
       #
       # `file_paths` is only ever iterated, so a caller that wants to observe
-      # the merge as it goes can hand in any Enumerable — `benchmarks/collate`
-      # passes an Enumerator that reports progress — rather than reimplement
-      # this loop and risk timing something other than what ships.
-      #
-      # @return [Array] the command names and the merged coverage
+      # the merge as it goes can hand in any Enumerable. `benchmarks/collate`
+      # passes an Enumerator that reports progress.
       #
       def absorb_results(file_paths, ignore_timeout: false, &on_parse)
         Combine::CoverageAccumulator.fold(
@@ -95,7 +84,6 @@ module SimpleCov
           [[command_name], LegacyFormatAdapter.call(data.fetch("coverage"))]
         end
 
-        # one file itself _might_ include multiple test runs
         merge_coverage(*command_plus_coverage)
       end
 
@@ -112,9 +100,8 @@ module SimpleCov
       end
 
       def warn_about_expired_results(expired_command_names)
-        # Respect quiet configurations and keep this consistent with every
-        # other SimpleCov diagnostic. Ordinary parallel workers only store
-        # their own slice; the selected final process performs this merge.
+        # Ordinary parallel workers only store their own slice; the selected
+        # final process performs this merge.
         return unless SimpleCov.print_errors
 
         warn "[SimpleCov]: Excluded #{expired_command_names.size} result(s) older than " \
@@ -130,15 +117,15 @@ module SimpleCov
       def create_result(command_names, coverage, tracked_files:, contexts: nil)
         return nil unless coverage
 
-        # Deduped: a CI matrix collates one resultset per worker, and
-        # joining every run's name verbatim rendered "RSpec" a hundred
-        # times over in the report footer. See #1284.
+        # Deduped: a CI matrix collates one resultset per worker, and joining
+        # every run's name verbatim rendered "RSpec" a hundred times over in the
+        # report footer (#1284).
         distinct_names = command_names.reject(&:empty?).uniq.sort
         coverage, injected = UnloadedFiles.inject(coverage, tracked_files)
-        # The merged result is the authoritative one users actually see, so
-        # it's the one that warns about source files dropped because they no
-        # longer exist on disk (issue #980). The per-process slices built in
-        # `process_coverage_result` stay quiet to avoid one warning per worker.
+        # The merged result is the authoritative one users actually see, so it's
+        # the one that warns about source files dropped because they no longer
+        # exist on disk (#980). The per-process slices stay quiet to avoid one
+        # warning per worker.
         Result.new(
           coverage,
           command_name: distinct_names.join(", "), contexts: contexts, report: true,
@@ -156,10 +143,6 @@ module SimpleCov
         rest.empty? ? only : Combine::CoverageAccumulator.fold(results)
       end
 
-      #
-      # Gets all SimpleCov::Results stored in resultset, merges them and produces a new
-      # SimpleCov::Result with merged coverage data and the command_name
-      # for the result consisting of a join on all source result's names
       def merged_result
         tracked_files = Set.new
         context_maps = ContextMap::Union.new
@@ -172,13 +155,11 @@ module SimpleCov
         ResultsetFile.decode(content)
       end
 
-      # Saves the given SimpleCov::Result in the resultset cache
       def store_result(result)
         synchronize_resultset do
-          # Ensure we have the latest, in case it was already cached
           new_resultset = read_resultset
 
-          # A single result only ever has one command_name, see `SimpleCov::Result#to_hash`
+          # A single result only ever has one command_name, see `Result#to_hash`.
           command_name, data = result.to_hash.first
           new_resultset[command_name] = merged_entry(new_resultset[command_name], data)
 
@@ -188,10 +169,9 @@ module SimpleCov
       end
 
       # If an entry with the same command_name was written AFTER our process
-      # started, a sibling test runner (typically a subprocess our parent
-      # process shelled out to) wrote it. Combine coverage data rather than
-      # overwriting, so an empty parent-process result doesn't clobber the
-      # subprocess's real data. See https://github.com/simplecov-ruby/simplecov/issues/581.
+      # started, a sibling test runner wrote it. Combine coverage data rather
+      # than overwriting, so an empty parent-process result doesn't clobber the
+      # subprocess's real data (#581).
       def merged_entry(existing, incoming)
         return incoming unless concurrent_runner_entry?(existing, incoming)
 

@@ -1,5 +1,3 @@
-// Entry point: wires the rendered page to its interactions on DOMContentLoaded.
-// esbuild bundles this module and everything it imports into application.js.
 
 import { $$, on } from './dom';
 import { timeago, timeagoNextTick, precomputeFileIds } from './format';
@@ -12,7 +10,6 @@ import { setupEventDelegation } from './events';
 import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
 import { setupTabScrollFade } from './tab_scroll';
 
-// Timeago — schedule the next update for exactly when the text would change.
 function scheduleTimeago(): void {
   let minDelay = Infinity;
   $$('abbr.timeago').forEach(el => {
@@ -24,7 +21,6 @@ function scheduleTimeago(): void {
   if (minDelay < Infinity) setTimeout(scheduleTimeago, minDelay);
 }
 
-// Build the group tab bar from the rendered file-list containers.
 function setupTabs(): void {
   $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
 
@@ -62,21 +58,14 @@ function finishLoading(loadingEl: HTMLElement | null): void {
   equalizeBarWidths();
 }
 
-// Render the coverage page. Both this bundle and the coverage-data
-// script are inline in the document, so `window.SIMPLECOV_DATA` is
-// populated by the time `DOMContentLoaded` fires.
 async function init(): Promise<void> {
   const data = window.SIMPLECOV_DATA;
 
-  // Show loading indicator
   const loadingEl = document.getElementById('loading');
   if (loadingEl) loadingEl.style.display = '';
 
-  // Web Crypto's digest API is async, so resolve every file's id up front;
-  // every renderer downstream looks them up synchronously.
   await precomputeFileIds(Object.keys(data.coverage));
 
-  // Render all content from data
   renderPage(data);
 
   scheduleTimeago();
@@ -90,13 +79,10 @@ async function init(): Promise<void> {
   setupTabs();
   setupTabScrollFade();
 
-  // Equalize bar column widths
   window.addEventListener('resize', scheduleEqualizeBarWidths);
 
-  // Initial state
   navigateToHash();
 
-  // Finalize loading
   finishLoading(loadingEl);
 }
 

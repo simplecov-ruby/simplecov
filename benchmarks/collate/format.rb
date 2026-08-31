@@ -1,13 +1,9 @@
 # frozen_string_literal: true
 
 module CollateBenchmark
-  # Number formatting for the report tables. Kept apart from `Report` so that
-  # class stays about the shape of the output rather than its units.
   module Format
     extend self
 
-    # A collate at full scale runs into minutes, so seconds alone stop being
-    # readable past the first phase.
     def duration(seconds)
       return format("%.2fs", seconds) if seconds < 60
 

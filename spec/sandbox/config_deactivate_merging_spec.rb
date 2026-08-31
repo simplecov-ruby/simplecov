@@ -3,14 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# With use_merging false no resultset is stored, so each suite run
-# overwrites the report with its own results instead of merging into
-# the previous suite's.
 RSpec.describe "deactivated merging", :sandbox do
   before { setup_project("faked_project") }
 
-  # A report from this suite alone, with no resultset stored for later
-  # merging.
   def expect_unmerged_report(result, suite)
     expect(result.output).to include("Coverage report generated for #{suite}")
     expect(file_exist?("coverage/index.html")).to be(true)

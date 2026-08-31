@@ -3,8 +3,6 @@
 require "helper"
 
 RSpec.describe SimpleCov::Combine::BranchesCombiner do
-  # The same condition as a real run and as `SimulateCoverage` synthesized
-  # it: same source span, different branch ids.
   let(:static_branch_coverage) do
     {
       [:if, 9, 110, 12, 110, 34] => {
@@ -65,8 +63,6 @@ RSpec.describe SimpleCov::Combine::BranchesCombiner do
     end
 
     it "does not double-count when one side is serialized and the other is not" do
-      # An in-process result merging with a resultset read back from JSON
-      # (`ResultMerger.merge_and_store`) sees the same branch in both forms.
       serialized_shifted = shifted_branch_coverage.to_h do |condition, branches|
         [condition.inspect, branches.transform_keys(&:inspect)]
       end
@@ -83,9 +79,6 @@ RSpec.describe SimpleCov::Combine::BranchesCombiner do
     end
   end
 
-  # `CoverageAccumulator` drives a fold through `absorb` and `materialize`
-  # rather than `combine`, so the accumulated table stays interned for the
-  # whole fold and is only turned back into tuple keys once.
   describe ".absorb" do
     it "returns the target untouched when there is no coverage to fold in" do
       target = {}
@@ -151,8 +144,6 @@ RSpec.describe SimpleCov::Combine::BranchesCombiner do
     end
   end
 
-  # Branches match on source span, whatever ids the recording processes
-  # handed them (issue #1233).
   describe ".tuple_identity" do
     it "is the type and the source span, ignoring the branch id" do
       expect(described_class.tuple_identity([:then, 4, 8, 6, 9, 12])).to eq([:then, 8, 6, 9, 12])
@@ -162,8 +153,6 @@ RSpec.describe SimpleCov::Combine::BranchesCombiner do
       expect(described_class.tuple_identity("[:then, 5, 8, 6, 9, 12]")).to eq([:then, 8, 6, 9, 12])
     end
 
-    # It is a hash key for the whole fold, so nothing may edit it after the
-    # table it keys has been built.
     it "is frozen" do
       expect(described_class.tuple_identity([:then, 4, 8, 6, 9, 12])).to be_frozen
     end

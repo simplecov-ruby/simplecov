@@ -3,8 +3,6 @@
 module SimpleCov
   module CLI
     module Ratchet
-      # Renders a ratchet pass: the one-line write summary, the
-      # below-floor note, and the JSON form of the same facts.
       module Output
         extend CommandHelpers
 
@@ -25,8 +23,6 @@ module SimpleCov
           "#{outcome.tightened.size} tightened, #{outcome.pruned.size} pruned, #{outcome.unchanged.size} unchanged"
         end
 
-        # Floors are kept, not loosened, so a regressed file stays worth
-        # saying out loud: running the suite is what shows the failures.
         def report_regressed(stdout, regressed)
           return if regressed.empty?
 

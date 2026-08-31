@@ -6,8 +6,6 @@ require_relative "command_helpers"
 
 module SimpleCov
   module CLI
-    # `simplecov coverage <path>` — print per-criterion stats for one
-    # file from a JSONFormatter coverage.json.
     module Coverage
       extend CommandHelpers
 
@@ -40,9 +38,7 @@ module SimpleCov
         return unless coverage
 
         match = lookup(coverage, opts.fetch(:path))
-        # `puts` answers nil, which is what an unlocatable file reports.
         return report_not_found(stderr, coverage, opts) if match.nil?
-        # A wrong-typed entry used to escape here and crash print_human.
         return match if match.last.instance_of?(Hash)
 
         CoverageFile.report_invalid(stderr, "coverage", opts.fetch(:input),
@@ -54,8 +50,6 @@ module SimpleCov
         stderr.puts("simplecov coverage: #{message}")
       end
 
-      # Path matching lives in CoverageFile so the tests subcommand
-      # resolves file arguments identically.
       def lookup(coverage_hash, path)
         CoverageFile.lookup(coverage_hash, path)
       end

@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Watch
-      # One watch session: accept connections, poll, re-run, reload.
       class Session
         MERGE_WINDOW: String
 

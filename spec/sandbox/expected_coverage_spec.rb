@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Exit code should be non-zero if the overall coverage is either above
-# or below the expected_coverage threshold. Useful for pinning coverage
-# to an exact value so unexpected improvements (which should bump the
-# threshold) don't slip through silently. See issue #187.
 RSpec.describe "expected coverage enforcement", :sandbox do
   before { setup_project("faked_project") }
 

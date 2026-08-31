@@ -11,12 +11,11 @@ module SimpleCov
     # @api private
     def final_result_process?
       adapter = ParallelAdapters.current
-      # No recognized parallel-test adapter. A subprocess forked while
-      # coverage was running is never the final reporter — the process that
-      # spawned it merges every slice and produces the report. Without this,
-      # fork-based runners that don't set TEST_ENV_NUMBER (e.g. Minitest's
-      # `parallelize`) have every worker produce the final report and its
-      # warnings. See issue #1171.
+      # A subprocess forked while coverage was running is never the final
+      # reporter: the process that spawned it merges every slice and produces
+      # the report. Without this, fork-based runners that don't set
+      # TEST_ENV_NUMBER (Minitest's `parallelize`) have every worker produce
+      # the final report and its warnings (#1171).
       return !forked_subprocess? unless adapter
 
       adapter.first_worker?
@@ -27,50 +26,40 @@ module SimpleCov
       adapter = ParallelAdapters.current
       return unless adapter && final_result_process?
 
-      # Native synchronization first (adapters that wrap a runner with a
-      # real "wait" primitive — parallel_tests'
-      # `wait_for_other_processes_to_finish` — implement this; adapters
-      # without a native API no-op and rely on the polling fallback below).
+      # Adapters that wrap a runner with a real "wait" primitive implement
+      # this; the rest no-op and rely on the polling fallback below.
       adapter.wait_for_siblings
 
       # The native wait can return before sibling at_exit handlers finish
-      # writing resultsets, and adapters without a native wait have
-      # nothing else. Either way, poll the resultset cache until all
-      # expected workers have reported or a timeout is reached. Capture
-      # the outcome so `ready_to_process_results?` can suppress min/max
-      # threshold checks against a partial total.
+      # writing resultsets, and adapters without a native wait have nothing
+      # else. Either way, poll the resultset cache until all expected workers
+      # have reported or a timeout is reached. The outcome is captured so
+      # threshold checks can be suppressed against a partial total.
       @parallel_results_complete =
         wait_for_parallel_results(adapter.expected_worker_count, native_wait: adapter.native_wait?)
     end
 
-    # @api private — true when every sibling reported its resultset
-    # before the wait deadline. Defaults to true outside a parallel
-    # run (when `wait_for_other_processes` is a no-op).
+    # @api private -- true when every sibling reported its resultset before the
+    # wait deadline. Defaults to true outside a parallel run.
     def parallel_results_complete?
       instance_variable_defined?(:@parallel_results_complete) ? @parallel_results_complete : true
     end
 
-    # @api private — seconds the resultset count must hold steady, after a
+    # @api private -- seconds the resultset count must hold steady, after a
     # native wait, before we accept fewer than `expected` workers as final.
     PARALLEL_RESULTS_SETTLE = 0.5
     private_constant :PARALLEL_RESULTS_SETTLE
 
-    # @api private — returns true when the reporting worker has every
-    # resultset it's going to get, false on timeout. Single-process runs
-    # (expected <= 1) short-circuit to true with no waiting.
+    # @api private -- true when the reporting worker has every resultset it's
+    # going to get, false on timeout. Single-process runs short-circuit.
     #
-    # Normally we poll until `expected` (= PARALLEL_TEST_GROUPS) workers have
-    # reported or `SimpleCov.parallel_wait_timeout` elapses; raise that setting
-    # when a slow worker routinely finishes well after the others.
-    #
-    # When a native wait already confirmed every sibling PROCESS exited
-    # (`native_wait`), no further resultset will appear, so a count below
-    # `expected` just means some workers produced none — e.g. parallel_test
-    # groups that got no spec file on a machine with more cores than files.
-    # Once the count then holds steady for `PARALLEL_RESULTS_SETTLE` we accept
-    # it as final rather than blocking for the whole timeout. Without a native
-    # wait (GenericAdapter) we can't tell an idle worker from a slow one, so we
-    # keep waiting the full timeout.
+    # Normally we poll until `expected` workers have reported or
+    # `SimpleCov.parallel_wait_timeout` elapses. When a native wait already
+    # confirmed every sibling process exited, no further resultset will appear,
+    # so a count below `expected` just means some workers produced none, and
+    # once the count holds steady for `PARALLEL_RESULTS_SETTLE` we accept it as
+    # final. Without a native wait we can't tell an idle worker from a slow
+    # one, so we keep waiting the full timeout.
     def wait_for_parallel_results(expected, native_wait: false)
       return true unless expected > 1 # simplecov:disable branch — only false in real parallel runs
 
@@ -86,22 +75,15 @@ module SimpleCov
       end
     end
 
-    # The run's own identity is read without a receiver: these methods
-    # are mixed into this module's singleton, so naming it says nothing
-    # a mutation could be told apart from.
     def current_parallel_worker_count
       resultset = ResultMerger.read_resultset
       ResultMerger.worker_identities_for_run(resultset, run_id, process_start_time).size
     end
 
-    # Track whether the resultset count has held steady (and positive) for
-    # `PARALLEL_RESULTS_SETTLE` seconds. `tracker` carries the last count and
-    # the time it last changed across poll iterations.
-    # Answered through an if/else rather than an early return because
-    # falling through after a climb would read the clock a second time
-    # and answer the same `false` anyway, which leaves nothing to tell
-    # the guard apart from its absence. Both keys are the tracker's own
-    # and always set, so both are read with `fetch`.
+    # `tracker` carries the last count and the time it last changed across poll
+    # iterations. Answered through an if/else rather than an early return
+    # because falling through after a climb would read the clock a second time
+    # and answer the same `false` anyway.
     def resultset_count_settled?(tracker, count)
       if count > tracker.fetch(:count)
         tracker[:count] = count
@@ -116,8 +98,8 @@ module SimpleCov
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
-    # @api private — true once the wait deadline has passed; warns on
-    # the first timeout so the user knows the merged total is partial.
+    # @api private -- warns on the first timeout so the user knows the merged
+    # total is partial.
     def parallel_wait_timed_out?(deadline, expected, seen)
       return false unless monotonic_time > deadline
 

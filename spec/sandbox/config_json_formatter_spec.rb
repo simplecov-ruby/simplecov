@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# SimpleCov::Formatter::JSONFormatter is one of the formatters included
-# by default, useful for exporting coverage results in JSON format.
 RSpec.describe "JSON formatter", :sandbox do
   before { setup_project("faked_project") }
 

@@ -2,8 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when the overall (project-wide) coverage for any criterion is
-    # below the configured minimum.
     class MinimumOverallCoverageCheck < Check
       def exit_code
         MINIMUM_COVERAGE
@@ -42,9 +40,9 @@ module SimpleCov
         end
       end
 
-      # The list is a hint at where to add tests, so a fully covered
-      # file has no business on it — without the filter, files at 100%
-      # padded the list out to its five entries. See #1286.
+      # The list is a hint at where to add tests, so a fully covered file has no
+      # business on it: without the filter, files at 100% padded the list out to
+      # its five entries (#1286).
       def worst_files_for(criterion)
         stats_key = SimpleCov.coverage_statistics_key(criterion)
         with_stats = result.files.filter_map do |source_file|

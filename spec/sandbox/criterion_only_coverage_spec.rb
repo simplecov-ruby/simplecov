@@ -3,12 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Reports with line coverage disabled: only the enabled criterion is
-# announced on the console and emitted in the report data, and the meta
-# flags tell the viewer which columns and summaries to draw. Hiding the
-# line column and rendering "Line coverage: disabled" from these flags is
-# covered by the bun suite (html_frontend/test/render_list.test.ts and
-# render_cells.test.ts).
 RSpec.describe "criterion-only coverage reports", :sandbox do
   before { setup_project("faked_project") }
 

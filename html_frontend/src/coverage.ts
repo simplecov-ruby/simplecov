@@ -1,4 +1,3 @@
-// Criterion selection shared by page summaries and file-list groups.
 
 import type { CoverageData, CoverageStat, CoverageType, StatGroup } from './types';
 

@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Show
-      # The bare-invocation project sweep.
       module Sweep
         def self?.misses: (Hash[String, untyped] coverage) -> Array[untyped]
 

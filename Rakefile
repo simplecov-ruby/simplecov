@@ -5,39 +5,31 @@ require "bundler/setup"
 require "open3"
 Bundler::GemHelper.install_tasks
 
-# `rake release` builds the gem and pushes the version tag, but it does not
-# push the gem itself. Pushing the tag triggers the "Push Gem" GitHub Actions
-# workflow (.github/workflows/push_gem.yml), which publishes to RubyGems via
-# trusted publishing (no API key, no OTP) and opens the GitHub Release. Dropping
-# the local `release:rubygem_push` step is what keeps the OTP prompt away.
 Rake::Task["release"].clear
 desc "Build the gem and push the version tag (CI publishes on the tag push)"
+# `rake release` builds the gem and pushes the version tag but not the gem
+# itself. Pushing the tag triggers the "Push Gem" workflow, which publishes to
+# RubyGems via trusted publishing (no API key, no OTP). Dropping the local
+# `release:rubygem_push` step is what keeps the OTP prompt away.
+# See https://github.com/simplecov-ruby/simplecov/issues/171
 task release: %w[build release:guard_clean release:source_control_push]
 
-# See https://github.com/simplecov-ruby/simplecov/issues/171
 desc "Set permissions on all files so they are compatible with both user-local and system-wide installs"
 task :fix_permissions do
   system 'bash -c "find lib/ -type f -exec chmod 644 {} \; && find . -type d -exec chmod 755 {} \;"'
 end
-# Enforce proper permissions on each build
 Rake::Task[:build].prerequisites.unshift :fix_permissions
 
 require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:"spec:serial")
 
-# `rake spec` fans the suite out across CPU-count workers. Splitting by
-# runtime matters here: the sandbox spec files are tiny on disk but each
-# spends seconds driving fixture subprocesses, so the default file-size
-# split parks them on a couple of workers and the rest finish early. The
-# RuntimeLogger formatter in .rspec_parallel records per-file runtimes
-# during every parallel run, and later runs split by those. The first
-# run has no log yet and splits by size (grouping by a missing log is an
-# error), and --allowed-missing 100 keeps a log that predates new or
-# renamed spec files from failing the run. The dogfood coverage check
-# merges every worker's slice and enforces its thresholds on the union
-# (see spec/support/dogfood_report.rb). Falls back to the serial task
-# where parallel_tests isn't installed.
 desc "Run the RSpec suite across parallel workers"
+# Splitting by runtime matters here: the sandbox spec files are tiny on disk
+# but each spends seconds driving fixture subprocesses, so the default
+# file-size split parks them on a couple of workers. The RuntimeLogger in
+# .rspec_parallel records per-file runtimes during every parallel run. The
+# first run has no log yet and splits by size, and --allowed-missing 100 keeps
+# a log that predates new or renamed spec files from failing the run.
 task :spec do
   require "parallel_tests"
   rm_rf "tmp/dogfood-partials"
@@ -56,9 +48,6 @@ rescue LoadError
   end
 end
 
-# The man page is a committed build artifact of the usage document,
-# like the compiled HTML template is of the frontend; the suite's
-# man_page_spec fails when it is stale.
 desc "Regenerate man/simplecov.1 from the usage document"
 task :man do
   require_relative "tasks/man_page"
@@ -66,9 +55,6 @@ task :man do
   File.write("man/simplecov.1", ManPage.build)
 end
 
-# Mutation testing (see docs/Contributing.md#mutation-testing). The bare
-# task sweeps the whole lib and takes a while; the :since task covers the
-# subjects the current branch touched, which is the inner-loop and CI form.
 desc "Mutation-test the whole lib with mutant (slow)"
 task :mutant do
   sh "bundle exec mutant run"
@@ -81,11 +67,6 @@ namespace :mutant do
   end
 end
 
-# The frontend's tests run under bun's built-in runner; bunfig.toml enforces
-# 100% line and function coverage of html_frontend/src, the JS counterpart of
-# the 100% dogfood coverage the RSpec suite enforces on lib/. Follows the
-# rubocop pattern of degrading with a warning where the tool (here bun)
-# isn't installed, e.g. on the CI workers that only run the Ruby suites.
 namespace :frontend do
   desc "Run the frontend TypeScript tests with bun (100% coverage enforced)"
   task :test do
@@ -103,7 +84,6 @@ task :rbs do
   sh "rbs", "-r", "forwardable", "-r", "monitor", "-r", "prism", "-r", "socket", "-r", "tempfile",
      "-I", "sig", "validate"
 rescue LoadError
-  # RBS's native extension doesn't build on JRuby; see the Gemfile.
   warn "RBS is disabled"
 end
 
@@ -112,14 +92,12 @@ task :steep do
   require "rbs"
   sh "steep", "check"
 rescue LoadError
-  # Steep depends on RBS, which doesn't build on JRuby; see the Gemfile.
   warn "Steep is disabled"
 end
 
 task test: %i[spec frontend:test]
 task default: %i[rubocop rbs steep spec frontend:test]
 
-# JS: esbuild bundles TypeScript + highlight.js and minifies
 def frontend_esbuild(frontend)
   executable = Gem.win_platform? ? "esbuild.cmd" : "esbuild"
   path = File.join(frontend, "node_modules", ".bin", executable)
@@ -137,7 +115,6 @@ def compile_frontend_js(frontend)
   end
 end
 
-# CSS: concatenate in order and minify
 def compile_frontend_css(frontend)
   css = %w[
     assets/stylesheets/reset.css
@@ -155,28 +132,23 @@ def minify_css(css, esbuild:)
   raise "CSS compilation failed (exit #{status.exitstatus || 'unknown'}): #{error.strip}"
 end
 
-# Custom properties that JavaScript reads or writes by name and must
-# therefore survive mangling. Any `setProperty`/`getPropertyValue` call
-# added to html_frontend/src must have its property listed here.
-# bar_width.ts sets --bar-sizer-width; page.ts reads the band colours
-# to draw the favicon.
+# Custom properties that JavaScript reads or writes by name and must therefore
+# survive mangling. Any `setProperty` / `getPropertyValue` call added to
+# html_frontend/src must have its property listed here.
 JS_VISIBLE_CSS_VARS = %w[--bar-sizer-width --green --red --yellow].freeze
 
-# The stylesheets lean on descriptively named custom properties
-# (--covered-line-num-bg and friends), and every use repeats the full
-# name, so the names alone cost ~4KB after minification. They are
-# internal to the compiled template, so rename them to short aliases,
-# most frequent first. The single gsub applies the whole mapping in one
-# pass over full `--name` tokens, so `--text` cannot clobber
+# The stylesheets lean on descriptively named custom properties and every use
+# repeats the full name, so the names alone cost ~4KB after minification.
+# They are internal to the compiled template, so they are renamed to short
+# aliases, most frequent first. The single gsub applies the whole mapping in
+# one pass over full `--name` tokens, so `--text` cannot clobber
 # `--text-secondary` and renames cannot chain.
+#
+# The lookbehind matches only genuine custom properties: a custom property's
+# `--` always follows a separator, whereas a BEM class modifier's does not.
+# It keeps the mangler off class names, where aliasing a `.cell--numerator`
+# selector would desync it from the `class="cell--numerator"` the JS emits.
 def mangle_css_custom_properties(css)
-  # Match only genuine custom properties: a `--name` whose `--` is not
-  # preceded by an identifier character. A custom property's `--` always
-  # follows a separator (`(`, `,`, whitespace, `{`, `;`, `:`), whereas a BEM
-  # class modifier's does not — `cell--numerator` has a letter before it. The
-  # lookbehind keeps the mangler off class names: it rewrites CSS only, so
-  # aliasing a `.cell--numerator` selector would desync it from the
-  # `class="cell--numerator"` the JS emits and silently drop the rule.
   token = /(?<![\w-])--[a-zA-Z][\w-]*/
   counts = css.scan(token).tally.except(*JS_VISIBLE_CSS_VARS)
   aliases = short_css_names.reject { |name| counts.key?(name) }
@@ -184,17 +156,15 @@ def mangle_css_custom_properties(css)
   css.gsub(token) { |name| mapping.fetch(name, name) }
 end
 
-# --a, --b, ... --z, --aa, --ab, ... (702 names for 64 properties today)
 def short_css_names
   letters = ("a".."z").to_a
   letters.map { |a| "--#{a}" } + letters.product(letters).map { |a, b| "--#{a}#{b}" }
 end
 
 # The bundles land inside <script>/<style> elements, where the HTML parser
-# treats these sequences as element terminators (or, for "<!--"/"<script",
-# as entry into the script-data-escaped states). The current bundles
-# contain none of them; refuse to build one that does rather than emit a
-# template that truncates at render time.
+# treats these sequences as element terminators. The current bundles contain
+# none of them; refuse to build one that does rather than emit a template
+# that truncates at render time.
 def assert_inline_safe(bundle, label, sequences)
   sequences.each do |sequence|
     next unless bundle.downcase.include?(sequence)
@@ -216,8 +186,6 @@ namespace :assets do
     assert_inline_safe(js, "JS", %w[</script <script <!--])
     assert_inline_safe(css, "CSS", %w[</style])
 
-    # HTML: inline the bundles into the template, leaving the coverage
-    # data marker for HTMLFormatter to substitute at report time.
     html = File.read(File.join(frontend, "src/index.html"))
     {
       "<!-- SIMPLECOV_CSS -->" => "<style>#{css}</style>",

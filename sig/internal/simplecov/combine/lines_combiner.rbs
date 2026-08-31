@@ -1,18 +1,8 @@
 module SimpleCov
   module Combine
-    #
-    # Combine two different lines coverage results on same file
-    #
-    # Should be called through `CoverageAccumulator`.
     module LinesCombiner
-      # Folds `source` into `target` rather than building a third array.
-      # Only for a `target` the caller owns outright; `source` is never
-      # touched. nil + nil = nil, nil + int = int, int + int = sum.
       def self?.merge_into: (untyped target, untyped source) -> untyped
 
-      # Split out only to keep `merge_into` short; it is the same loop.
-      # Both sides go through `to_i`, which coerces malformed external
-      # input and doubles as the nil arm of the target.
       def self?.sum_into: (untyped target, untyped source, Integer size) -> untyped
     end
   end

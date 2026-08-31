@@ -4,35 +4,27 @@ require_relative "base"
 
 module SimpleCov
   module ParallelAdapters
-    # Adapter for [grosser/parallel_tests](https://github.com/grosser/parallel_tests).
-    # This is the historical default — SimpleCov has special-cased
-    # parallel_tests since 0.18 — and remains the most precise option for
-    # projects on it. Detection requires the full native coordination
-    # contract: the `ParallelTests` constant has been loaded,
-    # `TEST_ENV_NUMBER` is set, and `PARALLEL_PID_FILE` is set. The pid-file
-    # path is required because the native wait API reads it with `ENV.fetch`.
-    # When a runner only provides the env-var convention, GenericAdapter is
-    # the correct coordination path.
+    # Adapter for grosser/parallel_tests, the historical default and still the
+    # most precise option for projects on it. Detection requires the full native
+    # coordination contract: the `ParallelTests` constant loaded,
+    # `TEST_ENV_NUMBER` set, and `PARALLEL_PID_FILE` set, because the native
+    # wait API reads the pid-file path with `ENV.fetch`. A runner that only
+    # provides the env-var convention belongs to GenericAdapter.
     class ParallelTestsAdapter < Base
       class << self
         def active?
           return false if forced_off?
 
           ensure_loaded
-          # !! to coerce `defined?` (returns nil or "constant") to a proper bool.
           !!(defined?(::ParallelTests) && native_parallel_tests_environment?)
         end
 
-        # Pick the *first* started process to do the final-result work,
-        # not the last. The parallel_tests README recommends
-        # `first_process?` for "do something once after every worker
-        # finishes" hooks, so user code that has its own
-        # `wait_for_other_processes_to_finish` in an `RSpec.after(:suite)`
-        # overwhelmingly waits in the first process — picking the same
-        # side avoids the cross-process deadlock #922 reported. Also
-        # handles `PARALLEL_TEST_GROUPS=1` naturally (the only worker's
-        # `TEST_ENV_NUMBER` is "" and `first_process?` tests for that
-        # empty string).
+        # The first started process, not the last. The parallel_tests README
+        # recommends `first_process?` for "do something once after every worker
+        # finishes" hooks, so user code with its own
+        # `wait_for_other_processes_to_finish` overwhelmingly waits in the first
+        # process, and picking the same side avoids the cross-process deadlock #922
+        # reported.
         def first_worker?
           ParallelTests.first_process?
         end
@@ -43,8 +35,6 @@ module SimpleCov
           ParallelTests.wait_for_other_processes_to_finish
         end
 
-        # The native wait blocks until every sibling process exits, but only
-        # when the pid-file contract is present (see `wait_for_siblings`).
         def native_wait?
           native_parallel_tests_environment?
         end
@@ -53,18 +43,11 @@ module SimpleCov
           parallel_test_groups_count
         end
 
-        # Auto-require `parallel_tests` when it's installed AND the env
-        # vars it sets are present, so callers can rely on
-        # `defined?(::ParallelTests)` downstream. parallel_tests is an
-        # optional dependency (see https://github.com/grosser/parallel_tests/issues/772),
-        # and `TEST_ENV_NUMBER` / `PARALLEL_TEST_GROUPS` are commonly set
-        # for other reasons (custom subprocess coordination, CI sharding,
-        # the parallel_rspec gem which intentionally mirrors the env-var
-        # convention), so a missing gem is treated as "user isn't using
-        # parallel_tests" — silently skip and let GenericAdapter handle
-        # it. Users who want to override the auto-detect can set
-        # `SimpleCov.parallel_tests true` (force on) or `false` (force
-        # off). See #1018.
+        # parallel_tests is an optional dependency, and `TEST_ENV_NUMBER` /
+        # `PARALLEL_TEST_GROUPS` are commonly set for other reasons, so a missing
+        # gem is treated as "user isn't using parallel_tests": stay quiet and let
+        # GenericAdapter handle it. Warning here regressed users who use those env
+        # vars for their own subprocess coordination (#1018).
         def ensure_loaded
           return if defined?(::ParallelTests)
           return if forced_off?
@@ -73,9 +56,6 @@ module SimpleCov
           # simplecov:disable — only fires under a real parallel_tests setup
           require "parallel_tests"
         rescue LoadError
-          # Gem isn't installed; stay quiet — warning here regressed
-          # users who use those env vars for their own subprocess
-          # coordination.
           # simplecov:enable
         end
 

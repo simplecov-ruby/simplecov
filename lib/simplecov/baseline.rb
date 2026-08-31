@@ -3,22 +3,16 @@
 require "yaml"
 
 module SimpleCov
-  # The checked-in per-file coverage floor set behind `simplecov ratchet`
-  # (see #1268): `.rubocop_todo.yml` applied to coverage. Each entry
-  # records, per criterion, the percent a file has already reached and
-  # the number of misses it had when that percent was recorded. The exit
-  # check fails a file that drops below its own floor, files with no
-  # entry fall through to the global per-file minimum, and `ratchet`
-  # rewrites the file so floors only ever tighten.
+  # The checked-in per-file coverage floor behind `simplecov ratchet` (#1268):
+  # `.rubocop_todo.yml` applied to coverage. Each entry records, per criterion,
+  # the percent a file has already reached and the number of misses it had when
+  # that percent was recorded.
   #
-  # A floor carries both numbers because each covers for the other's
-  # blind spot. The percent is the policy (it is what `minimum_coverage`
-  # speaks), but a percent moves when a file is edited without any
-  # coverage change at all, so the missed count acts as the dampener: a
-  # file below its percent floor still passes while it carries no more
-  # misses than the floor recorded. A violation therefore requires both
-  # a lower percent and more misses, which is the honest reading of
-  # "this file got worse".
+  # A floor carries both numbers because each covers for the other's blind
+  # spot. The percent is the policy, but a percent moves when a file is edited
+  # without any coverage change at all, so the missed count acts as the
+  # dampener. A violation therefore requires both a lower percent and more
+  # misses, which is the honest reading of "this file got worse".
   class Baseline
     DEFAULT_FILENAME = ".simplecov_baseline.yml"
 
@@ -29,46 +23,40 @@ module SimpleCov
     HEADER
     private_constant :HEADER
 
-    # The YAML file speaks the report's vocabulary (lines / branches /
-    # methods); internally floors are keyed by criterion the way the
-    # threshold configuration is.
+    # The YAML file speaks the report's vocabulary; internally floors are keyed
+    # by criterion the way the threshold configuration is.
     CRITERIA = {"lines" => :line, "branches" => :branch, "methods" => :method}.freeze
     private_constant :CRITERIA
 
-    # One criterion's floor. `missed` is nil for a hand-written
-    # percent-only entry, meaning the dampener is absent and the percent
-    # alone decides.
+    # `missed` is nil for a hand-written percent-only entry, meaning the
+    # dampener is absent and the percent alone decides.
     Floor = Data.define(:percent, :missed)
 
-    # The result of a `ratchet` pass: the tightened baseline plus the
-    # path lists the CLI summarizes (each path appears in exactly one).
+    # The tightened baseline plus the path lists the CLI summarizes (each path
+    # appears in exactly one).
     Outcome = Data.define(:baseline, :tightened, :pruned, :regressed, :unchanged)
 
-    # Parse `path` into a Baseline, nil when the file does not exist. A
-    # file that exists but cannot be read as a baseline raises
-    # ConfigurationError: a malformed policy must fail loudly rather
-    # than silently un-enforce every floor it carried.
+    # nil when the file does not exist. A file that exists but cannot be read
+    # as a baseline raises ConfigurationError: a malformed policy must fail
+    # loudly rather than silently un-enforce every floor it carried.
     def self.read(path)
       return nil unless File.exist?(path)
 
       new(Parser.call(YAML.safe_load_file(path), path))
     rescue Psych::Exception => e
-      # Interpolating the exception renders the message Psych objected
-      # with, quoted rather than replaced.
+      # Interpolating the exception renders the message Psych objected with.
       raise ConfigurationError, "baseline file #{path} is not valid YAML: #{e}"
     end
 
-    # Build a Baseline covering every file of `current`, a
-    # `{project_filename => {criterion => {percent:, missed:}}}` Hash of
-    # the measured state. This is the "first run" shape: everything the
-    # report carries gets a floor at its current coverage.
+    # `current` is a `{project_filename => {criterion => {percent:, missed:}}}`
+    # Hash of the measured state. Everything the report carries gets a floor at
+    # its current coverage.
     def self.generate(current)
       new(current.transform_values do |criteria|
         criteria.transform_values { |floor| Floor.new(percent: floor.fetch(:percent), missed: floor.fetch(:missed)) }
       end)
     end
 
-    # entries: Hash[project_filename, Hash[criterion, Floor]]
     attr_reader :entries
 
     def initialize(entries)
@@ -83,24 +71,19 @@ module SimpleCov
       entries.dig(project_filename, criterion)
     end
 
-    # Whether this baseline governs the given file and criterion, which
-    # is also what exempts the pair from the per-file thresholds.
+    # Which is also what exempts the pair from the per-file thresholds.
     def covers?(project_filename, criterion)
       !floor_for(project_filename, criterion).nil?
     end
 
-    # Tighten every entry against `current` (same shape `generate`
-    # takes) and return the Outcome. Floors only move in the tightening
-    # direction, each axis independently: the percent keeps its best,
-    # the missed count its lowest, so the pair is the envelope of the
-    # best state each axis has ever seen. Entries for files `current`
-    # does not carry are pruned; files `current` carries without an
-    # entry stay uncovered, so new code answers to the global standard
-    # rather than to a floor cut at whatever it launched with. A
-    # criterion the current run did not measure keeps its floor, and a
-    # newly measured criterion joins the entry, so a later
-    # `enable_coverage :branch` grandfathers the legacy files' branch
-    # state the same way their line state was.
+    # Floors only move in the tightening direction, each axis independently:
+    # the percent keeps its best, the missed count its lowest. Entries for
+    # files `current` does not carry are pruned; files `current` carries
+    # without an entry stay uncovered, so new code answers to the global
+    # standard rather than to a floor cut at whatever it launched with. A
+    # criterion the current run did not measure keeps its floor, and a newly
+    # measured criterion joins the entry, so a later `enable_coverage :branch`
+    # grandfathers the legacy files' branch state.
     def ratchet(current)
       buckets = {tightened: [], pruned: [], regressed: [], unchanged: []} #: Hash[Symbol, Array[String]]
       ratcheted = entries.filter_map do |file, entry|
@@ -115,8 +98,8 @@ module SimpleCov
                   unchanged: buckets.fetch(:unchanged))
     end
 
-    # Serialize in the report's vocabulary, sorted by path so a ratchet
-    # rewrite diffs as the set of floors that actually moved.
+    # Sorted by path so a ratchet rewrite diffs as the set of floors that
+    # actually moved.
     def to_yaml
       document = entries.sort.to_h do |file, entry|
         [file, entry.to_h { |criterion, floor| [CRITERIA.key(criterion), dump_floor(floor)] }]
@@ -126,11 +109,9 @@ module SimpleCov
 
   private
 
-    # One entry's ratchet step: the summary bucket the file lands in,
-    # and the entry that replaces it. A nil current prunes the entry,
-    # which carries no replacement and so answers with the bucket
-    # alone. Otherwise every measured criterion tightens, keeping the
-    # ones this run did not measure.
+    # A nil current prunes the entry, which carries no replacement and so
+    # answers with the bucket alone. Otherwise every measured criterion
+    # tightens, keeping the ones this run did not measure.
     def ratchet_entry(entry, current_entry)
       return {bucket: :pruned} unless current_entry
 
@@ -140,14 +121,13 @@ module SimpleCov
       {bucket: bucket_for(entry, merged, current_entry), entry: merged}
     end
 
-    # The regressed bucket mirrors the violation rule exactly (percent
-    # below the floor AND more misses than it allows), so "below its
-    # floor" in the ratchet summary always means the exit check fails
-    # the file, never a percent drift the dampener tolerates.
+    # The regressed bucket mirrors the violation rule exactly, so "below its
+    # floor" in the ratchet summary always means the exit check fails the file,
+    # never a percent drift the dampener tolerates.
     def bucket_for(entry, merged, current_entry)
-      # Exact equality rather than numeric: tightening keeps the entry's
-      # own floor on a tie, so an entry that did not move is the very
-      # values it came in with.
+      # Exact equality rather than numeric: tightening keeps the entry's own
+      # floor on a tie, so an entry that did not move is the very values it
+      # came in with.
       return :tightened unless merged.eql?(entry)
 
       regressed = entry.any? do |criterion, floor|
@@ -158,12 +138,11 @@ module SimpleCov
       regressed ? :regressed : :unchanged
     end
 
-    # The tightening rule for one criterion. Either side may be absent:
-    # a floor with no current measurement stays, a measurement with no
-    # floor becomes one.
+    # Either side may be absent: a floor with no current measurement stays, a
+    # measurement with no floor becomes one.
     def tighten(floor, current)
-      # The keys union in ratchet_entry guarantees at least one side is
-      # present, which the cast restates for the type checker.
+      # The keys union in ratchet_entry guarantees at least one side is present,
+      # which the cast restates for the type checker.
       return (_ = floor) unless current
 
       current_floor = Floor.new(percent: current.fetch(:percent), missed: current.fetch(:missed))

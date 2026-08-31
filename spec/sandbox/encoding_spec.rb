@@ -3,11 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# We've experienced some problems given source file encoding: make sure
-# we try the appropriate encoding and the report data carries legible
-# text. The cucumber feature checked the rendered detail views; the
-# rendering is covered by the bun suite (html_frontend/test), so the
-# same legibility assertions run against the embedded source data here.
 RSpec.describe "source file encodings", :sandbox do
   before { setup_project("encodings") }
 
@@ -46,8 +41,6 @@ RSpec.describe "source file encodings", :sandbox do
   end
 
   it "falls back to replacement characters for a tracked-only undeclared EUC-JP source" do
-    # An EUC-JP file without a magic comment can't be decoded correctly
-    # when it is only ever seen via track_files — no way around it.
     tracked = source_text("lib/euc_jp_not_declared_tracked.rb")
     expect(tracked).to include("�")
     expect(tracked).to include("NoDeclare")

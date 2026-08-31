@@ -3,10 +3,6 @@
 require "helper"
 require_relative "../tasks/man_page"
 
-# The committed man page is a build artifact of the usage document,
-# like the compiled HTML template is of the frontend. This gate keeps
-# it current: any change to the usage text (or the version) that isn't
-# followed by `rake man` fails here.
 RSpec.describe ManPage do
   it "matches the committed man/simplecov.1 (regenerate with `rake man`)" do
     committed = File.read(File.expand_path("../man/simplecov.1", __dir__))
@@ -17,8 +13,6 @@ RSpec.describe ManPage do
     page = described_class.build
     expect(page).to start_with(".TH SIMPLECOV 1")
     SimpleCov::CLI::COMMANDS.each_key do |command|
-      # Through the generator's own escaping, so a hyphenated command
-      # (dead-code renders as dead\-code) is looked up as roff sees it.
       expect(page).to include("\n.B #{described_class.escape(command)}")
     end
     expect(page).to include(".B \\-\\-criterion C").and include("badge")

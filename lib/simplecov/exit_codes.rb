@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # Exit statuses SimpleCov sets when coverage checks fail, and the output
-  # helper the enforcement machinery reports through.
   module ExitCodes
     SUCCESS = 0
     EXCEPTION = 1
@@ -10,23 +8,23 @@ module SimpleCov
     MAXIMUM_COVERAGE_DROP = 3
     MAXIMUM_COVERAGE = 4
 
-    # The plural unit each criterion's misses count in, for the checks
-    # that report counts rather than percents (keyed by statistics key,
-    # see `SimpleCov.coverage_statistics_key`).
+    # The plural unit each criterion's misses count in, for the checks that report
+    # counts rather than percents.
     UNITS = {line: "lines", branch: "branches", method: "methods"}.freeze
 
-    # Threshold-violation reports and exit-status notices are the output of
-    # the enforcement feature, not Ruby warnings: routing them through
-    # `Kernel#warn` made `-W0` swallow the explanation for a failing exit
-    # code, let `Warning.warn` hooks (warning trackers, raise-on-warning
-    # test setups) intercept them mid-`at_exit`, and fed colorized text to
+    # Threshold-violation reports and exit-status notices are the output of the
+    # enforcement feature, not Ruby warnings: routing them through `Kernel#warn`
+    # made `-W0` swallow the explanation for a failing exit code, let
+    # `Warning.warn` hooks intercept them mid-at_exit, and fed colorized text to
     # warning logs. `print_errors false` remains the intended opt-out.
+    #
+    # A parallel runner can close a worker's stderr before its at_exit hooks
+    # run, hence the rescue.
     def self.print_error(message)
       $stderr.puts message # rubocop:disable Style/StderrPuts
     rescue IOError
-      # A parallel runner can close a worker's stderr before its at_exit
-      # hooks run (rspec-conductor does). The violation still has to set
-      # the exit status even when its explanation cannot be printed.
+      # The violation still has to set the exit status even when its
+      # explanation cannot be printed.
     end
   end
 end

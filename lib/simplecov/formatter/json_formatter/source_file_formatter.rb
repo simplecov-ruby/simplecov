@@ -3,9 +3,6 @@
 module SimpleCov
   module Formatter
     class JSONFormatter
-      # Renders a single `SimpleCov::SourceFile` as the per-file payload
-      # in coverage.json: source code plus per-enabled-criterion arrays
-      # and totals.
       class SourceFileFormatter
         class << self
           def call(source_file, include_source: true, contexts: nil)
@@ -19,20 +16,17 @@ module SimpleCov
 
         private
 
-          # The file's per-context bitmaps in the map's own wire encoding.
-          # An untouched file gets no key at all: under a present
-          # document-level `contexts` array, absence already says "no
-          # recorded context executed this file".
+          # An untouched file gets no key at all: under a present document-level
+          # `contexts` array, absence already says "no recorded context executed this
+          # file".
           def contexts_section(source_file, contexts)
             bitmaps = contexts.serialized_bitmaps_for(source_file.filename)
             bitmaps.empty? ? {} : {contexts: bitmaps}
           end
 
-          # No per-line encoding conversion here: SourceLoader guarantees
-          # every line leaves it as valid UTF-8 (transcoding declared
-          # encodings, scrubbing invalid bytes), and the converter copy
-          # this used to make per line was the single largest allocation
-          # source in formatting a large report.
+          # No per-line encoding conversion: SourceLoader guarantees every line leaves
+          # it as valid UTF-8, and the converter copy this used to make per line was
+          # the single largest allocation source in formatting a large report.
           def format_source_code(source_file)
             {source: source_file.lines.map { |line| line.src.chomp }}
           end

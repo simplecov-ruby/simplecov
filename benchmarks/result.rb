@@ -4,12 +4,10 @@ require "benchmark/ips"
 require "coverage"
 
 Coverage.start
-# such meta, many wow
 require_relative "../lib/simplecov"
 require_relative "../test_projects/faked_project/lib/faked_project"
 result = Coverage.result
 
-# Minimal formatter used by the benchmark to exercise SimpleCov::Result.
 class MyFormatter
   def format(result)
     result.files.map do |file|

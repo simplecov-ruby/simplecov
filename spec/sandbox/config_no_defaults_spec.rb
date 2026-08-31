@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Requiring 'simplecov/no_defaults' before 'simplecov' gives a clean
-# slate: no default HTML formatter and no default filters, so nothing is
-# dropped from the report and nothing is rendered unless configured.
-# See https://github.com/simplecov-ruby/simplecov/issues/217
 RSpec.describe "no_defaults configuration", :sandbox do
   before { setup_project("faked_project") }
 
@@ -26,10 +22,6 @@ RSpec.describe "no_defaults configuration", :sandbox do
   end
 
   it "loads no default filters, so the report keeps the test files" do
-    # With no defaults, even the HTML formatter has to be required
-    # explicitly — defaults.rb is what normally loads it. Without the
-    # default test_frameworks filter the report keeps the test files it
-    # would otherwise drop, alongside the four application files.
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov/no_defaults'
       require 'simplecov/formatter/html_formatter'

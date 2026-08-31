@@ -84,7 +84,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
   context "when old last_run.json format" do
     let(:last_run) do
       {
-        # this format only considers line coverage
         result: {covered_percent: 80.0}
       }
     end
@@ -111,8 +110,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
     end
   end
 
-  # The drop is the one violation printed in red: it is the message that
-  # says a run went backwards.
   context "when the run went backwards" do
     let(:last_coverage) { {line: 90.0, branch: 90.0} }
 

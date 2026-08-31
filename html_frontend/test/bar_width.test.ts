@@ -1,7 +1,3 @@
-// Exercises the bar-width equalizer's guard clauses and its binary-search
-// fit. happy-dom performs no layout, so the geometry (offsetWidth,
-// clientWidth, and a scrollWidth that tracks the probed bar width) is
-// simulated with property getters.
 import { describe, expect, test } from 'bun:test';
 import { equalizeBarWidths, scheduleEqualizeBarWidths } from '../src/bar_width';
 
@@ -22,8 +18,6 @@ function buildContainer(inner: string): HTMLElement {
   return container;
 }
 
-// Three bar columns share the width variable plus 200px of fixed columns,
-// so the table fits its wrapper while 3 * barWidth + 200 <= clientWidth.
 function stubLayout(container: HTMLElement, clientWidth: number): HTMLElement {
   Object.defineProperty(container, 'offsetWidth', { get: () => 800 });
   const wrapper = container.querySelector('.file_list--responsive') as HTMLElement;
@@ -40,7 +34,7 @@ describe('equalizeBarWidths', () => {
     document.body.innerHTML = '';
     const hidden = buildContainer(FULL_TABLE);
     hidden.style.display = 'none';
-    const zeroWidth = buildContainer(FULL_TABLE); // offsetWidth stays 0
+    const zeroWidth = buildContainer(FULL_TABLE);
     const noTable = buildContainer('<div class="file_list--responsive"></div>');
     Object.defineProperty(noTable, 'offsetWidth', { get: () => 800 });
     const noSizer = buildContainer(FULL_TABLE.replace('<div class="bar-sizer"></div>', ''));
@@ -61,7 +55,7 @@ describe('equalizeBarWidths', () => {
   test('binary-searches the widest bar width that fits the wrapper', () => {
     document.body.innerHTML = '';
     const container = buildContainer(FULL_TABLE);
-    const table = stubLayout(container, 800); // fits while barWidth <= 200
+    const table = stubLayout(container, 800);
     equalizeBarWidths();
     expect(barWidth(table)).toBe('200px');
     expect((table.closest('.file_list--responsive') as HTMLElement).style.visibility).toBe('');
@@ -83,7 +77,7 @@ describe('scheduleEqualizeBarWidths', () => {
     const table = stubLayout(container, 800);
 
     scheduleEqualizeBarWidths();
-    scheduleEqualizeBarWidths(); // deduped while a frame is pending
+    scheduleEqualizeBarWidths();
     await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
     expect(barWidth(table)).toBe('200px');
 

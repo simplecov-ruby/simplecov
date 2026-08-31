@@ -1,7 +1,3 @@
-// Delegated clicks on dynamically-materialized report content, the
-// hashchange wiring, and the n/p missed-line jumps inside the dialog.
-// A fresh happy-dom window is registered for this file so the document-level
-// delegation is attached exactly once, whatever ran earlier in the process.
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { installPageSkeleton, coverageData } from './fixture';
@@ -15,9 +11,6 @@ function clearHash(): void {
 }
 
 async function boot(): Promise<void> {
-  // A modal left open by a previous test lives in the top layer and would
-  // survive the body swap; close and remove it so stale source views can't
-  // shadow the fresh ones in document-order queries.
   document.querySelectorAll('dialog').forEach((d) => {
     (d as HTMLDialogElement).close();
     d.remove();
@@ -132,8 +125,6 @@ describe('jumpToMissedLine', () => {
   function openMissedFile(): HTMLElement[] {
     window.location.hash = '#' + fileId('lib/missed.rb');
     navigateToHash();
-    // Stub layout offsets through the same query jumpToMissedLine uses, and
-    // prove no stale source view shadows the fresh one.
     const lines = Array.from(
       document.querySelectorAll('.source-dialog .source_table li.missed')
     ) as HTMLElement[];
@@ -150,7 +141,7 @@ describe('jumpToMissedLine', () => {
     expect(body.scrollTop).toBe(100);
     jumpToMissedLine(1);
     expect(body.scrollTop).toBe(200);
-    jumpToMissedLine(1); // nothing below → wrap to the first
+    jumpToMissedLine(1);
     expect(body.scrollTop).toBe(100);
   });
 
@@ -162,7 +153,7 @@ describe('jumpToMissedLine', () => {
     expect(body.scrollTop).toBe(200);
     jumpToMissedLine(-1);
     expect(body.scrollTop).toBe(100);
-    jumpToMissedLine(-1); // nothing above 90 → wrap to the last
+    jumpToMissedLine(-1);
     expect(body.scrollTop).toBe(200);
   });
 
@@ -204,7 +195,6 @@ describe('tests badge clicks', () => {
     expect(peek.textContent).toContain('spec/covered_spec.rb:4');
     expect(window.location.hash).toBe(hashBefore);
 
-    // A second click on the same badge closes it again.
     click(badge);
     expect(getDialogBody().querySelector('li.tests-peek')).toBeNull();
   });

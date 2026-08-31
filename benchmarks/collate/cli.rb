@@ -4,14 +4,11 @@ require_relative "shape"
 require_relative "runner"
 
 module CollateBenchmark
-  # Turns `ARGV` and the environment into a `Runner`. See benchmarks/collate.rb
-  # for the documented set of knobs.
   module CLI
     DEFAULT_SCALE = 4
 
     DEFAULT_PROCESSES = 1
 
-    # `resultsets` rather than `count`, which would shadow `Struct#count`.
     Options = Struct.new(:label, :resultsets, :scale, :skip, :rebuild, :baseline, :breakdown, :processes,
                          keyword_init: true)
 
@@ -31,10 +28,6 @@ module CollateBenchmark
         )
       end
 
-      # Above 1, the merge phase runs the fan-out
-      # `SimpleCov.collate(..., processes: N)` runs instead of the serial fold.
-      # Every later phase is unchanged, so a PROCESSES run is directly
-      # comparable to a serial baseline.
       def processes
         count = ENV.fetch("PROCESSES", DEFAULT_PROCESSES).to_i
         return count if count >= 1

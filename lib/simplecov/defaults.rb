@@ -4,46 +4,27 @@ require "English"
 require "pathname"
 require_relative "formatter/html_formatter"
 
-# Default configuration. Profiles autoload on first reference via
-# `SimpleCov.profiles.fetch_proc`; the unused ones (e.g. "rails")
-# never get required unless a user opts in.
 SimpleCov.configure do
   formatter SimpleCov::Formatter::HTMLFormatter
 
   load_profile "bundler_filter"
   load_profile "hidden_filter"
-  # Exclude files outside of SimpleCov.root. Mirrors the early prune done
-  # by SimpleCov::UselessResultsRemover so the user-facing filter chain
-  # honors the same boundary; both share the regex.
   load_profile "root_filter"
-  # Exclude test framework directories (`test/`, `spec/`, `features/`,
-  # `autotest/`). The test suite runs 100% of the test files themselves,
-  # which inflates totals and obscures the application coverage that
-  # actually matters. Drop with `remove_filter %r{\A(test|features|spec|autotest)/}`
-  # if you want test files counted (e.g. to surface dead helpers).
   load_profile "test_frameworks"
 end
 
-# Gotta stash this a-s-a-p, see the CommandGuesser class and i.e. #110 for further info.
-# The program name is kept separately as well: the join below is lossy for a
-# path containing a space, and the guesser reads the executable from it.
+# Stashed as early as possible, before rake or test/unit tamper with ARGV
+# (#110). The program name is kept separately as well: the join is lossy for
+# a path containing a space, and the guesser reads the executable from it.
 SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
 SimpleCov::CommandGuesser.original_program_name = $PROGRAM_NAME
 
-# Autoload config from ~/.simplecov if present
 require_relative "load_global_config"
-
-# Autoload config from .simplecov if present
-# Recurse upwards until we find .simplecov or reach the root directory
 
 config_path = Pathname.new(SimpleCov.root)
 loop do
   filename = config_path.join(".simplecov")
   if filename.exist?
-    # `.simplecov` is a configuration file; SimpleCov.start calls inside
-    # it draw a deprecation warning, and tracking still begins for
-    # backward compatibility. See `SimpleCov.with_dot_simplecov_autoload`
-    # and issue #581.
     SimpleCov.with_dot_simplecov_autoload do
       load filename.to_s
     rescue LoadError, StandardError => e

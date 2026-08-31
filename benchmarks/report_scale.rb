@@ -1,32 +1,17 @@
 # frozen_string_literal: true
 
-# Scaling benchmark for the report pipeline: generates a synthetic
-# project of N small files, runs SimpleCov over it end to end, and
-# prints per-phase wall-clock and GC timings as JSON. Per-file cost
-# should stay flat as N grows — compare two sizes an order of magnitude
-# apart and the phase ratios should track the size ratio.
+# Scaling benchmark for the report pipeline: generates a synthetic project of N
+# small files, runs SimpleCov over it end to end, and prints per-phase
+# wall-clock and GC timings as JSON. Per-file cost should stay flat as N grows.
 #
 # Usage:
 #
 #   ruby benchmarks/report_scale.rb 10000
 #   ruby benchmarks/report_scale.rb 100000
 #
-# Everything lands under tmp/report-scale-benchmark/<n>, which is left
-# in place so a rerun at the same size skips generation.
-#
-# The generation step and the measured run happen in a child process so
-# the parent stays free of Coverage state and each invocation starts
-# cold. Phases:
-#
-#   load_and_track   require every generated file with Coverage running
-#   result_build     SimpleCov.result (adapter, filters, Result)
-#   grouping         Result#groups
-#   statistics       full per-file model build + aggregate statistics
-#   json_format      JSONFormatter (writes coverage.json)
-#   html_format      HTMLFormatter (writes index.html + coverage.json)
-#   store_resultset  ResultMerger.store_result (.resultset.json write)
-#   merged_result    ResultMerger.merged_result (read + parse + fold)
-#   exit_checks      least_covered_file + .last_run.json
+# Everything lands under tmp/report-scale-benchmark/<n>, which is left in place
+# so a rerun at the same size skips generation. Generation and the measured run
+# happen in a child process so the parent stays free of Coverage state.
 
 require "fileutils"
 require "json"
@@ -75,7 +60,8 @@ if ENV["REPORT_SCALE_CHILD"]
   puts JSON.pretty_generate(n: files.size, phases: phases, gc_time: gc_time,
                             rss_mb: `ps -o rss= -p #{Process.pid}`.to_i / 1024)
   $stdout.flush
-  exit!(0) # skip at_exit so the report pipeline isn't run a second time
+  # Skip at_exit so the report pipeline isn't run a second time.
+  exit!(0)
 end
 
 n = Integer(ARGV.fetch(0, "10000"))

@@ -3,21 +3,9 @@
 require "helper"
 require "support/sandbox_project"
 
-# Sophisticated grouping and filtering: groups and filters can be
-# defined with blocks, strings, or arrays, and block filters can use
-# arbitrary conditions (source contents, covered percent) to drop files
-# from the report. Also guards the #1038 regression data: group names
-# that differ only in punctuation, or that contain the literal
-# hexadecimal spelling used to escape another name, must stay distinct
-# entries — and empty groups must survive into the report data. The
-# viewer-side half of #1038 (distinct HTML containers and tabs per
-# group) is covered by the toHtmlId tests in
-# html_frontend/test/format.test.ts and the tab tests in
-# html_frontend/test/app.test.ts.
 RSpec.describe "complex groups and filters", :sandbox do
   before { setup_project("faked_project") }
 
-  # After the filters, only the fully-covered meta_magic.rb remains.
   def expect_meta_magic_only(data)
     expect(reported_total_percent(data)).to eq(100.00)
     expect(reported_file_percents(data)).to eq("lib/faked_project/meta_magic.rb" => 100.00)
@@ -95,10 +83,6 @@ RSpec.describe "complex groups and filters", :sandbox do
       data = html_report_data
       expect_meta_magic_only(data)
 
-      # framework_specific.rb is dropped by the covered-percent filter,
-      # so the groups matching it are present but empty; the configured
-      # "All Files" group is a separate entry from the viewer's built-in
-      # All Files list (which it renders from `total` + `coverage`).
       expect(data.fetch("groups").keys).to eq(["<group", ">group", "By/group", "By_2f_group", "All Files"])
       expect(data.fetch("groups").transform_values { |group| group.fetch("files") }).to eq(
         "<group" => ["lib/faked_project/meta_magic.rb"],

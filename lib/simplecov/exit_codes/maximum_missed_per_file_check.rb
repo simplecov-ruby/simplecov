@@ -2,11 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when any single file carries more misses than the
-    # `maximum_missed_per_file` cap for any criterion. Unlike a percent
-    # minimum, which flatters big files, the cap holds every file to the
-    # same absolute budget. Files with a baseline entry answer to their
-    # own floor instead (see BaselineCheck).
     class MaximumMissedPerFileCheck < Check
       def initialize(result, maximum_missed_per_file, overrides = {}, baseline: nil)
         super(result, maximum_missed_per_file)

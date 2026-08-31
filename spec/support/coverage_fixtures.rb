@@ -4,9 +4,6 @@ require_relative "coverage_fixtures/branch_fixtures"
 require_relative "coverage_fixtures/case_fixtures"
 require_relative "coverage_fixtures/script_fixtures"
 
-# Aggregate index pairing each fixture script under spec/fixtures/ with
-# the coverage hash the suite uses for it. Individual constants live in
-# the sibling files under spec/support/coverage_fixtures/.
 module CoverageFixtures
   ALL_FIXTURES = {
     "branches.rb" => BRANCHES_RB,

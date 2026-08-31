@@ -5,9 +5,6 @@ require_relative "../patch/output"
 module SimpleCov
   module CLI
     module DeadCode
-      # Renders the crossed matrix: the text views with their
-      # `path:ranges` rows and summary counts, and the JSON payload,
-      # which always carries every category regardless of the view.
       module Output
         extend CommandHelpers
 
@@ -41,9 +38,6 @@ module SimpleCov
           stdout.puts("#{pluralize(count(matrix, :untested_in_production), 'untested line')} running in production")
         end
 
-        # Print one category as `path:ranges` rows (empty categories
-        # print nothing, not even their heading) and return the row
-        # count.
         def section(stdout, heading, matrix, bucket, last_seen)
           rows = matrix.fetch(bucket).sort
           return 0 if rows.empty?
@@ -56,12 +50,11 @@ module SimpleCov
           rows.size
         end
 
-        # The row's parenthesized evidence. "entire file" says every
-        # relevant line skipped production; "last run" dates the store's
-        # last sighting of the file, which for a dead or possibly dead
-        # row means other lines of the file (or lines the report deems
-        # irrelevant) ran then, and its absence means the window never
-        # saw the file at all. Both can hold at once.
+        # The row's parenthesized evidence. "entire file" says every relevant line
+        # skipped production; "last run" dates the store's last sighting of the file,
+        # which for a dead or possibly dead row means other lines of the file ran
+        # then, and its absence means the window never saw the file at all. Both can
+        # hold at once.
         def markers(matrix, file, last_seen)
           markers = [] #: Array[String]
           markers << "entire file" if matrix.fetch(:entire).include?(file)
@@ -93,8 +86,8 @@ module SimpleCov
           payload
         end
 
-        # JSON carries the full stamp where the text views print its
-        # date, and omits the key for a file the window never saw.
+        # JSON carries the full stamp where the text views print its date, and omits
+        # the key for a file the window never saw.
         def json_entry(file, lines, last_seen)
           entry = {file: file, lines: lines} #: Hash[Symbol, untyped]
           stamp = last_seen[file]

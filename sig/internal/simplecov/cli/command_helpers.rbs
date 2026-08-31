@@ -1,49 +1,31 @@
 module SimpleCov
   module CLI
-    # Plumbing the subcommands repeat, which their modules `extend`:
-    # the standard option trio the read-only commands share, the
-    # one-line error helper, and the human-readable stats row.
     module CommandHelpers
       STATS_ROW_FORMAT: ::String
 
-      # Raised by the shared --help switch; CLI.dispatch answers it
-      # with the command's slice of the usage text.
       class HelpRequested < StandardError
       end
 
-      # The extending module's Module#name. Every extender is a named
-      # module, so the nil of an anonymous one cannot happen here.
       def name: () -> ::String
 
       def on_help: (untyped parser) -> untyped
 
       def build_parser: () ?{ (untyped parser) -> untyped } -> untyped
 
-      # "simplecov merge: ..." — derived from the extending module's name.
       def command_name: () -> ::String
 
-      # Declares -q/--quiet on a parser, setting opts[:quiet].
       def quiet_option: (untyped parser, Hash[Symbol, untyped] opts) -> untyped
 
-      # Whether a count is exactly one, for choosing singular wording.
       def one?: (::Integer count) -> bool
 
       def error: (untyped stderr, untyped message) -> 1
 
-      # `error` returning nil, so query helpers can tell "reported"
-      # from a real answer.
       def error_nil: (untyped stderr, untyped message) -> nil
 
-      # The document-level context list a `track_tests` recording
-      # stores, nil after reporting its absence or malformation.
       def recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?
 
-      # The --input / --json / --no-color trio every read-only
-      # subcommand accepts.
       def common_options: (untyped parser, untyped opts) -> untyped
 
-      # Shared parse scaffold: seeded defaults, the common option trio,
-      # a block for command-specific flags, returns [opts, rest].
       def parse_common: (untyped args, ?::Hash[Symbol, untyped] defaults) ?{ (untyped, untyped) -> untyped } -> [untyped, untyped]
 
       def stats_row: (untyped label, untyped percent_text, untyped covered, untyped total) -> ::String

@@ -2,11 +2,6 @@
 
 require "helper"
 
-# Status lines and threshold-enforcement output are deliberately written
-# with `$stderr.puts` rather than `Kernel#warn`: they are program output,
-# not Ruby warnings, so `Warning.warn` hooks (warning trackers,
-# raise-on-warning test setups) must not intercept them and `-W0` must not
-# swallow them. See #1225.
 RSpec.describe "stderr output contract" do
   before { allow(Warning).to receive(:warn).and_call_original }
 
@@ -32,9 +27,6 @@ RSpec.describe "stderr output contract" do
       expect_no_warning
     end
 
-    # No Warning assertion here: under `-W0`, `Kernel#warn` returns without
-    # ever reaching `Warning.warn`, so only the output assertion can tell
-    # `$stderr.puts` (prints) apart from `warn` (silently dropped).
     it "still reports violations when Ruby warnings are disabled (-W0)" do
       verbose = $VERBOSE
       $VERBOSE = nil

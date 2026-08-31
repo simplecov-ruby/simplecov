@@ -7,16 +7,16 @@ require_relative "diff/output"
 
 module SimpleCov
   module CLI
-    # `simplecov diff <baseline>` — print per-file coverage deltas between
-    # coverage.json (--input) and a baseline coverage.json
-    # checked in alongside the suite. Only files whose coverage moved
-    # are listed; --fail-on-drop exits non-zero when any file regressed,
-    # so this composes with CI as a "coverage of this PR didn't drop"
-    # gate. Resolves the long-standing "diff coverage" feature request.
+    # `simplecov diff <baseline>`: per-file coverage deltas between coverage.json
+    # and a baseline coverage.json checked in alongside the suite. Only files
+    # whose coverage moved are listed, and `--fail-on-drop` exits non-zero when
+    # any file regressed, so this composes as a "coverage of this PR didn't drop"
+    # gate.
     module Diff
       extend CommandHelpers
 
-      EPSILON = 0.005 # tolerance below which a delta is considered noise
+      # Tolerance below which a delta is considered noise.
+      EPSILON = 0.005
 
       extend self
 
@@ -61,9 +61,8 @@ module SimpleCov
         normalize_keys(coverage)
       end
 
-      # Strip a leading slash so coverage.json files written before the
-      # `project_filename` change (keys like "/lib/foo.rb") still diff
-      # cleanly against newer reports (keys like "lib/foo.rb").
+      # Strips a leading slash so coverage.json files written before the
+      # `project_filename` change still diff cleanly against newer reports.
       def normalize_keys(coverage)
         coverage.transform_keys { |key| key.delete_prefix("/") }
       end
@@ -73,10 +72,8 @@ module SimpleCov
         files.filter_map { |fname| compute_row(fname, current[fname], baseline[fname], threshold) }
       end
 
-      # EPSILON keeps float noise out regardless of threshold; the
-      # threshold itself is inclusive, so a file that moved exactly N%
-      # is listed under `--threshold N`, matching the "at least N%" the
-      # usage text promises.
+      # The threshold is inclusive, so a file that moved exactly N% is listed under
+      # `--threshold N`, matching the "at least N%" the usage text promises.
       def compute_row(fname, current_payload, baseline_payload, threshold)
         deltas = compute_deltas(current_payload, baseline_payload)
         floor = threshold.abs
@@ -105,12 +102,10 @@ module SimpleCov
         payload[fields.fetch(:percent)].to_f
       end
 
-      # A removed file's deltas are all -baseline%, but deleting a
-      # covered file (dead code cleanup) is not a coverage regression,
-      # so removed rows never trip the --fail-on-drop gate. Drops are
-      # gated on EPSILON like row inclusion and display: a row listed
-      # for a gain in one criterion must not fail the run over float
-      # noise in another, invisible in the printed output.
+      # A removed file's deltas are all -baseline%, but deleting a covered file is
+      # not a coverage regression, so removed rows never trip the gate. Drops are
+      # gated on EPSILON like row inclusion and display, so a row listed for a gain
+      # in one criterion cannot fail the run over float noise in another.
       def coverage_drop?(rows)
         rows.reject { |row| row.fetch(:status).eql?("removed") }
             .any? { |row| row.fetch_values(:line_delta, :branch_delta, :method_delta).min < -EPSILON }

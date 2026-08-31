@@ -3,14 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Code wrapped in :nocov: comment blocks does not count against the
-# coverage numbers: the whole block is marked skipped ("ignored" in the
-# report data) and the file still reports 100%. Rendering skipped lines
-# with the "skipped" treatment is covered by the bun suite
-# (html_frontend/test/render_source.test.ts).
-#
-# NOTE: `# :nocov:` is deprecated in favor of `# simplecov:disable` /
-# `# simplecov:enable` (see skipping_with_directives_spec.rb).
 RSpec.describe "skipping code blocks with :nocov:", :sandbox do
   before do
     setup_project("faked_project")

@@ -3,11 +3,6 @@
 module SimpleCov
   module Formatter
     class JSONFormatter
-      # Translates the threshold violations reported by
-      # `SimpleCov::CoverageViolations` into the `:errors` section of
-      # coverage.json. Each violation is keyed by criterion
-      # (`:lines` / `:branches` / `:methods`) so consumers can render
-      # per-criterion messages without re-deriving them.
       class ErrorsFormatter
         CRITERION_KEYS = {line: :lines, branch: :branches, method: :methods}.freeze
         private_constant :CRITERION_KEYS
@@ -42,10 +37,9 @@ module SimpleCov
             violations.each { |violation| record_by_file(violation, errors) }
           end
 
-          # Baseline-floor violations (see SimpleCov::Baseline), keyed
-          # like minimum_coverage_by_file: filename, then criterion. The
-          # payload adds the two missed counts the floor was judged by;
-          # `allowed_missed` is absent for a percent-only floor.
+          # Baseline-floor violations keyed like minimum_coverage_by_file: filename,
+          # then criterion. The payload adds the two missed counts the floor was judged
+          # by; `allowed_missed` is absent for a percent-only floor.
           def format_baseline(result, errors)
             CoverageViolations.baseline(result, SimpleCov.baseline).each do |violation|
               by_file = bucket(errors, :baseline)
@@ -67,8 +61,6 @@ module SimpleCov
             violations = CoverageViolations.minimum_by_group(result, SimpleCov.minimum_coverage_by_group)
             return if violations.empty?
 
-            # `bucket` lazily creates the errors key, so only touch it when
-            # there is a violation to record.
             by_group = bucket(errors, :minimum_coverage_by_group)
             violations.each do |violation|
               group_bucket = by_group[violation.fetch(:group_name)] ||= {} #: Hash[untyped, untyped]
@@ -106,6 +98,8 @@ module SimpleCov
             end
           end
 
+          # Lazily creates the errors key, so callers only touch it when there is a
+          # violation to record.
           def bucket(errors, name)
             errors[name] ||= {} #: Hash[untyped, untyped]
           end

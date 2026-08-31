@@ -2,8 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Runs every coverage check against the result and returns the exit
-    # code from the first failing one (or SUCCESS if all pass).
     module ExitCodeHandling
       extend self
 
@@ -32,8 +30,6 @@ module SimpleCov
         ]
       end
 
-      # Split out for length alone; the baseline exempts the pairs it
-      # covers from this check (see MinimumCoverageByFileCheck).
       def minimum_by_file_check(result, coverage_limits)
         MinimumCoverageByFileCheck.new(
           result, coverage_limits.minimum_coverage_by_file, coverage_limits.minimum_coverage_by_file_overrides,
@@ -41,8 +37,6 @@ module SimpleCov
         )
       end
 
-      # Same baseline exemption as the per-file minimum (see
-      # MaximumMissedPerFileCheck).
       def maximum_missed_per_file_check(result, coverage_limits)
         MaximumMissedPerFileCheck.new(
           result, coverage_limits.maximum_missed_per_file, coverage_limits.maximum_missed_per_file_overrides,

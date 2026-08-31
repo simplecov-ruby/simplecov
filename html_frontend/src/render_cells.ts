@@ -1,13 +1,6 @@
-// Reusable coverage-cell and summary HTML builders shared by the file-list
-// table, the per-file source view, and the live totals updater.
 
 import { pctClass, fmtNum, fmtPct } from './format';
 
-// Under `track_tests`, `outsidePct` splits the fill: the band-coloured
-// share covered by recorded tests, then a slate share covered only outside
-// them, so the bar mirrors the source view's drained lines. The band stays
-// a function of the overall percent — the split changes what the fill is
-// made of, not which band the file is in.
 export function renderCoverageBar(pct: number, outsidePct?: number): string {
   const css = pctClass(pct);
   if (!outsidePct) {
@@ -30,11 +23,6 @@ export function renderCoverageCells(pct: number, covered: number, total: number,
            `<td class="cell--numerator strong t-totals__${type}-num">${fmtNum(covered)}/</td>` +
            `<td class="cell--denominator strong t-totals__${type}-den">${fmtNum(total)}</td>`;
   }
-  // Every sortable cell carries data-order: the displayed counts are
-  // comma-grouped, and the sorter's Number.parseFloat would stop at the
-  // first separator and rank "1,250" below "999". Tracked runs add the
-  // by-tests percent as data-order-2, the sorter's tie-breaker, so equal
-  // coverage ranks by how much of it recorded tests produced.
   const tiebreak = outsidePct === undefined ? '' : ` data-order-2="${fmtPct(pct - outsidePct)}"`;
   const order = ` data-order="${fmtPct(pct)}"${tiebreak}`;
   return `<td class="cell--coverage cell--${type}-pct ${css}"${order}>${barAndPct}</td>` +
@@ -92,10 +80,6 @@ function renderTypeSummary(summary: TypeSummary): string {
   return parts;
 }
 
-// The line summary of a tracked report: the percent is still the file's
-// line coverage, but the fraction attributes it — how many relevant lines
-// recorded tests covered, then how many were covered only outside them,
-// then the missed remainder the untracked row would also report.
 function renderTrackedLineSummary(covered: number, total: number, byTests: number, outside: number): string {
   const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
   const missed = total - covered;
@@ -126,10 +110,6 @@ interface CoverageSummaryArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   showMethodToggle: boolean;
-  // Present only when the report carries recorded contexts: the relevant
-  // covered lines some recorded test executed, and the remainder covered
-  // outside them (see render_source.ts). The line row then splits its
-  // fraction by that attribution instead of stating one covered count.
   coveredByTests?: number;
   coveredOutsideTests?: number;
 }

@@ -3,12 +3,10 @@
 module SimpleCov
   module CLI
     module Completions
-      # The per-shell renderers. Each receives the same parsed usage
-      # data: `commands` as [name, description] pairs and `options` as
-      # a hash of command name to option rows (:short, :long, :arg,
-      # :desc), and returns the complete script text. The completions
-      # command's own shell-name argument is the one thing the usage
-      # tables don't carry, so each renderer wires it in by hand.
+      # The per-shell renderers. Each receives the same parsed usage data and
+      # returns the complete script text. The completions command's own shell-name
+      # argument is the one thing the usage tables don't carry, so each renderer
+      # wires it in by hand.
       module Scripts
         extend self
 
@@ -88,9 +86,6 @@ module SimpleCov
           (head + rows + ZSH_MIDDLE + zsh_cases(options) + ZSH_TAIL).join("\n")
         end
 
-        # Built as a string rather than joined from an array: `join`
-        # flattens, which hides whether the specs arrived one per option
-        # or several, and this line is the only place that shape shows.
         def zsh_cases(options)
           options.collect do |name, list|
             specs = +""
@@ -100,9 +95,9 @@ module SimpleCov
           end
         end
 
-        # `'--input=[desc]'` — the `=` marks an argument-taking switch,
-        # which optparse accepts in that spelling too. Brackets would
-        # end the description early, so they're dropped from it.
+        # `'--input=[desc]'`: the `=` marks an argument-taking switch, which optparse
+        # accepts in that spelling too. Brackets would end the description early, so
+        # they are dropped from it.
         def zsh_specs(option)
           desc = "[#{zsh_quote(option.fetch(:desc).delete('[]'))}]"
           specs = [] #: Array[String]

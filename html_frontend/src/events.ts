@@ -1,5 +1,3 @@
-// Delegated click handling for dynamically-materialized source content, plus
-// jumping between missed lines within the open dialog.
 
 import { $$, on } from './dom';
 import { navigateToHash, getDialogBody } from './dialog';
@@ -16,8 +14,6 @@ export function jumpToMissedLine(direction: 1 | -1): void {
 
   const dialogBody = getDialogBody();
   const midpoint = dialogBody.scrollTop + dialogBody.clientHeight / 2;
-  // The -10 bias on the backward search keeps the currently-centered line
-  // from counting as its own "previous" hit when we're sitting on it.
   const target = direction === 1
     ? lines.find((li) => li.offsetTop > midpoint) || lines[0]
     : lines.findLast((li) => li.offsetTop < midpoint - 10) || lines[lines.length - 1];
@@ -25,7 +21,6 @@ export function jumpToMissedLine(direction: 1 | -1): void {
   dialogBody.scrollTop = target.offsetTop - dialogBody.clientHeight / 3;
 }
 
-// Event delegation for dynamically-materialized source content.
 export function setupEventDelegation(): void {
   on(document, 'click', '.t-missed-method-toggle', function (e: Event) {
     e.preventDefault();
@@ -51,8 +46,6 @@ export function setupEventDelegation(): void {
   });
 
   on(document, 'click', '.source-dialog .source_table li[data-linenumber]', function (e: Event) {
-    // The tests badge (and the peek it opens) owns its own clicks; without
-    // this guard a badge click would also anchor and scroll the line.
     if ((e.target as Element).closest('.hits--tests, .tests-peek')) return;
     e.preventDefault();
     getDialogBody().scrollTop = (this as HTMLElement).offsetTop;

@@ -1,6 +1,3 @@
-// File-list table markup: per-group container, column headers, totals row,
-// and one row per source file, across the three coverage criteria — ported
-// from the cucumber checks on the rendered group tables.
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { fileId, precomputeFileIds } from '../src/format';
 import { renderFileList } from '../src/render_list';
@@ -32,7 +29,6 @@ const fullCoverage: FileCoverage = {
   total_methods: 2
 };
 
-// No percent or count fields at all, so every 100.0 / 0 fallback kicks in.
 const bareCoverage: FileCoverage = { source: [] };
 
 function parse(html: string): HTMLElement {
@@ -73,7 +69,6 @@ describe('renderFileList', () => {
     expect(container.querySelector('.t-totals__branch-den')!.textContent).toBe('4');
     expect(container.querySelector('.t-totals__method-pct')!.className).toContain('red');
 
-    // ghost.rb is listed in the group but has no coverage entry, so no row
     const rows = container.querySelectorAll('tbody tr.t-file');
     expect(rows).toHaveLength(2);
 
@@ -88,7 +83,6 @@ describe('renderFileList', () => {
     expect(link.getAttribute('href')).toBe('#' + fileId(FULL));
     expect(link.getAttribute('title')).toBe(FULL);
 
-    // the fieldless file falls back to 100% / 0 counts and escapes its name
     const bare = rows[1] as HTMLElement;
     expect(bare.dataset.coveredLines).toBe('0');
     expect(bare.dataset.totalMethods).toBe('0');
@@ -137,9 +131,6 @@ describe('renderFileList', () => {
 });
 
 describe('renderFileList with recorded contexts', () => {
-  // 0xb = bits 0,1,3 -> lines 1, 2, 4 executed by the one context. Line 4
-  // is non-executable, so of the covered lines (1, 2, 3, 5) two are covered
-  // outside tests: 50% of the file's 4 relevant lines is by tests.
   const trackedCoverage: FileCoverage = {
     source: ['a', 'b', 'c', 'd', 'e'],
     lines: [1, 1, 1, null, 1],
@@ -148,7 +139,6 @@ describe('renderFileList with recorded contexts', () => {
     total_lines: 4,
     contexts: { '0': 'b' }
   };
-  // No `contexts` table: an untouched file, all its covered lines outside.
   const untouchedCoverage: FileCoverage = {
     source: ['a', 'b'],
     lines: [1, 0],
@@ -202,7 +192,6 @@ describe('renderFileList with recorded contexts', () => {
     const totalsCell = container.querySelector('.t-totals__line-pct')!;
     const fills = totalsCell.querySelectorAll('.coverage-bar__fill');
     expect(fills.length).toBe(2);
-    // 3 of 6 relevant lines outside tests: 50% grey, 33.33% by tests.
     expect(fills[1].getAttribute('style')).toBe('width: 50.00%');
     expect(fills[0].getAttribute('style')).toBe('width: 33.33%');
   });

@@ -1,8 +1,5 @@
 module SimpleCov
   module ResultMerger
-    # Reads and writes the persistent `.resultset.json` cache, including
-    # file-lock synchronization between processes and atomic temp-file
-    # renames so concurrent readers don't observe a truncated file.
     module ResultsetStore
       LOCK_MONITOR: Monitor
 
@@ -12,8 +9,6 @@ module SimpleCov
 
       def self?.write: (untyped resultset) -> untyped
 
-      # Serialize threads before taking the process-wide file lock. Nested
-      # calls by the owning thread bypass a second flock.
       def self?.synchronize: () { () -> untyped } -> untyped
 
       def self?.with_flock: () { () -> untyped } -> untyped

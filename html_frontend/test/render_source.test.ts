@@ -1,6 +1,3 @@
-// Annotated source view: per-line status classification across line, branch,
-// and method coverage, hit markers, branch annotations, and the missed-method
-// toggle list — ported from the cucumber source-view assertions.
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { fileId, precomputeFileIds } from '../src/format';
 import { languageFor, renderSourceFile } from '../src/render_source';
@@ -24,10 +21,6 @@ function render(
   return el.firstElementChild as HTMLElement;
 }
 
-// One file exercising every line status at once. Line numbers are 1-based:
-//   1 covered (with a covered branch), 2 missed branch (line itself covered),
-//   3-4 missed method span, 5 skipped (with an ignored branch), 6 missed,
-//   7 never (null), 8 never (lines array shorter than source).
 const data: FileCoverage = {
   source: ['if a', 'elsif b', 'def m1', 'end', ':skipped', ':missed', '# comment', 'trailing'],
   lines: [2, 1, 1, 1, 'ignored', 0, null],
@@ -72,7 +65,6 @@ describe('renderSourceFile', () => {
     expect(lis[0].querySelector('.hits')!.getAttribute('data-content')).toBe('2');
     expect(lis[0].querySelector('code.ruby')!.textContent).toBe('if a');
 
-    // covered-line marker first, then one annotation per branch on the line
     const branchHits = Array.from(lis[1].querySelectorAll('.hits')).map((s) =>
       s.getAttribute('data-content')
     );
@@ -147,8 +139,6 @@ describe('renderSourceFile with recorded contexts', () => {
     return el.firstElementChild as HTMLElement;
   }
 
-  // Line 1 covered by both contexts, line 2 covered by none (the drained
-  // case), line 3 missed, line 4 non-executable.
   const ctxData: FileCoverage = {
     source: ['a', 'b', 'c', '# d'],
     lines: [1, 2, 0, null],
@@ -210,8 +200,6 @@ describe('renderSourceFile with recorded contexts', () => {
       contexts: {}
     }, true, true, false, contexts);
     const header = (el.firstElementChild as HTMLElement).querySelector('.summary-stats')!;
-    // Line 1 keeps its missed-branch color, but it too was covered by no
-    // recorded test, and the summary states the attribution fact.
     const line = header.querySelector('.t-line-summary')!;
     expect(line.textContent).toContain('0/2 relevant lines covered by tests');
     expect(line.textContent).toContain('2/2 relevant lines covered outside tests');
@@ -228,8 +216,6 @@ describe('renderSourceFile with recorded contexts', () => {
     expect(line.textContent).toContain('1 missed');
     const outside = line.querySelector('.outside-tests-text')!;
     expect(outside.textContent).toBe('1/3 relevant lines covered outside tests');
-    // Sized and weighted like the by-tests fraction beside it, not like
-    // the full-size bolded missed clause: one sentence, one voice.
     expect(outside.className).toBe('coverage-cell__fraction outside-tests-text');
     expect(outside.querySelector('b')).toBeNull();
   });
@@ -256,7 +242,6 @@ describe('renderSourceFile with recorded contexts', () => {
 });
 
 describe('renderSourceFile with production coverage', () => {
-  // Lines 1-3 relevant (covered, covered, missed), 4 non-relevant.
   const simple: FileCoverage = {
     source: ['def foo', '  :bar', '  :baz', 'end'],
     lines: [1, 1, 0, null],

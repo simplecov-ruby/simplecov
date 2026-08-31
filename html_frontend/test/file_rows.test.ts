@@ -1,6 +1,3 @@
-// The visible-row cache shared by filtering and keyboard navigation: it
-// must reflect only the active group's rows, skip filtered-out rows, and
-// hand back the cached array until explicitly invalidated.
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { getVisibleFileRows, invalidateFileRowCache } from '../src/file_rows';
 
@@ -37,7 +34,6 @@ describe('getVisibleFileRows', () => {
   test('serves the cached array until invalidated', () => {
     buildContainers();
     const first = getVisibleFileRows();
-    // The DOM changed, but the cache must still answer.
     document.getElementById('row-3')!.remove();
     expect(getVisibleFileRows()).toBe(first);
 

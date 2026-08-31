@@ -2,11 +2,9 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when any individual file falls below the configured minimum
-    # coverage for any criterion.
     class MinimumCoverageByFileCheck < Check
-      # `baseline:` exempts the file-and-criterion pairs it covers: those
-      # answer to their own floor via `BaselineCheck` instead.
+      # `baseline:` exempts the file-and-criterion pairs it covers: those answer to
+      # their own floor via `BaselineCheck` instead.
       def initialize(result, minimum_coverage_by_file, overrides = {}, baseline: nil)
         super(result, minimum_coverage_by_file)
         @overrides = overrides

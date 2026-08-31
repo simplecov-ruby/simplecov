@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# A `.simplecov` file in the project root is picked up automatically on
-# `require "simplecov"`, so multiple test suites share one configuration
-# without repeating it in every test helper.
 RSpec.describe "config autoload via .simplecov", :sandbox do
   before do
     setup_project("faked_project")
@@ -30,8 +27,6 @@ RSpec.describe "config autoload via .simplecov", :sandbox do
     expect(result.output).to include("Coverage report generated for RSpec, Unit Tests")
 
     data = html_report_data
-    # The footer's "using RSpec, Unit Tests" is rendered from this field
-    # (the bun suite covers the rendering itself).
     expect(data.dig("meta", "command_name")).to eq("RSpec, Unit Tests")
     expect(displayed_percent(data.dig("total", "lines", "percent"))).to eq(90.47)
     expect(html_file_percents(data)).to eq(

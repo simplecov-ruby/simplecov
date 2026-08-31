@@ -5,8 +5,6 @@ require "fileutils"
 require_relative "shape"
 
 module CollateBenchmark
-  # Writes the two artifacts a collate needs on disk: the source tree the
-  # report phase reads, and the resultset shards the merge phase folds.
   class ArtifactWriter
     def initialize(files:, project_dir:, result_files_dir:, seed:, progress:)
       @files = files
@@ -16,9 +14,6 @@ module CollateBenchmark
       @progress = progress
     end
 
-    # The report phase reads every file in the result, so the tree has to exist
-    # with matching line counts. Content only has to classify the same way the
-    # coverage data does and be of realistic width.
     def write_sources
       made = {}
       @files.each_with_index do |file, index|
@@ -30,12 +25,7 @@ module CollateBenchmark
       end
     end
 
-    # Shards differ only in hit counts, so the structure is mutated in place,
-    # written, and reverted — no per-shard copy of six figures' worth of line
-    # entries.
     def write_resultsets(count)
-      # One timestamp for the whole set: shards of a real run land seconds
-      # apart, and a single value keeps every shard's byte length identical.
       timestamp = Time.now.to_i
       count.times do |index|
         drift = apply_drift
@@ -66,12 +56,9 @@ module CollateBenchmark
         [File.join(@project_dir, file.relative_path),
          {"lines" => file.lines, "branches" => file.branches}]
       end
-      # `JSON.pretty_generate` is what SimpleCov itself writes, and the
-      # resulting file width is a real input to the parse phase.
       JSON.pretty_generate("RSpec" => {"coverage" => coverage, "timestamp" => timestamp})
     end
 
-    # Returns undo records so the shared structure can be restored.
     def apply_drift
       drift_count.times.filter_map { drift_one_line }
     end

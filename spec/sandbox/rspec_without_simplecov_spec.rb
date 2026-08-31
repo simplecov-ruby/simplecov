@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Running specs without simplecov configuration generates no report —
-# whether there is no config at all or simplecov is configured but
-# never started.
 RSpec.describe "rspec without simplecov", :sandbox do
   before { setup_project("faked_project") }
 

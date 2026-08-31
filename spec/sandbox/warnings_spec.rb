@@ -3,11 +3,8 @@
 require "helper"
 require "support/sandbox_project"
 
-# Running SimpleCov with Ruby verbosity enabled must not yield warnings.
 RSpec.describe "running with warnings enabled", :sandbox do
   before do
-    # JRuby itself warns under --warnings, drowning the signal; see
-    # https://github.com/jruby/jruby/issues/8200
     skip "JRuby emits its own warnings" if RUBY_ENGINE == "jruby"
     setup_project("faked_project")
   end

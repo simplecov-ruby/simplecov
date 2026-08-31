@@ -7,8 +7,6 @@ require_relative "format"
 require_relative "fixture"
 
 module CollateBenchmark
-  # Prints a run's phase table (optionally against a saved baseline) and
-  # persists its timings so a later run can be compared against them.
   class Report
     PHASE_ROW = "%-16<phase>s %12<seconds>s %12<delta>s"
     BREAKDOWN_ROW = "%-38<label>s %9<seconds>s %10<calls>s %6.1<share>f%%"
@@ -120,8 +118,6 @@ module CollateBenchmark
         "label" => @run.label, "scale" => @run.scale, "resultsets" => @run.resultsets_used,
         "processes" => @run.processes, "phases" => @timings, "total" => total, "peak_rss" => peak_rss,
         "files_reported" => files_reported, "ruby" => RUBY_DESCRIPTION,
-        # Instrumented runs carry a few percent of wrapper overhead; flagged so
-        # a future comparison knows not to trust this as a baseline.
         "instrumented" => @run.breakdown
       }
       File.write(path_for(@run.label), JSON.pretty_generate(timings))

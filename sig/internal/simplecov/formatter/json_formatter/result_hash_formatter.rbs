@@ -1,16 +1,7 @@
 module SimpleCov
   module Formatter
     class JSONFormatter
-      # Builds the hash that JSONFormatter serializes to coverage.json:
-      # meta, per-file coverage data, group totals, and aggregate stats.
       class ResultHashFormatter
-        # Bump SCHEMA_VERSION (and SCHEMA_URL) when the JSON shape
-        # changes. Additive changes bump the minor segment, removals or
-        # shape changes bump the major segment. The versioned file at
-        # schemas/coverage-vX.Y.schema.json is the canonical artifact
-        # consumers should pin to, schemas/coverage.schema.json is a
-        # convenience alias that always tracks the latest. See the
-        # `coverage.json` schema section of the README for the rationale.
         SCHEMA_VERSION: "1.3"
 
         SCHEMA_URL: ::String
@@ -27,12 +18,6 @@ module SimpleCov
 
         def self.format_meta: (untyped result) -> untyped
 
-        # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
-        # project isn't a git checkout or git isn't on PATH. Recorded so tools
-        # can recover the exact source a report was generated against, which
-        # matters most when `source_in_json false` drops the source text from
-        # coverage.json. stderr is captured (not forwarded) so a non-git project
-        # doesn't print git's diagnostics to the build.
         def self.git_commit: () -> untyped
 
         def self.coverage_flags: () -> { line_coverage: untyped, branch_coverage: untyped, method_coverage: untyped }

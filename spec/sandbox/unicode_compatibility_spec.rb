@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Files with unicode in their source should be no problem at all for
-# generating a proper coverage report. The rendered source view is
-# covered by the bun suite (html_frontend/test/render_source.test.ts);
-# here we assert the source text survives into the report data intact.
 RSpec.describe "unicode compatibility", :sandbox do
   before do
     setup_project("faked_project")

@@ -1,8 +1,3 @@
-// Column and filename filtering: threshold operators, the operator-option
-// enable/disable logic, malformed-input tolerance, and the wiring that keeps
-// filter clicks from triggering a sort. Filtering is only reachable through
-// the delegated document-level handlers, so everything goes through real
-// events against setupColumnFilters().
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { setupColumnFilters } from '../src/filter';
 
@@ -13,9 +8,6 @@ const OPS_MARKUP = `
   <option value="gte">&ge;</option>
   <option value="gt">&gt;</option>`;
 
-// One container matching the rendered file-list structure: a name filter, a
-// line-coverage op/value pair, and three rows (75%, 100%, and one with no
-// line data at all, which filters as 100%).
 const CONTAINER_MARKUP = `
   <div class="file_list_container" data-total-files="3">
     <table class="file_list">
@@ -68,9 +60,6 @@ function visibleNames(): string[] {
     .map((row) => (row.children[0].textContent || '').trim());
 }
 
-// setupColumnFilters delegates through document-level listeners, so it is
-// registered once for the whole file; tests share the fixture and restore
-// the filter inputs they change.
 beforeAll(() => {
   document.body.innerHTML = CONTAINER_MARKUP;
   setupColumnFilters();
@@ -82,7 +71,6 @@ describe('filename filtering', () => {
     fire(nameInput(), 'input');
     expect(visibleNames()).toEqual(['lib/alpha.rb']);
 
-    // The second pass reads the row names from the per-row cache.
     nameInput().value = 'lib/';
     fire(nameInput(), 'input');
     expect(visibleNames()).toEqual(['lib/alpha.rb', 'lib/beta.rb', 'lib/empty.rb']);
@@ -94,8 +82,6 @@ describe('filename filtering', () => {
 });
 
 describe('coverage threshold filtering', () => {
-  // lib/alpha.rb sits at 75%, lib/beta.rb at 100%, and lib/empty.rb has no
-  // relevant lines, which counts as 100%.
   const CASES: [string, string, string[]][] = [
     ['lt', '80', ['lib/alpha.rb']],
     ['lte', '75', ['lib/alpha.rb']],
@@ -114,7 +100,7 @@ describe('coverage threshold filtering', () => {
 
     opSelect().value = 'lte';
     valueInput().value = '100';
-    fire(valueInput(), 'change'); // the change handler filters too
+    fire(valueInput(), 'change');
     fire(opSelect(), 'change');
     expect(visibleNames()).toEqual(['lib/alpha.rb', 'lib/beta.rb', 'lib/empty.rb']);
   });
@@ -127,7 +113,7 @@ describe('operator option maintenance', () => {
     fire(valueInput(), 'input');
     const gtOption = opSelect().querySelector('option[value="gt"]') as HTMLOptionElement;
     expect(gtOption.disabled).toBe(true);
-    expect(opSelect().value).toBe('lt'); // first enabled option
+    expect(opSelect().value).toBe('lt');
 
     valueInput().value = '0';
     fire(valueInput(), 'input');
@@ -146,7 +132,7 @@ describe('operator option maintenance', () => {
     loose.className = 'col-filter__value';
     loose.value = '';
     container().appendChild(loose);
-    fire(loose, 'input'); // updateFilterOptions finds no wrapper; empty value filters nothing
+    fire(loose, 'input');
     expect(visibleNames()).toEqual(['lib/alpha.rb', 'lib/beta.rb', 'lib/empty.rb']);
     loose.remove();
   });
@@ -171,8 +157,6 @@ describe('malformed filter inputs', () => {
       </span>`
     );
 
-    // The rows carry no method data (0/0 counts as 100%), and the bogus
-    // operator compares as always-true, so every row stays visible.
     fire(valueInput(), 'input');
     expect(visibleNames()).toEqual(['lib/alpha.rb', 'lib/beta.rb', 'lib/empty.rb']);
 
@@ -186,7 +170,7 @@ describe('malformed filter inputs', () => {
     );
     const tableless = document.querySelector('.tableless input') as HTMLInputElement;
     tableless.value = 'anything';
-    fire(tableless, 'input'); // filterTable bails before touching rows
+    fire(tableless, 'input');
     expect(visibleNames()).toEqual(['lib/alpha.rb', 'lib/beta.rb', 'lib/empty.rb']);
     document.querySelector('.tableless')!.remove();
   });

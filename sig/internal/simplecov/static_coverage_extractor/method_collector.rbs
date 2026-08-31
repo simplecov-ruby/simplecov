@@ -1,13 +1,6 @@
 module SimpleCov
   module StaticCoverageExtractor
-    # Visitor mixin that collects method tuples and tracks the lexical
-    # class / module nesting that names them. The module self-type
-    # declares the inclusion target (Visitor < Prism::Visitor), which is
-    # what resolves the `super` calls in the visit_* overrides.
     module MethodCollector : ::Prism::Visitor
-      # Coverage-shaped method tuple => hit count (always 0 statically).
-      # Declared here (not on Visitor) because this module reads and
-      # writes them; Visitor sees them through the include.
       @methods: Hash[untyped, Integer]
       @class_stack: Array[String]
       @suppress_methods: bool

@@ -1,6 +1,3 @@
-// Ports the large-report windowing behavior: only the first 1000
-// filter-matched rows stay visible, the rest sit behind a "Show all"
-// affordance row. See #1171.
 import { describe, expect, test } from 'bun:test';
 import { applyRowWindow } from '../src/row_window';
 
@@ -44,7 +41,6 @@ describe('applyRowWindow', () => {
     document.body.innerHTML = '';
     const table = buildTable(1105);
     const rows = Array.from(table.querySelectorAll('tr.t-file')) as HTMLElement[];
-    // Filter-hidden rows don't count toward the window.
     for (const row of rows.slice(0, 5)) row.style.display = 'none';
 
     applyRowWindow(table);
@@ -58,7 +54,6 @@ describe('applyRowWindow', () => {
     expect(showAll.textContent).toContain('Showing the first 1,000 of 1,100 files.');
     expect(table.querySelector('tbody')!.lastElementChild).toBe(showAll);
 
-    // Re-applying reuses the affordance row instead of stacking a second one.
     applyRowWindow(table);
     expect(table.querySelectorAll('tr.t-show-all').length).toBe(1);
   });
@@ -75,7 +70,6 @@ describe('applyRowWindow', () => {
     expect(windowHiddenCount(table)).toBe(0);
     expect(affordance(table)!.style.display).toBe('none');
 
-    // Later re-applies (a re-sort or re-filter) keep the window disabled.
     applyRowWindow(table);
     expect(windowHiddenCount(table)).toBe(0);
     expect(affordance(table)!.style.display).toBe('none');

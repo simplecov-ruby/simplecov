@@ -57,8 +57,6 @@ RSpec.describe SimpleCov::Directive do
     end
 
     it "treats an inline simplecov:enable as a no-op (not a single-line disable)" do
-      # The inline form is intended for disable; an inline enable
-      # directive should not produce a disabled range.
       ranges = described_class.disabled_ranges([
                                                  'raise "absurd" # simplecov:enable line', # 1
                                                  "y = 2"                                   # 2
@@ -164,8 +162,6 @@ RSpec.describe SimpleCov::Directive do
 
     describe "lenient handling of unrecognised category text" do
       it "treats an unknown single token as a reason on the bare form (over-disables)" do
-        # The user almost certainly typo-ed a category name. We over-disable
-        # rather than silently no-op so the mistake shows up in the report.
         ranges = described_class.disabled_ranges([
                                                    "# simplecov:disable cyclomatic", # 1
                                                    "code"                            # 2
@@ -174,9 +170,6 @@ RSpec.describe SimpleCov::Directive do
         expect(ranges).to eq(line: [1..2], branch: [1..2], method: [1..2])
       end
 
-      # Without a boundary after the category list, "linear" parsed as the
-      # category "line" with reason "ar ...", silently narrowing the
-      # directive to line coverage instead of over-disabling everything.
       it "treats a reason that merely starts with a category name as the bare form" do
         ranges = described_class.disabled_ranges([
                                                    "# simplecov:disable linear algebra reasons", # 1
@@ -198,8 +191,6 @@ RSpec.describe SimpleCov::Directive do
       end
 
       it "accepts `all` as syntactic sugar for the bare form" do
-        # `all` isn't a real category, so it lands in the reason bucket and the
-        # bare form takes effect — which is what the user wrote anyway.
         ranges = described_class.disabled_ranges([
                                                    "# simplecov:disable all", # 1
                                                    "code"                     # 2
@@ -239,7 +230,7 @@ RSpec.describe SimpleCov::Directive do
 
       it "ignores lines containing invalid byte sequences" do
         bad = +"# simplecov:disable line"
-        bad << 0xC3.chr.force_encoding("UTF-8") # incomplete UTF-8 sequence
+        bad << 0xC3.chr.force_encoding("UTF-8")
 
         expect(described_class.disabled_ranges([bad, "code"])).to eq empty_ranges
       end
@@ -311,8 +302,6 @@ RSpec.describe SimpleCov::Directive do
       end
 
       it "treats a directive that follows another `#` segment as inline" do
-        # The whole line is one comment token, but the directive sits after
-        # `# prefix`, so it should only mark its own line.
         ranges = described_class.disabled_ranges([
                                                    "# prefix # simplecov:disable line", # 1
                                                    "still relevant" # 2
@@ -323,9 +312,6 @@ RSpec.describe SimpleCov::Directive do
     end
 
     it "tokenizes nothing when no line so much as mentions the gem" do
-      # The pre-check earns its keep by keeping Ripper away from the files
-      # that are the overwhelming majority: every source line of every
-      # tracked file passes through here.
       allow(Ripper).to receive(:lex).and_call_original
 
       expect(described_class.disabled_ranges(["def foo", "  bar", "end"])).to eq empty_ranges
@@ -333,12 +319,6 @@ RSpec.describe SimpleCov::Directive do
     end
   end
 
-  # The steps behind `.disabled_ranges`, exercised directly. A whole file
-  # only reaches them through source that the comment scanner and the
-  # directive pattern both accept, which leaves their edges unvisited: a
-  # line that cannot be searched, a comment that is not a directive, a
-  # column nothing can be sliced at. Each step is private, being one
-  # step's worth of parsing rather than API, so the examples use `send`.
   describe "the parsing steps" do
     it "answers whether any line so much as mentions the gem" do
       expect(described_class.send(:source_might_contain_directive?, ["def foo", "  bar", "end"])).to be false
@@ -347,8 +327,6 @@ RSpec.describe SimpleCov::Directive do
     end
 
     it "answers no for a line whose encoding cannot be searched" do
-      # A UTF-16 line and an ASCII needle share no encoding, so the search
-      # raises instead of answering.
       utf16 = "# simplecov:disable line".encode("UTF-16LE")
 
       expect(described_class.send(:source_might_contain_directive?, [utf16])).to be false
@@ -361,8 +339,6 @@ RSpec.describe SimpleCov::Directive do
     end
 
     it "terminates lines that arrive without one, so the line numbers stay put" do
-      # Lines read off a file keep their newline, but a caller's array
-      # need not: without one, the whole file would lex as a single line.
       expect(described_class.send(:comments_in, ["x = 1", "# c"])).to eq([[2, 0, "# c\n"]])
     end
 

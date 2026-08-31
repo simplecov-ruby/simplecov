@@ -3,9 +3,6 @@
 require "coverage"
 
 module SimpleCov
-  #
-  # Responsible for adapting the format of the coverage result whether it's default or with statistics
-  #
   class ResultAdapter
     attr_reader :result
 
@@ -28,9 +25,7 @@ module SimpleCov
   private
 
     # Pre-0.18 resultsets pointed each filename straight at a line-coverage
-    # array; everything since uses the `{lines:, branches:, methods:}`
-    # shape. Newer entries also need their methods and branches tables
-    # massaged before downstream code reports or merges them.
+    # array; everything since uses the `{lines:, branches:, methods:}` shape.
     def adapt_one(file_name, cover_statistic)
       return {"lines" => cover_statistic} if cover_statistic.instance_of?(Array)
 
@@ -40,42 +35,33 @@ module SimpleCov
       cover_statistic
     end
 
-    # Normalize memory addresses in method coverage keys so that results
-    # from different processes can be merged. Anonymous class names like
-    # "#<Class:0x00007ff19ab24790>" get inconsistent addresses across runs.
-    # Address widths vary by runtime (32-bit hosts: 8 hex chars; 64-bit
-    # CRuby: 16; other engines' formats may differ), so match any
-    # length of hex digits and collapse to a single placeholder.
+    # Normalizes memory addresses in method coverage keys so results from
+    # different processes can be merged: anonymous class names like
+    # "#<Class:0x00007ff19ab24790>" get inconsistent addresses across runs, and
+    # address widths vary by runtime.
     ADDRESS_PATTERN = /0x\h+/
     private_constant :ADDRESS_PATTERN
 
     ADDRESS_PLACEHOLDER = "0x0"
     private_constant :ADDRESS_PLACEHOLDER
 
-    # Strip the `#<Class:Foo>` wrapper Ruby's Coverage adds to singleton-class
+    # Strips the `#<Class:Foo>` wrapper Ruby's Coverage adds to singleton-class
     # method keys. `module_function` and class methods get recorded both as
-    # singleton (`[#<Class:Foo>, :m, …]`) and instance/module (`[Foo, :m, …]`)
-    # entries pointing at the same source location; only one of the two is
-    # ever reachable at runtime, so we merge them. Only applies to named
-    # constants — anonymous-class addresses like `#<Class:0x0>` are left
-    # alone (handled by ADDRESS_PATTERN above).
+    # singleton and instance/module entries pointing at the same source
+    # location, and only one of the two is ever reachable at runtime. Only
+    # named constants: anonymous-class addresses are left to ADDRESS_PATTERN.
     SINGLETON_WRAPPER_PATTERN = /\A#<Class:([A-Z_][\w:]*)>\z/
     private_constant :SINGLETON_WRAPPER_PATTERN
 
-    # Ruby's method coverage records one entry per DEFINED METHOD, not per
-    # source location: a block handed to `define_method` /
-    # `define_singleton_method` from a shared code path yields a separate
-    # `[receiver, name, location]` entry for every class it's defined on
-    # (a module's `included` hook defining onto each descendant) AND for
-    # every name it's defined under (a builder looping `define_method key`
-    # over a container), all pointing at the same source. A file-based
-    # report can only express "was the method at this location ever
-    # executed", so entries are aggregated by location alone, summing
-    # hits — otherwise each receiver or name whose generated copy never
-    # ran shows as a phantom uncovered method on a line whose line
-    # coverage is 100%. Regular `def`s map one location to one name, so
-    # they are unaffected. The first entry's (normalized) key is kept for
-    # display. See issue #1234.
+    # Ruby's method coverage records one entry per defined method, not per
+    # source location: a block handed to `define_method` from a shared code
+    # path yields a separate `[receiver, name, location]` entry for every class
+    # it's defined on and every name it's defined under, all pointing at the
+    # same source. A file-based report can only express "was the method at this
+    # location ever executed", so entries are aggregated by location alone,
+    # summing hits. Otherwise each generated copy that never ran shows as a
+    # phantom uncovered method on a line whose line coverage is 100% (#1234).
+    # The first entry's normalized key is kept for display.
     def normalize_method_keys(cover_statistic)
       methods = cover_statistic[:methods]
       return unless methods
@@ -97,15 +83,12 @@ module SimpleCov
       [normalized_receiver, *rest]
     end
 
-    # Rendering a class name can execute user code: a singleton class's
-    # `to_s` renders its attached object via `#inspect`, which a module can
-    # shadow with an incompatible signature (Liquid::Utils defines
+    # Rendering a class name can execute user code: a singleton class's `to_s`
+    # renders its attached object via `#inspect`, which a module can shadow
+    # with an incompatible signature (Liquid::Utils defines
     # `inspect(value, max_depth = 2)` as a module_function, so rendering
-    # `#<Class:Liquid::Utils>` raises ArgumentError). A coverage report
-    # must never crash the host suite over that, so on failure rebuild the
-    # singleton wrapper from `Module#name` via bound methods (which cannot
-    # be shadowed), falling back to the address form, which
-    # ADDRESS_PATTERN then normalizes. See issue #1236.
+    # `#<Class:Liquid::Utils>` raises ArgumentError). A coverage report must
+    # never crash the host suite over that (#1236).
     def class_display_name(klass)
       klass.to_s
     rescue StandardError
@@ -113,11 +96,9 @@ module SimpleCov
     end
 
     # `singleton_class?` is a Module method, so a receiver that is neither a
-    # class nor a module (nothing Coverage records, but the rescue above
-    # hands us whatever the resultset carried) has to be turned away first.
-    # Anything that then answers `singleton_class?` truthily is a Class, so
-    # `Class#attached_object` applies — reached through a bound method, like
-    # the rest of this fallback, so shadowing cannot divert it.
+    # class nor a module has to be turned away first. Anything that then
+    # answers `singleton_class?` truthily is a Class, so `attached_object`
+    # applies, reached through a bound method so shadowing cannot divert it.
     def singleton_wrapper_name(klass)
       return nil unless klass.is_a?(Module) && klass.singleton_class?
 
@@ -127,16 +108,14 @@ module SimpleCov
     end
 
     # Ruby's eval coverage records a fresh set of branch entries for every
-    # COMPILE of an eval'd string: a template rendered through multiple view
-    # classes (e.g. hanami-view compiles each template once per view) yields
-    # several `[:if, id, location]` conditions at identical coordinates in
-    # the same file, each counting only the renders that flowed through that
+    # compile of an eval'd string: a template rendered through multiple view
+    # classes yields several `[:if, id, location]` conditions at identical
+    # coordinates, each counting only the renders that flowed through that
     # compile. Reported as-is they inflate the branch denominator and turn a
-    # side covered under a different compile into a phantom miss (issue
-    # #1235). Aggregate them by (type, location) — absorbing the branches
-    # hash into an empty table dedups within it, since BranchesCombiner keys
-    # arms on location identity. Regular (non-eval) source can never produce
-    # two conditions at the same location, so this is a no-op outside eval.
+    # side covered under a different compile into a phantom miss (#1235).
+    # Absorbing into an empty table dedups, since BranchesCombiner keys arms on
+    # location identity. Regular source can never produce two conditions at the
+    # same location, so this is a no-op outside eval.
     def aggregate_duplicated_branches(cover_statistic)
       branches = cover_statistic[:branches]
       return unless branches
@@ -154,10 +133,10 @@ module SimpleCov
       cover_statistic[:lines] = line_stub
     end
 
-    # A file that has vanished or no longer parses has no stub to build
-    # from, so start from nothing: the assignments in
-    # `adapt_oneshot_lines_if_needed` grow the array to the highest covered
-    # line, which is as far as the oneshot data reaches anyway.
+    # A file that has vanished or no longer parses has no stub to build from, so
+    # start from nothing: the assignments in `adapt_oneshot_lines_if_needed`
+    # grow the array to the highest covered line, which is as far as the
+    # oneshot data reaches anyway.
     def build_line_stub(file_name)
       Coverage.line_stub(file_name)
     rescue Errno::ENOENT, SyntaxError

@@ -1,9 +1,6 @@
 module SimpleCov
   module CLI
     module Affected
-      # The selection walk: every changed file's contribution to the
-      # answer, accumulated as selected test files plus the triggers
-      # that mean the map cannot be trusted for this change.
       module Selection
         TEST_FILE_NAME: Regexp
 
@@ -18,7 +15,6 @@ module SimpleCov
         def self?.classify: (String path, untyped state) -> untyped
 
 
-        # Outside the tracked set: the whole suite has to run.
 
         def self?.note_untracked: (String path, Hash[Symbol, untyped] state) -> Array[String]
 

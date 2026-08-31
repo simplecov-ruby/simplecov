@@ -43,9 +43,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
   end
 
   context "when threshold uses :oneshot_line" do
-    # `:oneshot_line` data is folded into the `:line` bucket of
-    # `coverage_statistics`, so a threshold keyed on `:oneshot_line`
-    # has to be looked up under `:line`. See issue #1170.
     let(:minimum_coverage) { {oneshot_line: 90.0} }
 
     it { is_expected.to be_failing }
@@ -79,13 +76,9 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
       expect(output).to include("Lowest-coverage files (line):")
       expect(output).to include("lib/worst.rb")
       expect(output).to include("lib/middle.rb")
-      # ascending order — worst first
       expect(output.index("lib/worst.rb")).to be < output.index("lib/middle.rb")
     end
 
-    # Fully covered files used to pad the list out to five entries,
-    # which read as "add tests here" for files with nothing left to
-    # cover. See #1286.
     it "leaves fully covered files out of the list" do
       result_files = files + [file_double("lib/covered.rb", line: 100.0)]
       allow(result).to receive(:files).and_return(result_files)
@@ -125,8 +118,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
        source_file("whole.rb", 100.0), source_file("nearly.rb", 99.5)]
     end
 
-    # The worst five, worst first. A file at 100% is no hint at all, and
-    # one just short of it still is.
     it "names the five lowest, and only files with something missing" do
       expect(check.send(:worst_files_for, :line))
         .to eq([["a.rb", 10.0], ["b.rb", 20.0], ["c.rb", 30.0], ["d.rb", 40.0], ["e.rb", 50.0]])
@@ -137,8 +128,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
       expect(check.send(:worst_files_for, :line)).to eq([["nearly.rb", 99.5]])
     end
 
-    # Oneshot lines are recorded under the line statistics, so the
-    # criterion has to be read through the key it is stored under.
     it "reads oneshot line coverage from the line statistics" do
       allow(result).to receive(:files).and_return([source_file("a.rb", 10.0)])
       expect(check.send(:worst_files_for, :oneshot_line)).to eq([["a.rb", 10.0]])
@@ -158,8 +147,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
     end
   end
 
-  # The message names the criterion, the coverage reached and the one
-  # expected, and each is read from its own place in the violation.
   it "reports what fell short, and by how much" do
     allow(SimpleCov::Color).to receive(:enabled?).and_return(false)
 

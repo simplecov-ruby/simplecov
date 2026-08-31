@@ -1,8 +1,3 @@
-// The inline peek panel behind each tests badge: an extra list row under
-// the source line naming the tests that cover it — deliberately the same
-// ids, in the same order, that `simplecov tests <file>:<line>` prints, so
-// the report and the CLI give one answer. One peek is open at a time; its
-// badge toggles it, Escape or a click elsewhere dismisses it.
 
 import { escapeHTML } from './dom';
 
@@ -51,11 +46,6 @@ export function toggleTestsPeek(badge: HTMLElement, resolve: PeekResolver): void
   openBadge = badge;
 }
 
-// Escape closes the peek before anything else sees it — inside the source
-// dialog, an unguarded Escape would close the whole dialog instead. A
-// click anywhere outside the peek (its own badge toggles itself) also
-// dismisses it. Registered once at boot; both handlers are no-ops while
-// nothing is open.
 export function setupTestsPeekDismissal(): void {
   document.addEventListener('keydown', (event) => {
     if (!openPeek || event.key !== 'Escape') return;

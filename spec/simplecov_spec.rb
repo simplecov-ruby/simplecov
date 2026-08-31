@@ -44,9 +44,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     context "when Minitest's autorun is armed before SimpleCov.start" do
-      # Stand-in for Minitest with the same surface we depend on:
-      # responds to `after_run` and exposes the `@@installed_at_exit`
-      # class variable that Minitest sets when autorun is required.
       let(:fake_minitest) do
         klass = Class.new do
           class << self
@@ -120,8 +117,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
   describe ".start", mutant_expression: "SimpleCov.start" do
     it "delegates to initial_setup, start_tracking, and install_at_exit_hook" do
-      # Stub the three pieces so this spec doesn't actually load a
-      # profile, mutate global filter state, or restart Coverage.
       allow(described_class).to receive(:send).and_call_original
       allow(described_class).to receive(:initial_setup)
       allow(described_class).to receive(:start_tracking)
@@ -165,10 +160,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.instance_variable_set(:@autoloading_dot_simplecov, previous)
     end
 
-    # See issue #581 for the rationale: `.simplecov` should be config only.
-    # The autoload wrapper sets this flag so any legacy `SimpleCov.start`
-    # call inside the file warns and applies configuration without starting
-    # Coverage.
     context "when loaded by the .simplecov autoloader" do
       around do |example|
         previous = described_class.instance_variable_get(:@autoloading_dot_simplecov)
@@ -180,13 +171,9 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       end
 
       it "still applies configuration AND starts tracking (soft deprecation for backward compatibility)" do
-        # The deprecation is advisory: existing setups keep working while
-        # the warning nudges users toward moving `SimpleCov.start` into a
-        # test helper. A future release will tighten this into a hard
-        # intercept. See issue #581.
         allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
                                                    install_at_exit_hook: nil)
-        allow(described_class).to receive(:warn) # suppress deprecation noise in test output
+        allow(described_class).to receive(:warn)
         block = proc {}
 
         described_class.start("rails", &block)
@@ -261,8 +248,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  # Named for the caller it protects, but what it exercises is the
-  # validation itself, which is where its coverage belongs.
   describe "starting with all criteria disabled",
            mutant_expression: "SimpleCov::Configuration#validate_coverage_criteria!" do
     it "raises a ConfigurationError" do
@@ -282,9 +267,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".start_tracking", mutant_expression: "SimpleCov.start_tracking" do
-    # Everything it sets up, watched rather than executed: starting
-    # measurement for real would instrument the process running these
-    # examples.
     around do |example|
       previous = described_class.current_run
       described_class.current_run = SimpleCov::CurrentRun.new
@@ -305,8 +287,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.result?).to be(false)
     end
 
-    # A forked child restarting tracking must not forget it was forked,
-    # and a parent must not recount its subprocess serials from zero.
     it "carries the fork genealogy into the new run" do
       described_class.mark_forked_subprocess!
       described_class.next_subprocess_serial!
@@ -317,8 +297,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.subprocess_serial).to eq(1)
     end
 
-    # The pid is what tells a forked child it is not the process that
-    # started, so it has to be this process's own.
     it "records the process it started in" do
       described_class.pid = -1
 
@@ -333,8 +311,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.process_start_time).to be_within(5).of(Time.now)
     end
 
-    # Both are settled before anything can fork, so every child inherits
-    # one answer rather than deciding its own.
     it "settles the run identity before measurement begins" do
       described_class.start_tracking
 
@@ -352,8 +328,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       criteria.each { |criterion| described_class.enable_coverage(criterion) }
     end
 
-    # Watched rather than performed: loading the hook prepends a fork
-    # wrapper to Process for the rest of this process's life.
     describe "the subprocess fork hook" do
       before { allow(described_class).to receive(:require_relative) }
 
@@ -373,8 +347,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class).not_to have_received(:require_relative)
       end
 
-      # Older rubies have no `_fork` to hook, so there is nothing the
-      # setting can turn on.
       it "is left alone where Process has no fork hook to prepend to" do
         allow(described_class).to receive(:enabled_for_subprocesses?).and_return(true)
         allow(Process).to receive(:respond_to?).and_call_original
@@ -400,11 +372,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  # `Result#to_hash` serializes coverage after filtering, so a file this process
-  # loaded and then filtered out would be absent from the stored coverage while
-  # still listed as tracked, and a merge elsewhere would simulate it back in as
-  # never-loaded. Recording only what was tracked and not loaded avoids that.
-  # See #1250.
   describe "the tracked paths recorded on a result", mutant_expression: "SimpleCov.process_coverage_result" do
     around do |example|
       previous_cover = described_class.cover_filters.dup
@@ -415,9 +382,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.instance_variable_set(:@filters, previous_filters)
     end
 
-    # Every step the method takes, watched: templates compiled in,
-    # entries outside the root dropped, the raw hash adapted, and the
-    # result built from the pieces those produced.
     describe "what it does with the coverage it collected" do
       let(:sample) { File.expand_path("spec/fixtures/sample.rb", described_class.root) }
       let(:raw) { {sample => {"lines" => [1, 1]}} }
@@ -451,9 +415,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(SimpleCov::ResultAdapter).to have_received(:call).with(raw)
       end
 
-      # Handed the adapted coverage and the paths that were tracked but
-      # not loaded, in that order: the first says what is there, the
-      # second what has to be filled in.
       it "injects the tracked files it was asked to, and carries what was injected" do
         described_class.cover "spec/fixtures/*.rb"
         allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set["injected.rb"]])
@@ -467,8 +428,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
           .to have_received(:new).with({}, hash_including(not_loaded_files: Set["injected.rb"]))
       end
 
-      # Injection is what the at-exit path wants, so it is what a caller
-      # gets without saying so.
       it "injects by default" do
         allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
 
@@ -486,8 +445,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(SimpleCov::Result).to have_received(:new).with(anything, hash_including(not_loaded_files: Set.new))
       end
 
-      # The identity is stamped on the result so a merge can tell which
-      # run and which worker produced it.
       it "stamps the run and the worker on the result" do
         described_class.send(:process_coverage_result, report: false, inject_unloaded: false)
 
@@ -505,8 +462,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(SimpleCov::Result).to have_received(:new).with(anything, hash_including(report: false))
       end
 
-      # The map is taken while the coverage that closed it is in hand,
-      # since reading it later would find measurement already stopped.
       it "closes the test map against the coverage it just read" do
         tracker = instance_double(SimpleCov::TestTracker, recorded_map: :the_map)
         allow(described_class).to receive(:test_tracker).and_return(tracker)
@@ -535,9 +490,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.result.tracked_files).not_to include(sample)
     end
 
-    # Before injection moved to the merge, the producer filtered these out of
-    # its own result and they never reached a resultset. Recording them would
-    # let a merge that does not share the filter report them at 0%.
     it "excludes files its own path filters keep out of its report" do
       described_class.cover "spec/fixtures/**/*.rb"
       described_class.skip "app/models"
@@ -549,8 +501,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.result.tracked_files).not_to include(excluded)
     end
 
-    # A block filter is handed the source file and may consult coverage that
-    # does not exist yet, so it is left to the merging process's filter chain.
     it "keeps files only a block filter would exclude" do
       described_class.cover "spec/fixtures/*.rb"
       described_class.filters << SimpleCov::BlockFilter.new(
@@ -575,9 +525,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.result.tracked_files).to include(other)
     end
 
-    # The Accessors specs cover this too; asserting the public contract
-    # here as well keeps the no-tracker path exercised from more than one
-    # spec file, so a parallel run records it in more than one worker.
     it "runs a track_test block untouched when tracking never started" do
       expect(described_class.test_tracker).to be_nil
       expect(described_class.track_test("spec/a_spec.rb:1") { :ran }).to eq(:ran)
@@ -599,15 +546,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".inject_unloaded_files", mutant_expression: "SimpleCov.inject_unloaded_files" do
-    # Discovery and injection are separate now, so exercise them as the pair
-    # `process_coverage_result` uses.
     def inject_tracked(result)
       SimpleCov.inject_unloaded_files(result, SimpleCov.send(:tracked_file_paths))
     end
 
-    # What the injector is asked for, rather than what it produces:
-    # parsing a file it need not parse is the cost this defaulting
-    # exists to avoid.
     around do |example|
       previous_tracked = described_class.tracked_files
       previous_cover = described_class.cover_filters.dup
@@ -645,8 +587,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
           .with(anything, anything, hash_including(synthesize: true))
       end
 
-      # Nothing reads those tuples when neither criterion is on, and
-      # producing them means parsing every file that was never loaded.
       it "synthesizes nothing when neither criterion is measured" do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
@@ -699,9 +639,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(result[sample]).to eq("lines" => [1])
     end
 
-    # The discovery glob has to be project-root-relative, not cwd-
-    # relative — test runners that chdir would otherwise silently miss
-    # unloaded files and emit different file sets per environment. See #1106.
     it "resolves the glob relative to SimpleCov.root regardless of cwd" do
       described_class.cover "spec/fixtures/sample.rb"
       sample = File.expand_path(File.join(described_class.root, "spec/fixtures/sample.rb"))
@@ -718,10 +655,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(not_loaded).to include(sample)
     end
 
-    # Synthesizing branch and method tuples for an unloaded file means parsing
-    # it, which is about half the cost of simulating one and is paid per
-    # tracked file per process. Nothing reads the tuples unless the matching
-    # criterion is enabled. See #1250.
     context "when neither branch nor method coverage is enabled" do
       it "skips synthesizing branch and method tuples" do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: false)
@@ -741,9 +674,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       end
     end
 
-    # A branch-only or method-only run gets no line data from `Coverage` for
-    # the files it loaded, so simulating lines for the files it didn't would
-    # make the two indistinguishable after merging. See #1250.
     context "when line coverage is disabled" do
       it "omits line data from simulated files" do
         allow(described_class).to receive(:line_coverage?).and_return(false)
@@ -774,7 +704,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.current_run = previous
     end
 
-    # Every way the answer can be no, and the two ways it can be yes.
     describe "what has to be true before results are processed" do
       before do
         allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
@@ -792,8 +721,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class.ready_to_process_results?).to be(false)
       end
 
-      # A collate has every resultset by definition, so it never waits
-      # on siblings.
       it "is true for a collate, whatever the siblings did" do
         allow(described_class).to receive_messages(collating_result?: true,
                                                    parallel_results_complete?: false)
@@ -804,7 +731,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class.ready_to_process_results?).to be(true)
       end
 
-      # A partial total would fail thresholds that the whole run passes.
       it "is false for a run still missing a sibling" do
         allow(described_class).to receive(:parallel_results_complete?).and_return(false)
         expect(described_class.ready_to_process_results?).to be(false)
@@ -848,15 +774,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     context "when running under a faked parallel_tests setup" do
-      # `Class.new { def self.first_process?; end }` rather than a plain
-      # Class.new so rspec-mocks 4's verify_partial_doubles check (now
-      # on by default) accepts the subsequent `allow(...).to receive(
-      # :first_process?)` stubs.
       before do
         stub_const("ParallelTests", Class.new { def self.first_process?; end })
-        # SimpleCov::ParallelAdapters.current is memoized after first read
-        # (typically during SimpleCov.start at suite boot). Clear it so
-        # each example picks up the freshly stubbed ParallelTests + ENV.
         SimpleCov::ParallelAdapters.reset_current!
       end
 
@@ -869,11 +788,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         SimpleCov::ParallelAdapters.reset_current!
       end
 
-      # parallel_tests sets the first worker's TEST_ENV_NUMBER to "" and
-      # `first_process?` tests for that empty string, so single-group runs
-      # (PARALLEL_TEST_GROUPS=1) naturally return true — no explicit
-      # GROUPS=1 fallback needed (the old fallback compensated for
-      # `last_process?`'s `"" == "1"` mismatch — see #1066).
       it "is true when running with PARALLEL_TEST_GROUPS=1" do
         ENV["TEST_ENV_NUMBER"] = ""
         ENV["PARALLEL_TEST_GROUPS"] = "1"
@@ -920,8 +834,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(adapter).not_to have_received(:wait_for_siblings)
     end
 
-    # Only the process that will write the report waits; the others have
-    # nothing to wait for and would deadlock each other if they did.
     it "returns early in a worker that is not the one reporting" do
       allow(SimpleCov::ParallelAdapters).to receive(:current).and_return(adapter)
       allow(described_class).to receive(:final_result_process?).and_return(false)
@@ -936,9 +848,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         allow(described_class).to receive_messages(final_result_process?: true, wait_for_parallel_results: true)
       end
 
-      # The runner's own wait first, where there is one, then the poll:
-      # a native wait can return before the siblings have finished
-      # writing, and an adapter without one has nothing else.
       it "waits on the runner before polling for resultsets" do
         described_class.send(:wait_for_other_processes)
 
@@ -952,8 +861,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class).to have_received(:wait_for_parallel_results).with(3, native_wait: true)
       end
 
-      # An adapter with no wait primitive of its own says so, and the
-      # poll is what has to be patient in that case.
       it "says when there was no native wait to lean on" do
         allow(adapter).to receive(:native_wait?).and_return(false)
 
@@ -966,8 +873,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class.parallel_results_complete?).to be(true)
       end
 
-      # Recorded so the threshold checks can tell a partial total from a
-      # complete one and stay quiet about it.
       it "remembers when they did not" do
         allow(described_class).to receive(:wait_for_parallel_results).and_return(false)
 
@@ -996,16 +901,12 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
     end
 
-    # More workers than expected is still every worker: the count is a
-    # floor, not a target to match exactly.
     it "is satisfied by more reports than it expected" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 3, sleep: nil)
 
       expect(described_class.send(:wait_for_parallel_results, 2)).to be(true)
     end
 
-    # Without a native wait there is nothing to say the siblings have
-    # exited, so a steady count proves nothing and the poll runs on.
     it "does not accept a settled count when no native wait ran" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil)
       allow(described_class).to receive(:parallel_wait_timed_out?).and_return(false, false, true)
@@ -1013,9 +914,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
     end
 
-    # A steady count only means something after a native wait proved the
-    # siblings had exited; on its own it is just a count that has not
-    # moved yet.
     it "ignores a settled count when no native wait ran" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
                                                  resultset_count_settled?: true)
@@ -1024,8 +922,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
     end
 
-    # The count starts at nothing and the clock starts now, which is
-    # what makes the first report look like movement.
     it "starts tracking from no workers seen, timed from the moment it began" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
                                                  resultset_count_settled?: false)
@@ -1036,8 +932,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         .with({count: 0, since: an_instance_of(Float)}, 1)
     end
 
-    # A caller that says nothing is a caller with no native wait behind
-    # it, so a settled count means nothing to them either.
     it "polls without a native wait unless told there was one" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
                                                  resultset_count_settled?: true)
@@ -1046,8 +940,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.send(:wait_for_parallel_results, 4)).to be(false)
     end
 
-    # The deadline it was given, the count it wants and the count it has:
-    # all three decide whether waiting longer is worth it.
     it "asks about the timeout with the deadline, the expected count and what it has seen" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil)
       allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
@@ -1081,10 +973,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(SimpleCov::ResultMerger).to have_received(:read_resultset).twice
     end
 
-    # A native wait already confirmed all sibling processes exited, so a count
-    # that holds below `expected` means the extra workers produced nothing
-    # (idle parallel_test groups) — accept it as final instead of blocking for
-    # the whole timeout.
     it "accepts a settled count below expected as complete when a native wait ran" do
       resultset = {"a" => {"run_id" => described_class.run_id, "worker_id" => "1"}}
       allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
@@ -1103,8 +991,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.send(:wait_for_parallel_results, 2, native_wait: true)).to be(false)
     end
 
-    # Without a native wait an idle worker is indistinguishable from a slow
-    # one, so keep waiting the full timeout and report the partial result.
     it "times out (partial) on a short count without a native wait" do
       resultset = {"a" => {"run_id" => described_class.run_id, "worker_id" => "1"}}
       allow(SimpleCov::ResultMerger).to receive(:read_resultset).and_return(resultset)
@@ -1148,10 +1034,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.pid = previous_pid
     end
 
-    # Everything downstream is let through, so the process check is the
-    # only thing that can stop this.
     it "is a no-op when called from a different process than start" do
-      described_class.pid = -1 # never matches Process.pid
+      described_class.pid = -1
       allow(Coverage).to receive(:running?).and_return(true)
       allow(described_class).to receive_messages(defer_to_existing_report?: false, run_exit_tasks!: nil)
 
@@ -1159,9 +1043,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class).not_to have_received(:run_exit_tasks!)
     end
 
-    # The status is read before the deferral probe, whose freshness check
-    # rescues filesystem errors, and completing a rescue inside an
-    # at_exit handler resets the error the suite exited with.
     it "reads the suite's exit status before probing for a fresher report" do
       described_class.pid = Process.pid
       allow(Coverage).to receive(:running?).and_return(true)
@@ -1201,11 +1082,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class).not_to have_received(:run_exit_tasks!)
     end
 
-    # The deferral probe's freshness check rescues filesystem errors,
-    # and completing ANY rescue inside an at_exit handler resets
-    # $ERROR_INFO to nil — so the suite's exit status must be captured
-    # before the probe runs, or a failing suite reads as clean and its
-    # failure status is swallowed.
     it "captures the exit status up front and hands it to run_exit_tasks!" do
       described_class.pid = Process.pid
       allow(Coverage).to receive(:running?).and_return(true)
@@ -1225,8 +1101,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     before { allow(described_class).to receive(:coverage_path).and_return(tmp) }
     after { FileUtils.remove_entry(tmp) }
 
-    # A report that is newer than us but has nothing in it is the case
-    # this stands down for; one with files is a report we may replace.
     describe "when there is a newer report on disk" do
       before { allow(described_class).to receive(:existing_report_newer_than_us?).and_return(true) }
 
@@ -1264,10 +1138,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class.defer_to_existing_report?).to be false
     end
 
-    # .last_run.json is only written by fully successful runs, so keying
-    # the backstop on it alone left it inert when the child run FAILED —
-    # the case where clobbering its report hurts most. The report stamp
-    # is touched by every formatting process regardless of exit status.
     it "defers on a fresh report stamp even without .last_run.json (failed child run)" do
       stamp = File.join(tmp, ".report_stamp")
       FileUtils.touch(stamp)
@@ -1374,8 +1244,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class).to have_received(:report_processing_failure).with(3)
     end
 
-    # Not processing is asserted too: without it, a run that processes
-    # anyway can land on the same status and pass by coincidence.
     it "answers success, exactly, when there is nothing to process" do
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
                                                  ready_to_process_results?: false)
@@ -1751,11 +1619,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
           expect(Coverage).to have_received(:result).once
         end
 
-        # With a merge step to follow, only the union of every process's loaded
-        # files says what was never loaded, so injection is deferred to
-        # `ResultMerger.create_result` (stubbed out in this context). Injecting
-        # per process would simulate nearly the whole project in every worker
-        # and merge all but one of those passes away. See #1250.
         it "leaves not-loaded-file injection to the merge step" do
           allow(described_class).to receive(:inject_unloaded_files).and_return([{}, Set.new])
           described_class.result
@@ -1828,8 +1691,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".exit_status_from_exception", mutant_expression: "SimpleCov.exit_status_from_exception" do
-    # A deliberate exit carries its own status, and a subclass of one is
-    # still a deliberate exit.
     context "when a subclass of SystemExit has occurred" do
       it "returns that exit's status" do
         raise Class.new(SystemExit), 3
@@ -1864,9 +1725,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".process_result", mutant_expression: "SimpleCov.process_result" do
     let(:result) { SimpleCov::Result.new({}) }
 
-    # A run that passed becomes both the baseline the next run compares
-    # against and a point in the recorded trend. A run that failed
-    # becomes neither, so a red build cannot lower the bar.
     describe "what a run leaves behind" do
       before do
         allow(described_class).to receive(:write_last_run)
@@ -1890,7 +1748,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(SimpleCov::History).not_to have_received(:record)
       end
 
-      # Any non-success status, not merely the one the thresholds raise.
       it "records neither when the run ended in an exception" do
         allow(described_class).to receive(:result_exit_status).and_return(SimpleCov::ExitCodes::EXCEPTION)
 
@@ -1933,8 +1790,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
             covered_percentages: []
           )
           allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
-          # The success path records the run for real, which would leave a
-          # .history.json in the shared coverage path for later specs to find.
           allow(SimpleCov::History).to receive(:record)
         end
 
@@ -1963,8 +1818,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".collate", mutant_expression: "SimpleCov.collate" do
-    # What collating asks of its collaborators, rather than what they
-    # produce, so the arguments it passes are visible.
     let(:collated) do
       JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
     end
@@ -1981,9 +1834,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
     let(:resultset_folder) { File.dirname(resultset_path) }
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
-    # A coverage folder of this block's own: collating reads every shard
-    # it finds beside the resultset, and the suite's own folder is where
-    # every other example leaves theirs.
     let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-spec-") }
     let(:second_resultset) do
       {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
@@ -2019,8 +1869,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class).to have_received(:initial_setup).with(nil)
       end
 
-      # A configuration block is the other way to set a collate up, so
-      # it has to reach the setup along with the profile.
       it "hands the configuration block on to the setup" do
         block = proc { add_filter "x" }
         described_class.collate(["a.json"], &block)
@@ -2039,8 +1887,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
           .with(anything, hash_including(processes: 1))
       end
 
-      # One process is the floor: a concurrency of nought or less would
-      # merge nothing at all.
       it "merges with at least one process, however few were asked for" do
         described_class.collate(["a.json"], processes: 0)
 
@@ -2065,8 +1911,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
           .with(anything, hash_including(ignore_timeout: false))
       end
 
-      # The flag says the result being reported came from a collate, and
-      # it is put back whatever happens, including when the merge raises.
       it "marks the run as collating while the exit tasks run" do
         seen = nil
         allow(described_class).to receive(:run_exit_tasks!) { seen = described_class.collating_result? }
@@ -2192,8 +2036,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".collate across processes", mutant_expression: "SimpleCov.collate" do
-    # As above: the shards this block collates are its own, in a folder
-    # nothing else writes to.
     let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-processes-spec-") }
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
     let(:resultset_folder) { File.dirname(resultset_path) }
@@ -2271,8 +2113,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     private
 
-      # Each shard covers `sample.rb` plus one file only it loaded, so the
-      # merged table exercises both summing and union.
       def create_mergeable_report(name, index)
         coverage = {
           source_fixture("sample.rb") => {"lines" => [nil, 1, index, nil, nil, nil, 1, 1, nil, nil]},
@@ -2284,9 +2124,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         FileUtils.mv resultset_path, "#{resultset_path}#{name}.final"
       end
 
-      # Collate the stored shards from a clean slate and return the resultset
-      # that produced, so two strategies can be compared on equal terms —
-      # `store_result` merges into whatever is already at `resultset_path`.
       def collate_with
         FileUtils.rm_f(resultset_path)
         described_class.clear_result
@@ -2296,28 +2133,15 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  # Normally wouldn't test private methods but just start has side effects that
-  # cause errors so for time this is pragmatic (tm)
   describe ".start_coverage_measurement", mutant_expression: "SimpleCov.start_coverage_measurement" do
     after do
-      # SimpleCov is a Singleton/global object so once any test enables
-      # any kind of coverage data it stays there.
-      # Hence, we use clear_coverage_data to create a "clean slate" for these tests
       described_class.clear_coverage_criteria
     end
 
     before do
-      # `start_coverage_with_criteria` short-circuits with `unless
-      # Coverage.running?`. These tests verify the kwargs handed to
-      # Coverage.start, which only fire when Coverage isn't already
-      # running — so stub the running check to false. (Without this,
-      # the test would fail when run with the dogfood bootstrap, which
-      # starts Coverage before requiring simplecov.)
       allow(Coverage).to receive(:running?).and_return(false)
     end
 
-    # Measurement is started once. A process that already has Coverage
-    # running joins it rather than restarting and losing what it holds.
     it "does not start measuring again where Coverage is already running" do
       allow(Coverage).to receive_messages(running?: true, start: nil)
       allow(described_class).to receive(:start_test_tracking)
@@ -2326,12 +2150,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(Coverage).not_to have_received(:start)
     end
 
-    # Per-test attribution rides on the measurement, so it is started
-    # either way: the process that joined an existing run still tracks.
     it "starts per-test tracking whether or not it started the measurement" do
-      # The first half runs down the "not running" arm, so `Coverage.start`
-      # has to be stubbed: whether this process really has measurement up
-      # is a property of whatever ran before, and starting it twice raises.
       allow(Coverage).to receive(:start)
       allow(described_class).to receive(:start_test_tracking)
 

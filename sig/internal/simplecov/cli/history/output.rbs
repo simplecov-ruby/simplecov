@@ -1,8 +1,6 @@
 module SimpleCov
   module CLI
     module History
-      # Renders the trend: min-max scaled Unicode sparklines, the
-      # per-run rows, and the JSON forms of both views.
       module Output
         BARS: Array[String]
 
@@ -20,8 +18,6 @@ module SimpleCov
 
         def self?.emit_rows: (untyped stdout, Array[SimpleCov::History::entry] entries) { (SimpleCov::History::entry) -> String } -> void
 
-        # The branch a run was recorded on, or a dash for a run that
-        # recorded none.
         def self?.branch_of: (SimpleCov::History::entry entry) -> String
 
         def self?.percents_cell: (SimpleCov::History::entry entry, Array[String] criteria, Array[String] path) -> String

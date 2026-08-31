@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Completions
-      # The per-shell renderers for the completions command.
       module Scripts
         BASH_TAIL: Array[String]
 

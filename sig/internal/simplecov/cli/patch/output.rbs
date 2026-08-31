@@ -1,8 +1,6 @@
 module SimpleCov
   module CLI
     module Patch
-      # Turn the scored rows into text or JSON on stdout, and into the
-      # `--minimum` gate's exit status.
       module Output
         OPTIONAL_CRITERIA: Array[Symbol]
 
@@ -24,7 +22,6 @@ module SimpleCov
 
         def self?.measured?: (untyped stats) -> bool
 
-        # Collapse a sorted line list into ranges: [41,42,43,47] -> "41-43, 47".
         def self?.ranges: (untyped numbers, ?::String separator) -> ::String
 
         def self?.sum_stats: (untyped rows, untyped criterion) -> { covered: ::Integer, relevant: ::Integer }
@@ -35,8 +32,6 @@ module SimpleCov
 
       def self?.pct: (untyped stats) -> ::Float
 
-        # No --minimum is report-only (exit 0); with one, line and (when present)
-        # branch patch coverage must both clear the floor.
         def self?.gate: (untyped rows, untyped minimum) -> (0 | 1)
 
         def self?.short?: (untyped stats, untyped minimum) -> bool

@@ -17,8 +17,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
                                }))
   end
 
-  # A store carrying only what it has to: the two window stamps are
-  # optional keys, not keys with a null value.
   def write_windowless_store(coverage:)
     File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE => {
                                  "format_version" => 1, "coverage" => coverage, "last_seen" => {}
@@ -29,9 +27,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
     expect(described_class.call(nil)).to be_nil
   end
 
-  # The path argument exists for the tests and for a caller with a store
-  # in hand; the report itself asks for no path and gets the configured
-  # one.
   it "reads the configured store when called without a path" do
     write_store(coverage: {"lib/a.rb" => [1]})
     allow(SimpleCov).to receive(:production_coverage).and_return(path)
@@ -65,10 +60,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
     )
   end
 
-  # Hash equality ignores insertion order, so the sort needs an
-  # assertion that does not: the section is written to a file consumers
-  # diff between runs, and a store whose paths arrived in arrival order
-  # would otherwise reshuffle every night.
   it "orders the files by path" do
     write_store(coverage: {"lib/c.rb" => [3], "lib/a.rb" => [1], "lib/b.rb" => [2]})
 
@@ -87,9 +78,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
     expect(described_class.call(path)).to eq(files: {"lib/a.rb" => {lines: [1]}})
   end
 
-  # The store lives outside the repository and outside the suite's
-  # control; a missing or corrupt night of data must not fail the run
-  # that measured the tests.
   it "warns and returns nil when the store is missing" do
     section = nil
     stderr = capture_stderr { section = described_class.call(path) }

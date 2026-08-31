@@ -1,10 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov coverage <path>` — print per-criterion stats for one
-    # file from a JSONFormatter coverage.json.
     module Coverage
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers
@@ -17,10 +13,6 @@ module SimpleCov
 
       def self?.report_not_found: (untyped stderr, untyped coverage, untyped opts) -> nil
 
-      # Match either the absolute path, the literal string passed, or
-      # any coverage entry whose absolute filename ends with "/<path>".
-      # That covers the three natural ways a user types a path: relative
-      # to project root ("app/foo.rb"), absolute, or basename-only.
       def self?.lookup: (untyped coverage_hash, untyped path) -> untyped
 
       def self?.emit: (untyped match, untyped opts, untyped stdout) -> untyped

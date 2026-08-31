@@ -6,15 +6,11 @@ describe SimpleCov::Deprecation do
   before { described_class.reset! }
   after { described_class.reset! }
 
-  # Stand in for a one-level deprecated alias (track_files, add_filter, …):
-  # the auto-detected location should point at this method's caller.
   def deprecated_alias(message)
     described_class.warn(message)
   end
 
   describe ".caller_location" do
-    # The window is asked for one frame, but the promise is "the first
-    # of whatever comes back", which takes two frames to tell apart.
     it "reads the first frame of the window it asked for" do
       allow(Kernel).to receive(:caller).with(3..3).and_return(["lib/user.rb:1:in 'block'", "lib/deeper.rb:9"])
 
@@ -29,8 +25,6 @@ describe SimpleCov::Deprecation do
   end
 
   describe ".warn" do
-    # The frame two up is the user's own call, not the alias that
-    # forwarded it and not the alias's caller's caller.
     it "tags the message and prefixes the line that called the deprecated alias" do
       stderr = capture_stderr { deprecated_alias("`SimpleCov.old` is deprecated.") }
       called_on = __LINE__ - 1
@@ -103,8 +97,6 @@ describe SimpleCov::Deprecation do
   end
 
   describe ".emitted" do
-    # A set, so the same key added twice is one key, which is what the
-    # deduplication rests on. Built on first asking, from nothing.
     it "builds an empty set the first time it is asked" do
       described_class.remove_instance_variable(:@emitted) if
         described_class.instance_variable_defined?(:@emitted)
@@ -130,8 +122,6 @@ describe SimpleCov::Deprecation do
       expect(described_class.emitted).to eq(Set.new)
     end
 
-    # Forgotten, not discarded: the next warning has somewhere to go
-    # without having to build it.
     it "leaves an empty set behind rather than nothing" do
       described_class.warn("once", location: "file.rb:1")
       described_class.reset!
@@ -140,8 +130,6 @@ describe SimpleCov::Deprecation do
     end
   end
 
-  # Two different messages from one place are one call site to fix, and
-  # a message with no place to attribute it to is still worth saying.
   describe "what it keys the deduplication on" do
     it "collapses different messages from the same location" do
       stderr = capture_stderr do

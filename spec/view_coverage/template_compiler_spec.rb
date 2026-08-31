@@ -3,9 +3,6 @@
 require "helper"
 
 RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
-  # A stand-in for ActionView::Template: the only thing this asks of one is
-  # that `compile` (which ActionView keeps private) defines the template's
-  # method into the module it is handed.
   let(:template_class) do
     Class.new do
       attr_reader :compiled_into
@@ -19,9 +16,6 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
   let(:template) { template_class.new }
   let(:path) { "app/views/foos/show.html.erb" }
 
-  # ActionView is not installed here, so the constant the compiler names
-  # stands in for it. What is under test is what the compiler asks of
-  # ActionView, not what ActionView does with it.
   let(:handler) { Object.new }
   let(:handlers) { {"erb" => handler} }
   let(:built) { [] }
@@ -80,15 +74,10 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
       expect(described_class.format_for("app/views/foos/show.erb")).to be_nil
     end
 
-    # The name is the file's, not the path's: a directory carrying a dot
-    # is not part of how the template is named.
     it "ignores a dot in a directory along the way" do
       expect(described_class.format_for("app/v1.2/show.erb")).to be_nil
     end
 
-    # Counted back from the handler rather than forward from the start,
-    # so a template whose own name carries a dot still reports the
-    # format beside its handler.
     it "reads the format beside the handler, however many names precede it" do
       expect(described_class.format_for("app/views/show.v2.html.erb")).to eq(:html)
     end
@@ -111,8 +100,6 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
       expect(described_class).to have_received(:build_template).with(path, "<p>hi</p>\n")
     end
 
-    # Nothing to compile is not a failure to compile: the template is
-    # skipped without a word about it.
     it "skips a template language nothing is registered to handle" do
       allow(described_class).to receive(:build_template).and_return(nil)
 

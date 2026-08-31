@@ -9,7 +9,6 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   let(:tmp) { Dir.mktmpdir("simplecov-baseline-formatter-spec-") }
   let(:baseline_path) { File.join(tmp, ".simplecov_baseline.yml") }
 
-  # 2 covered, 1 missed: 66.66% with 1 missed line.
   let(:result) do
     SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
   end
@@ -141,9 +140,6 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     end
   end
 
-  # Auto-ratcheting keeps ratchet semantics: files the baseline never
-  # covered stay uncovered, answering to the global standard instead of
-  # being grandfathered at whatever they launched with.
   context "with a baseline that does not cover the reported file" do
     before do
       File.write(baseline_path, "lib/covered_elsewhere.rb: 41.2\n")
@@ -157,9 +153,6 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     end
   end
 
-  # The baseline is checked-in policy, so it belongs where the exit check
-  # reads it (under the project root) rather than wherever the run happens
-  # to have been started from.
   it "writes a relative baseline_file under SimpleCov.root, not the working directory" do
     Dir.mktmpdir("simplecov-baseline-root-") do |root|
       Dir.mktmpdir("simplecov-baseline-cwd-") do |elsewhere|
@@ -181,8 +174,6 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     expect(read_baseline.covers?(project_filename, :branch)).to be false
   end
 
-  # A `disable_coverage :line` run under method coverage is a real
-  # configuration: only the measured criteria become floors.
   it "follows the configuration for every criterion, line included" do
     allow(SimpleCov).to receive_messages(line_coverage?: false, method_coverage?: true)
     format_result

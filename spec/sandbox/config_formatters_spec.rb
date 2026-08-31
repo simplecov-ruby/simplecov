@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# The report formatter can be customized via SimpleCov.formatter /
-# SimpleCov.formatters: SimpleFormatter returns a plain string of files
-# and coverages, and MultiFormatter fans one result out to several
-# formatters, surviving (and reporting) individual formatter failures.
 RSpec.describe "custom formatters", :sandbox do
   before { setup_project("faked_project") }
 
@@ -27,8 +23,6 @@ RSpec.describe "custom formatters", :sandbox do
   end
 
   it "keeps formatting with the other formatters when one of them fails" do
-    # The cucumber feature carried this scenario twice verbatim
-    # ("With MultiFormatter" / "With multiple formatters"); once is enough.
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.formatters = [

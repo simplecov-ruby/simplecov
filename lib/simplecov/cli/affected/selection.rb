@@ -3,21 +3,11 @@
 module SimpleCov
   module CLI
     module Affected
-      # The selection walk: every changed file's contribution to the
-      # answer, accumulated as selected test files plus the triggers
-      # that mean the map cannot be trusted for this change.
       module Selection
-        # What a test file is named like, for changed files the map has
-        # never seen: RSpec's *_spec.rb and Minitest's *_test.rb and
-        # test_*.rb conventions.
         TEST_FILE_NAME = /\A(?:test_.*|.*_(?:test|spec))\.rb\z/
 
         extend self
 
-        # Walk every changed file into a selection ({tests:, triggers:}),
-        # nil after reporting malformed input. A non-empty triggers list
-        # means the answer is the full suite. `root` is the repository
-        # toplevel the changed paths are relative to.
         def build(changed, document, contexts, opts, stderr, root:)
           none = {} #: Hash[String, untyped]
           coverage = document.fetch("coverage", none)
@@ -34,21 +24,16 @@ module SimpleCov
         def initial_state(changed, contexts, coverage, opts, stderr, root:)
           {
             tests: [], triggers: [], changed: changed, contexts: contexts,
-            # A Set rather than a list: this is asked about once per
-            # changed path. A locationless id contributes nil, which no
-            # path is equal to.
             known: contexts.each_with_object(Set.new) { |id, set| set << test_file_of(id) },
             index: CoverageFile.exact_index(coverage), root: root, opts: opts, stderr: stderr
           } #: Hash[Symbol, untyped]
         end
 
-        # One changed file's contribution: a recorded test file selects
-        # itself, a file the report covers selects the files of the tests
-        # touching it, a test-looking file the map has never seen always
-        # runs, and anything else is outside the tracked set — a trigger.
-        # Changed paths are exact root-relative names, so they resolve
-        # against the report exactly — a lookalike entry elsewhere in the
-        # report must not stand in for a file the report doesn't carry.
+        # A recorded test file selects itself, a file the report covers selects the
+        # files of the tests touching it, a test-looking file the map has never seen
+        # always runs, and anything else is a trigger. Changed paths are exact
+        # root-relative names, so they resolve against the report exactly: a
+        # lookalike entry elsewhere must not stand in for a file it doesn't carry.
         def classify(path, state)
           entry = entry_for(path, state)
           if state.fetch(:known).include?(path)
@@ -62,16 +47,12 @@ module SimpleCov
           end
         end
 
-        # Outside the tracked set: the change is real but the report says
-        # nothing about it, so the whole suite has to run. The trigger
-        # list it appends to is the truthy "classified" it answers with.
         def note_untracked(path, state)
           state.fetch(:triggers) << "#{path} changed but #{state.fetch(:opts).fetch(:input)} has no data for it"
         end
 
-        # A changed test file runs, unless the change is its deletion —
-        # its tests are gone, which removes them from the answer without
-        # distrusting the map. Returns the path, a truthy "classified".
+        # A changed test file runs, unless the change is its deletion: its tests are
+        # gone, which removes them from the answer without distrusting the map.
         def select_test_file(path, state, note_deleted: true)
           if on_disk?(path, state)
             state.fetch(:tests) << path
@@ -81,28 +62,21 @@ module SimpleCov
           path
         end
 
-        # Existence judged at the repository root the paths are relative
-        # to, not the cwd, so a subdirectory run answers the same.
+        # Existence judged at the repository root the paths are relative to, not the
+        # cwd, so a subdirectory run answers the same.
         def on_disk?(path, state)
           File.exist?(File.expand_path(path, state.fetch(:root)))
         end
 
-        # The report entry behind one changed path — resolved against the
-        # git root, or literal for a relative-keyed document.
         def entry_for(path, state)
           state.fetch(:index)[File.expand_path(path, state.fetch(:root))] || state.fetch(:index)[path]
         end
 
-        # The table, a truthy "classified", or nil when it was malformed
-        # and the failure has already been reported.
         def select_covering(path, entry, state)
           table = covering_table(path, entry, state)
           table&.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) }
         end
 
-        # The entry's decoded context table, nil after reporting a
-        # malformed one — which poisons the whole answer, the same
-        # all-or-nothing tolerance `simplecov tests` applies.
         def covering_table(path, entry, state)
           unless entry.instance_of?(Hash)
             return CoverageFile.report_invalid(state.fetch(:stderr), "affected", state.fetch(:opts).fetch(:input),
@@ -117,11 +91,9 @@ module SimpleCov
                                       "entry for #{path} carries a malformed \"contexts\" table")
         end
 
-        # One recorded test touching a changed file: selected via its
-        # file, or a staleness trigger when it has no file to select — a
-        # locationless id, or a file that exists neither on disk nor in
-        # the change (whose own classification already noted the
-        # deletion).
+        # Selected via its file, or a staleness trigger when it has no file to
+        # select: a locationless id, or a file that exists neither on disk nor in
+        # the change.
         def select_context(id, path, state)
           file = test_file_of(id)
           if file.nil?
@@ -133,9 +105,8 @@ module SimpleCov
           end
         end
 
-        # The file behind a recorded test id: "spec/a_spec.rb:12" and the
-        # :file granularity's bare "spec/a_spec.rb" both name one, while a
-        # locationless fallback id ("FooTest#test_bar") names none.
+        # "spec/a_spec.rb:12" and the :file granularity's bare "spec/a_spec.rb" both
+        # name a file, while a locationless fallback id names none.
         def test_file_of(id)
           base = id.sub(/:\d+\z/, "")
           base if base.include?("/") || base.end_with?(".rb")

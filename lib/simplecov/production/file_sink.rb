@@ -7,39 +7,26 @@ require_relative "error"
 
 module SimpleCov
   module Production
-    # The bundled sink: a single JSON file, union-merged under an
-    # exclusive lock so any number of processes on the same host can
-    # share it. This is the reference for the sink contract:
+    # The bundled sink: a single JSON file, union-merged under an exclusive
+    # lock so any number of processes on the same host can share it. This is
+    # the reference for the sink contract:
     #
     #   store(coverage)  # {"lib/foo.rb" => [1, 3, 12], ...} of
     #                    # root-relative paths to sorted line numbers
     #
     # A sink must merge (never replace: many processes each hold only a
     # slice), must be idempotent (the same lines may arrive twice), and
-    # signals failure by raising, which makes the runtime keep the
-    # delta and retry next interval. Remote sinks — Redis, S3, a
-    # metrics pipeline — implement the same one method and live outside
-    # this gem.
-    #
-    # The file's shape, consumed by `simplecov dead-code` and the
-    # report formatters:
-    #
-    #   {"simplecov_production": {
-    #     "format_version": 1,
-    #     "started_at": "...", "updated_at": "...",
-    #     "coverage": {"lib/foo.rb": [1, 3, 12]},
-    #     "last_seen": {"lib/foo.rb": "..."}}}
+    # signals failure by raising, which makes the runtime keep the delta and
+    # retry next interval.
     #
     # `last_seen` stamps each file with the last store that carried it.
-    # Oneshot clears on drain, so still-running code re-reports every
-    # interval and the stamp tracks real recency, not first sighting.
-    # The field is optional on read: a v1 store written before it
-    # existed (or by a remote sink that only fills the documented
-    # shape) simply has no recency evidence to offer.
+    # Oneshot clears on drain, so still-running code re-reports every interval
+    # and the stamp tracks real recency, not first sighting. The field is
+    # optional on read: a v1 store written before it existed simply has no
+    # recency evidence to offer.
     class FileSink
-      # The envelope key, which is also how `read` tells a production
-      # coverage file from an arbitrary JSON document it must not
-      # clobber or misread.
+      # The envelope key, which is also how `read` tells a production coverage
+      # file from an arbitrary JSON document it must not clobber or misread.
       ENVELOPE = "simplecov_production"
       FORMAT_VERSION = 1
 
@@ -58,27 +45,24 @@ module SimpleCov
         true
       end
 
-      # Replace the locked file's contents in place, truncating any
-      # leftover tail from a previously larger document.
+      # Truncates any leftover tail from a previously larger document.
       def rewrite(file, payload)
         file.rewind
         file.write(JSON.generate(payload))
         file.truncate(file.pos)
       end
 
-      # The inner document of a production coverage file:
-      # {"format_version" =>, "started_at" =>, "updated_at" =>,
-      # "coverage" => {path => [lines]}}. Raises `Error` for anything
-      # that is not one, naming the path — misreading an arbitrary JSON
-      # file as empty coverage would quietly report every line dead.
+      # Raises `Error` for anything that is not a production coverage file,
+      # naming the path: misreading an arbitrary JSON file as empty coverage
+      # would quietly report every line dead.
       def self.read(path)
         parse(File.read(path), path)
       end
 
-      # @api private — shared by `read` and `store`'s read-modify-write.
-      # An empty or missing file is a fresh store.
-      # JSON answers plain hashes, arrays, and scalars, never a subclass
-      # of one, so the shape checks below ask about the class itself.
+      # @api private -- shared by `read` and `store`'s read-modify-write. An
+      # empty or missing file is a fresh store. JSON answers plain hashes,
+      # arrays, and scalars, never a subclass of one, so the shape checks ask
+      # about the class itself.
       def self.parse(content, path)
         return {"coverage" => {}, "last_seen" => {}, "started_at" => nil} if content.match?(/\A\s*\z/)
 
@@ -87,13 +71,13 @@ module SimpleCov
         inner["last_seen"] = {} unless inner["last_seen"].instance_of?(Hash)
         inner
       rescue JSON::ParserError => e
-        # One line of the parser's complaint, which for some inputs
-        # quotes the document back and runs long.
+        # One line of the parser's complaint, which for some inputs quotes the
+        # document back and runs long.
         raise Error, "#{path} is not valid JSON (#{e.message.lines.first.to_s.rstrip})"
       end
 
-      # The document's inner envelope, or the refusal that keeps an
-      # arbitrary JSON file from being misread as empty coverage.
+      # The refusal is what keeps an arbitrary JSON file from being misread as
+      # empty coverage.
       def self.envelope_of(document, path)
         inner = document[ENVELOPE] if document.instance_of?(Hash)
         raise Error, "#{path} is not a SimpleCov production coverage file" unless inner.instance_of?(Hash)
@@ -103,11 +87,11 @@ module SimpleCov
 
     private
 
-      # Both halves of the read-modify-write happen through one handle,
-      # under an exclusive lock, so processes sharing the file take turns
-      # rather than overwriting each other. The open flags are summed,
-      # which for disjoint bits is the same number OR would build and
-      # leaves no spelling of the combination without a witness.
+      # Both halves of the read-modify-write happen through one handle, under an
+      # exclusive lock, so processes sharing the file take turns rather than
+      # overwriting each other. The open flags are summed, which for disjoint
+      # bits is the same number OR would build and leaves no spelling of the
+      # combination without a witness.
       def locked
         open_file(path, File::RDWR + File::CREAT, 0o644) do |file|
           file.flock(File::LOCK_EX)

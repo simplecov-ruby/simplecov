@@ -5,12 +5,6 @@ require "helper"
 RSpec.describe SimpleCov::CommandGuesser do
   subject(:guesser) { described_class }
 
-  # `original_run_command` is class-level state on CommandGuesser, and
-  # `SimpleCov.command_name` lazy-caches `CommandGuesser.guess` into an
-  # instance variable that persists for the whole process. Without
-  # restoring the command here, a later spec that triggers the first
-  # call to `SimpleCov.command_name` would lock in whatever value this
-  # spec happened to leave behind (e.g. "Cucumber Features").
   around do |example|
     saved_command = described_class.original_run_command
     saved_program = described_class.original_program_name
@@ -57,12 +51,6 @@ RSpec.describe SimpleCov::CommandGuesser do
     expect(guesser.guess).to eq("RSpec")
   end
 
-  # https://github.com/simplecov-ruby/simplecov/issues/1249
-  #
-  # These run through a generic `ruby`, which the executable table deliberately
-  # omits, so the path patterns decide the answer and the segment boundaries are
-  # what's under test. Naming `rspec` or `cucumber` here would short-circuit
-  # before the patterns ran and pass with or without the boundaries.
   it "ignores framework keywords that do not start a path segment" do
     guesser.original_run_command = "/opt/rubies/latest/bin/ruby spec/foo_spec.rb"
     expect(guesser.guess).to eq("RSpec")
@@ -77,15 +65,6 @@ RSpec.describe SimpleCov::CommandGuesser do
     expect(guesser.guess).to eq("Cucumber Features")
   end
 
-  # A backslash separates path segments too, so anchoring only on `/` would
-  # lose matches the unanchored patterns used to make on Windows arguments.
-  # CI cannot catch this: windows-latest invokes with forward slashes, and a
-  # recognized executable short-circuits before the patterns run. Reported by
-  # @andriytyurnikov on #1251.
-  #
-  # The Cucumber cases are the ones that pin this. Under RSpec the constant
-  # fallback answers "RSpec" anyway, so an RSpec expectation here would pass
-  # with or without the backslash in the boundaries.
   it "treats a backslash as a path segment separator" do
     guesser.original_run_command = 'C:\Ruby\bin\ruby.exe features\foo.feature'
     expect(guesser.guess).to eq("Cucumber Features")
@@ -100,9 +79,6 @@ RSpec.describe SimpleCov::CommandGuesser do
     expect(guesser.guess).to eq("RSpec")
   end
 
-  # The originally reported shape: the interpreter path decides nothing, the
-  # executable does. Kept alongside the pattern examples above because these are
-  # the exact commands from the issue.
   it "labels a suite by its executable despite a test/ substring in the path" do
     guesser.original_run_command = "/opt/rubies/latest/bin/rspec"
     expect(guesser.guess).to eq("RSpec")
@@ -136,9 +112,6 @@ RSpec.describe SimpleCov::CommandGuesser do
     expect(guesser.guess).to eq("Integration Tests")
   end
 
-  # `original_run_command` joins $PROGRAM_NAME and ARGV with a space, so the
-  # program path can't be recovered from it once it contains one. `defaults.rb`
-  # records it separately for exactly this reason.
   it "recognizes an executable whose path contains spaces" do
     guesser.original_run_command = "/opt/My Ruby/bin/rspec features"
     guesser.original_program_name = "/opt/My Ruby/bin/rspec"
@@ -206,10 +179,6 @@ RSpec.describe SimpleCov::CommandGuesser do
   end
 
   describe "the invoked program" do
-    # Windows' rspec.bat is the rspec executable, and so is a bare
-    # `rspec`; the extension is not part of the name. Asked of the
-    # reader itself, because a run that recognizes no executable still
-    # finds RSpec among the constants these examples run under.
     it "recognizes an executable that carries an extension" do
       guesser.original_run_command = "/some/path/rspec.bat --format doc"
       guesser.original_program_name = nil
@@ -222,16 +191,12 @@ RSpec.describe SimpleCov::CommandGuesser do
       expect(guesser.send(:from_executable_name)).to eq("Cucumber Features")
     end
 
-    # Nothing was recorded, so there is nothing to match against, which
-    # is a question to answer rather than one to raise over.
     it "matches no pattern against a command that was never recorded" do
       guesser.original_run_command = nil
       guesser.original_program_name = nil
       expect(guesser.send(:from_command_line_options)).to be_nil
     end
 
-    # The command is a program joined to its arguments, so the program
-    # is what precedes the first space, without the space.
     it "reads the program out of a command that begins with whitespace" do
       guesser.original_run_command = "  cucumber features"
       guesser.original_program_name = nil
@@ -245,11 +210,7 @@ RSpec.describe SimpleCov::CommandGuesser do
     end
   end
 
-  # RSpec is defined while these examples run, so the later frameworks
-  # in the list can only be reached through a list of our own.
   describe "falling back to the frameworks that are loaded" do
-    # The list is declared inside `class << self`, so it belongs to the
-    # singleton class and `stub_const` cannot address it by name.
     def with_frameworks(list)
       singleton = described_class.singleton_class
       original = singleton.const_get(:DEFINED_CONSTANT_FRAMEWORKS)
@@ -259,8 +220,6 @@ RSpec.describe SimpleCov::CommandGuesser do
       swap_frameworks(singleton, original)
     end
 
-    # stub_const addresses a constant by name, and this one belongs to
-    # an anonymous singleton class, so there is no name to give it.
     # rubocop:disable-next RSpec/RemoveConst
     def swap_frameworks(singleton, list)
       singleton.send(:remove_const, :DEFINED_CONSTANT_FRAMEWORKS)

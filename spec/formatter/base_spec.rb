@@ -54,14 +54,10 @@ RSpec.describe SimpleCov::Formatter::Base do
     expect(silent_formatter).not_to have_received(:output_message)
   end
 
-  # The HTML formatter has always been the unmarked default, so the base
-  # class contributes no marker of its own.
   it "prefixes nothing by default" do
     expect(formatter.send(:message_prefix)).to eq("")
   end
 
-  # The JSON formatter marks its line, which is how a run with several
-  # formatters says which report each summary is about.
   it "lets a subclass mark the summary line" do
     marked = Class.new(described_class) do
     private
@@ -77,9 +73,6 @@ RSpec.describe SimpleCov::Formatter::Base do
     TEXT
   end
 
-  # Every real formatter defines a `format` of its own, so the criterion
-  # lines have to be built by Kernel's format rather than by whatever
-  # `format` resolves to on the instance.
   it "renders criterion lines on a subclass that defines its own format" do
     subclass = Class.new(described_class) do
       def format(_result)
@@ -102,9 +95,6 @@ RSpec.describe SimpleCov::Formatter::Base do
     TEXT
   end
 
-  # Every criterion line is optional: a result that measured nothing at
-  # all (every criterion disabled) still reports where it wrote, on the
-  # one line and with nothing hanging off the end of it.
   it "renders the header alone for a run that measured no criteria" do
     expect(formatter.send(:output_message, result_with({})))
       .to eq("Coverage report generated for RSpec to #{SimpleCov.coverage_dir}")

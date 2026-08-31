@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Watch
-      # The session's stdout voice.
       class Narrator
         @stdout: untyped
         @root: String

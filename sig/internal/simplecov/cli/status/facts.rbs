@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Status
-      # Gathers the freshness facts from the artifacts.
       module Facts
         def self?.gather: (Hash[String, untyped] document, String resultset_path) -> Hash[Symbol, untyped]
 

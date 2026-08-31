@@ -1,10 +1,5 @@
 module SimpleCov
   module ResultMerger
-    # Read + parse a `.resultset.json` file with the same tolerance the
-    # historical `ResultMerger` had: a missing or empty file quietly
-    # returns `{}`, an unparseable one warns and returns `{}`, and parse
-    # success returns the decoded Hash with any malformed entries
-    # warned about and dropped.
     module ResultsetFile
       def self?.parse: (untyped path) -> untyped
 
@@ -12,8 +7,6 @@ module SimpleCov
 
       def self?.decode: (untyped content) -> untyped
 
-      # Each surviving entry must be a Hash with a Numeric "timestamp"
-      # and a Hash "coverage"; anything else is warned about and dropped.
       def self?.drop_malformed_entries: (Hash[untyped, untyped] resultset) -> Hash[untyped, untyped]
 
       def self?.well_formed_entry?: (untyped data) -> bool

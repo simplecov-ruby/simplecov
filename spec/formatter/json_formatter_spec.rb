@@ -28,10 +28,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     res
   end
 
-  # A coverage directory of its own, so what a previous run left in the
-  # shared one stays out of the formatted document. A `.history.json`
-  # lying around there is embedded in the report, which is the whole
-  # point of it, and makes every fixture comparison here fail.
   let(:coverage_dir) { Dir.mktmpdir("simplecov-json-formatter-") }
 
   before do
@@ -41,8 +37,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       .and_return(["#{STUB_COMMIT}\n", instance_double(Process::Status, success?: true)])
   end
 
-  # Outside SimpleCov.start, process_start_time is nil. Anchor it so the
-  # concurrent-overwrite checks have a reference point.
   after do
     SimpleCov.process_start_time = nil
     FileUtils.remove_entry(coverage_dir)
@@ -122,8 +116,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
 
       it "replaces bytes that are not valid UTF-8 in embedded source" do
-        # The fast path passes valid UTF-8 lines through untouched; this
-        # pins the conversion fallback for source carrying invalid bytes.
         Dir.mktmpdir do |dir|
           path = File.join(dir, "invalid.rb")
           File.binwrite(path, "x = 1 # caf\xE9\n")
@@ -210,13 +202,10 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         enable_method_coverage
       end
 
-      # total.methods.total is 3, not 4, because Foo#skipped is inside a simplecov:disable block
       it "includes methods array and methods_covered_percent per file" do
         formatter.format(result)
         expect(json_output).to eq(json_result("sample_with_method"))
 
-        # Spelled out rather than derived from the file's own covered and
-        # missed counts, which would restate the arithmetic under test.
         file = json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))
         expect(file.fetch("total_methods")).to eq(3)
         expect(file.fetch("methods").size).to eq(4)
@@ -259,7 +248,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with minimum_coverage keyed on :oneshot_line" do
-      # `:oneshot_line` is a synonym for `:line` in stats — see #1170.
       before do
         allow(SimpleCov).to receive(:minimum_coverage).and_return(oneshot_line: 95)
       end
@@ -465,9 +453,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
                                     })
         res.created_at = fixed_time
 
-        # right now SimpleCov works mostly on global state, hence setting the groups that way
-        # would be global state --> Mocking is better here. `map` ignores the block
-        # and returns the stubbed value — so stub it to the project-relative path directly.
         mock_file_list = instance_double(SimpleCov::FileList,
                                          coverage_statistics: {line: line_stats},
                                          map: [project_fixture_filename("json/sample.rb")])
@@ -507,11 +492,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
       end
     end
 
-    # The HTML formatter writes coverage.json too, so running
-    # [HTMLFormatter, JSONFormatter] together would otherwise make the JSON
-    # formatter warn about the file its own run just wrote. A matching
-    # command_name marks it as the same merged result, not a concurrent one.
-    # See issue #1171.
     context "when an existing coverage.json is from the same run (matching command_name)" do
       let(:future_timestamp) { (Time.now + 3600).iso8601 }
 
@@ -564,9 +544,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
 
     context "with :line coverage disabled" do
-      # Confirms the formatter doesn't emit `lines` / per-file
-      # `lines_covered_percent` / `total_lines` keys when the line
-      # criterion was switched off via `disable_coverage :line`.
       before do
         allow(SimpleCov).to receive(:line_coverage?).and_return(false)
         enable_branch_coverage
@@ -614,10 +591,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     end
   end
 
-  # The joined command_name stays for consumers that read it, but a
-  # merged report's viewer needs the components to summarize "using A
-  # and N other runs" without splitting a string run names could
-  # themselves contain commas in. See #1284.
   describe "meta.command_names" do
     it "carries the result's run names as an array" do
       formatter.format(result)

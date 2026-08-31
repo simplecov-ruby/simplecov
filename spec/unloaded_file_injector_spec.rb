@@ -2,9 +2,6 @@
 
 require "helper"
 
-# The injector takes root, globs and criteria as arguments rather than reading
-# them off the SimpleCov singleton, because the merge step runs it on behalf of
-# processes whose configuration it may not share. See #1250.
 RSpec.describe SimpleCov::UnloadedFileInjector do
   let(:fixture_root) { File.expand_path("fixtures", __dir__) }
   let(:sample) { File.join(fixture_root, "sample.rb") }
@@ -26,7 +23,6 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
           .to eq([File.join(root, "lib/a.rb")])
       end
 
-      # Two globs naming the same file name it once.
       it "answers each path once, however many globs found it" do
         expect(described_class.discover(["lib/a.rb", "lib/*.rb"], root: root))
           .to contain_exactly(File.join(root, "lib/a.rb"), File.join(root, "lib/b.rb"))
@@ -37,8 +33,6 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
           .to eq([File.join(root, "lib/b.rb")])
       end
 
-      # Nothing to reject means nothing to ask, so no source file is
-      # built to ask it of.
       it "builds no source file when there is nothing to reject" do
         allow(SimpleCov::SourceFile).to receive(:new).and_call_original
 
@@ -63,8 +57,6 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
   end
 
   describe ".call" do
-    # Whether to synthesize branch and method tuples is the caller's to
-    # decide, and it is passed on rather than assumed.
     it "passes the caller's choice of synthesis through" do
       allow(SimpleCov::SimulateCoverage).to receive(:call).and_return({"lines" => []})
 
@@ -79,8 +71,6 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
       expect(coverage[sample]["lines"]).to be_an(Array)
     end
 
-    # The paths after one that is already carried are still considered:
-    # a path already there is skipped, not a place to stop.
     it "carries on past a path the result already carries" do
       Dir.mktmpdir("injector-call") do |dir|
         other = File.join(dir, "other.rb")
@@ -126,8 +116,6 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
       expect(described_class.rejected?(sample, [SimpleCov::StringFilter.new("zzz")])).to be(false)
     end
 
-    # The file is handed over as one that was never loaded and carries
-    # no coverage, so a path-only filter answers without reading it.
     it "hands the filter a file marked as never loaded, with no coverage" do
       seen = nil
       described_class.rejected?(sample, [SimpleCov::BlockFilter.new(->(file) { seen = file and false })])

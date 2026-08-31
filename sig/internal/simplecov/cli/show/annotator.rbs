@@ -1,8 +1,6 @@
 module SimpleCov
   module CLI
     module Show
-      # Renders one file's annotated source with hit-count gutters and
-      # caret marker lines under each miss.
       module Annotator
         def self?.call: (Array[String] source, untyped entry, untyped stdout, color: bool) -> untyped
 
@@ -20,7 +18,6 @@ module SimpleCov
 
         def self?.row: (Integer number, untyped hit, String line, Hash[Symbol, Integer] widths, bool color) -> String
 
-        # The hit count for the gutter, padded and painted.
         def self?.count: (untyped hit, Hash[Symbol, Integer] widths, bool color) -> String
 
         def self?.paint: (String text, Symbol tint, bool color) -> String

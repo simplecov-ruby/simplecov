@@ -15,7 +15,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     described_class.read(path)
   end
 
-  # Put a document on disk for the sink to find.
   def write_envelope(inner, pretty: false)
     document = {described_class::ENVELOPE => inner}
     FileUtils.mkdir_p(File.dirname(path))
@@ -25,8 +24,6 @@ RSpec.describe SimpleCov::Production::FileSink do
   describe "#locked" do
     before { FileUtils.mkdir_p(File.dirname(path)) }
 
-    # flock contention is per open file description, so a second handle
-    # in this very process can observe the lock the first one holds.
     it "holds an exclusive flock on the store while the block runs" do
       sink.send(:locked) do |_file|
         File.open(path) do |probe|
@@ -47,8 +44,6 @@ RSpec.describe SimpleCov::Production::FileSink do
       expect(result).to be(:stored)
     end
 
-    # The mode is asked about here as well as through `store`, because
-    # these examples are the whole of this subject's test pool.
     it "creates the store world-readable and owner-writable" do
       previous = File.umask(0)
       sink.send(:locked) { |_file| nil }
@@ -58,13 +53,9 @@ RSpec.describe SimpleCov::Production::FileSink do
       File.umask(previous)
     end
 
-    # `Kernel#open` reads a leading pipe as a command to run; `File.open`
-    # reads it as a filename. The store must be a file.
     it "opens the store as a file even when its path starts with a pipe" do
       skip "a pipe is not a legal filename character on Windows" if Gem.win_platform?
 
-      # The constructor absolutizes every path, so a leading pipe can
-      # only be arranged by standing in for the reader.
       allow(sink).to receive(:path).and_return("|true") # rubocop:disable RSpec/SubjectStub
 
       Dir.chdir(tmp) { sink.send(:locked) { |_file| nil } }
@@ -73,8 +64,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     end
   end
 
-  # The sink is usually configured from a relative path in a deploy
-  # script, and a worker that chdirs must still write the same file.
   it "resolves its path once, up front" do
     expect(described_class.new(path: "tmp/production.json").path)
       .to eq(File.expand_path("tmp/production.json"))
@@ -99,8 +88,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["started_at"]).to eq(first_started)
   end
 
-  # A union puts the newcomers at the end, wherever they belong, and a
-  # store nobody can diff is a store nobody reviews.
   it "sorts the lines it merges into a file" do
     sink.store("lib/a.rb" => [5, 9])
     sink.store("lib/a.rb" => [1, 7])
@@ -108,8 +95,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["coverage"]).to eq("lib/a.rb" => [1, 5, 7, 9])
   end
 
-  # The window's beginning is stamped once and carried forward: it is
-  # what the dead-code report describes when it says how long it looked.
   it "keeps the window's beginning across stores" do
     write_envelope({"format_version" => 1, "started_at" => "2020-01-01T00:00:00Z",
                     "coverage" => {}, "last_seen" => {}})
@@ -127,8 +112,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["updated_at"]).to eq("2026-03-01T07:00:00Z")
   end
 
-  # Written in place under the lock, so a document that shrinks has to
-  # take its old tail with it rather than leave trailing JSON behind.
   it "truncates a document that used to be longer" do
     write_envelope({"format_version" => 1,
                     "coverage" => {"lib/a.rb" => [1, 2, 3, 4, 5],
@@ -142,8 +125,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["coverage"]).to include("lib/c.rb" => [1, 2, 3, 4, 5])
   end
 
-  # A store shared by every process on the host is read by all of them
-  # and written by none but its owner.
   it "creates the store world-readable and owner-writable" do
     previous = File.umask(0)
     sink.store("lib/a.rb" => [1])
@@ -193,8 +174,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     expect(stored["coverage"]).to eq("lib/a.rb" => [1])
   end
 
-  # A file holding only whitespace is empty too, from either end: a
-  # half-written store must not be read as valid JSON.
   it "treats a whitespace-only file as a fresh store" do
     FileUtils.mkdir_p(File.dirname(path))
     ["\n", "   ", " \n\t ", "\n  "].each do |blank|
@@ -204,9 +183,6 @@ RSpec.describe SimpleCov::Production::FileSink do
     end
   end
 
-  # The fresh store carries the started_at key, unset: the window's
-  # beginning is stamped on the first write, and the dead-code report
-  # reads that key to describe the window it is judging.
   it "starts a fresh store with an unset window beginning" do
     fresh = described_class.parse("", path)
 
@@ -219,8 +195,6 @@ RSpec.describe SimpleCov::Production::FileSink do
                       /\A#{Regexp.escape(path)} is not valid JSON \(.+\)\z/)
   end
 
-  # Some parsers quote the whole document back at you. One line of that
-  # is a diagnosis; the rest is the file you already have.
   it "keeps the first line of a complaint that runs long" do
     allow(JSON).to receive(:parse).and_raise(JSON::ParserError, "unexpected token\nat '{ nope'\n")
 
@@ -242,8 +216,6 @@ RSpec.describe SimpleCov::Production::FileSink do
       .to raise_error(SimpleCov::Production::Error, /not a SimpleCov production coverage file/)
   end
 
-  # An envelope whose tables are the wrong shape is repaired rather
-  # than refused: the file is a production store, just a damaged one.
   it "replaces a non-object coverage or last_seen table with an empty one" do
     document = JSON.dump(described_class::ENVELOPE => {"coverage" => "junk", "last_seen" => 42})
 
@@ -251,10 +223,6 @@ RSpec.describe SimpleCov::Production::FileSink do
       .to include("coverage" => {}, "last_seen" => {})
   end
 
-  # Oneshot clears on drain, so hot code re-reports every interval and
-  # the store can keep a per-file recency stamp essentially for free.
-  # "This file last mattered in March" is far stronger deletion evidence
-  # than a binary bit over the whole window.
   describe "last_seen" do
     it "stamps every file in a delta with the store time" do
       sink.store("lib/a.rb" => [1], "lib/b.rb" => [2])
@@ -281,9 +249,6 @@ RSpec.describe SimpleCov::Production::FileSink do
       expect(stored["last_seen"].keys).to eq(["lib/a.rb", "lib/z.rb"])
     end
 
-    # A store written by an older gem (or a remote sink that only fills
-    # the documented v1 shape) carries no stamps; reading and merging
-    # into it must not require them.
     it "tolerates a store without stamps" do
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE =>

@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# The root of the project can be customized; results are considered when
-# they fall inside it even if the test process changes its working
-# directory (the monorepo fixture's rspec binstub chdirs into a
-# subproject before running).
 RSpec.describe "custom project root", :sandbox do
   before { setup_project("monorepo") }
 

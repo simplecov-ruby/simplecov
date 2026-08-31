@@ -90,8 +90,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     end
 
     context "when an exact-path override does not match" do
-      # "lib/critical" without `.rb` is not equal to "lib/critical.rb", so
-      # the override doesn't apply and the default of 70 passes.
       let(:overrides) { {"lib/critical" => {line: 100}} }
 
       it { is_expected.not_to be_failing }
@@ -122,9 +120,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     end
 
     context "when two overrides match the same file" do
-      # Later declarations win per criterion (overrides merge in order),
-      # so the per-file override of 100 takes precedence over the
-      # broader directory override of 90.
       let(:overrides) { {"lib/" => {line: 90}, "lib/critical.rb" => {line: 100}} }
 
       it "uses the override declared last" do
@@ -152,8 +147,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
           )
         ]
       end
-      # Default holds branch at 50; override raises line to 100. Both
-      # criteria are checked against the file (merge semantics).
       let(:minimum_coverage_by_file) { {line: 70, branch: 50} }
       let(:overrides) { {"lib/critical.rb" => {line: 100}} }
 
@@ -161,18 +154,13 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
         expect(check).to be_failing
         output = check.report_lines.join("
 ")
-        # The file's branch at 60% passes the default 50% threshold.
         expect(output).not_to include("Branch coverage")
-        # The file's line at 80% fails the override 100% threshold.
         expect(output).to include("Line coverage")
         expect(output).to include("(100.00%)")
       end
     end
   end
 
-  # A baseline entry replaces the per-file minimum for that file and
-  # criterion: the file answers to its own floor instead. Files (and
-  # criteria) without an entry fall through to the configured minimum.
   describe "baseline exemption" do
     subject(:check) { described_class.new(result, minimum_coverage_by_file, overrides, baseline: baseline) }
 
@@ -209,8 +197,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     end
   end
 
-  # Overrides are optional: a project that names no per-file exception
-  # still gets a check that reads its floors.
   it "needs no overrides to be built" do
     built = described_class.new(result, {line: 90.0})
 

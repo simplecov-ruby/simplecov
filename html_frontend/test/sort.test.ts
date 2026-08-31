@@ -1,14 +1,7 @@
-// Click-to-sort behavior of the file-list tables: the default
-// primary-coverage sort, direction toggling, sort-value extraction and
-// caching, colspan-aware header mapping, and the slow-sort overlay that
-// large tables show while the main thread blocks.
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { setupTableSorting } from '../src/sort';
 import { renderCoverageCells } from '../src/render_cells';
 
-// File / Line Coverage (3 cols) / Branch Coverage (3 cols), like the real
-// report. The rightmost cell of each coverage group holds the totals count,
-// so clicking a group header sorts by that numeric cell.
 const HEADERS = '<th data-sort-key="file">File</th>' +
   '<th colspan="3" data-sort-key="line-total">Line</th>' +
   '<th colspan="3" data-sort-key="branch-total">Branch</th>';
@@ -112,7 +105,6 @@ describe('default sort', () => {
       <table class="file_list" id="empty"><thead><tr><th>File</th></tr></thead><tbody></tbody></table>`;
     setupTableSorting();
 
-    // A click on the empty table still records the sort direction.
     const emptyTh = document.querySelector('#empty th') as HTMLElement;
     click(emptyTh);
     expect(emptyTh.classList.contains('sorting_asc')).toBe(true);
@@ -125,21 +117,17 @@ describe('click sorting', () => {
     setupTableSorting('line');
     expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
 
-    // Clicking a colspan group sorts its rightmost cell: total lines.
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
     expect(headerAt(table, 1).classList.contains('sorting_asc')).toBe(true);
 
-    // Same column again: pure reversal to descending.
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/a.rb', 'lib/c.rb', 'lib/b.rb']);
     expect(headerAt(table, 1).classList.contains('sorting_desc')).toBe(true);
 
-    // File names sort as case-insensitive strings.
     click(headerAt(table, 0));
     expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
 
-    // Back to the line column: values now come from the per-row cache.
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
   });
@@ -164,8 +152,6 @@ describe('click sorting', () => {
     setupTableSorting('line');
     expect(names(table)).toEqual(['lib/z.rb', 'lib/m.rb', 'lib/a.rb']);
 
-    // Two files have one covered branch. The click must not inherit their
-    // order from the prior line sort because a reload starts from source order.
     click(headerAt(table, 5));
     const ascending = names(table);
     expect(ascending).toEqual(['lib/a.rb', 'lib/z.rb', 'lib/m.rb']);
@@ -223,21 +209,14 @@ describe('click sorting', () => {
     ]);
     setupTableSorting();
 
-    // The structurally short first row cannot resolve column 3, so every row
-    // gets the empty primary value and the filename tie-breaker decides.
     click(headerAt(table, 3));
     expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
 
-    // A column index beyond every visible cell sorts nothing but still
-    // flips the header indicator.
     click(headerAt(table, 4));
     expect(headerAt(table, 4).classList.contains('sorting_asc')).toBe(true);
     expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
   });
 
-  // The count columns display their numbers comma-grouped, so sorting them
-  // by cell text would parse "1,250" as 1 and file it below "999". Built
-  // from the real cell renderer so the markup and the sorter stay in step.
   test('sorts the rendered count columns numerically, not by grouped text', () => {
     const countRow = (name: string, covered: number, total: number): string =>
       `<tr class="t-file"><td>${name}</td>${renderCoverageCells(100, covered, total, 'line', false)}</tr>`;
@@ -260,9 +239,6 @@ describe('click sorting', () => {
     setupTableSorting('line');
     const th = headerAt(table, 0);
     th.remove();
-    // The listener still fires; thToTdIndex no longer finds the th and falls
-    // through to the remaining column count (6), which here lands on the
-    // branch-total cell.
     click(th);
     expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
   });
@@ -285,14 +261,12 @@ describe('slow-sort overlay', () => {
     expect(overlay.style.opacity).toBe('1');
     expect(overlay.textContent).toContain('Sorting…');
 
-    // The sort itself runs two frames later, then the overlay fades out.
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))));
     expect(names(table)[0]).toBe('lib/f000.rb');
     expect(overlay.style.opacity).toBe('0');
     await new Promise((resolve) => setTimeout(resolve, 220));
     expect(overlay.style.display).toBe('none');
 
-    // A second slow sort reuses the same overlay element.
     click(headerAt(table, 1));
     expect(document.querySelectorAll('#sort-overlay').length).toBe(1);
     expect(overlay.style.display).toBe('flex');
@@ -303,8 +277,6 @@ describe('slow-sort overlay', () => {
 });
 
 describe('by-tests secondary sort', () => {
-  // Real line-percent headers carry no colspan, so clicking one sorts on
-  // the pct cell itself, where data-order-2 holds the by-tests percent.
   const TRACKED_HEADERS = '<th data-sort-key="file">File</th>' +
     '<th data-sort-key="line-percent">Line %</th>' +
     '<th data-sort-key="line-covered">Covered</th>' +

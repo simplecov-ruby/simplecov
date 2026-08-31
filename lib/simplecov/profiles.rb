@@ -1,20 +1,9 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  #
-  # Profiles are SimpleCov configuration procs that can be easily
-  # loaded using SimpleCov.start :rails and defined using
-  #   SimpleCov.profiles.define :foo do
-  #     # SimpleCov configuration here, same as in  SimpleCov.configure
-  #   end
-  #
+  # Configuration procs loaded with `SimpleCov.start :rails` and defined with
+  # `SimpleCov.profiles.define`.
   class Profiles < Hash
-    #
-    # Define a SimpleCov profile:
-    #   SimpleCov.profiles.define 'rails' do
-    #     # Same as SimpleCov.configure do .. here
-    #   end
-    #
     def define(name, &blk)
       name = name.to_sym
       raise ConfigurationError, "SimpleCov Profile '#{name}' is already defined" unless self[name].nil?
@@ -22,23 +11,13 @@ module SimpleCov
       self[name] = blk
     end
 
-    #
-    # Applies the profile of given name on SimpleCov.configure
-    #
     def load(name)
       SimpleCov.configure(&fetch_proc(name))
     end
 
-    #
-    # Returns the proc registered for the given profile name, autoloading
-    # bundled or plugin-gem profiles on first lookup. Raises if the profile
-    # cannot be located.
-    #
-    # Lookup order:
-    #   1. already registered via #define
-    #   2. require "simplecov/profiles/<name>"   (bundled profiles)
-    #   3. require "simplecov-profile-<name>"    (third-party plugin gems)
-    #
+    # Lookup order: already registered via #define, then
+    # `require "simplecov/profiles/<name>"` for the bundled profiles, then
+    # `require "simplecov-profile-<name>"` for third-party plugin gems.
     def fetch_proc(name)
       name = name.to_sym
       autoload_profile(name) unless key?(name)
@@ -55,7 +34,8 @@ module SimpleCov
       begin
         require "simplecov-profile-#{name}"
       rescue LoadError
-        # fall through; #fetch_proc raises the user-facing error
+        # Neither a bundled profile nor a plugin gem; `fetch_proc` raises the
+        # user-facing error.
       end
     end
   end

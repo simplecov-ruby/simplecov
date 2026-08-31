@@ -4,9 +4,9 @@ module SimpleCov
   module CLI
     module Watch
       # The live half of the watch server: an /events endpoint streaming
-      # server-sent events to every open report tab, and an index route
-      # that appends the reload listener to the artifact on the way out,
-      # so the report on disk stays byte-identical to a plain run's.
+      # server-sent events to every open report tab, and an index route that
+      # appends the reload listener to the artifact on the way out, so the report
+      # on disk stays byte-identical to a plain run's.
       class LiveReport
         RELOAD_SCRIPT = "\n<script>new EventSource('/events').onmessage = () => location.reload();</script>\n"
 
@@ -16,8 +16,6 @@ module SimpleCov
           @lock = Mutex.new
         end
 
-        # Mounted into StaticFileHandler's route seam; every other path
-        # keeps being served from the report directory unchanged.
         def routes
           page = method(:page)
           {"/events" => method(:stream), "/" => page, "/index.html" => page}
@@ -29,11 +27,10 @@ module SimpleCov
 
       private
 
-        # Holds the connection open, forwarding each broadcast as one SSE
-        # message, until the tab goes away and the write fails. A closed
-        # tab that never sees another broadcast parks its thread on the
-        # queue — a leak the dev-server trade accepts, like serve's own
-        # engines-without-IO#timeout note.
+        # Holds the connection open, forwarding each broadcast as one SSE message,
+        # until the tab goes away and the write fails. A closed tab that never sees
+        # another broadcast parks its thread on the queue, a leak the dev-server
+        # trade accepts.
         def stream(client)
           queue = Queue.new #: Thread::Queue
           begin
@@ -52,11 +49,6 @@ module SimpleCov
           nil
         end
 
-        # The next broadcast, waiting on the queue until one arrives.
-        #
-        # `Thread::Queue#shift` is an alias of `#pop`, one method under
-        # two names, so narrowing to it is a difference no example can
-        # show. It is disabled here rather than pinned by a test.
         # mutant:disable
         def next_event(queue)
           queue.pop
@@ -69,12 +61,9 @@ module SimpleCov
           Serve::StaticFileHandler.respond(client, 404)
         end
 
-        # Every touch of the queue registry goes through the lock: an
-        # accept thread adds and drops its own queue while the session
-        # thread walks them all. The lock is the one thing here no test
-        # can hold to account, because dropping it leaves a race rather
-        # than a wrong answer.
         # mutant:disable
+        # Every touch of the queue registry goes through the lock: an accept thread
+        # adds and drops its own queue while the session thread walks them all.
         def with_queues
           @lock.synchronize { yield @queues }
         end

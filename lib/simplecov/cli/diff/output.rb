@@ -3,9 +3,6 @@
 module SimpleCov
   module CLI
     module Diff
-      # Renders the computed delta rows for the terminal: one line per
-      # file, sign-colored per-criterion deltas, and the status suffix
-      # for files the diff added or removed.
       module Output
         STATUS_SUFFIX = {"added" => "(new file)", "removed" => "(removed)"}.freeze
 
@@ -33,13 +30,11 @@ module SimpleCov
           ].compact
         end
 
-        # Deltas are sign-based, not threshold-based: a +5% bump is good
-        # (green) and a -5% drop is bad (red), regardless of where the
-        # absolute coverage level lands.
+        # Deltas are sign-based, not threshold-based: a +5% bump is green and a -5%
+        # drop is red, regardless of where the absolute coverage level lands. A drop
+        # carries its own minus, so the sign is a prefix a rise has and a drop has
+        # not.
         def format_delta(delta, label, color)
-          # A drop carries its own minus, so the sign is a prefix a rise
-          # has and a drop has not. Spelled as an absent prefix rather
-          # than an empty one, since the two format alike.
           sign = "+" if delta.positive?
           text = format("%<sign>s%<delta>6.2f%% %<label>s", sign: sign, delta: delta, label: label)
           Color.colorize(text, delta.negative? ? :red : :green, enabled: color)

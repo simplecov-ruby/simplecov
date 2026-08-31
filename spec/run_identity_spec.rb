@@ -69,8 +69,6 @@ RSpec.describe SimpleCov::RunIdentity do
     end
   end
 
-  # An environment variable set to nothing is a variable that was never
-  # set: shells hand one down that way whenever a value goes unfilled.
   it "reads an empty run identity as no run identity" do
     with_env("SIMPLECOV_RUN_ID" => "", "PARALLEL_PID_FILE" => "pidfile-7") do
       expect(described_class.generate).to eq(["parallel-tests:pidfile-7", true])
@@ -91,8 +89,6 @@ RSpec.describe SimpleCov::RunIdentity do
     end
   end
 
-  # Outside a parallel run there is no worker number at all, and the
-  # process is the only worker there is.
   it "names the worker by its process when no runner numbered it" do
     with_env("SIMPLECOV_WORKER_ID" => nil, "TEST_ENV_NUMBER" => nil) do
       expect(described_class.worker_id).to eq(Process.pid.to_s)
@@ -119,8 +115,6 @@ RSpec.describe SimpleCov::RunIdentity do
     end
   end
 
-  # Asked a second time under a different environment, the identity is
-  # the one already settled rather than a fresh reading.
   it "settles the identity once" do
     with_pristine_identity do
       with_env("SIMPLECOV_RUN_ID" => "first") { described_class.current }
@@ -130,16 +124,12 @@ RSpec.describe SimpleCov::RunIdentity do
     end
   end
 
-  # Called before a fork so each child inherits one settled identity
-  # rather than deciding its own.
   it "settles the adapter, the run and the worker together" do
     with_pristine_identity do
       SimpleCov::ParallelAdapters.reset_current!
       described_class.remove_instance_variable(:@current_worker_id) if
         described_class.instance_variable_defined?(:@current_worker_id)
 
-      # An explicit id settles without consulting the adapters, so the
-      # adapter selection here is the one `prepare` asked for itself.
       with_env("SIMPLECOV_RUN_ID" => "ci-run-42") { described_class.prepare }
 
       expect(described_class.instance_variable_defined?(:@current)).to be(true)
@@ -148,11 +138,6 @@ RSpec.describe SimpleCov::RunIdentity do
     end
   end
 
-  # Snapshot and restore the memoized identity so an example can exercise
-  # `current` and `authoritative?` without changing SimpleCov.run_id for
-  # the rest of this (coverage-reporting) process. The two ivars are only
-  # ever written together in materialize_current, so @current stands in
-  # for both when checking whether an identity is memoized.
   def with_pristine_identity
     saved = take_memoized_identity
     yield

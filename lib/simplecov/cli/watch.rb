@@ -13,17 +13,12 @@ require_relative "watch/session"
 
 module SimpleCov
   module CLI
-    # `simplecov watch <command...>` — the coverage inner loop: serve
-    # the report the way `serve` does, poll the tracked files for saves,
-    # re-run the given command on change, and push a reload to the open
-    # tab over server-sent events when the report regenerates. With a
-    # `track_tests` recording in the report, a save re-runs only the
-    # tests that touch the changed files, by the same selection walk
-    # `simplecov affected` uses; without one, every save runs the full
-    # command. Child runs get a day-long merge window, so subset re-runs
-    # keep merging into a whole report across a long session. The
-    # command must produce the report itself; a project with no
-    # SimpleCov.start hook composes `simplecov watch simplecov run ...`.
+    # `simplecov watch <command...>`: the coverage inner loop. Serves the report
+    # the way `serve` does, polls the tracked files for saves, re-runs the given
+    # command on change, and pushes a reload to the open tab over server-sent
+    # events when the report regenerates. With a `track_tests` recording in the
+    # report, a save re-runs only the tests that touch the changed files, by the
+    # same selection walk `simplecov affected` uses.
     module Watch
       extend CommandHelpers
 
@@ -47,10 +42,9 @@ module SimpleCov
         server.close
       end
 
-      # Fire-and-forget through the same platform opener `simplecov
-      # open` uses, detached so the session never waits on a browser. A
-      # platform with no known opener notes the URL instead of failing
-      # the watch.
+      # Fire-and-forget through the same platform opener `simplecov open` uses,
+      # detached so the session never waits on a browser. A platform with no known
+      # opener notes the URL instead of failing the watch.
       def launch_browser(server, stderr)
         url = "http://#{Serve.url_host(server.addr.fetch(3))}:#{server.addr.fetch(1)}/"
         opener = Open.browser_opener
@@ -61,9 +55,9 @@ module SimpleCov
         Process.detach(spawn(*opener, url, out: File::NULL, err: File::NULL))
       end
 
-      # `order` (not `parse`) stops at the first positional, so the
-      # runner command keeps its own flags: `simplecov watch bundle exec
-      # rspec --seed 1` passes --seed through untouched.
+      # `order` rather than `parse` stops at the first positional, so the runner
+      # command keeps its own flags: `simplecov watch bundle exec rspec --seed 1`
+      # passes --seed through untouched.
       def parse(args)
         opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false} #: Hash[Symbol, untyped]
         rest =
@@ -77,7 +71,6 @@ module SimpleCov
       end
 
       def bind(opts, stderr)
-        # The receiver cast works around an rbs stdlib gap, as in serve.
         (_ = TCPServer).new(opts.fetch(:host), opts.fetch(:port)) #: TCPServer
       rescue SystemCallError, SocketError => e
         error_nil(stderr, "cannot bind to #{opts.fetch(:host)}:#{opts.fetch(:port)} (#{e})")

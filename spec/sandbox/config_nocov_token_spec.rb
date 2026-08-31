@@ -3,12 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# The :nocov: comment token can be renamed via `nocov_token` (or its
-# alias `skip_token`), so projects can use their own marker.
-#
-# NOTE: `# :nocov:` and the configurable token are deprecated in favor
-# of `# simplecov:disable` / `# simplecov:enable` (see
-# skipping_with_directives_spec.rb).
 RSpec.describe "custom nocov tokens", :sandbox do
   before { setup_project("faked_project") }
 

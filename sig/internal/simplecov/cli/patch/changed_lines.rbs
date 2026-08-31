@@ -1,21 +1,15 @@
 module SimpleCov
   module CLI
     module Patch
-      # Run `git diff --unified=0 --merge-base <base>` from the repository
-      # toplevel and parse it into {root:, changes:}, where an untracked
-      # file's lines read as :all.
       module ChangedLines
         HUNK_HEADER: ::Regexp
 
         UNQUOTE: ::Hash[::String, ::String]
 
-        # nil signals "could not diff" (already reported); empty changes are
-        # a valid result meaning the change touched no coverable lines.
         def self?.call: (untyped base, find_renames: untyped, stderr: untyped) -> (::Hash[::Symbol, untyped] | nil)
 
         def self?.git_toplevel: () -> (::String | nil)
 
-        # [output, nil] on success, [nil, first stderr line] on failure.
         def self?.git_diff: (::String root, untyped base, find_renames: untyped) -> [::String?, ::String?]
 
         def self?.untracked_files: (::String root) -> ::Array[::String]

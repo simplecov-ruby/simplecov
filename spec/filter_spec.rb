@@ -259,9 +259,6 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
     skip "requires the default configuration" if ENV["SIMPLECOV_NO_DEFAULTS"]
 
     def a_file(path)
-      # Treat both Unix-style `/foo` and Windows-style `C:/foo` as absolute.
-      # `File.absolute_path?` alone doesn't recognize `/foo` on Windows;
-      # `start_with?("/")` alone doesn't recognize drive-letter paths.
       path = File.join(SimpleCov.root, path) unless path.start_with?("/") || File.absolute_path?(path)
       SimpleCov::SourceFile.new(path, [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil])
     end
@@ -315,8 +312,6 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
       expect(described_class.build_filter("lib")).to be_a(SimpleCov::StringFilter)
     end
 
-    # The list's members get the same treatment the list would have got
-    # on its own, the chosen string filter included.
     it "threads its choice of string filter through a list" do
       built = described_class.build_filter(%w[lib spec], string_filter: SimpleCov::GlobFilter)
 
@@ -331,8 +326,6 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
   end
 
   describe ".filter_classes_by_argument_type" do
-    # Built fresh: the table is memoized on the class, so an earlier
-    # example would otherwise answer this one.
     around do |example|
       memo = :@filter_classes_by_argument_type
       saved = described_class.remove_instance_variable(memo) if described_class.instance_variable_defined?(memo)
@@ -353,8 +346,6 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
   end
 
   describe ".class_for_argument" do
-    # A subclass of a type this knows about is that type: the argument
-    # has to be asked what it is, not what it is exactly.
     it "recognizes a subclass of a type it knows" do
       subclass = Class.new(String)
       expect(described_class.class_for_argument(subclass.new("lib"))).to eq(SimpleCov::StringFilter)
@@ -380,9 +371,6 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
     end
   end
 
-  # Recording which tracked files a process did not load happens before those
-  # files have any coverage, so only filters that decide from the path alone can
-  # be applied there. Anything else is left to the merging process. See #1250.
   describe "#path_only?" do
     it "is true for filters that only look at the path" do
       expect(SimpleCov::StringFilter.new("foo")).to be_path_only
@@ -390,13 +378,10 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
       expect(SimpleCov::GlobFilter.new("**/foo.rb")).to be_path_only
     end
 
-    # Answered false rather than merely falsey: a custom filter is never
-    # guessed at, and "no opinion" would read the same as "no".
     it "is false for a block filter, which is handed the source file" do
       expect(SimpleCov::BlockFilter.new(->(_source_file) { true }).path_only?).to be(false)
     end
 
-    # The default is false so a custom filter is never guessed at.
     it "is false for a filter that does not say" do
       custom = Class.new(SimpleCov::Filter) { def matches?(_source_file) = true }
 

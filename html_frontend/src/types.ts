@@ -1,13 +1,8 @@
-// Shared types for the coverage report data (the JSON shape emitted by the
-// Ruby JSONFormatter and assigned to `window.SIMPLECOV_DATA`).
 
 export interface CoverageData {
   meta: {
     simplecov_version: string;
     command_name: string;
-    // The distinct run names behind the report, one per merged run.
-    // Optional: documents from before the key existed carry only the
-    // joined command_name.
     command_names?: string[];
     project_name: string;
     timestamp: string;
@@ -19,34 +14,20 @@ export interface CoverageData {
   };
   total: StatGroup;
   coverage: Record<string, FileCoverage>;
-  // Recorded context ids (each one a test under `track_tests`), present
-  // only when the run recorded them. Per-file bitmaps index into this.
   contexts?: string[];
-  // The run history (coverage/.history.json entries, oldest first, the
-  // reported run appended last), present only when past runs are
-  // recorded. Carried as data; the viewer does not render it yet.
   history?: HistoryEntry[];
-  // Coverage a SimpleCov::Production store accumulated, present only
-  // when `SimpleCov.production_coverage` names a readable store. File
-  // keys match the coverage section's, so the viewer crosses the two
-  // by key.
   production?: ProductionData;
   groups: Record<string, GroupData>;
 }
 
 export interface ProductionData {
-  // The window the store spans; optional because a store assembled by
-  // a remote sink may not carry one.
   started_at?: string;
   updated_at?: string;
   files: Record<string, ProductionFileEntry>;
 }
 
 export interface ProductionFileEntry {
-  // Sorted 1-based line numbers the production window executed.
   lines: number[];
-  // When the store last saw the file run; absent from stores written
-  // before the field existed.
   last_seen?: string;
 }
 
@@ -54,11 +35,8 @@ export interface HistoryEntry {
   created_at: string;
   branch?: string | null;
   commit?: string | null;
-  // Percents keyed by criterion ("line" / "branch" / "method").
   totals?: Record<string, number>;
   groups?: Record<string, Record<string, number>>;
-  // Percents per project-relative path, keyed by criterion like the
-  // group entries.
   files?: Record<string, Record<string, number>>;
 }
 
@@ -95,8 +73,6 @@ export interface FileCoverage {
   covered_methods?: number;
   missed_methods?: number;
   total_methods?: number;
-  // Hex bitmaps of covered lines keyed by context index; absent when no
-  // recorded context touched the file (see src/contexts.ts).
   contexts?: Record<string, string>;
 }
 

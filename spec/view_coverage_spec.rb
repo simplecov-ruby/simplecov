@@ -15,8 +15,6 @@ RSpec.describe SimpleCov::ViewCoverage do
 
     allow(SimpleCov).to receive_messages(root: root, view_globs: ["app/views/**/*.erb"],
                                          view_coverage?: true, filters: [])
-    # Whatever Coverage is holding for this suite is irrelevant here, and
-    # peek_result copies all of it to answer.
     allow(Coverage).to receive_messages(running?: true, peek_result: {rendered => {lines: [1]}})
     allow(compiler).to receive_messages(available?: true, call: true)
   end
@@ -74,8 +72,6 @@ RSpec.describe SimpleCov::ViewCoverage do
   end
 
   describe ".discover" do
-    # Only the filters that can decide from a path alone: a template
-    # that was never rendered has no coverage for the others to read.
     it "rejects by the filters that need no coverage to decide" do
       path_only = SimpleCov::StringFilter.new("nothing")
       needs_source = SimpleCov::BlockFilter.new(->(_source_file) { true })
@@ -97,8 +93,6 @@ RSpec.describe SimpleCov::ViewCoverage do
   end
 
   describe ".measured_paths" do
-    # Answered as a set: every template discovered is asked whether it
-    # is in here, and a list would answer each of those by scanning.
     it "answers the measured paths as a set" do
       expect(described_class.measured_paths).to eq(Set[rendered])
       expect(described_class.measured_paths).to be_a(Set)

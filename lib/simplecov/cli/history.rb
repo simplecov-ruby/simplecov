@@ -6,12 +6,9 @@ require_relative "../history"
 
 module SimpleCov
   module CLI
-    # `simplecov history` — the recorded coverage trend
-    # (coverage/.history.json, see SimpleCov::History) in the terminal:
-    # a sparkline per measured criterion with the run rows beneath, and
+    # `simplecov history`: the recorded coverage trend in the terminal, a
+    # sparkline per measured criterion with the run rows beneath, and
     # `--file PATH` for one file's trajectory instead of the totals.
-    # Direction of travel is what people actually want out of a
-    # coverage report; this is the report-free way to see it.
     module History
       extend CommandHelpers
 
@@ -35,8 +32,8 @@ module SimpleCov
         opts
       end
 
-      # The history file, not coverage.json: this command reads the
-      # sibling artifact the exit tasks append to.
+      # The history file, not coverage.json: this command reads the sibling
+      # artifact the exit tasks append to.
       def default_input
         File.join(CLI.coverage_dir, ".history.json")
       end
@@ -55,8 +52,8 @@ module SimpleCov
         error_nil(stderr, "#{path} could not be read (#{e})")
       end
 
-      # A `--file` for a path no entry recorded deserves a loud answer,
-      # not an empty sparkline that reads as "0% forever".
+      # A `--file` for a path no entry recorded deserves a loud answer, not an
+      # empty sparkline that reads as "0% forever".
       def file_recorded?(entries, opts, stderr)
         file = opts.fetch(:file)
         return true unless file

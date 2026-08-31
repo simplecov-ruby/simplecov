@@ -46,10 +46,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect(validate).to equal(data)
   end
 
-  # Every refusal, each asserted as its whole message. The viewer
-  # dereferences these sections without fallbacks, so a document that
-  # gets past here has to carry exactly what it reads, and the message
-  # is what tells someone regenerating a report which part is wrong.
   {
     ["meta", :section] => %("meta" must be an object),
     ["total", :section] => %("total" must be an object),
@@ -81,8 +77,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     end
   end
 
-  # Each criterion the metadata claims was measured must carry a full
-  # set of numeric statistics, in the totals and in every group.
   %w[lines branches methods].each do |criterion|
     it "rejects a missing #{criterion} statistic" do
       data["total"][criterion] = "junk"
@@ -115,15 +109,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
       .to raise_error(SimpleCov::CoverageJSON::Error, %(coverage entry "lib/a.rb" must be an object))
   end
 
-  # Source is what the viewer renders, so its absence is the one
-  # refusal that says how to fix the report rather than what is wrong.
   it "tells a source-less report how to regenerate itself" do
     data["coverage"]["lib/a.rb"] = {"source" => "junk"}
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, source_error)
   end
 
-  # A key the document never carries is as bad as one carrying junk:
-  # the viewer dereferences it either way.
   it "rejects a document missing a section outright" do
     data.delete("groups")
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, %("groups" must be an object))
@@ -154,8 +144,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, "meta.branch_coverage must be a boolean")
   end
 
-  # A criterion the run did not measure carries no statistics, and the
-  # flags are what say which of them to expect.
   it "asks for statistics only where the metadata claims a measurement" do
     data["meta"]["method_coverage"] = false
     data["total"].delete("methods")
@@ -223,9 +211,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, %(group "App".files must be an array of strings))
   end
 
-  # The production section is optional (a report without a configured
-  # `production_coverage` store has none). When present the viewer
-  # dereferences its files and their line lists, so those are checked.
   describe "production coverage" do
     let(:production) do
       {
@@ -295,9 +280,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
     end
   end
 
-  # The contexts data is optional (a report without `track_tests` has
-  # none), but when present the viewer dereferences it, so its shape is
-  # held to the same bar as the rest.
   describe "recorded contexts" do
     it "accepts a document carrying well-formed contexts" do
       data["contexts"] = ["spec/a_spec.rb:4"]
@@ -331,9 +313,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
       expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, context_error)
     end
 
-    # The viewer converts each key with Number() and indexes the document's
-    # context list with it, so the validator holds keys to exactly that
-    # contract rather than letting the browser crash or render "undefined".
     it "rejects non-numeric bitmap keys" do
       data["contexts"] = ["spec/a_spec.rb:4"]
       data.dig("coverage", "lib/a.rb")["contexts"] = {"x" => "1"}
@@ -346,9 +325,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter::ViewerDataValidator do
       expect { validate }.to raise_error(SimpleCov::CoverageJSON::Error, context_error)
     end
 
-    # Keys index the document's context list, so a project with more
-    # than ten recorded contexts has keys longer than a digit, and
-    # bitmaps are as long as the file they describe needs.
     it "accepts a multi-digit key and a multi-digit bitmap" do
       data["contexts"] = Array.new(11) { |index| "spec/a_spec.rb:#{index}" }
       data.dig("coverage", "lib/a.rb")["contexts"] = {"10" => "ff"}

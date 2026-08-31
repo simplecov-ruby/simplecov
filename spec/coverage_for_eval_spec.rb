@@ -14,7 +14,7 @@ RSpec.describe "coverage for eval" do
     let(:capture) { Open3.capture3("bundle e ruby eval_test.rb") }
     let(:stderr)  { capture[1] }
     let(:resultset) do
-      capture # ensure the script ran first
+      capture
       JSON.parse(File.read("./coverage/.resultset.json"))
     end
 
@@ -28,8 +28,6 @@ RSpec.describe "coverage for eval" do
       expect(erb_entry).not_to be_nil
 
       lines = erb_entry.last.fetch("lines")
-      # eval_test.erb runs the `if 1 + 1 == 2` branch — the "covered"
-      # then-branch should be hit; the else stays at zero.
       expect(lines).to include(be_positive)
     end
   end

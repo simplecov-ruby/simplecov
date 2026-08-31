@@ -1,5 +1,3 @@
-// Dark-mode toggle and the global keyboard handler that dispatches shortcuts
-// to navigation, the dialog, and missed-line jumps.
 
 import { $, $$ } from './dom';
 import { hasFocusedRow, setFocusedRow, moveFocus, openFocusedRow } from './navigation';
@@ -8,7 +6,6 @@ import { jumpToMissedLine } from './events';
 import { updateFavicon } from './page';
 import { readPreference, writePreference } from './prefs';
 
-// --- Preferences (localStorage) -------------------------------
 
 const THEME_STORAGE_KEY = 'simplecov-dark-mode';
 const COLORBLIND_STORAGE_KEY = 'simplecov-colorblind-mode';
@@ -17,12 +14,7 @@ function getThemePreference(): string | null {
   return readPreference(THEME_STORAGE_KEY);
 }
 
-// --- Colorblind mode ------------------------------------------
 
-// Both toggles appear twice: once in the report toolbar and once in the source
-// dialog's header, so the mode can be changed from either view. They are wired
-// by `data-toggle` rather than id, and every button of a kind shares one click
-// handler and is kept in sync, so the two copies always agree.
 function toggleButtons(kind: string): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(`[data-toggle="${kind}"]`));
 }
@@ -30,7 +22,7 @@ function toggleButtons(kind: string): HTMLElement[] {
 // A colorblind-friendly palette (blue = covered, orange = missed) plus the
 // always-on coverage symbols, so red/green colour vision is never required to
 // read the report. Persisted and applied before paint by the head preflight;
-// this only wires the toggles. See issue #534.
+// this only wires the toggles (issue #534).
 export function initColorblindMode(): void {
   const toggles = toggleButtons('colorblind');
   if (toggles.length === 0) return;
@@ -51,6 +43,10 @@ export function initColorblindMode(): void {
   }));
 }
 
+// Both toggles appear twice, in the report toolbar and in the source dialog's
+// header, so the mode can be changed from either view. They are wired by
+// `data-toggle` rather than id, and every button of a kind shares one click
+// handler and is kept in sync, so the two copies always agree.
 export function initDarkMode(): void {
   const toggles = toggleButtons('dark');
   if (toggles.length === 0) return;
@@ -63,16 +59,14 @@ export function initDarkMode(): void {
         window.matchMedia('(prefers-color-scheme: dark)').matches);
   }
 
+  // An action button, not a toggle button: its visible label names the action and
+  // flips with state, so the accessible name is kept in sync with it (and
+  // contains the visible word, for WCAG 2.5.3 Label in Name). No aria-pressed,
+  // which would need a stable name and fight the flipping label.
   function updateLabels(): void {
     const dark = isDark();
     toggles.forEach((toggle) => {
       toggle.textContent = dark ? '☀️ Light' : '🌙 Dark';
-      // This is an action button, not a toggle button: its visible label names
-      // the action and flips with state, so the accessible name is kept in sync
-      // with it (and contains the visible word, for WCAG 2.5.3 Label in Name).
-      // No aria-pressed — that needs a stable name, which would fight the
-      // flipping label. The colorblind toggle, whose label never changes, is the
-      // one that carries aria-pressed.
       toggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
     });
   }
@@ -94,7 +88,6 @@ export function initDarkMode(): void {
   });
 }
 
-// --- Keyboard shortcuts ---------------------------------------
 
 function focusActiveFilter(): void {
   const visible = $$('.file_list_container').filter(c => (c as HTMLElement).style.display !== 'none');
@@ -113,13 +106,11 @@ function handleEscape(e: KeyboardEvent, inInput: boolean): void {
   }
 }
 
-// 'n'/'N'/'p' jump between missed lines while the source dialog is open.
 function handleDialogKeys(e: KeyboardEvent): void {
   if (e.key === 'n' && !e.shiftKey) { e.preventDefault(); jumpToMissedLine(1); }
   if (e.key === 'N' || (e.key === 'n' && e.shiftKey) || e.key === 'p') { e.preventDefault(); jumpToMissedLine(-1); }
 }
 
-// 'j'/'k'/'Enter' move the keyboard focus through the file list.
 function handleFileListKeys(e: KeyboardEvent): void {
   if (e.key === 'j') { e.preventDefault(); moveFocus(1); }
   if (e.key === 'k') { e.preventDefault(); moveFocus(-1); }
@@ -135,7 +126,6 @@ export function handleKeydown(e: KeyboardEvent): void {
   } else if (e.key === 'Escape') {
     handleEscape(e, inInput);
   } else if (inInput) {
-    // Other keys are left to the focused input.
   } else if (dialogIsOpen()) {
     handleDialogKeys(e);
   } else {

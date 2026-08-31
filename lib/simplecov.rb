@@ -3,18 +3,12 @@
 require "forwardable"
 require_relative "simplecov/current_run"
 
-#
-# Code coverage for ruby. Please check out README for a full introduction.
-#
 module SimpleCov
-  # Raised when a user's configuration is internally inconsistent — e.g.
-  # every coverage criterion has been disabled.
   class ConfigurationError < StandardError; end
 
-  # Maps SimpleCov's criterion names to the keys `Coverage.start` expects.
-  # Lives at module scope (not inside `class << self`) so it can be
-  # declared in the RBS signatures; lexical scoping keeps every existing
-  # reference inside the singleton class working.
+  # At module scope rather than inside `class << self` so it can be declared in
+  # the RBS signatures; lexical scoping keeps references inside the singleton
+  # class working.
   CRITERION_TO_RUBY_COVERAGE = {
     branch: :branches,
     line: :lines,
@@ -22,17 +16,10 @@ module SimpleCov
     oneshot_line: :oneshot_lines
   }.freeze
 
-  # `SingleForwardable` rather than `Forwardable` on the singleton
-  # class, because RBS has no way to speak about the singleton class's
-  # own ancestors, and this spelling means the same thing where Steep
-  # can see it.
+  # `SingleForwardable` rather than `Forwardable` on the singleton class,
+  # because RBS has no way to speak about the singleton class's own ancestors.
   extend SingleForwardable
 
-  # `pid` / `process_start_time`: recorded by `start_tracking` so the
-  # exit path knows whose at_exit this is and JSONFormatter can detect
-  # a sibling process's concurrent report. `forked_subprocess?` is
-  # marked by the fork hook in the child (see issue #1171), and the
-  # subprocess serial is what the default `at_fork` names workers by.
   def_delegators :current_run,
                  :pid, :pid=, :process_start_time, :process_start_time=,
                  :subprocess_serial, :next_subprocess_serial!,
@@ -40,46 +27,27 @@ module SimpleCov
                  :result?, :collating_result?
 
   class << self
-    # The state of the run this process is measuring, held on one object
-    # rather than in instance variables on the singleton, so a new run
-    # is a new object. The delegators above read and write through it,
-    # which keeps the state's behaviour a `CurrentRun` question rather
-    # than fifty of the singleton's.
     def current_run
       @current_run ||= CurrentRun.new
     end
 
-    # @api private — the seam for beginning again: hand a fresh run in,
-    # or put a saved one back. Tests use it instead of unsetting the
-    # singleton's state by hand.
+    # @api private
     attr_writer :current_run
-    # Should we take care of at_exit behavior or something else? Used by the
-    # minitest plugin. See lib/minitest/simplecov_plugin.rb.
+
     attr_accessor :external_at_exit
 
     # `:oneshot_line` data is folded into the `:line` bucket of
-    # `coverage_statistics` by `ResultAdapter`, so use `:line` to look
-    # up stats for either criterion.
-    # The cast is steep's: it narrows a union on `==` but not on
-    # `equal?`, and identity is what comparing interned symbols means.
+    # `coverage_statistics` by `ResultAdapter`. The cast is steep's: it narrows
+    # a union on `==` but not on `equal?`.
     def coverage_statistics_key(criterion)
       criterion.equal?(:oneshot_line) ? :line : _ = criterion
     end
 
-    # Coerce to a proper boolean so rspec-mocks 4's predicate matcher
-    # (`expect(...).not_to be_external_at_exit`) accepts the result.
+    # Coerced so rspec-mocks 4's predicate matcher accepts the result.
     def external_at_exit?
       !!@external_at_exit
     end
 
-    #
-    # Sets up SimpleCov to run against your project. See README for
-    # the full DSL, or:
-    #
-    #     SimpleCov.start
-    #     SimpleCov.start 'rails'                # using a profile
-    #     SimpleCov.start { add_filter 'test' }  # with a config block
-    #
     def start(profile = nil, &)
       warn_about_start_in_dot_simplecov if @autoloading_dot_simplecov
 
@@ -89,15 +57,7 @@ module SimpleCov
     end
 
     # @api private
-    #
-    # Mark the duration of a `.simplecov` auto-load so any `SimpleCov.start`
-    # call inside the file can warn about the impending migration to a
-    # config-only file. Tracking still begins for backward compatibility;
-    # the warning is the cue to move `SimpleCov.start` into a test helper.
-    # See #581.
     def with_dot_simplecov_autoload
-      # Read in the ensure clause, where flow analysis cannot see the
-      # assignment above; anchor the type here.
       previous = @autoloading_dot_simplecov # : bool?
       @autoloading_dot_simplecov = true
       yield
@@ -118,25 +78,14 @@ module SimpleCov
            "See https://github.com/simplecov-ruby/simplecov/issues/581."
     end
 
-    #
-    # Install the at_exit hook that formats results and runs exit-code
-    # checks. `SimpleCov.start` calls this automatically. Idempotent —
-    # safe to call multiple times. Callers that drive the formatting
-    # pipeline themselves (e.g., dogfood test setups) can skip it by
-    # using `start_tracking` directly instead of `start`.
-    #
     def install_at_exit_hook
       return if @at_exit_hook_installed
 
       @at_exit_hook_installed = true
-      # Never defer in a forked child: Minitest pins its after_run at_exit
-      # to the pid that armed autorun, so the deferral target can't fire
-      # there and the child's resultset would be silently dropped. See
-      # issue #1227.
+      # Never defer in a forked child: Minitest pins its after_run at_exit to
+      # the pid that armed autorun, so the deferral target can't fire there and
+      # the child's resultset would be silently dropped (#1227).
       defer_to_minitest_after_run if minitest_autorun_pending? && !forked_subprocess?
-      # Called without a receiver: the block closes over this module as
-      # its `self`, so naming it adds nothing a mutation could be told
-      # apart from.
       Kernel.at_exit do
         next if external_at_exit?
 
@@ -144,27 +93,15 @@ module SimpleCov
       end
     end
 
-    #
-    # Begin coverage tracking without applying configuration. Pairs with
-    # `SimpleCov.configure { ... }` for callers that want to separate
-    # the two — for example a dogfood test that has already started
-    # `Coverage` itself before requiring simplecov, but still wants the
-    # process_start_time / pid / fork-hook bookkeeping.
-    #
     def start_tracking
       require "coverage"
       warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
-      # There is no SimpleCov::Process, so the top-level one is the one
-      # this resolves to, and the scope operator says nothing extra.
       require_relative "simplecov/process" if enabled_for_subprocesses? && Process.respond_to?(:_fork)
 
-      # Select the parallel adapter and generate identities before any forks.
+      # Must happen before any forks.
       RunIdentity.prepare
 
-      # A new run is a new object: whatever state a previous run left
-      # behind goes with it, result and flags alike. Only the fork
-      # genealogy carries over (see CurrentRun#successor).
       self.current_run = current_run.successor
       self.pid = Process.pid
       self.process_start_time = Time.now
@@ -174,11 +111,6 @@ module SimpleCov
 
   private
 
-    #
-    # Trigger Coverage.start with the configured criteria. Every supported
-    # runtime (CRuby >= 3.2, JRuby >= 10) accepts the criteria-hash form,
-    # so no compatibility fallback is needed.
-    #
     def start_coverage_measurement
       start_arguments = coverage_criteria.to_h do |criterion|
         [CRITERION_TO_RUBY_COVERAGE.fetch(criterion), true]
@@ -187,18 +119,14 @@ module SimpleCov
       start_arguments[:eval] = true if coverage_for_eval_enabled?
 
       Coverage.start(**start_arguments) unless Coverage.running?
-      # Per-test tracking rides on the measurement just started (it diffs
-      # `Coverage.peek_result` around each test). See TestTracker::Accessors.
       start_test_tracking
     end
 
-    # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`,
-    # which means Minitest's at_exit registers before SimpleCov's. Since
-    # at_exit fires LIFO, SimpleCov's hook would otherwise run *before*
-    # Minitest gets a chance to invoke the tests — and format an empty
-    # resultset. When we can see that Minitest is loaded and its autorun
-    # is armed, route the report through `Minitest.after_run` instead,
-    # which fires after the suite completes. See issues #1099 and #1112.
+    # `Rake::TestTask` runs `ruby -e 'require "minitest/autorun"; ...'`, so
+    # Minitest's at_exit registers before SimpleCov's and, at_exit being LIFO,
+    # SimpleCov's would format an empty resultset before the tests ever run.
+    # Routing through `Minitest.after_run` instead fires after the suite
+    # completes (#1099, #1112).
     def minitest_autorun_pending?
       return false unless defined?(Minitest) && Minitest.respond_to?(:after_run)
       return false unless Minitest.class_variable_defined?(:@@installed_at_exit)
@@ -208,8 +136,6 @@ module SimpleCov
 
     def defer_to_minitest_after_run
       self.external_at_exit = true
-      # Called without a receiver for the reason the `at_exit` block above
-      # is: the block closes over this module as its `self`.
       Minitest.after_run { at_exit_behavior }
     end
 
@@ -223,8 +149,8 @@ module SimpleCov
       return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
 
       # simplecov:disable — JRuby-only branches; unreachable from CRuby
-      # `org` is JRuby's Java-package entry point; it does not exist on
-      # CRuby, so no RBS declaration can be truthful here.
+      # `org` is JRuby's Java-package entry point, absent on CRuby, so no RBS
+      # declaration can be truthful here.
       return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED # steep:ignore NoMethod
 
       warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
@@ -235,7 +161,6 @@ module SimpleCov
   end
 end
 
-# requires are down here for a load order reason I'm not sure what it is about
 require_relative "simplecov/color"
 require_relative "simplecov/deprecation"
 require_relative "simplecov/group_names"
@@ -290,7 +215,6 @@ require_relative "simplecov/exit_handling"
 require_relative "simplecov/report_deferral"
 require_relative "simplecov/parallel_coordination"
 
-# Load default config
 # simplecov:disable — env-var never set in the dogfooded test process
 # (sandbox fixture subprocesses set it via simplecov/no_defaults)
 require_relative "simplecov/defaults" unless ENV["SIMPLECOV_NO_DEFAULTS"]

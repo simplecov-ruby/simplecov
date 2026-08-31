@@ -9,21 +9,17 @@ require_relative "affected/selection"
 
 module SimpleCov
   module CLI
-    # `simplecov affected` — select the test files whose recorded tests
-    # touch the code changed since a git base ref, from a coverage.json
-    # written under `track_tests`. The change is everything between the
-    # merge base of `--base` and HEAD and the working tree (so
-    # uncommitted work counts, and commits that landed on the base after
-    # the branch point don't), plus untracked files. The set
-    # intersection is the easy half; the hard half is knowing when to
-    # distrust the map, because a test
-    # map is stale the moment something changes that no test mentions by
-    # name. Any changed file outside the tracked set — a lockfile, a spec
-    # helper, the runner configuration, anything the report has no data
-    # for — fails open to the full suite, out loud: each trigger is named
-    # on stderr and stdout stays empty, which a bare runner reads as
-    # "run everything". Test files always select themselves, recorded or
-    # not, and `--run <command...>` hands the answer straight to a runner.
+    # `simplecov affected`: select the test files whose recorded tests touch the
+    # code changed since a git base ref, from a coverage.json written under
+    # `track_tests`. The change is everything between the merge base of `--base`
+    # and the working tree, plus untracked files.
+    #
+    # The set intersection is the easy half; the hard half is knowing when to
+    # distrust the map, because a test map is stale the moment something changes
+    # that no test mentions by name. Any changed file outside the tracked set
+    # fails open to the full suite, out loud: each trigger is named on stderr and
+    # stdout stays empty, which a bare runner reads as "run everything". Test
+    # files always select themselves, recorded or not.
     module Affected
       extend CommandHelpers
 
@@ -55,9 +51,8 @@ module SimpleCov
         opts
       end
 
-      # Everything after `--run` is the runner command, verbatim, so the
-      # command's own flags never collide with ours; the head is parsed
-      # normally.
+      # Everything after `--run` is the runner command, verbatim, so the command's
+      # own flags never collide with ours.
       def split_runner(args)
         index = args.index("--run")
         return [args, nil] unless index
@@ -65,9 +60,8 @@ module SimpleCov
         [args.take(index), args.drop(index + 1)]
       end
 
-      # A stray positional looks exactly like a forgotten `--base` ref,
-      # and silently dropping it would select tests for the wrong change,
-      # so it's an error rather than ignored.
+      # A stray positional looks exactly like a forgotten `--base` ref, and
+      # silently dropping it would select tests for the wrong change.
       def precheck(opts)
         stray = opts.fetch(:rest).first
         return "unexpected argument #{stray.inspect} (did you mean `--base #{stray}`?)" if stray
@@ -110,10 +104,9 @@ module SimpleCov
         0
       end
 
-      # Stdout carries the selected files and nothing else, so the list
-      # can feed a runner directly — and a full-suite fallback prints
-      # nothing, which `rspec $(simplecov affected)` reads as "run
-      # everything".
+      # Stdout carries the selected files and nothing else, so the list can feed a
+      # runner directly, and a full-suite fallback prints nothing, which
+      # `rspec $(simplecov affected)` reads as "run everything".
       def emit_text(selection, full, stdout, stderr)
         return 0 if full
 
@@ -140,15 +133,13 @@ module SimpleCov
         run_command(opts.fetch(:run) + selection.fetch(:tests), opts.fetch(:root), stderr)
       end
 
-      # The selection's paths are relative to the repository root, so the
-      # runner starts there — a no-op for the usual root-level invocation,
-      # and what makes the appended paths resolve for a subdirectory one.
+      # The selection's paths are relative to the repository root, so the runner
+      # starts there. The command is named explicitly in the failure because not
+      # every engine's exception message carries it.
       def run_command(command, root, stderr)
         _, status = Process.wait2(spawn(*command, chdir: root))
         status.exitstatus || 1
       rescue SystemCallError => e
-        # The command is named explicitly because not every engine's
-        # exception message carries it (JRuby's ENOENT does not).
         stderr.puts("simplecov affected: cannot run #{command.first.inspect} (#{e})")
         127
       end

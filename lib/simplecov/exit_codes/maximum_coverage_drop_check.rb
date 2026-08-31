@@ -2,8 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when any coverage criterion has dropped by more than the
-    # configured maximum since the last recorded run.
     class MaximumCoverageDropCheck < Check
       def exit_code
         MAXIMUM_COVERAGE_DROP
@@ -15,9 +13,8 @@ module SimpleCov
         CoverageViolations.maximum_drop(result, thresholds)
       end
 
-      # The "drop percent" is a delta, not a coverage level — it has no
-      # natural green/yellow/red mapping, so the whole line goes red to
-      # keep the failure visible at a glance.
+      # The drop percent is a delta, not a coverage level, so it has no natural
+      # green/yellow/red mapping and the whole line goes red.
       def violation_lines(violation)
         [Color.colorize(message_for(violation), :red)]
       end

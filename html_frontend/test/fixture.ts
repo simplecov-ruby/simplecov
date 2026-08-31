@@ -1,6 +1,3 @@
-// Shared DOM fixture for the behavior tests: the <body> of src/index.html
-// (kept in sync with the template by hand) plus a minimal coverage-data
-// factory, so modules boot against the same skeleton the real report ships.
 import type { CoverageData } from '../src/types';
 
 export const PAGE_BODY_HTML = `
@@ -49,8 +46,6 @@ export function installPageSkeleton(): void {
   document.body.innerHTML = PAGE_BODY_HTML;
 }
 
-// Two files, line coverage only. Tests mutate the returned object to build
-// branch/method/group variants.
 export function coverageData(): CoverageData {
   return {
     meta: {

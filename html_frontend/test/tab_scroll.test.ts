@@ -1,13 +1,9 @@
-// The leading-edge fade is class-driven because CSS alone cannot tell a strip
-// that scrolled from one that never had to, so these cover the class going on
-// and off again, and the resize path that a scroll event never reports.
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { setupTabScrollFade } from '../src/tab_scroll';
 
 function buildStrip(): HTMLElement {
   document.body.innerHTML = '<ul class="group_tabs"><li><a href="#g-total">All Files</a></li></ul>';
   const strip = document.querySelector('.group_tabs') as HTMLElement;
-  // happy-dom performs no layout, so the scroll offset is ours to drive.
   let scrollLeft = 0;
   Object.defineProperty(strip, 'scrollLeft', {
     configurable: true,

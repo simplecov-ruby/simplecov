@@ -1,6 +1,4 @@
 module SimpleCov
-  # Namespace for the pieces that combine coverage results.
-  #
   module Combine
   end
 end

@@ -66,15 +66,10 @@ RSpec.describe SimpleCov::FileList do
       described_class.new(files)
     end
 
-    # The lowest percentage sits in the middle so neither end of the list
-    # can pass for the answer.
     it "answers the filename of the lowest percentage, wherever it sits" do
       expect(list_of(80.0, 20.0, 50.0).least_covered_file).to eq("1.rb")
     end
 
-    # `covered_percent` is nil only for an unmeasured criterion. The
-    # fallback stands in for a percentage rather than for "worst", so a
-    # measured file at 0% still loses the tie ahead of it.
     it "treats an unmeasured file as 0%, not as the worst" do
       expect(list_of(0.0, nil).least_covered_file).to eq("0.rb")
     end
@@ -83,8 +78,6 @@ RSpec.describe SimpleCov::FileList do
       expect(list_of(nil, 0.5).least_covered_file).to eq("0.rb")
     end
 
-    # A fully filtered result has no worst file, and asking for one has to
-    # answer that rather than raise on the missing file.
     it "answers nil for a list with no files at all" do
       expect(described_class.new([]).least_covered_file).to be_nil
     end
@@ -155,9 +148,6 @@ RSpec.describe SimpleCov::FileList do
   end
 
   describe "when :line coverage is disabled" do
-    # When the user runs branch-only (or method-only), the FileList's
-    # legacy line-coverage accessors should return nil rather than
-    # crashing on the absent `:line` key in coverage_statistics.
     let(:branch_only_file_list) do
       branch_stat = SimpleCov::CoverageStatistics.new(covered: 1, missed: 1)
       source_file = instance_double(SimpleCov::SourceFile,
@@ -178,8 +168,6 @@ RSpec.describe SimpleCov::FileList do
       expect(branch_only_file_list.covered_strength).to be_nil
     end
 
-    # The criterion is a parameter, not a synonym for :line: asking for
-    # the measured one has to answer from it even when :line is absent.
     it "answers covered_percent and covered_strength for the criterion it is given" do
       expect(branch_only_file_list.covered_percent(:branch)).to eq(50.0)
       expect(branch_only_file_list.covered_strength(:branch)).to eq(0.0)

@@ -1,6 +1,3 @@
-// Theme and colorblind toggles (persistence, paired-button sync, system
-// preference tracking) and the global keyboard dispatch for filter focus,
-// escape, dialog jumps, and file-list navigation.
 import { afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { installPageSkeleton, coverageData } from './fixture';
 import { initDarkMode, initColorblindMode, handleKeydown } from '../src/controls';
@@ -11,8 +8,6 @@ import { setFocusedRow, hasFocusedRow } from '../src/navigation';
 import { invalidateFileRowCache } from '../src/file_rows';
 
 beforeAll(() => {
-  // Same listener wiring as app.ts; EventTarget dedupes the shared function
-  // reference if another suite already added it.
   document.addEventListener('keydown', handleKeydown);
 });
 
@@ -89,7 +84,6 @@ describe('initDarkMode', () => {
     await boot();
     initDarkMode();
     const toggles = darkToggles();
-    // happy-dom's prefers-color-scheme never matches, so the page starts light.
     expect(toggles[0].textContent).toBe('🌙 Dark');
     expect(toggles[0].getAttribute('aria-label')).toBe('Switch to dark mode');
 
@@ -117,13 +111,11 @@ describe('initDarkMode', () => {
 
     initDarkMode();
     const toggle = darkToggles()[0];
-    // No stored theme, system prefers dark → the action offers light mode.
     expect(toggle.textContent).toBe('☀️ Light');
 
     changeListeners.forEach((cb) => cb());
     expect(toggle.textContent).toBe('☀️ Light');
 
-    // With an explicit choice stored, the change handler leaves labels alone.
     localStorage.setItem('simplecov-dark-mode', 'dark');
     changeListeners.forEach((cb) => cb());
     expect(toggle.textContent).toBe('☀️ Light');
@@ -137,9 +129,6 @@ describe('initDarkMode', () => {
       media: query,
       addEventListener: (_type: string, cb: () => void) => changeListeners.push(cb)
     })) as unknown as typeof window.matchMedia);
-    // happy-dom's Storage is a Proxy that shrugs off method spies, but the
-    // window.localStorage accessor is configurable — locked-down browsers
-    // throw on the access itself, which is exactly the guarded scenario.
     const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')!;
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
@@ -150,10 +139,10 @@ describe('initDarkMode', () => {
 
     try {
       initDarkMode();
-      darkToggles()[0].click(); // writePreference swallows the throw
+      darkToggles()[0].click();
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true);
 
-      changeListeners.forEach((cb) => cb()); // readPreference swallows the throw
+      changeListeners.forEach((cb) => cb());
       expect(darkToggles()[0].textContent).toBe('☀️ Light');
     } finally {
       Object.defineProperty(window, 'localStorage', descriptor);
@@ -197,7 +186,7 @@ describe('handleKeydown', () => {
     const event = keydown(document.body, 'Escape');
     expect(event.defaultPrevented).toBe(true);
     expect(window.location.hash).toBe('#_g-total');
-    navigateToHash(); // actually close, as the hashchange listener would
+    navigateToHash();
     expect(dialogIsOpen()).toBe(false);
   });
 
@@ -217,7 +206,7 @@ describe('handleKeydown', () => {
     expect(hasFocusedRow()).toBe(false);
     expect(row.classList.contains('keyboard-focus')).toBe(false);
 
-    keydown(document.body, 'Escape'); // nothing left to escape from
+    keydown(document.body, 'Escape');
     expect(hasFocusedRow()).toBe(false);
   });
 
@@ -240,7 +229,7 @@ describe('handleKeydown', () => {
     keydown(document.body, 'p');
     expect(body.scrollTop).toBe(100);
     keydown(document.body, 'N');
-    expect(body.scrollTop).toBe(200); // nothing above → wrapped to the last
+    expect(body.scrollTop).toBe(200);
     keydown(document.body, 'n', {shiftKey: true});
     expect(body.scrollTop).toBe(100);
   });

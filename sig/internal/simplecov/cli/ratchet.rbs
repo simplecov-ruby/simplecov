@@ -1,12 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov ratchet` — rewrite the checked-in per-file coverage
-    # baseline from the current report, only ever tightening. `--init`
-    # regenerates from scratch, `--dry-run` prints without writing,
-    # `--json` emits the summary as data.
     module Ratchet
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers

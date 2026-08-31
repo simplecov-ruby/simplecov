@@ -1,7 +1,4 @@
 module SimpleCov
-  # Touches coverage/.report_stamp whenever a report is formatted, no
-  # matter how the run ends; the on-disk freshness signal behind the
-  # clobber-prevention backstop.
   module ReportStamp
     def self.path: () -> String
 

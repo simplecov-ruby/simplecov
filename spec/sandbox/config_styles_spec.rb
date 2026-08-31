@@ -3,19 +3,12 @@
 require "helper"
 require "support/sandbox_project"
 
-# There are several equivalent ways to configure SimpleCov: inside the
-# start block (plain, parameterized, or closing over outer variables),
-# explicitly on SimpleCov before or after start, or via configure blocks.
-# Each style must apply the same filter and command name.
 RSpec.describe "configuration styles", :sandbox do
   before do
     setup_project("faked_project")
     configure_simplecov(:test_unit, "require 'simplecov'")
   end
 
-  # The cucumber scenarios read "4 files" and "using Config Test Runner"
-  # off the rendered page; the file list and footer are built from these
-  # data fields (rendering is covered by the bun suite).
   def expect_config_applied
     result = run_command_and_expect_success("bundle exec rake test")
     expect_coverage_report_generated(result)

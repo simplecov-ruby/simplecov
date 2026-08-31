@@ -1,11 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov open [--report PATH]` — open the HTML report in the
-    # platform's default browser. Tiny QoL wrapper around `xdg-open` /
-    # `open` / `start` so users don't have to type a file:// URL.
     module Open
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers
@@ -14,11 +9,6 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
-      # Returns the argv for the platform's "open this file" command, or
-      # nil if the host OS isn't recognized. On Windows, `start` is a
-      # cmd.exe builtin (not an executable), so route through `cmd /c`;
-      # the empty string is the window-title positional `start` takes
-      # before the path so a quoted path isn't mis-parsed as the title.
       def self?.browser_opener: () -> untyped
     end
   end

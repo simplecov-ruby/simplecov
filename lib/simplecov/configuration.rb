@@ -3,18 +3,7 @@
 require "fileutils"
 
 module SimpleCov
-  #
-  # Bundles the configuration options used for SimpleCov. All methods
-  # defined here are usable from SimpleCov directly. Please check out
-  # SimpleCov documentation for further info.
-  #
   module Configuration
-    #
-    # The root for the project. This defaults to the
-    # current working directory.
-    #
-    # Configure with SimpleCov.root('/my/project/path')
-    #
     def root(root = nil)
       return @root if instance_variable_defined?(:@root) && root.nil?
 
@@ -22,18 +11,12 @@ module SimpleCov
       @root
     end
 
-    # The write half of `root`: nil means the working directory, the
-    # default the reader would have derived.
+    # nil means the working directory, the default the reader would have derived.
     def root=(root)
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @root = File.expand_path(root || Dir.getwd)
     end
 
-    #
-    # The name of the output and cache directory. Defaults to 'coverage'
-    #
-    # Configure with SimpleCov.coverage_dir('cov')
-    #
     def coverage_dir(dir = nil)
       return @coverage_dir if instance_variable_defined?(:@coverage_dir) && dir.nil?
 
@@ -41,8 +24,8 @@ module SimpleCov
       @coverage_dir
     end
 
-    # The write half of `coverage_dir`: nil means the default
-    # 'coverage', recorded as a derivation rather than a choice.
+    # nil means the default 'coverage', recorded as a derivation rather than a
+    # choice.
     def coverage_dir=(dir)
       @coverage_path = nil unless @coverage_path_explicit # invalidate cache
       @coverage_dir_explicit = true unless dir.nil?
@@ -50,18 +33,14 @@ module SimpleCov
     end
 
     #
-    # Returns the full path to the output directory. By default
-    # constructed from `SimpleCov.root` + `SimpleCov.coverage_dir`, but
-    # callers can override with an arbitrary absolute path — handy for
-    # out-of-tree build directories. See #716.
+    # Defaults to `SimpleCov.root` + `SimpleCov.coverage_dir`, but callers can
+    # override with an arbitrary absolute path, handy for out-of-tree build
+    # directories (#716).
     #
-    # Reading is pure: the directory is only created when a path is
-    # explicitly assigned (the user has signaled they intend to write
-    # there). The codepaths that actually write into the directory
-    # (formatters, `LastRun`, `ResultsetStore`) ensure existence
-    # themselves, so read-only CLI subcommands that interpolate the
-    # path into status text don't materialize a stray `coverage/`
-    # directory.
+    # Reading is pure: the directory is only created when a path is explicitly
+    # assigned. The codepaths that write into it ensure existence themselves,
+    # so read-only CLI subcommands that interpolate the path into status text
+    # don't materialize a stray `coverage/` directory.
     #
     def coverage_path(path = nil)
       self.coverage_path = path if path
@@ -69,8 +48,8 @@ module SimpleCov
       @coverage_path ||= File.expand_path(coverage_dir, root)
     end
 
-    # The write half of `coverage_path`: assigning is the signal the
-    # caller intends to write there, so the directory is created.
+    # Assigning is the signal the caller intends to write there, so the
+    # directory is created.
     def coverage_path=(path)
       expanded = File.expand_path(path)
       @coverage_path = expanded
@@ -79,9 +58,8 @@ module SimpleCov
     end
 
     #
-    # The name of the command (a.k.a. Test Suite) currently running.
-    # Used for result merging and caching. Auto-detected; set explicitly
-    # with SimpleCov.command_name("test:units").
+    # The name of the command (a.k.a. Test Suite) currently running. Used for
+    # result merging and caching. Auto-detected.
     #
     def command_name(name = nil)
       self.command_name = name unless name.nil?
@@ -92,15 +70,14 @@ module SimpleCov
       @command_name = name
     end
 
-    # Returns the hash of available profiles
     def profiles
       @profiles ||= Profiles.new
     end
 
     #
-    # Allows you to configure simplecov in a block instead of
-    # prepending SimpleCov to each config method. Parameterized blocks retain
-    # their caller context and receive this configuration target explicitly.
+    # Configure simplecov in a block instead of prepending SimpleCov to each
+    # config method. Parameterized blocks retain their caller context and
+    # receive this configuration target explicitly.
     #
     def configure(&block)
       raise ArgumentError, "configuration block required" unless block
@@ -113,11 +90,6 @@ module SimpleCov
       self
     end
 
-    #
-    # Gets or sets the behavior to process coverage results.
-    # By default, it stores/merges the current result and formats only
-    # from the final reporting process.
-    #
     def at_exit(&block)
       @at_exit = block if block
       configured = @at_exit
@@ -130,35 +102,28 @@ module SimpleCov
       end
     end
 
-    # Whether SimpleCov has anything to do at exit: the Coverage module
-    # is actively tracking, or a `@result` has already been assembled
-    # (e.g. by `SimpleCov.collate`, which never starts Coverage).
+    # The Coverage module is actively tracking, or a `@result` has already been
+    # assembled (`SimpleCov.collate` never starts Coverage).
     def active_session?
       !!SimpleCov.result? || coverage_running?
     end
 
-    # A configuration loaded on its own may have no Coverage to ask,
-    # which is not something a suite that measures coverage can be.
+    # A configuration loaded on its own may have no Coverage to ask, which is
+    # not something a suite that measures coverage can be.
     def coverage_running?
       defined?(Coverage) ? Coverage.running? : false
     end
 
-    #
-    # Gets or sets the behavior to start a new forked Process.
-    # Defaults to adding " (subprocess: #{serial})" to command_name and
-    # starting SimpleCov in quiet mode.
-    #
     def at_fork(&block)
       @at_fork = block if block
       @at_fork ||= lambda { |_pid|
-        # Needs a name that's unique per worker within a run yet identical
-        # across runs. Build it from SimpleCov's stable fork serial rather
-        # than the OS pid: with the pid, every run produced uniquely-named
-        # results that never overwrote the previous run's, so they piled up
-        # in .resultset.json until merge_timeout and the merged report's
-        # file set drifted from run to run. See issue #1171.
+        # Needs a name that's unique per worker within a run yet identical across
+        # runs. Built from SimpleCov's stable fork serial rather than the OS pid:
+        # with the pid, every run produced uniquely-named results that never
+        # overwrote the previous run's, so they piled up in .resultset.json
+        # until merge_timeout and the merged report's file set drifted from run
+        # to run (#1171).
         SimpleCov.command_name "#{SimpleCov.command_name} (subprocess: #{SimpleCov.subprocess_serial})"
-        # be quiet, the parent process will use the regular formatter
         SimpleCov.print_errors false
         SimpleCov.formatter Formatter::SimpleFormatter
         SimpleCov.minimum_coverage 0
@@ -166,12 +131,7 @@ module SimpleCov
       }
     end
 
-    #
-    # Returns the project name — defaults to the last dirname in
-    # SimpleCov.root, capitalized with underscores → spaces.
-    #
-    # Only a String renames, and a name already chosen survives anything
-    # else: the assignment below answers with whatever is already there.
+    # Only a String renames, and a name already chosen survives anything else.
     def project_name(new_name = nil)
       @project_name = new_name if new_name.is_a?(String)
       @project_name ||= File.basename(root).capitalize.tr("_", " ")

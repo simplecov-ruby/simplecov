@@ -9,12 +9,6 @@ require_relative "status/facts"
 
 module SimpleCov
   module CLI
-    # `simplecov status` — the freshness diagnostic: how old the report
-    # is, which commit it reflects and how far HEAD has moved since,
-    # what it measured, whether a test map was recorded, and what the
-    # resultset holds. The metadata has been in the artifacts all
-    # along; this reads it aloud, so every staleness question the other
-    # commands raise has a one-command answer.
     module Status
       extend CommandHelpers
 
@@ -83,9 +77,6 @@ module SimpleCov
         end
       end
 
-      # An absent age is an absent suffix, spelled as absence: an empty
-      # string interpolates the same as nil, so the two could not be
-      # told apart.
       def age_suffix(age)
         " (#{age_in_words(age)} ago)" if age
       end

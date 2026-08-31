@@ -1,8 +1,3 @@
-// Ports of the report-formatting assertions the cucumber suite made by
-// reading the rendered page: percent display, coverage bands, group-title
-// ids, timeago text, and the stable per-file ids that anchor deep links
-// (including the truncated-SHA-1 collision handling of #1038's neighbor,
-// file_id_collisions.feature).
 import { afterAll, beforeAll, describe, expect, test, setSystemTime } from 'bun:test';
 import {
   fileId,
@@ -17,7 +12,6 @@ import {
 
 describe('fmtPct', () => {
   test('floors to two decimals instead of rounding up', () => {
-    // 37/42 covered lines: the report must show 88.09, never 88.10%.
     expect(fmtPct((37 / 42) * 100)).toBe('88.09');
   });
 
@@ -56,14 +50,12 @@ describe('toHtmlId', () => {
   });
 
   test('keeps titles distinct that differ only in escaped characters', () => {
-    // The #1038 regression: both of these once collapsed to "LOC".
     expect(toHtmlId('>100LOC')).toBe('g-_3e_100LOC');
     expect(toHtmlId('<10LOC')).toBe('g-_3c_10LOC');
     expect(toHtmlId('>100LOC')).not.toBe(toHtmlId('<10LOC'));
   });
 
   test('escapes underscores so escapes cannot be forged', () => {
-    // Without this, 'a/' and the literal title 'a_2f_' would share an id.
     expect(toHtmlId('a/')).toBe('g-a_2f_');
     expect(toHtmlId('a_2f_')).toBe('g-a_5f_2f_5f_');
   });
@@ -109,13 +101,10 @@ describe('timeagoNextTick', () => {
   }
 
   test('waits until just past the next display boundary', () => {
-    // "1 minute ago" at 90s changes at 120s: 30s away, plus the 500ms buffer.
     expect(timeagoNextTick(secondsAgo(90))).toBe(30500);
   });
 
   test('never schedules closer than one second out', () => {
-    // 59.9s ago: the minute boundary is 100ms away, so the 600ms total is
-    // floored to the 1000ms minimum.
     expect(timeagoNextTick(secondsAgo(59.9))).toBe(1000);
   });
 
@@ -134,16 +123,12 @@ describe('file ids', () => {
 
   test('assigns each file the 8-hex-char truncated SHA-1 of its path', async () => {
     await precomputeFileIds(['lib/a.rb', 'lib/a.rb', 'lib/b.rb']);
-    // SHA-1('lib/a.rb') prefix; duplicates collapse to one id.
     expect(fileId('lib/a.rb')).toMatch(/^[0-9a-f]{8}$/);
     expect(fileId('lib/b.rb')).toMatch(/^[0-9a-f]{8}$/);
     expect(fileId('lib/a.rb')).not.toBe(fileId('lib/b.rb'));
   });
 
   test('disambiguates truncated-hash collisions with a stable suffix', async () => {
-    // Real collision pair found by birthday brute force over `file-${i}.rb`
-    // names: SHA-1('file-18088.rb') and SHA-1('file-80201.rb') both start
-    // with 0502b5a6. The lexicographically first name keeps the bare id.
     await precomputeFileIds(['file-80201.rb', 'file-18088.rb', 'other.rb']);
     expect(fileId('file-18088.rb')).toBe('0502b5a6');
     expect(fileId('file-80201.rb')).toBe('0502b5a6-1');

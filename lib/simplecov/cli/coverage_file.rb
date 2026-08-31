@@ -5,13 +5,9 @@ require_relative "../coverage_json"
 module SimpleCov
   module CLI
     # Shared input boundary for commands that consume JSONFormatter's
-    # coverage.json. It validates only the stable outer shape so older schema
+    # coverage.json. It validates only the stable outer shape, so older schema
     # versions remain readable.
     module CoverageFile
-      # The coverage.json fields backing each criterion, keyed by the
-      # criterion's singular name. The one table the coverage, uncovered,
-      # and diff subcommands all read from, so a schema change lands in
-      # exactly one place.
       CRITERIA = {
         line: {label: "Line", percent: "lines_covered_percent",
                covered: "covered_lines", missed: "missed_lines", total: "total_lines"},
@@ -23,43 +19,31 @@ module SimpleCov
 
       extend self
 
-      # Resolve a user-typed path to its coverage entry. An exact match —
-      # the absolute path or the literal string passed — wins over a
-      # suffix match, so a nested "vendor/lib/foo.rb" can't shadow the
-      # real "lib/foo.rb" just by sitting earlier in the report. The
-      # suffix ("/<path>") is the subpath/basename fallback; its leading
-      # slash keeps "foo.rb" from matching "barfoo.rb". Exact matches read
-      # straight off the hash (O(1)), which the patch subcommand leans on
-      # as it looks up every changed file against a large report.
+      # An exact match, the absolute path or the literal string passed, wins over
+      # a suffix match, so a nested "vendor/lib/foo.rb" can't shadow the real
+      # "lib/foo.rb" just by sitting earlier in the report. A subpath can end more
+      # than one key, and a collision is left as "not found" for the caller rather
+      # than scoring whichever key happens to sit first.
       def lookup(coverage_hash, path)
         absolute = File.expand_path(path)
         return [absolute, coverage_hash.fetch(absolute)] if coverage_hash.key?(absolute)
         return [path, coverage_hash.fetch(path)] if coverage_hash.key?(path)
 
-        # A subpath can end more than one key (e.g. "models/foo.rb" under
-        # both app/ and lib/). Resolve only an unambiguous single match;
-        # leave a collision as "not found" for the caller rather than
-        # scoring whichever key happens to sit first in the hash.
         matches = suffix_matches(coverage_hash, path)
         matches.first if matches.one?
       end
 
-      # The [key, entry] pairs a subpath suffix-matches, for `lookup`'s
-      # fallback and for naming an ambiguity. The suffix's leading slash
-      # keeps "foo.rb" from matching "barfoo.rb", and hoisting it keeps
-      # the scan from allocating a string per entry.
+      # The suffix's leading slash keeps "foo.rb" from matching "barfoo.rb", and
+      # hoisting it keeps the scan from allocating a string per entry.
       def suffix_matches(coverage_hash, path)
         suffix = "/#{path}"
         coverage_hash.select { |fname, _| fname.end_with?(suffix) }
       end
 
       # The report's entries under exact, realpath-normalized keys, for
-      # programmatic resolution (the patch subcommand) where a suffix
-      # fallback could bind a path to the wrong entry. The realpath step
-      # keeps a symlinked project root (macOS's /var -> /private/var, a
-      # linked checkout) from splitting a resolved path apart from the
-      # report's keys, and building the index once keeps resolution
-      # linear in report size.
+      # programmatic resolution where a suffix fallback could bind a path to the
+      # wrong entry. The realpath step keeps a symlinked project root from
+      # splitting a resolved path apart from the report's keys.
       def exact_index(coverage_hash)
         index = {} #: Hash[String, untyped]
         coverage_hash.each do |key, payload|
@@ -69,18 +53,15 @@ module SimpleCov
         index
       end
 
-      # The key's stable spelling on this filesystem; a key whose file (or
-      # directory) no longer exists keeps its literal spelling.
+      # A key whose file no longer exists keeps its literal spelling.
       def normalize(key)
         File.realdirpath(key)
       rescue SystemCallError
         key
       end
 
-      # Why a path failed to resolve, in one line: an ambiguous subpath
-      # names its candidates — "no entry" would send the user hunting for
-      # a typo in a path that exists twice — and anything else is
-      # genuinely absent.
+      # An ambiguous subpath names its candidates: "no entry" would send the user
+      # hunting for a typo in a path that exists twice.
       def not_found_message(coverage_hash, path, input)
         matches = suffix_matches(coverage_hash, path).keys
         return "no entry for #{path} in #{input}" if matches.size < 2
@@ -112,12 +93,10 @@ module SimpleCov
 
       def report_invalid(stderr, command, path, reason)
         detail = reason.lines.first.to_s.strip
-        # `puts` answers nil, which is what an unusable input reports.
         stderr.puts("simplecov #{command}: input file #{path.inspect} isn't valid JSON (#{detail})")
       end
 
       def report_missing(stderr, command, path)
-        # `puts` answers nil, which is what a failed read reports.
         stderr.puts("simplecov #{command}: #{path} not found")
       end
 

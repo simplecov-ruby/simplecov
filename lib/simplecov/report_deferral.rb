@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
-# The clobber-prevention backstop: an empty process stands down instead
-# of formatting over a fresher report a sibling produced. Split from
-# exit_handling.rb, which orchestrates the at_exit flow that consults
-# this. See issue #581.
+# The clobber-prevention backstop: an empty process stands down instead of
+# formatting over a fresher report a sibling produced. Typically fires when
+# `SimpleCov.start` ran in a parent process that shelled out to the test runner
+# (#581).
+
 module SimpleCov
   class << self
-    # Returns true when our process has no coverage data to contribute
-    # (after the resultset merge) and a newer report already exists on
-    # disk. Typically fires when `SimpleCov.start` ran in a parent
-    # process that shelled out to the test runner. See issue #581.
     def defer_to_existing_report?
       return false unless existing_report_newer_than_us?
 
@@ -19,11 +16,10 @@ module SimpleCov
       empty
     end
 
-    # `.last_run.json` only exists after fully successful runs, so alone
-    # it left the backstop inert when the child run failed — the case
-    # where clobbering its report hurts most. The report stamp is
-    # touched by every formatting process regardless of exit status. The
-    # rescue covers a file vanishing mid-at_exit (`rm -rf coverage`).
+    # `.last_run.json` only exists after fully successful runs, so alone it left
+    # the backstop inert when the child run failed, the case where clobbering its
+    # report hurts most. The report stamp is touched by every formatting process
+    # regardless of exit status. The rescue covers a file vanishing mid-at_exit.
     def existing_report_newer_than_us?
       return false unless process_start_time
 

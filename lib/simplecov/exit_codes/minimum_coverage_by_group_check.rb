@@ -2,8 +2,6 @@
 
 module SimpleCov
   module ExitCodes
-    # Fails when any configured group falls below its minimum coverage
-    # threshold for any criterion.
     class MinimumCoverageByGroupCheck < Check
       def exit_code
         MINIMUM_COVERAGE

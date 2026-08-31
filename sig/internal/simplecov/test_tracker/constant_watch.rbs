@@ -1,7 +1,5 @@
 module SimpleCov
   class TestTracker
-    # A one-shot watch that runs a callback the moment a constant of a
-    # given name is defined under a host module, via `Module#const_added`.
     class ConstantWatch < Module
       @name: Symbol
       @on_added: (^() -> void)?
@@ -10,7 +8,6 @@ module SimpleCov
 
       def attach: (Module host) -> self
 
-      # @api private — the prepended callback funnels here.
       def notice: (Symbol added) -> void
     end
   end

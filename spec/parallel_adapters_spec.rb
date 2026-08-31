@@ -3,11 +3,6 @@
 require "helper"
 
 RSpec.describe SimpleCov::ParallelAdapters do
-  # Reset the registry / current selection / env between examples.
-  # Nested describe blocks rebind `described_class` to their target
-  # adapter, so the around block addresses the registry by its full
-  # constant name instead of relying on `described_class` (which would
-  # call `reset_current!` on whichever adapter is in scope and explode).
   # rubocop:disable-next RSpec/DescribedClass
   around do |example|
     prev_adapters = SimpleCov::ParallelAdapters.instance_variable_get(:@adapters)&.dup
@@ -36,12 +31,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
   end
 
   describe ".register" do
-    let(:custom_adapter) do
-      Class.new(SimpleCov::ParallelAdapters::Base) do
-        # All four methods default to no-op via the Base superclass;
-        # this fake adapter is intentionally inactive.
-      end
-    end
+    let(:custom_adapter) { Class.new(SimpleCov::ParallelAdapters::Base) }
 
     it "answers the adapter it was given" do
       expect(described_class.register(custom_adapter)).to be(custom_adapter)
@@ -58,8 +48,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
       expect(described_class.adapters.count(custom_adapter)).to eq(1)
     end
 
-    # Memoized to something first, so that clearing it is what lets the
-    # newly registered adapter be seen.
     it "clears the memoized current selection" do
       ENV["TEST_ENV_NUMBER"] = "1"
       expect(described_class.current).to be(SimpleCov::ParallelAdapters::GenericAdapter)
@@ -99,7 +87,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
     it "returns GenericAdapter when TEST_ENV_NUMBER is set but parallel_tests isn't loaded" do
       hide_const("ParallelTests") if defined?(ParallelTests)
       ENV["TEST_ENV_NUMBER"] = "1"
-      # Force ParallelTestsAdapter to skip its auto-load attempt.
       allow(SimpleCov::ParallelAdapters::ParallelTestsAdapter).to receive(:ensure_loaded)
       expect(described_class.current).to eq(SimpleCov::ParallelAdapters::GenericAdapter)
     end
@@ -108,7 +95,7 @@ RSpec.describe SimpleCov::ParallelAdapters do
       ENV["TEST_ENV_NUMBER"] = "1"
       allow(SimpleCov::ParallelAdapters::ParallelTestsAdapter).to receive(:ensure_loaded)
       first = described_class.current
-      ENV.delete("TEST_ENV_NUMBER") # changing env after memoization is intentionally ignored
+      ENV.delete("TEST_ENV_NUMBER")
       expect(described_class.current).to equal(first)
     end
   end
@@ -174,8 +161,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
     end
 
     describe ".first_worker?" do
-      # The variable is absent outside a parallel run, which is a
-      # question to answer rather than one to refuse.
       it "is false when no worker number was set at all" do
         ENV.delete("TEST_ENV_NUMBER")
         expect(described_class.first_worker?).to be(false)
@@ -208,9 +193,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class.expected_worker_count).to eq(1)
       end
 
-      # `&.to_i || 1` returned 0 for these (0 is truthy), and a 0-worker
-      # expectation ends the sibling wait before it starts. Pinned here
-      # once for the Base helper both built-in adapters share.
       it "treats an empty PARALLEL_TEST_GROUPS as 1" do
         ENV["PARALLEL_TEST_GROUPS"] = ""
         expect(described_class.expected_worker_count).to eq(1)
@@ -249,8 +231,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
     end
 
     describe ".env_suggests_parallel_tests?" do
-      # Both variables, because either one alone is set by plenty of
-      # things that are not parallel_tests.
       it "is false when only the worker number is set" do
         ENV["TEST_ENV_NUMBER"] = "1"
         ENV.delete("PARALLEL_TEST_GROUPS")
@@ -279,8 +259,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class).not_to have_received(:require)
       end
 
-      # The environment does suggest parallel_tests here, so the opt-out
-      # is the only thing left to stop the load.
       it "asks for nothing when the user turned parallel_tests off" do
         hide_const("ParallelTests") if defined?(ParallelTests)
         allow(SimpleCov).to receive(:parallel_tests).and_return(false)
@@ -303,7 +281,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class).not_to have_received(:require)
       end
 
-      # Turned on explicitly, the setting is reason enough on its own.
       it "loads the gem when the user asked for parallel_tests outright" do
         hide_const("ParallelTests") if defined?(ParallelTests)
         allow(SimpleCov).to receive(:parallel_tests).and_return(true)
@@ -326,8 +303,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class).to have_received(:require).with("parallel_tests")
       end
 
-      # An optional dependency that isn't installed reads as "the user
-      # isn't using parallel_tests", not as a failure.
       it "lets a missing gem pass quietly" do
         hide_const("ParallelTests") if defined?(ParallelTests)
         allow(SimpleCov).to receive(:parallel_tests).and_return(true)
@@ -346,8 +321,6 @@ RSpec.describe SimpleCov::ParallelAdapters do
         expect(described_class.active?).to be true
       end
 
-      # The env contract is satisfied here, so the missing constant is
-      # the only thing left to answer for.
       it "is false when ParallelTests isn't loaded" do
         hide_const("ParallelTests") if defined?(ParallelTests)
         ENV["TEST_ENV_NUMBER"] = "1"

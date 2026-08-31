@@ -6,44 +6,24 @@ require_relative "interned_counts"
 
 module SimpleCov
   module Combine
-    #
-    # Combine different method coverage results on a single file.
-    #
-    # Should be called through `CoverageAccumulator`.
     module MethodsCombiner
       extend self
 
-      #
-      # Return merged methods or the existing methods if other is missing.
-      #
       # Method coverage maps `[class, name, start_line, start_col, end_line,
-      # end_col]` keys to hit counts. Keys are matched on their SOURCE
-      # identity — the location, ignoring the class and name elements —
-      # because Ruby records one entry per defined method: the same
-      # `define_method` block defined onto different classes, or under
-      # different names, in different processes arrives with different
-      # receivers or names for the same source method, and matching on the
-      # full key would keep both, letting a never-called copy's 0 shadow a
-      # covered method after merge (issue #1234). Combining sums the hit
-      # counts for matching methods and preserves methods that only appear
-      # in one result.
-      #
-      # @return [Hash]
-      #
+      # end_col]` keys to hit counts. Keys are matched on their source identity,
+      # the location alone, because Ruby records one entry per defined method: the
+      # same `define_method` block defined onto different classes, or under
+      # different names, in different processes arrives with different receivers
+      # for the same source method, and matching on the full key would keep both,
+      # letting a never-called copy's 0 shadow a covered method (#1234).
       def combine(coverage_a, coverage_b)
         merged = absorb({}, coverage_a) #: Hash[untyped, [untyped, Integer]]
         materialize(absorb(merged, coverage_b))
       end
 
-      # Folds `coverage` into `target`, an interned table keyed by method
-      # source identity. See `BranchesCombiner.absorb` for why a fold keeps
-      # its accumulator interned.
-      #
       # A `nil` `target` stays `nil` until some resultset actually carries
-      # methods, so a merge can tell "no method data anywhere" apart from
-      # "method data that covers nothing".
-      #
-      # @return [Hash, nil] `target`, created on the first coverage seen
+      # methods, so a merge can tell "no method data anywhere" apart from "method
+      # data that covers nothing".
       def absorb(target, coverage)
         return target unless coverage
 
@@ -51,16 +31,10 @@ module SimpleCov
         InternedCounts.absorb_counts(target, coverage, identities)
       end
 
-      # Turns an interned table back into the tuple-keyed hash the rest of
-      # SimpleCov reads. Done once, at the end of a fold.
-      #
-      # @return [Hash]
       def materialize(target)
         target.values.to_h
       end
 
-      # Bounded by the project's method count, like `RubyDataParser`'s parse
-      # cache.
       def identities
         @identities ||= IdentityInterner.build { |key| source_identity(key) }
       end

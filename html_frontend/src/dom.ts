@@ -1,4 +1,3 @@
-// Tiny DOM helpers shared across the report's modules.
 
 export function $(sel: string, ctx?: Element | Document): Element | null {
   return (ctx || document).querySelector(sel);

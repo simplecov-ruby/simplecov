@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 module SimpleCov
-  # The standalone eval-coverage toggle (`enable_coverage :eval`),
-  # instrumenting `eval`'d code on Rubies that support it. Kept separate
-  # from the criteria-set logic in `coverage_criteria.rb` because `:eval`
-  # is a boolean toggle, never a member of the enabled-criteria set.
   module Configuration
+    # The standalone eval-coverage toggle, kept apart from the criteria-set logic
+    # in `coverage_criteria.rb` because `:eval` is a boolean toggle, never a
+    # member of the enabled-criteria set.
     def coverage_for_eval_supported?
       coverage_criterion_supported?(:eval)
     end
@@ -14,7 +13,6 @@ module SimpleCov
       @coverage_for_eval_enabled ||= false
     end
 
-    # DEPRECATED: prefer `enable_coverage :eval`.
     def enable_coverage_for_eval
       Deprecation.warn("`SimpleCov.enable_coverage_for_eval` is deprecated. " \
                        "Replace with `SimpleCov.enable_coverage :eval`.")
@@ -23,8 +21,6 @@ module SimpleCov
 
   private
 
-    # Shared implementation backing both `enable_coverage :eval` and
-    # the deprecated `enable_coverage_for_eval`.
     def enable_eval_coverage
       if coverage_for_eval_supported?
         @coverage_for_eval_enabled = true

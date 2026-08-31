@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Exit code should be non-zero if the coverage of any one file is below
-# the configured value.
 RSpec.describe "minimum coverage by file enforcement", :sandbox do
   before { setup_project("faked_project") }
 
@@ -102,9 +100,6 @@ RSpec.describe "minimum coverage by file enforcement", :sandbox do
   end
 
   it "does not flag files that pass the default but not the override" do
-    # framework_specific.rb is at 75% -- passes the default 70%; some_class.rb is
-    # at 80% -- passes both. The directory-prefix override raises the bar to 90%
-    # for lib/faked_project/, so framework_specific.rb fails its override.
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do

@@ -1,16 +1,10 @@
 module SimpleCov
   module CLI
-    # `simplecov dead-code --production PATH` — cross production
-    # coverage with the test report: dead / possibly dead / untested in
-    # production, per line.
     module DeadCode
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers
 
-      # The module-name derivation would say "deadcode".
       def self?.command_name: () -> String
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (0 | 1)

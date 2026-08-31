@@ -6,11 +6,6 @@ require_relative "command_helpers"
 
 module SimpleCov
   module CLI
-    # `simplecov report [--input PATH]` — pretty-print the overall
-    # totals row plus per-group totals from a JSONFormatter
-    # coverage.json. Same numbers as the HTML report's totals row, for
-    # contexts where opening a browser isn't an option (CI logs, ssh
-    # sessions, terminal-only workflows).
     module Report
       extend CommandHelpers
 
@@ -31,16 +26,14 @@ module SimpleCov
         0
       end
 
-      # Valid JSON isn't enough: a wrong-typed "total" or "groups" (or a
-      # wrong-typed group entry) used to escape here and crash the
-      # emitters with a backtrace instead of the one-line error the
-      # sibling commands print.
+      # Valid JSON isn't enough: a wrong-typed "total" or "groups" used to escape
+      # here and crash the emitters with a backtrace instead of the one-line error
+      # the sibling commands print.
       def load_data(input, stderr)
         data = CoverageFile.load_document(input, command: "report", stderr: stderr)
         return unless data
 
         none = {} #: Hash[String, untyped]
-        # JSON answers plain objects, never a subclass of one.
         unless data.fetch("total", none).instance_of?(Hash)
           return CoverageFile.report_invalid(stderr, "report", input, '"total" must be an object')
         end

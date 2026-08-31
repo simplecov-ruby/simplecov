@@ -48,8 +48,6 @@ COVERAGE_FOR_METHODS_RB = {
 }.freeze
 
 RSpec.describe SimpleCov::SourceFile do
-  # A source file whose source is handed over rather than read from disk,
-  # so a fixture can be shaped for exactly one behavior.
   def source_file_with(coverage_data, source_lines)
     SimpleCov::SourceFile.new("inline_source.rb", coverage_data).tap do |file|
       file.instance_variable_set(:@src, source_lines)
@@ -195,8 +193,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     let(:coverage_data) do
-      # Simulates what happens after JSON.parse(JSON.dump(...)):
-      # Array keys become their string representation
       {
         "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
         "branches" => {},
@@ -228,9 +224,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     let(:coverage_data) do
-      # When Ruby's Coverage API returns a class object (not a string) as the
-      # first element of a method key, JSON round-trip produces an unquoted
-      # class name like [A, :method1, 2, 2, 5, 5] instead of ["A", :method1, ...]
       {
         "lines" => [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1],
         "branches" => {},
@@ -282,10 +275,6 @@ RSpec.describe SimpleCov::SourceFile do
       end
     end
 
-    # `def obj.greet` on a plain instance records the nested inspect form
-    # `#<Class:#<Object:0x...>>`. The quoting regex used to stop at the
-    # first `>`, leaving a dangling `>` that failed both Ripper passes and
-    # raised ArgumentError out of the merge.
     context "with a singleton class of an instance" do
       let(:methods_data) { {"[#<Class:#<Object:0x0>>, :bar, 2, 2, 5, 5]" => 1} }
 
@@ -298,9 +287,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  # Regression: coverage data can have "branches" => nil when another gem
-  # interferes with Coverage, or .resultset.json contains "branches": null.
-  # Hash#fetch returns nil (not the default {}) when the key exists with nil value.
   context "when branches coverage data is explicitly nil" do
     subject(:source_file) do
       described_class.new(source_fixture("sample.rb"), COVERAGE_WITH_NIL_BRANCHES)
@@ -671,9 +657,6 @@ RSpec.describe SimpleCov::SourceFile do
 
   context "with ignore_branches :implicit_else configured" do
     around do |example|
-      # `ignore_branches` mutates the underlying array via `concat`, so dup the
-      # previous value before mutating — otherwise restoring the captured
-      # reference puts back the post-mutation array.
       previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
       capture_stderr { SimpleCov.ignore_branches :implicit_else }
       example.run
@@ -721,50 +704,30 @@ RSpec.describe SimpleCov::SourceFile do
       end
     end
 
-    # Regression guard for a ternary's explicit `else` arm that lives on the
-    # same line as its condition. The structural heuristic that compares
-    # `start_line` alone would mis-classify this as synthetic; comparing the
-    # full source range (start_line/start_col/end_line/end_col against the
-    # parent) keeps the explicit branch counted. See PR #1189 review.
     describe "a file with an inline (ternary) explicit `else`" do
       subject(:source_file) do
         described_class.new(source_fixture("inline.rb"), CoverageFixtures::INLINE_RB)
       end
 
       it "preserves the ternary's explicit else on the condition's line" do
-        # Both arms of the ternary on line 3 must still be present, alongside
-        # the multi-line if/else's two arms.
         expect(source_file.total_branches.size).to eq 4
 
-        # Specifically: line 3 still reports both :then and :else.
         line_3_types = source_file.branches_for_line(3).map(&:first).sort
         expect(line_3_types).to eq %i[else then]
       end
     end
 
-    # Regression guard for the `if`-without-else (postfix `return if cond`)
-    # shape — synthetic else here reuses the parent condition's full range
-    # and SHOULD drop. Pairs with the previous spec so that both the
-    # synthetic-on-the-condition-line case and the explicit-on-the-
-    # condition-line case are exercised by the same heuristic.
     describe "a file with `if`/`unless` constructs (postfix and block)" do
       subject(:source_file) do
         described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
       end
 
       it "drops the postfix `if`'s synthetic else but keeps the block `if`'s explicit else" do
-        # BRANCHES_RB has three :if conditions:
-        #   line 3: `return if arg < 0` → synthetic else (full-range match, drops)
-        #   line 5: `arg == 42 ? :yes : :no` → explicit else (narrower cols, keeps)
-        #   lines 7-11: `if arg.odd? ... else ... end` → explicit else (keeps)
         else_lines = source_file.branches.select { |b| b.type == :else }.map(&:start_line)
-        expect(else_lines).to contain_exactly(5, 10) # postfix-if's synthetic else at line 3 is gone
+        expect(else_lines).to contain_exactly(5, 10)
       end
     end
 
-    # Only an `else` arm can be an implicit else. An arm of any other type
-    # that happens to carry its condition's full range is a real branch
-    # the report has to keep.
     describe "a non-else arm carrying its condition's whole range" do
       subject(:source_file) do
         source_file_with(
@@ -802,23 +765,14 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     it "drops the eval-generated branch and keeps the real one" do
-      # EVAL_GENERATED_RB has two `:if` conditions: one at line 2 (eval-
-      # generated by def_delegators) and one at line 4 (a real ternary
-      # inside `initialize`). Only the real one survives.
       condition_lines = source_file.branches.map(&:start_line).uniq.sort
       expect(condition_lines).to eq [4]
     end
 
     it "leaves the totals consistent with only real branches" do
-      # The line-2 condition contributed 2 arms; the line-4 condition
-      # contributes 2. Without the filter we'd see 4 branches; with it,
-      # only 2.
       expect(source_file.total_branches.size).to eq 2
     end
 
-    # The condition keys of a resultset that has been through JSON are
-    # the strings Ruby's `inspect` made of them, and the filter has to
-    # read a start line out of those too.
     describe "with the branch keys stringified by a JSON round-trip" do
       subject(:source_file) do
         described_class.new(source_fixture("eval_generated.rb"), stringified_coverage)
@@ -1079,10 +1033,6 @@ RSpec.describe SimpleCov::SourceFile do
         described_class.new(invalid_path, COVERAGE_FOR_TRIPLE_LINES)
       end
 
-      # A Latin-1 file with no encoding declaration reads as UTF-8-tagged
-      # lines carrying invalid bytes. Those must be replaced at load time,
-      # or every regex downstream (shebang check, lines classifier)
-      # raises ArgumentError and takes the whole report down.
       let(:tmpdir) { Dir.mktmpdir("simplecov-invalid-utf8-spec-") }
       let(:invalid_path) do
         File.join(tmpdir, "invalid.rb").tap do |path|
@@ -1225,16 +1175,10 @@ RSpec.describe SimpleCov::SourceFile do
       end
 
       it "leaves the lines themselves alone when only method is disabled" do
-        # The method's body lines (6..8) should not be marked skipped solely
-        # because of `simplecov:disable method`.
         expect(source_file.skipped_lines.map(&:line_number)).to eq []
       end
     end
 
-    # A line-only directive must not leak into method coverage. The
-    # skipped? fallback used to consult the method's LINES, so wrapping a
-    # def in `# simplecov:disable line` (the README's own line-directive
-    # example) silently removed the method from method totals.
     describe "block disable of line coverage around a method" do
       subject(:source_file) do
         build(
@@ -1322,11 +1266,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     describe "branch coverage with an inline directive on the condition line" do
-      # The directive sits on the `if` line itself. The :then arm's source
-      # range starts on the next line (`:yes`), so a pure overlap check would
-      # miss it. The arm's `report_line` is the condition line, which is
-      # where the user typed the directive — process_skipped_branches honours
-      # report_line membership in addition to range overlap.
       subject(:source_file) do
         build(
           {
@@ -1356,9 +1295,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     describe "branch coverage with a directive inside the branch body" do
-      # A `# simplecov:disable branch` placed inside a single arm of an `if`
-      # should still mark the enclosing branch as skipped, because the branch's
-      # source range (start..end) overlaps the disabled range.
       subject(:source_file) do
         build(
           {
@@ -1394,9 +1330,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     describe "method coverage with a directive inside the method body" do
-      # The directive at line 4 sits inside a method spanning lines 3..6.
-      # `Method#overlaps_with?` should detect the intersection and skip the
-      # method even though the directive isn't on the method's start line.
       subject(:source_file) do
         build(
           {
@@ -1445,8 +1378,6 @@ RSpec.describe SimpleCov::SourceFile do
       expect(source_file.lines_of_code).to eq(5)
     end
 
-    # With line coverage disabled there are no line statistics to take a
-    # total from, and no lines of code either.
     it "counts nothing when there are no line statistics at all" do
       source_file = described_class.new(source_fixture("sample.rb"), COVERAGE_FOR_SAMPLE_RB)
       allow(source_file).to receive(:coverage_statistics).and_return({})
@@ -1456,9 +1387,6 @@ RSpec.describe SimpleCov::SourceFile do
   end
 
   describe "legacy line accessors when :line coverage is disabled" do
-    # When line coverage is off, `coverage_statistics` doesn't include
-    # a `:line` key, so the legacy accessors should return nil/0 rather
-    # than crashing on `nil.percent` / `nil.total`.
     let(:source_file) { described_class.new(source_fixture("sample.rb"), CoverageFixtures::SAMPLE_RB) }
 
     before do
@@ -1515,16 +1443,11 @@ RSpec.describe SimpleCov::SourceFile do
           .to raise_error(ArgumentError, %(expected array literal: "["))
       end
 
-      # The grammar covers the shapes Coverage emits and nothing else, so
-      # anything past it names the node it choked on rather than failing
-      # somewhere further down with a mangled key.
       it "raises on a literal outside the grammar, naming the node" do
         expect { described_class.parse_array_string("[1.5]") }
           .to raise_error(ArgumentError, /\Aunexpected element: \[:@float, "1\.5", /)
       end
 
-      # Every shape Coverage ever emits as an array key, walked back
-      # without eval (see #801).
       {
         "a plain symbol" => ["[:if, 0]", [:if, 0]],
         "a quoted symbol carrying a space" => ['[:"weird name", 1]', [:"weird name", 1]],
@@ -1545,10 +1468,6 @@ RSpec.describe SimpleCov::SourceFile do
         end
       end
 
-      # Method keys can name a singleton class, whose inspect form is not
-      # valid Ruby, so those segments are quoted before parsing. The
-      # nesting matters: stopping at the first `>` leaves a dangling one
-      # that fails the parse and takes the merge down with it.
       it "parses an inspect-form singleton class as an opaque string" do
         expect(described_class.parse_array_string("[#<Class:Foo>, :m]")).to eq(["#<Class:Foo>", :m])
       end
@@ -1558,8 +1477,6 @@ RSpec.describe SimpleCov::SourceFile do
           .to eq(["#<Class:#<Object:0x1>>", :m])
       end
 
-      # A key that is already valid Ruby must not be re-quoted, which is
-      # the shape simplecov's own method-coverage keys take.
       it "leaves an already-quoted inspect string alone" do
         expect(described_class.parse_array_string('["#<Class:Foo>", :m]')).to eq(["#<Class:Foo>", :m])
       end
@@ -1569,10 +1486,6 @@ RSpec.describe SimpleCov::SourceFile do
           .to eq(["#<Class:Foo>", "#<Class:Bar>", :m])
       end
 
-      # An inspect form can carry quotes of its own, and they have to
-      # survive the quoting that wraps the segment: escape none of them
-      # and the wrapped literal ends early, escape one and the rest of
-      # the key goes with it.
       it "keeps the quotes inside an inspect segment" do
         expect(described_class.parse_array_string('[#<Struct name="x">, :m]'))
           .to eq(['#<Struct name="x">', :m])
@@ -1584,9 +1497,6 @@ RSpec.describe SimpleCov::SourceFile do
         expect(described_class.call("[:if, 0, 3, 4, 3, 21]")).to eq([:if, 0, 3, 4, 3, 21])
       end
 
-      # The guard asks whether the key is already in its parsed form, not
-      # whether it is exactly an Array, so a subclass passes through too
-      # rather than being stringified and parsed back.
       it "returns an Array subclass untouched" do
         tuple = Class.new(Array).new([:then, 4, 8])
 
@@ -1691,9 +1601,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  # The Coverage library omits "lines" entirely when line coverage was
-  # never enabled. The source rows are still worth having (the HTML
-  # report shows them), they just carry no hits.
   context "when the coverage data holds no line data at all" do
     subject(:source_file) do
       described_class.new(source_fixture("sample.rb"), {"branches" => {}, "methods" => {}})
@@ -1708,8 +1615,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  # A resultset that has been through JSON carries its branch keys as the
-  # strings Ruby's `inspect` produced, exactly as method keys do.
   context "when branch coverage data came back from a JSON round-trip" do
     subject(:source_file) do
       described_class.new(source_fixture("branches.rb"), stringified_coverage)
@@ -1733,9 +1638,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  # Both eval_generated filters compare Coverage's entries against the
-  # positions Prism found. With no parsed source to compare against there
-  # is nothing to be sure of, so nothing may be dropped.
   context "with the eval_generated filters on but no parsed source to check against" do
     let(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
@@ -1765,9 +1667,6 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  # A branch arm is skipped either because its own source range falls in a
-  # disabled region or because the line it is reported on does. These two
-  # fixtures separate the halves: here only the range matches.
   describe "a branch arm disabled on its own line but reported elsewhere" do
     subject(:source_file) do
       source_file_with(
@@ -1907,16 +1806,10 @@ RSpec.describe SimpleCov::SourceFile do
           .to eq ["# encoding: EUC-JP\n", "# 亜\n"]
       end
 
-      # The mode pins the read to UTF-8 rather than to whatever the
-      # process happens to have as its default external encoding: every
-      # line is expected to leave the loader as UTF-8 (see #866), and a
-      # project is free to set that default to anything.
       it "reads the file as UTF-8 whatever the default external encoding is" do
         path = source_path("# 135°C\n")
         original = Encoding.default_external
         verbose = $VERBOSE
-        # Setting the default external encoding warns, and this suite
-        # fails the build on its own warnings.
         $VERBOSE = nil
 
         begin
@@ -1929,11 +1822,7 @@ RSpec.describe SimpleCov::SourceFile do
         end
       end
 
-      # A filename is a filename. `Kernel#open` would take a leading pipe
-      # as an invitation to run the rest as a command.
       it "does not run a filename that begins with a pipe" do
-        # Windows rejects the pipe as an illegal filename character
-        # instead of looking for the file, which proves the same point.
         error = Gem.win_platform? ? Errno::EINVAL : Errno::ENOENT
         expect { described_class.call("|echo not-a-file") }.to raise_error(error)
       end
@@ -2017,16 +1906,10 @@ RSpec.describe SimpleCov::SourceFile do
         line = (+"# \x8F\xFF\n").force_encoding(Encoding::EUC_JP)
         described_class.ensure_remove_undefs([line])
 
-        # CRuby counts the two bytes as two broken characters where other
-        # engines read \x8F as the opening byte of one; either way every
-        # invalid byte is replaced.
         expect(line).to match(/\A# �+\n\z/)
         expect(line).to eq("# ��\n") if RUBY_ENGINE == "ruby"
       end
 
-      # Valid EUC-JP with no Unicode mapping at all, which is the `undef`
-      # half of the transcode: without it the conversion raises and takes
-      # the whole report down with it.
       it "replaces a character its own encoding has and UTF-8 has not" do
         line = (+"# \x8E\xE0\n").force_encoding(Encoding::EUC_JP)
         described_class.ensure_remove_undefs([line])

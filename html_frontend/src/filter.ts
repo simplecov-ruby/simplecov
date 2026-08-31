@@ -1,5 +1,3 @@
-// Column and filename filtering of the file lists; recomputes the totals row
-// and re-equalizes bar widths as rows are shown or hidden.
 
 import { $, $$, on } from './dom';
 import { invalidateFileRowCache } from './file_rows';
@@ -44,8 +42,6 @@ function parseFilters(container: Element): ActiveFilter[] {
   return filters;
 }
 
-// File names never change after render, so cache the lowercased name per row
-// instead of re-reading textContent on every filter keystroke.
 const rowNameCache = new WeakMap<Element, string>();
 
 function rowName(row: Element): string {
@@ -73,8 +69,6 @@ function filterTable(container: Element): void {
       const pct = total > 0 ? (covered * 100.0) / total : 100;
       return compare(f.op, pct, f.threshold);
     });
-    // Only touch rows whose visibility actually changes; a same-value style
-    // write on thousands of rows is not free.
     const display = visible ? '' : 'none';
     if (htmlRow.style.display !== display) htmlRow.style.display = display;
   });
@@ -101,15 +95,12 @@ function updateFilterOptions(input: HTMLInputElement): void {
 }
 
 export function setupColumnFilters(): void {
-  // Filter options init
   $$('.col-filter__value').forEach(el => updateFilterOptions(el as HTMLInputElement));
 
-  // Prevent filter clicks from triggering sort
   $$('.col-filter--name, .col-filter__op, .col-filter__value, .col-filter__coverage').forEach(el => {
     el.addEventListener('click', e => e.stopPropagation());
   });
 
-  // Filter change handlers
   on(document, 'input', '.col-filter--name, .col-filter__op, .col-filter__value', function () {
     if (this.classList.contains('col-filter__value')) updateFilterOptions(this as HTMLInputElement);
     filterTable(this.closest('.file_list_container')!);

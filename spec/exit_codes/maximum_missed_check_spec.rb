@@ -47,8 +47,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
     end
   end
 
-  # Mirrors the percent checks: a criterion the runtime didn't measure
-  # (e.g. branch caps under JRuby) is skipped rather than failed.
   context "when the capped criterion was not measured" do
     let(:result) do
       instance_double(
@@ -74,8 +72,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedCheck,
       .to eq(["Missed lines (12) exceed the configured maximum_missed (10)."])
   end
 
-  # Oneshot lines are recorded under the line statistics, so their units
-  # are read through the key they are stored under.
   it "names oneshot lines as lines" do
     expect(described_class.new(result, {oneshot_line: 10}).report_lines)
       .to eq(["Missed lines (12) exceed the configured maximum_missed (10)."])

@@ -3,11 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Oneshot line coverage records only whether a line was ever hit, not how
-# often; the resulting report carries the same percentages as regular
-# line coverage. The viewer normalizes the "oneshot_line" primary
-# coverage name back to the line criterion (covered by the bun suite,
-# html_frontend/test/coverage.test.ts).
 RSpec.describe "oneshot line coverage", :sandbox do
   before { setup_project("faked_project") }
 

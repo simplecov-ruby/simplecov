@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# RSpec failing in different ways results in SimpleCov saying something
-# beforehand. However it doesn't identify itself as the originator of
-# said error, and it preserves the original exit status.
 RSpec.describe "rspec failing runs", :sandbox do
   before { setup_project("faked_project") }
 

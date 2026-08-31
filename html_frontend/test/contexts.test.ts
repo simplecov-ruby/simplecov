@@ -3,7 +3,6 @@ import { decodeFileContexts, contextIdsForLine, coveredOutsideCount } from '../s
 
 describe('decodeFileContexts', () => {
   test('decodes a single-context hex bitmap into per-line context indices', () => {
-    // 0x6 = 0b110: bits 1 and 2 set, so lines 2 and 3.
     const index = decodeFileContexts({ '0': '6' }, 4);
     expect(index.perLine[0]).toEqual([]);
     expect(index.perLine[1]).toEqual([0]);
@@ -12,7 +11,6 @@ describe('decodeFileContexts', () => {
   });
 
   test('walks multi-nibble bitmaps with the least significant nibble as lines 1-4', () => {
-    // 0x100 = bit 8, so line 9 only.
     const index = decodeFileContexts({ '2': '100' }, 9);
     expect(index.perLine[8]).toEqual([2]);
     expect(index.perLine.slice(0, 8).every((l) => l.length === 0)).toBe(true);
@@ -20,7 +18,6 @@ describe('decodeFileContexts', () => {
 
   test('accumulates overlapping contexts in index order', () => {
     const index = decodeFileContexts({ '1': '4', '0': '6' }, 3);
-    // Line 3 (bit 2) is covered by both; order is ascending by index.
     expect(index.perLine[2]).toEqual([0, 1]);
     expect(index.perLine[1]).toEqual([0]);
   });
@@ -54,9 +51,6 @@ describe('contextIdsForLine', () => {
 
 describe('coveredOutsideCount', () => {
   test('counts covered relevant lines no recorded context executed', () => {
-    // 0xb = bits 0,1,3 -> lines 1, 2, 4. Line 4 is non-executable, so the
-    // recorded lines that matter are 1 and 2; lines 3 and 5 are covered
-    // with no context.
     const lines = [1, 2, 3, null, 4, 0, 'ignored' as const];
     expect(coveredOutsideCount({ '0': 'b' }, lines)).toBe(2);
   });

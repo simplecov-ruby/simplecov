@@ -5,11 +5,6 @@ require "helper"
 require "simplecov/cli"
 require "tmpdir"
 
-# The dotfile reader loads a project's `.simplecov` purely to read three
-# settings out of it, with `SimpleCov.start` and the at_exit installer
-# neutered so the read cannot start Coverage. Every example here runs in
-# its own temporary directory, because the reader finds its dotfile by
-# walking up from the working directory.
 RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotfile*" do
   def in_project(dotfile_body = nil)
     Dir.mktmpdir("simplecov-dotfile-spec-") do |tmp|
@@ -18,14 +13,10 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
     end
   end
 
-  # Each read snapshots the one setting it is for, so reading must leave
-  # the host process's configuration exactly as it found it.
   def configured(name)
     SimpleCov.instance_variable_get(:"@#{name}")
   end
 
-  # Give the host a value of its own for the duration, so "restored"
-  # means restored to something rather than back to nil.
   def with_configured(name, value)
     ivar = :"@#{name}"
     previous = SimpleCov.instance_variable_get(ivar)
@@ -102,11 +93,7 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
     end
   end
 
-  # The store has no sensible fallback path, so an unreadable dotfile
-  # answers nil and lets the command's own missing-store error speak.
   describe ".production_coverage" do
-    # The store setting expands what it is given, so the expectation
-    # expands too, for the Windows drive letter's sake.
     it "reads the dotfile's configured store" do
       in_project(%(SimpleCov.production_coverage "/var/data/prod.json"\n)) do
         expect(described_class.production_coverage).to eq(File.expand_path("/var/data/prod.json"))
@@ -119,9 +106,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
       end
     end
 
-    # A dotfile that configures anything else at all: this read restores
-    # only the store it is for, so the fixture deliberately configures
-    # nothing that would outlive it in the host process.
     it "answers nil when the dotfile names no store" do
       in_project("# configuration that names no production store\n") do
         expect(described_class.production_coverage).to be_nil
@@ -145,8 +129,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
     end
   end
 
-  # `load` raises SyntaxError, which is a ScriptError rather than a
-  # StandardError, so a bare rescue would let it crash the CLI.
   describe "a dotfile that will not parse" do
     it "warns and falls back on every read" do
       in_project("SimpleCov.start do\n") do
@@ -161,8 +143,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
   end
 
   describe ".find" do
-    # Compared through realpath because the temporary directory is
-    # reached through a symlink on macOS (/var vs /private/var).
     it "finds the dotfile in the working directory" do
       in_project("# empty\n") do |tmp|
         expect(File.realpath(described_class.find)).to eq(File.realpath(File.join(tmp, ".simplecov")))
@@ -183,19 +163,12 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
       in_project { expect(described_class.find).to be_nil }
     end
 
-    # A path, not the Pathname the walk is built on: every caller
-    # interpolates it into a message or hands it to `load`.
     it "answers a plain path string" do
       in_project("# empty\n") { expect(described_class.find).to be_a(String) }
     end
   end
 
   describe "the neutered load" do
-    # Both halves of `SimpleCov.start` leave a mark: tracking stamps the
-    # process start time, and the installer flags itself as armed. A
-    # dotfile read must leave neither, so both are asserted separately
-    # rather than through Coverage itself, which the host process
-    # usually has running already.
     it "neuters the tracking half, so reading cannot begin measuring" do
       before = SimpleCov.process_start_time
       in_project("SimpleCov.start\n") { described_class.coverage_dir }
@@ -233,10 +206,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
       expect(SimpleCov.singleton_class.instance_method(:install_at_exit_hook)).to eq(original)
     end
 
-    # Redefining those two methods emits "method redefined" warnings
-    # under $VERBOSE, and they are deliberate, so every redefinition
-    # (the neutering on the way in and the restore on the way out) runs
-    # with warnings off, and the level is handed back as found.
     it "silences every redefinition and restores the warning level" do
       previous = $VERBOSE
       $VERBOSE = true
@@ -255,10 +224,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
     end
   end
 
-  # The dotfile is loaded with defaults off (so the read cannot install
-  # the default profile chain) and with the CLI marker on (so a project
-  # can opt some configuration into CLI-only behavior), and both are
-  # restored afterwards.
   describe "the environment the dotfile sees" do
     let(:reporting_dotfile) do
       <<~RUBY
@@ -283,9 +248,6 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
       end
     end
 
-    # The require is what makes a standalone CLI process able to read a
-    # dotfile at all, and it has to happen inside the guard so a first
-    # load skips the default profile chain.
     it "loads simplecov inside the guard, before the read runs" do
       allow(described_class).to receive(:load_simplecov).and_call_original
       in_project("# empty\n") { described_class.coverage_dir }

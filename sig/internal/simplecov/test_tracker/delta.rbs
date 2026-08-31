@@ -1,7 +1,5 @@
 module SimpleCov
   class TestTracker
-    # The peek-diff arithmetic: which in-root lines grew between two
-    # coverage snapshots.
     class Delta
       @root_regex: Regexp
       @in_root: Hash[String, bool]

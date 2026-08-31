@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Coverage hashes for fixture scripts that primarily exercise
-# if/elsif/else branching.
 module CoverageFixtures
   BRANCHES_RB = {
     "lines" => [1, 1, 1, nil, 1, nil, 1, 0, nil, 1, nil, nil, nil],

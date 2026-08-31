@@ -1,6 +1,3 @@
-// The live totals row: recomputing per-group counts and coverage cells as
-// rows are hidden and shown by the filters — ported from the cucumber
-// filtering scenarios that watched the totals row change.
 import { describe, expect, test } from 'bun:test';
 import { updateTotalsRow } from '../src/totals';
 
@@ -11,8 +8,6 @@ interface ContainerOptions {
   rows: string[];
 }
 
-// A pared-down file-list container: a totals row with the t-totals__ cells
-// the updater rewrites, and whatever file rows a scenario needs.
 function buildContainer(options: ContainerOptions): HTMLElement {
   const criteria = options.criteria ?? ['line'];
   const totalsCells = criteria
@@ -47,7 +42,7 @@ describe('updateTotalsRow', () => {
       rows: [
         row('data-covered-lines="8" data-relevant-lines="10"'),
         row('data-covered-lines="2" data-relevant-lines="2"'),
-        row('') // no data attributes: counts as 0/0
+        row('')
       ]
     });
     updateTotalsRow(container);

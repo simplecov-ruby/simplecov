@@ -7,11 +7,10 @@ require_relative "tests/redundancy"
 
 module SimpleCov
   module CLI
-    # `simplecov tests [<path>[:<line>]]` — list the recorded tests from a
-    # coverage.json written under `track_tests`: all of them bare, those
-    # touching a file, or those covering one line. Text output is one id
-    # per line so the list can feed a test runner directly; empty answers
-    # keep stdout empty and note the emptiness on stderr instead.
+    # `simplecov tests [<path>[:<line>]]`: list the recorded tests from a
+    # coverage.json written under `track_tests`. Text output is one id per line
+    # so the list can feed a test runner directly; empty answers keep stdout
+    # empty and note the emptiness on stderr instead.
     module Tests
       extend CommandHelpers
 
@@ -42,10 +41,8 @@ module SimpleCov
         opts
       end
 
-      # "lib/foo.rb:42" queries a line, anything else a whole file (or,
-      # with no argument at all, the whole recording). Only an all-digit
-      # tail after the last colon reads as a line number, so Windows
-      # drive colons and exotic filenames stay plain paths.
+      # Only an all-digit tail after the last colon reads as a line number, so
+      # Windows drive colons and exotic filenames stay plain paths.
       def split_target(target)
         return {path: nil, line: nil} unless target
 
@@ -55,10 +52,6 @@ module SimpleCov
         {path: path, line: Integer(tail, 10)}
       end
 
-      # The sorted ids the query selects, or nil after reporting a
-      # malformed document or an unanswerable query. `--redundant`
-      # intersects the selection with the redundancy sweep, so the flag
-      # composes with the path and line narrowing.
       def resolve(document, opts, stderr)
         contexts = recorded_contexts(document, opts, stderr)
         return unless contexts
@@ -91,17 +84,11 @@ module SimpleCov
         path = opts.fetch(:path)
         match = CoverageFile.lookup(coverage, path)
         return error_nil(stderr, CoverageFile.not_found_message(coverage, path, input)) unless match
-        # A found entry of the wrong type is malformed input, not a
-        # missing file — the same distinction `simplecov coverage` draws.
         return match.last if match.last.is_a?(Hash)
 
         CoverageFile.report_invalid(stderr, "tests", input, "entry for #{path} must be an object")
       end
 
-      # The file's decoded `index => bitmap` table. An absent key is an
-      # untouched file (empty table); anything malformed — a foreign
-      # index, a non-hex bitmap — poisons the whole answer, matching the
-      # all-or-nothing tolerance the resultset reader applies.
       def context_table(entry, contexts, opts, stderr)
         raw = entry["contexts"] || {}
         table = decode_table(raw, contexts.size) if raw.is_a?(Hash)
@@ -111,12 +98,12 @@ module SimpleCov
                                     "entry for #{opts.fetch(:path)} carries a malformed \"contexts\" table")
       end
 
+      # An absent key is an untouched file; anything malformed, a foreign index or
+      # a non-hex bitmap, poisons the whole answer, matching the all-or-nothing
+      # tolerance the resultset reader applies.
       def decode_table(raw, context_count)
         table = {} #: Hash[Integer, Integer]
         raw.each do |index, hex|
-          # Both halves arrive from JSON, so both are plain strings: a
-          # decimal index naming a recorded test, and a hexadecimal
-          # bitmap of the lines it covered.
           return nil unless index.is_a?(String) && index.match?(/\A\d+\z/)
           return nil unless hex.is_a?(String) && hex.match?(/\A\h+\z/)
 
@@ -140,11 +127,6 @@ module SimpleCov
         ids.each { |id| stdout.puts(id) }
       end
 
-      # Stdout stays reserved for ids, so an empty answer explains itself
-      # on stderr — naming the query when there was one. An empty
-      # `--redundant` answer over a real recording is good news and says
-      # so, but an empty recording keeps the plainer message: nothing was
-      # recorded, so nothing was proven unique.
       def note_empty(opts, stderr)
         stderr.puts("simplecov tests: #{empty_message(opts)}")
       end

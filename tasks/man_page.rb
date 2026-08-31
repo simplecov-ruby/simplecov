@@ -1,21 +1,18 @@
 # frozen_string_literal: true
 
-# Bundler puts the project's lib/ on the load path for both `rake man`
-# and the spec suite, the only two callers.
 require "simplecov/cli"
 require "simplecov/version"
 
-# Builds man/simplecov.1 from the usage document, the same single
-# source the help text and the generated shell completions come from,
-# so the page cannot drift from what the commands accept. `rake man`
-# writes the artifact and spec/man_page_spec.rb fails when the
-# committed copy is stale.
+# Builds man/simplecov.1 from the usage document, the same single source the
+# help text and the generated shell completions come from, so the page cannot
+# drift from what the commands accept. `rake man` writes the artifact and
+# spec/man_page_spec.rb fails when the committed copy is stale.
 module ManPage
   extend self
 
-  # Usage.text interpolates the process's resolved default paths; the
-  # man page wants the plain defaults a fresh project sees, whatever
-  # directory the generator runs from.
+  # Usage.text interpolates the process's resolved default paths; the man page
+  # wants the plain defaults a fresh project sees, whatever directory the
+  # generator runs from.
   module Defaults
     extend self
 
@@ -34,10 +31,9 @@ module ManPage
     SimpleCov::CLI::Usage.text(Defaults).split("\n\n")
   end
 
-  # [invocation, description] pairs from the Commands table, e.g.
-  # ["watch <command...>", "Re-run <command> on save..."]. Rows whose
-  # description wrapped contribute only their first line, which stands
-  # alone by design.
+  # [invocation, description] pairs from the Commands table. Rows whose
+  # description wrapped contribute only their first line, which stands alone by
+  # design.
   def command_rows
     sections.fetch(1).lines.drop(1).filter_map do |row|
       match = row.strip.match(/\A(.*?)\s{2,}(\S.*)\z/)
@@ -54,9 +50,6 @@ module ManPage
     text.gsub("\\") { "\\e" }.gsub("-") { "\\-" }
   end
 
-  # Escaped body text wrapped for readable roff source. A wrapped line
-  # must not begin with a control character (`.` or `'`), so those get
-  # the `\&` zero-width guard.
   def paragraph(text)
     wrap(escape(text).split).map { |words| guard_control(words.join(" ")) }.join("\n")
   end
@@ -68,12 +61,14 @@ module ManPage
     end
   end
 
+  # A wrapped line must not begin with a roff control character, so those get the
+  # `\&` zero-width guard.
   def guard_control(line)
     line.start_with?(".", "'") ? "\\&#{line}" : line
   end
 
-  # A literal date keeps the artifact deterministic (Date.today would
-  # fail the freshness spec every day); bump it when it matters.
+  # A literal date keeps the artifact deterministic (Date.today would fail the
+  # freshness spec every day); bump it when it matters.
   DATE = "2026-08-24"
 
   def header

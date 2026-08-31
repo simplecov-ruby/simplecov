@@ -5,16 +5,11 @@ require "timeout"
 require "simplecov/production"
 
 RSpec.describe SimpleCov::Production do
-  # Expanded so the drive-letter prefix Windows adds ("D:/app") is part
-  # of the root and the stubbed absolute paths alike.
   let(:root) { File.expand_path("/app") }
   let(:sink) { instance_double(SimpleCov::Production::FileSink, store: true) }
 
   after { described_class.reset! }
 
-  # The suite itself runs under Coverage, so specs that start production
-  # mode stub the runtime out from under it; the one guard spec below
-  # relies on the real running Coverage instead.
   def stub_coverage(result: {})
     allow(Coverage).to receive_messages(running?: false, start: nil, suspend: nil, resume: nil,
                                         supported?: true, result: result)
@@ -24,11 +19,6 @@ RSpec.describe SimpleCov::Production do
     described_class.start(root: root, sink: sink, flush_interval: 600, **options)
   end
 
-  # Configure without spawning the flush thread. The examples that stub
-  # `rand` drive `cycle` and `next_wait` themselves, and a live thread
-  # races those stubs: it calls `rand` on its way into its first wait
-  # and can outlive the example's mocks, which breaks the module's
-  # method lookup mid-mutation on JRuby.
   def start_without_flush_thread(**options)
     allow(described_class).to receive(:spawn_flush_thread)
     start(**options)
@@ -42,8 +32,6 @@ RSpec.describe SimpleCov::Production do
     described_class.instance_variable_get(:@mutex)
   end
 
-  # The flush thread spends its life asleep on the condition variable,
-  # so anything asserting how it is woken has to let it get there first.
   def sleeping_flush_thread
     thread = described_class.instance_variable_get(:@thread)
     Timeout.timeout(5) { Thread.pass until thread.status == "sleep" }
@@ -52,8 +40,6 @@ RSpec.describe SimpleCov::Production do
 
   describe ".start" do
     it "declines when another Coverage owner is already measuring" do
-      # Only running? is stubbed: a start that got past the guard would
-      # blow up on the unstubbed runtime rather than measure anything.
       allow(Coverage).to receive(:running?).and_return(true)
       stderr = capture_stderr { expect(start).to be false }
 
@@ -78,8 +64,6 @@ RSpec.describe SimpleCov::Production do
         expect(described_class.instance_variable_get(:@thread)).to be_a(Thread)
       end
 
-      # Sampling is what needs `Coverage.suspend`; the full rate never
-      # suspends anything, so an older runtime measures fine.
       it "measures at the full rate on a runtime that cannot suspend" do
         allow(Coverage).to receive(:respond_to?).and_call_original
         allow(Coverage).to receive(:respond_to?).with(:suspend).and_return(false)
@@ -87,8 +71,6 @@ RSpec.describe SimpleCov::Production do
         expect(start).to be true
       end
 
-      # Before `Coverage.supported?` existed there was nothing to ask,
-      # and oneshot lines were there to be used.
       it "assumes oneshot lines on a runtime that cannot be asked" do
         allow(Coverage).to receive(:respond_to?).and_call_original
         allow(Coverage).to receive(:respond_to?).with(:supported?).and_return(false)
@@ -131,12 +113,9 @@ RSpec.describe SimpleCov::Production do
         expect { start(flush_jitter: "6") }.to raise_error(SimpleCov::Production::Error, /flush_jitter/)
       end
 
-      # A forked worker inherits the parent's running measurement but
-      # not its flush thread; `start` from the worker-boot hook picks
-      # the measurement up rather than declining it as foreign.
       it "resumes the inherited measurement after a fork instead of declining" do
         start
-        described_class.reset! # stands in for the fork killing the flush thread
+        described_class.reset!
         described_class.instance_variable_set(:@started_coverage, true)
         described_class.instance_variable_set(:@pid, Process.pid - 1)
         allow(Coverage).to receive(:running?).and_return(true)
@@ -158,8 +137,6 @@ RSpec.describe SimpleCov::Production do
 
   describe ".flush" do
     before do
-      # The out-of-root file leads: a drain that gave up on the first
-      # file it could not place would lose everything behind it.
       stub_coverage(result: {
                       File.expand_path("/elsewhere/b.rb") => {oneshot_lines: [7]},
                       abs("lib/quiet.rb") => {oneshot_lines: []},
@@ -184,8 +161,6 @@ RSpec.describe SimpleCov::Production do
       expect(sink).to have_received(:store).with("lib/a.rb" => [5])
     end
 
-    # The message half of the expectation comes from the error itself,
-    # because each platform words its strerror differently.
     it "names the failure the sink raised, class and message" do
       error = Errno::ECONNREFUSED.new("the sink")
       allow(sink).to receive(:store).and_raise(error)
@@ -209,9 +184,6 @@ RSpec.describe SimpleCov::Production do
       expect(sink).to have_received(:store).with("lib/a.rb" => [1, 3, 5]).once
     end
 
-    # Every drain and delivery happens under the same lock the flush
-    # thread takes, so a forced flush and the scheduled one cannot
-    # interleave halfway through a delta.
     it "drains and delivers under the lock" do
       held = []
       allow(described_class).to receive(:pull_pending) { held << mutex.owned? }
@@ -229,9 +201,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # The runtime reports one entry per file it loaded, most of them with
-  # nothing to say, and a file it reports without oneshot lines at all
-  # must not take the rest of the drain down with it.
   describe "what a drain skips" do
     before { stub_coverage }
 
@@ -321,20 +290,13 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # Not `describe ".running?"`: naming the method there would narrow
-  # the mutation testing pool for it to these two examples alone.
   describe "what counts as running" do
     it "answers false, not nil, before anything has started" do
-      # Untouched in a process that never started production mode, which
-      # earlier examples here have long since left behind.
       described_class.instance_variable_set(:@running, nil)
 
       expect(described_class.running?).to be(false)
     end
 
-    # A forked child inherits the flag but not the flush thread, so the
-    # measurement belongs to the process that recorded itself against it
-    # until that child starts its own.
     it "answers false for a measurement another process started" do
       stub_coverage
       start
@@ -408,8 +370,6 @@ RSpec.describe SimpleCov::Production do
       expect(held).to eq([true, true])
     end
 
-    # The defensive arm: a flush thread that died on its own (or a
-    # state carried over a fork) must not keep `stop` from finishing.
     it "still stops when the flush thread is already gone" do
       described_class.instance_variable_get(:@thread)&.kill&.join
       described_class.instance_variable_set(:@thread, nil)
@@ -443,9 +403,6 @@ RSpec.describe SimpleCov::Production do
       expect(thread.name).to eq("SimpleCov::Production flusher")
     end
 
-    # The whole point of waiting on a condition variable rather than
-    # sleeping: `stop` on a deploy must not sit out a ten-minute
-    # interval before the process can exit.
     it "is woken by stop rather than waiting out the interval" do
       stub_coverage
       described_class.start(root: root, sink: queue_sink, flush_interval: 600)
@@ -456,8 +413,6 @@ RSpec.describe SimpleCov::Production do
       expect(thread).not_to be_alive
     end
 
-    # Woken to stop, the thread stops: one more drain on the way out
-    # would deliver the same lines twice.
     it "does not drain once more on its way out" do
       stub_coverage(result: {abs("lib/a.rb") => {oneshot_lines: [1]}})
       described_class.start(root: root, sink: queue_sink, flush_interval: 600)
@@ -483,9 +438,6 @@ RSpec.describe SimpleCov::Production do
       start
     end
 
-    # Signalling without the lock is how a wake goes missing: the thread
-    # can be between checking its state and waiting when the signal
-    # lands, and would then sit out a full interval.
     it "signals under the lock" do
       held = nil
       waiter = described_class.instance_variable_get(:@waiter)
@@ -500,9 +452,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # The jitter keeps a fleet of workers booted together (a forking
-  # server's worker-boot hook starts them all at once) from draining
-  # into the shared sink at the same instant every interval.
   describe "flush jitter" do
     before { stub_coverage }
 
@@ -527,9 +476,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # Each keyword configures one thing, and the defaults are part of the
-  # documented interface, so both are read back off the configured state
-  # rather than inferred from behaviour.
   describe "what start configures",
            mutant_expression: ["SimpleCov::Production*", "SimpleCov::Production.start"] do
     before { stub_coverage }
@@ -560,8 +506,6 @@ RSpec.describe SimpleCov::Production do
     end
 
     it "measures from the first interval and takes the process it started in" do
-      # A forked worker inherits its parent's buffer along with
-      # everything else, and those lines are the parent's to deliver.
       described_class.instance_variable_set(:@pending, {"lib/parent.rb" => Set[1]})
       start
 
@@ -570,8 +514,6 @@ RSpec.describe SimpleCov::Production do
       expect(configured(:pending)).to eq({})
     end
 
-    # A deploy script hands over whatever it has, and a worker that
-    # chdirs later must still recognise the same files.
     it "resolves a relative root once, up front" do
       described_class.start(root: "app", sink: sink)
 
@@ -586,8 +528,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # `reset!` is what lets a test suite run this module repeatedly, so
-  # every piece of state it claims to clear is checked.
   describe ".reset!" do
     before { stub_coverage }
 
@@ -605,8 +545,6 @@ RSpec.describe SimpleCov::Production do
       expect(described_class.instance_variable_get(:@started_coverage)).to be false
     end
 
-    # One hook per process: the registration flag deliberately survives,
-    # so a second start after a reset does not stack another at_exit.
     it "leaves the at_exit registration in place" do
       start
       described_class.reset!
@@ -634,9 +572,6 @@ RSpec.describe SimpleCov::Production do
     end
 
     it "does nothing about a thread that was never spawned" do
-      # The state a first start finds, which earlier examples in this
-      # process have left behind: nothing configured, so no lock to take
-      # and no thread to wake.
       described_class.instance_variable_set(:@mutex, nil)
 
       expect { described_class.reset! }.not_to raise_error
@@ -646,8 +581,6 @@ RSpec.describe SimpleCov::Production do
   describe "the sampling duty cycle" do
     before { stub_coverage }
 
-    # At the full rate there is nothing to sample, so the runtime is
-    # never touched: exactly 1.0 measures always.
     it "never suspends or resumes at the full rate" do
       start_without_flush_thread(sample_rate: 1.0)
       allow(described_class).to receive(:rand).and_return(0.99)
@@ -689,8 +622,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # A child that inherits a measurement from its parent keeps it: the
-  # fork only needs its own flush thread, not a second Coverage owner.
   describe "starting in a forked child", mutant_expression: ["SimpleCov::Production*",
                                                              "SimpleCov::Production.start"] do
     it "picks the inherited measurement back up" do
@@ -713,9 +644,6 @@ RSpec.describe SimpleCov::Production do
       expect(stderr).to include("Coverage is already running")
     end
 
-    # All three conditions have to hold to inherit a measurement: this
-    # module started it, in some process, and not this one. Each is
-    # checked by making it the only one that fails.
     it "declines a measurement it started in this very process" do
       stub_coverage
       described_class.instance_variable_set(:@started_coverage, true)
@@ -747,10 +675,6 @@ RSpec.describe SimpleCov::Production do
     end
   end
 
-  # The at_exit hook is registered once per process and carries nothing
-  # but a call to `stop`, which declines on its own when nothing is
-  # running. The registration itself is asserted by standing in for
-  # `at_exit`.
   describe "the at_exit registration" do
     before do
       stub_coverage

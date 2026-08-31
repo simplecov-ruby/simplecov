@@ -1,8 +1,5 @@
 module SimpleCov
   module ExitCodes
-    # Fails when any single file carries more misses than the
-    # `maximum_missed_per_file` cap for any criterion. Files with a
-    # baseline entry answer to their own floor instead.
     class MaximumMissedPerFileCheck < Check
       @overrides: untyped
 

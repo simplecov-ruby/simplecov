@@ -18,9 +18,6 @@ RSpec.describe SimpleCov::LastRun do
   end
 
   context "when reading" do
-    # Don't leak this describe's fixtures (the corrupt ones especially)
-    # into later examples: anything formatting a result reads
-    # .last_run.json through the maximum_coverage_drop check.
     after { FileUtils.rm_f(last_run.last_run_path) }
 
     context "when the last_run file does not exist" do
@@ -82,7 +79,6 @@ RSpec.describe SimpleCov::LastRun do
       expect(described_class.read).to be_nil
     end
 
-    # A file of no bytes at all is as empty as one of blank ones.
     it "answers nothing, quietly, for an empty file" do
       File.write(path, "")
 
@@ -94,10 +90,6 @@ RSpec.describe SimpleCov::LastRun do
       expect(described_class.read).to eq(result: {line: 80.0})
     end
 
-    # A corrupt or hand-edited file counts as no previous run rather
-    # than taking the at_exit hook down with it.
-    # Corrupt is not the same as absent: the run says so before
-    # carrying on without a previous result.
     it "warns and answers nothing for a file that is not JSON" do
       File.write(path, "{not json")
 

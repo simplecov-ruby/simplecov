@@ -1,25 +1,9 @@
 module SimpleCov
-  #
-  # Helper that tries to find out what test suite is running (for SimpleCov.command_name)
-  #
   module CommandGuesser
-    # Storage for the original command line call that invoked the test suite.
-    # This has got to be stored as early as possible because i.e. rake and test/unit 2
-    # have a habit of tampering with ARGV, which makes i.e. the automatic distinction
-    # between rails unit/functional/integration tests impossible without this cached
-    # item.
     attr_reader self.original_run_command: untyped
 
-    # Assigning the flattened command clears any separately recorded program
-    # name so the two can never describe different runs. Callers that know the
-    # real one assign it immediately afterwards, as `defaults.rb` does.
     def self.original_run_command=: (untyped command) -> untyped
 
-    # The invoked program on its own. `original_run_command` joins
-    # `$PROGRAM_NAME` and `ARGV` with a space, so a program path containing
-    # one (`/opt/My Ruby/bin/rspec`) cannot be recovered from it afterwards.
-    # Falls back to the first token for callers that set only the flattened
-    # command, which is every caller outside `defaults.rb`.
     attr_writer self.original_program_name: untyped
 
     def self.original_program_name: () -> untyped
@@ -28,16 +12,8 @@ module SimpleCov
 
     private
 
-    # When parallel_tests (or a compatible runner) is driving the suite,
-    # tag the command name with this worker's position in the pool.
     def self.parallel_data: () -> (nil | ::String)
 
-    # The command is `"#{$PROGRAM_NAME} #{ARGV.join(' ')}"`, so a keyword only
-    # carries meaning when it begins a path segment or an argument. Matching it
-    # as a bare substring lets any part of the *interpreter* path decide the
-    # suite name: a Ruby installed under `latest/bin` (as mise does) contains
-    # "test/", so every run through it was labelled "Unit Tests". The same
-    # applies within ARGV, where `spec/greatest/` used to match just as wrongly.
     SEGMENT_START: ::Regexp
 
     SEGMENT_END: ::Regexp
@@ -46,22 +22,12 @@ module SimpleCov
 
     def self.from_command_line_options: () -> untyped
 
-    # Which binary was invoked outranks everything else on the command line.
-    # `rspec features` is an RSpec suite whose examples live in features/, not
-    # a Cucumber run, and only the executable name says so. Generic runners
-    # (`ruby`, `rake`, a bare `*_test.rb` script) are absent on purpose: they
-    # name no framework, so those runs fall through to the path patterns, which
-    # is what keeps the test/functional vs test/integration split working.
     EXECUTABLE_FRAMEWORKS: ::Hash[::String, ::String]
 
     def self.from_executable_name: () -> (nil | ::String)
 
-    # Inner array literals after the first are flagged uncovered by Ruby's
-    # Coverage module even though the constant evaluates as a whole — known
-    # quirk with multi-line array literals.
     DEFINED_CONSTANT_FRAMEWORKS: ::Array[::Array["RSpec" | untyped] | ::Array["Unit Tests" | untyped] | ::Array["Minitest" | untyped] | ::Array["MiniTest" | untyped]]
 
-    # If the command regexps fail, let's try checking defined constants.
     def self.from_defined_constants: () -> (untyped | "Unknown Test Framework")
   end
 end

@@ -1,5 +1,3 @@
-// File-list table markup: the per-group container, column headers, totals row,
-// and one row per source file.
 
 import { escapeHTML } from './dom';
 import { pctClass, fmtNum, fmtPct, fileId } from './format';
@@ -18,16 +16,10 @@ interface FileListArgs {
   branchCoverage: boolean;
   methodCoverage: boolean;
   primaryCoverage: CoverageType;
-  // True when the run recorded contexts (`track_tests`): line bars split
-  // out the covered-outside-tests share and pick up the by-tests sort key.
   contextsEnabled?: boolean;
-  // Production coverage, when the report carries it: each row gains a
-  // last-run-in-production column, sortable by recency.
   production?: ProductionData;
 }
 
-// Container open + <thead> (column headers and the totals row), i.e.
-// everything in a file-list section before the per-file <tbody> rows.
 function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   const { containerId, title, filenames, stats, lineCoverage, branchCoverage, methodCoverage, primaryCoverage } = args;
   const lineStats = lineCoverage ? stats.lines : undefined;
@@ -56,9 +48,6 @@ function renderFileListHead(args: FileListArgs, outsideTotal?: number): string {
   if (lineStats) html.push(renderCoverageCells(lineStats.percent, lineStats.covered, lineStats.total, 'line', true, outsideTotal));
   if (branchStats) html.push(renderCoverageCells(branchStats.percent, branchStats.covered, branchStats.total, 'branch', true));
   if (methodStats) html.push(renderCoverageCells(methodStats.percent, methodStats.covered, methodStats.total, 'method', true));
-  // The totals cell stays empty: a "files seen" count would go stale as
-  // rows are filtered, and the live totals updater only recomputes
-  // coverage sums.
   if (args.production) html.push('<td class="cell--production"></td>');
   html.push('</tr></thead><tbody>');
 
@@ -75,12 +64,6 @@ interface FileRowArgs {
   production?: ProductionData;
 }
 
-// The row's last-run-in-production cell. `data-order` carries epoch
-// milliseconds so the recency sort is numeric; a file the window never
-// saw sorts before everything (ascending puts the deletion candidates
-// on top), and a stamp-less store (written before stamps existed) sorts
-// between "never" and any dated file. The cell starts as the ISO date;
-// the timeago pass rewrites it to relative words on page load.
 function renderProductionCell(filename: string, production: ProductionData): string {
   const entry = production.files[filename];
   if (!entry) return '<td class="cell--production t-file__production t-file__production--never" data-order="-1">never</td>';
@@ -133,7 +116,6 @@ function renderFileRow(args: FileRowArgs): string {
 export function renderFileList(args: FileListArgs): string {
   const { filenames, allCoverage, lineCoverage, branchCoverage, methodCoverage, contextsEnabled, production } = args;
 
-  // Computed once per file: the totals row shows the sum, each row its own.
   const outsideByFile = contextsEnabled && lineCoverage ? new Map(
     filenames.flatMap((fn) => {
       const f = allCoverage[fn];

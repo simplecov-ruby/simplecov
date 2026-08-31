@@ -5,10 +5,6 @@ require "time"
 module SimpleCov
   module Formatter
     class HTMLFormatter
-      # Validates the subset of coverage.json that the browser viewer
-      # dereferences without defensive fallbacks. One check per section
-      # the viewer reads; the module's length tracks the document's
-      # surface, not an accumulation of concerns.
       module ViewerDataValidator
         META_STRINGS = %w[simplecov_version command_name project_name timestamp].freeze
         COVERAGE_FLAGS = {
@@ -53,8 +49,6 @@ module SimpleCov
                   "regenerate with source_in_json true"
           end
 
-          # Optional: a report without `track_tests` carries none. When
-          # present, the viewer decodes both halves, so both are checked.
           def validate_contexts!(data)
             contexts = data["contexts"]
             unless contexts.nil? || (contexts.instance_of?(Array) && contexts.all?(String))
@@ -65,9 +59,6 @@ module SimpleCov
             data.fetch("coverage").each { |filename, file| validate_context_table!(filename, file["contexts"], count) }
           end
 
-          # The viewer converts each key with Number() and indexes the
-          # document's context list with it, and walks each value as hex
-          # nibbles, so keys and values are held to exactly that contract.
           def validate_context_table!(filename, table, count)
             return if table.nil? || (table.instance_of?(Hash) && table.all? do |key, value|
               context_entry?(key, value, count)
@@ -82,11 +73,6 @@ module SimpleCov
               value.instance_of?(String) && value.match?(/\A\h+\z/)
           end
 
-          # Optional: a report without a configured production store
-          # carries none. When present, the viewer dereferences the
-          # files table, each entry's line list, and the stamp's string
-          # methods, so exactly those are checked; the window edges only
-          # ever feed display and stay free-form.
           def validate_production!(data)
             production = data["production"]
             return if production.nil?
@@ -122,10 +108,6 @@ module SimpleCov
             raise CoverageJSON::Error, "meta.timestamp must be an ISO 8601 date-time"
           end
 
-          # Optional: documents from before the key exists carry only the
-          # joined command_name, which the viewer falls back to. When
-          # present, the viewer counts and lists the entries, so it must
-          # be an array of strings.
           def validate_command_names!(meta)
             names = meta["command_names"]
             return if names.nil? || (names.instance_of?(Array) && names.all?(String))

@@ -2,8 +2,6 @@
 
 require "helper"
 
-# Make sure that exit codes of tests are propagated properly
-# See https://github.com/simplecov-ruby/simplecov/issues/5
 RSpec.describe "return codes" do
   context "when inside fixtures/frameworks" do
     around do |test|
@@ -18,10 +16,6 @@ RSpec.describe "return codes" do
     let(:captured_stderr) { capture[1] }
     let(:status)          { capture[2] }
 
-    # SimpleCov writes its "Coverage report generated…" status line and
-    # per-criterion totals to stderr by design. Strip those expected
-    # lines so the "anything unusual on stderr?" assertions focus on
-    # real diagnostic noise (errors, warnings, deprecations).
     def stderr_without_report_summary(stderr)
       stderr.lines.reject do |line|
         line.start_with?("Coverage report generated", "Line coverage:", "Branch coverage:", "Method coverage:")

@@ -1,8 +1,3 @@
-// Boots the whole report the way a browser does: install the index.html
-// skeleton, plant window.SIMPLECOV_DATA, fire DOMContentLoaded, and assert
-// the page assembles end to end. This is also what guarantees a full-suite
-// run loads every src module, so the coverage threshold sees the entire
-// frontend.
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { coverageData, installPageSkeleton } from './fixture';
 import '../src/app';
@@ -25,10 +20,6 @@ describe('application boot', () => {
     installPageSkeleton();
 
     const data = coverageData();
-    // A grouped report exercises the tab bar. The timestamp is hours old so
-    // the timeago rescheduler parks on an hour-scale timer: old enough to
-    // never flip mid-test, recent enough that the delay to the next boundary
-    // fits in the 32-bit signed range happy-dom's setTimeout accepts.
     data.groups = {Libraries: {files: ['lib/covered.rb'], lines: {covered: 3, missed: 0, total: 3, percent: 100, strength: 1}}};
     data.meta.timestamp = new Date(Date.now() - 10 * 3600 * 1000).toISOString();
     window.SIMPLECOV_DATA = data;

@@ -4,9 +4,6 @@ require "helper"
 require "support/sandbox_project"
 require "tmpdir"
 
-# The output directory for coverage reports can be customized with
-# SimpleCov.coverage_dir, replacing the default 'coverage' directory —
-# with either a relative or an absolute path.
 RSpec.describe "custom coverage directory", :sandbox do
   before { setup_project("faked_project") }
 
@@ -24,9 +21,6 @@ RSpec.describe "custom coverage directory", :sandbox do
   end
 
   it "writes the report to an absolute custom directory" do
-    # The cucumber scenario used the literal '/tmp/test/simplecov'; a
-    # per-process directory keeps the same absolute-path semantics
-    # without machine-global state.
     absolute_dir = File.join(Dir.tmpdir, "simplecov-sandbox-#{Process.pid}", "test", "simplecov")
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'

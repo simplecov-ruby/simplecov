@@ -3,15 +3,9 @@
 module SimpleCov
   module CLI
     module Show
-      # The bare-invocation project sweep: every file with misses, in
-      # the compact `path:ranges` form or as JSON — one command whose
-      # output is the whole project's uncovered surface, ready for a
-      # grep or a coding agent.
       module Sweep
         extend self
 
-        # [display path, missed lines] per file with misses, sorted,
-        # with paths under SimpleCov.root shown project-relative.
         def misses(coverage)
           rows = coverage.filter_map do |filename, entry|
             next unless entry.instance_of?(Hash) && entry["lines"].instance_of?(Array)

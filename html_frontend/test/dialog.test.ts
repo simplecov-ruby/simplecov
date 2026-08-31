@@ -1,6 +1,3 @@
-// Hash-based routing between the file list and the modal source dialog:
-// tab activation, on-demand source materialization into the dialog, header
-// save/restore, and the close affordances.
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { installPageSkeleton, coverageData } from './fixture';
 import { renderPage, materializeSourceFile } from '../src/page';
@@ -13,7 +10,6 @@ function clearHash(): void {
   window.location.replace(window.location.href.replace(/#.*/, ''));
 }
 
-// What app.ts's setupTabs builds, reduced to what dialog.ts reads.
 function addTab(id: string): void {
   const li = document.createElement('li');
   li.innerHTML = `<a href="#${id}" class="${id}">All Files (100.00%)</a>`;
@@ -61,7 +57,7 @@ describe('navigateToHash with a tab hash', () => {
   });
 
   test('leaves the active tab alone for unknown ids', () => {
-    navigateToHash(); // activates g-total
+    navigateToHash();
     window.location.hash = '#_missing';
     navigateToHash();
     expect(document.querySelector('.group_tabs li.active a')!.getAttribute('href')).toBe('#g-total');
@@ -76,10 +72,8 @@ describe('navigateToHash with a source-file hash', () => {
     navigateToHash();
 
     expect(dialogIsOpen()).toBe(true);
-    // No tab was active, so the first one is marked active for the return trip.
     expect(document.querySelector('.group_tabs li')!.classList.contains('active')).toBe(true);
     expect(document.getElementById('source-dialog-title')!.textContent).toContain('lib/missed.rb');
-    // The header moved out of the source element into the dialog title.
     const el = getDialogBody().querySelector('.source_table')!;
     expect(el.querySelector('.header')).toBeNull();
     expect(document.documentElement.style.overflow).toBe('hidden');
@@ -95,7 +89,6 @@ describe('navigateToHash with a source-file hash', () => {
     navigateToHash();
     expect(getDialogBody().scrollTop).toBe(77);
 
-    // Re-navigating while open (no showModal) to a line that does not exist.
     window.location.hash = '#' + id + '-L999';
     navigateToHash();
     expect(getDialogBody().scrollTop).toBe(77);
@@ -128,7 +121,6 @@ describe('returning to the file list', () => {
     expect(dialogIsOpen()).toBe(false);
     const el = document.querySelector('.source_files .source_table')!;
     expect(el.id).toBe(id);
-    // The saved header was reinserted at the top of the source element.
     expect(el.firstElementChild!.classList.contains('header')).toBe(true);
     expect(getDialogBody().innerHTML).toBe('');
     expect(document.getElementById('source-dialog-title')!.innerHTML).toBe('');
@@ -148,7 +140,7 @@ describe('returning to the file list', () => {
 
 describe('navigateToActiveTab', () => {
   test('jumps to the active tab and is a no-op without one', () => {
-    navigateToHash(); // activates g-total
+    navigateToHash();
     window.location.hash = '#somewhere';
     navigateToActiveTab();
     expect(window.location.hash).toBe('#_g-total');

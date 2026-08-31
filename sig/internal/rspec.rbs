@@ -1,6 +1,3 @@
-# Minimal declarations for the RSpec surface SimpleCov::TestTracker
-# touches when it installs the per-test around hook. Internal
-# type-checking only; not shipped with the gem.
 module RSpec
   def self.configure: () { (untyped config) -> void } -> void
 end

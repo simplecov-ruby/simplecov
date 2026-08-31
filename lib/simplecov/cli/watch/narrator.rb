@@ -3,9 +3,6 @@
 module SimpleCov
   module CLI
     module Watch
-      # The session's voice: the watching/serving banner, the
-      # "<file> changed, running N files..." line, and the result
-      # percentage with its delta that joins the same line.
       class Narrator
         def initialize(stdout, root)
           @stdout = stdout
@@ -26,7 +23,6 @@ module SimpleCov
           @stdout.print("#{named} changed, #{action(plan.fetch(:tests))}...")
         end
 
-        # " 95.00% (+5.00%)" on the line `change` opened.
         def result(before, after)
           return @stdout.puts unless after
 
@@ -44,8 +40,6 @@ module SimpleCov
 
       private
 
-        # A burst is named by the file that opened it, so the line stays
-        # one line however many files a save touched.
         def name(changed)
           relative = changed.map { |path| path.delete_prefix("#{@root}/") }
           named = relative.first

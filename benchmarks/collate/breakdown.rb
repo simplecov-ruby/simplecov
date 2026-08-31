@@ -1,17 +1,9 @@
 # frozen_string_literal: true
 
 module CollateBenchmark
-  # Opt-in attribution of the merge phase to the methods inside it, so a change
-  # can be aimed rather than guessed at.
-  #
-  # Each wrapper adds a couple of `clock_gettime` calls per invocation, which is
-  # a few percent on the merge phase — enough that an instrumented run makes a
-  # poor baseline, which is why `Report` records the flag alongside the timings.
   module Breakdown
     extend self
 
-    # Labelled as `[description, module, method]`. The modules are resolved
-    # lazily because this file is loaded before `simplecov` is.
     TARGETS = [
       ["ResultsetFile.parse (read + JSON)", %w[ResultMerger ResultsetFile], :parse],
       ["LegacyFormatAdapter.call", %w[ResultMerger LegacyFormatAdapter], :call],
@@ -21,14 +13,11 @@ module CollateBenchmark
       ["MethodsCombiner.absorb", %w[Combine MethodsCombiner], :absorb]
     ].freeze
 
-    # Same, for the instance methods that drive those combiners.
     INSTANCE_TARGETS = [
       ["CoverageAccumulator#absorb", %w[Combine CoverageAccumulator], :absorb],
       ["CoverageAccumulator#result", %w[Combine CoverageAccumulator], :result]
     ].freeze
 
-    # A caller's own row is reported net of the callees listed here —
-    # otherwise the shares sum to well over 100%.
     NESTED = {
       "CoverageAccumulator#absorb" => ["LinesCombiner.merge_into", "BranchesCombiner.absorb",
                                        "MethodsCombiner.absorb"],
@@ -63,8 +52,6 @@ module CollateBenchmark
       end
     end
 
-    # Instance methods can't be redefined on the singleton, so time them from
-    # a prepended module instead.
     def wrap_instance(label, klass, method_name)
       klass.prepend(Module.new do
         define_method(method_name) do |*args, **kwargs, &block|

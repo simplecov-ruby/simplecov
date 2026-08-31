@@ -1,7 +1,5 @@
 module SimpleCov
   module CLI
-    # The `simplecov help` text. A method so its default paths resolve at
-    # call time against the active `.simplecov`.
     module Usage
       def self?.text: (untyped cli) -> ::String
 

@@ -35,9 +35,6 @@ RSpec.describe SimpleCov::SourceFile::Branch do
     expect(branch.inline?).to be true
   end
 
-  # An inline branch is reported where it sits. A block branch is
-  # reported a line higher, on the condition itself, so that the report
-  # highlights the `if` rather than the first line of the arm.
   describe "#report_line" do
     it "reports an inline branch on its own first line" do
       branch = described_class.new(start_line: 5, end_line: 5, coverage: 1, inline: true, type: :then)
@@ -105,8 +102,6 @@ RSpec.describe SimpleCov::SourceFile::Branch do
     end
   end
 
-  # The group name doubles as mutant's test selector, so it has to be the
-  # method name and nothing else.
   describe "#overlaps_with?" do
     subject(:branch) { described_class.new(start_line: 5, end_line: 7, coverage: 0, inline: false, type: :then) }
 

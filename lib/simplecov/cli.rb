@@ -27,17 +27,11 @@ require_relative "cli/usage"
 require_relative "cli/watch"
 
 module SimpleCov
-  # Lightweight command-line front-end. `run` dispatches a subcommand
-  # (`coverage`, `report`, `uncovered`, `merge`, `diff`, `open`, etc.) —
-  # see `Usage.text` for the full list, or run `simplecov help`.
-  #
-  # Read-only subcommands consume JSONFormatter output (`coverage.json`),
-  # which the bundled HTMLFormatter already drops alongside the HTML, so
-  # no runtime hooking is needed for those. Default paths follow the
-  # project's `.simplecov` `SimpleCov.coverage_dir` setting when one is
-  # present, so a project that writes its report somewhere other than
-  # `coverage/` doesn't have to pass `--input` / `--report` every
-  # invocation.
+  # Lightweight command-line front-end. Read-only subcommands consume
+  # JSONFormatter output, which the bundled HTMLFormatter already drops
+  # alongside the HTML, so no runtime hooking is needed for those. Default
+  # paths follow the project's `.simplecov` `coverage_dir` setting when one is
+  # present.
   module CLI
     COMMANDS = {
       "coverage" => Coverage,
@@ -64,10 +58,9 @@ module SimpleCov
 
     extend self
 
-    # Resolved once per process. Walks up from cwd looking for a
-    # `.simplecov`; if present, the file is loaded with
-    # `SimpleCov.start` neutered so it can't trigger coverage tracking
-    # or an at_exit hook just because we asked it for a config value.
+    # Resolved once per process, by walking up from cwd for a `.simplecov` and
+    # loading it with `SimpleCov.start` neutered so it can't trigger tracking
+    # just because we asked it for a config value.
     def coverage_dir
       @coverage_dir ||= Dotfile.coverage_dir
     end
@@ -76,10 +69,6 @@ module SimpleCov
       File.join(coverage_dir, "coverage.json")
     end
 
-    # Resolve "should this subcommand colorize?" once per invocation.
-    # `--no-color` (opts[:no_color]) is the per-invocation kill-switch;
-    # otherwise we defer to `SimpleCov::Color.enabled?`, which honors
-    # `NO_COLOR` / `FORCE_COLOR` and falls back to `stream.tty?`.
     def color_enabled?(opts, stream)
       return false if opts[:no_color]
 
@@ -94,7 +83,6 @@ module SimpleCov
       File.join(coverage_dir, ".resultset.json")
     end
 
-    # Returns a process exit status (0 on success, non-zero on error).
     def run(argv, stdout: $stdout, stderr: $stderr)
       command, *rest = argv
       handler = COMMANDS[command]
@@ -105,16 +93,14 @@ module SimpleCov
       1
     end
 
-    # One rescue covers every subcommand's OptionParser, so a typo'd
-    # flag or a malformed typed argument becomes a one-line error and
-    # exit status 1 instead of an unhandled-exception backtrace.
+    # One rescue covers every subcommand's OptionParser, so a typo'd flag becomes
+    # a one-line error and exit status 1 instead of a backtrace.
     def dispatch(handler, command, rest, stdout:, stderr:)
       handler.run(rest, stdout: stdout, stderr: stderr)
     rescue CommandHelpers::HelpRequested
       stdout.puts(Usage.for(self, command))
       0
     rescue OptionParser::ParseError => e
-      # The exception stands for its own message in the interpolation.
       stderr.puts("simplecov #{command}: #{e} (run `simplecov help` for usage)")
       1
     end

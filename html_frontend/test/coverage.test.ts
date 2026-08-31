@@ -1,6 +1,3 @@
-// Criterion selection: how the report decides which coverage type is
-// primary and which stat block backs a summary, including the fallback
-// ladder when the configured primary criterion is disabled.
 import { describe, expect, test } from 'bun:test';
 import {
   activeCoverageType,
@@ -53,7 +50,6 @@ describe('activeCoverageType', () => {
   });
 
   test('falls back when the primary criterion is disabled', () => {
-    // primary_coverage names branch, but branch data was never collected.
     expect(activeCoverageType(makeMeta({primary_coverage: 'branch'}))).toBe('line');
   });
 

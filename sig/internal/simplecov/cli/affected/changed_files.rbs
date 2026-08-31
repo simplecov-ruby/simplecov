@@ -1,9 +1,6 @@
 module SimpleCov
   module CLI
     module Affected
-      # The change as git sees it, `{root:, changed:}`: the merge-base
-      # diff against the working tree, unioned with untracked files,
-      # anchored at the repository toplevel.
       module ChangedFiles
         def self?.call: (String base, untyped stderr) -> Hash[Symbol, untyped]?
 

@@ -1,8 +1,6 @@
 module SimpleCov
   module CLI
     module Ratchet
-      # Renders a ratchet pass: the one-line write summary, the
-      # below-floor note, and the JSON form of the same facts.
       module Output
         include CommandHelpers
 

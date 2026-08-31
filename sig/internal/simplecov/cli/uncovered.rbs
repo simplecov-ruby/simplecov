@@ -1,12 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov uncovered [--threshold N] [--top N] [--criterion C]` — list
-    # the lowest-coverage files (by the chosen criterion, ascending), so a
-    # developer can answer "where should I add tests next?" without
-    # opening a browser. Reads coverage.json directly.
     module Uncovered
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers
@@ -23,12 +17,8 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
-      # Option parsing with per-flag coercions is inherently ABC-heavy; the
-      # metric is noise here.
       def self?.build_parser: (untyped opts) -> untyped
 
-      # A negative count would raise from `Array#first`; report it as
-      # the parse error it is.
       def self?.validate_top: (::Integer value) -> ::Integer
 
       def self?.emit_text: (untyped stdout, untyped files, untyped color) -> untyped

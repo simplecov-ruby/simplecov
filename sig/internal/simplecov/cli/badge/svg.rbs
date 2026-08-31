@@ -1,7 +1,6 @@
 module SimpleCov
   module CLI
     module Badge
-      # Renders the flat badge SVG for the badge command.
       module Svg
         COLORS: Array[Array[untyped]]
 

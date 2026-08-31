@@ -11,10 +11,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   let(:loud_formatter) { described_class.new(silent: false) }
   let(:fixtures_path)  { File.join(source_fixture_base_directory, "fixtures") }
 
-  # A coverage directory of its own, rather than the suite's shared one.
-  # These examples assert the exact contents of the directory the
-  # formatter wrote into, and they used to empty that directory first,
-  # both of which reach into whatever else the suite keeps there.
   let(:tmp_root) { Dir.mktmpdir("simplecov-html-formatter-") }
   let(:coverage_dir) { File.join(tmp_root, "coverage") }
 
@@ -34,9 +30,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     SimpleCov::Result.new(coverage.transform_keys { |name| fixture_path(name) })
   end
 
-  # Extract the embedded coverage JSON back out of the single-file
-  # report. The payload's `<` characters are escaped, so the first
-  # "</script>" after the assignment is reliably the element's close.
   def embedded_json(dir = coverage_dir)
     html = File.read(File.join(dir, "index.html"))
     html[%r{window\.SIMPLECOV_DATA = (.*?);</script>}m, 1]
@@ -56,7 +49,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   def assign_default_external(encoding)
     verbose = $VERBOSE
-    $VERBOSE = nil # assigning default_external warns; that's the point here
+    $VERBOSE = nil
     Encoding.default_external = encoding
   ensure
     $VERBOSE = verbose
@@ -69,24 +62,16 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
   end
 
-  # The compiled viewer ships inside the gem, next to the formatter that
-  # reads it.
   it "reads its template from the assets directory beside the formatter" do
     expect(formatter.send(:public_dir))
       .to eq("#{File.expand_path('../../lib/simplecov/formatter/html_formatter/public', __dir__)}/")
   end
 
   describe "#format when an existing coverage.json was written after this process started" do
-    # Outside SimpleCov.start, process_start_time is nil (other examples
-    # may also have reset it). Anchor it so the concurrent-overwrite
-    # check has a reference point.
     before { SimpleCov.process_start_time = Time.now }
 
     after { SimpleCov.process_start_time = nil }
 
-    # The HTML formatter is the default formatter and writes coverage.json
-    # too, so it must carry the same issue-#1171 concurrent-overwrite
-    # warning as the JSON formatter.
     it "warns that a concurrent process may have written it" do
       future_timestamp = (Time.now + 3600).iso8601
       File.write(File.join(coverage_dir, "coverage.json"),
@@ -108,10 +93,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   end
 
   describe "#format under a non-UTF-8 default external encoding" do
-    # A minimal CI container's locale resolves `Encoding.default_external`
-    # to US-ASCII (Windows to a code page). The template and payload are
-    # read and built as UTF-8 explicitly, so embedding non-ASCII source
-    # like utf-8.rb's "135°C" must not raise Encoding::CompatibilityError.
     it "still renders the report" do
       with_default_external(Encoding::US_ASCII) do
         formatter.format(make_result({"utf-8.rb" => {"lines" => [1]}}))
@@ -121,10 +102,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     it "still renders from a coverage.json carrying non-ASCII source" do
-      # `File.read` without an explicit encoding tags the JSON with the
-      # locale's encoding, and parsing "135°C" as US-ASCII raises
-      # Encoding::InvalidByteSequenceError before the template is even
-      # touched.
       formatter.format(make_result({"utf-8.rb" => {"lines" => [1]}}))
 
       Dir.mktmpdir do |dir|
@@ -154,10 +131,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html]
     end
 
-    # Written in binary mode so the report is byte-identical wherever it
-    # was generated, rather than gaining CRLFs on a platform that
-    # translates newlines. Asserted at the call, since the mode has no
-    # effect on a platform that does not translate them.
     it "writes the report as bytes, not text" do
       allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
 
@@ -168,8 +141,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     end
 
     it "removes the sibling files a pre-1.0.4 report left behind" do
-      # A stale coverage_data.js is worse than clutter: `simplecov serve`
-      # would keep serving the old data next to the new report.
       described_class::LEGACY_REPORT_FILES.each { |name| FileUtils.touch(File.join(coverage_dir, name)) }
       FileUtils.touch(File.join(coverage_dir, "unrelated.txt"))
 
@@ -178,8 +149,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(Dir.children(coverage_dir).sort).to eq %w[coverage.json index.html unrelated.txt]
     end
 
-    # Extraction goes through the `window.SIMPLECOV_DATA = ` marker, so
-    # this also pins the embedding shape itself.
     it "embeds parseable JSON in the report" do
       data = coverage_data
 
@@ -216,15 +185,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(meta["method_coverage"]).to be(true).or be(false)
     end
 
-    # Regression test for #741: in Nix and similar pure-build environments,
-    # the gem's static assets ship at mode 0444. Earlier code copied them
-    # via `FileUtils.cp_r`, which preserved the read-only mode and then
-    # raised EACCES the next run when it tried to open them for writing.
-    # The temp-file + rename approach bypasses the open-for-write step.
-    # Only the files are made read-only, and their modes are put back
-    # afterwards: a directory at 0444 has no execute bit, so nothing
-    # inside it can be read again, and this directory outlives the
-    # example and the run.
     it "overwrites read-only assets from prior runs without raising EACCES" do
       formatter.format(make_result)
       assets = Dir[File.join(coverage_dir, "*")].select { |path| File.file?(path) }
@@ -257,13 +217,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   end
 
   describe "#render_report escaping" do
-    # The coverage JSON lands inside a <script> element, where a raw
-    # "</script>" (or "<!--" + "<script") in embedded source text would
-    # terminate or destabilize the element. render_report escapes every
-    # `<` in the payload, so none of these sequences can occur raw.
-    # The backslashes matter as much as the angle brackets: substituted as
-    # a replacement string rather than through a block, `\1` would be read
-    # as a back-reference and dropped from the payload.
     it "keeps embedded </script>, <!-- and backslash sequences intact" do
       hostile = {"source" => ["</script><script>alert(1)</script>", "<!-- <script> -->", "a\\1b\\\\c"]}
       html = formatter.send(:render_report, JSON.generate(hostile))
@@ -273,9 +226,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(JSON.parse(captured)).to eq hostile
     end
 
-    # The template is read as UTF-8 rather than in the locale's encoding,
-    # so a minimal CI container (US-ASCII) can still embed a payload
-    # carrying non-ASCII source.
     it "embeds a non-ASCII payload under a non-UTF-8 default external encoding" do
       html = with_default_external(Encoding::US_ASCII) do
         formatter.send(:render_report, JSON.generate({"source" => ["135°C"]}))
@@ -284,9 +234,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(html).to include(%(window.SIMPLECOV_DATA = {"source":["135°C"]};))
     end
 
-    # The report is the compiled template with the payload substituted
-    # at its marker, so everything the template carries (the viewer's
-    # JS and CSS included) is still around the data.
     it "substitutes the payload into the template, leaving the rest of the page" do
       template = File.read(File.join(formatter.send(:public_dir), "index.html"), encoding: Encoding::UTF_8)
 
@@ -328,8 +275,6 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       expect(Dir.children(standalone_dir)).to eq %w[index.html]
     end
 
-    # The same byte-for-byte report as an in-process run writes, which
-    # is the point of regenerating one from a coverage.json.
     it "writes the standalone report as bytes, not text" do
       allow(SimpleCov::AtomicFile).to receive(:write).and_call_original
 

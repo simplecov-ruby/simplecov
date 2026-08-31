@@ -2,9 +2,6 @@
 
 module SimpleCov
   class SourceFile
-    #
-    # Representing single branch that has been detected in coverage report.
-    # Give us support methods that handle needed calculations.
     class Branch
       attr_reader :start_line, :end_line, :coverage, :type
 
@@ -21,32 +18,17 @@ module SimpleCov
         @inline
       end
 
-      #
-      # Return true if there is relevant count defined > 0
-      #
-      # @return [Boolean]
-      #
       def covered?
         !skipped? && coverage.positive?
       end
 
-      #
-      # Check if branch missed or not
-      #
-      # @return [Boolean]
-      #
       def missed?
         !skipped? && coverage.zero?
       end
 
-      # The line on which we want to report the coverage
-      #
-      # Usually we choose the line above the start of the branch (so that it shows up
-      # at if/else) because that
-      # * highlights the condition
-      # * makes it distinguishable if the first line of the branch is an inline branch
-      #   (see the nested_branches fixture)
-      #
+      # Usually the line above the start of the branch, so that it shows up at the
+      # if/else. That highlights the condition, and makes it distinguishable when
+      # the first line of the branch is itself an inline branch.
       def report_line
         if inline?
           start_line
@@ -55,12 +37,10 @@ module SimpleCov
         end
       end
 
-      # Flags the branch as skipped
       def skipped!
         @skipped = true
       end
 
-      # Returns true if the branch was marked skipped by virtue of nocov comments.
       def skipped?
         @skipped
       end
@@ -69,11 +49,6 @@ module SimpleCov
         start_line <= line_range.end && end_line >= line_range.begin
       end
 
-      #
-      # Return array with coverage count and badge
-      #
-      # @return [Array]
-      #
       def report
         [type, coverage]
       end

@@ -1,31 +1,18 @@
 module SimpleCov
   module ResultMerger
-    # The merge step's half of unloaded-file handling.
-    #
-    # Injection moved here from the individual processes because only the union
-    # of what they all loaded says what was really never loaded. See #1250.
     module UnloadedFiles
-      # The union of what every contributing process was told to track. Absent
-      # from resultsets written before this was recorded.
-      # A collector for the merge to hand `merge_valid_results`.
       def self?.collector: (Set[String] into) -> ^(Hash[String, untyped] surviving) -> void
 
-      # Whether the merged data carries a criterion, so an injected file gets
-      # the same shape as the files it sits alongside.
       def self?.carries?: (Hash[String, untyped] coverage, String criterion) -> bool
 
       CRITERION_PREDICATES: Hash[String, Symbol]
 
       def self?.tracked_in: (Hash[String, untyped] resultset) -> Set[String]
 
-      # Concurrent workers sharing a command name may have been told to track
-      # different sets, so keep both rather than letting the later write win.
       def self?.carry_tracked: (Hash[String, untyped] entry, Hash[String, untyped] existing, Hash[String, untyped] incoming) -> Hash[String, untyped]
 
-      # Simulate each tracked file the merged coverage doesn't already carry.
       def self?.inject: (Hash[String, untyped] coverage, _ToA[String] tracked_files) -> [Hash[String, untyped], Set[String]]
 
-      # Which files no contributing process ever loaded.
       def self?.never_executed: (Hash[String, untyped] coverage) -> Set[String]
     end
   end

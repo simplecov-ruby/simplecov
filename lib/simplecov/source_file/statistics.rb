@@ -2,10 +2,9 @@
 
 module SimpleCov
   class SourceFile
-    # Builds the `CoverageStatistics` triple (`:line`, `:branch`, `:method`)
-    # for a SourceFile, regardless of which criteria were actually enabled
-    # during the run — disabled or empty criteria collapse to 0/0/0 so
-    # downstream consumers don't have to special-case enable-state.
+    # Builds the `CoverageStatistics` triple for a SourceFile regardless of which
+    # criteria were enabled during the run: disabled or empty criteria collapse to
+    # 0/0/0 so downstream consumers don't have to special-case enable-state.
     class Statistics
       def initialize(source_file)
         @source_file = source_file
@@ -31,11 +30,10 @@ module SimpleCov
         }
       end
 
-      # Files added via track_files but never loaded have no branch/method
-      # data. Report 0% instead of the empty-set default of 100% (see #902).
-      # Nothing covered is the whole of the test: a file with missed
-      # entries and none covered already computes to 0%, so only a file
-      # that really has covered entries keeps its computed percentage.
+      # Files added via track_files but never loaded have no branch or method data,
+      # and report 0% instead of the empty-set default of 100% (#902). A file with
+      # missed entries and none covered already computes to 0%, so only a file that
+      # really has covered entries keeps its computed percentage.
       def branch_statistics
         sf = @source_file
         covered = sf.covered_branches

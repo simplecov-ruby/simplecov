@@ -3,9 +3,6 @@
 module SimpleCov
   module CLI
     module Status
-      # Gathers the freshness facts from the artifacts: the report's
-      # metadata, how far HEAD has moved since it was generated, and
-      # the resultset's entries with their ages.
       module Facts
         extend self
 
@@ -30,14 +27,10 @@ module SimpleCov
           }
         end
 
-        # How long ago a recording was made, from the epoch seconds it
-        # stored. The wall clock is read as epoch seconds directly,
-        # which keeps the subtraction between two numbers.
         def age_of(timestamp)
           whole_seconds(Process.clock_gettime(Process::CLOCK_REALTIME) - timestamp)
         end
 
-        # Ages are reported in whole seconds.
         def whole_seconds(elapsed)
           elapsed.truncate
         end
@@ -48,9 +41,9 @@ module SimpleCov
           nil
         end
 
-        # Commits between the report's commit and HEAD: 0 at HEAD, nil
-        # when unanswerable (no commit recorded, no git, or a commit
-        # this repository has never seen).
+        # Commits between the report's commit and HEAD: 0 at HEAD, nil when
+        # unanswerable, meaning no commit recorded, no git, or a commit this
+        # repository has never seen.
         def behind(commit)
           return nil unless commit.instance_of?(String)
 
@@ -58,9 +51,9 @@ module SimpleCov
           commit_count(_ = stdout) if success
         end
 
-        # `Integer` ignores surrounding whitespace on its own, so git's
-        # trailing newline needs no trimming. The base is spelled out
-        # because bare `Integer` reads a leading zero as octal.
+        # `Integer` ignores surrounding whitespace on its own, so git's trailing
+        # newline needs no trimming. The base is spelled out because bare `Integer`
+        # reads a leading zero as octal.
         def commit_count(output)
           Integer(output, 10)
         end
@@ -75,8 +68,8 @@ module SimpleCov
           rows.to_h
         end
 
-        # The resultset's entries with their ages, nil when there is no
-        # readable resultset — its absence is a fact, not an error.
+        # nil when there is no readable resultset: its absence is a fact, not an
+        # error.
         def resultset(path)
           parsed = JSON.parse(File.read(path))
           return nil unless parsed.instance_of?(Hash)

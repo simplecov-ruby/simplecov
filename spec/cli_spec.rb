@@ -20,8 +20,6 @@ RSpec.describe SimpleCov::CLI do
     described_class.run(argv, stdout: stdout, stderr: stderr)
   end
 
-  # The --no-color kill-switch behaves identically across the read-only
-  # subcommands; each colorization context supplies its argv.
   shared_examples "a --no-color subcommand" do
     it "skips colorization when --no-color is passed, even with Color.enabled? on" do
       allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
@@ -136,8 +134,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe ".capture" do
-      # git reports failures over several lines; the caller wants one
-      # line of it, without the newline it came with.
       it "answers the first line of git's complaint, trimmed" do
         allow(Open3).to receive(:capture3).and_return(
           ["", "  fatal: not a thing  \nhint: try something else\n", instance_double(Process::Status, success?: false)]
@@ -148,8 +144,6 @@ RSpec.describe SimpleCov::CLI do
         expect(success).to be(false)
       end
 
-      # git missing from PATH is not a git error, so the run reads as
-      # unsuccessful with nothing on stdout and the reason as detail.
       it "reads a spawn failure as an unsuccessful run carrying the message" do
         allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git")
 
@@ -239,8 +233,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "#age_in_words" do
-      # Each unit changes over at an exact second, and the boundary
-      # belongs to the larger unit. Tested on both sides of all three.
       {
         89 => "89 seconds", 90 => "2 minutes",
         5399 => "90 minutes", 5400 => "2 hours",
@@ -397,9 +389,6 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  # The plumbing every read-only subcommand extends. Exercised through
-  # a stand-in module rather than through one of the nine commands, so
-  # what is under test is the helper itself and not a caller's use of it.
   describe SimpleCov::CLI::CommandHelpers, mutant_expression: "SimpleCov::CLI::CommandHelpers*" do
     let(:host) do
       Module.new do
@@ -460,9 +449,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "#on_help" do
-      # Both spellings, because dropping either leaves optparse's own
-      # officious handler, which prints a summary and exits the process
-      # from inside the parser rather than failing anything observable.
       ["--help", "-h"].each do |flag|
         it "raises HelpRequested for #{flag}" do
           parser = host.build_parser
@@ -516,8 +502,6 @@ RSpec.describe SimpleCov::CLI do
         expect(host.stats_row("lines", "80.00%", 8, 10)).to eq("  lines:  80.00% (8 / 10)")
       end
 
-      # `to_i` reads what it can and stops; a stricter conversion would
-      # raise on the same input, and formatting the raw value would too.
       it "reads a count that carries trailing text" do
         expect(host.stats_row("branches", "50.00%", "3 of them", "6 total")).to eq("  branches: 50.00% (3 / 6)")
       end
@@ -549,10 +533,6 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  # The freshness facts, read straight rather than through the
-  # subcommand: what these answer for a well-formed report is already
-  # covered there, and what they answer for a malformed one is the part
-  # a fixture written by hand can reach.
   describe SimpleCov::CLI::Status::Facts, mutant_expression: "SimpleCov::CLI::Status::Facts*" do
     subject(:facts) { described_class }
 
@@ -652,8 +632,6 @@ RSpec.describe SimpleCov::CLI do
         )
       end
 
-      # Whole hash: every fact is read from its own key, and a fact that
-      # went missing or arrived under another name would otherwise pass.
       it "reads each fact from the metadata it was written under" do
         generated = Time.now - 12.6
         allow(SimpleCov::CLI::Git).to receive(:capture).and_return(["4\n", "", true])
@@ -679,8 +657,6 @@ RSpec.describe SimpleCov::CLI do
         )
       end
 
-      # Reads the totals out of the report and the entries out of the
-      # resultset beside it, each from its own place.
       it "gathers the totals and the resultset together" do
         dir = Dir.mktmpdir("simplecov-gather-spec-")
         path = File.join(dir, ".resultset.json")
@@ -748,11 +724,6 @@ RSpec.describe SimpleCov::CLI do
   describe "badge subcommand", mutant_expression: "SimpleCov::CLI::Badge*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-badge-spec-") }
     let(:json_path) { File.join(tmp, "coverage.json") }
-    # Asserted whole rather than by fragments: the badge is one rendered
-    # artifact, every number in it is derived from the two segment
-    # widths, and a fragment assertion leaves the rest of the document
-    # free to drift. This is the reference rendering the geometry
-    # examples below take apart.
     let(:reference_badge) do
       <<~SVG
         <svg xmlns="http://www.w3.org/2000/svg" width="153" height="20" role="img" aria-label="line coverage: 92.50%">
@@ -796,9 +767,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq(reference_badge)
     end
 
-    # The geometry the document lays out: two segments sized by their
-    # own text, and text coordinates in the 10x space the scale(.1)
-    # trick draws in.
     describe "geometry" do
       let(:svg) { described_class::Badge::Svg }
 
@@ -835,8 +803,6 @@ RSpec.describe SimpleCov::CLI do
       expect(colors).to eq(["#4c1", "#97ca00", "#a4a61d", "#dfb317", "#fe7d37", "#e05d44"])
     end
 
-    # Each rung's own number belongs to that rung, not the one below:
-    # exactly 90% is bright green, not the 80s' colour.
     it "gives each rung's boundary to the rung it names" do
       colors = [90, 80, 70, 60, 50].collect { |pct| described_class::Badge::Svg.color(pct) }
       expect(colors).to eq(["#4c1", "#97ca00", "#a4a61d", "#dfb317", "#fe7d37"])
@@ -847,11 +813,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("badge options:").and include("--criterion")
     end
 
-    # The shared handler is what makes that work: it raises for the
-    # dispatcher to answer, where optparse's own officious --help would
-    # print a bare summary and exit the process from inside the parser.
-    # Caught explicitly, including SystemExit, so the officious handler
-    # is compared against rather than allowed to end the run.
     it "wires the shared help handler rather than leaving optparse's" do
       raised = nil
       begin
@@ -863,10 +824,6 @@ RSpec.describe SimpleCov::CLI do
       expect(raised).to be_a(SimpleCov::CLI::CommandHelpers::HelpRequested)
     end
 
-    # Without --input the badge reads the project's own report, the way
-    # every other read-only command defaults its path. The discovered
-    # directory is memoized on the CLI, so it is reset around this
-    # example the way `.coverage_dir`'s own examples reset it.
     it "reads the default report when given no input path" do
       previous = described_class.instance_variable_get(:@coverage_dir)
       described_class.instance_variable_set(:@coverage_dir, nil)
@@ -925,8 +882,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov badge: #{json_path} not found\n")
     end
 
-    # A percent the report carries as something other than a number is
-    # no percent at all, and saying so beats rendering nonsense.
     it "errors when the recorded percent is not a number" do
       File.write(json_path, JSON.dump("meta" => {}, "total" => {"lines" => {"percent" => "92.5"}}))
 
@@ -941,8 +896,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no line totals in #{json_path}")
     end
 
-    # Any Hash of totals will do, including one a document reader hands
-    # back as a subclass of it.
     it "reads a totals section that arrives as a Hash subclass" do
       totals = Class.new(Hash).new.merge!("lines" => {"percent" => 92.5})
       allow(SimpleCov::CLI::CoverageFile).to receive(:load_document).and_return({"total" => totals})
@@ -982,8 +935,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov completions: unknown shell \"tcsh\" (expected fish, bash, or zsh)\n")
     end
 
-    # The arguments go through a parser rather than straight to the
-    # shell name, which is what gives the command its own --help.
     it "answers its own usage for --help" do
       expect(run("completions", "--help")).to eq(0)
       expect(stdout.string).to include("completions <shell>")
@@ -1015,19 +966,8 @@ RSpec.describe SimpleCov::CLI do
       expect(out).to include("'1:shell:(fish bash zsh)'")
     end
 
-    # The three renderers take the same parsed usage data and each turn
-    # it into a whole script, so they are asserted whole against a small
-    # fixture: two commands, an option with a short form, one that takes
-    # an argument, and the completions command whose shell argument the
-    # usage tables cannot carry. A fragment assertion would leave most
-    # of each template free to drift.
     describe "the rendered scripts" do
       let(:scripts) { described_class::Completions::Scripts }
-      # "completions" is deliberately first, and its name built at
-      # runtime rather than written as a literal: the renderers skip
-      # that command by name, so a skip that stopped the walk would lose
-      # the command behind it, and an identity comparison would never
-      # recognise a name the usage document was parsed into.
       let(:completions_name) { +"completions" }
       let(:commands) { [["report", "Print the summary"], [completions_name, "Emit the script"]] }
       let(:options) do
@@ -1089,9 +1029,6 @@ RSpec.describe SimpleCov::CLI do
         ZSH
       end
 
-      # Each shell quotes its descriptions its own way, and a
-      # description carrying the quote character is the case that
-      # decides whether a generated script parses at all.
       it "escapes every quote and backslash for fish, not just the first" do
         expect(scripts.fish_quote(%q(a \ b \ c))).to eq("'a \\\\ b \\\\ c'")
         expect(scripts.fish_quote("it's o'clock")).to eq(%q('it\'s o\'clock'))
@@ -1101,16 +1038,12 @@ RSpec.describe SimpleCov::CLI do
         expect(scripts.zsh_quote("it's here")).to eq("it'\\''s here")
       end
 
-      # Brackets delimit a zsh description, so one inside would end it
-      # early; they are dropped rather than escaped.
       it "drops brackets from a zsh description" do
         expect(scripts.zsh_specs(short: nil, long: "--x", arg: nil, desc: "a [bracketed] note"))
           .to eq(["'--x[a bracketed note]'"])
       end
     end
 
-    # The other half of the command: reading the usage document back
-    # into the command and option tables the renderers above consume.
     describe "the parsed usage" do
       let(:completions) { described_class::Completions }
 
@@ -1142,8 +1075,6 @@ RSpec.describe SimpleCov::CLI do
           .to eq(short: "-h", long: "--help", arg: nil, desc: "Show this command's usage")
       end
 
-      # Everything after `run` belongs to the command being run, so it
-      # offers nothing of its own and drops out of the table entirely.
       it "leaves run without options, and out of the option table" do
         expect(completions.options_for("run")).to eq([])
         expect(completions.options_by_command).not_to have_key("run")
@@ -1225,9 +1156,6 @@ RSpec.describe SimpleCov::CLI do
       expect(described_class::Usage.for(described_class, "bogus")).to eq("Usage: simplecov bogus [options]")
     end
 
-    # The whole answer: a usage line, the command's row from the table
-    # trimmed of the indentation it is listed under, and the options
-    # sections that name it, one blank line apart.
     it "answers with the usage line, the row and the options, spaced apart" do
       expect(described_class::Usage.for(described_class, "clean")).to eq(<<~HELP)
         Usage: simplecov clean [options]
@@ -1240,28 +1168,19 @@ RSpec.describe SimpleCov::CLI do
       HELP
     end
 
-    # The name is matched literally, so a name that reads as a pattern
-    # matches only itself.
     it "reads a command name as a name and not as a pattern" do
       expect(described_class::Usage.for(described_class, "cle.n")).to eq("Usage: simplecov cle.n [options]")
     end
 
-    # A section is one command's options when its heading names that
-    # command, and a section with no heading at all names nothing.
     it "takes no section for a command no heading names" do
       expect(described_class::Usage.section_for?("", "clean")).to be(false)
       expect(described_class::Usage.section_for?("Commands:\n  clean\n", "clean")).to be(false)
     end
 
-    # A heading that names the command is still not its options unless
-    # it says so.
     it "takes no section from a heading that names the command but lists no options" do
       expect(described_class::Usage.section_for?("clean and friends:\n  --dry-run\n", "clean")).to be(false)
     end
 
-    # A command is a whole word in the heading, not a piece of one, and
-    # "options:" is the word that marks the heading rather than a
-    # command listed in it.
     it "takes no section for a name that is only part of one it lists" do
       expect(described_class::Usage.section_for?("clean options:\n", "lea")).to be(false)
     end
@@ -1278,16 +1197,9 @@ RSpec.describe SimpleCov::CLI do
       expect(described_class::Usage.section_for?("show/coverage options:\n  --input PATH\n", "coverage")).to be(true)
     end
 
-    # The defaults are resolved when the text is asked for, so they
-    # describe the run in hand.
-    # Every line that names a default, not merely one of them: the text
-    # states the same default in more than one place and each has to say
-    # what this run would actually use.
     it "names the paths this run would read and write, wherever it names them" do
       lines = described_class::Usage.text(described_class).lines
 
-      # Two of the three name the report; the third names the history
-      # file, which has a default of its own.
       inputs = lines.grep(/Read from PATH instead of/).grep_v(/\.history\.json/)
       expect(inputs.size).to eq(2)
       expect(inputs).to all(end_with("instead of #{described_class.default_input}\n"))
@@ -1304,8 +1216,6 @@ RSpec.describe SimpleCov::CLI do
   describe ".coverage_dir", mutant_expression: ["SimpleCov::CLI#coverage_dir", "SimpleCov::CLI#default_input",
                                                 "SimpleCov::CLI#default_report", "SimpleCov::CLI#default_resultset",
                                                 "SimpleCov::CLI::Dotfile*"] do
-    # Reset memoization between examples so each one sees a fresh
-    # discovery from its own cwd.
     around do |example|
       previous = described_class.instance_variable_get(:@coverage_dir)
       described_class.instance_variable_set(:@coverage_dir, nil)
@@ -1367,8 +1277,6 @@ RSpec.describe SimpleCov::CLI do
         Dir.chdir(tmp) do
           coverage_was_running = Coverage.running?
           expect(described_class.coverage_dir).to eq("from/start_block")
-          # The CLI must not start (or restart) Coverage tracking just
-          # by reading the dotfile.
           expect(Coverage.running?).to eq(coverage_was_running)
         end
       end
@@ -1385,8 +1293,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "falls back to 'coverage' and warns when the dotfile has a syntax error" do
-      # `load` raises SyntaxError, which is a ScriptError, not a
-      # StandardError — a bare rescue would let it crash the CLI.
       Dir.mktmpdir do |tmp|
         File.write(File.join(tmp, ".simplecov"), "SimpleCov.start do\n")
         Dir.chdir(tmp) do
@@ -1481,8 +1387,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("simplecov report:").and include("cannot read").and include(tmp)
     end
 
-    # Valid JSON with wrong-typed totals used to crash the emitters with
-    # NoMethodError/TypeError backtraces instead of a one-line error.
     it "reports wrong-typed \"groups\" as invalid input in both output modes" do
       invalid = File.join(tmp, "bad_groups.json")
       File.write(invalid, JSON.dump("total" => {}, "groups" => [1, 2]))
@@ -1537,19 +1441,11 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov coverage: #{absent} not found\n")
     end
 
-    # The whole message: it names the command, the report it read and
-    # the path it could not find, and each of those is read from its own
-    # place in the options.
-    # Whole message: each of the command, the report and the path is
-    # read from its own place, and passing the options themselves would
-    # still print something that mentions the report.
     it "names the report and the path when the file is not in it" do
       expect(run("coverage", "--input", json_path, "lib/absent.rb")).to eq(1)
       expect(stderr.string).to eq("simplecov coverage: no entry for lib/absent.rb in #{json_path}\n")
     end
 
-    # Two positional arguments, so the one that is read is identified by
-    # position rather than by being the only one there.
     it "reads the path from the first positional argument" do
       expect(run("coverage", "--input", json_path, abs_filename, "lib/other.rb")).to eq(0)
       expect(stdout.string).to include(abs_filename)
@@ -1565,8 +1461,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # A percent without its counts beside it still has a row to print,
-    # and the counts it does not have read as zero.
     it "prints a criterion whose counts are missing" do
       File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {"lines_covered_percent" => 66.67}}))
 
@@ -1631,8 +1525,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no entry for lib/missing.rb")
     end
 
-    # A wrong-typed per-file entry used to crash print_human with
-    # NoMethodError instead of the one-line error the siblings print.
     it "errors when the matched entry is not an object" do
       File.write(json_path, JSON.dump("coverage" => {abs_filename => "junk"}))
 
@@ -1656,7 +1548,6 @@ RSpec.describe SimpleCov::CLI do
       it "colorizes percentages when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
         expect(run("coverage", "--input", json_path, abs_filename)).to eq(0)
-        # 66.67% is below the yellow threshold, so red (\e[31m)
         expect(stdout.string).to match(/\e\[31m66\.67%\e\[0m/)
       end
 
@@ -1667,11 +1558,6 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "run subcommand", mutant_expression: "SimpleCov::CLI::Run*" do
-    # A mutation respelling `Kernel.exec` as a bare exec would replace
-    # the example process with the command under test, which exits
-    # cleanly and reports nothing — read by mutation analysis as a
-    # pass. Arm every example in this pool so that spelling fails an
-    # example instead of ending the process.
     before do
       allow(described_class::Run).to receive(:exec) { raise "exec reached the module, not Kernel" }
     end
@@ -1683,7 +1569,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "execs through Kernel by name, never through a bare exec on itself" do
       allow(Kernel).to receive(:exec)
-      allow(described_class::Run).to receive(:exec) # quiet the armed raise; the point is who was asked
+      allow(described_class::Run).to receive(:exec)
 
       described_class::Run.send(:exec_command, {"MARK" => "1"}, ["true", "--flag"])
 
@@ -1692,8 +1578,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "execs the command with RUBYOPT set to load the autostart shim" do
-      # Real Kernel.exec never returns; the stub does, but the side
-      # effect (env + argv) is what we're verifying.
       captured_env = nil
       captured_argv = nil
       allow(Kernel).to receive(:exec) do |env, *cmd|
@@ -1706,10 +1590,6 @@ RSpec.describe SimpleCov::CLI do
       expect(captured_env["RUBYOPT"]).to include("-r#{described_class::Run::AUTOSTART}")
     end
 
-    # The child needs the environment it was launched in, not just the
-    # one variable this command sets. Probed with a variable of the
-    # example's own: a system one like PATH is spelled with whatever
-    # casing the platform fancies.
     it "passes the whole environment through, not only RUBYOPT" do
       captured_env = nil
       allow(Kernel).to receive(:exec) { |env, *_cmd| captured_env = env }
@@ -1720,8 +1600,6 @@ RSpec.describe SimpleCov::CLI do
       expect(captured_env).to include("SIMPLECOV_SPEC_CARRIED" => "through")
     end
 
-    # A RUBYOPT padded with spaces is a RUBYOPT of its own, and joining
-    # to it without trimming leaves a doubled separator.
     it "trims an existing RUBYOPT before joining to it" do
       previous = ENV.fetch("RUBYOPT", nil)
       ENV["RUBYOPT"] = "  -W0  "
@@ -1783,8 +1661,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no such command nope")
     end
 
-    # End-to-end: actually invoke a child Ruby process and check that
-    # the autostart shim fires (Coverage.running? becomes true).
     it "actually starts SimpleCov in a child process" do
       script = <<~RUBY
         require "coverage"
@@ -1795,9 +1671,6 @@ RSpec.describe SimpleCov::CLI do
       Dir.mktmpdir do |dir|
         Dir.chdir(dir) do
           autostart = described_class::Run::AUTOSTART
-          # capture3 (not capture2) so the autostart shim's
-          # "framework not recognized" warning from the child's stderr
-          # doesn't leak into the test runner's output.
           output, _err, _status = Open3.capture3({"RUBYOPT" => "-r#{autostart}"}, *cmd)
         end
       end
@@ -1833,10 +1706,6 @@ RSpec.describe SimpleCov::CLI do
 
     after { FileUtils.remove_entry(tmp) }
 
-    # The whole block, not fragments of it: the totals row, then each
-    # group in the order the report carries them, each criterion aligned
-    # in its own column, and a blank line between blocks. A criterion
-    # with nothing relevant is left out rather than printed as 0/0.
     it "prints the totals and every group, whole" do
       expect(run("report", "--input", json_path, "--no-color")).to eq(0)
       expect(stdout.string).to eq(<<~TEXT)
@@ -1861,8 +1730,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Branch:\s+90\.00%\s+\(9 / 10\)})
     end
 
-    # Valid JSON is not enough: a wrong-typed section used to reach the
-    # emitters and crash with a backtrace instead of a one-line error.
     it "refuses a totals section that is not an object" do
       File.write(json_path, JSON.dump("total" => "junk"))
 
@@ -1894,9 +1761,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("Method:")
     end
 
-    # Sections the report never carried, and sections carrying half of
-    # what they should: the row is either printed from what is there or
-    # left out, never a crash.
     it "prints what a half-filled section carries and skips one with no total" do
       File.write(json_path, JSON.dump(
                               "total" => {
@@ -1944,8 +1808,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # A section carrying something other than an object is as much a
-    # non-section as one carrying nothing.
     it "skips a criterion whose section is not an object" do
       File.write(json_path, JSON.dump("total" => {"lines" => [1, 2]}))
 
@@ -1993,7 +1855,6 @@ RSpec.describe SimpleCov::CLI do
       it "colorizes percentages by threshold when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
         expect(run("report", "--input", json_path)).to eq(0)
-        # 80% is yellow, 90% is green
         expect(stdout.string).to match(/\e\[33m80\.00%\e\[0m/)
         expect(stdout.string).to match(/\e\[32m90\.00%\e\[0m/)
       end
@@ -2018,8 +1879,6 @@ RSpec.describe SimpleCov::CLI do
     let(:result_file) { "/abs/project/lib/result.rb" }
     let(:quiet_file) { "/abs/project/lib/quiet.rb" }
 
-    # Two contexts: index 0 covers lines 2 and 3 of result.rb, index 1
-    # covers line 3 only. quiet.rb was covered by no recorded context.
     let(:payload) do
       {
         "contexts" => ["spec/result_spec.rb:42", "spec/result_spec.rb:57"],
@@ -2087,8 +1946,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # A found-but-wrong-typed entry is malformed input, not a missing
-    # file — the same distinction the coverage subcommand draws.
     it "reports a wrong-typed entry as invalid input, not as missing" do
       File.write(json_path, JSON.dump(payload.merge("coverage" => {result_file => "junk"})))
       expect(run("tests", "--input", json_path, "lib/result.rb")).to eq(1)
@@ -2167,8 +2024,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # Unit examples over the query helpers, pinning behavior the composed
-    # CLI examples can't tell apart operator by operator.
     describe "query helpers" do
       let(:tests) { SimpleCov::CLI::Tests }
 
@@ -2258,11 +2113,6 @@ RSpec.describe SimpleCov::CLI do
     describe "--redundant" do
       let(:other_file) { "/abs/project/lib/other.rb" }
 
-      # Four contexts: :10 uniquely covers line 2 of result.rb and shares
-      # line 3, :20 covers only that shared line, :30 uniquely covers
-      # other.rb, and :40 ran without covering anything. The recording
-      # order deliberately differs from the sorted order, so an unsorted
-      # answer is distinguishable.
       let(:payload) do
         {
           "contexts" => ["spec/d_spec.rb:40", "spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30"],
@@ -2290,9 +2140,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to eq("simplecov tests: no redundant test covers lib/result.rb:2\n")
       end
 
-      # Mutual subsumption is the honest answer, not a bug: each of the
-      # two could go, but not both, so the list is per-test rather than
-      # a deletable set.
       it "lists both of two tests covering exactly the same lines" do
         payload["coverage"][result_file]["contexts"] = {"1" => "6", "2" => "6"}
         File.write(json_path, JSON.dump(payload))
@@ -2324,11 +2171,6 @@ RSpec.describe SimpleCov::CLI do
         expect(JSON.parse(stdout.string)).to eq(["spec/b_spec.rb:20", "spec/d_spec.rb:40"])
       end
 
-      # The sweep reads every file's table, so a malformed table poisons
-      # the whole answer even when no query names its file — the same
-      # all-or-nothing tolerance the targeted queries apply. The stderr
-      # assertions are exact: the complaint must name the right file and
-      # the right defect, under the command's own name, with nothing else.
       it "treats a malformed contexts table anywhere in the sweep as invalid input" do
         [{"9" => "1"}, "junk"].each do |malformed|
           payload["coverage"][other_file]["contexts"] = malformed
@@ -2368,9 +2210,6 @@ RSpec.describe SimpleCov::CLI do
         )
       end
 
-      # Unit examples over the pure helpers: the composed CLI examples
-      # can't distinguish every operator, so these pin the arithmetic
-      # (and the sweep's tolerance for a Hash subclass) directly.
       describe "sweep helpers" do
         let(:redundancy) { SimpleCov::CLI::Tests::Redundancy }
 
@@ -2492,8 +2331,6 @@ RSpec.describe SimpleCov::CLI do
       payload["coverage"][File.join(tmp, "lib/junk.rb")] = "junk"
       File.write(json_path, JSON.dump(payload))
 
-      # Sorted by the path shown, not by the order the report happens
-      # to list them in.
       expect(run("show", "--input", json_path, "--uncovered-only")).to eq(0)
       expect(stdout.string).to eq(<<~OUT)
         #{code_path}:3,6-8,10
@@ -2514,9 +2351,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov show: #{missing} not found\n")
     end
 
-    # A line-coverage-only entry is a Hash whose "lines" is a list. A
-    # Hash whose "lines" is anything else has no gutter to sweep, and
-    # an entry that is no Hash has nothing to ask at all.
     it "passes over an entry whose lines are no lines at all in a sweep" do
       payload["coverage"][File.join(tmp, "lib/odd.rb")] = {"lines" => "junk"}
       payload["coverage"][File.join(tmp, "lib/list.rb")] = [1, 0]
@@ -2527,8 +2361,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("#{code_path}:3,6-8,10\n")
     end
 
-    # The root is shown project-relative, and a root that has not been
-    # expanded yet is still that root.
     it "trims an unexpanded root off the paths it sweeps" do
       allow(SimpleCov).to receive(:root).and_return(File.join(tmp, "lib", ".."))
 
@@ -2558,7 +2390,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov show: nothing uncovered in lib/code.rb\n")
     end
 
-    # Also the line-coverage-only shape: no branches or methods arrays.
     it "reads the source from disk when the report carries none" do
       entry.delete("source")
       entry.delete("branches")
@@ -2597,8 +2428,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov show: no line coverage for lib/code.rb in #{json_path}\n")
     end
 
-    # A gutter is a list of counts. Something else under that key is no
-    # more usable than nothing under it.
     it "errors on a report whose line data is no list" do
       entry["lines"] = "junk"
       File.write(json_path, JSON.dump(payload))
@@ -2611,8 +2440,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov show: no entry for lib/nope.rb in #{json_path}\n")
     end
 
-    # One complaint, not two: the wrong-typed entry is reported and
-    # nothing goes on to ask it for lines.
     it "reports a wrong-typed entry as invalid input" do
       File.write(json_path, JSON.dump("coverage" => {code_path => "junk"}))
       expect(run("show", "--input", json_path, "lib/code.rb")).to eq(1)
@@ -2643,8 +2470,6 @@ RSpec.describe SimpleCov::CLI do
       expect(parsed["markers"]).to include("1" => ["method missed"], "2" => ["branch missed"], "3" => ["missed"])
     end
 
-    # JSON mode reads only the coverage data, so it answers even when
-    # neither the report nor the disk can produce the source text.
     it "answers JSON without any source available" do
       entry.delete("source")
       File.write(json_path, JSON.dump(payload))
@@ -2663,8 +2488,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe ".source_for" do
-      # The report's lines have no newlines on them, so the source read
-      # from disk in their place must not either.
       it "reads the file from disk without the newlines" do
         FileUtils.mkdir_p(File.dirname(code_path))
         File.write(code_path, source.join("\n") << "\n")
@@ -2676,14 +2499,10 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe ".parse" do
-      # Every other example passes --input, so the default is only ever
-      # seen when nothing says otherwise.
       it "reads the project's own report when no input is named" do
         expect(SimpleCov::CLI::Show.parse([])[:input]).to eq(described_class.default_input)
       end
 
-      # Numbered by where the count sits in the gutter, not by where it
-      # lands in the answer.
       it "counts only whole numbers of hits as lines to report" do
         entry["lines"] = [1, 0.0, "3", nil, 5]
         File.write(json_path, JSON.dump(payload))
@@ -2703,7 +2522,6 @@ RSpec.describe SimpleCov::CLI do
         expect(opts).to eq(input: "other.json", no_color: true, uncovered_only: true, json: true, path: "lib/a.rb")
       end
 
-      # One file is annotated, so anything past the first is not a path.
       it "takes the first bare argument as the path" do
         expect(SimpleCov::CLI::Show.parse(%w[lib/a.rb lib/b.rb])[:path]).to eq("lib/a.rb")
       end
@@ -2717,8 +2535,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no source for lib/code.rb")
     end
 
-    # Source is a list of lines. One string holding the whole file is
-    # not that, and is no more usable than none at all.
     it "reports a source that is not a list of lines" do
       entry["source"] = "def call\nend\n"
       File.write(json_path, JSON.dump(payload))
@@ -2727,9 +2543,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no source for lib/code.rb")
     end
 
-    # The renderer asked directly, rather than through a whole report:
-    # the gutter arithmetic and the tolerance for malformed entries are
-    # what a rendered page can only show one combination of at a time.
     describe SimpleCov::CLI::Show::Annotator do
       let(:annotator) { described_class }
       let(:out) { StringIO.new }
@@ -2743,7 +2556,6 @@ RSpec.describe SimpleCov::CLI do
           expect(annotator.count_width({"lines" => [nil, 7, nil]})).to eq(1)
         end
 
-        # One column, so a countless file still lines its source up.
         it "falls back to a single column when nothing is counted" do
           expect(annotator.count_width({"lines" => [nil, nil]})).to eq(1)
           expect(annotator.count_width({"lines" => []})).to eq(1)
@@ -2755,8 +2567,6 @@ RSpec.describe SimpleCov::CLI do
           expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 0})).to eq(4)
         end
 
-        # report_line is what the report says to point at; start_line is
-        # where the construct begins, and stands in when it is absent.
         it "prefers the reported line to the starting one" do
           expect(annotator.missed_line_of({"report_line" => 4, "start_line" => 9, "coverage" => 0})).to eq(4)
           expect(annotator.missed_line_of({"start_line" => 9, "coverage" => 0})).to eq(9)
@@ -2791,8 +2601,6 @@ RSpec.describe SimpleCov::CLI do
           expect { |probe| annotator.each_missed(items, &probe) }.to yield_successive_args(2, 5)
         end
 
-        # A report without branches or methods carries nothing here, and
-        # a malformed one carries the wrong thing.
         it "yields nothing when there is no list to walk" do
           expect { |probe| annotator.each_missed(nil, &probe) }.not_to yield_control
           expect { |probe| annotator.each_missed("junk", &probe) }.not_to yield_control
@@ -2809,23 +2617,17 @@ RSpec.describe SimpleCov::CLI do
           expect(annotator.missed_lines({"lines" => [nil, nil]})).to be_empty
         end
 
-        # A count is a whole number of hits. A zero that is not one is
-        # not a miss the gutter knows how to report.
         it "passes over a zero that is no count" do
           expect(annotator.missed_lines({"lines" => [0.0]})).to be_empty
         end
       end
 
       describe "#call" do
-        # An embedded source can carry more lines than the report has
-        # counts for. Those lines still print, with a blank gutter.
         it "leaves the gutter blank past the end of the counts" do
           annotator.call(%w[one two], {"lines" => [1], "branches" => [], "methods" => []}, out, color: false)
           expect(out.string).to eq("1  1  one\n2     two\n")
         end
 
-        # The caret line is painted under the same rule as the count
-        # beside it, so both answer to the one setting.
         it "paints the caret as well as the count" do
           annotator.call(%w[one], {"lines" => [0], "branches" => [], "methods" => []}, out, color: true)
           expect(out.string).to eq("1  \e[31m0\e[0m  one\n      \e[31m^ missed\e[0m\n")
@@ -2843,8 +2645,6 @@ RSpec.describe SimpleCov::CLI do
           expect(annotator.row(7, nil, "code", widths, false)).to eq(" 7       code")
         end
 
-        # A count is a number. Anything else in the slot is not one, and
-        # printing it would put a non-count in the count column.
         it "leaves the column blank for a count that is no number" do
           expect(annotator.row(7, "3", "code", widths, false)).to eq(" 7       code")
         end
@@ -2853,8 +2653,6 @@ RSpec.describe SimpleCov::CLI do
           expect(annotator.row(7, nil, "", widths, false)).to eq(" 7")
         end
 
-        # Padded before painting, so the escape codes cannot widen the
-        # column they sit in.
         it "paints a missed count red and a hit one green, after padding" do
           expect(annotator.row(7, 0, "code", widths, true)).to eq(" 7  \e[31m  0\e[0m  code")
           expect(annotator.row(7, 1, "code", widths, true)).to eq(" 7  \e[32m  1\e[0m  code")
@@ -2873,8 +2671,6 @@ RSpec.describe SimpleCov::CLI do
           expect(out.string).to eq(" 7   42  code\n")
         end
 
-        # The caret sits under the source column, past the number, the
-        # count, and the two-space gaps either side of it.
         it "points a caret at the source column under the row" do
           annotator.emit(out, " 7    0  code", ["missed"], widths, false)
           expect(out.string).to eq(" 7    0  code\n         ^ missed\n")
@@ -2894,7 +2690,6 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "affected subcommand", mutant_expression: "SimpleCov::CLI::Affected*" do
-    # Built once and copied per example: see GitFixture.
     let(:fixture_files) do
       {
         "lib/result.rb" => "# original\n", "lib/quiet.rb" => "# original\n",
@@ -2911,10 +2706,6 @@ RSpec.describe SimpleCov::CLI do
     let(:json_path) { File.join(tmp, "coverage.json") }
     let(:out_path) { File.join(tmp, "out.txt") }
 
-    # Five contexts: two ordinary path:line tests touching result.rb, a
-    # locationless Minitest fallback id touching odd.rb, a test whose
-    # file no longer exists touching stale.rb, and a slashless top-level
-    # test file. quiet.rb is covered but no recorded test executes it.
     let(:payload) do
       {
         "contexts" => [
@@ -2953,19 +2744,12 @@ RSpec.describe SimpleCov::CLI do
 
     before { File.write(json_path, JSON.dump(payload)) }
 
-    # rm_rf rather than remove_entry: it shrugs off files a lingering
-    # background git process deletes mid-walk instead of raising ENOENT.
     after { FileUtils.rm_rf(tmp) }
 
     def run_in_repo(*argv)
       Dir.chdir(tmp) { run(*argv) }
     end
 
-    # The status --run reports for a nonexistent command. CRuby raises
-    # Errno::ENOENT from spawn and the CLI maps it to 127 itself, so the
-    # assertion stays exact there. JRuby hands the command to the
-    # platform shell instead, which exits 127 ("not found", Linux) or
-    # 126 ("cannot execute", macOS).
     def missing_command_status
       return eq(127) unless RUBY_ENGINE == "jruby"
 
@@ -3006,8 +2790,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov affected: no changes against main\n")
     end
 
-    # A repository whose default branch is trunk (or master) works
-    # bare: the omitted --base resolves through origin's HEAD.
     it "defaults the base to the branch origin's HEAD points at" do
       system("git", "-C", tmp, "branch", "-m", "main", "trunk", exception: true)
       system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
@@ -3039,8 +2821,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
     end
 
-    # --merge-base semantics: the base advancing after the branch point
-    # must not read as part of this change, while uncommitted work must.
     it "ignores commits that landed on the base after the branch point" do
       system("git", "-C", tmp, "switch", "-qc", "feature", exception: true)
       system("git", "-C", tmp, "switch", "-q", "main", exception: true)
@@ -3071,9 +2851,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "resolves changed files exactly instead of by suffix" do
-      # The report carries only a lookalike key that merely ends with the
-      # changed path; a suffix match would select that entry's tests as
-      # if they covered lib/result.rb.
       payload["coverage"].delete(File.join(tmp, "lib/result.rb"))
       payload["coverage"]["/elsewhere/lib/result.rb"] = {"lines" => [1], "contexts" => {"0" => "1"}}
       File.write(json_path, JSON.dump(payload))
@@ -3101,8 +2878,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov affected: not inside a git working tree\n")
     end
 
-    # A report with no "coverage" key at all covers nothing, which is
-    # not the same as a report whose "coverage" is the wrong shape.
     it "selects nothing from a report that carries no coverage" do
       payload.delete("coverage")
       File.write(json_path, JSON.dump(payload))
@@ -3123,9 +2898,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # A recorded id names a file when it has a directory or a .rb suffix.
-    # "toplevel_test.rb:99" has no slash, so only the suffix answers for
-    # it, and a bare test file at the root is a real shape.
     it "selects a recorded test file that sits at the repository root" do
       file!("lib/plain.rb", "# changed\n")
 
@@ -3141,8 +2913,6 @@ RSpec.describe SimpleCov::CLI do
                  base: nil, run: nil, rest: [])
       end
 
-      # Everything after --run is the runner command, verbatim, so the
-      # command's own flags never collide with ours.
       it "splits the runner command off at --run" do
         opts = SimpleCov::CLI::Affected.parse(%w[--base main --run rake test --verbose])
         expect(opts).to include(base: "main", run: %w[rake test --verbose], rest: [])
@@ -3152,8 +2922,6 @@ RSpec.describe SimpleCov::CLI do
         expect(SimpleCov::CLI::Affected.parse(%w[--run])).to include(run: [])
       end
 
-      # The pair itself, since a head with no --run still has to answer
-      # with two values for the caller to destructure.
       it "answers a head and no runner when there is no --run" do
         expect(SimpleCov::CLI::Affected.split_runner(%w[--base main])).to eq([%w[--base main], nil])
       end
@@ -3163,8 +2931,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # Two of them, so the message names the first rather than whichever
-    # happens to be there.
     it "names the first stray positional, not the last" do
       expect(run_in_repo("affected", "--input", json_path, "feature-x", "feature-y")).to eq(1)
       expect(stderr.string)
@@ -3185,9 +2951,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to start_with(%(simplecov affected: input file #{json_path.inspect} isn't valid JSON))
     end
 
-    # A recorded id names a file when it has a directory OR a .rb suffix.
-    # "spec/no_suffix" has the directory and not the suffix, so only the
-    # first half of that answers for it.
     it "selects a recorded test file that carries no .rb suffix" do
       file!("lib/suffixless.rb", "# changed\n")
 
@@ -3196,9 +2959,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to be_empty
     end
 
-    # Two changed files whose recorded tests are the same file: it runs
-    # once, and the list comes back sorted rather than in the order the
-    # changes happened to arrive.
     it "names each selected test file once, in order" do
       file!("lib/plain.rb", "# changed\n")
       file!("lib/plain2.rb", "# changed\n")
@@ -3223,15 +2983,11 @@ RSpec.describe SimpleCov::CLI do
       missing = File.join(tmp, "nope-does-not-exist")
 
       expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to missing_command_status
-      # JRuby's spawn reports a missing command through the child's exit
-      # status instead of raising, so there is no message to look for.
       unless RUBY_ENGINE == "jruby"
         expect(stderr.string).to include("cannot run #{missing.inspect} (No such file or directory")
       end
     end
 
-    # --merge-base, so commits that landed on the base after the branch
-    # point stay out of the change.
     it "diffs against the merge base, not the base's tip" do
       git_in_repo("checkout", "-q", "-b", "feature")
       file!("lib/result.rb", "# changed\n")
@@ -3251,9 +3007,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string.lines.size).to eq(1)
     end
 
-    # The name is judged on the basename: "spec/test_helper.rb" starts
-    # with no "test_" and ends with no "_spec.rb", so only its last
-    # component says it is a test file at all.
     it "recognises a test file by its own name, not by its path" do
       file!("spec/test_helper.rb", "# changed\n")
 
@@ -3262,9 +3015,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to be_empty
     end
 
-    # An index past the end of the recorded contexts names a test that
-    # is not there, which makes the table malformed rather than partly
-    # usable.
     it "refuses a contexts table that indexes past the recorded tests" do
       payload["coverage"][File.join(tmp, "lib/result.rb")] = {"lines" => [1], "contexts" => {"7" => "1"}}
       File.write(json_path, JSON.dump(payload))
@@ -3277,9 +3027,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # `--`, so a base ref that is also the name of a file in the tree is
-    # read as the ref it is rather than as a path to limit the diff to.
-    # Without the separator git calls it ambiguous and refuses.
     it "diffs against a base ref that is also a path in the tree" do
       git_in_repo("branch", "lib/quiet.rb")
       git_in_repo("checkout", "-q", "-b", "feature")
@@ -3290,9 +3037,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to be_empty
     end
 
-    # A file dropped from the index but still on disk is both a deletion
-    # in the diff and an untracked file, so it arrives twice. It is one
-    # change, and the trigger it raises is one trigger.
     it "names a file that is both changed and untracked only once" do
       git_in_repo("rm", "--cached", "-q", "Gemfile.lock")
 
@@ -3300,8 +3044,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string.scan("Gemfile.lock changed but").size).to eq(1)
     end
 
-    # The diff itself failing to run, rather than the toplevel lookup
-    # that precedes it: one complaint, not two.
     it "reports a git that cannot run the diff, once" do
       allow(SimpleCov::CLI::Git).to receive(:capture).and_wrap_original do |original, *argv|
         argv.include?("diff") ? [nil, "No such file or directory", false] : original.call(*argv)
@@ -3410,9 +3152,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("falling back to the full suite")
     end
 
-    # A trigger forces the full suite even when files were also
-    # selected, and the bare run is the whole answer: appending the
-    # selection to it would run those files a second time.
     it "runs the command bare, and only bare, when a trigger fires alongside a selection" do
       file!("lib/result.rb", "# changed\n")
       file!("lib/stale.rb", "# changed\n")
@@ -3428,8 +3167,6 @@ RSpec.describe SimpleCov::CLI do
       missing = File.join(tmp, "nope-does-not-exist")
 
       expect(run_in_repo("affected", "--input", json_path, "--run", missing)).to missing_command_status
-      # JRuby's spawn reports a missing command through the child's exit
-      # status instead of raising, so there is no message to look for.
       expect(stderr.string).to include("cannot run #{missing.inspect}") unless RUBY_ENGINE == "jruby"
     end
 
@@ -3463,8 +3200,6 @@ RSpec.describe SimpleCov::CLI do
     it "reports an unrunnable command like the run subcommand does" do
       file!("lib/result.rb", "# changed\n")
       expect(run_in_repo("affected", "--input", json_path, "--run", "definitely-not-a-command-xyz")).to eq(127)
-      # JRuby's spawn doesn't raise for a missing command; the child
-      # fails on its own, so only the 127 reaches us there.
       expect(stderr.string).to include("definitely-not-a-command-xyz") unless RUBY_ENGINE == "jruby"
     end
 
@@ -3666,8 +3401,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # Counts arrive from JSON, which carries numbers as whatever wrote
-    # them. A row's covered and total columns are whole counts.
     it "counts a float covered and total as whole numbers" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3681,8 +3414,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to eq("50.00%  2/4  /abs/lib/b.rb")
     end
 
-    # JSON carries the counts through unformatted, so that is where a
-    # float total shows if it was never made whole.
     it "carries whole counts into the JSON rows" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3699,7 +3430,6 @@ RSpec.describe SimpleCov::CLI do
       expect(row["percent"]).to be(50.25)
     end
 
-    # A percent the report leaves out is no percent, and reads as none.
     it "counts an absent percent as none" do
       File.write(json_path, JSON.dump(
                               "coverage" => {"/abs/lib/b.rb" => {"total_lines" => 4, "covered_lines" => 2}}
@@ -3709,7 +3439,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to eq("0.00%  2/4  /abs/lib/b.rb")
     end
 
-    # A percent the report wrote as a whole number is still a percent.
     it "carries a whole-number percent as a fraction" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3723,9 +3452,6 @@ RSpec.describe SimpleCov::CLI do
       expect(JSON.parse(stdout.string).first["percent"]).to be(50.0)
     end
 
-    # Counts are read as far as they are numbers. A report written by
-    # something else may carry them as text, and a row is still better
-    # than a crash.
     it "reads a count that carries trailing text as far as it is a number" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3740,8 +3466,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to eq("20.00%  2/10  /abs/lib/b.rb")
     end
 
-    # No --missing, so the rows carry no missed-line column even for a
-    # file whose line data would fill one.
     it "leaves the missed lines out of the rows unless they are asked for" do
       expect(run("uncovered", "--input", json_path)).to eq(0)
       expect(stdout.string).to include("/abs/lib/c.rb")
@@ -3754,14 +3478,11 @@ RSpec.describe SimpleCov::CLI do
         .to contain_exactly("file", "percent", "covered", "total")
     end
 
-    # The worst files first, so a cap keeps the worst rather than the
-    # best.
     it "keeps the worst files when --top caps the list" do
       expect(run("uncovered", "--input", json_path, "--top", "1")).to eq(0)
       expect(stdout.string.strip).to end_with("/abs/lib/c.rb")
     end
 
-    # Counts arrive from JSON as whatever wrote them, a string included.
     it "counts a string covered and total as whole numbers" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3775,9 +3496,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to eq("50.00%  2/4  /abs/lib/b.rb")
     end
 
-    # An entry that is not an object has no counts to rank it by. A
-    # list is the discriminating shape: a String answers nil to a string
-    # key where a list refuses one outright.
     it "passes over an entry that is not an object" do
       File.write(json_path, JSON.dump("coverage" => {"/abs/lib/b.rb" => "junk", "/abs/lib/c.rb" => [1, 2]}))
 
@@ -3785,7 +3503,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("simplecov uncovered: nothing to report\n")
     end
 
-    # A count the report omits is no count, and reads as zero.
     it "counts an absent covered figure as none" do
       File.write(json_path, JSON.dump(
                               "coverage" => {"/abs/lib/b.rb" => {"total_lines" => 4, "lines_covered_percent" => 0.0}}
@@ -3795,8 +3512,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to eq("0.00%  0/4  /abs/lib/b.rb")
     end
 
-    # Line data is a list of counts. Anything else under that key is no
-    # more usable than nothing.
     it "reports no missed lines for line data that is not a list" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3811,9 +3526,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("missing")
     end
 
-    # The missed lines a criterion reports arrive per branch or method,
-    # in the order the report lists them, and one line can carry more
-    # than one of either.
     it "lists each missed line once, in order" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3831,7 +3543,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string.strip).to end_with("missing 2,7")
     end
 
-    # A payload the criterion has no data in at all.
     it "reports no missed lines for a criterion the entry omits" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3858,8 +3569,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("missing")
     end
 
-    # No missed lines at all is still an answer, and the JSON row says
-    # so rather than leaving the key out.
     it "carries an empty missing list for line data it cannot read" do
       File.write(json_path, JSON.dump(
                               "coverage" => {
@@ -3874,8 +3583,6 @@ RSpec.describe SimpleCov::CLI do
       expect(JSON.parse(stdout.string).first["missing"]).to eq([])
     end
 
-    # Paths are shown project-relative, and a root that has not been
-    # expanded yet is still that root.
     it "trims an unexpanded root off the annotated paths" do
       allow(SimpleCov).to receive(:root).and_return(File.join(tmp, "lib", ".."))
       File.write(json_path, JSON.dump(
@@ -3974,7 +3681,6 @@ RSpec.describe SimpleCov::CLI do
       it "colorizes the listed percentages when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
         expect(run("uncovered", "--input", json_path)).to eq(0)
-        # Both listed files are below the yellow threshold so both render red
         expect(stdout.string).to match(/\e\[31m\s+10\.00%\e\[0m/)
         expect(stdout.string).to match(/\e\[31m\s+50\.00%\e\[0m/)
       end
@@ -4009,8 +3715,6 @@ RSpec.describe SimpleCov::CLI do
     let(:a) { File.join(tmp, "a.json") }
     let(:b) { File.join(tmp, "b.json") }
     let(:out) { File.join(tmp, "merged.json") }
-    # Use a real on-disk file inside SimpleCov.root so the default
-    # root_filter doesn't strip it during result construction.
     let(:file) { File.expand_path("spec/fixtures/sample.rb", SimpleCov.root) }
     let(:c) { File.join(tmp, "c.json") }
 
@@ -4032,7 +3736,6 @@ RSpec.describe SimpleCov::CLI do
       expect(SimpleCov::CLI::Merge).to have_received(:require).with("simplecov")
     end
 
-    # Nothing said to honour it, so a stale resultset is still merged.
     it "ignores the merge timeout unless told to honour it" do
       write_resultset(a, "worker_1", file, [1, 0, nil], outdated: true)
 
@@ -4048,8 +3751,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).not_to include("()")
     end
 
-    # The first command name belongs to one file only. Skipping it must
-    # not stop the sweep before the duplicate that follows.
     it "warns about a duplicate that follows a command name of its own" do
       write_resultset(a, "solo", file, [1, 0, nil])
       write_resultset(b, "shared", file, [0, 1, nil])
@@ -4059,9 +3760,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include(%(command_name "shared" appears in 2 input files))
     end
 
-    # The require is lazy, so the read-only subcommands never pay for
-    # ResultMerger. A process that already has simplecov loaded cannot
-    # tell whether it happened, so this asks one that does not.
     it "loads the library it merges with, in a process that has not" do
       write_resultset(a, "worker_1", file, [1, 0, nil])
       exe = File.expand_path("../exe/simplecov", __dir__)
@@ -4118,18 +3816,11 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("nope.json")
     end
 
-    # A directory passed File.exist? and then File.read raised EISDIR
-    # with a full backtrace; EACCES behaved the same. The read errors
-    # must come back as the same one-line reports the other input
-    # problems get.
     it "surfaces a specific error when an input path is not a readable file" do
       expect(run("merge", "--output", out, tmp)).to eq(1)
       expect(stderr.string).to match(/\Asimplecov merge: input file "\S.*" cannot be read \(\S.*\)\n\z/)
     end
 
-    # git and the kernel sometimes answer with more than one line. The
-    # status line takes the first of them, without its newline, so the
-    # report stays one complaint per file.
     it "reports only the first line of a multi-line read error" do
       wordy = Errno::EACCES.new("first line\nsecond line")
       allow(File).to receive(:read).and_raise(wordy)
@@ -4148,7 +3839,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "errors when --honor-timeout expires every input's entries" do
-      # Far enough in the past that any reasonable merge_timeout drops it.
       File.write(a, JSON.dump("worker_1" => {"coverage" => {file => {"lines" => [1]}},
                                              "timestamp" => Time.now.to_i - 86_400}))
       expect(run("merge", "--output", out, "--honor-timeout", a)).to eq(1)
@@ -4174,7 +3864,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("simplecov merge: wrote #{out}\n")
     end
 
-    # One command name in one file is not a duplicate.
     it "stays quiet when the command names are distinct" do
       write_resultset(a, "worker_1", file, [1, 0, nil])
       write_resultset(b, "worker_2", file, [1, 1, nil])
@@ -4190,8 +3879,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("simplecov merge: wrote #{out}\n")
     end
 
-    # A resultset is an object of command names. A JSON array parses,
-    # and is not one.
     it "surfaces a specific error when an input is not an object" do
       File.write(a, JSON.dump([{"coverage" => {}}]))
 
@@ -4278,10 +3965,6 @@ RSpec.describe SimpleCov::CLI do
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
     end
 
-    # Row inclusion and display both treat sub-EPSILON deltas as float
-    # noise, so the gate must too: a row listed for a gain in one
-    # criterion used to exit 1 over a 1e-14 drift in another, failing CI
-    # with only gains visible in the output.
     it "does not fail on sub-epsilon float noise under --fail-on-drop" do
       write_coverage(baseline,
                      "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
@@ -4302,10 +3985,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("missing baseline argument")
     end
 
-    # The threshold is a distance, so the sign the user typed says
-    # nothing: --threshold -5 asks for the same files --threshold 5 does.
-    # Read without the abs, a negative floor admits every row, since any
-    # delta at all is greater than a negative number.
     it "reads a negative threshold as the same distance as a positive one" do
       write_coverage(baseline, "lib/small.rb" => 80, "lib/big.rb" => 50)
       write_coverage(current,  "lib/small.rb" => 83, "lib/big.rb" => 56)
@@ -4315,9 +3994,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("lib/small.rb")
     end
 
-    # A file Coverage measured no lines of reports 100%, which is not a
-    # coverage level so much as the absence of one. Counted as 100 it
-    # cancels against a real 100 and the file vanishes from the diff.
     it "reads a file with nothing to cover as 0%, not as fully covered" do
       write_coverage(baseline, "lib/a.rb" => {"total_lines" => 0, "covered_lines" => 0,
                                               "lines_covered_percent" => 100.0})
@@ -4329,8 +4005,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(/\+\s*100\.00%/)
     end
 
-    # `include` cannot see a part that is missing, an extra separator, or
-    # a nil rendered into the join, so the whole line is pinned.
     it "renders a row as sign, width-aligned delta, criterion and file" do
       write_coverage(baseline, "lib/a.rb" => 80)
       write_coverage(current,  "lib/a.rb" => 85)
@@ -4368,8 +4042,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # The default floor is zero, not one: a move smaller than a full
-    # percent is still a move, and only EPSILON-scale noise is dropped.
     it "lists a sub-one-percent move under the default threshold" do
       write_coverage(baseline, "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0})
       write_coverage(current,  "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.5})
@@ -4378,8 +4050,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("lib/a.rb")
     end
 
-    # A payload that is not an object has no fields to read, and asking
-    # an Array for a string key raises rather than answering nil.
     it "reads a non-object payload as 0%, whatever it is" do
       File.write(current, JSON.dump("coverage" => {"lib/a.rb" => [1, 2, 3]}))
       write_coverage(baseline, "lib/a.rb" => 80)
@@ -4388,8 +4058,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("lib/a.rb").and include("-80.00%")
     end
 
-    # Two positional arguments, so the one that is read is identified by
-    # position rather than by being the only one there.
     it "reads the baseline from the first positional argument" do
       other = File.join(tmp, "other.json")
       write_coverage(baseline, "lib/a.rb" => 80)
@@ -4400,9 +4068,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("+  5.00%")
     end
 
-    # coverage.json is JSON someone else may have written, so a percent
-    # can arrive as a string. Read without the coercion it reaches the
-    # subtraction as one and raises.
     it "coerces a percent that arrived as a string" do
       File.write(baseline, JSON.dump("coverage" => {"lib/a.rb" => {
                                        "total_lines" => 100, "covered_lines" => 80,
@@ -4435,9 +4100,6 @@ RSpec.describe SimpleCov::CLI do
         .and include("\e[31m-10.00% methods\e[0m")
     end
 
-    # A payload can count lines without carrying the percent alongside
-    # them, and a missing percent is a file to read as uncovered rather
-    # than an input to abort on.
     it "reads a payload that counts lines but omits the percent as 0%" do
       File.write(baseline, JSON.dump("coverage" => {"lib/a.rb" => {"total_lines" => 100,
                                                                    "covered_lines" => 80}}))
@@ -4610,8 +4272,6 @@ RSpec.describe SimpleCov::CLI do
       expect(SimpleCov::CLI::Ratchet).to have_received(:require).with("simplecov")
     end
 
-    # The whole payload: every fact the JSON view carries, under the key
-    # it carries it, so a key that went missing or was renamed shows.
     it "reports a generated pass as JSON" do
       write_report("lib/foo.rb" => {percent: 41.2, missed: 137})
 
@@ -4653,8 +4313,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "which rows can become a floor" do
-      # A row from another tool may carry one half of the pair; a floor
-      # needs both, and needs them as numbers.
       it "takes a row that carries both a percent and a count" do
         expect(described_class::Ratchet.usable?(41.2, 137)).to be(true)
       end
@@ -4667,7 +4325,6 @@ RSpec.describe SimpleCov::CLI do
         expect(described_class::Ratchet.usable?(41.2, nil)).to be(false)
       end
 
-      # A count is whole: a fractional one is not a number of lines.
       it "refuses a count that is not a whole number" do
         expect(described_class::Ratchet.usable?(41.2, 137.5)).to be(false)
       end
@@ -4693,7 +4350,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to start_with("simplecov ratchet: would write #{baseline_path} (")
       end
 
-      # A ratcheted pass counts what moved rather than what exists.
       it "counts what moved once a baseline is there" do
         run("ratchet", "--input", input, "--baseline", baseline_path)
         stdout.truncate(stdout.rewind)
@@ -4733,8 +4389,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A percent from a report carries whatever precision the writer used;
-    # a floor is stored at the precision SimpleCov rounds to.
     it "rounds a floor to the precision coverage is reported at" do
       write_report("lib/foo.rb" => {percent: 41.23456789, missed: 137})
 
@@ -4820,8 +4474,6 @@ RSpec.describe SimpleCov::CLI do
         baseline = read_baseline
         expect(baseline.entry_for("lib/brand_new.rb")).not_to be_nil
         expect(baseline.entry_for("lib/deleted.rb")).to be_nil
-        # --init is the escape hatch: floors reset to the current state,
-        # regression included.
         expect(baseline.floor_for("lib/regressed.rb", :line)).to have_attributes(percent: 80.0, missed: 6)
       end
 
@@ -4836,8 +4488,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A report written by another tool can carry rows without the missed
-    # counts; only a complete percent-and-missed pair can become a floor.
     it "skips report rows without usable counts" do
       File.write(input, JSON.dump("coverage" => {
                                     "lib/counted.rb" => {"lines_covered_percent" => 80.0, "covered_lines" => 8,
@@ -4904,9 +4554,6 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  # The history renderer, driven directly. The subcommand's own examples
-  # write a history file and run the command; these pin the table it
-  # draws, which is where nearly all of this code lives.
   describe "history output", mutant_expression: "SimpleCov::CLI::History*" do
     let(:renderer) { SimpleCov::CLI::History::Output }
     let(:out) { StringIO.new }
@@ -4919,10 +4566,6 @@ RSpec.describe SimpleCov::CLI do
         "totals" => {"line" => 100.0, "branch" => 70.0}, "files" => {"lib/a.rb" => {"line" => 75.0}}}]
     end
 
-    # A sparkline per criterion over the whole history, then one row per
-    # run: the columns are padded to the widest value so the rows line
-    # up, a run with no branch or commit shows a dash, and the commit is
-    # cut to seven characters.
     it "draws the totals view whole" do
       renderer.emit(out, {input: "coverage/.history.json", json: false, file: nil}, entries, color: false)
 
@@ -4940,8 +4583,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # The same table scoped to one path, where a run that never saw the
-    # file leaves a gap in the sparkline and a dash in its row.
     it "draws one file's trajectory whole" do
       renderer.emit(out, {input: "x", json: false, file: "lib/a.rb"}, entries, color: false)
 
@@ -4980,16 +4621,12 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # Scaled to the series' own range, so direction stays visible even
-    # when the numbers move within a fraction of a percent. A flat
-    # series renders at mid height rather than at the floor.
     it "scales the sparkline to its own range, and gaps what it has no value for" do
       expect(renderer.sparkline([1.0, 2.0, 3.0])).to eq("▁▅█")
       expect(renderer.sparkline([5.0, 5.0])).to eq("▄▄")
       expect(renderer.sparkline([1.0, nil, 3.0])).to eq("▁ █")
     end
 
-    # A series with no numbers at all still renders, as the gaps it is.
     it "draws a series that carries no value anywhere" do
       expect(renderer.sparkline([nil, nil])).to eq("  ")
       expect(renderer.sparkline([])).to eq("")
@@ -5006,9 +4643,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.trend([90.0, 100.0], true)).to include("\e[32m(+10.0)\e[0m")
     end
 
-    # A criterion enabled midway through the history still gets a
-    # sparkline, and the criteria keep their canonical order rather than
-    # the order they were first seen in.
     it "lists every criterion the history ever recorded, in order" do
       late = [{"totals" => {"branch" => 1.0}}, {"totals" => {"line" => 2.0, "method" => 3.0}}]
 
@@ -5029,9 +4663,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.numeric(nil)).to be_nil
     end
 
-    # The delta is the one colored thing in either view, and the color
-    # has to survive the whole way down: the view, the sparkline row,
-    # and the trend that draws the delta.
     it "colors the delta of both views when color is on" do
       renderer.emit(out, {input: "x", json: false, file: nil}, entries, color: true)
 
@@ -5044,11 +4675,6 @@ RSpec.describe SimpleCov::CLI do
       expect(scoped.string).to include("50.0% → 75.0%  \e[32m(+25.0)\e[0m")
     end
 
-    # A hand-edited history: a run with none of the row's fields, a
-    # percentage that is not a number, and a run that recorded nothing
-    # at all. Every column still renders, the criterion nothing
-    # numeric was recorded for is left out of the view entirely, and
-    # the run that recorded no number for a listed criterion is a gap.
     it "draws a run that recorded none of the row's fields" do
       sparse = [{"totals" => {"line" => 90.0}}, {"totals" => {"line" => "?", "branch" => "?"}}, {}]
 
@@ -5067,9 +4693,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # The JSON rows carry whatever the entry recorded and null where it
-    # recorded nothing, including a files section holding something
-    # other than a run's percentages.
     it "answers null columns for a run that recorded none of them" do
       sparse = [{}, {"files" => {"lib/a.rb" => "junk"}}]
 
@@ -5081,8 +4704,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # The label column is as wide as the widest criterion it prints,
-    # not as wide as whichever one happens to come last.
     it "pads the criterion labels to the widest of them" do
       renderer.emit_sparklines(out, entries, %w[branch line], false, ["totals"])
 
@@ -5092,9 +4713,6 @@ RSpec.describe SimpleCov::CLI do
       )
     end
 
-    # The high and the low are read off the whole series, not off its
-    # ends, and the scale between them is a float even for a history
-    # that recorded whole percentages.
     it "scales to the range of the whole series" do
       expect(renderer.sparkline([3.0, 5.0, 1.0, 4.0])).to eq("▅█▁▆")
       expect(renderer.sparkline([90, 95, 100])).to eq("▁▅█")
@@ -5125,8 +4743,6 @@ RSpec.describe SimpleCov::CLI do
       run("history", "--input", input, *extra)
     end
 
-    # The JSON parser's complaint can run to several lines. The status
-    # line takes the first, without its trailing newline.
     it "reports only the first line of a multi-line parse error" do
       File.write(input, "{\n  bad\n}")
 
@@ -5135,9 +4751,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to match(/\Asimplecov history: \S.* is not valid JSON \(\S.*\)\n\z/)
     end
 
-    # Older JSON parsers quote the offending source back, which can run
-    # to several lines with whitespace around it. The status line takes
-    # the first of them, trimmed.
     it "trims a multi-line parse error down to its first line" do
       File.write(input, "{}")
       allow(JSON).to receive(:parse)
@@ -5147,8 +4760,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov history: #{input} is not valid JSON (unexpected token at 'bad')\n")
     end
 
-    # A run recorded before the file existed has no files section at
-    # all, which is not the same as one that recorded nothing for it.
     it "carries no percents for an entry that has no files section" do
       write_history([{"created_at" => "2026-08-23T10:00:00Z", "totals" => {"line" => 90.0}},
                      entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/a.rb" => {"line" => 95.0}})])
@@ -5186,9 +4797,9 @@ RSpec.describe SimpleCov::CLI do
       first["totals"]["branch"] = 80.0
       second = entry("2026-08-24T10:00:00Z", 95.0)
       second["totals"]["branch"] = 85.0
-      third = entry("2026-08-25T10:00:00Z", 96.0) # no branch measurement
+      third = entry("2026-08-25T10:00:00Z", 96.0)
       fourth = entry("2026-08-26T10:00:00Z", 97.0)
-      fourth["totals"] = nil # a hand-edited entry must not crash the view
+      fourth["totals"] = nil
       write_history([first, second, third, fourth])
 
       run_history("--no-color")
@@ -5232,9 +4843,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("no recorded coverage for lib/nope.rb")
     end
 
-    # A hand-edited history can name the file under something other than
-    # a run's percentages. That is a name, not a recording, and it still
-    # deserves the loud answer rather than an empty sparkline.
     it "errors under --file for a file recorded as something other than percentages" do
       write_history([entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => "junk"})])
 
@@ -5283,8 +4891,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("recorded automatically")
     end
 
-    # Each refusal names the file it read, which is the only thing that
-    # distinguishes them from one another in a CI log.
     it "errors when the file is not a history" do
       File.write(input, JSON.dump("something" => "else"))
 
@@ -5314,8 +4920,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov history: #{input} is not a SimpleCov history file\n")
     end
 
-    # The history is written by the suite itself, so a missing one means
-    # no suite has reported yet rather than a mistyped path.
     it "errors when the history has never been written, saying why" do
       missing = File.join(tmp, "absent.json")
 
@@ -5343,15 +4947,11 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include('unexpected argument "stray"')
     end
 
-    # The first stray argument is the one worth naming: the rest are
-    # very likely the same mistake repeated.
     it "names the first of several stray arguments" do
       expect(run("history", "one", "two")).to eq(1)
       expect(stderr.string).to eq(%(simplecov history: unexpected argument "one"\n))
     end
 
-    # The history is written beside the report, and the command finds
-    # it there without being told where to look.
     it "reads the history beside the report by default" do
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
       write_history([entry("2026-08-23T10:00:00Z", 90.0)])
@@ -5361,8 +4961,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("Coverage history: #{input} (1 run)")
     end
 
-    # A parser complaint with nothing in it still leaves a status line
-    # that reads as one, rather than taking the read down with it.
     it "prints an empty parser complaint as an empty note" do
       File.write(input, "{}")
       allow(JSON).to receive(:parse).and_raise(JSON::ParserError.new(""))
@@ -5371,9 +4969,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov history: #{input} is not valid JSON ()\n")
     end
 
-    # The entries are whatever the file held. One that is not an object
-    # records nothing for any file, and must not take the lookup down
-    # with it.
     it "reads past an entry that is not an object when looking for a file" do
       write_history(["junk"])
 
@@ -5381,8 +4976,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov history: no recorded coverage for lib/a.rb in #{input}\n")
     end
 
-    # The answer is a plain yes or no: `run` reads it as the difference
-    # between reporting and carrying on.
     it "answers whether the file was recorded at all" do
       opts = {file: "lib/a.rb", input: input}
 
@@ -5413,10 +5006,6 @@ RSpec.describe SimpleCov::CLI do
     let(:production_path) { File.join(tmp, "production.json") }
 
     before do
-      # L1 tested+prod (normal), L2 untested+unprod (dead), L4
-      # tested+unprod (possibly dead), L5 untested+prod (untested in
-      # production). tested_unused.rb is fully tested and never runs in
-      # production. ignored/irrelevant lines stay out of every bucket.
       File.write(input, JSON.dump("coverage" => {
                                     "lib/mixed.rb" => {"lines" => [1, 0, nil, 2, 0]},
                                     "lib/tested_unused.rb" => {"lines" => [2, 1]},
@@ -5429,8 +5018,6 @@ RSpec.describe SimpleCov::CLI do
 
     after { FileUtils.remove_entry(tmp) }
 
-    # A hand-written production file, for the shapes a sink would not
-    # write but a reader still meets.
     def write_production(coverage:, last_seen: {}, started_at: "2026-01-01T00:00:00Z",
                          updated_at: "2026-02-01T00:00:00Z")
       window = {"format_version" => 1, "coverage" => coverage, "last_seen" => last_seen}
@@ -5446,8 +5033,6 @@ RSpec.describe SimpleCov::CLI do
         write_production(coverage: {})
       end
 
-      # Whole output: the header, the blank line under it, both headings
-      # with their rows, the blank line after each, and the summary.
       it "prints each section under its heading, and counts them at the end" do
         expect(run_dead_code).to eq(0)
         expect(stdout.string).to eq(<<~REPORT)
@@ -5510,7 +5095,6 @@ RSpec.describe SimpleCov::CLI do
         )
       end
 
-      # Half a window is not a window, so neither half alone is named.
       it "names no window when only its start was recorded" do
         write_production(coverage: {}, updated_at: nil)
         run_dead_code
@@ -5581,9 +5165,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to include("No dead code found.")
       end
 
-      # Nothing relevant was measured, so nothing about the file is
-      # known, and a file nothing is known about is not a candidate for
-      # deletion.
       it "does not call a file with no relevant lines entirely dead" do
         File.write(input, JSON.dump("coverage" => {"lib/blank.rb" => {"lines" => [nil, nil]}}))
 
@@ -5636,8 +5217,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A hand-written store can carry a file's lines in any order; the
-    # row that reports them puts them in reading order.
     it "sorts the lines of a file the report never tracked" do
       File.write(input, JSON.dump("coverage" => {}))
       write_production(coverage: {"lib/prod_only.rb" => [9, 2, 5]})
@@ -5646,8 +5225,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("lib/prod_only.rb:2,5,9")
     end
 
-    # Files the report never tracked are listed in a settled order, and
-    # so are the lines within each.
     it "sorts the production-only files and their lines" do
       File.write(input, JSON.dump("coverage" => {}))
       SimpleCov::Production::FileSink.new(path: production_path).store(
@@ -5664,7 +5241,6 @@ RSpec.describe SimpleCov::CLI do
       run("dead-code", "--input", input, "--production", production_path, *extra)
     end
 
-    # The date the store last saw a file run, as the text views print it.
     def last_run(file)
       SimpleCov::Production::FileSink.read(production_path).fetch("last_seen").fetch(file)[0, 10]
     end
@@ -5687,11 +5263,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).not_to include("ignored.rb")
     end
 
-    # A store can have seen a file without any of its relevant lines
-    # (stale line numbers, lines the report deems irrelevant): the row
-    # then carries both markers, because "every relevant line skipped
-    # production" and "production last touched this file in August" are
-    # both evidence.
     it "combines the entire-file marker with the file's last production activity" do
       SimpleCov::Production::FileSink.new(path: production_path).store("lib/tested_unused.rb" => [9])
 
@@ -5701,8 +5272,6 @@ RSpec.describe SimpleCov::CLI do
         .to include("  lib/tested_unused.rb:1-2 (entire file, last run #{last_run('lib/tested_unused.rb')})\n")
     end
 
-    # A v1 store (or a remote sink that only fills the documented shape)
-    # carries no stamps; rows stay bare rather than guessing.
     it "leaves the annotation off when the store carries no stamps" do
       document = JSON.parse(File.read(production_path))
       document[SimpleCov::Production::FileSink::ENVELOPE].delete("last_seen")
@@ -5766,8 +5335,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("No untested production code found.")
     end
 
-    # A branch-only report carries entries without a "lines" array;
-    # those files simply cannot be classified.
     it "skips report entries without line data" do
       File.write(input, JSON.dump("coverage" => {"lib/branch_only.rb" => {"branches" => []}}))
 
@@ -5863,8 +5430,6 @@ RSpec.describe SimpleCov::CLI do
       expect(lookup({"other.rb" => "V"}, "missing.rb")).to be_nil
     end
 
-    # The suffix carries a leading slash so a subpath matches whole path
-    # segments rather than the tail of a longer name.
     it "does not let a subpath match the end of a longer filename" do
       expect(lookup({"/x/barfoo.rb" => "V"}, "foo.rb")).to be_nil
       expect(lookup({"/x/foo.rb" => "V"}, "foo.rb")).to eq(["/x/foo.rb", "V"])
@@ -5875,8 +5440,6 @@ RSpec.describe SimpleCov::CLI do
         SimpleCov::CLI::CoverageFile.not_found_message(hash, path, "coverage/coverage.json")
       end
 
-      # An ambiguous subpath names its candidates: "no entry" would send
-      # someone hunting for a typo in a path that exists twice.
       it "names every candidate of an ambiguous subpath, sorted" do
         hash = {"lib/models/foo.rb" => "LIB", "app/models/foo.rb" => "APP"}
 
@@ -5891,16 +5454,12 @@ RSpec.describe SimpleCov::CLI do
           .to eq("no entry for missing.rb in coverage/coverage.json")
       end
 
-      # One match is not an ambiguity: it resolved, and any later failure
-      # is about something else.
       it "reports a single suffix match as absent rather than ambiguous" do
         expect(message({"/x/lib/a.rb" => "V"}, "lib/a.rb"))
           .to eq("no entry for lib/a.rb in coverage/coverage.json")
       end
     end
 
-    # The exact index is what `patch` resolves changed files through,
-    # where a suffix fallback could bind a path to the wrong entry.
     describe "the exact index" do
       def index(hash)
         SimpleCov::CLI::CoverageFile.exact_index(hash)
@@ -5911,8 +5470,6 @@ RSpec.describe SimpleCov::CLI do
           .to include("lib/a.rb" => "A", "lib/b.rb" => "B")
       end
 
-      # A symlinked root (macOS puts temporary directories behind one)
-      # would otherwise split a resolved path from the report's key.
       it "holds a real path under its resolved spelling too" do
         Dir.mktmpdir("simplecov-exact-index-") do |dir|
           file = File.join(dir, "a.rb")
@@ -5929,8 +5486,6 @@ RSpec.describe SimpleCov::CLI do
         expect(index({"/nonexistent/gone.rb" => "A"})).to eq("/nonexistent/gone.rb" => "A")
       end
 
-      # First writer wins, so a key reached through a symlink cannot
-      # replace the entry that already claimed the resolved spelling.
       it "lets the first entry keep a spelling two keys share" do
         Dir.mktmpdir("simplecov-exact-index-link-") do |dir|
           real = File.join(dir, "real")
@@ -5969,8 +5524,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to eq(%(simplecov report: input file "x.json" isn't valid JSON (first line)\n))
       end
 
-      # Trimmed at both ends: a parser's message often arrives indented,
-      # and the reason sits inside parentheses where that would show.
       it "trims the reason at both ends, not just the right" do
         SimpleCov::CLI::CoverageFile.report_invalid(stderr, "report", "x.json", "  padded  \nrest")
 
@@ -5983,8 +5536,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to eq(%(simplecov report: cannot read "x.json" (padded)\n))
       end
 
-      # A document with no coverage section at all reads as an empty one
-      # rather than as a malformed report.
       it "reads a document with no coverage section as carrying none" do
         Dir.mktmpdir("simplecov-no-coverage-") do |dir|
           path = File.join(dir, "coverage.json")
@@ -5995,8 +5546,6 @@ RSpec.describe SimpleCov::CLI do
         end
       end
 
-      # An exception with an empty message still has to produce a line
-      # rather than raise from inside the error path.
       it "reports a reason that is empty" do
         SimpleCov::CLI::CoverageFile.report_invalid(stderr, "report", "x.json", "")
 
@@ -6009,10 +5558,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to eq(%(simplecov report: cannot read "x.json" ()\n))
       end
 
-      # Any Hash of coverage will do, including one a document reader
-      # hands back as a subclass of it.
-      # The command name is what tells one refusal from another in a log,
-      # so the coverage-section refusal carries it too.
       it "names the command when refusing a coverage section" do
         Dir.mktmpdir("simplecov-bad-coverage-") do |dir|
           path = File.join(dir, "coverage.json")
@@ -6041,12 +5586,6 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  # The rendering half of `patch`, driven directly: the command's own
-  # examples build a git repository per case, which is the wrong shape
-  # for pinning the layout of every cell, note, and total.
-  # Tagged for the renderer alone, which makes these the tests its
-  # subjects answer to: they exercise it directly, where the
-  # subcommand's own examples reach it through a built git repository.
   describe "patch output", mutant_expression: "SimpleCov::CLI::Patch::Output*" do
     let(:renderer) { SimpleCov::CLI::Patch::Output }
     let(:stdout) { StringIO.new }
@@ -6061,14 +5600,9 @@ RSpec.describe SimpleCov::CLI do
         method: {covered: 0, relevant: 0, missing: []}}]
     end
 
-    # Worst first, every cell aligned, the missing ranges collapsed, and
-    # a criterion the touched lines never carried left out rather than
-    # printed as a hollow 0/0.
     it "prints the rows worst first, with a total beneath them" do
       renderer.emit_text(stdout, rows, false)
 
-      # Written as literal lines rather than a squiggly heredoc, whose
-      # indent stripping would eat the two-space gutter under test.
       expect(stdout.string).to eq(
         [
           "   88.00% (22/25) lines   50.00% (1/2) branches  lib/a.rb  missing 41-43, 47  branch 39",
@@ -6122,8 +5656,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.ranges([1, 2])).to eq("1-2")
     end
 
-    # The show subcommand borrows this with a bare comma for its
-    # greppable form, so the separator has to reach the joins.
     it "joins the ranges with the separator it was given" do
       expect(renderer.ranges([1, 3], ",")).to eq("1,3")
       expect(renderer.ranges([1, 3])).to eq("1, 3")
@@ -6135,8 +5667,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.pct(covered: 1, relevant: 3)).to eq(33.33)
     end
 
-    # Branch stats are nil on rows from a line-only report, and 0/0 when
-    # the change touched none: neither counts as measured.
     it "counts only the rows that measured a criterion into its total" do
       expect(renderer.sum_stats(rows, :branch)).to eq(covered: 1, relevant: 2)
       expect(renderer.sum_stats(rows, :line)).to eq(covered: 26, relevant: 29)
@@ -6151,7 +5681,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("\e[31m 88.00%\e[0m").and include("\e[32m100.00%\e[0m")
     end
 
-    # The total is a row like any other, so it takes the same colour.
     it "colorizes the total line too" do
       renderer.emit_text(stdout, rows, true)
 
@@ -6162,8 +5691,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.measured?(Class.new(Hash).new.merge!(covered: 0, relevant: 1))).to be true
     end
 
-    # Full is full, and nothing short of it counts: a cell at or past
-    # complete is green, and one a fraction below is not.
     it "colours a cell at or past complete green, and anything below red" do
       expect(renderer.criterion_cell("lines", {covered: 3, relevant: 2, missing: []}, true))
         .to include("\e[32m")
@@ -6184,8 +5711,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.criterion_cells(row, true).last).to include("\e[31m")
     end
 
-    # Whether colour is on is decided from the stream being written to,
-    # so the stream is what has to be asked about.
     it "asks about the stream it is writing to" do
       allow(described_class).to receive(:color_enabled?).and_return(false)
 
@@ -6194,8 +5719,6 @@ RSpec.describe SimpleCov::CLI do
       expect(described_class).to have_received(:color_enabled?).with({json: false}, stdout)
     end
 
-    # A criterion that measured nothing has no missing lines to name,
-    # however its stats hash is shaped.
     it "notes nothing for a criterion that measured nothing" do
       row = {file: "f", line: {covered: 1, relevant: 1, missing: []},
              branch: {covered: 0, relevant: 0, missing: [3]}, method: nil}
@@ -6203,8 +5726,6 @@ RSpec.describe SimpleCov::CLI do
       expect(renderer.missing_note(row)).to eq("")
     end
 
-    # A criterion the change touched none of is still a Hash, so the
-    # cell is left out on what it measured rather than on its presence.
     it "leaves out a branch cell the change touched none of" do
       row = {file: "f", line: {covered: 1, relevant: 1, missing: []},
              branch: {covered: 0, relevant: 0, missing: []}, method: nil}
@@ -6240,9 +5761,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The exit status of `patch --minimum N`. The arithmetic is
-    # cross-multiplied rather than compared as percentages, so the
-    # boundary cases the code reasons about are the ones asserted here.
     describe "the minimum gate" do
       def row(covered, relevant, criterion: :line)
         base = {file: "lib/a.rb", line: {covered: 0, relevant: 0, missing: []}, branch: nil, method: nil}
@@ -6268,19 +5786,14 @@ RSpec.describe SimpleCov::CLI do
         expect(renderer.gate([row(10, 10)], 100)).to eq(0)
       end
 
-      # Rounding the displayed percent would pass this against 100.
       it "fails a patch that is short by a line however small the shortfall" do
         expect(renderer.short?({covered: 19_999, relevant: 20_000}, 100)).to be true
       end
 
-      # Float division makes 23/40 compute as 57.4999…, which would fail
-      # a patch that is exactly at the floor.
       it "passes a patch sitting exactly on the floor" do
         expect(renderer.short?({covered: 23, relevant: 40}, 57.5)).to be false
       end
 
-      # 64.4 is not representable in binary, so 64.4 * 250 lands just
-      # above the integer the patch actually reached.
       it "passes a floor whose decimal has no exact binary form" do
         expect(renderer.short?({covered: 161, relevant: 250}, 64.4)).to be false
       end
@@ -6305,8 +5818,6 @@ RSpec.describe SimpleCov::CLI do
         expect(renderer.missing_note(row)).to eq("missing 1-2  branch 5  method 9")
       end
 
-      # A criterion can be measured and still have nothing missing, and
-      # an empty range list would print a bare label with no lines.
       it "notes only the criteria that actually missed something" do
         row = {file: "f", line: {covered: 2, relevant: 2, missing: []},
                branch: {covered: 2, relevant: 2, missing: []},
@@ -6326,8 +5837,6 @@ RSpec.describe SimpleCov::CLI do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }
 
-    # rm_rf rather than remove_entry: it shrugs off files a lingering
-    # background git process deletes mid-walk instead of raising ENOENT.
     after { FileUtils.rm_rf(tmp) }
 
     def git(*args)
@@ -6337,10 +5846,6 @@ RSpec.describe SimpleCov::CLI do
       output
     end
 
-    # A one-file repo whose HEAD (on a `feature` branch) differs from
-    # `main`, plus a coverage.json whose `lines` array (indexed from line 1)
-    # reflects `line_hits`. HEAD lives on its own branch so `main...HEAD`
-    # resolves to the change rather than to an empty merge-base diff.
     def build_repo(base:, head:, line_hits:, branches: nil, methods: nil, file: "lib/foo.rb", cover: true)
       init_repo
       write(file, base)
@@ -6351,15 +5856,6 @@ RSpec.describe SimpleCov::CLI do
       write_report(file, line_hits, branches, methods) if cover
     end
 
-    # One git process rather than five. The settings are appended to the
-    # config file the init just wrote, which is the same file four
-    # `git config` runs would have edited one line at a time. The empty
-    # template keeps git from copying its sixteen sample hooks into
-    # every repository an example builds.
-    #
-    # git 2.46+ forks a detached `git maintenance` after commits; its
-    # transient .git/objects/maintenance.lock races the after-hook's
-    # directory removal, so the fixture repo opts out of both.
     def init_repo
       GitFixture.init_repo(tmp)
     end
@@ -6407,7 +5903,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "excludes never-relevant touched lines from the denominator" do
-      # line 2 is a comment (nil in the lines array) -> not counted
       build_repo(base: "a\n", head: "a\n# note\nb\n", line_hits: [1, nil, 1])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
@@ -6599,7 +6094,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "shows 100% for a line cell with no coverable touched lines" do
-      # both touched lines are never-relevant (nil), but a branch sits on one
       build_repo(base: "a\n", head: "a\nif x\n  b\n", line_hits: [1, nil, nil],
                  branches: [{"report_line" => 2, "coverage" => 1}])
 
@@ -6608,8 +6102,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "does not misread an added '++ ...' line as a file header" do
-      # under --unified=0 an added line whose text starts with '++ '
-      # renders as '+++ ...'; it must not redirect the file's later hunks
       diff = "diff --git a/lib/real.rb b/lib/real.rb\n" \
              "--- a/lib/real.rb\n+++ b/lib/real.rb\n" \
              "@@ -1,0 +2 @@\n+++ b/evil.rb\n" \
@@ -6619,13 +6111,10 @@ RSpec.describe SimpleCov::CLI do
 
     it "gates on the exact ratio at the boundary" do
       patch = SimpleCov::CLI::Patch::Output
-      # 23/40 is exactly 57.5%, which float division renders as 57.4999…
       expect(patch.short?({covered: 23, relevant: 40}, 57.5)).to be(false)
       expect(patch.short?({covered: 22, relevant: 40}, 57.5)).to be(true)
-      # 19_999/20_000 = 99.995% must not round up to clear --minimum 100
       expect(patch.short?({covered: 19_999, relevant: 20_000}, 100)).to be(true)
       expect(patch.short?({covered: 20_000, relevant: 20_000}, 100)).to be(false)
-      # 161/250 is exactly 64.4%; `64.4 * 250` overshoots in binary float
       expect(patch.short?({covered: 161, relevant: 250}, 64.4)).to be(false)
       expect(patch.short?({covered: 160, relevant: 250}, 64.4)).to be(true)
     end
@@ -6653,8 +6142,6 @@ RSpec.describe SimpleCov::CLI do
       commit("rename")
       write_report("lib/new.rb", [1, 1, 0], nil)
 
-      # --no-renames (the default) makes the move a fresh add: lines 1-3 all
-      # count, where --find-renames would score only the edited line 3
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to include("(2/3)").and include("missing 3")
     end
@@ -6662,17 +6149,15 @@ RSpec.describe SimpleCov::CLI do
     it "errors on a stray positional argument" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
-      # a forgotten `--base` leaves the ref as a bare positional
       expect(run_in_repo("patch", "feature", "--input", cov)).to eq(1)
       expect(stderr.string).to include("unexpected argument").and include("feature")
     end
 
     it "scores uncommitted working-tree changes" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1, 0])
-      write("lib/foo.rb", "a\nb\nc\n") # a third line, not yet committed
+      write("lib/foo.rb", "a\nb\nc\n")
 
       run_in_repo("patch", "--base", "main", "--input", cov)
-      # --merge-base includes the working tree, so line 3 is in scope
       expect(stdout.string).to include("(1/2)").and include("missing 3")
     end
 
@@ -6685,9 +6170,6 @@ RSpec.describe SimpleCov::CLI do
 
     it "resolves changed paths exactly instead of by suffix" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], cover: false)
-      # The report tracks only a fixture copy whose key merely ends with
-      # the changed path; a suffix match would score the fixture's hits
-      # against lib/foo.rb's line numbers.
       write_coverage(File.join(tmp, "spec/fixtures/lib/foo.rb") => [0, 0])
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
@@ -6705,18 +6187,13 @@ RSpec.describe SimpleCov::CLI do
       init_repo
       write("lib/base.rb", "a\n")
       commit("base")
-      write("lib/brand_new.rb", "a\nb\n") # never `git add`ed
+      write("lib/brand_new.rb", "a\nb\n")
       write_report("lib/brand_new.rb", [1, 0], nil)
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov)).to eq(0)
       expect(stdout.string).to include("lib/brand_new.rb").and include("(1/2)").and include("missing 2")
     end
 
-    # An ignored file is untracked on purpose. Scoring it would fail the
-    # gate over generated output nobody wrote.
-    # `git ls-files` hands back raw bytes, and a filename on disk need not
-    # be valid UTF-8. Splitting on the NUL separator raises on such a
-    # string, which would take the whole patch run down over a filename.
     it "scrubs bytes from git that are not valid UTF-8" do
       allow(SimpleCov::CLI::Git)
         .to receive(:capture)
@@ -6731,7 +6208,7 @@ RSpec.describe SimpleCov::CLI do
       write("lib/base.rb", "a\n")
       write(".gitignore", "lib/generated.rb\n")
       commit("base")
-      write("lib/generated.rb", "a\n") # untracked, but ignored
+      write("lib/generated.rb", "a\n")
       write_report("lib/generated.rb", [0], nil)
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(0)
@@ -6823,10 +6300,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
     end
 
-    # The diff is pinned against a user's git config so it cannot skew
-    # the numbers, run code, or throw off the parse. Each of these
-    # configures the repository the way a real one might be configured
-    # and checks the score is the same.
     describe "a diff pinned against the repository's own configuration" do
       before { build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0]) }
 
@@ -6847,8 +6320,6 @@ RSpec.describe SimpleCov::CLI do
         end
       end
 
-      # Two changes a few lines apart are two hunks, and merging them
-      # would score the untouched lines between as this change's work.
       it "keeps hunks apart that a merged context would join" do
         git("checkout", "-q", "main")
         write("lib/foo.rb", "a\nb\nc\nd\ne\n")
@@ -6863,9 +6334,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(2/2\)})
       end
 
-      # An external diff driver, or a textconv filter, replaces what git
-      # prints with whatever a configured command says — including
-      # nothing a hunk parser can read.
       it "scores the same change with an external diff driver configured" do
         git("config", "diff.external", "true")
 
@@ -6873,8 +6341,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
       end
 
-      # A textconv filter that answers with fewer lines than the file has
-      # would renumber every hunk after it.
       it "scores the same change with a textconv filter configured" do
         git("config", "diff.firstline.textconv", "head -1")
         write(".gitattributes", "*.rb diff=firstline\n")
@@ -6884,8 +6350,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
       end
 
-      # The merge base, not the branch tip: a base that has moved on
-      # independently must not read as this change's work.
       it "scores against the merge base rather than the base's tip" do
         git("checkout", "-q", "main")
         write("lib/other.rb", "x\ny\n")
@@ -6898,9 +6362,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A ref that begins with a dash is an option to git, not a
-    # revision: `--output=FILE` writes to disk and `--line-prefix=`
-    # empties the diff so a `--minimum` gate passes over the change.
     it "refuses a base that git would read as an option" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
@@ -6910,8 +6371,6 @@ RSpec.describe SimpleCov::CLI do
                %((a ref cannot begin with "-")\n))
     end
 
-    # Outside a working tree there is nothing to diff, and the failure
-    # is reported once rather than again on the way out.
     it "reports a missing working tree once, naming the base" do
       File.write(cov, JSON.dump("coverage" => {}))
       plain = Dir.mktmpdir("simplecov-cli-patch-nogit-")
@@ -6938,8 +6397,6 @@ RSpec.describe SimpleCov::CLI do
         .to eq(%(simplecov patch: unexpected argument "feature-x" (did you mean `--base feature-x`?)\n))
     end
 
-    # `--base` left out falls back to the repository's own default
-    # branch rather than to nothing.
     it "falls back to the repository's default branch" do
       build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
 
@@ -6947,8 +6404,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+50\.00%\s+\(1/2\)})
     end
 
-    # A minimum is a number, not the string it arrived as: compared as
-    # text, "9" would sit above "50".
     it "takes a fractional minimum" do
       build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
 
@@ -6963,9 +6418,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("invalid argument")
     end
 
-    # The merge base, not the base's tip: work the base has done since
-    # the branch point is not this change's work, and a plain diff would
-    # read the base's own deletions as this change adding them back.
     it "scores against the merge base, not against the base's tip" do
       init_repo
       write("lib/foo.rb", "a\nb\n")
@@ -6983,8 +6435,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+0\.00%\s+\(0/1\)})
     end
 
-    # Without the end-of-options marker, a ref that is also a filename
-    # is ambiguous and git refuses to diff at all.
     it "diffs a ref that shares its name with a file" do
       build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
       write("main", "a file named like the branch\n")
@@ -6995,8 +6445,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+100\.00%\s+\(1/1\)})
     end
 
-    # A moved file reads as all-new unless renames are asked for, which
-    # is what keeps a move from scoring as one changed line.
     it "scores a moved file as all-new unless it is asked to find renames" do
       init_repo
       write("lib/foo.rb", "a\nb\nc\n")
@@ -7015,8 +6463,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to match(%r{Patch coverage:\s+0\.00%\s+\(0/1\)})
     end
 
-    # Branch and method misses are counted the same way lines are, and
-    # two arms of one branch sit on the same line.
     describe "counting a file's touched branches" do
       def entry_stats(entries, changed)
         SimpleCov::CLI::Patch.send(:entry_stats, entries, changed)
@@ -7040,9 +6486,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The missing lines are what the report prints, so they come out in
-    # order however the hunks arrived, and a line the report says
-    # nothing countable about is not a missing line.
     describe "counting a file's touched lines" do
       def line_stats(hits, changed)
         SimpleCov::CLI::Patch.send(:line_stats, hits, changed)
@@ -7064,9 +6507,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The report may key a file by its absolute path or by the path the
-    # diff names, and a file the report does not carry at all is simply
-    # out of scope.
     describe "matching a changed file to its report entry" do
       def rows(coverage, changes, root: "/repo")
         SimpleCov::CLI::Patch.send(:compute_rows, coverage, {root: root, changes: changes}, StringIO.new)
@@ -7078,8 +6518,6 @@ RSpec.describe SimpleCov::CLI do
         expect(found.map { |row| row[:file] }).to eq(["lib/a.rb"])
       end
 
-      # Expanded, so the key carries the drive letter the matcher's own
-      # expansion gains on Windows.
       it "finds an entry keyed by its absolute path" do
         found = rows({File.expand_path("/repo/lib/a.rb") => {"lines" => [1, 0]}}, {"lib/a.rb" => [1, 2]})
 
@@ -7096,8 +6534,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A hunk header carries where the new side starts and how many
-    # lines it runs for; a pure deletion runs for none.
     describe "reading hunk headers" do
       def parse_diff(output)
         SimpleCov::CLI::Patch::ChangedLines.send(:parse_diff, output)
@@ -7121,9 +6557,6 @@ RSpec.describe SimpleCov::CLI do
         expect(parse_diff(diff)).to eq({})
       end
 
-      # An added line whose own text begins with "++ " renders as a
-      # "+++" line inside the hunk, and only the section's first one is
-      # the header.
       it "reads the section's own header, not a line that looks like one" do
         diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1,0 +2 @@\n+++ not/a/header.rb\n"
 
@@ -7136,7 +6569,6 @@ RSpec.describe SimpleCov::CLI do
         expect(parse_diff(diff)).to eq({})
       end
 
-      # The sections after a skipped one are still this change's work.
       it "keeps reading past a section it cannot name" do
         diff = "diff --git a/lib/gone.rb b/lib/gone.rb\n+++ /dev/null\n@@ -1 +0,0 @@\n-a\n" \
                "diff --git a/lib/no-header.rb b/lib/no-header.rb\n@@ -1,0 +1 @@\n+a\n" \
@@ -7153,8 +6585,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # An untracked file is in no diff at all, so every line the report
-    # knows about is this change's work, counted once.
     describe "which lines a change touched" do
       def changed_for(lines, payload)
         SimpleCov::CLI::Patch.send(:changed_for, lines, payload)
@@ -7176,9 +6606,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # Branch and method entries come out of a report that may have been
-    # written by an older SimpleCov, or hand-edited, so each entry is
-    # taken only when it carries what it is read for.
     describe "picking the touched entries out of a report" do
       def touched(entries, changed)
         found = []
@@ -7220,9 +6647,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A report written before the change it is being scored against
-    # cannot say anything about the new lines, and saying so is more
-    # useful than scoring them as uncovered.
     describe "noticing a stale report" do
       let(:stderr_io) { StringIO.new }
 
@@ -7258,14 +6682,11 @@ RSpec.describe SimpleCov::CLI do
         expect(warn_stale({"lines" => "junk"}, [1, 3])).to be_empty
       end
 
-      # The furthest changed line decides, not the first or the nearest.
       it "warns on the furthest changed line, wherever it sits in the list" do
         expect(warn_stale({"lines" => [1, 1]}, [3, 1])).to include("changed beyond")
       end
     end
 
-    # A row is worth showing when the change touched something that could
-    # be measured: a coverable line, a branch, or a method.
     describe "what counts as a scored row" do
       def scored?(line_relevant, branch: nil, method: nil)
         SimpleCov::CLI::Patch.send(:scored?, {line: {relevant: line_relevant}, branch: branch, method: method})
@@ -7289,10 +6710,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The `+++` header names the file a hunk belongs to, and its own
-    # shape is what the parser reads: a prefix git was told to emit, a
-    # trailing newline, and git's literal token for a side that is not
-    # there.
     describe "reading a diff header's path" do
       subject(:diff_path) { SimpleCov::CLI::Patch::ChangedLines.method(:diff_path) }
 
@@ -7322,9 +6739,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # git C-quotes a path carrying a quote, a backslash, or a control
-    # character, even under core.quotePath=false, and a path left quoted
-    # matches no coverage key at all.
     describe "undoing git's C-quoting" do
       subject(:unquote) { SimpleCov::CLI::Patch::ChangedLines.method(:unquote) }
 
@@ -7347,25 +6761,16 @@ RSpec.describe SimpleCov::CLI do
         end
       end
 
-      # Only a path quoted at both ends is a quoted path; anything else
-      # is a path that happens to carry a quote.
       ["b/plain.rb", %("b/half.rb), %(b/half.rb"), %("), ""].each do |raw|
         it "leaves #{raw.inspect} exactly as it is" do
           expect(unquote.call(raw)).to eq(raw)
         end
       end
 
-      # A path can carry a character git left alone beside a byte it
-      # escaped, and a raw byte cannot be substituted into a string that
-      # is already holding multibyte characters. Unescaped as bytes
-      # throughout, the two live together and the unreadable one is
-      # replaced at the end.
       it "reads a path that mixes a real character with an escaped byte" do
         expect(unquote.call(%("b/\u00e9\\377.rb"))).to eq("b/\u00e9\uFFFD.rb")
       end
 
-      # An octal escape is a byte, not a character: mixing one into a
-      # UTF-8 string mid-substitution is what the byte-wise pass avoids.
       it "keeps a path whose bytes are not UTF-8 readable" do
         expect(unquote.call(%("b/latin\\351.rb")).encoding).to eq(Encoding::UTF_8)
         expect(unquote.call(%("b/latin\\351.rb"))).to eq("b/latin\uFFFD.rb")
@@ -7390,9 +6795,6 @@ RSpec.describe SimpleCov::CLI do
 
   describe "serve subcommand", mutant_expression: "SimpleCov::CLI::Serve*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-serve-spec-") }
-    # A socket's worth of surface: request bytes in, response bytes out.
-    # The mechanics below answer the same whether the other end is a
-    # browser or this.
     let(:fake_client_class) do
       Class.new do
         attr_reader :written, :read_timeout, :closed
@@ -7504,8 +6906,6 @@ RSpec.describe SimpleCov::CLI do
       expect(described_class::Serve).to have_received(:require).with("socket")
     end
 
-    # Preparing answers nothing when there is nothing to say, which is
-    # what tells the run to go ahead and bind.
     describe "preparing the report" do
       let(:preparer) { described_class::Serve::ReportPreparer }
 
@@ -7574,14 +6974,11 @@ RSpec.describe SimpleCov::CLI do
       expect(TCPServer).not_to have_received(:new)
     end
 
-    # The engines without IO#timeout= are the same, minus that method.
     def fake_client(request = "", timeout: true)
       klass = timeout ? fake_client_class : Class.new(fake_client_class) { undef_method(:timeout=) }
       klass.new(request)
     end
 
-    # The accept loop runs until the terminal interrupts it, and says so
-    # on the way out rather than leaving a bare ^C on the line.
     describe "the accept loop" do
       it "says it is stopping when it is interrupted" do
         server = instance_double(TCPServer)
@@ -7593,8 +6990,6 @@ RSpec.describe SimpleCov::CLI do
         expect(out.string).to eq("\nsimplecov serve: stopping\n")
       end
 
-      # One thread per connection, so the assertions wait for them
-      # rather than racing the loop's own exit.
       it "hands each accepted connection to the handler" do
         server = instance_double(TCPServer)
         accepted = %i[first second]
@@ -7609,8 +7004,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # A port already taken, a privileged port, or a host that resolves
-    # nowhere: the reason git gives is the reason a user needs.
     describe "binding the socket" do
       it "reports the host, the port, and what the system said" do
         allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE)
@@ -7632,8 +7025,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The announcement is the only way anyone learns which port the
-    # server took when it was asked for any port at all.
     describe "announcing where it is listening" do
       def announce(addr)
         server = instance_double(TCPServer, addr: addr)
@@ -7648,8 +7039,6 @@ RSpec.describe SimpleCov::CLI do
                  "Press Ctrl-C to stop.\n")
       end
 
-      # An IPv6 literal needs brackets, or the port reads as part of the
-      # address.
       it "brackets an IPv6 address so the port is still a port" do
         expect(announce(["AF_INET6", 9292, "localhost", "::1"]))
           .to start_with("simplecov serve: serving /srv/report at http://[::1]:9292/\n")
@@ -7696,8 +7085,6 @@ RSpec.describe SimpleCov::CLI do
         expect(client.read_timeout).to eq(described_class::Serve::StaticFileHandler::READ_TIMEOUT)
       end
 
-      # JRuby has no IO#timeout=, and a connection there is served
-      # without one rather than failing.
       it "serves a connection that cannot be given a deadline" do
         client = fake_client("GET /index.html HTTP/1.1\r\nHost: x\r\n\r\n", timeout: false)
 
@@ -7714,8 +7101,6 @@ RSpec.describe SimpleCov::CLI do
         expect(client.written).to start_with("HTTP/1.1 400")
       end
 
-      # A route takes over the connection, and what it reads next is the
-      # body rather than the rest of the headers.
       it "leaves a route reading the body, not the headers" do
         seen = []
         routes = {"/events" => ->(client) { seen << client.readline }}
@@ -7742,8 +7127,6 @@ RSpec.describe SimpleCov::CLI do
         expect(client.closed).to be true
       end
 
-      # A client that hangs up mid-request is the ordinary case, not a
-      # reason to take the server down.
       it "closes quietly on a request that stops early" do
         client = fake_client("GET /index.html HTTP/1.1\r\n")
 
@@ -7752,8 +7135,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # Headers are read to the blank line and no further: what follows is
-    # the body, and a route may want it.
     describe "draining the headers" do
       let(:handler) { described_class::Serve::StaticFileHandler }
 
@@ -7800,8 +7181,6 @@ RSpec.describe SimpleCov::CLI do
         expect(respond(200, "body", "text/css")).to include("Content-Type: text/css\r\n")
       end
 
-      # A file whose extension nothing recognises is bytes, and saying
-      # so is what keeps a browser from guessing.
       it "says bytes when it does not know what the body is" do
         expect(respond(200, "body", nil)).to include("Content-Type: application/octet-stream\r\n")
       end
@@ -7884,8 +7263,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # Root itself is inside root; a sibling whose name merely starts the
-    # same way is not.
     describe "what counts as inside the report directory" do
       let(:handler) { described_class::Serve::StaticFileHandler }
 
@@ -7946,16 +7323,12 @@ RSpec.describe SimpleCov::CLI do
         expect(handler.resolve("//etc/passwd", tmp)).to eq(:forbidden)
       end
 
-      # A directory with no index.html is nothing to serve, and asking
-      # to read it would be an error rather than a 404.
       it "returns nil for a directory that carries no index" do
         FileUtils.mkdir_p(File.join(tmp, "empty"))
 
         expect(handler.resolve("/empty", tmp)).to be_nil
       end
 
-      # A pipe in the report directory is not a file to read: reading
-      # one would block the connection until something wrote to it.
       it "returns nil for something that is neither a file nor a directory" do
         skip "no mkfifo on this platform" unless File.respond_to?(:mkfifo)
         File.mkfifo(File.join(tmp, "pipe"))
@@ -7963,8 +7336,6 @@ RSpec.describe SimpleCov::CLI do
         expect(handler.resolve("/pipe", tmp)).to be_nil
       end
 
-      # The file can go between the check and the read; that is a race,
-      # not a refusal.
       it "returns nil for a file that vanishes mid-resolve" do
         vanishing = File.join(File.realpath(tmp), "index.html")
         allow(File).to receive(:realpath).and_call_original
@@ -7977,12 +7348,6 @@ RSpec.describe SimpleCov::CLI do
         expect(handler.resolve("/missing.html", tmp)).to be_nil
       end
 
-      # The root is resolved to its real path before the containment
-      # checks, so a root handed over as a symlink still serves: without
-      # that, every candidate's real path would fall outside the symlink
-      # spelling of the root and read as traversal. Pinned with an
-      # explicit symlink, because macOS hides one under every tmpdir
-      # while Linux does not.
       it "serves through a root that is itself a symlink" do
         link = File.join(Dir.mktmpdir("serve-link"), "docroot")
         File.symlink(File.realpath(tmp), link)
@@ -8015,7 +7380,6 @@ RSpec.describe SimpleCov::CLI do
       server = TCPServer.new("127.0.0.1", 0)
       thread = Thread.new { described_class::Serve::StaticFileHandler.handle_connection(server.accept, tmp) }
       sock = TCPSocket.new("127.0.0.1", server.addr[1])
-      # Raw request so the path isn't normalized by Net::HTTP / URI.
       sock.write("GET /../secret.txt HTTP/1.1\r\nHost: x\r\n\r\n")
       expect(sock.read).to start_with("HTTP/1.1 403")
     ensure
@@ -8024,8 +7388,6 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
-    # The routes seam `simplecov watch` mounts its /events endpoint and
-    # reload-injecting index route on.
     it "hands a matching path to its route instead of the file tree" do
       FileUtils.mkdir_p(tmp)
       File.write(File.join(tmp, "index.html"), "plain")
@@ -8049,9 +7411,6 @@ RSpec.describe SimpleCov::CLI do
       server&.close
     end
 
-    # A malformed request line used to raise inside the wide rescue and
-    # close the connection with an empty response; the 400 status text
-    # was defined but unreachable.
     it "responds 400 to a malformed request line" do
       FileUtils.mkdir_p(tmp)
       server = TCPServer.new("127.0.0.1", 0)
@@ -8109,8 +7468,6 @@ RSpec.describe SimpleCov::CLI do
       expect(server).to have_received(:close)
     end
 
-    # Watches for the announcement and hands back the URL it named,
-    # letting the real one still print.
     def announcing_url
       announced = Queue.new
       original = described_class::Serve.method(:announce)
@@ -8121,9 +7478,6 @@ RSpec.describe SimpleCov::CLI do
       announced
     end
 
-    # End-to-end through `run`: spin the full entry point in a thread,
-    # hit it, then signal Ctrl-C to stop. Exercises `run`, `announce`,
-    # the serve_loop exit path, and the ensure-time `server.close`.
     it "serves the report end-to-end through the run entry point" do
       File.write(File.join(tmp, "index.html"), "<html>via-run</html>")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
@@ -8144,15 +7498,11 @@ RSpec.describe SimpleCov::CLI do
         status = thread.join(2)&.value
       end
 
-      # The run answers success once it is stopped, having said where it
-      # was listening and loaded the sockets it needed to.
       expect(status).to eq(0)
       expect(stdout.string).to include("simplecov serve: serving #{tmp} at http://")
       expect(described_class::Serve).to have_received(:require_socket)
     end
 
-    # Browsers open speculative connections that send no bytes; each
-    # connection gets its own thread so those can't stall real requests.
     it "answers a request while another connection sits idle" do
       File.write(File.join(tmp, "index.html"), "<html>concurrent</html>")
       allow(described_class).to receive(:coverage_dir).and_return(tmp)
@@ -8166,7 +7516,7 @@ RSpec.describe SimpleCov::CLI do
       idle = nil
       begin
         uri = URI(announced.pop)
-        idle = TCPSocket.new(uri.host, uri.port) # never sends a request
+        idle = TCPSocket.new(uri.host, uri.port)
         response = Net::HTTP.get_response(uri)
         expect(response.code).to eq("200")
         expect(response.body).to include("concurrent")
@@ -8196,8 +7546,6 @@ RSpec.describe SimpleCov::CLI do
       File.write(File.join(coverage_dir, "index.html"), "<html>report</html>")
     end
 
-    # A stand-in suite: logs its arguments and merge window, then
-    # regenerates the report at a new percentage, like a real run would.
     def fake_suite(percent: 95.0)
       total = percent ? %(document["total"] = {"lines" => {"percent" => #{percent}}}) : %(document.delete("total"))
       script = File.join(tmp, "suite.rb")
@@ -8227,11 +7575,6 @@ RSpec.describe SimpleCov::CLI do
       thread.join(5)
     end
 
-    # A ceiling, not a sleep: a passing example never waits it out. The
-    # watcher's rerun boots a fresh interpreter per change, and on the
-    # JVM engines that boot can take tens of seconds on a loaded CI
-    # runner whose cores the parallel suite workers already saturate,
-    # so those engines get a higher ceiling.
     def wait_timeout
       RUBY_ENGINE == "ruby" ? 10 : 60
     end
@@ -8242,9 +7585,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The fake suite's log line lands when the child's buffered write
-    # flushes at close, after the file itself appears — waiting on bare
-    # existence read an empty file on slow-starting engines (JRuby).
     def wait_for_log
       wait_for { File.exist?(log_path) && File.read(log_path).include?("window=") }
     end
@@ -8256,8 +7596,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     before do
-      # Decoupled from the process-wide memoized discovery, like the
-      # serve specs, so suite order can't hand watch a stale directory.
       allow(described_class).to receive(:coverage_dir).and_return(coverage_dir)
       FileUtils.mkdir_p(File.dirname(code_path))
       File.write(code_path, "# original\n")
@@ -8271,7 +7609,7 @@ RSpec.describe SimpleCov::CLI do
       begin
         events = TCPSocket.new("127.0.0.1", port)
         events.write("GET /events HTTP/1.1\r\nHost: x\r\n\r\n")
-        wait_for { events.readline.strip.empty? } # drain response headers
+        wait_for { events.readline.strip.empty? }
 
         touch_code
         wait_for_log
@@ -8399,8 +7737,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe ".parse" do
-      # Port 0 asks the kernel for a free one, which is what makes a
-      # watch session start without the operator picking a port.
       it "asks for an ephemeral port on the loopback address by default" do
         opts, = described_class::Watch.parse(%w[rake])
         expect(opts).to eq(port: 0, host: "127.0.0.1", interval: 0.5, open: false)
@@ -8468,8 +7804,6 @@ RSpec.describe SimpleCov::CLI do
       expect(Process).to have_received(:detach).with(4242)
     end
 
-    # An IPv6 literal needs brackets before it can be a URL host, the
-    # same as the banner's address.
     it "brackets an IPv6 address in the URL it opens" do
       server = instance_double(TCPServer, addr: ["AF_INET6", 53_422, "localhost", "::1"])
       allow(described_class::Open).to receive(:browser_opener).and_return(["fake-open"])
@@ -8482,10 +7816,6 @@ RSpec.describe SimpleCov::CLI do
         .with("fake-open", "http://[::1]:53422/", out: File::NULL, err: File::NULL)
     end
 
-    # The note is the whole answer: with no opener there is nothing to
-    # spawn, and the URL must not be handed to a shell as if it were a
-    # command of its own. Stubbed on Watch itself, which is where the
-    # bare `spawn` resolves.
     it "degrades to a note when the platform has no known opener" do
       server = instance_double(TCPServer, addr: ["AF_INET", 53_422, "localhost", "127.0.0.1"])
       allow(described_class::Open).to receive(:browser_opener).and_return(nil)
@@ -8500,9 +7830,6 @@ RSpec.describe SimpleCov::CLI do
                                   "open it yourself: http://127.0.0.1:53422/\n")
     end
 
-    # The listener is the session's, and it belongs to the session's
-    # lifetime: through a whole watch each of these costs a runner
-    # subprocess and a poll interval.
     describe ".serve_session" do
       let(:listener) { TCPServer.new("127.0.0.1", 0) }
       let(:session) { instance_double(described_class::Watch::Session, run: 7) }
@@ -8530,8 +7857,6 @@ RSpec.describe SimpleCov::CLI do
         expect(described_class::Watch).to have_received(:launch_browser).with(listener, stderr)
       end
 
-      # The listener outlives nothing: a session that dies still frees
-      # the port for the next run of the same command.
       it "closes the listener even when the session raises" do
         allow(session).to receive(:run).and_raise("boom")
 
@@ -8587,8 +7912,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The session's step, asked directly: through a running watch each
-    # of these costs a server, a runner and a poll interval.
     describe SimpleCov::CLI::Watch::Session do
       let(:session) do
         described_class.new(command: %w[true], dir: tmp, interval: 0, stdout: stdout, stderr: stderr)
@@ -8599,24 +7922,17 @@ RSpec.describe SimpleCov::CLI do
       before { session.instance_variable_set(:@poller, poller) }
 
       describe "#settled_changes" do
-        # Nothing changed is the common case, and it must not wait out
-        # another interval before saying so.
         it "answers at once when nothing changed" do
           allow(poller).to receive(:changes).and_return([])
           expect(session.send(:settled_changes)).to eq([])
           expect(poller).to have_received(:changes).once
         end
 
-        # Editors save in bursts, so the first detection opens a window
-        # that stays open until an interval passes with nothing new.
         it "collects a burst until an interval brings nothing new" do
           allow(poller).to receive(:changes).and_return(["a.rb"], ["b.rb"], ["a.rb"], [])
           expect(session.send(:settled_changes)).to eq(%w[a.rb b.rb])
         end
 
-        # The window is what collects the burst. Without the wait the
-        # loop spins as fast as the filesystem answers, and a save that
-        # is still being written looks like a settled one.
         it "waits an interval before looking again" do
           waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
                                         stdout: stdout, stderr: stderr)
@@ -8669,9 +7985,6 @@ RSpec.describe SimpleCov::CLI do
           expect(stdout.string).to eq("lib/a.rb changed, running 1 file... 95.00% (+5.00%)\n")
         end
 
-        # A run that leaves the report unreadable ends the line there:
-        # there is nothing new to reload a tab for, and no percentage
-        # to report.
         it "stops after a run that leaves the report unreadable" do
           live = session.instance_variable_get(:@live)
           allow(live).to receive(:broadcast)
@@ -8707,8 +8020,6 @@ RSpec.describe SimpleCov::CLI do
                                       "Press Ctrl-C to stop.\n\nsimplecov watch: stopping\n")
         end
 
-        # Nothing to serve yet: the command has to produce the first
-        # report before there is a watch set to poll.
         it "runs the command once for a report that isn't there yet" do
           expect(session.run(server)).to eq(1)
 
@@ -8731,7 +8042,6 @@ RSpec.describe SimpleCov::CLI do
           expect(poller).to have_received(:watch).with(["/x/a.rb", File.expand_path("/proj/spec/a_spec.rb")])
         end
 
-        # A plain no, which is what `run` and `step` both branch on.
         it "answers false, under the watch command's own name, for a report it cannot read" do
           File.write(File.join(tmp, "coverage.json"), "{")
 
@@ -8741,10 +8051,6 @@ RSpec.describe SimpleCov::CLI do
       end
 
       describe "#accept_loop" do
-        # One connection is not a server: the loop has to come back
-        # round for the next tab. Closing the listener under it at
-        # shutdown is not an error either, which is why nothing is
-        # reported when this example's server goes away.
         it "keeps accepting connections after the first, out of the report directory" do
           File.write(File.join(tmp, "index.html"), "<html>report</html>")
           File.write(File.join(tmp, "extra.txt"), "static")
@@ -8767,8 +8073,6 @@ RSpec.describe SimpleCov::CLI do
       describe "#run_tests" do
         before { allow(Kernel).to receive(:system) }
 
-        # The day-long merge window is what lets subset re-runs keep
-        # merging into a whole report across a long session.
         it "runs the named tests with a day-long merge window" do
           session.send(:run_tests, %w[spec/a_spec.rb])
 
@@ -8784,8 +8088,6 @@ RSpec.describe SimpleCov::CLI do
       end
 
       describe "#plan_for" do
-        # The report keys its paths relative to the project root, so
-        # that is what the plan is asked for.
         it "asks for a plan in paths relative to the project root" do
           allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: true, tests: nil)
           session.instance_variable_set(:@root, "/proj")
@@ -8801,8 +8103,6 @@ RSpec.describe SimpleCov::CLI do
       end
 
       describe "#poll_forever" do
-        # The interval is the whole point of a poller: without the wait
-        # it spins the CPU as fast as the filesystem answers.
         it "waits an interval between steps" do
           waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
                                         stdout: stdout, stderr: stderr)
@@ -8831,15 +8131,12 @@ RSpec.describe SimpleCov::CLI do
           expect(session.send(:total_percent)).to eq(75.5)
         end
 
-        # Reports from before meta carried a primary criterion.
         it "falls back to line coverage for a report that names no criterion" do
           session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 88.5}}})
 
           expect(session.send(:total_percent)).to eq(88.5)
         end
 
-        # A hand-written report can carry a whole number, and the
-        # result line formats a float.
         it "reads a whole-number total as a percentage" do
           session.instance_variable_set(:@document, {"total" => {"lines" => {"percent" => 90}}})
 
@@ -8857,8 +8154,6 @@ RSpec.describe SimpleCov::CLI do
     describe SimpleCov::CLI::Watch::Narrator do
       let(:narrator) { described_class.new(stdout, "/root") }
 
-      # Element 3 is the numeric address. Element 2 is the reverse
-      # lookup, which is not a URL host.
       def server_at(host)
         instance_double(TCPServer, addr: ["AF_INET", 4321, "localhost", host])
       end
@@ -8868,14 +8163,11 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to eq("watching 1 file, serving http://127.0.0.1:4321/\nPress Ctrl-C to stop.\n")
       end
 
-      # An IPv6 literal needs brackets before it can be a URL host.
       it "brackets an IPv6 address so the URL parses" do
         narrator.banner(server_at("::1"), 2)
         expect(stdout.string).to eq("watching 2 files, serving http://[::1]:4321/\nPress Ctrl-C to stop.\n")
       end
 
-      # The count is of the files beyond the one the burst is named by,
-      # so a three-file save says two more.
       it "names a burst by its first file and counts the rest" do
         narrator.change(["/root/a.rb", "/root/b.rb", "/root/c.rb"],
                         {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
@@ -8887,8 +8179,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to eq("a.rb changed, running the full suite...")
       end
 
-      # Ctrl-C arrives mid-line often enough that the goodbye opens its
-      # own line.
       it "says it is stopping, on a line of its own" do
         narrator.stopping
         expect(stdout.string).to eq("\nsimplecov watch: stopping\n")
@@ -8896,14 +8186,10 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe SimpleCov::CLI::Watch::TestPlan do
-      # The plan a report and a change produce, asked directly: through
-      # a session each shape costs a server, a runner and a poll cycle.
       def plan(document, changed = ["lib/a.rb"])
         described_class.build(changed, document, root: "/proj", input: "coverage.json", stderr: stderr)
       end
 
-      # A context list is a list of recorded test ids. One carrying
-      # something else is no map, and the whole suite runs.
       it "runs everything for a context list that is not all ids" do
         expect(plan("contexts" => ["spec/a_spec.rb:1", 42])).to eq(run: true, tests: nil)
         expect(plan("contexts" => "junk")).to eq(run: true, tests: nil)
@@ -8913,7 +8199,6 @@ RSpec.describe SimpleCov::CLI do
         expect(plan({})).to eq(run: true, tests: nil)
       end
 
-      # The report covers the file, and nothing recorded touches it.
       it "runs nothing when no recorded test touches the change" do
         document = {"contexts" => ["spec/a_spec.rb:1"],
                     "coverage" => {File.expand_path("/proj/lib/b.rb") => {"lines" => [1]}}}
@@ -8937,15 +8222,11 @@ RSpec.describe SimpleCov::CLI do
         expect(paths).to eq([File.join(tmp, "spec/a_spec.rb")])
       end
 
-      # A file the report carries no data for: the map cannot answer
-      # for it, so the whole command runs.
       it "runs everything for a change the report has no data for" do
         expect(plan({"contexts" => ["spec/a_spec.rb:1"], "coverage" => {}}, ["README.md"]))
           .to eq(run: true, tests: nil)
       end
 
-      # The whole line, because the input the plan was built from is
-      # what the complaint has to name for it to be actionable.
       it "runs everything when the report's coverage section is malformed" do
         expect(plan("contexts" => ["spec/a_spec.rb:1"], "coverage" => "junk")).to eq(run: true, tests: nil)
         expect(stderr.string).to eq(
@@ -8962,9 +8243,6 @@ RSpec.describe SimpleCov::CLI do
         expect(built).to eq(run: true, tests: ["spec/code_spec.rb"])
       end
 
-      # The watch set is the tracked files plus the recorded tests'
-      # files, counted once each: a recorded test file the report also
-      # covers is one path to watch, not two.
       it "derives the watch set from the report's own paths" do
         document = {"coverage" => {"/x/a.rb" => {}, File.join(tmp, "spec/a_spec.rb") => {}},
                     "contexts" => ["spec/a_spec.rb:1", 42]}
@@ -8986,7 +8264,7 @@ RSpec.describe SimpleCov::CLI do
         served = server.accept
         thread = Thread.new { live.send(:stream, served) }
         wait_for { live.instance_variable_get(:@queues).size == 1 }
-        wait_for { client.readline.strip.empty? } # drain response headers
+        wait_for { client.readline.strip.empty? }
         served.close
         live.broadcast
         thread.join(5)
@@ -8996,8 +8274,6 @@ RSpec.describe SimpleCov::CLI do
         server&.close
       end
 
-      # The connection is opened once and then held: every broadcast
-      # after the first has to reach the tab down the same stream.
       it "opens the stream with SSE headers and forwards every broadcast" do
         live = described_class.new(tmp)
         server = TCPServer.new("127.0.0.1", 0)
@@ -9125,21 +8401,16 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("would remove #{tmp}")
     end
 
-    # The pre-fix Dir[] glob skipped dotfiles, so a typical coverage dir
-    # holding .resultset.json undercounted what rm_rf would delete.
     it "counts dotfiles in the --dry-run entry count" do
       File.write(File.join(tmp, ".resultset.json"), "{}")
 
       expect(run("clean", "--dry-run")).to eq(0)
-      # assets/, index.html, coverage.json, and .resultset.json
       expect(stdout.string).to include("(4 entries)")
     end
 
     it "is a no-op when the directory doesn't exist" do
       FileUtils.remove_entry(tmp)
       expect(run("clean")).to eq(0)
-      # Whole line: the report has to name the directory, and reporting
-      # it must be the end of the run rather than a preamble to a sweep.
       expect(stdout.string).to eq("simplecov clean: #{tmp} doesn't exist; nothing to do\n")
     end
 
@@ -9159,9 +8430,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # The guard compares against the working directory as a path, not as
-    # a prefix: a sibling whose name merely starts the same way is not an
-    # ancestor of anything and is free to be removed.
     it "removes a directory whose name prefixes the working directory's" do
       sibling = File.join(tmp, "coverage")
       nested  = File.join(tmp, "coverage-data")
@@ -9220,9 +8488,6 @@ RSpec.describe SimpleCov::CLI do
     it "refuses to remove the filesystem root" do
       allow(described_class).to receive(:coverage_dir).and_return(File::SEPARATOR)
 
-      # --dry-run as defense in depth: if the guard ever regresses, the
-      # failure is a wrong message, not a recursive delete from the root
-      # of the CI runner's disk.
       expect(run("clean", "--dry-run")).to eq(1)
       expect(stderr.string).to include("refusing to remove unsafe coverage directory")
     end
@@ -9253,7 +8518,6 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to eq("simplecov open: #{missing} not found\n")
     end
 
-    # Without --report the report is the one the project writes.
     it "opens the project's own report when told of no other" do
       expect(SimpleCov::CLI::Open.parse([])).to eq(described_class.default_report)
     end
@@ -9301,8 +8565,6 @@ RSpec.describe SimpleCov::CLI do
         expect(SimpleCov::CLI::Open.browser_opener).to eq(["open"])
       end
 
-      # Every spelling of each family, since one of them standing in for
-      # the others leaves the rest free to go unrecognized.
       %w[mswin64 mingw32 cygwin].each do |host|
         it "picks `cmd /c start` on #{host}" do
           stub_const("RbConfig::CONFIG", RbConfig::CONFIG.merge("host_os" => host))
@@ -9324,13 +8586,6 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  # These have to shell out to the real `exe/simplecov`. The bug they
-  # guard (SimpleCov.color undefined) only exists in a process that
-  # loaded `simplecov/cli` *without* `simplecov` — the in-process specs
-  # above always have the full library loaded via spec/helper, so they
-  # can't see it. The reproduction also needs a directory with no
-  # `.simplecov` above it, since finding one lazily requires the full
-  # library and incidentally defines `SimpleCov.color`.
   describe "colorizing subcommands in the standalone CLI process", mutant: false do
     let(:exe) { File.expand_path("../exe/simplecov", __dir__) }
     let(:lib) { File.expand_path("../lib", __dir__) }
@@ -9349,8 +8604,6 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
-    # `coverage` needs a file path present in the JSON; `diff` needs a
-    # baseline (the same coverage.json is a fine zero-delta baseline).
     {
       "report" => [],
       "uncovered" => [],

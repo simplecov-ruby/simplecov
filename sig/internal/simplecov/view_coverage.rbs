@@ -1,27 +1,11 @@
 module SimpleCov
-  # Brings ActionView templates into the report, for projects that opt in
-  # with `cover_views`. Rendering a template is already enough to measure it
-  # (ActionView compiles each one with `module_eval(source, identifier,
-  # offset)`, so eval coverage attributes the generated code back to the
-  # `.erb` file at its own line numbers). This is about the other half: a
-  # template no test renders is never compiled, so `Coverage` never hears
-  # about it and the report omits it entirely.
   module ViewCoverage
-    # Compiles every configured template the run never rendered, returning
-    # the paths that were compiled. Called from `process_coverage_result`,
-    # immediately before `Coverage.result`.
     def self?.compile_unrendered: () -> Array[String]
 
-    # View coverage needs eval coverage, a running Coverage to record into,
-    # and ActionView to compile with.
     def self?.enabled?: () -> bool
 
-    # The configured globs expanded against `SimpleCov.root` and filtered
-    # through the report's path-only filters.
     def self?.discover: () -> Array[String]
 
-    # The files `Coverage` already holds data for, which for a template
-    # means the run rendered it.
     def self?.measured_paths: () -> Set[String]
   end
 end

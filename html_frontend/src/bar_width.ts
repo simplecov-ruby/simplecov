@@ -1,32 +1,28 @@
-// Equalizes the coverage-bar column width across all rows of each visible
-// file list, via a binary search that fits the widest bar without overflow.
 
 import { $, $$ } from './dom';
 
+// Equalizes the coverage-bar column width across all rows of each visible file
+// list, via a binary search that fits the widest bar without overflow. Every
+// .bar-sizer in a table shares one width, so it lives in a CSS custom property
+// on the table rather than in inline styles: each probe is then a single style
+// write instead of one per sizer, which matters on reports with thousands of
+// rows.
 const MAX_BAR_WIDTH = 240;
 const MIN_BAR_WIDTH = 160;
 
-// Every .bar-sizer in a table shares one width, so it lives in a CSS custom
-// property on the table (see .bar-sizer in screen.css) rather than in inline
-// styles. Each probe below is then a single style write instead of one write
-// per sizer, which matters on reports with thousands of rows.
 function setBarSizerWidth(table: HTMLElement, px: number): void {
   table.style.setProperty('--bar-sizer-width', px + 'px');
 }
 
-// The table width is not a clean linear function of the bar width — there are
-// three bar columns sharing the width variable, and column min-widths make
-// scrollWidth step irregularly — so the fit can only be found by probing, not
-// solving. Stop the search once the bracket is within STEP px of the answer
-// instead of resolving it to the pixel: each probe forces a reflow, and a
-// reflow of a large file list is expensive (it was the single biggest finalize
-// cost on a 100k-file report). STEP px narrower than optimal is imperceptible
-// on a 160–240px bar, and the search still returns a width that fits, so the
-// table never overflows.
 const BAR_WIDTH_STEP = 8;
 
-// Widest bar width in [MIN, MAX], to within BAR_WIDTH_STEP, that keeps the
-// table from overflowing its wrapper.
+// The table width is not a clean linear function of the bar width (three bar
+// columns share the variable, and column min-widths make scrollWidth step
+// irregularly), so the fit can only be found by probing. The search stops once
+// the bracket is within STEP px rather than resolving to the pixel: each probe
+// forces a reflow, and a reflow of a large file list was the single biggest
+// finalize cost on a 100k-file report. STEP px narrower than optimal is
+// imperceptible on a 160-240px bar, and the answer still fits.
 function fitBarWidth(table: HTMLElement, client: number): number {
   let lo = MIN_BAR_WIDTH, hi = MAX_BAR_WIDTH;
   while (hi - lo > BAR_WIDTH_STEP) {

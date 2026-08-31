@@ -1,6 +1,3 @@
-// Full-page assembly: renderPage against the real index.html skeleton, the
-// canvas-drawn favicon (canvas stubbed — happy-dom has no 2d context), and
-// the on-demand source-file materializer with its highlight.js pass.
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { installPageSkeleton, coverageData } from './fixture';
 import { renderPage, updateFavicon, materializeSourceFile, contextsForSourceLine } from '../src/page';
@@ -34,15 +31,13 @@ describe('materializeSourceFile before rendering', () => {
 
 describe('updateFavicon', () => {
   test('is a no-op without a drawable canvas', () => {
-    // happy-dom's canvas has no 2d context, so the guard bails before
-    // creating a <link>.
     updateFavicon();
     expect(document.head.querySelector('link[rel="icon"]')).toBeNull();
   });
 
   test('draws a favicon in the coverage band colour once a context exists', async () => {
     const data = coverageData();
-    await boot(data); // (5/7)*100 ≈ 71.43% → red band
+    await boot(data);
     document.documentElement.style.setProperty('--red', '#ff0000');
 
     const fills: string[] = [];
@@ -68,11 +63,9 @@ describe('updateFavicon', () => {
     expect(link.href).toBe('data:image/png;base64,AAAA');
     expect(fills).toEqual(['#ff0000:0,0,16,16']);
 
-    // A second call reuses the existing <link> instead of adding another.
     updateFavicon();
     expect(document.head.querySelectorAll('link[rel="icon"]').length).toBe(1);
 
-    // Without a resolvable band colour the guard leaves the link alone.
     document.documentElement.style.removeProperty('--red');
     link.href = 'data:previous';
     updateFavicon();
@@ -136,7 +129,6 @@ describe('renderPage', () => {
 
     expect(document.body.getAttribute('data-branch-coverage')).toBe('true');
     const groupContainer = document.getElementById(toHtmlId('group-Libs & Co'))!;
-    // 'lib/gone.rb' has no coverage entry and is skipped.
     expect(groupContainer.querySelectorAll('tbody tr.t-file').length).toBe(1);
 
     const legend = document.getElementById('source-legend')!;
@@ -165,13 +157,10 @@ describe('materializeSourceFile', () => {
     expect(el.id).toBe(id);
     expect(el.parentElement).toBe(document.querySelector('.source_files'));
     expect(el.querySelectorAll('pre ol li').length).toBe(4);
-    // highlight.js rewrote the Ruby source into token spans.
     expect(el.querySelector('pre code.ruby')!.innerHTML).toContain('hljs-');
 
-    // Second lookup returns the already-materialized element.
     expect(materializeSourceFile(id)).toBe(el);
 
-    // Unknown ids resolve to nothing.
     expect(materializeSourceFile('ffffffff')).toBeNull();
   });
 
@@ -189,8 +178,6 @@ describe('materializeSourceFile', () => {
     await boot(data);
 
     const code = materializeSourceFile(fileId(template))!.querySelectorAll('pre code.erb');
-    // The markup line is marked up as a tag and the tag line goes through
-    // ruby, which is the whole point of registering the bridge language.
     expect(code[0].innerHTML).toContain('hljs-name');
     expect(code[1].innerHTML).toContain('language-ruby');
   });
@@ -212,7 +199,6 @@ describe('materializeSourceFile', () => {
 
     const code = materializeSourceFile(fileId(template))!.querySelectorAll(`pre code.${language}`);
     expect(code).toHaveLength(2);
-    // The control line is Ruby in both, which is where a template's code is.
     expect(code[1].innerHTML).toContain('language-ruby');
   });
 });
@@ -254,7 +240,6 @@ describe('renderPage with recorded contexts', () => {
     await boot(withContexts());
     const el = materializeSourceFile(fileId('lib/covered.rb'))!;
 
-    // Line 2 carries its test badge; lines 1 and 4 are covered by nothing.
     expect(el.querySelector('button.hits--tests[data-tests-line="2"]')!.getAttribute('data-content')).toBe('1 test');
     expect(Array.from(el.querySelectorAll('li.outside-tests')).map((li) => li.getAttribute('data-linenumber')))
       .toEqual(['1', '4']);
@@ -273,9 +258,6 @@ describe('renderPage with recorded contexts', () => {
   });
 });
 
-// A merged report's footer must summarize its runs, not read them all
-// aloud: a CI matrix used to enumerate every worker's name until the
-// footer filled the viewport (#1284).
 describe('footer run names', () => {
   test('summarizes many runs behind a disclosure', async () => {
     const data = coverageData();
@@ -375,7 +357,6 @@ describe('renderPage with production coverage', () => {
     expect(seen.querySelector('li.production-ran')).not.toBeNull();
     expect(seen.querySelector('.t-production-summary')!.textContent).toContain('last run 2026-08-25');
 
-    // A file the window never saw still gets the cross, as never-ran.
     const unseen = materializeSourceFile(fileId('lib/missed.rb'))!;
     expect(unseen.querySelectorAll('li.production-never').length).toBeGreaterThan(0);
     expect(unseen.querySelector('li.production-ran')).toBeNull();

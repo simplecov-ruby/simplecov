@@ -88,10 +88,6 @@ RSpec.describe SimpleCov::ResultAdapter do
   end
 
   describe "receiver classes whose name rendering executes broken user code" do
-    # A singleton class's `to_s` renders its attached object via `#inspect`,
-    # which user code can shadow with an incompatible signature — Liquid's
-    # `Utils.inspect(value, max_depth = 2)` module_function is the wild
-    # example. The report must degrade, not crash the host suite (#1236).
     def named_shadowing_module
       mod = Module.new do
         def inspect(value, _max_depth = 2)
@@ -103,13 +99,6 @@ RSpec.describe SimpleCov::ResultAdapter do
       mod
     end
 
-    # Engines render singleton wrappers differently: CRuby routes a
-    # singleton class's `to_s` through the attached object's `#inspect`
-    # (which is what can crash), while JRuby renders from
-    # the class name chain and never hits the rescue. The invariant on
-    # every engine is: adapting must not raise, and the rendered receiver
-    # must carry no unnormalized address. The exact strings are pinned on
-    # CRuby only, where the fallback path actually runs.
     it "recovers the named singleton wrapper via Module#name" do
       methods = adapter_for(named_shadowing_module.singleton_class)
       rendered = methods.keys.first[0]
@@ -141,10 +130,6 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
 
     it "renders an instance's singleton class without invoking its inspect" do
-      # `def some_object.helper` records the object's singleton class. CRuby
-      # renders those from the class name chain without calling the object's
-      # #inspect, so even a broken inspect can't interfere; the nested
-      # addresses still normalize.
       broken = Class.new do
         def inspect(_depth)
           "unreachable"
@@ -171,8 +156,6 @@ RSpec.describe SimpleCov::ResultAdapter do
       expect(methods.keys.first[0]).to eq("FakeNamedClass")
     end
 
-    # Other engines render the singleton wrapper through the attached
-    # object, so only the address normalization holds everywhere.
     it "falls back to the address form when the attached object is not a module" do
       methods = adapter_for(breaking_to_s(Object.new.singleton_class))
       rendered = methods.keys.first[0]
@@ -181,24 +164,14 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
 
     it "keeps the wrapper around a name that is not a constant path" do
-      # A module reachable only through an anonymous class gets a temporary
-      # name like "#<Class:0x...>::Inner". The wrapper-stripping pattern
-      # matches constant paths only, so the receiver stays rendered as a
-      # singleton of that module, with every address normalized.
       inner = Module.new
       Class.new.const_set(:Inner, inner)
       methods = adapter_for(breaking_to_s(inner.singleton_class))
       rendered = methods.keys.first[0]
-      # Engines that never mint the temporary name land on the address
-      # form instead; either way no raw address leaks through.
       expect(rendered).not_to match(/0x\h{2,}/)
       expect(rendered).to eq("#<Class:#<Class:0x0>::Inner>") if RUBY_ENGINE == "ruby"
     end
 
-    # Shadowing `to_s` on the receiver itself makes the rendering failure
-    # reproducible on every engine, instead of depending on whether a given
-    # runtime routes singleton rendering through the attached object's
-    # `#inspect`.
     def breaking_to_s(receiver)
       receiver.singleton_class.define_method(:to_s) { raise ArgumentError, "broken to_s" }
       receiver
@@ -281,12 +254,6 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
 
     context "with the same define_method block defined on differently-shaped receivers" do
-      # One `define_singleton_method :method_added` block, defined onto a
-      # Class descendant (called 6 times) and a Module descendant (never
-      # called — e.g. a spec exercising a type-check failure path). Ruby
-      # records one entry per receiver; the receiver shapes normalize
-      # differently, so without location aggregation the Module copy is a
-      # phantom uncovered method on a fully-covered line (issue #1234).
       let(:result_set) do
         {
           existing_file => {
@@ -342,9 +309,6 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
 
     context "with locations that differ only in their start line" do
-      # All four coordinates of the span make up a method's identity, so
-      # entries that agree on start column and end position but begin on
-      # different lines are still two distinct methods.
       let(:result_set) do
         {
           existing_file => {
@@ -364,10 +328,6 @@ RSpec.describe SimpleCov::ResultAdapter do
     end
 
     context "with one define_method block generating many method names" do
-      # A builder looping `container.each_key { |key| define_method(key) { ... } }`
-      # produces one entry per generated name, all at the block's location.
-      # Only some generated wrappers get called, but the source location
-      # executed, which is all a file-based report can express (#1234).
       let(:result_set) do
         {
           existing_file => {
@@ -389,12 +349,6 @@ RSpec.describe SimpleCov::ResultAdapter do
   end
 
   describe "eval-duplicated branch aggregation" do
-    # Ruby's eval coverage emits a fresh set of branch entries per COMPILE
-    # of a template (hanami-view compiles the same .erb once per view), so
-    # one source `if` shows up as several conditions at identical
-    # coordinates, each seeing only its own renders. Reported separately
-    # they inflate the denominator and turn a side covered under another
-    # compile into a phantom miss (issue #1235).
     let(:result_set) do
       {
         existing_file => {

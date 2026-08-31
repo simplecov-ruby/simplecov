@@ -36,7 +36,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
   end
 
   context "when actual is just inside the floor-to-two-decimals boundary" do
-    # floor(90.009, 2) == 90.00, which is not > 90.0 → passes.
     let(:stats) do
       {line: instance_double(SimpleCov::CoverageStatistics, percent: 90.009)}
     end
@@ -46,7 +45,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
   end
 
   context "when actual is just outside the floor-to-two-decimals boundary" do
-    # floor(90.01, 2) == 90.01 > 90.0 → fails.
     let(:stats) do
       {line: instance_double(SimpleCov::CoverageStatistics, percent: 90.01)}
     end

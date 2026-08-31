@@ -1,6 +1,3 @@
-// The modal source-file dialog and hash-based routing between the file list
-// and individual source views. Owns the dialog DOM references; exposes small
-// accessors so sibling modules (events, controls) can read them.
 
 import { $$ } from './dom';
 import { materializeSourceFile } from './page';

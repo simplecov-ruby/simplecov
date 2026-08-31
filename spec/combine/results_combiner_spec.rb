@@ -17,7 +17,7 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
         source_fixture("app/controllers/sample_controller.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil]},
         source_fixture("resultset1.rb") => {"lines" => [1, 1, 1, 1]},
         source_fixture("parallel_tests.rb") => {"lines" => [nil, 0, nil, 0]},
-        source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]},  # loaded only in the first resultset
+        source_fixture("conditionally_loaded_1.rb") => {"lines" => [nil, 0, 1]},
         source_fixture("three.rb") => {"lines" => [nil, 1, 1]}
       }
     end
@@ -34,7 +34,7 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
         },
         source_fixture("resultset2.rb") => {"lines" => [nil, 1, 1, nil]},
         source_fixture("parallel_tests.rb") => {"lines" => [nil, nil, 0, 0]},
-        source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]},  # loaded only in the second resultset
+        source_fixture("conditionally_loaded_2.rb") => {"lines" => [nil, 0, 1]},
         source_fixture("three.rb") => {"lines" => [nil, 1, 4]}
       }
     end
@@ -66,10 +66,6 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
       end
 
       it "has proper results for parallel_tests.rb" do
-        # First resultset reports [nil, 0, nil, 0]; second reports
-        # [nil, nil, 0, 0]. A line is treated as relevant when either
-        # side considered it relevant, so positions 1 and 2 stay at
-        # 0 rather than collapsing to nil.
         expect(combined[source_fixture("parallel_tests.rb")]["lines"]).to eq([nil, 0, 0, 0])
       end
     end
@@ -102,10 +98,6 @@ RSpec.describe SimpleCov::Combine::ResultsCombiner do
     end
   end
 
-  # A caller with nothing to merge still gets a coverage hash back, so it
-  # does not have to tell "nothing to merge" apart from "merged nothing"
-  # before it can report. `CoverageAccumulator` keeps that distinction for
-  # the callers that do need it.
   describe "with nothing to merge" do
     it "combines no results at all into an empty coverage" do
       expect(described_class.combine).to eq({})

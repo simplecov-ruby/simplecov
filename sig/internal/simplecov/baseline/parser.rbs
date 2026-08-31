@@ -1,15 +1,9 @@
 module SimpleCov
   class Baseline
-    # The YAML file speaks the report's vocabulary (lines / branches /
-    # methods); internally floors are keyed by criterion the way the
-    # threshold configuration is.
     CRITERIA: Hash[String, Symbol]
 
     HEADER: String
 
-    # Turns the YAML document of a baseline file into the entries
-    # `Baseline` holds. Lenient on input shapes (bare numbers as
-    # line-percent floors), loud on anything else.
     module Parser
       def self?.call: (untyped data, String path) -> Hash[String, Hash[Symbol, Floor]]
 

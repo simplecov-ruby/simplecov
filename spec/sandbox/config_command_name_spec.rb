@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Each test suite needs a name it can be identified by. SimpleCov tries its
-# best to detect regular Test/Unit, RSpec and friends, but each suite's
-# config can also set a custom name via SimpleCov.command_name.
 RSpec.describe "custom command names for test suites", :sandbox do
   before { setup_project("faked_project") }
 

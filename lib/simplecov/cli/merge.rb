@@ -7,12 +7,9 @@ require_relative "command_helpers"
 
 module SimpleCov
   module CLI
-    # `simplecov merge <files...>` — wrap SimpleCov::ResultMerger so a
-    # CI matrix that produces one .resultset.json per worker can stitch
-    # them together from the shell instead of dropping a Rake task into
-    # every project. Requires the full simplecov library to be on the
-    # load path; lazy-required so the read-only subcommands above don't
-    # pay for ResultMerger (and its Coverage runtime guard).
+    # `simplecov merge <files...>`: wraps `SimpleCov::ResultMerger` so a CI
+    # matrix that produces one .resultset.json per worker can stitch them
+    # together from the shell instead of dropping a Rake task into every project.
     module Merge
       extend CommandHelpers
 
@@ -34,8 +31,7 @@ module SimpleCov
       end
 
       # Loaded here rather than at the top of the file, so the read-only
-      # subcommands never pay for ResultMerger and its Coverage runtime
-      # guard.
+      # subcommands never pay for ResultMerger and its Coverage runtime guard.
       def result_merger
         require "simplecov"
         ResultMerger
@@ -59,10 +55,8 @@ module SimpleCov
         opts.merge(files: files)
       end
 
-      # Validate every input file up-front and return a {path => parsed}
-      # hash. Surfacing per-file errors here turns ResultMerger's
-      # generic "no mergeable results" into a message that points at
-      # the specific input causing the failure.
+      # Validating every input up front turns ResultMerger's generic "no mergeable
+      # results" into a message that points at the specific input causing it.
       def parse_inputs(files, stderr)
         parsed = {} #: Hash[String, Hash[String, untyped]]
         files.each_with_object(parsed) do |path, memo|
@@ -72,9 +66,9 @@ module SimpleCov
         end
       end
 
-      # Read first, classify by the exception: an exist?-then-read pair
-      # is racy, and rescuing only ENOENT crashed with a backtrace on a
-      # directory (EISDIR) or an unreadable file (EACCES).
+      # Read first and classify by the exception: an exist?-then-read pair is racy,
+      # and rescuing only ENOENT crashed with a backtrace on a directory or an
+      # unreadable file.
       def parse_input(path, stderr)
         data = JSON.parse(File.read(path))
         return data if data.instance_of?(Hash) && !data.empty?
@@ -88,16 +82,13 @@ module SimpleCov
         parse_input_error(stderr, path, "cannot be read (#{e.message.lines.first.to_s.rstrip})")
       end
 
-      # Answers nothing, which is what an input that cannot be read
-      # contributes to the merge.
       def parse_input_error(stderr, path, reason)
         stderr.puts("simplecov merge: input file #{path.inspect} #{reason}")
       end
 
-      # When two input files share a command_name, ResultMerger folds
-      # them together with last-write-wins on the timestamp — easy to
-      # mistake for "no merge happened." Surface the overlap so the
-      # operator can rename the workers or accept the merge knowingly.
+      # ResultMerger folds entries that share a command_name together with
+      # last-write-wins on the timestamp, which is easy to mistake for "no merge
+      # happened", so the overlap is surfaced.
       def warn_about_duplicate_command_names(parsed, stderr)
         files_per_command = {} #: Hash[String, Array[String]]
         parsed.each do |path, data|

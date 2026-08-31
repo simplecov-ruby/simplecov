@@ -1,24 +1,12 @@
 module SimpleCov
   module CLI
-    # `simplecov diff <baseline>` — print per-file coverage deltas between
-    # coverage.json (--input) and a baseline coverage.json
-    # checked in alongside the suite. Only files whose coverage moved
-    # are listed; --fail-on-drop exits non-zero when any file regressed,
-    # so this composes with CI as a "coverage of this PR didn't drop"
-    # gate. Resolves the long-standing "diff coverage" feature request.
     module Diff
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers
 
       EPSILON: ::Float
 
-      # Per-criterion key map. coverage.json carries `lines_covered_percent`
-      # plus `branches_covered_percent` / `methods_covered_percent` when
-      # the corresponding criterion is enabled, so the diff can describe
-      # whichever criteria the baseline + current both report on.
       def self?.run: (untyped args, stdout: untyped, stderr: untyped, **untyped) -> (1 | untyped)
 
       def self?.parse: (untyped args, untyped stderr) -> (untyped | nil)
@@ -29,9 +17,6 @@ module SimpleCov
 
       def self?.load_coverage: (untyped path, untyped stderr) -> (untyped | nil)
 
-      # Strip a leading slash so coverage.json files written before the
-      # `project_filename` change (keys like "/lib/foo.rb") still diff
-      # cleanly against newer reports (keys like "lib/foo.rb").
       def self?.normalize_keys: (untyped coverage) -> untyped
 
       def self?.compute_rows: (untyped current, untyped baseline, untyped threshold) -> untyped
@@ -44,7 +29,6 @@ module SimpleCov
 
       def self?.pct_for: (untyped fields, untyped payload) -> (::Float | untyped)
 
-      # Removed rows never trip the --fail-on-drop gate.
       def self?.coverage_drop?: (untyped rows) -> bool
 
     end

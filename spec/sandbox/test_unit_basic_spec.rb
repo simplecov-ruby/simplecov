@@ -3,11 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Simply adding the basic simplecov lines to a project should get the
-# user a coverage report after running `rake test`. Group/file tables the
-# cucumber suite read from the rendered page are asserted against the
-# data payload embedded in the report; the rendering itself is covered
-# by the bun suite in html_frontend/test.
 RSpec.describe "test/unit integration", :sandbox do
   before { setup_project("faked_project") }
 
@@ -24,7 +19,6 @@ RSpec.describe "test/unit integration", :sandbox do
     data = html_report_data
     expect(data.dig("meta", "command_name")).to eq("Unit Tests")
     expect(reported_total_percent(data)).to eq(88.09)
-    # test/* files are filtered out by the default test_frameworks profile.
     expect(reported_file_percents(data)).to eq(
       "lib/faked_project.rb" => 100.00,
       "lib/faked_project/some_class.rb" => 80.00,

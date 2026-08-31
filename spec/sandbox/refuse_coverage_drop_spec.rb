@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Exit code should be non-zero if the overall coverage decreases.
-# And last_run file should not be overwritten with new coverage value.
 RSpec.describe "refuse coverage drop enforcement", :sandbox do
   before { setup_project("faked_project") }
 
@@ -42,8 +40,6 @@ RSpec.describe "refuse coverage drop enforcement", :sandbox do
     result = run_command("bundle exec rake test")
     expect(result.exit_status).not_to eq(0)
     expect(result.output).to include("Line coverage has dropped by 3.31% since the last time (maximum allowed: 0.00%).")
-    # The last_run file must survive with the pre-drop value, not the 84.78%
-    # this failing run measured (the read would raise if it were deleted).
     expect(last_run_json).to eq("result" => {"line" => 88.09})
   end
 

@@ -8,9 +8,6 @@ RSpec.describe SimpleCov::LinesClassifier do
   subject(:classifier) { described_class.new }
 
   describe "#classify" do
-    # `classify` walks its lines twice: once to find the directive-disabled
-    # ranges, once to give each line a verdict. A source that can only be
-    # read through once is the case that proves it materializes them first.
     it "classifies a stream of lines it can only read through once" do
       lines = StringIO.new("puts 'hi'\nputs 'there'\n").each_line
 
@@ -31,10 +28,6 @@ RSpec.describe SimpleCov::LinesClassifier do
       end
     end
 
-    # `classify` reaches `no_cov_line?` only for lines that already passed
-    # the whitespace-or-comment test, so an invalid byte sequence is caught
-    # there first. `SourceFile::SkipChunks` calls this directly on raw
-    # source, though, where it can still meet one.
     describe ".no_cov_line?" do
       it "is false for a line with an invalid UTF-8 byte sequence" do
         expect(described_class.no_cov_line?("# :nocov: \xF1\xEB\xE2")).to be(false)
@@ -45,13 +38,6 @@ RSpec.describe SimpleCov::LinesClassifier do
       end
     end
 
-    # `classify_line` gates the marker match behind the whitespace-or-comment
-    # test, which is only sound while every marker is also a comment. That
-    # holds because `no_cov_line` is anchored `^(\s*)#`, strictly narrower than
-    # `COMMENT_LINE`'s `^\s*#`. Loosening the marker to match a trailing
-    # `x = 1 # :nocov:` would break the gate silently: the toggle would stop
-    # firing and `:nocov:` blocks would stop being skipped, with nothing else
-    # failing. This pins the implication so that change fails here instead.
     describe "the marker/comment invariant classify_line relies on" do
       markers = [
         "# :nocov:",
@@ -113,11 +99,6 @@ RSpec.describe SimpleCov::LinesClassifier do
         end
       end
 
-      # Named without a leading "#": mutant derives a subject expression
-      # from the first token of an example's full description, and this
-      # group sits under a class-named describe, so a leading "#" glues
-      # into an expression nothing can parse and takes every example in
-      # the group out of mutant's view.
       describe "the disable line and enable line directives" do
         it "marks lines inside a paired disable/enable block as not-relevant" do
           classified_lines = classifier.classify [
@@ -183,9 +164,6 @@ RSpec.describe SimpleCov::LinesClassifier do
     end
   end
 
-  # The lines are read twice, once to find the directives and once to
-  # classify. A source that can only be read once is spent by the first
-  # pass unless it is taken into an array first.
   it "classifies lines that can only be read once" do
     lines = Object.new.tap do |source|
       remaining = ["a = 1\n", "\n", "b = 2\n"]
@@ -203,8 +181,6 @@ RSpec.describe SimpleCov::LinesClassifier do
   describe SimpleCov::LinesClassifier::SkipState do
     subject(:skip_state) { described_class.new }
 
-    # Answered false rather than merely falsey: the state is a question
-    # about the lines, and "not yet decided" is not one of its answers.
     it "starts outside a :nocov: pair" do
       expect(skip_state.skipping?).to be(false)
     end

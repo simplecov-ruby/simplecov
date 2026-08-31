@@ -5,9 +5,6 @@ require_relative "command_helpers"
 
 module SimpleCov
   module CLI
-    # `simplecov open [--report PATH]` — open the HTML report in the
-    # platform's default browser. Tiny QoL wrapper around `xdg-open` /
-    # `open` / `start` so users don't have to type a file:// URL.
     module Open
       extend CommandHelpers
 
@@ -31,11 +28,11 @@ module SimpleCov
         path
       end
 
-      # Returns the argv for the platform's "open this file" command, or
-      # nil if the host OS isn't recognized. On Windows, `start` is a
-      # cmd.exe builtin (not an executable), so route through `cmd /c`;
-      # the empty string is the window-title positional `start` takes
-      # before the path so a quoted path isn't mis-parsed as the title.
+      # The argv for the platform's "open this file" command, or nil if the host OS
+      # isn't recognized. On Windows, `start` is a cmd.exe builtin rather than an
+      # executable, so it routes through `cmd /c`; the empty string is the
+      # window-title positional `start` takes before the path, so a quoted path
+      # isn't mis-parsed as the title.
       def browser_opener
         case RbConfig::CONFIG.fetch("host_os")
         when /darwin/             then ["open"]

@@ -44,8 +44,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
 
     it "sums an array key with its JSON-stringified form" do
-      # An in-process result merging with a resultset read back from JSON
-      # (`ResultMerger.merge_and_store`) sees the same method in both forms.
       coverage_a = {["A", :method1, 2, 2, 5, 5] => 1}
       coverage_b = {'["A", :method1, 2, 2, 5, 5]' => 4}
 
@@ -55,11 +53,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
 
     it "matches methods on source identity, ignoring the receiver class" do
-      # The same define_method block lands on different receivers in
-      # different processes (one worker's specs define it on a Class, the
-      # other's on a Struct). Same (name, location) = same source method;
-      # keeping both would let the never-called receiver's 0 count as a
-      # separate uncovered method (issue #1234).
       coverage_a = {'["#<Class:0x0>", :inspect, 3, 39, 3, 51]' => 2}
       coverage_b = {'["SomeNamedClass", :inspect, 3, 39, 3, 51]' => 0}
 
@@ -78,8 +71,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
 
     it "matches different generated names at the same location" do
-      # One define_method block generating several names (a builder looping
-      # over a container): same location = same source method (issue #1234).
       coverage_a = {'["#<Builder:0x0>", :echo, 38, 26, 41, 11]' => 1}
       coverage_b = {'["#<Builder:0x0>", :bind, 38, 26, 41, 11]' => 0}
 
@@ -100,8 +91,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
 
     it "sums duplicated identities arriving within one side" do
-      # A resultset stored by an older SimpleCov can still carry
-      # per-receiver duplicates; merging must collapse them too.
       coverage_a = {
         '["ClassA", :method_added, 18, 55, 22, 9]' => 6,
         '["ModuleB", :method_added, 18, 55, 22, 9]' => 0
@@ -113,15 +102,9 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
   end
 
-  # `CoverageAccumulator` drives a fold through `absorb` and `materialize`
-  # rather than `combine`, so the accumulated table stays interned for the
-  # whole fold and is only turned back into tuple keys once.
   describe ".absorb" do
     let(:key) { ["A", :method1, 2, 2, 5, 5] }
 
-    # Method coverage stays absent until some resultset carries it, so a
-    # merge can tell "nobody measured methods" from "measured, and this
-    # file has none".
     it "leaves a nil target nil while no coverage carries methods" do
       expect(described_class.absorb(nil, nil)).to be_nil
     end
@@ -161,9 +144,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
     end
   end
 
-  # Ruby records one entry per defined method, so the same source method
-  # arrives under different receivers or names from different processes
-  # (issue #1234). Only the location decides.
   describe ".source_identity" do
     it "is the location, ignoring the class and the method name" do
       expect(described_class.source_identity(["A", :method1, 2, 3, 4, 5])).to eq([2, 3, 4, 5])
@@ -173,8 +153,6 @@ RSpec.describe SimpleCov::Combine::MethodsCombiner do
       expect(described_class.source_identity('["B", :method2, 2, 3, 4, 5]')).to eq([2, 3, 4, 5])
     end
 
-    # It is a hash key for the whole fold, so nothing may edit it after the
-    # table it keys has been built.
     it "is frozen" do
       expect(described_class.source_identity(["A", :method1, 2, 3, 4, 5])).to be_frozen
     end

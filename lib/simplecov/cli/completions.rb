@@ -7,12 +7,9 @@ require_relative "completions/scripts"
 
 module SimpleCov
   module CLI
-    # `simplecov completions <shell>` — completion scripts for fish,
-    # bash, and zsh. Generated from the usage document rather than a
-    # hand-kept table: the Commands list provides the subcommands and
-    # their descriptions, and each command's options sections provide
-    # its flags, so a new command or switch shows up in completions the
-    # moment it is documented.
+    # `simplecov completions <shell>`: completion scripts for fish, bash, and
+    # zsh, generated from the usage document rather than a hand-kept table, so a
+    # new command or switch shows up in completions the moment it is documented.
     module Completions
       extend CommandHelpers
 
@@ -20,14 +17,11 @@ module SimpleCov
 
       SHELLS = %w[fish bash zsh].freeze
 
-      # "  -q, --quiet               Suppress..." — optional short,
-      # long, optional argument placeholder, then the description after
-      # the column gap. A single space never separates the switch from
-      # its description, so one non-space token before a two-space run
-      # can only be an argument.
+      # "  -q, --quiet               Suppress...": optional short, long, optional
+      # argument placeholder, then the description after the column gap. A single
+      # space never separates the switch from its description, so one non-space
+      # token before a two-space run can only be an argument.
       OPTION_ROW = /\A\s*(?:(-\w), )?(--[\w-]+)(?: (\S+))?\s{2,}(\S.*)\z/
-      # "  watch <command...>        Re-run..." — the name, any
-      # argument placeholders, then the description after the gap.
       COMMAND_ROW = /\A(\S+)(?: \S+)*?\s{2,}(\S.*)\z/
 
       def run(args, stdout:, stderr:)
@@ -49,8 +43,6 @@ module SimpleCov
         end
       end
 
-      # The section's own "Commands:" header never matches a command
-      # row, so the filter below drops it without help.
       def commands
         Usage.text(CLI).split("\n\n").fetch(1).lines.filter_map do |row|
           match = row.strip.match(COMMAND_ROW)
@@ -65,8 +57,8 @@ module SimpleCov
         end.to_h
       end
 
-      # `run` takes no options of its own (everything after it belongs
-      # to the command being run), so it must not even offer --help.
+      # `run` takes no options of its own, since everything after it belongs to the
+      # command being run, so it must not even offer --help.
       def options_for(command)
         return [] if command.eql?("run")
 
@@ -75,8 +67,8 @@ module SimpleCov
         options << {short: "-h", long: "--help", arg: nil, desc: "Show this command's usage"}
       end
 
-      # Rows that don't parse as options are continuations of the
-      # previous row's description, wrapped for the terminal.
+      # Rows that don't parse as options are continuations of the previous row's
+      # description, wrapped for the terminal.
       def section_options(section)
         section.lines.each_with_object([]) do |line, options|
           if (match = line.chomp.match(OPTION_ROW))

@@ -4,11 +4,6 @@ require "helper"
 require "json"
 require "json_schemer"
 
-# Validates that every shape JSONFormatter is expected to emit conforms to
-# the contract in schemas/coverage-v1.0.schema.json. The schema is
-# published as the public contract for coverage.json consumers, this
-# spec catches drift between code and schema at test time so neither
-# can rot independently.
 describe "coverage.json schema" do
   let(:schema_path) { File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__) }
   let(:alias_path)  { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
@@ -32,9 +27,6 @@ describe "coverage.json schema" do
     expect(schema_doc.fetch("$schema")).to eq("https://json-schema.org/draft/2020-12/schema")
   end
 
-  # The unversioned alias is a convenience pointer to the latest version.
-  # Allow only the metadata triple to diverge (title, description, $id)
-  # so the canonical and alias can't drift in shape unnoticed.
   it "ships an unversioned alias that mirrors the latest versioned canonical" do
     alias_metadata_keys = %w[$id title description]
     expect(alias_doc.except(*alias_metadata_keys)).to eq(schema_doc.except(*alias_metadata_keys))
@@ -44,11 +36,6 @@ describe "coverage.json schema" do
     expect(schema_doc.fetch("$id")).to match(%r{/schemas/coverage-v\d+\.\d+\.schema\.json\z})
   end
 
-  # Guards against drift: a document claiming a foreign schema_version
-  # must not quietly validate against whatever the current contract is.
-  # "0.0" is used because the schema started at 1.0 and only bumps
-  # upward — a pre-1.0 version string will never match any future
-  # `const`, so this test stays valid across version bumps.
   it "rejects a document claiming a foreign schema_version" do
     document = JSON.parse(File.read(source_fixture("json/sample.json")))
     document["meta"]["schema_version"] = "0.0"
@@ -93,7 +80,6 @@ describe "coverage.json schema" do
       allow(SimpleCov).to receive(:source_in_json).and_return(false)
       result = SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}})
       document = emit(result)
-      # Sanity: the `source` field really is omitted, not just empty.
       expect(document.fetch("coverage").values.first).not_to have_key("source")
       errors = validate_against_schema(document)
       expect(errors).to be_empty, errors.join("\n")
@@ -117,10 +103,6 @@ describe "coverage.json schema" do
       expect(errors).to be_empty, errors.join("\n")
     end
 
-    # `disable_coverage :line` is a real configuration. The formatter
-    # then drops all line keys from `total`, per-file payloads, and
-    # group totals. Guard against the schema drifting back into
-    # requiring those keys.
     it "validates a result emitted with line coverage disabled" do
       allow(SimpleCov).to receive_messages(line_coverage?: false, branch_coverage?: true)
       result = SimpleCov::Result.new({
@@ -154,9 +136,6 @@ describe "coverage.json schema" do
       expect(errors).to be_empty, errors.join("\n")
     end
 
-    # An empty map still signals "contexts were recorded" (the run tracked
-    # and nothing ran), while an untouched file simply has no bitmaps to
-    # carry.
     it "keeps an empty context list but omits a file's empty bitmap table" do
       map = SimpleCov::ContextMap.new
       map.record("spec/sample_spec.rb:4", source_fixture("sample.rb") => 0b1)
@@ -246,9 +225,6 @@ describe "coverage.json schema" do
       expect(errors).to be_empty, errors.join("\n")
     end
 
-    # The `errors` object is part of the public contract too; validate each
-    # violation shape end-to-end so the schema can't drift away from what
-    # the formatter actually emits when thresholds trip.
     context "with errors populated" do
       let(:result) do
         SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})

@@ -23,18 +23,12 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     expect(File.stat(path).mode & 0o777).to eq(File.stat(control).mode & 0o777)
 
     File.chmod(0o400, path)
-    # Compare against what chmod actually recorded: Windows widens 0400
-    # to 0444, and either is distinct from the default for new files.
     restricted_mode = File.stat(path).mode & 0o777
     described_class.write(path, "second")
     expect(File.stat(path).mode & 0o777).to eq(restricted_mode)
     expect(File.read(path)).to eq("second")
   end
 
-  # Off Windows a locked destination is not a condition that clears
-  # itself, so the failure is reported on the first attempt rather than
-  # retried. The platform is stubbed because the suite may really be
-  # running on Windows, where the write retries instead.
   it "preserves the old file and removes its temporary file when rename fails" do
     allow(Gem).to receive(:win_platform?).and_return(false)
     FileUtils.mkdir_p(File.dirname(path))
@@ -50,8 +44,6 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
   it "preserves every permission bit of the file it replaces" do
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, "old")
-    # Compare against what chmod actually recorded: Windows cannot
-    # represent 0645 and rounds it to what it can.
     File.chmod(0o645, path)
     recorded_mode = File.stat(path).mode & 0o777
 
@@ -84,11 +76,6 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     expect(File.read(target)).to eq("target")
   end
 
-  # Rename replaces the destination atomically on POSIX systems. On
-  # Windows it fails with EACCES while a reader holds the destination
-  # open, so the write retries there briefly rather than giving up on a
-  # condition that clears itself. Every example here stubs the platform,
-  # since the branch is unreachable where the suite actually runs.
   describe "on Windows" do
     before do
       allow(Gem).to receive(:win_platform?).and_return(true)
@@ -136,8 +123,6 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     end
   end
 
-  # The mode a new file lands with is the default masked by the umask,
-  # the same thing an ordinary `File.write` would produce.
   it "honours the umask for a file it creates" do
     skip "the umask is a POSIX concept" if Gem.win_platform?
 
@@ -162,9 +147,6 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     File.umask(previous)
   end
 
-  # The temporary file is created in the destination's own directory, so
-  # the rename never crosses a filesystem boundary, and its name marks
-  # it as simplecov's for anyone who finds one left behind.
   it "stages the replacement beside the destination, under a simplecov name" do
     allow(Tempfile).to receive(:create).and_call_original
 
@@ -173,22 +155,14 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     expect(Tempfile).to have_received(:create).with([".simplecov-", ".tmp"], File.dirname(path))
   end
 
-  # The mode handed to chmod is the destination's permission bits alone:
-  # a stat carries the file type in the same integer, and passing that
-  # through would ask for a mode nobody wrote.
   it "reads a destination's permission bits, without its file type" do
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, "old")
-    # Compare against what chmod actually recorded: Windows cannot
-    # represent 0645 and rounds it to what it can, and either way the
-    # answer must carry no file type.
     File.chmod(0o645, path)
 
     expect(described_class.send(:destination_mode, path)).to eq(File.stat(path).mode & 0o777)
   end
 
-  # Binary mode is what keeps a report byte-identical across platforms,
-  # and on one that does not translate newlines only the request shows.
   it "puts the temporary file in binary mode only when asked" do
     modes = []
     allow(Tempfile).to receive(:create).and_wrap_original do |original, *args, &block|
@@ -208,9 +182,6 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
     expect(modes).to eq([:binary])
   end
 
-  # A reader that opens the destination the instant the rename lands must
-  # find the whole file, so the last buffered bytes have to reach disk
-  # before it, not whenever the temporary file happens to be closed.
   it "flushes the content to disk before the rename" do
     staged = nil
     allow(File).to receive(:rename).and_wrap_original do |original, temp, destination|

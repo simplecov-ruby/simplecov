@@ -1,9 +1,6 @@
 module SimpleCov
   module Formatter
     class JSONFormatter
-      # Renders a single `SimpleCov::SourceFile` as the per-file payload
-      # in coverage.json: source code plus per-enabled-criterion arrays
-      # and totals.
       class SourceFileFormatter
         def self.call: (untyped source_file, ?include_source: bool, ?contexts: ContextMap?) -> untyped
 

@@ -4,15 +4,7 @@ require_relative "distribution"
 require_relative "shape"
 
 module CollateBenchmark
-  # Builds the coverage structure every generated shard shares: the same file
-  # paths, the same line shapes, the same branch keys. That is what real
-  # shards of one suite look like — only their hit counts differ, and
-  # `ArtifactWriter` varies those per shard.
   class FileStructure
-    # One generated file: its project-relative path, its `lines` array (`nil`
-    # for a non-relevant line) and its `branches` table, keyed by the
-    # stringified tuples Coverage emits once a resultset round-trips through
-    # JSON.
     Entry = Struct.new(:relative_path, :lines, :branches, keyword_init: true)
 
     TOP_LEVEL_DIRS = {
@@ -51,10 +43,6 @@ module CollateBenchmark
       ).shuffle(random: @rng)
     end
 
-    # Returns a per-file condition count, 0 for the third of files that carry
-    # no branches. Counts go to branchy files in size order, so the biggest
-    # files hold the most conditions — a stronger correlation than a source
-    # tree really shows, but it avoids handing a 3-line file 51 conditions.
     def condition_counts(sizes)
       branchy = branchy_indices(sizes.size)
       counts = Distribution.samples(
@@ -71,9 +59,6 @@ module CollateBenchmark
       (0...count).to_a.sample((count * Shape::BRANCHY_FILE_FRACTION).round, random: @rng)
     end
 
-    # The tree gets a realistic spread of nesting depths — the report sorts and
-    # groups by path, so a flat directory would understate that work. The
-    # trailing index keeps every name unique without a retry loop.
     def paths(count)
       Array.new(count) do |index|
         segments = [Distribution.weighted_choice(TOP_LEVEL_DIRS, @rng)]
@@ -100,7 +85,6 @@ module CollateBenchmark
     def build_branches(lines, conditions)
       return {} if conditions.zero?
 
-      # Coverage numbers branch ids sequentially within a file.
       ids = (0..).each
       conditions.times.each_with_object({}) do |_, table|
         add_condition(table, lines.size, ids)
@@ -116,10 +100,6 @@ module CollateBenchmark
         arm_types.to_h { |arm_type| [tuple_key(arm_type, ids.next, start_line, max_line), arm_hit_count] }
     end
 
-    # Maps an arm count back to the construct that produces it, which is what
-    # keeps the generated condition- and arm-type tallies faithful: one arm is
-    # a loop body, two is a conditional (or a one-`when` `case`), and three or
-    # more is always a `case`.
     def classify_condition(arms)
       case arms
       when 1 then [Distribution.weighted_choice(Shape::LOOP_CONDITION_TYPES, @rng), [:body]]
@@ -141,10 +121,6 @@ module CollateBenchmark
       @rng.rand < Shape::ZERO_HIT_ARM_FRACTION ? 0 : hit_count
     end
 
-    # Coverage keys are `[type, id, start_line, start_col, end_line, end_col]`.
-    # Once a resultset round-trips through JSON they arrive as the `inspect`
-    # form of that array, which is exactly what the combiners have to parse —
-    # so the fixture stores them that way, symbol quoting (`:"&."`) included.
     def tuple_key(type, id, start_line, max_line)
       end_line = [start_line + @rng.rand(0..3), max_line].min
       start_col = @rng.rand(2..40)

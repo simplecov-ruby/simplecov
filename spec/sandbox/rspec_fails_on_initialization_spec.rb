@@ -3,8 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Running specs with a failing rspec setup: an exception raised while
-# loading the spec helper must fail the run.
 RSpec.describe "rspec failing on initialization", :sandbox do
   before { setup_project("faked_project") }
 

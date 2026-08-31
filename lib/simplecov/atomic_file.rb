@@ -5,7 +5,8 @@ require "tempfile"
 
 module SimpleCov
   # Replaces an artifact through a collision-safe temporary file in the
-  # destination directory, so readers see either the old or complete new file.
+  # destination directory, so readers see either the old or the complete new
+  # file.
   module AtomicFile
     DEFAULT_MODE = 0o666
     private_constant :DEFAULT_MODE
@@ -22,13 +23,10 @@ module SimpleCov
       nil
     end
 
-    # Closing flushes the last buffered bytes, so the rename publishes a
-    # complete file rather than whatever happened to reach disk. A closed
-    # `File` still stands in for its own path, which is all `chmod` and
-    # `rename` want from it.
-    #
-    # No cleanup of its own: `Tempfile.create` closes and removes the
-    # file when its block ends, however the block ends.
+    # Closing flushes the last buffered bytes, so the rename publishes a complete
+    # file rather than whatever happened to reach disk. No cleanup of its own:
+    # `Tempfile.create` closes and removes the file when its block ends, however
+    # it ends.
     def self.replace(temp, path, content, mode, binary:)
       temp.binmode if binary
       temp.write(content)
@@ -38,10 +36,9 @@ module SimpleCov
     end
     private_class_method :replace
 
-    # On POSIX systems rename replaces the destination atomically. On
-    # Windows it fails with EACCES when the destination is open in a
-    # reader or mid-replacement by a concurrent writer, so retry briefly
-    # there before giving up.
+    # On POSIX systems rename replaces the destination atomically. On Windows it
+    # fails with EACCES when the destination is open in a reader or
+    # mid-replacement by a concurrent writer, so retry briefly there.
     def self.rename_over(temp, path)
       remaining = 10
       begin

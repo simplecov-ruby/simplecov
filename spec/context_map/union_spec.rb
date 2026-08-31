@@ -88,8 +88,6 @@ RSpec.describe SimpleCov::ContextMap::Union do
       expect(union.map.contexts).to contain_exactly("spec/a_spec.rb:1", "spec/b_spec.rb:2")
     end
 
-    # Distinct totals on each side, and a carrying count distinct from
-    # the entry count, so neither sum can pass for the other.
     it "adds the other union's totals to its own" do
       union.absorb_entry(map_entry("spec/a_spec.rb:1", 0b1))
       other = described_class.new
@@ -113,8 +111,6 @@ RSpec.describe SimpleCov::ContextMap::Union do
       expect(union).not_to be_complete
     end
 
-    # Completeness only ever narrows: a union that already dropped an
-    # entry's map cannot be talked back into carrying one.
     it "stays incomplete once it is, whatever the absorbed union carries" do
       union.absorb_entry({})
       other = described_class.new

@@ -12,11 +12,6 @@ RSpec.describe SimpleCov::Configuration do
   let(:config) { config_class.new }
 
   describe "explicit writers" do
-    # Item 2 of the mutation-testing roadmap, in its non-breaking form:
-    # every dual-purpose setting can also be written the way Ruby spells
-    # writing. Each writer is the dual method's write arm, and the dual
-    # method delegates to it, so the write behaviour lives once.
-
     it "writes root expanded, and re-derives the coverage path from it" do
       config.root = "tmp/project"
 
@@ -153,9 +148,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.production_coverage).to eq(File.expand_path("tmp/production.json", config.root))
     end
 
-    # The dual methods answer their write arms with the stored value,
-    # the way they always did, even though the storing now happens in
-    # the writer.
     it "answers the stored value when writing through the dual methods" do
       expect(config.baseline_file("config/floors.yml")).to eq("config/floors.yml")
       expect(config.history_limit(5)).to eq(5)
@@ -195,14 +187,9 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The criterion-first `coverage` method is a uniform front-end over the same
-  # threshold stores the flat `minimum_coverage` family writes, so these
-  # examples assert against those stores.
   describe "#coverage" do
     after { config.clear_coverage_criteria }
 
-    # The criterion comes back, which is what a configuration file
-    # chains from and what the oneshot variant answers with.
     it "answers the criterion it configured" do
       expect(config.coverage(:branch)).to eq(:branch)
       expect(config.coverage(:line, oneshot: true)).to eq(:oneshot_line)
@@ -269,9 +256,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.coverage_for_eval_enabled?).to be false
       end
 
-      # `coverage :eval` alone is supported, so the old "Unsupported
-      # coverage criterion eval" message was misleading. The refusal is
-      # about thresholds specifically.
       it "rejects thresholds for :eval with a message about thresholds, not the criterion" do
         allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
 
@@ -357,9 +341,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95, branch: 90})
       end
 
-      # `group :Models` normalizes to the String "Models", so the threshold
-      # store must too. A Symbol key here missed the check-time lookup and
-      # silently left the minimum unenforced.
       it "normalizes a Symbol group name to match Symbol-defined groups" do
         config.coverage(:line) { minimum 95, per: group(:Models) }
         expect(config.minimum_coverage_by_group).to eq("Models" => {line: 95})
@@ -396,16 +377,11 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.maximum_missed_per_file).to eq(line: 5)
       end
 
-      # Every per-file setter validates its criterion and its value
-      # before storing anything, so a typo fails at configuration time
-      # rather than at the exit check.
       it "refuses a per-file floor for a criterion that is not enabled" do
         expect { config.send(:store_minimum_per_file, :branch, 80, nil) }
           .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
       end
 
-      # A floor above what coverage can reach is a warning rather than a
-      # refusal: it can never pass, but it is not malformed.
       it "warns about a per-file floor above what coverage can reach" do
         stderr = capture_stderr { config.send(:store_minimum_per_file, :line, 101, nil) }
 
@@ -456,9 +432,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    # Turning it back on has to write, not read: only the no-argument
-    # call is a getter, and `true` is both a legitimate value and the
-    # default it would otherwise be confused with.
     it "switches back on after being switched off" do
       config.print_errors false
       config.print_errors true
@@ -476,7 +449,6 @@ RSpec.describe SimpleCov::Configuration do
         .to eq(File.expand_path("tmp/production.json", config.root))
     end
 
-    # A path is a path whatever kind of String it is.
     it "takes a String subclass" do
       config.production_coverage Class.new(String).new("tmp/production.json")
 
@@ -499,8 +471,6 @@ RSpec.describe SimpleCov::Configuration do
         .to raise_error(SimpleCov::ConfigurationError, "production_coverage takes a path, got 42")
     end
 
-    # Inspected, so the refused value is quoted the way it was written
-    # rather than flattened into the sentence.
     it "names the value it refused, as written" do
       expect { config.production_coverage(:store) }
         .to raise_error(SimpleCov::ConfigurationError, "production_coverage takes a path, got :store")
@@ -598,10 +568,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Ruby 3.2 and later answer for themselves; older runtimes cannot be
-  # asked, and the historical engine check stands in. That fallback is
-  # unreachable on the Ruby this suite runs, so it is reached by taking
-  # the question away.
   describe "#clear_coverage_criteria" do
     it "puts the criteria back to the lazy default, not only the primary one" do
       config.enable_coverage :branch
@@ -622,8 +588,6 @@ RSpec.describe SimpleCov::Configuration do
   end
 
   describe "#coverage_criterion_supported?" do
-    # Loading this file on its own leaves Coverage undefined, so the
-    # question loads it first rather than assuming a caller did.
     it "loads Coverage before asking it anything" do
       allow(config).to receive(:load_coverage).and_call_original
 
@@ -646,8 +610,6 @@ RSpec.describe SimpleCov::Configuration do
         allow(Coverage).to receive(:respond_to?).with(:supported?).and_return(false)
       end
 
-      # Stubbed like the JRuby example below, because the answer differs
-      # by engine and the suite really runs on more than one.
       it "supports the measured criteria" do
         stub_const("RUBY_ENGINE", "ruby")
 
@@ -655,8 +617,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.coverage_criterion_supported?(:branch)).to be true
       end
 
-      # `:eval` arrived after those Rubies, so there is nothing to
-      # support it with.
       it "does not support eval" do
         expect(config.coverage_criterion_supported?(:eval)).to be false
       end
@@ -681,9 +641,6 @@ RSpec.describe SimpleCov::Configuration do
       expect { config.project_name }.not_to raise_error
     end
 
-    # Every underscore becomes a space, not just the first, and only the
-    # first letter is touched: a name derived from a directory should
-    # read like a title without rewriting the words in it.
     it "spaces every underscore and leaves the rest of the case alone" do
       config.root("/Code/my_awesome_API_app")
       expect(config.project_name).to eq("My awesome api app")
@@ -695,8 +652,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.project_name).to eq("Chosen")
     end
 
-    # A getter must not overwrite a name already chosen, and a
-    # non-String argument is not a name: neither may quietly replace one.
     it "keeps the name it was given when read again or handed a non-name" do
       config.project_name("Chosen")
       expect(config.project_name(nil)).to eq("Chosen")
@@ -711,7 +666,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.project_name).to eq(derived)
     end
 
-    # Any String will do, including one a caller built by subclassing it.
     it "takes a name given as a String subclass" do
       config.project_name(Class.new(String).new("Chosen"))
 
@@ -747,7 +701,7 @@ RSpec.describe SimpleCov::Configuration do
       stderr = capture_stderr { value = config.nocov_token }
 
       expect(value).to eq "skippit"
-      expect(stderr).to include("[DEPRECATION]") # the read still warns
+      expect(stderr).to include("[DEPRECATION]")
     end
 
     it "is aliased as #skip_token, which also warns" do
@@ -773,8 +727,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.current_nocov_token).to eq "skippit"
     end
 
-    # A token already set is not frozen: passing a new one replaces it,
-    # while passing nothing keeps reading the one in force.
     it "replaces a token already set" do
       config.current_nocov_token("first")
       expect(config.current_nocov_token("second")).to eq "second"
@@ -834,8 +786,6 @@ RSpec.describe SimpleCov::Configuration do
       Dir.mktmpdir do |cwd|
         Dir.chdir(cwd) do
           config.coverage_path("build/cov")
-          # `File.realpath` so we compare against the same symlink-resolved
-          # form `File.expand_path` returns (on macOS `/var` -> `/private/var`).
           expect(config.coverage_path).to eq(File.join(File.realpath(cwd), "build/cov"))
         end
       end
@@ -875,8 +825,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(stderr).to include("`SimpleCov.cover \"lib/**/*.rb\"`")
     end
 
-    # `track_files(nil)` clears the legacy glob, but `cover(nil)` raises —
-    # don't point users at an invalid call. Copilot review on #1188.
     it "suggests cover_filters.clear when called with nil to clear the glob" do
       stderr = capture_stderr { config.track_files(nil) }
 
@@ -931,9 +879,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.cover_filters.first).to be_a(SimpleCov::ArrayFilter)
       end
 
-      # Without recursion, `cover_globs.grep(GlobFilter)` only saw the top-level
-      # filters, so an array-wrapped glob silently failed to drive unloaded-file
-      # discovery (Copilot review on #1188).
       it "collects globs nested inside an ArrayFilter for unloaded-file discovery" do
         config.cover(["lib/**/*.rb", /_helper\.rb\z/])
 
@@ -971,9 +916,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.filters.size).to eq 1
       end
 
-      # The default warning interpolates `filter_argument.inspect`, which is
-      # `nil` for the block form (`add_filter { ... }`); suggest the block
-      # form spelling instead. Copilot review on #1188.
       it "suggests the block form when a block was given" do
         stderr = capture_stderr { config.add_filter { |sf| sf.filename.include?("legacy") } }
 
@@ -993,8 +935,6 @@ RSpec.describe SimpleCov::Configuration do
       it "reserves Ungrouped for files that match no configured group" do
         config.group "Models", "app/models"
 
-        # The name is quoted in the message, so a group called
-        # "Ungrouped is fine" is not mistaken for the reserved one.
         expect { config.group "Ungrouped", // }
           .to raise_error(SimpleCov::ConfigurationError,
                           %("Ungrouped" is reserved for files that do not match a configured group))
@@ -1051,8 +991,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.groups.keys).to eq ["Models"]
       end
 
-      # `add_group "Name" { ... }` would otherwise display as
-      # `SimpleCov.group "Name", nil`, dropping the block. Copilot review on #1188.
       it "suggests the block form when a block was given" do
         stderr = capture_stderr { config.add_group("Other") { |sf| sf.filename.include?("xyz") } }
 
@@ -1248,8 +1186,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.finalize_merge).to be true
       end
 
-      # Two workers is already a parallel run: the inference is about
-      # whether anything else is doing the merging, not about scale.
       it "infers false for a two-worker run, the smallest parallel one" do
         ENV["TEST_ENV_NUMBER"] = "1"
         ENV["PARALLEL_TEST_GROUPS"] = "2"
@@ -1266,7 +1202,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.finalize_merge).to be false
       end
 
-      # Either variable on its own says a parallel worker is running.
       %w[TEST_ENV_NUMBER PARALLEL_TEST_GROUPS].each do |variable|
         it "recognises a worker environment from #{variable} alone" do
           ENV[variable] = "1"
@@ -1278,9 +1213,6 @@ RSpec.describe SimpleCov::Configuration do
         end
       end
 
-      # A coverage directory set explicitly to the default one is not a
-      # custom destination: nothing about it says another process is
-      # collating.
       it "does not infer false when the explicit destination is the default one" do
         ENV["TEST_ENV_NUMBER"] = "1"
         ENV["PARALLEL_TEST_GROUPS"] = "3"
@@ -1291,8 +1223,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.finalize_merge).to be true
       end
 
-      # The warning is for the inference that turns finalization off; an
-      # inference that leaves it on has nothing to say.
       it "colours the inference warning, so it is not lost in the run's output" do
         ENV["TEST_ENV_NUMBER"] = "1"
         ENV["PARALLEL_TEST_GROUPS"] = "3"
@@ -1457,9 +1387,6 @@ RSpec.describe SimpleCov::Configuration do
       context "when the runtime has no eval coverage" do
         before { allow(config).to receive(:coverage_for_eval_supported?).and_return(false) }
 
-        # Templates would come back empty rather than at 0%, so the report is
-        # better off without them than with a wall of zeroes that means
-        # "unmeasurable" instead of "untested".
         it "warns and leaves view coverage off" do
           stderr = capture_stderr { config.cover_views }
 
@@ -1489,8 +1416,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.maximum_missed_per_file).to eq(line: 5)
       end
 
-      # The suffixed flat setter is deprecated in favor of the `per:`
-      # axis; the reader stays, feeding enforcement.
       it "deprecate the flat maximum_missed_per_file setter with a copy-pastable replacement" do
         config.enable_coverage :branch
         stderr = capture_stderr { config.maximum_missed_per_file line: 5, branch: 2 }
@@ -1553,9 +1478,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.maximum_missed).to eq(method: 2)
       end
 
-      # The enforcement for group-scoped miss caps doesn't exist yet, so
-      # the target is refused rather than silently stored (see
-      # docs/Roadmap.md).
       it "rejects a group target until group caps are enforced" do
         expect { config.coverage(:line) { maximum_missed 5, per: group("Models") } }
           .to raise_error(SimpleCov::ConfigurationError, /per: group/)
@@ -1620,8 +1542,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.deprecations).to eq(:warn)
       end
 
-      # Deliberately no :silence mode: a deprecation you cannot see is a
-      # migration you never make.
       it "rejects any other mode" do
         expect { config.deprecations :silence }
           .to raise_error(SimpleCov::ConfigurationError, /:warn or :raise/)
@@ -1754,10 +1674,6 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_file" do
-      # Deprecated: every call warns via SimpleCov::Deprecation. Silence it
-      # here (the dedicated example below asserts the warning) so it doesn't
-      # trip the suite's app-warning guard. The methods are still exercised,
-      # so they stay covered.
       before { allow(SimpleCov::Deprecation).to receive(:warn) }
 
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
@@ -1835,10 +1751,6 @@ RSpec.describe SimpleCov::Configuration do
     end
 
     describe "#minimum_coverage_by_group" do
-      # Deprecated: every call warns via SimpleCov::Deprecation, and an
-      # over-100% value warns via the config itself. Silence both here (the
-      # dedicated examples below assert each) so they don't trip the suite's
-      # app-warning guard. The method is still exercised, so it stays covered.
       before do
         allow(config).to receive(:warn)
         allow(SimpleCov::Deprecation).to receive(:warn)
@@ -2074,7 +1986,7 @@ RSpec.describe SimpleCov::Configuration do
 
       it "unions and deduplicates across calls" do
         config.coverage(:branch) { ignore :implicit_else }
-        config.coverage(:branch) { ignore :implicit_else } # duplicate is a no-op
+        config.coverage(:branch) { ignore :implicit_else }
 
         expect(config.ignored_branches).to eq [:implicit_else]
       end
@@ -2088,8 +2000,6 @@ RSpec.describe SimpleCov::Configuration do
                           /Unsupported method type :nope.*Supported values are \[:eval_generated\]/m)
       end
 
-      # Line entries have no synthetic types to drop, so there is
-      # nothing for `ignore` to mean there.
       it "rejects criteria without ignorable entry types" do
         expect { config.coverage(:line) { ignore :eval_generated } }
           .to raise_error(SimpleCov::ConfigurationError, /`ignore` is supported for `coverage :branch`/)
@@ -2118,10 +2028,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.ignored_methods).to eq [:eval_generated]
       end
 
-      # Unlike the coverage block, whose criterion naming enables the
-      # criterion, the legacy setters record without enabling, and some
-      # configurations depend on setting the filter before (or without)
-      # enabling. That behavior rides out the deprecation period.
       it "store the setting without enabling the criterion" do
         expect(config.coverage_criteria).to contain_exactly :line
         capture_stderr { config.ignore_branches :implicit_else }
@@ -2283,10 +2189,6 @@ RSpec.describe SimpleCov::Configuration do
         config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
       end
 
-      # `formatter false` / `formatters []` is the documented opt-out path
-      # for workers in a parallel CI run that only need their
-      # `.resultset.json`; see #964 and the bundled `:collate_worker`
-      # profile.
       it "treats false as an explicit opt-out (no raise)" do
         config.formatter(false)
         expect(config.formatter).to be_nil
@@ -2359,10 +2261,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
       end
 
-      # `SimpleCov.formatters = MultiFormatter.new([...])` is the pattern
-      # the README documented for years (and net-imap still uses).
-      # `MultiFormatter.new` returns a Class, not an Array, so the setter
-      # must normalize its input like the pre-1.0 implementation did.
       it "accepts a MultiFormatter (a Class) and keeps its format chain working" do
         formatter = Class.new { def format(_) = "ok" }
         config.formatters = SimpleCov::Formatter::MultiFormatter.new([formatter])
@@ -2378,8 +2276,6 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "treats false as an explicit opt-out, like `formatter false`" do
-        # `Array(false)` is `[false]`, so without normalization this would
-        # configure a MultiFormatter over `false` that fails every report.
         config.formatters = false
         expect(config.formatter).to be_nil
         expect(config.formatters).to eq([])
@@ -2468,15 +2364,11 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "default lambda re-applies subprocess-friendly config" do
-        # Stub the global mutations so this spec doesn't trash the rest
-        # of the suite's SimpleCov configuration / restart Coverage.
         allow(SimpleCov).to receive(:command_name)
         allow(SimpleCov).to receive(:print_errors)
         allow(SimpleCov).to receive(:formatter)
         allow(SimpleCov).to receive(:minimum_coverage)
         allow(SimpleCov).to receive(:start)
-        # Names the subprocess from the stable fork serial, not the pid
-        # argument (which varies run to run). See #1171.
         allow(SimpleCov).to receive(:subprocess_serial).and_return(3)
 
         SimpleCov.at_fork.call(12_345)
@@ -2532,9 +2424,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.merge_timeout).to eq(120)
       end
 
-      # `simplecov watch` extends the merge window of its child runs
-      # through the environment, since a subset re-run merged under the
-      # default ten minutes would erode the report over a long session.
       it "honors SIMPLECOV_MERGE_TIMEOUT over the configured value" do
         config.merge_timeout(120)
         stub_const("ENV", ENV.to_hash.merge("SIMPLECOV_MERGE_TIMEOUT" => "86400"))
@@ -2634,7 +2523,6 @@ RSpec.describe SimpleCov::Configuration do
         observed_root = nil
 
         owner.instance_exec(config) do |target|
-          # Direct ivar access is the behavior under test here.
           target.configure { observed_root = @root } # rubocop:disable RSpec/InstanceVariable
         end
 
@@ -2678,9 +2566,6 @@ RSpec.describe SimpleCov::Configuration do
       end
 
       it "resolves require_relative from the configuration source" do
-        # An eval source under lib/ (not spec/) verifies require_relative's
-        # base is the configuration source, not this spec. It must be a
-        # file that exists: JRuby resolves the base through realpath.
         source_path = File.join(SimpleCov.root, "lib/simplecov.rb")
         # rubocop:disable-next Style/EvalWithLocation
         configuration = eval(<<~RUBY, binding, source_path, 1)
@@ -2863,8 +2748,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Setters that answer with what they stored, which is what a
-  # configuration file reads back and what the DSL chains from.
   describe "what the stores answer" do
     after { config.clear_coverage_criteria }
 
@@ -2895,8 +2778,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.minimum_coverage).to eq(line: 90)
     end
 
-    # The timeout is memoized so a later read does not fall back to the
-    # default when the environment carries none.
     it "keeps the timeout it worked out for later reads" do
       config.merge_timeout
 
@@ -2905,8 +2786,6 @@ RSpec.describe SimpleCov::Configuration do
       config.remove_instance_variable(:@merge_timeout) if config.instance_variable_defined?(:@merge_timeout)
     end
 
-    # A threshold table can carry a criterion with nothing set for it,
-    # which is not a threshold above 100%.
     it "passes over a criterion with no threshold at all" do
       allow(SimpleCov::Deprecation).to receive(:warn)
 
@@ -2914,9 +2793,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Every deprecation says the same three things: that it is one, what
-  # to write instead, and the setting it came from. The wrapper is what
-  # makes the first of those true.
   describe "how a deprecation reads" do
     after { config.clear_coverage_criteria }
 
@@ -2967,8 +2843,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # A path or a pattern is taken by kind wherever a per-file target is
-  # accepted, and shown as it was written when it is neither.
   describe "per-file targets, everywhere they are taken" do
     after { config.clear_coverage_criteria }
 
@@ -3002,8 +2876,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The remaining small answers: each is read by something else, and
-  # each had nothing saying what it answers.
   describe "the small answers" do
     after { config.clear_coverage_criteria }
 
@@ -3077,8 +2949,6 @@ RSpec.describe SimpleCov::Configuration do
       config.remove_instance_variable(:@merge_timeout) if config.instance_variable_defined?(:@merge_timeout)
     end
 
-    # Ownership needs both halves: this process finalizing, and it being
-    # the last one out.
     it "owns the merge only when it finalizes and is the final process" do
       allow(config).to receive_messages(collating_result?: false, final_result_process?: true)
       config.finalize_merge false
@@ -3094,8 +2964,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Groups are named filters, and both spellings validate the name and
-  # keep the filter that goes with it.
   describe "naming a group" do
     after { config.groups.clear }
 
@@ -3125,8 +2993,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # What the `coverage` DSL and the formats setter answer, which is what
-  # a configuration file chains from.
   describe "what the setters answer" do
     after { config.clear_coverage_criteria }
 
@@ -3140,7 +3006,6 @@ RSpec.describe SimpleCov::Configuration do
       config.instance_variable_set(:@formatter, nil)
     end
 
-    # Either half being set outright makes the destination explicit.
     it "counts a path set outright, and a directory set outright, each on its own" do
       expect(config.send(:explicit_coverage_destination?)).to be_falsey
 
@@ -3157,9 +3022,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Odds and ends the rest of the configuration reads: each answers
-  # something a mutation could replace with a constant nobody would
-  # notice from a suite that always configures these first.
   describe "the answers nothing else configures" do
     it "guesses a command name when nothing named the run" do
       forgotten = config_class.new
@@ -3191,8 +3053,6 @@ RSpec.describe SimpleCov::Configuration do
       ENV["SIMPLECOV_MERGE_TIMEOUT"] = previous
     end
 
-    # View coverage needs both halves: somewhere to look, and the eval
-    # measurement that sees compiled templates at all.
     it "measures view coverage only with globs and eval coverage both" do
       allow(config).to receive(:coverage_for_eval_enabled?).and_return(true)
       expect(config.view_coverage?).to be false
@@ -3225,8 +3085,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Group thresholds read back as a hash, and the DSL's `per: group(...)`
-  # writes the same store the flat setter does.
   describe "group thresholds, read and written" do
     after { config.clear_coverage_criteria }
 
@@ -3265,8 +3123,6 @@ RSpec.describe SimpleCov::Configuration do
         .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
     end
 
-    # The deprecated flat setter renders the block form as its
-    # replacement, one line per group and criterion.
     it "renders the block form as the replacement for the flat setter" do
       stderr = capture_stderr { config.minimum_coverage_by_group("Models" => 90) }
 
@@ -3281,8 +3137,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Line coverage leads the report whenever it is measured, whatever
-  # order the criteria were enabled in.
   describe "which criterion leads" do
     after { config.clear_coverage_criteria }
 
@@ -3296,8 +3150,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The at_exit hook is what formats the report, and it belongs to
-  # whichever process is finalizing the merge.
   describe "#at_exit" do
     after { config.instance_variable_set(:@at_exit, nil) }
 
@@ -3319,7 +3171,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(result).not_to have_received(:format!)
     end
 
-    # Collation can leave this process with nothing to format.
     it "does nothing when there is no result to format" do
       allow(SimpleCov).to receive_messages(result: nil, merge_finalization_owner?: true, result?: true)
 
@@ -3342,8 +3193,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Ignoring synthetic entries is per criterion, and the list is a set:
-  # naming a type twice is naming it once.
   describe "ignoring synthetic entries" do
     after { config.clear_coverage_criteria }
 
@@ -3363,8 +3212,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The deprecation warnings carry a copy-pastable replacement, so what
-  # they render is part of the interface.
   describe "what a deprecation offers instead" do
     after { config.clear_coverage_criteria }
 
@@ -3383,8 +3230,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Answers other parts of the configuration lean on, each of which a
-  # mutation could replace with a plausible constant.
   describe "what the configuration works out for itself" do
     after { config.clear_coverage_criteria }
 
@@ -3418,8 +3263,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.send(:active_session?)).to be true
     end
 
-    # A configuration loaded on its own has no Coverage to ask, which
-    # is not something a suite that measures coverage can be.
     it "has nothing to do at exit when there is no Coverage to ask" do
       allow(SimpleCov).to receive(:result?).and_return(false)
       hide_const("Coverage")
@@ -3427,8 +3270,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.send(:active_session?)).to be false
     end
 
-    # A destination is custom when it was set outright and is not the
-    # folder the defaults would have produced anyway.
     it "tells a custom coverage destination from the default one" do
       expect(config.send(:explicit_custom_coverage_destination?)).to be false
 
@@ -3439,8 +3280,6 @@ RSpec.describe SimpleCov::Configuration do
       config.coverage_dir "elsewhere"
       expect(config.send(:explicit_custom_coverage_destination?)).to be true
 
-      # A destination that differs from the default but that nobody set
-      # is not a custom one: something else moved the root under it.
       config.remove_instance_variable(:@coverage_dir_explicit)
       expect(config.send(:explicit_custom_coverage_destination?)).to be false
     ensure
@@ -3449,8 +3288,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    # Reading the directory is not setting it: only an argument makes
-    # the destination an explicit one.
     it "does not call a directory explicit for having been read" do
       config.coverage_dir
 
@@ -3473,10 +3310,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The root and the coverage directory are memoized, and each is the
-  # other half of the path the report is written to: setting either has
-  # to drop a path computed from the old pair, unless that path was set
-  # outright.
   describe "where the report is written" do
     around do |example|
       previous = %i[@root @coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit]
@@ -3544,8 +3377,6 @@ RSpec.describe SimpleCov::Configuration do
       FileUtils.rm_rf(File.expand_path("tmp/first"))
     end
 
-    # A path set outright is not derived from either half, so neither
-    # setting a root nor a directory may drop it.
     it "keeps a coverage path that was set outright" do
       config.root "tmp/first"
       config.coverage_path File.expand_path("tmp/explicit")
@@ -3559,9 +3390,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # The getters and setters that share one method, where the sentinel
-  # tells "read me" from "write me this", and where a mutation can turn
-  # a write into a read of something else.
   describe "reading and writing the formatter" do
     after { config.instance_variable_set(:@formatter, nil) }
 
@@ -3580,7 +3408,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.formatters(formatters)).to be(formatters)
     end
 
-    # The documented way to turn formatting off entirely.
     it "opts out of formatting when handed an empty list" do
       config.formatters SimpleCov::Formatter::SimpleFormatter
       expect(config.formatters.size).to eq(1)
@@ -3608,8 +3435,6 @@ RSpec.describe SimpleCov::Configuration do
         .to raise_error(SimpleCov::ConfigurationError, /Unknown format :yaml/)
     end
 
-    # A class or instance passes through as it stands: only names are
-    # looked up.
     it "leaves a formatter that is not a name alone" do
       formatter = SimpleCov::Formatter::SimpleFormatter.new
 
@@ -3620,8 +3445,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.send(:resolve_format, :html)).to eq(SimpleCov::Formatter::HTMLFormatter)
     end
 
-    # The require is what makes :html work in a process that never
-    # loaded the formatter, and only :html asks for it.
     it "loads the HTML formatter for that name and no other" do
       allow(config).to receive(:require_html_formatter)
 
@@ -3632,8 +3455,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # An expected coverage is a minimum and a maximum at once, and asking
-  # for it without one is asking what the minimum is.
   describe "#expected_coverage" do
     after { config.clear_coverage_criteria }
 
@@ -3651,8 +3472,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Small answers the rest of the configuration leans on, each of which
-  # a mutation could hand back a plausible constant instead.
   describe "what the configuration answers about itself" do
     it "keeps the primary criterion when a different one is disabled" do
       config.enable_coverage :branch
@@ -3700,8 +3519,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.profiles).to be_a(SimpleCov::Profiles)
     end
 
-    # The hook belongs to SimpleCov, whoever holds the configuration it
-    # came from: a forked child reconfigures the real thing.
     it "reconfigures SimpleCov itself when the fork hook fires" do
       allow(SimpleCov).to receive(:command_name).and_return("Parent Suite")
       allow(SimpleCov).to receive(:print_errors)
@@ -3719,9 +3536,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Everything here is about what a value's own spelling looks like in a
-  # message, so the values are ones whose inspected form differs from
-  # their plain one.
   describe "what a refusal shows of the value" do
     {
       "a string where a count belongs" =>
@@ -3743,26 +3557,18 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    # The count is refused before the criterion is looked at, so the
-    # message names the setting the block was writing.
     it "names the block's own setting when its count is refused" do
       expect { config.coverage(:line) { maximum_missed(-1) } }
         .to raise_error(SimpleCov::ConfigurationError,
                         "maximum_missed takes a non-negative integer count of misses, got -1")
     end
 
-    # `enabled: false` configures a criterion without measuring it, and a
-    # cap on something nothing measures is a mistake worth naming.
     it "refuses a cap for a criterion the run does not measure" do
       expect { config.coverage(:branch, enabled: false) { maximum_missed 3 } }
         .to raise_error(SimpleCov::ConfigurationError, /branch, is disabled/)
     end
   end
 
-  # A configuration error names the setting it came from and shows the
-  # value it refused, inspected: an unquoted string or a bare nil in
-  # that sentence is what sends someone hunting through their own config
-  # for a setting they never wrote.
   describe "what a refusal says" do
     {
       "a negative suite-wide cap" =>
@@ -3796,8 +3602,6 @@ RSpec.describe SimpleCov::Configuration do
       end
     end
 
-    # `only:` is the deprecated spelling of the same target, and its
-    # refusal has to be as legible as the modern one.
     it "names the value a deprecated per-file cap refused" do
       expect { capture_stderr { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } } }
         .to raise_error(SimpleCov::ConfigurationError,
@@ -3811,9 +3615,6 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
-  # Paths and patterns are taken by kind, not by exact class, so a
-  # project handing over a String or Regexp subclass is configuring
-  # SimpleCov, not confusing it.
   describe "what counts as a path or a pattern" do
     let(:string_subclass) { Class.new(String) }
     let(:regexp_subclass) { Class.new(Regexp) }
@@ -3846,8 +3647,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.minimum_coverage_by_file_overrides.keys.map(&:to_s)).to eq(["lib/a.rb"])
     end
 
-    # Rational and BigDecimal are Numerics that are not Floats, and a
-    # threshold is a number whatever kind of number it is.
     it "takes a Numeric that is not a Float as a group threshold" do
       allow(SimpleCov::Deprecation).to receive(:warn)
       config.minimum_coverage_by_group("Models" => Rational(90, 1))
@@ -3883,8 +3682,6 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.track_tests?).to be true
     end
 
-    # A granularity given alone must not disturb the switch, and no
-    # granularity at all must not erase the one in force.
     it "keeps the granularity it was given when called again without one" do
       config.track_tests granularity: :file
       config.track_tests
@@ -3924,9 +3721,6 @@ RSpec.describe SimpleCov::Configuration do
         expect { config.validate_test_tracking! }.not_to raise_error
       end
 
-      # The map is built from per-line execution count deltas, which
-      # oneshot mode does not produce: a line reports only its first hit
-      # ever, so every later test's delta would miss it.
       it "rejects tracking under oneshot line coverage" do
         config.track_tests
         config.enable_coverage :oneshot_line

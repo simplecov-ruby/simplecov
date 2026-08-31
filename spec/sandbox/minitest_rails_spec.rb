@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Rails loads Minitest's autorun machinery before test/test_helper.rb, and
-# ActiveSupport's process parallelization forks after SimpleCov starts. This
-# fixture covers both Rails-specific integration paths with the stock Minitest
-# stack that ships with Rails (not the third-party minitest-rails gem).
 RSpec.describe "Rails Minitest integration", :sandbox do
   before do
     setup_project("rails/minitest_rails")

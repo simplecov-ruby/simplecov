@@ -9,16 +9,11 @@ require_relative "source_file_formatter"
 module SimpleCov
   module Formatter
     class JSONFormatter
-      # Builds the hash that JSONFormatter serializes to coverage.json:
-      # meta, per-file coverage data, group totals, and aggregate stats.
       class ResultHashFormatter
-        # Bump SCHEMA_VERSION (and SCHEMA_URL) when the JSON shape
-        # changes. Additive changes bump the minor segment, removals or
-        # shape changes bump the major segment. The versioned file at
-        # schemas/coverage-vX.Y.schema.json is the canonical artifact
-        # consumers should pin to, schemas/coverage.schema.json is a
-        # convenience alias that always tracks the latest. See the
-        # `coverage.json` schema section of the README for the rationale.
+        # Bump this (and SCHEMA_URL) when the JSON shape changes: additive changes
+        # bump the minor segment, removals or shape changes the major. The versioned
+        # file at schemas/coverage-vX.Y.schema.json is the canonical artifact
+        # consumers should pin to.
         SCHEMA_VERSION = "1.3"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
@@ -39,20 +34,14 @@ module SimpleCov
 
         private
 
+          # Contexts are present exactly when the result carried a complete map, so
+          # consumers can tell "recorded and empty" from "not recorded". History is
+          # present only when past runs are recorded, since one point is not a trend,
+          # and production coverage only when a store is configured and readable.
           def add_optional_sections(document, result)
-            # Contexts are present exactly when the result carried a
-            # complete map (see `Result#contexts`), so consumers can
-            # tell "recorded and empty" from "not recorded" — the
-            # per-file bitmaps index into this list.
             document[:contexts] = result.contexts.contexts if result.contexts
-            # The run history (see SimpleCov::History) with this run
-            # appended, carried for tools that draw trends. Present
-            # only when past runs are recorded: one point is not a
-            # trend.
             history = History.entries_with(result)
             document[:history] = history if history.length > 1
-            # Production coverage (see `SimpleCov.production_coverage`),
-            # present only when a store is configured and readable.
             production = ProductionSectionFormatter.call
             document[:production] = production if production
           end
@@ -84,12 +73,10 @@ module SimpleCov
             }
           end
 
-          # Full git commit SHA of `SimpleCov.root`'s HEAD, or nil when the
-          # project isn't a git checkout or git isn't on PATH. Recorded so tools
-          # can recover the exact source a report was generated against, which
-          # matters most when `source_in_json false` drops the source text from
-          # coverage.json. stderr is captured (not forwarded) so a non-git project
-          # doesn't print git's diagnostics to the build.
+          # Recorded so tools can recover the exact source a report was generated
+          # against, which matters most when `source_in_json false` drops the source
+          # text. stderr is captured rather than forwarded so a non-git project doesn't
+          # print git's diagnostics to the build.
           def git_commit
             output, status = Open3.capture2e("git", "-C", SimpleCov.root, "rev-parse", "HEAD")
             output.strip if status.success?
@@ -105,11 +92,8 @@ module SimpleCov
             }
           end
 
-          # A criterion the run did not measure is absent from
-          # `statistics` entirely, and gets no section. Each one is read
-          # once and then tested, rather than read again inside the
-          # guard: a second read of a value the guard already vouched
-          # for is a step nothing can observe.
+          # A criterion the run did not measure is absent from `statistics` entirely,
+          # and gets no section.
           def format_coverage_statistics(statistics)
             result = {} #: Hash[Symbol, untyped]
             line = statistics[:line]

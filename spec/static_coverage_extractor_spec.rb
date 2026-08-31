@@ -31,9 +31,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
   end
 
   describe ".call" do
-    # Stubbed rather than skipped: the engines without Prism cannot run
-    # this suite at all, and the guard in front of the parse is what
-    # every caller relies on to fall back to empty hashes.
     context "when Prism is not available" do
       before { allow(described_class).to receive(:available?).and_return(false) }
 
@@ -60,10 +57,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         expect(result.keys).to contain_exactly("branches", "methods")
       end
 
-      # The `.failure?` gate above catches what Prism reports as a parse
-      # failure. This is the other kind: a source Prism accepts and the
-      # walk then chokes on. Whatever that turns out to be, a report is
-      # worth more than a crash, so the extractor answers nil.
       it "answers nil rather than raising when the walk itself fails" do
         allow(Prism).to receive(:parse).and_raise(RuntimeError, "unsupported node")
 
@@ -71,22 +64,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
 
       describe "branch enumeration" do
-        # Each subject below asserts on the structural shape of the
-        # synthesized output (condition type + arm types per construct),
-        # which is what downstream consumers — the HTML formatter,
-        # SonarQube, and the `ignore_branches :implicit_else` filter —
-        # actually key off.
         def static_branches(source)
           described_class.call(source)["branches"]
         end
 
-        # The tuples in full, including the two fields every other
-        # expectation here drops: the sequential id a tuple is numbered
-        # with, and the zero its arm counter starts at. An arm that
-        # started anywhere but zero would report hits for a file that was
-        # never loaded, which is the whole point of the simulated entry.
-        # Every span below is the same on 3.2 through 4.0, so one table
-        # pins the output on every supported Ruby.
         {
           "an if with an else" =>
             ["if a\n  :t\nelse\n  :e\nend\n",
@@ -96,9 +77,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             ["unless a\n  :t\nelse\n  :e\nend\n",
              {[:unless, 0, 1, 0, 5, 3] => {[:then, 1, 2, 2, 2, 4] => 0, [:else, 2, 4, 2, 4, 4] => 0}}],
 
-          # The arms are numbered before the case they belong to, which
-          # is what makes the ids worth pinning: they are assigned in
-          # emission order, not in reading order.
           "a case with two whens" =>
             ["case a\nwhen 1 then :x\nwhen 2 then :y\nend\n",
              {[:case, 3, 1, 0, 4, 3] =>
@@ -114,9 +92,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           "an until loop" =>
             ["until a\n  :b\nend\n", {[:until, 0, 1, 0, 3, 3] => {[:body, 1, 2, 2, 2, 4] => 0}}],
 
-          # The block is deliberate: Coverage ends a safe-navigation
-          # branch where the call would end without one, so the span here
-          # is not the node's own.
           "a safe navigation call with a block" =>
             ["a&.foo(1) { 2 }\n",
              {[:"&.", 0, 1, 0, 1, 9] => {[:then, 1, 1, 0, 1, 9] => 0, [:else, 2, 1, 0, 1, 9] => 0}}]
@@ -126,12 +101,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           end
         end
 
-        # Prism has not always answered `safe_navigation?` on a call node,
-        # and the walk has to go on where it does not rather than take
-        # the whole extraction down with a NoMethodError.
         it "walks a call node that cannot say whether it is safe navigation" do
-          # A stand-in for the node an older Prism hands over: it answers
-          # the accessor the walk itself needs, and nothing else.
           node = Class.new { def each_child_node; end }.new
           visitor = described_class::Visitor.new
           visitor.visit_call_node(node)
@@ -139,10 +109,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(visitor.branches).to be_empty
         end
 
-        # The value-position pass exists for one legacy convention (where
-        # an empty arm collapses to a point), and nothing else consults
-        # its answers, so a Ruby that does not need it should not pay for
-        # a whole extra walk of the tree.
         it "runs no value-position pass where the conventions do not need one",
            if: !SimpleCov::StaticCoverageExtractor::LocationConventions::LEGACY_COVERAGE_LOCATIONS do
           allow(described_class::ValuePositions).to receive(:call).and_call_original
@@ -164,19 +130,14 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           src = "x = 1\ncase x\nwhen 1 then :a\nwhen 2 then :b\nend\n"
           static = static_branches(src)
           arms = static.values.first
-          # Two explicit whens + one synthesized else (Coverage always
-          # synthesizes else when not present, and so do we).
           expect(arms.keys.map(&:first)).to contain_exactly(:when, :when, :else)
         end
 
         it "uses the body location for an explicit else in case/when" do
-          # Exercises the else-clause-present branch of `else_arm_location`,
-          # vs. the synthesized-else case above.
           src = "x = 1\ncase x\nwhen 1 then :a\nelse :b\nend\n"
           static = static_branches(src)
           arms = static.values.first
           else_tuple = arms.keys.find { |k| k.first == :else }
-          # Else arm is on line 4 (the `else :b` line), not the case's full range
           expect(else_tuple[2]).to eq(4)
         end
 
@@ -211,14 +172,9 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         end
 
         it "handles empty arm bodies (e.g., `if cond then end`)" do
-          # Triggers the `arm_location` fallback branch when StatementsNode
-          # is nil — the parent's location stands in. The condition must
-          # be non-literal: Coverage folds a literal condition away (see
-          # the constant-folding specs below), and so does the extractor.
           src = "if x then end\n"
           static = static_branches(src)
           arms = static.values.first
-          # :else is synthesized (no else clause) — both arms must have positions
           expect(arms.keys).to all(satisfy { |tuple| tuple[2].is_a?(Integer) })
         end
 
@@ -246,7 +202,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
         it "does NOT track `||=` (mirrors Coverage's documented behavior)" do
           src = "@x ||= 1\n"
-          # Coverage doesn't emit a branch entry for `||=`, neither do we.
           expect(static_branches(src)).to be_empty
         end
 
@@ -256,11 +211,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(arms.keys.map(&:first)).to contain_exactly(:body)
         end
 
-        # `CaseNode`/`UnlessNode` expose their `else` clause under an
-        # accessor Prism renamed (`consequent` -> `else_clause`); reaching
-        # for the wrong one on Ruby 3.3's stdlib Prism used to raise inside
-        # the extractor and silently drop the whole file's data. Exercising
-        # these paths guards the accessor resolution regardless of Prism.
         it "extracts a case/when with an empty arm without crashing" do
           arms = static_branches("case x\nwhen 1\nwhen 2 then :b\nend\n").values.first
           expect(arms.keys.map(&:first)).to contain_exactly(:when, :when, :else)
@@ -271,11 +221,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
         end
 
-        # A statically-truthy/falsy literal as an `if`/`unless`/ternary
-        # condition is folded by the compiler, so Coverage emits no branch
-        # for it. Emitting one anyway creates a tuple that no loaded run
-        # can produce — a phantom unhittable branch after merge, the same
-        # failure mode as #1226 / #1233. `while`/`until` do not fold.
         context "with a constant-folded condition" do
           [
             ["if 1\n  x\nend\n", "integer"],
@@ -311,10 +256,8 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           it "matches the running compiler's treatment of `__FILE__`" do
             branches = static_branches("if __FILE__\n  x\nend\n")
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::FOLDS_SOURCE_FILE
-              # parse.y (3.2 / 3.3) folds __FILE__ like any other string literal.
               expect(branches).to be_empty
             else
-              # The Prism compiler (3.4+) keeps its branch.
               expect(branches.keys.first.first).to eq(:if)
             end
           end
@@ -323,11 +266,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(static_branches("if lambda { x }\n  a\nend\n").keys.first.first).to eq(:if)
           end
 
-          # The modern compiler's paren transparency is not universal: `(1)`
-          # folds like `1`, but nil, strings, and lambdas stop folding the
-          # moment parentheses wrap them — while 3.2's parse.y saw through
-          # parentheses for every literal. Verified against real Coverage
-          # and pinned across versions by the runtime battery below.
           it "matches the running compiler's paren transparency for `(nil)`, `(\"x\")`, and `(-> {})`" do
             trio = ["if (nil)\n  x\nend\n", "if (\"x\")\n  a\nend\n", "if (-> { x })\n  a\nend\n"]
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
@@ -337,14 +275,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             end
           end
 
-          # A multi-statement paren condition folds by its LAST expression,
-          # but only when the compiler eliminates every leading statement
-          # (pure literals everywhere; side-effect-free reads and static
-          # containers on 3.3+). A leading statement the compiler must
-          # keep — a call, an assignment — keeps the branch real. Pinned
-          # against real Coverage on 3.2 through 4.0 and patrolled by the
-          # runtime battery below. The extractor used to synthesize a
-          # phantom then/else pair for `if (1; 2)` that no run can hit.
           it "folds a multi-statement paren condition with eliminable leading statements" do
             expect(static_branches("if (1; 2)\n  x\nelse\n  y\nend\n")).to be_empty
             expect(static_branches("if (:s; \"t\"; 2)\n  x\nend\n")).to be_empty
@@ -363,8 +293,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           end
 
           it "keeps the branch for an empty paren condition" do
-            # `if ()` is valid Ruby, parses to a ParenthesesNode with no
-            # body, and keeps a real branch on every supported version.
             expect(static_branches("if ()\n  x\nend\n").keys.first.first).to eq(:if)
           end
 
@@ -381,18 +309,12 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             srcs = ["if (@x; 2)\n  a\nend\n", "if ([1]; 2)\n  a\nend\n",
                     "if ({a: 1}; 2)\n  a\nend\n", "if ((3..4); 2)\n  a\nend\n"]
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
-              # parse.y (3.2) eliminates only pure literals, so these stay real.
               srcs.each { |src| expect(static_branches(src).keys.first.first).to eq(:if) }
             else
               srcs.each { |src| expect(static_branches(src)).to be_empty }
             end
           end
 
-          # The modern compiler eliminates the dead arm's entire subtree, not
-          # just the folded condition, so nothing nested inside it may emit
-          # either — a branch or method there is a phantom no loaded run can
-          # produce. 3.2's parse.y instrumented branches before eliminating
-          # dead code, so there the nested branch tuple survives.
           it "matches the running compiler for a branch nested in a dead then arm" do
             branches = static_branches("if false\n  if a\n    :x\n  end\nend\n")
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
@@ -428,8 +350,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           it "keeps the else contents of a folded truthy unless" do
             branches = static_branches("unless true\n  a ? :x : :y\nelse\n  if b\n    :z\n  end\nend\n")
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
-              # The live else contents come first, then the dead arm's
-              # surviving ternary (3.2 instrumented before eliminating).
               expect(branches.keys.map(&:first)).to eq(%i[if if])
             else
               expect(branches.keys.map(&:first)).to eq([:if])
@@ -438,11 +358,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         end
       end
 
-      # The container-eliminability predicates behind the multi-statement
-      # paren fold, exercised directly: on 3.2 the public path never
-      # consults them (parse.y eliminates only scalar literals), but
-      # their logic is version-independent and must stay covered — and
-      # correct — on every supported Ruby.
       describe "container eliminability predicates" do
         def predicate(name, source)
           node = Prism.parse(source).value.statements.body.first
@@ -464,15 +379,12 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(predicate(:static_container?, "foo")).to be false
         end
 
-        # One element decides for the whole container: a literal beside
-        # something effectful is still something effectful.
         it "rejects a container that is only partly literal" do
           expect(predicate(:static_container?, "[1, foo]")).to be false
           expect(predicate(:static_container?, "[foo, 1]")).to be false
           expect(predicate(:static_container?, "{a: 1, b: foo}")).to be false
         end
 
-        # Both halves of a pair and both ends of a range are read.
         it "reads both sides of a hash pair and of a range" do
           expect(predicate(:static_container?, "{foo => 1}")).to be false
           expect(predicate(:static_container?, "{1 => foo}")).to be false
@@ -489,9 +401,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(predicate(:static_container?, ":sym")).to be false
         end
 
-        # What the compiler compiles to nothing when its value is
-        # discarded: a literal, a read with no side effect, or
-        # parentheses holding only those.
         describe "eliminable when discarded" do
           it "counts a literal and a read with nothing behind it" do
             expect(predicate(:eliminable_when_discarded?, "1")).to be true
@@ -518,8 +427,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           end
         end
 
-        # A parenthesized condition folds by its last expression, and
-        # only when everything before it compiles to nothing.
         describe "unwrapping parentheses" do
           def unwrapped(source)
             predicate(:unwrap_parentheses, source).class.name
@@ -534,14 +441,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(unwrapped("(1; :two)")).to eq("Prism::SymbolNode")
           end
 
-          # The last statement is the value; only what precedes it has
-          # to compile away.
           it "takes a last expression that compiles to something" do
             expect(unwrapped("(1; foo(2))")).to eq("Prism::CallNode")
           end
 
-          # A lone statement is the last one, so nothing leads it and
-          # nothing has to compile away for the unwrap to happen.
           it "unwraps a lone statement whatever it compiles to" do
             expect(unwrapped("(foo(1))")).to eq("Prism::CallNode")
           end
@@ -558,10 +461,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(unwrapped("1")).to eq("Prism::IntegerNode")
           end
 
-          # Prism types a parenthesized body as any node, and only a
-          # statements list carries the `body` the unwrap reads. No
-          # parse produces another shape today, which is exactly why the
-          # guard has to be pinned here rather than through source.
           it "leaves parentheses holding something other than a statements list alone" do
             parens = Prism.parse("(1)").value.statements.body.first
             odd = parens.copy(body: parens.body.body.first)
@@ -570,9 +469,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           end
         end
 
-        # The compiler's verdict itself, rather than the tuples it goes
-        # on to suppress: which of the two folded verdicts came back
-        # decides which arm survives, so they have to be told apart.
         describe "the folding verdict" do
           it "answers falsy for the literals that keep only the else arm" do
             expect(predicate(:folded_condition, "false")).to eq(:falsy)
@@ -598,7 +494,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(predicate(:folded_condition, "(false)")).to eq(:falsy)
           end
 
-          # Parenthesized, these keep a real branch from 3.3 on.
           it "declines to fold the literals parentheses shield" do
             shielded = SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
             expect(predicate(:folded_condition, "(nil)")).to eq(shielded ? :falsy : nil)
@@ -606,13 +501,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           end
         end
 
-        # What the 3.2 compiler did differently, pinned here because the
-        # dogfood Ruby cannot reach these arms: parse.y saw through
-        # parentheses for every literal, eliminated no container
-        # literal at all, and needed only effect-free contents where the
-        # Prism compiler demands fully static ones. Each is a real
-        # regression pin, not a coverage prop: getting one wrong
-        # synthesizes phantom tuples on the Ruby it applies to.
         describe "the parse.y era conventions" do
           def stub_era(constant, value)
             stub_const("SimpleCov::StaticCoverageExtractor::ConditionFolding::#{constant}", value)
@@ -643,14 +531,12 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           it "eliminates no container literal" do
             stub_era("PARENS_ALWAYS_TRANSPARENT", true)
             expect(predicate(:static_container_literal?, "[1, 2]")).to be false
-            # Scalar leaves still go, parentheses or not.
             expect(predicate(:static_container_literal?, "1")).to be true
           end
 
           it "asks only that container contents be effect-free" do
             stub_era("CONTAINER_CONTENTS_NEED_STATIC_LITERALS", false)
             expect(predicate(:container_contents_eliminable?, "self")).to be true
-            # Effect-free is still a bar, and a call clears nothing.
             expect(predicate(:container_contents_eliminable?, "foo(1)")).to be false
           end
 
@@ -660,9 +546,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(predicate(:container_contents_eliminable?, "1")).to be true
           end
 
-          # The dead arm's branches survived the fold, because parse.y
-          # instrumented branches before eliminating dead code. Its
-          # methods still never registered.
           it "keeps the dead arm's branches and drops its methods" do
             stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
             result = described_class.call("if true\n  :a\nelse\n  b ? :c : :d\n  def dead_fn\n  end\nend\n")
@@ -670,9 +553,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(result["methods"]).to be_empty
           end
 
-          # The falsy verdict keeps the else arm and kills the then arm,
-          # so the pair the truthy case swaps has to be read both ways
-          # round.
           it "keeps the dead then arm's branches under a falsy fold" do
             stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
             result = described_class.call("if false\n  b ? :c : :d\n  def dead_fn\n  end\nelse\n  :a\nend\n")
@@ -687,9 +567,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             expect(result["methods"]).to be_empty
           end
 
-          # Suppression is saved and restored, not set and cleared: a
-          # fold nested inside a dead arm re-enters the same visitor and
-          # must leave the outer arm still suppressed on the way out.
           it "keeps methods suppressed after a fold nested in the dead arm" do
             stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
             result = described_class.call(
@@ -707,16 +584,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
 
       describe "runtime tuple equivalence" do
-        # BranchesCombiner merges arms across resultsets by their
-        # [type, location] identity, so any location drift between what
-        # this extractor synthesizes and what Ruby's Coverage reports for
-        # the same source creates phantom, permanently-missed arms when a
-        # simulated entry merges with a real one (issue #1226; previously
-        # issue #1206 for `unless` and safe navigation). This is the
-        # differential harness that pins them tuple-for-tuple: every
-        # construct below runs through real Coverage in a subprocess and
-        # the extractor in-process, and the id-stripped tuples must be
-        # identical.
         let(:branch_fixtures) do
           {
             "if_else" => "def fx(a)\n  if a\n    :a\n  else\n    :b\n  end\nend\n",
@@ -764,23 +631,11 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "safe_navigation_args_block" => "def fx(a)\n  a&.foo(1) { 1 }\nend\n",
             "safe_navigation_chain_block" => "def fx(a)\n  a&.foo&.bar { 1 }\nend\n",
             "safe_navigation_chain_args_block" => "def fx(a)\n  a&.foo(1)&.bar(2) { 1 }\nend\n",
-            # Constant-folded conditions: Coverage emits no branch, so
-            # neither should the extractor. In value position (the if is
-            # the def's last statement) and void position (a statement
-            # follows) alike, on every supported Ruby.
             "folded_if_true" => "def fx(a)\n  if true\n    :a\n  else\n    :b\n  end\nend\n",
             "folded_if_int" => "def fx(a)\n  if 1\n    :a\n  end\nend\n",
             "folded_unless_false" => "def fx(a)\n  unless false\n    :a\n  end\nend\n",
             "folded_ternary" => "def fx(a)\n  1 ? :a : :b\nend\n",
             "folded_if_void" => "def fx(a)\n  if true\n    :a\n  end\n  a\nend\n",
-            # Dead-arm elimination: on 3.3+ the compiler removes the dead
-            # arm's whole subtree, so branches nested inside it emit
-            # nothing, while the live arm's contents (and a falsy
-            # predicate's surviving elsif chain) still do. 3.2's parse.y
-            # instrumented branches before eliminating dead code, so
-            # there the dead arm's branch entries survive — even inside
-            # a dead `def` or lambda body — though its `def`s never
-            # register.
             "folded_dead_then_nested" => "def fx(a)\n  if false\n    a ? :x : :y\n  end\nend\n",
             "folded_dead_def_branch" =>
               "def fx(a)\n  if false\n    def dead(x)\n      x ? 1 : 2\n    end\n  end\nend\n",
@@ -791,30 +646,15 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "folded_midchain_elsif" =>
               "def fx(a)\n  if a\n    1\n  elsif true\n    2\n  else\n    a ? 3 : 4\n  end\nend\n",
             "folded_unless_dead_then" => "def fx(a)\n  unless true\n    a ? :x : :y\n  else\n    :b\n  end\nend\n",
-            # The rarer folding literals, and their non-folding lookalikes:
-            # `__LINE__` / `__ENCODING__` / `->` fold everywhere, a
-            # `lambda` call never does, and `__FILE__` (a string, but not
-            # to the 3.4+ compiler) folds on 3.2/3.3 only.
             "folded_if_line" => "def fx(a)\n  if __LINE__\n    :a\n  end\nend\n",
             "folded_if_encoding" => "def fx(a)\n  if __ENCODING__\n    :a\n  end\nend\n",
             "folded_if_lambda" => "def fx(a)\n  if -> { a }\n    :a\n  end\nend\n",
             "unfolded_if_file" => "def fx(a)\n  if __FILE__\n    :a\n  end\nend\n",
             "unfolded_lambda_call" => "def fx(a)\n  if lambda { a }\n    :a\n  end\nend\n",
-            # Paren transparency is not universal on 3.3+: `(1)` folds,
-            # but nil, strings, and lambdas stop folding once
-            # parenthesized. On 3.2 parens are transparent for every
-            # literal.
             "folded_paren_int" => "def fx(a)\n  if (1)\n    :a\n  end\nend\n",
             "unfolded_paren_nil" => "def fx(a)\n  if (nil)\n    :a\n  end\nend\n",
             "unfolded_paren_string" => "def fx(a)\n  if (\"x\")\n    :a\n  end\nend\n",
             "unfolded_paren_lambda" => "def fx(a)\n  if (-> { a ? 1 : 2 })\n    :a\n  end\nend\n",
-            # Multi-statement paren conditions fold by their last
-            # expression when the compiler eliminates every leading
-            # statement: pure literals everywhere, plus side-effect-free
-            # reads and static containers on 3.3+. A call, assignment, or
-            # dynamic container as a leading statement keeps the branch
-            # real, as does an opaque (nil / string / lambda) last
-            # statement on 3.3+.
             "folded_seq_int" => "def fx(a)\n  if (1; 2)\n    :a\n  else\n    :b\n  end\nend\n",
             "folded_seq_three" => "def fx(a)\n  if (:s; \"t\"; 2)\n    :a\n  end\nend\n",
             "folded_seq_nested" => "def fx(a)\n  if ((1; 2))\n    :a\n  end\nend\n",
@@ -832,20 +672,12 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "seq_array_self" => "def fx(a)\n  if ([self]; 2)\n    :a\n  end\nend\n",
             "seq_call_array" => "def fx(a)\n  if ([foo]; 2)\n    :a\n  end\nend\n",
             "seq_empty_paren" => "def fx(a)\n  if ()\n    :a\n  end\nend\n",
-            # do-while (`begin ... end while/until`): 3.3 attributes the
-            # body to the begin's inner statements, 3.4 to the whole span.
             "do_while" => "def fx(a)\n  begin\n    a\n  end while a\nend\n",
             "do_until" => "def fx(a)\n  begin\n    a\n  end until a\nend\n",
             "do_while_multi" => "def fx(a)\n  begin\n    a\n    b\n  end while a\nend\n",
-            # One-line pattern matching: a `:case` branch on 3.3, nothing
-            # on 3.4. `=>` and `in` anchor the synthesized `:else`
-            # differently (whole expression vs pattern).
             "oneline_match_required" => "def fx(a)\n  a => Integer\nend\n",
             "oneline_match_predicate" => "def fx(a)\n  a in Integer\nend\n",
             "oneline_match_void" => "def fx(a)\n  a => Integer\n  b\nend\n",
-            # Empty arms in VOID position (a statement follows): 3.3
-            # collapses them to a point at the arm header's end, unlike the
-            # value-position (last-statement) fixtures above.
             "empty_then_void" => "def fx(a)\n  if a\n  end\n  b\nend\n",
             "empty_then_else_void" => "def fx(a)\n  if a\n  else\n    :b\n  end\n  b\nend\n",
             "empty_else_void" => "def fx(a)\n  if a\n    :a\n  else\n  end\n  b\nend\n",
@@ -853,9 +685,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
             "empty_when_void" => "def fx(a)\n  case a\n  when 1\n  end\n  b\nend\n",
             "empty_when_mixed" => "def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  when 3\n  end\nend\n",
             "empty_case_else_void" => "def fx(a)\n  case a\n  when 1 then :a\n  else\n  end\n  b\nend\n",
-            # Value position propagates through when-arms but NOT through
-            # case/in arms, blocks, or assignments (nested empty arm stays
-            # a point there on 3.3).
             "empty_if_in_when" => "def fx(a)\n  case a\n  when 1\n    if b\n    end\n  end\nend\n",
             "empty_if_in_in_arm" => "def fx(a)\n  case a\n  in Integer\n    if b\n    end\n  end\nend\n",
             "empty_if_in_block" => "def fx(a)\n  foo do\n    if b\n    end\n  end\nend\n",
@@ -885,9 +714,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(key[1]).to eq(:free)
         end
 
-        # The value is a call count, and a statically enumerated method
-        # has by definition not been called. Nil would say something else
-        # entirely: that Coverage was not measuring methods at all.
         it "enumerates a method as uncalled rather than unmeasured" do
           result = described_class.call("def free; end\n")
           expect(result["methods"].values).to eq([0])
@@ -919,8 +745,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         end
 
         it "registers no method for a def in a folded dead arm" do
-          # A dead `def` never registers with Coverage on any Ruby, even
-          # on 3.2 where the dead arm's nested BRANCHES stay instrumented.
           result = described_class.call("if false\n  def dead(x)\n    x ? 1 : 2\n  end\nend\n")
           expect(result["methods"]).to be_empty
         end
@@ -928,14 +752,12 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
       describe "sequential id assignment" do
         it "assigns ascending ids across all branches and arms in source order" do
-          # Non-literal conditions on purpose: `if true` would be folded
-          # away and leave nothing to assert against.
           src = "if a\n  :a\nelse\n  :b\nend\nif b\n  :c\nelse\n  :d\nend\n"
           result = described_class.call(src)
           ids = result["branches"].flat_map { |cond, arms| [cond[1]] + arms.keys.map { |a| a[1] } }
-          expect(ids.length).to eq(6) # two conditions, two arms each
-          expect(ids).to eq(ids.sort) # ids are strictly increasing
-          expect(ids.uniq).to eq(ids) # no duplicates
+          expect(ids.length).to eq(6)
+          expect(ids).to eq(ids.sort)
+          expect(ids.uniq).to eq(ids)
         end
       end
     end
@@ -958,13 +780,9 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       it "lists branch condition start lines" do
         src = "x = 1\nif x > 0\n  :a\nend\ncase x\nwhen 1 then :b\nend\n"
         positions = described_class.real_source_positions(src)
-        # `if` at line 2, `case` at line 5
         expect(positions[:branches]).to contain_exactly(2, 5)
       end
 
-      # The lexical nesting names each method, and a class has to give
-      # its name back when it closes: the method after the inner class
-      # belongs to the outer one.
       it "names methods by the class that lexically encloses them" do
         source = "class A\n  class B\n    def inner; end\n  end\n  def outer; end\nend\n"
 
@@ -996,18 +814,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  # Rubies before 3.4 placed several branch tuples differently, and the
-  # extractor still carries those conventions for them. On a modern Ruby
-  # the version constant is false, so none of that code runs and the
-  # differential harness above cannot reach it; the constant is stubbed
-  # here so it does, and the tuples below are the conventions the code
-  # was written against and validated on 3.3 by that same harness.
-  # They are a regression pin: a change to legacy placement has to
-  # rewrite them deliberately rather than pass unnoticed on 3.4.
-  # The method collector's own surface. Both of these are defensive
-  # paths a parsed file does not reach, which is why they are excluded
-  # from line coverage, but they are callable and so they can say what
-  # they promise rather than being taken on trust.
   describe "naming the class a method belongs to", if: described_class.available? do
     let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
 
@@ -1021,17 +827,11 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       expect(visitor.send(:constant_name, nil)).to eq("<anonymous>")
     end
 
-    # Anything that cannot answer for its own source is named by itself,
-    # not by whatever is doing the asking.
     it "names anything else by itself" do
       expect(visitor.send(:constant_name, Comparable)).to eq("Comparable")
     end
   end
 
-  # On 3.2 the dead arm of a folded condition keeps its branches while
-  # its methods never register, so a suppressed `def` still has to be
-  # walked into. Suppression is unreachable on the running Ruby, so the
-  # visitor is put into that state directly.
   describe "a def whose methods are suppressed", if: described_class.available? do
     let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
 
@@ -1045,11 +845,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  # The mirror of the legacy describe below: on a legacy Ruby the
-  # modern arms of the location conventions never run natively, so this
-  # stubs the era constant the other way and pins the modern shapes —
-  # the same tuples the differential battery verifies against real
-  # Coverage on 3.4.
   describe "the modern branch conventions", if: described_class.available? do
     before { stub_const("#{described_class}::LocationConventions::LEGACY_COVERAGE_LOCATIONS", false) }
 
@@ -1125,9 +920,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
          {["case", 2, 2, 5, 5] =>
            [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 8]]}],
 
-      # A `then` with nothing after it is where the clause's own range
-      # and its last condition's part company: the tail convention takes
-      # the conditions, and the point convention takes the pattern.
       "a trailing when with an empty body after then, spanning its conditions" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then\n  end\nend\n",
          {["case", 2, 2, 5, 5] =>
@@ -1157,8 +949,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  a in Integer\nend\n",
          {["case", 2, 2, 2, 14] => [["else", 2, 7, 2, 14], ["in", 2, 7, 2, 14]]}],
 
-      # Walking a chain: each elsif's synthesized else reaches the end of
-      # what follows it, which differs by how the chain terminates.
       "a three-deep elsif chain ending in an else" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n    " \
          ":c\n  else\n    :d\n  end\nend\n",
@@ -1172,8 +962,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           ["if", 4, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 5, 4, 5, 6]],
           ["if", 6, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 7, 4, 7, 6]]}],
 
-      # An elsif with nothing in it: its then arm spans the elsif where
-      # the result is returned, and collapses to a point where it is not.
       "an elsif with an empty body whose result is returned" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n  end\nend\n",
          {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
@@ -1184,8 +972,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
          {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
           ["if", 4, 2, 4, 14] => [["else", 4, 2, 4, 14], ["then", 4, 14, 4, 14]]}],
 
-      # An empty when reaches the content that follows it, which is the
-      # next arm, or the else where there is one.
       "an empty first when followed by an else" =>
         ["def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  else :c\n  end\nend\n",
          {["case", 2, 2, 6, 5] =>
@@ -1205,8 +991,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  case a\n  when 1\n  end\n  :tail\nend\n",
          {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 8, 3, 8]]}],
 
-      # `in` arms discard tail position even where `when` arms keep it,
-      # so an empty one always collapses to a point past its pattern.
       "an empty in arm, which collapses even in value position" =>
         ["def fx(a)\n  case a\n  in Integer\n  in String then :s\n  end\nend\n",
          {["case", 2, 2, 5, 5] =>
@@ -1229,8 +1013,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  begin\n  end while a\nend\n",
          {["while", 2, 2, 3, 13] => [["body", 2, 7, 2, 7]]}],
 
-      # With no else written at all, the synthesized one spans the whole
-      # construct wherever the construct is used.
       "an if with no else, whose result is returned" =>
         ["def fx(a)\n  if a\n    :a\n  end\nend\n",
          {["if", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
@@ -1247,8 +1029,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  unless a\n    :a\n  else\n  end\nend\n",
          {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
 
-      # The chain walk reads its tail's body, or its predicate where the
-      # tail has no body, or the else keyword where the chain ends in one.
       "a chain whose last elsif has an empty body" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n  end\nend\n",
          {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 14], ["then", 3, 4, 3, 6]],
@@ -1260,8 +1040,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
          {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 6], ["then", 3, 4, 3, 6]],
           ["if", 4, 2, 6, 6] => [["else", 4, 2, 6, 6], ["then", 5, 4, 5, 6]]}],
 
-      # An empty when reaches everything after it, so its span depends on
-      # its own position among the arms rather than on the first one.
       "an empty when between two others, with an else after them" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2\n  when 3 then :c\n  else :d\n  end\nend\n",
          {["case", 2, 2, 7, 5] =>
@@ -1275,9 +1053,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  case a\n  when 1\n  else\n  end\n  :tail\nend\n",
          {["case", 2, 2, 5, 5] => [["else", 4, 6, 4, 6], ["when", 3, 8, 3, 8]]}],
 
-      # A trailing empty arm with nothing after it at all falls back to
-      # its own condition, which only a case with arms before it can
-      # tell apart from reaching for the arms it follows.
       "an empty third when with no else after it" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then :b\n  when 3\n  end\nend\n",
          {["case", 2, 2, 6, 5] =>
@@ -1293,9 +1068,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
          {["case", 2, 2, 6, 5] =>
            [["else", 2, 2, 6, 5], ["in", 3, 12, 3, 14], ["in", 4, 12, 4, 14], ["in", 5, 6, 5, 6]]}],
 
-      # Written without the keyword: the chain walk asks whether an if is
-      # an elsif by reading that keyword, so a form that has none at all
-      # is what proves it looks before it reads.
       "a ternary" =>
         ["def fx(a)\n  a ? :t : :f\nend\n",
          {["if", 2, 2, 2, 13] => [["else", 2, 11, 2, 13], ["then", 2, 6, 2, 8]]}],
@@ -1316,8 +1088,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["def fx(a)\n  a&.to_s\nend\n",
          {["&.", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 9]]}],
 
-      # An arm can match several values, and an empty trailing one falls
-      # back to the last of them rather than the first or the arm itself.
       "an empty trailing when matching two values" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2, 3\n  end\nend\n",
          {["case", 2, 2, 5, 5] =>
@@ -1343,10 +1113,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
     end
 
-    # The identity table above drops ids and arm counters. A one-line
-    # pattern is the one construct whose tuples no differential run can
-    # pin on a modern Ruby (3.4 emits no branch for it at all), so its
-    # two forms are pinned here in full instead.
     it "numbers and zeroes every tuple of a rightward pattern match" do
       expect(described_class.call("a => Integer\n")["branches"])
         .to eq([:case, 0, 1, 0, 1, 12] => {[:in, 1, 1, 5, 1, 12] => 0, [:else, 2, 1, 0, 1, 12] => 0})
@@ -1357,20 +1123,11 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         .to eq([:case, 0, 1, 0, 1, 12] => {[:in, 1, 1, 5, 1, 12] => 0, [:else, 2, 1, 5, 1, 12] => 0})
     end
 
-    # The expression being matched is walked like any other: a branch
-    # inside it is real on every Ruby, whatever the pattern itself emits.
     it "descends into the expression a one-line pattern matches" do
       expect(described_class.call("(a ? 1 : 2) => Integer\n")["branches"].keys.map(&:first)).to eq(%i[case if])
       expect(described_class.call("(a ? 1 : 2) in Integer\n")["branches"].keys.map(&:first)).to eq(%i[case if])
     end
 
-    # Value position is consulted through a map the visitor builds only
-    # on legacy Rubies. Where there is no map — every modern run — the
-    # answer is that everything counts, which is what keeps the modern
-    # paths from reading a nil.
-    # The constant-path rendering carries fallbacks for shapes the
-    # parser does not produce in practice, so they are exercised
-    # directly rather than through a source file that cannot reach them.
     it "renders a constant path, and names an absent one" do
       collector = Object.new.extend(described_class::MethodCollector)
 
@@ -1397,16 +1154,8 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  # Ruby 3.3's Coverage gave an empty branch arm a different range
-  # depending on whether its construct's result was returned or
-  # discarded, and this pass is what tells the two apart. It only runs
-  # on those Rubies, so the differential harness cannot reach it here,
-  # but the pass is a pure function of a parsed tree and is exercised
-  # directly instead.
   describe SimpleCov::StaticCoverageExtractor::ValuePositions,
            if: SimpleCov::StaticCoverageExtractor.available? do
-    # The source slices of every marked leaf, which is what makes an
-    # expectation readable: statements and arms rather than node objects.
     def marked_leaves(source)
       require "prism"
       root = Prism.parse(source).value
@@ -1419,7 +1168,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       expect(marked_leaves("def fx\n  :first\n  :last\nend\n")).to eq([":last"])
     end
 
-    # A method body is a tail context even where the def itself is not.
     it "marks a nested method's tail even inside a discarded position" do
       expect(marked_leaves("x = def fx\n  :tail\nend\n")).to eq([":tail"])
     end
@@ -1445,9 +1193,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       expect(marked_leaves("def fx\n  begin\n    :inner\n  end\nend\n")).to eq([":inner"])
     end
 
-    # Everything else discards it: `case/in` arms, loop bodies, blocks,
-    # assignments, and arguments all leave their contents in void
-    # position, which is where Coverage collapsed an empty arm to a point.
     it "discards tail position into a case/in arm" do
       source = "def fx(a)\n  case a\n  in Integer then :i\n  else :o\n  end\nend\n"
       expect(marked_leaves(source)).to be_empty
@@ -1463,8 +1208,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       expect(marked_leaves("def fx\n  puts(:arg)\nend\n")).to be_empty
     end
 
-    # The top level returns its own last statement, so a file with no
-    # method at all still has one node in value position.
     it "marks the program's own last statement" do
       expect(marked_leaves(":only\n")).to eq([":only"])
       expect(marked_leaves(":first\n:second\n")).to eq([":second"])

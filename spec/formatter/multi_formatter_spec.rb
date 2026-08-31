@@ -28,9 +28,6 @@ RSpec.describe SimpleCov::Formatter::MultiFormatter do
       output = capture_stderr { results = multi.format(result) }
 
       expect(results).to eq([nil, "ok: RSpec"])
-      # The whole line, including the frame that raised: the first frame
-      # is the formatter's own, which is the one worth naming. Engines
-      # disagree on which line the frame carries, so only CRuby pins it.
       line = RUBY_ENGINE == "ruby" ? Regexp.escape(line.to_s) : "\\d+"
       expect(output).to match(
         /\AFormatter #{Regexp.escape(bad_formatter.to_s)} failed with ArgumentError: boom \
@@ -38,9 +35,6 @@ RSpec.describe SimpleCov::Formatter::MultiFormatter do
       )
     end
 
-    # Only the errors a formatter can reasonably raise are absorbed. An
-    # Exception that isn't a StandardError (a signal, an exhausted
-    # machine) has to keep travelling.
     it "lets an exception that is not a StandardError through" do
       exploding = Class.new { def format(_) = raise(NotImplementedError, "nope") }
       multi = described_class.new([exploding]).new
@@ -48,8 +42,6 @@ RSpec.describe SimpleCov::Formatter::MultiFormatter do
       expect { multi.format(result) }.to raise_error(NotImplementedError, "nope")
     end
 
-    # Instances carry constructor options (e.g. `silent: true`) that
-    # classes can't; see #1240.
     it "accepts formatter instances alongside classes" do
       multi = described_class.new([good_formatter, good_formatter.new]).new
 

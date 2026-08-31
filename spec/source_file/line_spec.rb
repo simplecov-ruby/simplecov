@@ -142,9 +142,6 @@ RSpec.describe SimpleCov::SourceFile::Line do
     end
   end
 
-  # A skipped line is skipped whatever its coverage says, so each of the
-  # three coverage shapes needs its own example: the skip has to win over
-  # a hit, over a miss, and over no coverage at all.
   context "when a skipped line" do
     it "is not covered, though it was hit" do
       line = described_class.new("# the ruby source", 5, 3).tap(&:skipped!)
@@ -175,18 +172,12 @@ RSpec.describe SimpleCov::SourceFile::Line do
     expect(line.skipped?).to be false
   end
 
-  # The guard asks whether the source is a String, not whether it is
-  # exactly one, so a subclass is source as much as a String is.
   it "accepts a String subclass as its source" do
     subclass = Class.new(String)
 
     expect(described_class.new(subclass.new("some source"), 5, 3).src).to eq("some source")
   end
 
-  # Same question one type over: the guards ask whether the line number and
-  # the coverage are an Integer, not whether they are exactly one. Integer
-  # has no subclass to say that with, so answering the question is the only
-  # way an object can.
   it "accepts a line number and a coverage that answer to Integer" do
     integer_like = Class.new do
       def is_a?(klass)

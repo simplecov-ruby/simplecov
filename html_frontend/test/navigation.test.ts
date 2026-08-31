@@ -1,6 +1,3 @@
-// Keyboard navigation of the file list: the focused-row lifecycle (focus,
-// step, boundary stops, stale-row recovery) and opening the focused row via
-// its source link.
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { invalidateFileRowCache } from '../src/file_rows';
 import {
@@ -69,7 +66,7 @@ describe('navigation', () => {
     expect(rows[1].classList.contains('keyboard-focus')).toBe(true);
 
     moveFocus(1);
-    moveFocus(1); // already on the last row: stays put
+    moveFocus(1);
     expect(rows[2].classList.contains('keyboard-focus')).toBe(true);
 
     moveFocus(-1);
@@ -79,7 +76,6 @@ describe('navigation', () => {
   test('moveFocus re-enters the list when the focused row went stale', () => {
     const rows = buildRows();
     setFocusedRow(rows[1]);
-    // Refiltering rebuilt the table: the focused row is no longer listed.
     rows[1].remove();
     invalidateFileRowCache();
     moveFocus(1);
@@ -88,11 +84,11 @@ describe('navigation', () => {
 
   test('openFocusedRow follows the row link, tolerating linkless rows', () => {
     const rows = buildRows();
-    openFocusedRow(); // nothing focused: no-op
+    openFocusedRow();
     expect(window.location.hash).toBe('');
 
     setFocusedRow(rows[1]);
-    openFocusedRow(); // focused row has no src_link
+    openFocusedRow();
     expect(window.location.hash).toBe('');
 
     setFocusedRow(rows[0]);

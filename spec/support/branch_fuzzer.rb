@@ -2,16 +2,9 @@
 
 require "prism"
 
-# Deterministic generator of small `def fx` bodies that nest every branch
-# construct Prism emits, for the differential fuzz spec. Each (seed, index)
-# pair reproduces exactly, so a mismatch can be replayed. Only Prism-valid
-# programs are returned; they are meant to be *loaded* (defining `fx`), never
-# run, so undefined references in their bodies are fine.
 module BranchFuzzer
   extend self
 
-  # Returns { "s<seed>_<index>" => source } for the requested volume, with
-  # duplicate sources dropped.
   def programs(seeds:, per_seed:)
     seen = Set.new
     result = {}
@@ -30,7 +23,6 @@ module BranchFuzzer
     end
   end
 
-  # A tiny linear-congruential PRNG — seeded, portable, and reproducible.
   class Rng
     def initialize(seed)
       @state = ((seed * 2_654_435_761) + 1) & 0xFFFFFFFF
@@ -50,21 +42,9 @@ module BranchFuzzer
     end
   end
 
-  # Recursively builds a branch-construct-laden method body.
   class Generator
-    # Value-position leaves (arm bodies): literals are fine here.
     LEAVES = ["a", "b", "c", "1", ":x", "foo", "a.b", "self"].freeze
-    # Condition leaves: never constant, so the compiler can't fold the
-    # branch away. Loops and case subjects always draw from here (they
-    # don't fold, literal or not), as do one-line pattern subjects
-    # (their legacy conventions are pinned deterministically instead).
     CONDITIONS = ["a", "b", "c", "foo", "a.b", "a && b", "a || b"].freeze
-    # The if-like sites also draw compile-time literals, so the fuzzer
-    # exercises constant folding and its dead-arm elimination — the
-    # class where the phantom-tuple bugs actually lived. The
-    # parenthesized and multi-statement forms exercise paren opacity and
-    # the leading-statement elimination rules, which vary by Ruby
-    # version.
     FOLDABLE_CONDITIONS = ["true", "false", "nil", "1", "(nil)",
                            "(1; 2)", "(foo; 2)", "(1; nil)", "(@x; 2)"].freeze
     PATTERNS = ["Integer", "String", "[a]", "{x:}", "Symbol"].freeze
@@ -167,8 +147,6 @@ module BranchFuzzer
       indent(depth, "#{leaf} #{keyword} #{condition}")
     end
 
-    # Only the `=>` form: `x in Pattern` nested in a case/in body is a
-    # Prism-vs-CRuby parser ambiguity, not an extractor concern.
     def gen_oneline_pattern(depth)
       indent(depth, "#{cond} => Integer")
     end

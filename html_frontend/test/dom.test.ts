@@ -1,7 +1,3 @@
-// Smoke-checks the DOM helpers under happy-dom, proving the registrator
-// preload gives module code a real document to work against, and pins the
-// delegation semantics of on(): matches must live inside the delegation
-// target, and the handler runs with `this` bound to the matched element.
 import { describe, expect, test } from 'bun:test';
 import { $, $$, escapeHTML, on } from '../src/dom';
 
@@ -40,8 +36,6 @@ describe('on', () => {
     let context: Element | null = null;
     on(root, 'click', 'button.x', function (this: Element) { context = this; });
     document.getElementById('inner')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    // Widen with an assertion: the assignment happens inside the dispatched
-    // handler, which TypeScript's narrowing doesn't see.
     expect(context as Element | null).toBe(document.querySelector('button.x')!);
   });
 
@@ -55,8 +49,6 @@ describe('on', () => {
   });
 
   test('ignores matches that escape the delegation target', () => {
-    // .outer matches the selector but contains the delegation target, so the
-    // closest() walk finds it outside `target` and the handler must not run.
     document.body.innerHTML = '<div class="outer"><div id="target"><span id="inner"></span></div></div>';
     const target = document.getElementById('target')!;
     let calls = 0;

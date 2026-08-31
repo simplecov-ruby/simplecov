@@ -30,15 +30,10 @@ RSpec.describe SimpleCov::Color do
       ENV.delete("FORCE_COLOR")
       example.run
     ensure
-      # Restore both env vars regardless of whether they were originally set.
-      # Leaking ENV["FORCE_COLOR"]="1" into subsequent tests in the full
-      # suite would flip SimpleCov::Color.enabled? on for unrelated specs.
       previous_no ? ENV["NO_COLOR"] = previous_no : ENV.delete("NO_COLOR")
       previous_force ? ENV["FORCE_COLOR"] = previous_force : ENV.delete("FORCE_COLOR")
     end
 
-    # SimpleCov.color is module-global; the assigned value would leak
-    # between examples (and into the rest of the suite) without this.
     before { SimpleCov.color :auto }
     after  { SimpleCov.color :auto }
 
@@ -92,10 +87,6 @@ RSpec.describe SimpleCov::Color do
     end
 
     it "falls through when SimpleCov has no color config (standalone CLI)" do
-      # In the standalone `exe/simplecov` process, `simplecov/color` is
-      # loaded without `simplecov/configuration`, so `SimpleCov` doesn't
-      # respond to `color`. `enabled?` must fall through to the env / TTY
-      # checks rather than raise (see #1231).
       allow(SimpleCov).to receive(:respond_to?).and_call_original
       allow(SimpleCov).to receive(:respond_to?).with(:color).and_return(false)
 
@@ -107,9 +98,6 @@ RSpec.describe SimpleCov::Color do
       expect(described_class.enabled?(stream_tty)).to be false
     end
 
-    # The config is read only where there is one to read. Reading it
-    # regardless would let a project's setting decide colour for the
-    # standalone CLI, which never loaded that setting.
     it "does not read a color config it was told is not there" do
       allow(SimpleCov).to receive(:respond_to?).and_call_original
       allow(SimpleCov).to receive(:respond_to?).with(:color).and_return(false)
@@ -201,8 +189,6 @@ RSpec.describe SimpleCov::Color do
       expect(described_class.colorize_percent(40.0, "  40.00%")).to eq("\e[31m  40.00%\e[0m")
     end
 
-    # Whether to color is answered once, here, and handed on: asking
-    # again further down would ignore what the caller said.
     it "leaves the text alone when the caller says not to color it" do
       expect(described_class.colorize_percent(40.0, enabled: false)).to eq("40.00%")
     end

@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Coverage should include code run by forked subprocesses. The
-# subprocesses fixture ships a .simplecov enabling subprocess tracking
-# and filtering everything but lib/subprocesses.rb, whose #run forks a
-# child that calls a method only the child covers.
 RSpec.describe "coverage for subprocesses", :sandbox do
   before do
     skip "the fixture forks subprocesses" unless Process.respond_to?(:fork)
@@ -43,12 +39,6 @@ RSpec.describe "coverage for subprocesses", :sandbox do
     expect(data.dig("meta", "command_name")).to eq("child process name, parent process name")
   end
 
-  # Reproduces #1227: a parent that hands its report to an external
-  # at_exit owner (what the Minitest autorun deferral and the minitest
-  # plugin do) passes external_at_exit = true into forked children,
-  # where the deferral target can never fire. The child must reset the
-  # inherited state and store its own resultset, or its coverage
-  # silently vanishes.
   def write_deferring_parent_config
     write_file(".simplecov", <<~RUBY)
       SimpleCov.merge_subprocesses true
@@ -83,9 +73,6 @@ RSpec.describe "coverage for subprocesses", :sandbox do
     expect(data.dig("meta", "command_name")).to eq("parent process name, parent process name (subprocess: 1)")
   end
 
-  # The documented .simplecov_spawn pattern: a spawned (not forked)
-  # command loads it via `ruby -r./.simplecov_spawn` to start coverage
-  # under the parent's at_fork proc.
   it "covers spawned commands through .simplecov_spawn" do
     result = run_command_and_expect_success("bundle exec rspec spec/spawn_spec.rb")
     expect_coverage_report_generated(result)

@@ -3,15 +3,9 @@
 module SimpleCov
   module CLI
     module Uncovered
-      # The missed-line side of the listing: extraction per criterion
-      # (reusing the show subcommand's walkers) and the GitHub workflow
-      # annotations built from the ranges.
       module Misses
         extend self
 
-        # The missed line numbers behind the chosen criterion's
-        # shortfall: zero-hit lines, or the lines missed branches and
-        # methods report on.
         def missed_for(payload, criterion)
           case criterion
           when :line then payload["lines"].instance_of?(Array) ? Show::Annotator.missed_lines(payload) : []
@@ -26,9 +20,9 @@ module SimpleCov
           missed.uniq.sort
         end
 
-        # GitHub workflow commands, one ::warning per contiguous missed
-        # range, so a plain workflow gets inline diff annotations with
-        # no upload step and no code-scanning permissions.
+        # GitHub workflow commands, one ::warning per contiguous missed range, so a
+        # plain workflow gets inline diff annotations with no upload step and no
+        # code-scanning permissions.
         def annotate(stdout, files)
           files.each do |fname, _pct, _covered, _total, missed|
             path = fname.delete_prefix("#{File.expand_path(SimpleCov.root)}/")

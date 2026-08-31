@@ -1,8 +1,4 @@
 module SimpleCov
-  # Drop coverage entries whose paths live outside `SimpleCov.root` so the
-  # report only reflects the project's own source. Vendored gems, stdlib
-  # files, and anything else that happens to have been touched during the
-  # run never make it into the formatted result.
   module UselessResultsRemover
     self.@root_regex_root: untyped
 
@@ -10,8 +6,6 @@ module SimpleCov
 
     def self.call: (untyped coverage_result) -> untyped
 
-    # The `/i` flag covers case-insensitive matches on Windows / macOS-HFS+
-    # where the on-disk path's case can differ from `SimpleCov.root`'s.
     def self.root_regex: () -> untyped
 
     def self.root_regx: () -> untyped

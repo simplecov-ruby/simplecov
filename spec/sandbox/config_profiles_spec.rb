@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Profiles hold configuration settings that can be defined once and
-# loaded at once — inside a start block, or by passing the profile name
-# straight to SimpleCov.start.
 RSpec.describe "configuration profiles", :sandbox do
   before do
     setup_project("faked_project")

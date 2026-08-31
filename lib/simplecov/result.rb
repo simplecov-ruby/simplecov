@@ -9,40 +9,32 @@ require_relative "result/source_file_builder"
 
 module SimpleCov
   #
-  # A simplecov code coverage result, initialized from the Hash Ruby's built-in coverage
-  # library generates (Coverage.result).
+  # A code coverage result, initialized from the Hash Ruby's built-in coverage
+  # library generates.
   #
   class Result
     extend Forwardable
     include Serialization
 
-    # Returns the original Coverage.result used for this instance of SimpleCov::Result
-    attr_reader :original_result
-    # Every path the producing process was told to track, loaded or not. Carried
-    # into the resultset so a merge elsewhere can inject the ones nobody loaded
-    # without needing that process's `cover` / `track_files` config. See #1250.
+    attr_reader :original_result, :files
+    # Every path the producing process was told to track, loaded or not.
+    # Carried into the resultset so a merge elsewhere can inject the ones
+    # nobody loaded without needing that process's config (#1250).
     attr_reader :tracked_files
-    # Invocation and top-level worker identities used only for parallel-result
-    # coordination. They do not change which fresh suites are merged.
+    # Used only for parallel-result coordination. They do not change which
+    # fresh suites are merged.
     attr_reader :run_id, :worker_id
-    # Returns all files that are applicable to this result (sans filters!) as instances of
-    # SimpleCov::SourceFile. Aliased as :source_files
-    attr_reader :files
     alias source_files files
-    # The `ContextMap` recorded under `track_tests` (each context is one
-    # test), or nil when this result carries none — tracking was off, or a
-    # merge dropped the map because not every merged result recorded one.
+    # The `ContextMap` recorded under `track_tests`, or nil when this result
+    # carries none: tracking was off, or a merge dropped the map because not
+    # every merged result recorded one.
     attr_reader :contexts
-    # Explicitly set the Time this result has been created
-    attr_writer :created_at
-    # Explicitly set the command name that was used for this coverage result. Defaults to SimpleCov.command_name
-    attr_writer :command_name
 
-    # The distinct run names behind this result, set by a merge so
-    # presentation can say "A and N other runs" instead of reading the
-    # joined `command_name` aloud in full. Splitting that string back
-    # apart would misread a run name that itself contains a comma.
-    attr_writer :command_names
+    # The distinct run names behind this result, set by a merge so presentation
+    # can say "A and N other runs" instead of reading the joined
+    # `command_name` aloud in full. Splitting that string back apart would
+    # misread a run name that itself contains a comma.
+    attr_writer :created_at, :command_name, :command_names
 
     def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength,
                    :covered_lines, :missed_lines,
@@ -51,16 +43,12 @@ module SimpleCov
                    :coverage_statistics, :coverage_statistics_by_file
     def_delegator :files, :lines_of_code, :total_lines
 
-    # Initialize a new SimpleCov::Result from given Coverage.result (a Hash of filenames each containing an array of
-    # coverage data).
-    #
     # `filter_config` defaults to the SimpleCov singleton's filter / group
-    # configuration so existing call sites are unchanged. Pass a custom
-    # FilterConfig to opt out — useful for tests that build synthetic Results
-    # and don't want the project's filters or groups applied.
+    # configuration. Pass a custom FilterConfig to opt out, which is useful for
+    # tests that build synthetic Results.
     #
-    # `tracked_files` accepts any collection that answers `to_a` (the
-    # merge passes a Set), and nil for a run that tracked nothing.
+    # `tracked_files` accepts any collection that answers `to_a` (the merge
+    # passes a Set), and nil for a run that tracked nothing.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
                    tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, report: false,
                    filter_config: FilterConfig.new)
@@ -76,67 +64,54 @@ module SimpleCov
       apply_filters!(filter_config.filters)
     end
 
-    # Returns all filenames for source files contained in this result
     def filenames
       files.map(&:filename)
     end
 
-    # Returns the SimpleCov::SourceFile for the given path, or nil if no
-    # matching file is in this result. The path is resolved against
-    # SimpleCov.root, so callers can pass either an absolute path or a
-    # project-relative one.
+    # The path is resolved against SimpleCov.root, so callers can pass either
+    # an absolute path or a project-relative one.
     def source_file_for(path)
       target = File.expand_path(path, SimpleCov.root)
       files.find { |file| file.filename.eql?(target) }
     end
 
-    # Returns the {line:/branch:/method:} coverage_statistics hash for the
-    # given file path, or nil if no matching source file is in this
-    # result. See SimpleCov::Result#source_file_for for path resolution.
+    # Path resolution as in `source_file_for`.
     def coverage_for(path)
       source_file_for(path)&.coverage_statistics
     end
 
-    # Returns a Hash of groups for this result. Define groups using SimpleCov.group 'Models', 'app/models'
     def groups
       @groups ||= SimpleCov.grouped(files, groups: @groups_config)
     end
 
-    # Applies the configured SimpleCov.formatter on this result. Returns
-    # nil if formatting has been opted out of (`SimpleCov.formatter false`
-    # / `SimpleCov.formatters []`) — the cheap path for non-final
-    # processes in a parallel CI run, which only need their
-    # `.resultset.json` on disk. See #964.
+    # Returns nil if formatting has been opted out of (`SimpleCov.formatter
+    # false` / `SimpleCov.formatters []`), the cheap path for non-final
+    # processes in a parallel CI run, which only need their `.resultset.json`
+    # on disk (#964).
     def format!
       formatter = SimpleCov.formatter
       return nil if formatter.nil?
 
       formatted = Formatter.format(formatter, self)
       # Recorded regardless of how the run ends, so a parent process's
-      # clobber-prevention backstop can tell a report was produced even
-      # when this run's checks or tests failed (unlike .last_run.json,
-      # which only successful runs write).
+      # clobber-prevention backstop can tell a report was produced even when
+      # this run's checks or tests failed, unlike .last_run.json.
       ReportStamp.touch
       formatted
     end
 
-    # Defines when this result has been created. Defaults to Time.now
     def created_at
       @created_at ||= Time.now
     end
 
-    # The command name that launched this result.
-    # Delegated to SimpleCov.command_name if not set manually
     def command_name
       @command_name ||= SimpleCov.command_name
     end
 
-    # A single run's result is its own one-entry list.
     def command_names
       @command_names ||= [command_name]
     end
 
-    # Loads a SimpleCov::Result#to_hash dump
     def self.from_hash(hash)
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data.fetch("timestamp")),
@@ -157,34 +132,27 @@ module SimpleCov
     def warn_about_missing_source_files(missing)
       return if missing.empty?
 
-      # Emit only from the process that writes the final report. The merged
-      # result is rebuilt in every parallel worker (each one stores its own
-      # slice), so without this gate the warning prints once per worker — this
-      # is the same signal SimpleCov uses to pick the process that runs the
-      # report and threshold checks. It's intentionally not gated on
-      # print_errors: the default at_fork sets print_errors false on workers,
-      # and in many parallel runners the final-report process is itself a
-      # worker, so a print_errors gate would suppress the one warning we want.
-      # See issues #980 and #1171.
+      # Emit only from the process that writes the final report: the merged
+      # result is rebuilt in every parallel worker, so without this gate the
+      # warning prints once per worker. Intentionally not gated on
+      # print_errors, because the default at_fork sets print_errors false on
+      # workers and in many parallel runners the final-report process is itself
+      # a worker (#980, #1171).
       return unless SimpleCov.final_result_process?
 
-      # Every built file survives (only the missing ones are dropped), so
-      # an empty file list is exactly the "nothing was found" case.
+      # Every built file survives (only the missing ones are dropped), so an
+      # empty file list is exactly the "nothing was found" case.
       MissingSourceFilesReporter.new(missing, every_entry_dropped: @files.empty?).warn!
     end
 
-    # Applies the given filter chain to `@files`, dropping each source
-    # file that any filter matches.
     def apply_filters!(filters)
       filters.each do |filter|
         @files = FileList.new(@files.reject { |source_file| filter.matches?(source_file) })
       end
     end
 
-    # When any `cover` matcher is configured, restrict `@files` to source
-    # files matching at least one of them. With no cover matchers configured
-    # this is a no-op, preserving the historical "everything required, then
-    # filtered" universe.
+    # With no cover matchers configured this is a no-op, preserving the
+    # historical "everything required, then filtered" universe.
     def apply_cover_filters!(cover_filters)
       return if cover_filters.empty?
 

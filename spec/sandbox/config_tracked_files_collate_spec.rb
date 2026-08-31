@@ -3,12 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Files matched by `track_files` but never loaded are simulated once, at
-# the merge, rather than by every process that writes a resultset. The
-# processes that ran the suite record which files they were told to
-# track, so a separate `SimpleCov.collate` step still reports the ones
-# nobody loaded even though it never saw the `track_files` configuration
-# itself.
 RSpec.describe "tracked files across merges and collation", :sandbox do
   before { setup_project("faked_project") }
 
@@ -21,8 +15,6 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
     RUBY
   end
 
-  # The unit-test suite's percents; framework_specific.rb rises to 87.50
-  # once the rspec suite's result is merged in.
   def expect_tracked_file_percents(data, framework_specific:)
     expect(reported_file_percents(data)).to eq(
       "lib/faked_project.rb" => 100.00,
@@ -39,10 +31,6 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
     FileUtils.rm(File.join(sandbox_dir, "coverage/index.html"))
   end
 
-  # The same injection, reached through `merged_result` rather than
-  # `collate`: two suites merging in-process, where the tracked files
-  # must survive the merge exactly once rather than being simulated by
-  # each suite in turn.
   it "keeps never-loaded tracked files when two suites merge in one process" do
     configure_simplecov(:test_unit, tracking_config)
     configure_simplecov(:rspec, tracking_config)
@@ -69,11 +57,6 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
     expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part2"))
     stash_resultset(2)
 
-    # The `collate` rake task calls `SimpleCov.collate` with no
-    # configuration block, and the project has no `.simplecov`, so this
-    # process knows nothing about `track_files`. untested_class.rb
-    # reaches the report only because the resultsets carry the paths
-    # their processes were told to track.
     result = run_command_and_expect_success("bundle exec rake collate")
     expect_coverage_report_generated(result)
 

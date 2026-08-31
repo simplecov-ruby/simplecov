@@ -1,9 +1,6 @@
 module SimpleCov
   module CLI
     module Tests
-      # The `--redundant` sweep: the contexts whose covered lines other
-      # contexts also cover, the tests contributing no coverage of their
-      # own.
       module Redundancy
         def self?.redundant_ids: (untyped document, Array[String] contexts, untyped opts, untyped stderr) -> Array[String]?
 

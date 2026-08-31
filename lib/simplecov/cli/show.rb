@@ -9,13 +9,10 @@ require_relative "show/sweep"
 
 module SimpleCov
   module CLI
-    # `simplecov show <path>` — annotated source in the terminal, the
-    # way `go tool cover` and `llvm-cov show` print it: hit counts in
-    # the gutter, misses called out under their lines, and branch and
-    # method misses annotated the same way when the report measured
-    # them. `--uncovered-only` collapses the answer to `path:ranges`,
-    # a form that greps, fits in a commit message, and hands a coding
-    # agent exactly the lines whose tests are missing.
+    # `simplecov show <path>`: annotated source in the terminal, the way
+    # `go tool cover` and `llvm-cov show` print it. `--uncovered-only` collapses
+    # the answer to `path:ranges`, a form that greps, fits in a commit message,
+    # and hands a coding agent exactly the lines whose tests are missing.
     module Show
       extend CommandHelpers
 
@@ -34,10 +31,8 @@ module SimpleCov
         render(located, opts, stdout, stderr)
       end
 
-      # No path sweeps the whole project, in the compact forms only —
-      # `--uncovered-only` prints one `path:ranges` line per file with
-      # misses, and `--json` the same as data. The annotated text form
-      # still wants one file.
+      # No path sweeps the whole project, in the compact forms only. The annotated
+      # text form still wants one file.
       def run_project(opts, stdout, stderr)
         unless opts.fetch(:uncovered_only) || opts.fetch(:json)
           return error(stderr, "missing path (annotating needs one file; --uncovered-only sweeps the whole project)")
@@ -64,9 +59,8 @@ module SimpleCov
         parser.on("--json")           { opts[:json] = true }
       end
 
-      # [filename, entry] for the resolved path, nil after reporting an
-      # unresolvable path, a wrong-typed entry, or a line-less report
-      # (a branch-only report has no per-line hits to put in a gutter).
+      # nil after reporting an unresolvable path, a wrong-typed entry, or a
+      # line-less report, which has no per-line hits to put in a gutter.
       def locate(coverage, opts, stderr)
         path, input = opts.fetch_values(:path, :input)
         match = CoverageFile.lookup(coverage, path)
@@ -93,10 +87,6 @@ module SimpleCov
         0
       end
 
-      # The whole annotation as data, for editor integrations: per-line
-      # hits for the relevant lines, the missed line numbers, and the
-      # marker labels keyed by line. Built from the coverage data alone,
-      # so it answers even when no source text is available anywhere.
       def emit_json(entry, opts, stdout)
         stdout.puts(JSON.pretty_generate(
                       path: opts.fetch(:path), missed: Annotator.missed_lines(entry),
@@ -121,10 +111,9 @@ module SimpleCov
         0
       end
 
-      # The report's own source when it carries one; otherwise the file
-      # on disk, accepted only while its line count still matches the
-      # report's, since annotating drifted source would put hit counts
-      # on the wrong lines.
+      # The report's own source when it carries one; otherwise the file on disk,
+      # accepted only while its line count still matches the report's, since
+      # annotating drifted source would put hit counts on the wrong lines.
       def source_for(filename, entry, opts, stderr)
         embedded = entry["source"]
         return embedded if embedded.instance_of?(Array) && embedded.all?(String)

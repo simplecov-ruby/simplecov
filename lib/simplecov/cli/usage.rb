@@ -2,15 +2,9 @@
 
 module SimpleCov
   module CLI
-    # The `simplecov help` text. A method so its default paths resolve at
-    # call time against the active `.simplecov`.
-    #
     module Usage
       extend self
 
-      # The full text filtered to one command, for `<command> --help`:
-      # a usage line, the command's row from the Commands table, and
-      # every options section that names it.
       def for(cli, command)
         sections = text(cli).split("\n\n")
         row = sections.fetch(1).lines.find { |line| line.match?(/\A  #{Regexp.escape(command)}[ \[]/) }
@@ -27,6 +21,8 @@ module SimpleCov
         section.lines.first.to_s.strip
       end
 
+      # A method rather than a constant so its default paths resolve at call time
+      # against the active `.simplecov`.
       def text(cli)
         <<~USAGE
           Usage: simplecov <command> [options]

@@ -3,16 +3,13 @@
 module SimpleCov
   module CLI
     module Badge
-      # Renders the badge SVG. The geometry follows shields.io's flat
-      # style: 20px tall with 3px rounded corners, the label on #555
-      # and the value on its ladder color, each text drawn twice for
-      # the drop shadow at 10x scale. `textLength` pins the layout, so
-      # the estimated segment widths never let glyphs spill.
+      # Renders the badge SVG in shields.io's flat style: 20px tall with 3px
+      # rounded corners, the label on #555 and the value on its ladder color, each
+      # text drawn twice for the drop shadow at 10x scale. `textLength` pins the
+      # layout, so the estimated segment widths never let glyphs spill.
       module Svg
         extend self
 
-        # The color ladder shields.io applies to coverage percentages,
-        # brightgreen down to red.
         COLORS = [[90, "#4c1"], [80, "#97ca00"], [70, "#a4a61d"], [60, "#dfb317"], [50, "#fe7d37"]].freeze
 
         def color(percent)
@@ -20,22 +17,20 @@ module SimpleCov
           rung ? rung.fetch(1) : "#e05d44"
         end
 
-        # Widths estimate 11px Verdana; `textLength` absorbs the error.
-        # The width uses the raw label (what is drawn), while the
-        # markup gets the escaped form.
         def render(label:, percent:)
           value = format("%.2f%%", percent)
           document(label: escape(label), value: value, fill: color(percent),
                    geo: geometry(width(label), width(value)))
         end
 
+        # Estimates 11px Verdana; `textLength` absorbs the error.
         def width(text)
           (7 * text.length) + 10
         end
 
-        # The scale(.1) trick draws text at 10x and shrinks it, so the
-        # text coordinates live in a 10x space: centers at 10 * (offset
-        # + width / 2) and textLength spanning the width less padding.
+        # The scale(.1) trick draws text at 10x and shrinks it, so the text
+        # coordinates live in a 10x space: centers at 10 * (offset + width / 2) and
+        # textLength spanning the width less padding.
         def geometry(label_width, value_width)
           {label_width: label_width, value_width: value_width, total: label_width + value_width,
            label_x: 5 * label_width, value_x: (10 * label_width) + (5 * value_width),

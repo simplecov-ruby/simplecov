@@ -28,11 +28,6 @@ RSpec.describe "frontend asset compilation" do
     end
   end
 
-  # The custom-property mangler shortens `--name` tokens in the CSS only. A BEM
-  # class modifier (`cell--numerator`) also matches the `--name` shape, but the
-  # class name is emitted by the JS, which the mangler never rewrites — aliasing
-  # it in the CSS would silently drop the rule. This guards that split: it broke
-  # the Covered/total fraction alignment when the mangler matched class modifiers.
   it "mangles real custom properties but leaves BEM class modifiers alone" do
     css = ".cell--numerator{text-align:right;color:var(--example-token)}.x{--example-token:#fff}"
     command = %(load "./Rakefile"; print mangle_css_custom_properties(#{css.inspect}))
@@ -40,8 +35,8 @@ RSpec.describe "frontend asset compilation" do
                                             chdir: SimpleCov.root.to_s)
 
     expect(status).to be_success
-    expect(output).to include(".cell--numerator{text-align:right") # class survives verbatim
-    expect(output).not_to include("--example-token")               # real custom property is aliased away
-    expect(output).to match(/color:var\(--[a-z]{1,2}\)/)           # ...to a short alias
+    expect(output).to include(".cell--numerator{text-align:right")
+    expect(output).not_to include("--example-token")
+    expect(output).to match(/color:var\(--[a-z]{1,2}\)/)
   end
 end # rubocop:enable RSpec/DescribeClass

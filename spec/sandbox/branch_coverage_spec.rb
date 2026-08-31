@@ -3,10 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Enabling branch coverage reports branch hit counts alongside line
-# coverage, both in the console output and in the report data. The
-# rendering of branch badges ("then: 1" / "else: 0") from this data is
-# covered by the bun suite (html_frontend/test/render_source.test.ts).
 RSpec.describe "branch coverage", :sandbox do
   before { setup_project("faked_project") }
 
@@ -34,8 +30,6 @@ RSpec.describe "branch coverage", :sandbox do
     )
   end
 
-  # The detailed view for some_class.rb: line and branch summaries plus
-  # the individual branch hit counts the badges are rendered from.
   def expect_some_class_branch_details(data)
     some_class = data.fetch("coverage").fetch("lib/faked_project/some_class.rb")
     expect(some_class).to include(

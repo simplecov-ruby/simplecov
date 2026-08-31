@@ -3,14 +3,12 @@
 module SimpleCov
   class Baseline
     # Turns the YAML document of a baseline file into the
-    # `{path => {criterion => Floor}}` entries `Baseline` holds. The
-    # canonical shape is the criteria Hash `to_yaml` writes, but the
-    # lenient shapes stay readable: a bare number is a line-percent
-    # floor (the shape the issue's own example uses), and a criterion
-    # may carry a bare percent instead of the percent/missed pair.
-    # Anything else raises ConfigurationError, naming the file and the
-    # offending entry: a malformed policy must fail loudly rather than
-    # silently un-enforce every floor it carried.
+    # `{path => {criterion => Floor}}` entries `Baseline` holds. The canonical
+    # shape is the criteria Hash `to_yaml` writes, but the lenient shapes stay
+    # readable: a bare number is a line-percent floor, and a criterion may carry
+    # a bare percent instead of the percent/missed pair. Anything else raises
+    # ConfigurationError, naming the file and the offending entry: a malformed
+    # policy must fail loudly rather than silently un-enforce every floor.
     module Parser
       extend self
 

@@ -6,10 +6,6 @@ require "tmpdir"
 RSpec.describe SimpleCov::ParallelResultMerger do
   let(:resultset_dir) { Dir.mktmpdir("simplecov-parallel-merge") }
 
-  # `sample.rb` is executed by every shard and the second file by exactly one,
-  # so the merged table exercises both summing and union. Every file has to
-  # exist on disk: these resultsets get built into real `SimpleCov::Result`s,
-  # which warn about coverage for files that have since been removed.
   let(:shards) do
     [
       ["resultset1.rb", {"lines" => [nil, 1, 1, nil]}],
@@ -36,13 +32,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
   after { FileUtils.remove_entry(resultset_dir) }
 
-  # A coverage directory per example, so the stored resultset is this
-  # example's alone. The shared one is a single file that every
-  # concurrent process reads, writes and removes, and mutant runs ten of
-  # them: one process's cleanup deletes what another just stored, which
-  # surfaces as the unmutated code failing rather than as a mutation
-  # surviving. Forked workers inherit the setting, so they store here
-  # too.
   around do |example|
     previous_dir = SimpleCov.coverage_dir
     Dir.mktmpdir("simplecov-parallel-merge-coverage-") do |dir|
@@ -67,11 +56,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(SimpleCov::ResultMerger.read_resultset.keys).to eq([serial.first.sort.join(", ")])
     end
 
-    # The workers do the dropping, so the "older than merge_timeout" warning
-    # comes from them and reaches the inherited stderr rather than anything
-    # this process can capture.
-    # One worker folds the whole list anyway, so the fork and the round
-    # trip would be pure overhead.
     it "hands a single process straight to ResultMerger" do
       allow(SimpleCov::ResultMerger).to receive(:merge_and_store)
 
@@ -81,7 +65,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(result).to be_nil
     end
 
-    # Two is the smallest fan-out there is.
     it "fans out for two processes", if: FORK_SUPPORTED do
       allow(SimpleCov::ResultMerger).to receive(:merge_and_store).and_call_original
 
@@ -98,7 +81,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(SimpleCov::ResultMerger).not_to have_received(:merge_and_store)
     end
 
-    # Nothing said to ignore it, so the window applies.
     it "honours the merge timeout when nothing says to ignore it", if: FORK_SUPPORTED do
       allow(SimpleCov::ResultMerger).to receive(:store_result)
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9]}}, outdated: true)
@@ -154,8 +136,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(result.command_name).to eq("shard0, shard1, stale")
     end
 
-    # A tracked file nothing loaded is injected as wholly uncovered, so
-    # losing the union on the way back would hide it from the report.
     it "injects the tracked files the workers saw", if: FORK_SUPPORTED do
       unloaded = source_fixture("never.rb")
       tracked = Array.new(3) { |index| write_resultset("t#{index}", {}, tracked_files: [unloaded]) }
@@ -165,8 +145,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(result.filenames).to include(unloaded)
     end
 
-    # The context maps come back the same way the tracked files do, so
-    # losing the union costs the merged result every test mapping.
     it "carries back the test maps the workers saw", if: FORK_SUPPORTED do
       lib_file = File.expand_path("/proj/lib/thing.rb")
       mapped = Array.new(3) do |index|
@@ -180,8 +158,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(result.contexts.covering(lib_file, 2)).to eq(["spec/w1_spec.rb:1"])
     end
 
-    # The two paths produce the same result by design, so which one ran
-    # is the only thing that tells them apart.
     it "leaves the serial merge alone when the fan-out came back whole", if: FORK_SUPPORTED do
       allow(SimpleCov::ResultMerger).to receive(:merge_results).and_call_original
 
@@ -199,8 +175,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
         .to eq(SimpleCov::ResultMerger.merge_results(*paths, ignore_timeout: true).original_result)
     end
 
-    # The serial fallback is handed the same arguments the fan-out got,
-    # so a resultset kept one way is kept the other.
     it "carries ignore_timeout into the serial fallback" do
       without_fork
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9]}}, outdated: true)
@@ -242,9 +216,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(command_names).to contain_exactly("shard0", "shard1", "")
     end
 
-    # The tracked paths a worker saw have to come back with its payload, since
-    # the collector a serial absorb takes would mutate a Set in the wrong
-    # process. Without them the merge cannot tell what nothing loaded.
     it "unions the tracked files every worker saw", if: FORK_SUPPORTED do
       tracked_files = Set.new
       tracked = Array.new(3) { |index| write_resultset("t#{index}", {}, tracked_files: ["tracked#{index}.rb"]) }
@@ -254,11 +225,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(tracked_files).to eq(Set["tracked0.rb", "tracked1.rb", "tracked2.rb"])
     end
 
-    # The context-map union comes back the same way, so the all-or-nothing rule
-    # is judged over the whole run rather than per worker slice.
     it "unions the test maps every worker saw", if: FORK_SUPPORTED do
-      # Expanded so the `covering` lookup (which expands its argument)
-      # matches the recorded key on Windows drives too.
       lib_file = File.expand_path("/proj/lib/thing.rb")
       context_maps = SimpleCov::ContextMap::Union.new
       mapped = Array.new(3) do |index|
@@ -273,7 +240,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(context_maps.map.contexts.size).to eq(3)
     end
 
-    # Nothing said to ignore it, so the window applies here too.
     it "honours the merge timeout by default", if: FORK_SUPPORTED do
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9]}}, outdated: true)
 
@@ -282,8 +248,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(command_names).to contain_exactly("shard0", "shard1", "")
     end
 
-    # Every pipe the fan-out opened is ours to close, whether the merge
-    # came back whole or not.
     it "closes every worker's reader", if: FORK_SUPPORTED do
       readers = []
       allow(described_class).to receive(:spawn_worker).and_wrap_original do |original, *args, **kwargs|
@@ -295,8 +259,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(readers).to have_attributes(size: 3).and all(be_closed)
     end
 
-    # The flag has to survive the trip through the fork: a worker that
-    # loses it drops the very resultsets it was told to keep.
     it "carries ignore_timeout through to the workers", if: FORK_SUPPORTED do
       expired = write_resultset("stale", {source_fixture("sample.rb") => {"lines" => [9]}}, outdated: true)
 
@@ -305,7 +267,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(command_names).to contain_exactly("shard0", "shard1", "stale")
     end
 
-    # Two is the smallest fan-out there is: two processes, two files.
     it "fans out the smallest split there is", if: FORK_SUPPORTED do
       expect(described_class.absorb_results(paths.first(2), processes: 2, ignore_timeout: true))
         .to eq(SimpleCov::ResultMerger.absorb_results(paths.first(2), ignore_timeout: true))
@@ -327,9 +288,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".collect" do
-    # A worker can exit cleanly and still ship nothing back, leaving the
-    # slice it was given unaccounted for. Reporting the rest as the
-    # whole would understate the coverage.
     it "refuses a clean exit that shipped no payload", if: FORK_SUPPORTED do
       reader, writer = IO.pipe
       pid = fork { exit!(0) }
@@ -340,13 +298,9 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(output).to include("parallel merge did not complete (0 of 1 workers failed)")
     end
 
-    # One worker's silence is not made good by another's payload.
     it "refuses a batch where only some workers shipped", if: FORK_SUPPORTED do
       workers = [paths.first(1), nil].map do |chunk|
         reader, writer = IO.pipe
-        # exit!, never a fall-through: a child that returns from the
-        # block runs the parent's inherited at_exit handlers, RSpec's
-        # included.
         pid = fork do
           reader.close
           exit!(chunk ? described_class.run_worker(chunk, writer, ignore_timeout: true) : 0)
@@ -360,8 +314,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(output).to include("parallel merge did not complete (0 of 2 workers failed)")
     end
 
-    # And the other way round: a whole payload from a worker that then
-    # died still leaves its slice unaccounted for.
     it "refuses a whole payload from a worker that failed", if: FORK_SUPPORTED do
       reader, writer = IO.pipe
       pid = fork do
@@ -416,7 +368,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       expect(context_maps.entries).to eq(paths.size)
     end
 
-    # The reader is waiting on EOF, which only the writer closing sends.
     it "closes the pipe behind the payload it shipped" do
       _reader, writer = pipe
 
@@ -477,9 +428,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".run_in_child" do
-    # Driven directly, with `exit!` stubbed, because a child's own coverage
-    # dies with it: it exits without reporting, so nothing it executes ever
-    # merges back into this process's result.
     it "closes the read end and exits with the status the worker reports" do
       reader, writer = IO.pipe
       allow(described_class).to receive(:exit!)
@@ -498,9 +446,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   describe ".fan_out when the OS refuses a fork" do
     let(:chunks) { described_class.chunk(paths, 3) }
 
-    # A machine out of process slots is not something to paper over: the merge
-    # is fine, the box is not, and swallowing it would turn that into a
-    # mysteriously slow collate.
     it "lets the error through rather than merging in this process", if: FORK_SUPPORTED do
       allow(described_class).to receive(:fork).and_raise(Errno::EAGAIN)
 
@@ -523,8 +468,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
 
     it "closes the failing spawn's own pipe ends" do
-      # The abandon path above only knows about workers that spawned; the
-      # pipe belonging to the spawn that failed is spawn_worker's to close.
       allow(described_class).to receive(:fork).and_raise(Errno::EAGAIN)
       pipes = nil
       allow(IO).to receive(:pipe).and_wrap_original do |original|
@@ -536,8 +479,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
 
     it "has nothing to close when the pipe itself cannot be created" do
-      # EMFILE before the pair exists: the cleanup's nil arms are what
-      # keep the ensure from raising NoMethodError over the real error.
       allow(IO).to receive(:pipe).and_raise(Errno::EMFILE)
 
       expect { described_class.spawn_worker(paths, ignore_timeout: true) }.to raise_error(Errno::EMFILE)
@@ -557,14 +498,10 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".succeeded?" do
-    # Errno::ECHILD: nothing left to reap, so there is no status to judge
-    # the slice by.
     it "is false for a pid that is not one of our children" do
       expect(described_class.succeeded?(Process.pid)).to be false
     end
 
-    # Reaping whichever child happens to finish first would judge this
-    # worker's slice by another worker's exit status.
     it "judges the worker it was asked about, not whichever exits first", if: FORK_SUPPORTED do
       slow = fork { sleep(0.5) && exit!(1) }
       quick = fork { exit!(0) }
@@ -575,8 +512,6 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-  # Exercised directly (not only through forked workers) so the payload
-  # format keeps its coverage on the runtimes that cannot fork at all.
   describe "WorkerPayload" do
     let(:worker_payload) { SimpleCov::ParallelResultMerger::WorkerPayload }
 
@@ -630,8 +565,6 @@ private
     spawned
   end
 
-  # What CRuby on Windows and JRuby report. Every other
-  # `respond_to?` has to keep working, hence the `and_call_original` first.
   def without_fork
     allow(Process).to receive(:respond_to?).and_call_original
     allow(Process).to receive(:respond_to?).with(:fork).and_return(false)

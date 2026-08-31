@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Coverage hashes for fixture scripts that primarily exercise case/when
-# and the implicit-else behavior Ruby's Coverage library reports.
 module CoverageFixtures
   CASE_RB = {
     "lines" => [1, 1, 1, nil, 0, nil, 1, nil, 0, nil, 0, nil, nil, nil],

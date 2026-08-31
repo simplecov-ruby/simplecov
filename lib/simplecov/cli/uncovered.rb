@@ -9,10 +9,9 @@ require_relative "uncovered/misses"
 
 module SimpleCov
   module CLI
-    # `simplecov uncovered [--threshold N] [--top N] [--criterion C]` — list
-    # the lowest-coverage files (by the chosen criterion, ascending), so a
-    # developer can answer "where should I add tests next?" without
-    # opening a browser. Reads coverage.json directly.
+    # `simplecov uncovered`: the lowest-coverage files by the chosen criterion,
+    # ascending, so a developer can answer "where should I add tests next?"
+    # without opening a browser.
     module Uncovered
       extend CommandHelpers
 
@@ -52,8 +51,6 @@ module SimpleCov
         0
       end
 
-      # An empty annotate run stays silent — a clean CI step is the
-      # answer — while the listing forms say so.
       def empty(opts, stdout)
         stdout.puts(empty_message(opts.fetch(:json))) unless opts.fetch(:annotate)
         0
@@ -84,10 +81,9 @@ module SimpleCov
         parser.on("--annotate KIND")      { |v| options[:annotate] = v }
       end
 
-      # A negative count would raise from `Array#first`; report it as
-      # the parse error it is (`--top 0` is allowed and shows nothing).
-      # OptionParser prepends the offending option's name, so the raise
-      # carries only the reason.
+      # A negative count would raise from `Array#first`, so it is reported as the
+      # parse error it is. `--top 0` is allowed and shows nothing. OptionParser
+      # prepends the offending option's name, so the raise carries only the reason.
       def validate_top(value)
         raise OptionParser::InvalidArgument, "must not be negative" if value.negative?
 

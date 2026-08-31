@@ -83,8 +83,6 @@ RSpec.describe SimpleCov::CoverageStatistics do
   end
 
   def expect_all_empty(statistics)
-    # 100% / 0.0 strength might be counter-intuitive but think of it as "we
-    # covered everything we could".
     expect(statistics).to have_attributes(
       covered: 0,
       missed: 0,
@@ -96,8 +94,6 @@ RSpec.describe SimpleCov::CoverageStatistics do
   end
 
   describe "the percent it reports" do
-    # A percent given outright is the percent reported: the merge hands
-    # one down rather than having it recomputed from counts it rounded.
     it "keeps a percent it was given" do
       expect(described_class.new(covered: 8, missed: 2, percent: 42.0).percent).to eq(42.0)
     end
@@ -107,8 +103,6 @@ RSpec.describe SimpleCov::CoverageStatistics do
     end
   end
 
-  # Strength is the average hit count; with no total recorded there is
-  # nothing to average and it reads as zero.
   it "starts from no strength when none was recorded" do
     expect(described_class.new(covered: 8, missed: 2).strength).to eq(0.0)
   end

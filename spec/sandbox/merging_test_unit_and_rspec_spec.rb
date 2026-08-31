@@ -3,9 +3,6 @@
 require "helper"
 require "support/sandbox_project"
 
-# Test suites like RSpec and Test/Unit should be merged automatically
-# when both have been run recently: the second suite's report features
-# the joined results of every suite that is using SimpleCov.
 RSpec.describe "merging test_unit and rspec results", :sandbox do
   before { setup_project("faked_project") }
 

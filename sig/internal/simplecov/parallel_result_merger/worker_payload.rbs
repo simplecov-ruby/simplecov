@@ -1,15 +1,10 @@
 module SimpleCov
   module ParallelResultMerger
-    # What a worker ships back over its pipe: the merge pair, the tracked
-    # paths its slice carried, and the slice's context-map union.
     module WorkerPayload
-      # The payload for one worker's slice of the resultset files.
       def self?.build: (Array[String] chunk, ignore_timeout: bool) -> [untyped, Array[String], ContextMap::Union]
 
-      # Fold one worker's payload into the parent's accumulators.
       def self?.absorb: (untyped payload, Set[String] tracked_files, ContextMap::Union context_maps) -> void
 
-      # The merge pair the payload carries.
       def self?.pair: (untyped payload) -> untyped
     end
   end

@@ -6,25 +6,17 @@ require_relative "patch/output"
 
 module SimpleCov
   module CLI
-    # `simplecov patch [--base REF]` — report line coverage over only the
-    # lines a change touched. Where `diff` asks "did the number move" and
-    # needs a baseline artifact, `patch` asks the question a reviewer
-    # actually asks: is the code in this change tested? A project sitting
-    # at 40% cannot move its global number in one pull request, but it can
-    # insist that every line it adds is covered.
-    #
-    # It reads `git diff --unified=0 --merge-base <base>`, intersects the
-    # added and modified line numbers with the current report (--input),
-    # and prints coverage over just those lines. `--minimum N` exits
-    # non-zero below a floor, so it composes as a CI gate alongside the
-    # existing threshold checks, and `--json` emits rows the way the other
-    # read-only commands do.
+    # `simplecov patch [--base REF]`: line coverage over only the lines a
+    # change touched. Where `diff` asks "did the number move" and needs a
+    # baseline artifact, `patch` asks the question a reviewer actually asks: is
+    # the code in this change tested? A project sitting at 40% cannot move its
+    # global number in one pull request, but it can insist that every line it
+    # adds is covered.
     #
     # Only files the report already carries are scored: a changed file
-    # SimpleCov never tracked (a non-Ruby file, or one outside the
-    # configured `cover` / `track_files` set) is out of scope, and a line
-    # `LinesClassifier` considers never relevant (blank or comment) stays
-    # out of the denominator the same way it stays out of the file total.
+    # SimpleCov never tracked is out of scope, and a line `LinesClassifier`
+    # considers never relevant stays out of the denominator the same way it
+    # stays out of the file total.
     #
     module Patch
       extend CommandHelpers
@@ -35,9 +27,9 @@ module SimpleCov
         opts = parse(args, stderr)
         return 1 unless opts
 
-        # An omitted --base resolves through origin's HEAD, so master
-        # and trunk repositories work bare; in CI, pass the pull
-        # request's target branch (or its merge-base) explicitly.
+        # An omitted --base resolves through origin's HEAD, so master and trunk
+        # repositories work bare; in CI, pass the pull request's target branch
+        # explicitly.
         opts[:base] ||= Git.default_base
         diffed = ChangedLines.call(opts.fetch(:base), find_renames: opts.fetch(:find_renames), stderr: stderr)
         return 1 unless diffed
@@ -48,8 +40,8 @@ module SimpleCov
       end
 
       def parse(args, stderr)
-        # No `base:` default: the run fills it in from the repository
-        # when the option is left out.
+        # No `base:` default: the run fills it in from the repository when the
+        # option is left out.
         opts, rest = parse_common(args, find_renames: false, minimum: nil) do |parser, options|
           parser.on("--base REF") { |v| options[:base] = v }
           parser.on("--minimum N", Float) { |v| options[:minimum] = v }
@@ -62,8 +54,8 @@ module SimpleCov
       end
 
       # A stray positional looks exactly like a ref, so a forgotten `--base`
-      # (`simplecov patch feature-x`) would otherwise diff against the
-      # default and gate the wrong change in silence.
+      # (`simplecov patch feature-x`) would otherwise diff against the default
+      # and gate the wrong change in silence.
       def positional_ok?(rest, stderr)
         return true if rest.empty?
 
@@ -71,17 +63,14 @@ module SimpleCov
         false
       end
 
-      # --- coverage intersection ---------------------------------------
-      #
-      # Everything below reads values that came out of a coverage.json,
-      # which carries plain objects, arrays and integers and never a
-      # subclass of one, so the shape checks ask about the class itself.
+      # Everything below reads values that came out of a coverage.json, which
+      # carries plain objects, arrays and integers and never a subclass of one,
+      # so the shape checks ask about the class itself.
 
-      # Diff paths are exact root-relative names, so they resolve exactly
-      # against the report — the suffix fallback `CoverageFile.lookup`
-      # offers interactive commands could only ever bind a changed file
-      # the report doesn't carry to some *other* file's hits and score
-      # the wrong entry.
+      # Diff paths are exact root-relative names, so they resolve exactly against
+      # the report. The suffix fallback `CoverageFile.lookup` offers interactive
+      # commands could only ever bind a changed file the report doesn't carry to
+      # some other file's hits and score the wrong entry.
       def compute_rows(coverage, diffed, stderr)
         index = CoverageFile.exact_index(coverage)
         diffed.fetch(:changes).filter_map do |path, lines|
@@ -95,8 +84,8 @@ module SimpleCov
         end
       end
 
-      # An untracked file appears in no diff, so `:all` stands in for its
-      # line numbers: every line the report knows is this change's work.
+      # An untracked file appears in no diff, so `:all` stands in for its line
+      # numbers: every line the report knows is this change's work.
       def changed_for(lines, payload)
         return lines.uniq unless lines.equal?(:all)
 
@@ -105,10 +94,9 @@ module SimpleCov
       end
 
       # A changed line past the end of the report's lines array reads as
-      # never-relevant and silently drops out of the denominator, which is
-      # right for a fresh report and wrong for a stale one — so say which
-      # is likelier out loud instead of letting a `--minimum` gate pass
-      # vacuously over unscored new code.
+      # never-relevant and silently drops out of the denominator, which is right
+      # for a fresh report and wrong for a stale one, so say which is likelier
+      # out loud instead of letting a `--minimum` gate pass vacuously.
       def warn_stale(path, payload, changed, stderr)
         hits = payload["lines"]
         return unless hits.instance_of?(Array)
@@ -147,11 +135,9 @@ module SimpleCov
 
       # Branches and methods share the report shape (a reported line and an
       # integer hit count), so one scorer serves both. nil when the report
-      # carries no data for the criterion (it was off), so the output and
-      # gate skip it rather than reporting a hollow 0/0. An entry counts
-      # when the line it is reported on was touched; "ignored" (nocov)
-      # entries drop out like nocov lines. A miss is recorded at that
-      # reported line so the note points where the source is.
+      # carries no data for the criterion, so the output and gate skip it
+      # rather than reporting a hollow 0/0. A miss is recorded at the reported
+      # line so the note points where the source is.
       def entry_stats(entries, changed)
         return nil unless entries.instance_of?(Array)
 
@@ -163,9 +149,7 @@ module SimpleCov
         {covered: covered, relevant: covered + missing.size, missing: missing.uniq.sort}
       end
 
-      # Yields [reported_line, hit_count] for each branch or method reported
-      # on a touched line that carries a real hit count; "ignored" (nocov)
-      # entries and entries off the change are skipped.
+      # "ignored" (nocov) entries and entries off the change are skipped.
       def each_touched(entries, changed)
         entries.each do |entry|
           next unless entry.instance_of?(Hash)
@@ -176,8 +160,6 @@ module SimpleCov
         end
       end
 
-      # Whether anything scored in this row: a coverable touched line, or a
-      # touched branch or method.
       def scored?(row)
         row.fetch(:line).fetch(:relevant).positive? ||
           Output.measured?(row.fetch(:branch)) || Output.measured?(row.fetch(:method))

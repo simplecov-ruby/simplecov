@@ -3,14 +3,7 @@
 require "helper"
 require "support/sandbox_project"
 
-# SimpleCov.collate with processes: > 1 must produce the same report a
-# single-process collate does — fanning out changes how the resultsets
-# are folded, not what they fold to. The figures below are identical to
-# the ones in test_unit_collate_spec.rb on purpose.
 RSpec.describe "parallel collate", :sandbox do
-  # The fan-out forks worker processes, which the cucumber suite this
-  # replaces only ever exercised on MRI (CI runs the plain spec task on
-  # JRuby and Windows).
   before do
     skip "SimpleCov.collate processes: forks workers" unless Process.respond_to?(:fork)
     setup_project("faked_project")
@@ -45,8 +38,6 @@ RSpec.describe "parallel collate", :sandbox do
       "lib/faked_project/framework_specific.rb" => 75.00,
       "lib/faked_project/meta_magic.rb" => 100.00
     )
-    # "Unit Tests, Unit Tests": collate joins each part's suite name
-    # (see test_unit_collate_spec.rb).
     expect(data.dig("meta", "command_name")).to include("Unit Tests")
   end
 

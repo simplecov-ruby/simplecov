@@ -1,12 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov clean [--dry-run]` — remove the coverage report
-    # directory (or whatever `SimpleCov.coverage_dir` resolves to). The
-    # `--dry-run` flag prints what would be deleted without touching
-    # disk, for when you're not sure what's in there.
     module Clean
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers

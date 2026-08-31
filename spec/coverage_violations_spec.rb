@@ -2,12 +2,6 @@
 
 require "helper"
 
-# Focuses on the "criterion configured but not measured" path that the
-# strict profile relies on for JRuby — `enable_coverage :branch` is
-# accepted on every engine, but JRuby's Coverage doesn't actually emit
-# branch data, so the criterion ends up in the thresholds hash with no
-# stats to check against. The runtime check skips silently rather than
-# `fetch`-raising.
 RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::CoverageViolations*" do
   let(:line_stats)   { SimpleCov::CoverageStatistics.new(covered: 80, missed: 20) }
   let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 5,  missed: 5) }
@@ -20,8 +14,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     end
 
     it "skips a configured threshold whose criterion isn't in the stats" do
-      # No :branch key in coverage_statistics — simulates JRuby's "branch
-      # criterion enabled but not measurable" state.
       result = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
       violations = described_class.minimum_overall(result, line: 100, branch: 100)
       expect(violations).to contain_exactly(criterion: :line, expected: 100, actual: 80.0)
@@ -52,7 +44,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
 
     context "with drop_baseline :median" do
       it "measures the drop against the history's per-criterion median" do
-        # line_stats is 80%; median of [90, 100, 80] is 90 → a 10-point drop.
         allow(SimpleCov::History).to receive(:read)
           .and_return([entry("main", 90.0), entry("main", 100.0), entry("main", 80.0)])
 
@@ -124,10 +115,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     end
   end
 
-  # The tolerance paths below all defend the same property: a hand-edited
-  # or foreign-shaped artifact must be treated as absent rather than
-  # raising out of the at_exit hook, and the checks that read those
-  # artifacts must accept a Hash subclass the way they accept a Hash.
   describe "violation shapes" do
     let(:file) do
       instance_double(SimpleCov::SourceFile,
@@ -149,10 +136,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
                  filename: "/abs/lib/a.rb", project_filename: "lib/a.rb"}])
     end
 
-    # Each check skips a criterion the runtime never measured and keeps
-    # going. The unmeasured criterion is listed first here on purpose, so
-    # a skip that stopped the walk (rather than continuing it) would lose
-    # the violation that follows it.
     it "keeps checking the criteria that follow an unmeasured one" do
       totals = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
 
@@ -294,16 +277,11 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
   describe ".maximum_drop" do
     it "skips a configured drop check whose criterion isn't in the stats" do
       result = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
-      # last_run records all three; current only has :line. The :branch
-      # drop check should silently skip rather than crash.
       last_run = {result: {line: 90.0, branch: 90.0}}
       violations = described_class.maximum_drop(result, {line: 5, branch: 5}, last_run: last_run)
       expect(violations.map { |v| v[:criterion] }).to contain_exactly(:line)
     end
 
-    # LastRun.read only vouches for the top level being a Hash, so a
-    # hand-edited .last_run.json can carry any value type. Subtracting
-    # from a String raised out of the at_exit hook.
     it "treats a non-numeric last-run value as missing instead of raising" do
       result = instance_double(SimpleCov::Result, coverage_statistics: {line: line_stats})
       violations = described_class.maximum_drop(result, {line: 5}, last_run: {result: {line: "95.0"}})
@@ -311,11 +289,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     end
   end
 
-  # Every baseline mode reads an artifact SimpleCov only half-vouches
-  # for: `.last_run.json` is trusted to be a Hash at the top level and
-  # nowhere below, and `.history.json` entries survive hand edits. These
-  # pin what each mode accepts, what it treats as absent, and that a
-  # Hash subclass reads as a Hash throughout.
   describe "drop baselines" do
     let(:method_stats) { SimpleCov::CoverageStatistics.new(covered: 3, missed: 7) }
     let(:result) do
@@ -391,8 +364,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
           .to eq([{criterion: :oneshot_line, maximum: 5, actual: 15.0}])
       end
 
-      # The drop keeps ten decimal places, which is what holds float
-      # noise out of the comparison without rounding a real drop away.
       it "keeps ten decimal places of the drop and no more" do
         expect(drop({line: -1}, last_run: {result: {line: 80.00000000009}}))
           .to eq([{criterion: :line, maximum: -1, actual: 0.0}])
@@ -449,8 +420,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
         expect(drop({line: 5}, mode: :median)).to eq([{criterion: :line, maximum: 5, actual: 10.0}])
       end
 
-      # Anything but a Hash of totals is debris: an Array or a number
-      # would raise on the per-criterion read rather than be skipped.
       it "skips an entry whose totals are the wrong shape entirely" do
         history({"totals" => 42}, {"totals" => ["line"]}, {"totals" => {"line" => 90.0}})
         expect(drop({line: 5}, mode: :median)).to eq([{criterion: :line, maximum: 5, actual: 10.0}])
@@ -464,8 +433,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
       it "medians the middle pair of an even run count, not the pair below it" do
         history({"totals" => {"line" => 10.0}}, {"totals" => {"line" => 20.0}},
                 {"totals" => {"line" => 30.0}}, {"totals" => {"line" => 40.0}})
-        # median of [10, 20, 30, 40] is 25, and the run is at 80%: a rise,
-        # not a drop, so a negative maximum is what makes it reportable.
         expect(drop({line: -100}, mode: :median)).to eq([{criterion: :line, maximum: -100, actual: -55.0}])
       end
 
@@ -525,8 +492,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
         expect(drop({method: 5}, mode: :branch)).to eq([{criterion: :method, maximum: 5, actual: 60.0}])
       end
 
-      # An entry recorded with no branch at all must not stand in for the
-      # branch we are on, and outside a branch nothing stands in either.
       it "ignores a branchless entry rather than matching it to the current branch" do
         history({"totals" => {"line" => 90.0}})
         expect(drop({line: 0}, mode: :branch)).to eq([])
@@ -573,8 +538,6 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
       expect(thresholds_for("lib/a.rb", "lib/" => {line: 90}, /a\.rb\z/ => {line: 95})).to eq([95])
     end
 
-    # Merging, not replacing: a criterion the override is silent about
-    # keeps the default it would otherwise lose.
     it "keeps the defaults an override does not mention" do
       file = instance_double(SimpleCov::SourceFile,
                              filename: "/abs/lib/a.rb", project_filename: "lib/a.rb",

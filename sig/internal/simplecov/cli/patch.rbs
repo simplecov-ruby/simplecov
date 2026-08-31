@@ -1,15 +1,6 @@
 module SimpleCov
   module CLI
-    # `simplecov patch [--base REF]` — report coverage over only the lines a
-    # change touched. It reads `git diff --unified=0 --merge-base <base>`,
-    # intersects the added and modified line numbers with the current report
-    # (--input), and prints line coverage (and branch coverage, when the
-    # report has it) over just those lines. `--minimum N` exits non-zero below
-    # a floor so it composes as a CI gate, and `--json` emits rows like the
-    # other read-only commands.
     module Patch
-      # `include` mirrors the runtime `extend` for steep's sake:
-      # module_function bodies type-check on the instance side.
       include CommandHelpers
 
       extend CommandHelpers

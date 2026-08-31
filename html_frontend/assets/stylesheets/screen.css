@@ -1,14 +1,9 @@
-/* ============================================================
-   SimpleCov HTML Report — Main Stylesheet
-   ============================================================ */
 
-/* --- Design tokens ----------------------------------------- */
 
 :root {
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 
-  /* Spacing scale (4px base) */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -21,13 +16,12 @@
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  /* The index reserves this slot so its toolbar stays pixel-aligned with the
-     source toolbar when the close button appears. */
   --source-close-size: 34px;
   --source-close-gap: var(--sp-4);
+  /* The index reserves this slot so its toolbar stays pixel-aligned with the
+     source toolbar when the close button appears. */
   --source-close-slot: calc(var(--source-close-size) + var(--source-close-gap));
 
-  /* Light theme */
   --bg: #f0f1f3;
   --surface: #fff;
   --surface-alt: #f0f1f3;
@@ -47,7 +41,6 @@
   --yellow: #7a5200;
   --orange: #953800;
 
-  /* Source code lines */
   --covered-bg: #ccf5d0;
   --covered-line-num-bg: #9ae6a4;
   --missed-bg: #ffd8d5;
@@ -76,15 +69,12 @@
   --hits-bg: #e0e3e8;
   --hits-color: #333;
 
-  /* Dialog */
   --overlay-bg: rgba(0, 0, 0, 0.5);
 
-  /* Coverage bar */
   --bar-bg: #d0d7de;
   --bar-height: 6px;
 }
 
-/* --- Dark theme -------------------------------------------- */
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light-mode) {
@@ -194,23 +184,15 @@
   --bar-bg: #3d444d;
 }
 
-/* --- Colorblind palette ------------------------------------ */
 
-/* Red/green is the coverage report's core signal (covered vs missed) and the
-   pairing most colorblind viewers cannot separate (see issue #534). This mode
-   swaps it for blue (covered) vs orange/vermillion (missed) — the classic
-   colorblind-safe pairing — while leaving skipped (yellow), missed-branch
-   (orange-brown) and missed-method (purple) as-is, since those already read as
-   distinct hues.
-   Only the covered/missed and the green/red band tokens change, so the rest of
-   the theme is untouched. The blocks are ordered after the light/dark token
-   definitions so they win on equal specificity; the dark variants raise
-   specificity so they win over the light colorblind values under dark.
-
-   The light values apply on screen and in print (the @media print reset below
-   re-asserts them so a printout keeps the colorblind palette). The dark values
-   are scoped to `@media screen` so they never reach paper: their higher
-   specificity would otherwise beat the print reset and print dark backgrounds. */
+/* Red/green is the coverage report's core signal and the pairing most
+   colorblind viewers cannot separate (issue #534), so this mode swaps it for
+   blue (covered) vs orange/vermillion (missed) and leaves the other hues
+   alone. The blocks are ordered after the light/dark token definitions so they
+   win on equal specificity, and the dark variants raise specificity so they
+   win over the light colorblind values under dark. The dark values are scoped
+   to `@media screen` so their higher specificity never beats the print reset
+   and prints dark backgrounds. */
 .colorblind-mode {
   --green: #0060a8;
   --red: #c2410c;
@@ -242,16 +224,13 @@
   }
 }
 
-/* --- Base -------------------------------------------------- */
 
-/* Opening the source dialog sets overflow:hidden on this element to stop the
-   page behind it from scrolling. Where scrollbars take up layout space (the
-   Windows and Linux default rather than macOS overlay scrollbars), that would
-   widen the viewport by the scrollbar's width mid-interaction and shift the
-   toolbar the --source-close-slot alignment exists to hold still. Reserving
-   the gutter for good keeps the width constant whether or not the scrollbar
-   is showing. */
 html {
+  /* Opening the source dialog sets overflow:hidden here to stop the page behind
+     it from scrolling. Where scrollbars take up layout space, that would widen
+     the viewport by the scrollbar's width mid-interaction and shift the toolbar
+     the --source-close-slot alignment exists to hold still. Reserving the gutter
+     for good keeps the width constant either way. */
   scrollbar-gutter: stable;
 }
 
@@ -274,7 +253,6 @@ a:hover {
 
 strong, b { font-weight: 600; }
 
-/* --- Loading screen ---------------------------------------- */
 
 #loading {
   position: fixed;
@@ -313,10 +291,7 @@ strong, b { font-weight: 600; }
   color: var(--text-tertiary);
 }
 
-/* --- Re-sort overlay --------------------------------------- */
 
-/* Dims the report (keeping it visible) and swallows clicks while a large
-   file list re-sorts. Shown only above the row threshold in sort.ts. */
 #sort-overlay {
   position: fixed;
   inset: 0;
@@ -336,16 +311,11 @@ strong, b { font-weight: 600; }
   color: var(--text-tertiary);
 }
 
-/* --- Layout ------------------------------------------------ */
 
 #wrapper {
   margin: 0 auto;
 }
 
-/* Navigation on the left, display controls on the right. Both start at the
-   same top edge, which is what keeps the controls from jumping when the
-   source dialog opens over them, so the two groups are told apart by the
-   gutter between them rather than by sitting at different heights. */
 .tab-bar {
   display: flex;
   align-items: flex-start;
@@ -361,14 +331,7 @@ abbr.timeago {
   border: none;
 }
 
-/* --- Tabs -------------------------------------------------- */
 
-/* Too many groups to fit and the strip scrolls, which otherwise guillotines
-   whichever tab straddles the right edge and leaves a hard vertical cut
-   against the controls. Fade the last stretch instead, so a tab that runs
-   past the edge dissolves into the gutter. The matching trailing padding
-   keeps the final tab clear of the fade when everything already fits, so
-   nothing is dimmed that isn't actually overflowing. */
 .group_tabs {
   display: flex;
   align-self: flex-end;
@@ -378,11 +341,6 @@ abbr.timeago {
   mask-image: linear-gradient(to right, #000 calc(100% - var(--sp-6)), transparent);
 }
 
-/* The leading edge cannot use the same trailing-padding trick: padding there
-   would push the first tab off the panel's flush left corner. So it fades
-   only once the strip has actually scrolled, which tab_scroll.ts reports,
-   and then says the same thing the trailing fade does, that tabs continue
-   past the edge. */
 .group_tabs.is-scrolled {
   mask-image: linear-gradient(
     to right,
@@ -393,10 +351,6 @@ abbr.timeago {
   );
 }
 
-/* Every tab carries an outline, so an unselected group reads as a tab rather
-   than as loose text floating above the panel. The selected one sets itself
-   apart by filling with the panel's own colour and dropping its bottom
-   border, merging into the panel across the 1px the tab bar overlaps it. */
 .group_tabs li a {
   display: block;
   padding: var(--sp-2) var(--sp-4);
@@ -425,7 +379,6 @@ abbr.timeago {
   font-weight: 600;
 }
 
-/* --- Content panel ----------------------------------------- */
 
 #content {
   background: var(--surface);
@@ -434,7 +387,6 @@ abbr.timeago {
   padding: var(--sp-6);
 }
 
-/* --- File list header -------------------------------------- */
 
 
 .file_list_container h2 {
@@ -476,10 +428,8 @@ abbr.timeago {
   font-style: italic;
 }
 
-/* --- DataTables overrides ---------------------------------- */
 
 
-/* --- Column filters ---------------------------------------- */
 
 .th-with-filter {
   display: flex;
@@ -543,7 +493,6 @@ table.file_list th.cell--coverage .th-with-filter {
 }
 
 
-/* --- File list table --------------------------------------- */
 
 .file_list--responsive {
   overflow-x: auto;
@@ -627,8 +576,6 @@ table.file_list td.strong {
   color: var(--text);
 }
 
-/* The last-run-in-production column, present only when the report
-   carries a production section. */
 table.file_list th.cell--production,
 table.file_list td.cell--production {
   text-align: right;
@@ -649,7 +596,6 @@ a.src_link {
   word-break: break-all;
 }
 
-/* --- Coverage columns -------------------------------------- */
 
 table.file_list td.cell--coverage {
   white-space: nowrap;
@@ -668,7 +614,6 @@ table.file_list td.cell--coverage {
   font-variant-numeric: tabular-nums;
 }
 
-/* Rows beyond the window in a large file list (see row_window.ts). */
 tr.t-window-hidden {
   display: none;
 }
@@ -680,8 +625,6 @@ tr.t-show-all td {
   cursor: pointer;
 }
 
-/* The width is uniform per table, so bar_width.ts equalizes it through one
-   custom property on the table instead of inline styles on every sizer. */
 .coverage-cell .bar-sizer {
   flex: 0 0 auto;
   width: var(--bar-sizer-width, 240px);
@@ -741,11 +684,6 @@ table.file_list .totals-row td.cell--denominator {
 .coverage-bar__fill--yellow { background: var(--yellow); }
 .coverage-bar__fill--red { background: var(--red); }
 
-/* Under `track_tests` the line bar's fill splits: the band-coloured share
-   covered by recorded tests, then a slate share covered only outside them
-   (load time, suite setup, helpers), mirroring the source view's drained
-   lines. The segments butt against each other, so only the outer ends
-   keep the pill rounding. */
 .coverage-bar__fill--split { border-radius: 6px 0 0 6px; }
 .coverage-bar__fill--outside {
   background: var(--outside-tests-text);
@@ -753,7 +691,6 @@ table.file_list .totals-row td.cell--denominator {
 }
 
 
-/* --- Color utility classes --------------------------------- */
 
 .green, table.file_list td.green { color: var(--green); }
 .red, table.file_list td.red { color: var(--red); }
@@ -762,7 +699,6 @@ table.file_list .totals-row td.cell--denominator {
 .missed-branch-text { color: var(--missed-branch-text); }
 .missed-method-text-color { color: var(--missed-method-text); }
 
-/* --- Source file dialog ------------------------------------ */
 
 dialog.source-dialog {
   position: fixed;
@@ -836,22 +772,7 @@ dialog.source-dialog[open] {
   grid-row: 5;
 }
 
-/* --- Source legend ------------------------------------------ */
 
-/* The legend is one right-aligned box whose rows are the header grid's own
-   row tracks (subgrid), so each legend row sits level with the summary it
-   describes — including when a narrow dialog wraps a summary onto two
-   lines, which grows the shared track rather than letting the rows drift
-   apart. Items sit in left-aligned columns: the line row fills the
-   columns right-to-left, and the single-item rows all take the last
-   column, so their swatches share one edge instead of scattering to
-   wherever each label's width lands. Each item is pinned to its row
-   (subgrid numbering is local: header row N is legend row N - 1), so a
-   disabled criterion's missing legend row cannot shift the ones below.
-   The box spans only the toggles' column: spanning the close column too
-   would widen it and push the buttons out of the position the index view
-   puts them in, so the toggles column absorbs the legend's width and the
-   toggles pin to its end, against the close button. */
 .source-legend {
   grid-column: 2 / 3;
   grid-row: 2 / 5;
@@ -872,9 +793,6 @@ dialog.source-dialog[open] {
 .source-legend__row--branch .source-legend__item { grid-row: 2; grid-column: 4; }
 .source-legend__row--method .source-legend__item { grid-row: 3; grid-column: 4; }
 
-/* The line row anchors to the right edge whatever its item count (three
-   chips untracked, four when tracking splits the covered chip in two), so
-   columns are assigned counting from its last item. */
 .source-legend__row--line .source-legend__item:nth-last-child(1) { grid-column: 4; }
 .source-legend__row--line .source-legend__item:nth-last-child(2) { grid-column: 3; }
 .source-legend__row--line .source-legend__item:nth-last-child(3) { grid-column: 2; }
@@ -889,8 +807,6 @@ dialog.source-dialog[open] {
   white-space: nowrap;
 }
 
-/* A chip of the exact background and line-number colours the source view
-   paints each status with, so the legend is a sample of the thing itself. */
 .source-legend__swatch {
   display: inline-block;
   width: 16px;
@@ -908,10 +824,6 @@ dialog.source-dialog[open] {
 .source-legend__swatch--production-never { background: var(--covered-bg); border-color: var(--covered-line-num-bg); box-shadow: inset 4px 0 0 var(--production-never-marker); }
 .source-legend__swatch--production-ran   { background: var(--missed-bg); border-color: var(--missed-line-num-bg); box-shadow: inset 4px 0 0 var(--production-marker); }
 
-/* The colorblind and dark toggles, repeated in the dialog header so the mode
-   can be changed while a source file is open (the modal covers the report's
-   own toolbar). The index toolbar reserves the close button's exact width and
-   gap, so both copies have identical viewport coordinates. */
 .source-dialog__toggles {
   display: flex;
   align-items: center;
@@ -919,9 +831,6 @@ dialog.source-dialog[open] {
   flex-shrink: 0;
   margin-left: var(--sp-4);
   align-self: flex-start;
-  /* The legend below shares this column and can be wider; pinned to the
-     column's end, the toggles stay against the close button at the exact
-     coordinates the index toolbar reserves. */
   justify-self: end;
 }
 
@@ -971,7 +880,6 @@ dialog.source-dialog[open] {
   overflow: auto;
 }
 
-/* --- Source code viewer ------------------------------------- */
 
 .source_table .header {
   padding: var(--sp-4) var(--sp-6);
@@ -1082,7 +990,6 @@ table.file_list .totals-row td {
   white-space: pre-wrap;
 }
 
-/* Hit count badges */
 .source_table pre .hits {
   order: 2;
   flex-shrink: 0;
@@ -1102,7 +1009,6 @@ table.file_list .totals-row td {
   content: attr(data-content);
 }
 
-/* Coverage line status */
 .source_table .covered       { background-color: var(--covered-bg); }
 .source_table .missed        { background-color: var(--missed-bg); }
 .source_table .never         { background-color: var(--never-bg); }
@@ -1117,30 +1023,12 @@ table.file_list .totals-row td {
 .source_table .missed-branch::before { background-color: var(--missed-branch-line-num-bg); }
 .source_table .missed-method::before { background-color: var(--missed-method-line-num-bg); }
 
-/* --- Recorded test contexts (track_tests) ------------------------------
-
-   Everything below renders only when the report carries recordings. The
-   drained status is the feature's headline: a covered line no recorded
-   test executed loses its green for a cool slate, so coverage nothing
-   vouches for stops passing for the real thing. Near-achromatic on
-   purpose — it reads the same in the standard, colorblind, and dark
-   palettes. */
 
 .source_table .outside-tests         { background-color: var(--outside-tests-bg); }
 .source_table .outside-tests::before { background-color: var(--outside-tests-line-num-bg); }
 
 .outside-tests-text { color: var(--outside-tests-text); }
 
-/* --- Production coverage (production_coverage) -------------------------
-
-   Rendered only when the report carries a production section. The cross
-   marks its two actionable cells with a gutter stripe: covered code the
-   production window never ran (gray — possibly dead, defended only by
-   its own spec), and missed code the window did run (teal — untested
-   code real users are hitting). The latter is doubled with a badge,
-   because next to it a plain missed line looks identical and the
-   difference is exactly what matters. Run-and-covered is the cell
-   nothing needs reporting about, so it stays unmarked. */
 
 .source_table .covered.production-never::before,
 .source_table .outside-tests.production-never::before {
@@ -1155,19 +1043,11 @@ table.file_list .totals-row td {
 
 .source_table pre .hits--production { color: var(--production-marker); }
 
-/* The tests badge is a real button so the peek panel it opens is
-   keyboard-reachable, but it wears the same chrome as the hit-count
-   badge beside it; hovering or holding it open underlines the label,
-   the report's usual interactive affordance. A drained line's "0 tests"
-   takes the slate text so the badge and the tint tell one story. */
 .source_table pre button.hits--tests {
   appearance: none;
   border: 0;
   border-left: 1px solid var(--source-border);
   cursor: pointer;
-  /* Buttons center their label vertically; the span badges beside this
-     one top-align theirs, which shows on wrapped lines. Flexing the
-     label to the start keeps the whole badge row on one baseline. */
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1180,11 +1060,6 @@ table.file_list .totals-row td {
 
 .source_table pre .hits--tests-none { color: var(--outside-tests-text); }
 
-/* The peek panel: an annotation row, not a source line, so it opts out
-   of the line counter and the flex line layout, and indents past the
-   number gutter to sit under the code it annotates. Its ids are the
-   same ids, in the same order, that `simplecov tests file:line` prints;
-   one click selects a whole id, ready to hand to a test runner. */
 .source_table pre li.tests-peek {
   counter-increment: none;
   display: block;
@@ -1196,8 +1071,6 @@ table.file_list .totals-row td {
 
 .source_table pre li.tests-peek::before { content: none; }
 
-/* The peek's own list items live inside the same <pre><ol> world, so
-   without this they'd be numbered and painted like source lines. */
 .source_table pre .tests-peek li {
   counter-increment: none;
   display: block;
@@ -1236,7 +1109,6 @@ table.file_list .totals-row td {
   user-select: all;
 }
 
-/* --- Toolbar toggles (colorblind + dark) ------------------- */
 
 .toolbar {
   display: flex;
@@ -1246,13 +1118,6 @@ table.file_list .totals-row td {
   margin-right: var(--source-close-slot);
 }
 
-/* The pill shape marks these as controls, the same as the filter input. This
-   padding puts them at exactly --source-close-size tall, so they match the
-   dialog's close button and sit level with it there and with the tab tops
-   here. They stay unfilled, taking the same outline-on-page-background the
-   unselected tabs use rather than the panel white, so the bar reads as one
-   family of chips and the filled shapes stay meaningful: the selected tab,
-   and a toggle that is switched on. */
 .toolbar-toggle {
   appearance: none;
   background: transparent;
@@ -1273,20 +1138,13 @@ table.file_list .totals-row td {
   border-color: var(--border-strong);
 }
 
-/* Pressed state for the colorblind toggle: it is a mode switch, not a
-   this-or-that swap like the dark toggle, so reflect "on" with a filled
-   accent chip (aria-pressed carries it to assistive tech). */
 .toolbar-toggle[aria-pressed="true"] {
   background: var(--accent-subtle);
   color: var(--accent);
   border-color: var(--accent);
 }
 
-/* --- Keyboard focus ---------------------------------------- */
 
-/* A visible focus ring on every keyboard-focused control. :focus-visible keeps
-   it off mouse clicks, so it aids keyboard users without adding chrome for
-   everyone else. */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -1298,7 +1156,6 @@ select:focus-visible,
   border-radius: 3px;
 }
 
-/* --- Footer ------------------------------------------------ */
 
 #footer,
 .source-dialog__footer {
@@ -1329,10 +1186,6 @@ select:focus-visible,
   color: var(--text);
 }
 
-/* A merged report's run list folds behind a disclosure; expanded, it
-   scrolls in place instead of displacing the report (#1284). The
-   max-height on the footers themselves is the backstop for any long
-   value a pre-summarizing document still carries. */
 #footer,
 .source-dialog__footer {
   max-height: 10em;
@@ -1354,7 +1207,6 @@ select:focus-visible,
   overflow-y: auto;
 }
 
-/* --- Sorting indicators (DataTables) ----------------------- */
 
 table.file_list thead th.sorting,
 table.file_list thead th.sorting_asc,
@@ -1379,10 +1231,8 @@ table.file_list thead th.sorting::after        { content: "\2195"; }
 table.file_list thead th.sorting_asc::after     { content: "\2191"; }
 table.file_list thead th.sorting_desc::after    { content: "\2193"; }
 
-/* --- Print ------------------------------------------------- */
 
 @media print {
-  /* Force light palette */
   :root, .dark-mode {
     --bg: #fff;
     --surface: #fff;
@@ -1426,10 +1276,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     --hits-color: #333;
   }
 
-  /* Keep the colorblind palette on paper. The reset above forces the standard
-     light green/red for every context; re-assert the light colorblind values
-     (same specificity, later in source) so a colorblind report prints blue and
-     orange rather than the green and red its reader configured away. */
   .colorblind-mode {
     --green: #0060a8;
     --red: #c2410c;
@@ -1444,7 +1290,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     font-size: 12pt;
   }
 
-  /* Hide interactive/non-printable elements */
   #loading,
   #sort-overlay,
   .toolbar,
@@ -1460,26 +1305,21 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     display: none !important;
   }
 
-  /* --- File list view (dialog closed) --- */
 
-  /* Show all tab groups */
   #wrapper, .file_list_container {
     display: block !important;
   }
 
-  /* Hide file list when source dialog is open */
   body:has(.source-dialog[open]) #wrapper {
     display: none !important;
   }
 
-  /* Remove panel border/radius since there are no tabs */
   #content {
     border: none;
     border-radius: 0;
     padding: 0;
   }
 
-  /* Group headings — re-show the hidden group name */
   .file_list_container .group_name {
     display: inline !important;
     font-size: 16pt;
@@ -1491,12 +1331,10 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     font-weight: 600;
   }
 
-  /* Add space between groups */
   .file_list_container + .file_list_container {
     margin-top: 24pt;
   }
 
-  /* --- Source file view (dialog open) --- */
 
   dialog.source-dialog {
     display: none;
@@ -1516,11 +1354,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     display: none !important;
   }
 
-  /* On screen the header is a grid that seats each legend row beside its
-     coverage summary, in the columns the toggles and close button occupy.
-     Those controls don't print, so on paper that layout only squeezes the
-     summaries against a legend column. Fall back to document flow, which
-     prints each legend row full width beneath the summary it describes. */
   .source-dialog__header {
     display: block;
     border-bottom: none;
@@ -1560,7 +1393,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     print-color-adjust: exact;
   }
 
-  /* Coverage bar: add border so it's visible without color printing */
   .coverage-bar {
     border: 1px solid var(--border);
     -webkit-print-color-adjust: exact;
@@ -1572,13 +1404,11 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     print-color-adjust: exact;
   }
 
-  /* Preserve background colors for coverage status */
   table.file_list tbody tr:nth-child(even) {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Table typography for print */
   table.file_list {
     font-size: 10pt;
   }
@@ -1587,7 +1417,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     font-size: 9pt;
   }
 
-  /* Page break handling */
   table.file_list {
     page-break-inside: auto;
   }
@@ -1606,7 +1435,6 @@ table.file_list thead th.sorting_desc::after    { content: "\2193"; }
     margin-top: 12pt;
   }
 
-  /* Links: show URL after link text */
   #footer a::after,
   .source-dialog__footer a::after {
     content: " (" attr(href) ")";

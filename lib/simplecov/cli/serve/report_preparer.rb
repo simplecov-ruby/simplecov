@@ -5,9 +5,6 @@ require_relative "../../coverage_json"
 module SimpleCov
   module CLI
     module Serve
-      # Ensures the coverage directory has a renderable entry point before
-      # the HTTP server binds. Existing self-contained reports take priority
-      # over their optional JSON sidecar.
       module ReportPreparer
         def self.call(dir)
           index_path = File.join(dir, "index.html")
@@ -22,12 +19,9 @@ module SimpleCov
           "cannot build index.html from #{json_path}: #{e}"
         end
 
-        # Loading the HTML formatter is what lets a report be served
-        # from a coverage.json alone.
         def self.build_index(json_path, dir)
           require_relative "../../formatter/html_formatter"
           Formatter::HTMLFormatter.new.format_from_json(json_path, dir)
-          # Nothing to report: the index is there now.
           nil
         end
       end

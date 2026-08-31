@@ -4,32 +4,26 @@ module SimpleCov
   #
   # Records which context covered which line: a list of context ids and, per
   # source file, a bitmap of covered lines for each context that touched the
-  # file. A context is any labeled region of execution — under `track_tests`
-  # every context is one test, identified by its definition site — and the
-  # vocabulary is deliberately the general one (coverage.py calls the same
-  # idea dynamic contexts), so the stored format doesn't bake simplecov's
-  # current use into a name.
+  # file. A context is any labeled region of execution, and the vocabulary is
+  # deliberately the general one (coverage.py calls the same idea dynamic
+  # contexts), so the stored format doesn't bake simplecov's current use into
+  # a name.
   #
-  # The naive shape of this data — a list of ids on every line — is
-  # O(contexts × lines) strings. Two choices keep it in hand. Context ids
-  # are interned, so each id string exists once and everything else refers
-  # to it by index (the same problem `Combine::IdentityInterner` solves for
-  # the merge combiners' keys). And each context's covered lines within a
-  # file are a single Integer bitmap with bit N set when line N+1 was
-  # executed, which packs a thousand-line file into ~125 bytes and makes the
-  # union of two recordings a bitwise OR.
+  # The naive shape of this data, a list of ids on every line, is
+  # O(contexts x lines) strings. Context ids are interned instead, and each
+  # context's covered lines within a file are a single Integer bitmap with bit
+  # N set when line N+1 was executed, which packs a thousand-line file into
+  # ~125 bytes and makes the union of two recordings a bitwise OR.
   #
   # Serialized into `.resultset.json` as `{"version" => 1, "contexts" =>
-  # [...ids...], "files" => {path => {context index => bitmap as hex}}}`.
-  # The format is tolerated, not trusted: `.from_hash` returns nil for
-  # anything malformed or future-versioned (another SimpleCov version, a
-  # hand-edited file), which the merge treats the same as a map that was
-  # never recorded.
+  # [...ids...], "files" => {path => {context index => bitmap as hex}}}`. The
+  # format is tolerated, not trusted: `.from_hash` returns nil for anything
+  # malformed or future-versioned, which the merge treats the same as a map
+  # that was never recorded.
   #
   class ContextMap
-    # The serialized format's version. Bumped on any change an older
-    # reader could misread, so `.from_hash` can treat a future format as
-    # absent instead of answering `covering` queries wrongly from it.
+    # Bumped on any change an older reader could misread, so `.from_hash` can
+    # treat a future format as absent instead of answering from it wrongly.
     VERSION = 1
 
     def initialize
@@ -38,10 +32,10 @@ module SimpleCov
       @files = {} #: Hash[String, Hash[Integer, Integer]]
     end
 
-    # Fold one context's covered lines in. `lines_by_file` maps a source
-    # path to the bitmap of lines the context executed there. The id is
-    # interned even when the delta is empty: the context ran, and keeping
-    # it distinguishes "covered nothing of its own" from "never recorded".
+    # `lines_by_file` maps a source path to the bitmap of lines the context
+    # executed there. The id is interned even when the delta is empty: the
+    # context ran, and keeping it distinguishes "covered nothing of its own"
+    # from "never recorded".
     def record(context_id, lines_by_file)
       index = intern(context_id)
       lines_by_file.each do |path, bitmap|
@@ -53,15 +47,12 @@ module SimpleCov
       self
     end
 
-    # The ids of every recorded context that executed `line` of `path`,
-    # sorted for stable output (recording order varies between runs and
-    # merges). The path is resolved against `SimpleCov.root`, so callers
-    # can pass either an absolute path or a project-relative one, like
-    # `Result#source_file_for`.
+    # Sorted for stable output, since recording order varies between runs and
+    # merges. The path is resolved against `SimpleCov.root`, so callers can
+    # pass either an absolute or a project-relative one.
     #
-    # A line number below 1 needs no guard of its own: it shifts the
-    # probe bit right off the end of the bitmap, leaving a mask no
-    # recorded line can match.
+    # A line number below 1 needs no guard of its own: it shifts the probe bit
+    # right off the end of the bitmap, leaving a mask no line can match.
     def covering(path, line)
       table = @files[File.expand_path(path, SimpleCov.root)]
       return [] unless table
@@ -70,7 +61,6 @@ module SimpleCov
       table.filter_map { |index, bitmap| @contexts.fetch(index) if bitmap.anybits?(bit) }.sort
     end
 
-    # Every recorded context id, in recording order.
     def contexts
       @contexts.dup
     end
@@ -79,8 +69,7 @@ module SimpleCov
       @contexts.empty?
     end
 
-    # Union `other` into this map. Other's contexts are re-interned, so
-    # maps recorded by different processes (whose recording order differs)
+    # Other's contexts are re-interned, so maps recorded by different processes
     # merge by id, and a context both sides saw contributes one entry.
     def absorb(other)
       remap = other.interned_contexts.map { |context_id| intern(context_id) }
@@ -94,32 +83,27 @@ module SimpleCov
       self
     end
 
-    # The serializable form. `only:` restricts the files to a given set of
-    # paths — `Result#to_hash` passes its post-filter filenames, so the map
-    # follows the same universe as the coverage it sits beside. The context
-    # list is never restricted: which contexts ran is true regardless of
-    # which files survived filtering.
+    # `only:` restricts the files to a given set of paths, so the map follows
+    # the same universe as the coverage it sits beside. The context list is
+    # never restricted: which contexts ran is true regardless of which files
+    # survived filtering.
     def to_h(only: nil)
-      # Selected rather than sliced: `only` is a Set, and splatting one
-      # into `slice` is a call `to_a` answers for, which makes dropping
-      # the `to_a` a mutation nothing can observe. Asking each path
-      # whether it survived has no such spare step, and membership is
-      # what a Set is for.
+      # Selected rather than sliced: `only` is a Set, and splatting one into
+      # `slice` is a call `to_a` answers for, which makes dropping the `to_a` a
+      # mutation nothing can observe.
       tables = only ? @files.select { |path, _table| only.include?(path) } : @files # rubocop:disable Style/HashSlice
       serialized = tables.transform_values { |table| serialize_table(table) }
       {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized}
     end
 
-    # One file's bitmaps in the wire encoding `to_h` writes — index
-    # string => hex bitmap — or an empty table when no recorded context
-    # touched the file. coverage.json shares the resultset's encoding
-    # through this, so the format has one owner. Paths resolve like
-    # `covering`'s.
+    # Index string => hex bitmap, the wire encoding `to_h` writes.
+    # coverage.json shares the resultset's encoding through this, so the format
+    # has one owner.
     def serialized_bitmaps_for(path)
       serialize_table(@files[File.expand_path(path, SimpleCov.root)] || {})
     end
 
-    # @api private — intern `context_id`, returning its stable index.
+    # @api private
     def intern(context_id)
       @indices[context_id] ||= begin
         @contexts << context_id
@@ -128,15 +112,13 @@ module SimpleCov
     end
 
     class << self
-      # Rebuild a map from its `#to_h` form, or nil when the data is not a
-      # well-formed map of this format version. All-or-nothing on purpose:
-      # a partially salvaged map would answer `covering` queries with
-      # silent gaps, and the merge already has the right treatment for an
-      # absent map — drop it consistently rather than keep a wrong one.
+      # nil when the data is not a well-formed map of this format version.
+      # All-or-nothing on purpose: a partially salvaged map would answer
+      # `covering` queries with silent gaps, and the merge already drops an
+      # absent map consistently.
       def from_hash(data)
-        # `eql?` rather than `==`: a version written as 1.0 is not this
-        # format, and reading it as if it were is exactly what the
-        # version gate exists to prevent.
+        # `eql?` rather than `==`: a version written as 1.0 is not this format,
+        # and reading it as if it were is what the version gate exists to stop.
         return nil unless data.instance_of?(Hash) && data["version"].eql?(VERSION)
 
         contexts = data["contexts"]
@@ -166,9 +148,8 @@ module SimpleCov
         end
       end
 
-      # A serialized context index is a decimal string pointing into the
-      # entry's own context list. Anything else — including an
-      # out-of-range index — makes the whole map malformed.
+      # A serialized context index is a decimal string pointing into the entry's
+      # own context list. An out-of-range one makes the whole map malformed.
       def parse_index(index, size)
         return nil unless index.instance_of?(String) && index.match?(/\A\d+\z/)
 
@@ -193,8 +174,8 @@ module SimpleCov
 
   protected
 
-    # Raw internals for `absorb`. Protected rather than public because they
-    # are live state, not copies.
+    # Live state, not copies, which is why these are protected rather than
+    # public.
     def interned_contexts
       @contexts
     end
