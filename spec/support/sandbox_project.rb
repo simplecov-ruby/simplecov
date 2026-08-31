@@ -49,6 +49,7 @@ module SandboxProject
   # another fixture's Gemfile for fixtures that only vary in gems.
   def setup_project(name, gemfile_from: nil)
     source = File.join(PROJECT_ROOT, "test_projects", name)
+    @gemfile_fixture = gemfile_from || name
     FileUtils.rm_rf(sandbox_root)
     FileUtils.mkdir_p(sandbox_root)
     FileUtils.cp_r(source, sandbox_dir)
@@ -123,13 +124,39 @@ module SandboxProject
     "bundle exec rspec #{files.join(' ')}"
   end
 
+  # A bundle that has satisfied `bundle check` once cannot stop being
+  # satisfied mid-suite, and no sandbox example rewrites its copied
+  # Gemfile, so one verification per (fixture Gemfile, opted-in groups)
+  # pair covers every later example that uses the same pair. Without
+  # the cache each example pays a full Bundler boot just to re-ask.
+  #
+  # The cache stores the lockfile the verification ended with, and a
+  # hit writes it into the example's fresh copy. Satisfying a shipped
+  # lock that pins gems the running Ruby cannot install re-resolves it
+  # fresh (see below) in the verifying example's copy alone, so later
+  # copies ship the original lock again: handing them the resolved
+  # lock is what keeps their `bundle exec` off gem versions that were
+  # never installed.
+  def install_dependencies
+    key = [@gemfile_fixture, bundle_with]
+    if (lockfile = VERIFIED_BUNDLES[key])
+      return write_file("Gemfile.lock", lockfile)
+    end
+
+    check_or_install_dependencies
+    VERIFIED_BUNDLES[key] = read_file("Gemfile.lock")
+  end
+
+  # rubocop:disable-next Style/MutableConstant -- the cache fills in as fixtures verify
+  VERIFIED_BUNDLES = {}
+
   # `bundle check` answers in a fraction of a full resolve when the
   # shipped lockfile is already satisfied; anything else drops the lock
   # and resolves fresh. Installs are serialized across concurrent rspec
   # processes because rubygems' native-extension builds are not
   # concurrency-safe: two simultaneous installs of the same gem compile
   # in the same ext directory and the loser dies mid-make.
-  def install_dependencies
+  def check_or_install_dependencies
     return if run_command("bundle check", timeout: 60).success?
 
     with_cross_process_install_lock do
