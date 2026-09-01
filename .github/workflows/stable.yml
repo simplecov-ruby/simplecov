@@ -1,6 +1,10 @@
 name: stable
 
-on: [push, pull_request]
+# Push is scoped to main so a pull request runs this once rather than twice.
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   tests:
