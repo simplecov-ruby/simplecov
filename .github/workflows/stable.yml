@@ -22,12 +22,15 @@ jobs:
 
       matrix:
         os: [ubuntu-latest]
+        # JRuby takes several times as long as any CRuby entry here, so it
+        # leads the list: the scheduler dispatches matrix entries in order, and
+        # starting the long pole first keeps it off the critical path.
         ruby-version:
+          - jruby-10.0
           - '3.2'
           - '3.3'
           - '3.4'
           - '4.0'
-          - jruby-10.0
         include:
           - os: macos-latest
             ruby-version: ruby
@@ -46,6 +49,17 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           rubygems: default
           bundler-cache: true
+
+      # rake spec only passes --group-by runtime when this log exists, and a
+      # fresh checkout has no tmp/, so without it parallel_tests splits by file
+      # size instead. The key carries the sha so every run writes a fresh log,
+      # and restore-keys picks the most recent previous one up.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: tmp/parallel_runtime_rspec.log
+          key: parallel-runtime-${{ matrix.os }}-${{ matrix.ruby-version }}-${{ github.sha }}
+          restore-keys: |
+            parallel-runtime-${{ matrix.os }}-${{ matrix.ruby-version }}-
 
       # The sandbox specs skip themselves on alternative Ruby implementations
       # and on Windows (see spec/support/sandbox_project.rb), and the frontend

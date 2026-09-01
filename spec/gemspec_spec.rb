@@ -1,15 +1,17 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "open3"
+require "support/captured_runs"
 
 RSpec.describe "gemspec sanity" do
-  after do
-    File.delete(Dir.glob("simplecov-*.gem").first)
-  end
-
   let(:build) do
-    Bundler.with_original_env do
-      Open3.capture3("gem build simplecov.gemspec")
+    CapturedRuns.once(:gemspec_build) do
+      Bundler.with_original_env do
+        Open3.capture3("gem build simplecov.gemspec")
+      end
+    ensure
+      FileUtils.rm_f(Dir.glob("simplecov-*.gem"))
     end
   end
 

@@ -2,6 +2,7 @@
 
 require "helper"
 require "open3"
+require "support/captured_runs"
 require "tmpdir"
 
 RSpec.describe "frontend asset compilation" do
@@ -15,12 +16,14 @@ RSpec.describe "frontend asset compilation" do
       SH
     end
     let(:run) do
-      Dir.mktmpdir("simplecov-failing-esbuild-") do |tmp|
-        esbuild = File.join(tmp, "esbuild")
-        File.write(esbuild, failing_esbuild)
-        FileUtils.chmod(0o755, esbuild)
-        run_rakefile('minify_css("body {}", esbuild: "esbuild")',
-          "PATH" => [tmp, ENV.fetch("PATH")].join(File::PATH_SEPARATOR))
+      CapturedRuns.once(:failing_esbuild) do
+        Dir.mktmpdir("simplecov-failing-esbuild-") do |tmp|
+          esbuild = File.join(tmp, "esbuild")
+          File.write(esbuild, failing_esbuild)
+          FileUtils.chmod(0o755, esbuild)
+          run_rakefile('minify_css("body {}", esbuild: "esbuild")',
+            "PATH" => [tmp, ENV.fetch("PATH")].join(File::PATH_SEPARATOR))
+        end
       end
     end
     let(:status) { run.last }
@@ -43,7 +46,9 @@ RSpec.describe "frontend asset compilation" do
 
   describe "mangling CSS custom properties" do
     let(:css) { ".cell--numerator{text-align:right;color:var(--example-token)}.x{--example-token:#fff}" }
-    let(:run) { run_rakefile("print mangle_css_custom_properties(#{css.inspect})") }
+    let(:run) do
+      CapturedRuns.once(:mangle_css) { run_rakefile("print mangle_css_custom_properties(#{css.inspect})") }
+    end
     let(:status) { run.last }
     let(:output) { run.first }
 

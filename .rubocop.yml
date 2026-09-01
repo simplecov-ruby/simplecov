@@ -143,6 +143,13 @@ RSpec/DescribeClass:
     - "spec/return_codes_spec.rb"
     - "spec/stderr_output_spec.rb"
 
+RSpec/SpecFilePathFormat:
+  Exclude:
+    # SimpleCov::CLI is one class, but its spec was far too slow to leave on
+    # one parallel worker, so the two heaviest subcommands have files of their
+    # own here. They still describe the class the directory is named for.
+    - "spec/simple_cov/cli/**/*"
+
 RSpec/NestedGroups:
   Max: 5 # TODO: Lower to 3
 RSpec/MultipleMemoizedHelpers:

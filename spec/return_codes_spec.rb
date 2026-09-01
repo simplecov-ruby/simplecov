@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "helper"
+require "support/captured_runs"
 
 RSpec.describe "return codes" do
   context "when inside fixtures/frameworks" do
@@ -11,7 +12,7 @@ RSpec.describe "return codes" do
       end
     end
 
-    let(:capture) { Open3.capture3(env, command) }
+    let(:capture) { CapturedRuns.once([env, command]) { Open3.capture3(env, command) } }
     let(:env) { {} }
     let(:captured_stderr) { capture[1] }
     let(:status) { capture[2] }

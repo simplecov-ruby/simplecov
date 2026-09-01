@@ -22,6 +22,13 @@ ignore:
   # department shouldn't touch it.
   - "spec/support/**/*":
       - RSpec/Output
+      - RSpec/ContextWording
+
+  # SimpleCov::CLI is one class, but its spec was far too slow to leave on one
+  # parallel worker, so the two heaviest subcommands have files of their own
+  # here. They still describe the class the directory is named for.
+  - "spec/simple_cov/cli/**/*":
+      - RSpec/SpecFilePathFormat
 
   # .rubocop.yml caps these deliberately, each with a TODO to tighten, and
   # owns the behavior specs that describe no single class.

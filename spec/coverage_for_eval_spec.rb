@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "helper"
+require "support/captured_runs"
 
 RSpec.describe "coverage for eval" do
   if SimpleCov.coverage_for_eval_supported?
@@ -11,12 +12,16 @@ RSpec.describe "coverage for eval" do
       end
     end
 
-    let(:capture) { Open3.capture3("bundle e ruby eval_test.rb") }
-    let(:stderr) { capture[1] }
-    let(:resultset) do
-      capture
-      JSON.parse(File.read("./coverage/.resultset.json"))
+    # The around hook clears ./coverage before every example, so the run has to
+    # hand back what it wrote as well as what it printed.
+    let(:capture) do
+      CapturedRuns.once(:coverage_for_eval) do
+        _stdout, stderr, = Open3.capture3("bundle e ruby eval_test.rb")
+        [stderr, JSON.parse(File.read("./coverage/.resultset.json"))]
+      end
     end
+    let(:stderr) { capture.first }
+    let(:resultset) { capture.last }
     let(:erb_entry) do
       resultset.values.first.fetch("coverage").find { |path, _data| path.end_with?("eval_test.erb") }
     end
