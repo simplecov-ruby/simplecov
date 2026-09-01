@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
-               mutant_expression: ["SimpleCov::ExitCodes::ExitCodeHandling*", "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::ExitCodeHandling*", "SimpleCov::CoverageViolations*"] do
   subject(:exit_status) { described_class.call(result, coverage_limits: coverage_limits) }
 
   let(:result) { instance_double(SimpleCov::Result) }
@@ -76,15 +76,15 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
 
     it "builds each check in the order they are consulted" do
       expect(checks.map(&:class)).to eq([
-                                          SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
-                                          SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
-                                          SimpleCov::ExitCodes::BaselineCheck,
-                                          SimpleCov::ExitCodes::MinimumCoverageByGroupCheck,
-                                          SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
-                                          SimpleCov::ExitCodes::MaximumCoverageDropCheck,
-                                          SimpleCov::ExitCodes::MaximumMissedCheck,
-                                          SimpleCov::ExitCodes::MaximumMissedPerFileCheck
-                                        ])
+        SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
+        SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
+        SimpleCov::ExitCodes::BaselineCheck,
+        SimpleCov::ExitCodes::MinimumCoverageByGroupCheck,
+        SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
+        SimpleCov::ExitCodes::MaximumCoverageDropCheck,
+        SimpleCov::ExitCodes::MaximumMissedCheck,
+        SimpleCov::ExitCodes::MaximumMissedPerFileCheck
+      ])
     end
 
     it "hands every check the result it is to judge" do
@@ -93,11 +93,11 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
 
     it "hands each check the limit it enforces" do
       expect(checks.map { |check| check.send(:thresholds) }).to eq([
-                                                                     {line: 90.0}, {line: 80.0}, nil,
-                                                                     {"Libs" => {line: 70.0}},
-                                                                     {line: 99.0}, {line: 5.0},
-                                                                     {line: 3}, {line: 2}
-                                                                   ])
+        {line: 90.0}, {line: 80.0}, nil,
+        {"Libs" => {line: 70.0}},
+        {line: 99.0}, {line: 5.0},
+        {line: 3}, {line: 2}
+      ])
       expect(checks.fetch(2).instance_variable_get(:@baseline)).to eq("lib/c.rb" => {line: 1})
     end
 

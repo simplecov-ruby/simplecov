@@ -105,7 +105,7 @@ module SimpleCov
         path, line = definition_site(test)
         return "#{test.class}##{test.name}" unless path
 
-        "#{path.delete_prefix(File.join(SimpleCov.root, ''))}:#{line}"
+        "#{path.delete_prefix(File.join(SimpleCov.root, ""))}:#{line}"
       end
 
       # A method defined in C or through an eval without a filename has no site,

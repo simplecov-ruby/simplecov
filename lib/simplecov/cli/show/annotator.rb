@@ -23,7 +23,7 @@ module SimpleCov
           return if labels.empty?
 
           gutter = " " * (widths.fetch(:number) + widths.fetch(:count) + 4)
-          stdout.puts(gutter + paint("^ #{labels.join(', ')}", :red, color))
+          stdout.puts(gutter + paint("^ #{labels.join(", ")}", :red, color))
         end
 
         def missed_lines(entry)

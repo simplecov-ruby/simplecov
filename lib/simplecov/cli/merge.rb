@@ -103,7 +103,7 @@ module SimpleCov
 
       def duplicate_warning(command_name, paths)
         "simplecov merge: warning — command_name #{command_name.inspect} " \
-          "appears in #{paths.size} input files (#{paths.join(', ')}); " \
+          "appears in #{paths.size} input files (#{paths.join(", ")}); " \
           "entries will be merged"
       end
 

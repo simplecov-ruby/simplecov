@@ -12,7 +12,7 @@ RSpec.describe "coverage for eval" do
     end
 
     let(:capture) { Open3.capture3("bundle e ruby eval_test.rb") }
-    let(:stderr)  { capture[1] }
+    let(:stderr) { capture[1] }
     let(:resultset) do
       capture
       JSON.parse(File.read("./coverage/.resultset.json"))

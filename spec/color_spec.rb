@@ -35,7 +35,7 @@ RSpec.describe SimpleCov::Color do
     end
 
     before { SimpleCov.color :auto }
-    after  { SimpleCov.color :auto }
+    after { SimpleCov.color :auto }
 
     it "returns false when NO_COLOR is set (regardless of TTY)" do
       ENV["NO_COLOR"] = "1"

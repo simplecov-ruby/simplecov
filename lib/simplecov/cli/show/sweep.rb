@@ -22,7 +22,7 @@ module SimpleCov
           elsif rows.empty?
             stderr.puts("simplecov show: nothing uncovered")
           else
-            rows.each { |path, missed| stdout.puts("#{path}:#{Patch::Output.ranges(missed, ',')}") }
+            rows.each { |path, missed| stdout.puts("#{path}:#{Patch::Output.ranges(missed, ",")}") }
           end
           0
         end

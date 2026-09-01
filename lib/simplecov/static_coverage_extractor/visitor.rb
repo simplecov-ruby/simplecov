@@ -112,7 +112,7 @@ module SimpleCov
         super
       end
 
-    private
+      private
 
       # IfNode and UnlessNode share a shape but expose the trailing arm under
       # different accessors, which `if_like_else_location` hides.

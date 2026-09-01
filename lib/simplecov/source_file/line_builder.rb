@@ -15,7 +15,7 @@ module SimpleCov
         lines
       end
 
-    private
+      private
 
       # When `:line` coverage is disabled the Coverage module emits no "lines" data,
       # so every position looks up nil. The source rows are still useful for the

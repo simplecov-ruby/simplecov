@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::ErrorsFormatter,
-               mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
+  mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
   let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 9, missed: 1) }
   let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 1, missed: 1) }
   let(:method_stats) { SimpleCov::CoverageStatistics.new(covered: 3, missed: 1) }
@@ -183,9 +183,9 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ErrorsFormatter,
 
   def file_double(project_filename, statistics)
     instance_double(SimpleCov::SourceFile,
-                    filename: "/project/#{project_filename}",
-                    project_filename: project_filename,
-                    coverage_statistics: statistics)
+      filename: "/project/#{project_filename}",
+      project_filename: project_filename,
+      coverage_statistics: statistics)
   end
 
   def result_double(*files, groups: {})

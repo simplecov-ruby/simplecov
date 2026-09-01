@@ -15,7 +15,7 @@ module SimpleCov
       def capture(*argv)
         stdout, stderr, status = Open3.capture3("git", *argv)
         [stdout, stderr.lines.first.to_s.strip, status.success?]
-      rescue StandardError => e
+      rescue => e
         [nil, e.message, false]
       end
 

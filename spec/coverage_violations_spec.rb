@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::CoverageViolations*" do
-  let(:line_stats)   { SimpleCov::CoverageStatistics.new(covered: 80, missed: 20) }
-  let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 5,  missed: 5) }
+  let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 80, missed: 20) }
+  let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 5, missed: 5) }
 
   describe ".minimum_overall" do
     it "reports violations for criteria below threshold" do
@@ -23,9 +23,9 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
   describe ".minimum_by_file" do
     let(:file) do
       instance_double(SimpleCov::SourceFile,
-                      filename: "/abs/lib/a.rb",
-                      project_filename: "lib/a.rb",
-                      coverage_statistics: {line: line_stats})
+        filename: "/abs/lib/a.rb",
+        project_filename: "lib/a.rb",
+        coverage_statistics: {line: line_stats})
     end
 
     it "skips a configured threshold whose criterion isn't in the file's stats" do
@@ -118,9 +118,9 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
   describe "violation shapes" do
     let(:file) do
       instance_double(SimpleCov::SourceFile,
-                      filename: "/abs/lib/a.rb",
-                      project_filename: "lib/a.rb",
-                      coverage_statistics: {line: line_stats, branch: branch_stats})
+        filename: "/abs/lib/a.rb",
+        project_filename: "lib/a.rb",
+        coverage_statistics: {line: line_stats, branch: branch_stats})
     end
     let(:result) { instance_double(SimpleCov::Result, files: [file]) }
 
@@ -192,9 +192,9 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     let(:floor) { SimpleCov::Baseline::Floor.new(percent: 90.0, missed: nil) }
     let(:file) do
       instance_double(SimpleCov::SourceFile,
-                      filename: "/abs/lib/a.rb",
-                      project_filename: "lib/a.rb",
-                      coverage_statistics: {line: line_stats})
+        filename: "/abs/lib/a.rb",
+        project_filename: "lib/a.rb",
+        coverage_statistics: {line: line_stats})
     end
     let(:result) { instance_double(SimpleCov::Result, files: [file]) }
 
@@ -245,8 +245,8 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     it "rounds the percent it reports the way every other check does" do
       thirds = SimpleCov::CoverageStatistics.new(covered: 1, missed: 2)
       uneven = instance_double(SimpleCov::SourceFile,
-                               filename: "/abs/lib/b.rb", project_filename: "lib/b.rb",
-                               coverage_statistics: {line: thirds})
+        filename: "/abs/lib/b.rb", project_filename: "lib/b.rb",
+        coverage_statistics: {line: thirds})
       floor = SimpleCov::Baseline::Floor.new(percent: 90.0, missed: nil)
       baseline = instance_double(SimpleCov::Baseline)
       allow(baseline).to receive(:entry_for).with("lib/b.rb").and_return(line: floor)
@@ -263,8 +263,8 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
 
     it "keeps checking the files that follow one the baseline has no entry for" do
       other = instance_double(SimpleCov::SourceFile,
-                              filename: "/abs/lib/z.rb", project_filename: "lib/z.rb",
-                              coverage_statistics: {line: line_stats})
+        filename: "/abs/lib/z.rb", project_filename: "lib/z.rb",
+        coverage_statistics: {line: line_stats})
       baseline = instance_double(SimpleCov::Baseline)
       allow(baseline).to receive(:entry_for).with("lib/a.rb").and_return(nil)
       allow(baseline).to receive(:entry_for).with("lib/z.rb").and_return(line: floor)
@@ -293,7 +293,7 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
     let(:method_stats) { SimpleCov::CoverageStatistics.new(covered: 3, missed: 7) }
     let(:result) do
       instance_double(SimpleCov::Result,
-                      coverage_statistics: {line: line_stats, branch: branch_stats, method: method_stats})
+        coverage_statistics: {line: line_stats, branch: branch_stats, method: method_stats})
     end
     let(:hashlike) { Class.new(Hash) }
 
@@ -387,12 +387,12 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
 
       it "medians each criterion over its own recorded values" do
         history({"totals" => {"line" => 90.0, "branch" => 70.0}},
-                {"totals" => {"line" => 100.0, "branch" => 60.0}},
-                {"totals" => {"line" => 80.0, "branch" => 80.0}})
+          {"totals" => {"line" => 100.0, "branch" => 60.0}},
+          {"totals" => {"line" => 80.0, "branch" => 80.0}})
 
         expect(drop({line: 5, branch: 5}, mode: :median))
           .to contain_exactly({criterion: :line, maximum: 5, actual: 10.0},
-                              {criterion: :branch, maximum: 5, actual: 20.0})
+            {criterion: :branch, maximum: 5, actual: 20.0})
       end
 
       it "medians a criterion recorded in only some runs" do
@@ -432,7 +432,7 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
 
       it "medians the middle pair of an even run count, not the pair below it" do
         history({"totals" => {"line" => 10.0}}, {"totals" => {"line" => 20.0}},
-                {"totals" => {"line" => 30.0}}, {"totals" => {"line" => 40.0}})
+          {"totals" => {"line" => 30.0}}, {"totals" => {"line" => 40.0}})
         expect(drop({line: -100}, mode: :median)).to eq([{criterion: :line, maximum: -100, actual: -55.0}])
       end
 
@@ -453,12 +453,12 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
         history({"branch" => "feature", "totals" => {"line" => 90.0, "branch" => 90.0}})
         expect(drop({line: 5, branch: 5}, mode: :branch))
           .to contain_exactly({criterion: :line, maximum: 5, actual: 10.0},
-                              {criterion: :branch, maximum: 5, actual: 40.0})
+            {criterion: :branch, maximum: 5, actual: 40.0})
       end
 
       it "skips an entry recorded on another branch" do
         history({"branch" => "feature", "totals" => {"line" => 90.0}},
-                {"branch" => "main", "totals" => {"line" => 100.0}})
+          {"branch" => "main", "totals" => {"line" => 100.0}})
         expect(drop({line: 5}, mode: :branch)).to eq([{criterion: :line, maximum: 5, actual: 10.0}])
       end
 
@@ -508,9 +508,9 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
   describe ".minimum_by_file overrides" do
     def file_double(project_filename)
       instance_double(SimpleCov::SourceFile,
-                      filename: "/abs/#{project_filename}",
-                      project_filename: project_filename,
-                      coverage_statistics: {line: line_stats})
+        filename: "/abs/#{project_filename}",
+        project_filename: project_filename,
+        coverage_statistics: {line: line_stats})
     end
 
     def thresholds_for(project_filename, overrides)
@@ -540,8 +540,8 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
 
     it "keeps the defaults an override does not mention" do
       file = instance_double(SimpleCov::SourceFile,
-                             filename: "/abs/lib/a.rb", project_filename: "lib/a.rb",
-                             coverage_statistics: {line: line_stats, branch: branch_stats})
+        filename: "/abs/lib/a.rb", project_filename: "lib/a.rb",
+        coverage_statistics: {line: line_stats, branch: branch_stats})
       result = instance_double(SimpleCov::Result, files: [file])
       violations = described_class.minimum_by_file(result, {line: 0, branch: 90}, {"lib/" => {line: 90}})
       expect(violations.map { |v| [v[:criterion], v[:expected]] })

@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByFileCheck*",
-                                   "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByFileCheck*",
+    "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage_by_file, overrides) }
 
   let(:result) do

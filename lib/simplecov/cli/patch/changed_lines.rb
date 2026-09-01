@@ -65,9 +65,9 @@ module SimpleCov
           return [nil, "a ref cannot begin with \"-\""] if Git.option_like_ref?(base)
 
           argv = ["-C", root, "-c", "core.quotePath=false", "diff", "--unified=0",
-                  "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
-                  "--dst-prefix=b/",
-                  find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
+            "--no-color", "--no-ext-diff", "--no-textconv", "--inter-hunk-context=0",
+            "--dst-prefix=b/",
+            find_renames ? "--find-renames" : "--no-renames", "--merge-base", base, "--"]
           stdout, detail, success = Git.capture(*argv)
           [(stdout if success), detail]
         end

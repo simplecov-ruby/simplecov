@@ -15,7 +15,8 @@ module SimpleCov
           true
         end
 
-        def wait_for_siblings; end
+        def wait_for_siblings
+        end
 
         # Whether `wait_for_siblings` blocks until every sibling process has exited,
         # so no further resultset can appear. When true, the reporting worker can

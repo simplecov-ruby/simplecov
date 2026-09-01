@@ -43,7 +43,7 @@ RSpec.describe "rspec-conductor integration", :sandbox do
   end
 
   def run_conductor(*flags)
-    command = "bundle exec rspec-conductor --workers 2 #{flags.join(' ')} spec".squeeze(" ")
+    command = "bundle exec rspec-conductor --workers 2 #{flags.join(" ")} spec".squeeze(" ")
     2.times do
       FileUtils.rm_rf(File.join(sandbox_dir, "coverage"))
       run_command_and_expect_success(command, timeout: 240)
@@ -57,7 +57,7 @@ RSpec.describe "rspec-conductor integration", :sandbox do
   def conductor_worker_summary
     return "no resultset at all" unless file_exist?("coverage/.resultset.json")
 
-    resultset_json.map { |name, data| "#{name} (#{data.fetch('coverage', {}).size} files)" }.join(", ")
+    resultset_json.map { |name, data| "#{name} (#{data.fetch("coverage", {}).size} files)" }.join(", ")
   end
 
   it "produces the normal-run results through rspec-conductor" do

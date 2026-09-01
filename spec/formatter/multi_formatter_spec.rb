@@ -28,7 +28,7 @@ RSpec.describe SimpleCov::Formatter::MultiFormatter do
       output = capture_stderr { results = multi.format(result) }
 
       expect(results).to eq([nil, "ok: RSpec"])
-      line = RUBY_ENGINE == "ruby" ? Regexp.escape(line.to_s) : "\\d+"
+      line = (RUBY_ENGINE == "ruby") ? Regexp.escape(line.to_s) : "\\d+"
       expect(output).to match(
         /\AFormatter #{Regexp.escape(bad_formatter.to_s)} failed with ArgumentError: boom \
 \(#{Regexp.escape(file)}:#{line}:[^)]*\)\n\z/

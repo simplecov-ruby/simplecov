@@ -72,7 +72,7 @@ module SimpleCov
       ].freeze
       # simplecov:enable branch
 
-    private
+      private
 
       # On 3.2 the dead arm's branch table entries survive the fold (parse.y
       # instrumented branches before eliminating dead code) while its methods
@@ -107,7 +107,7 @@ module SimpleCov
         unwrapped = unwrap_parentheses(node)
         return nil unless foldable?(node, unwrapped)
 
-        FALSY_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) } ? :falsy : :truthy
+        (FALSY_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) }) ? :falsy : :truthy
       end
 
       # `unwrapped` differing from `node` is what says parentheses were seen
@@ -159,7 +159,7 @@ module SimpleCov
       def static_container?(node)
         case node
         when Prism::ArrayNode then static_array_literal?(node)
-        when Prism::HashNode  then static_hash_literal?(node)
+        when Prism::HashNode then static_hash_literal?(node)
         when Prism::RangeNode then static_range_literal?(node)
         else false
         end

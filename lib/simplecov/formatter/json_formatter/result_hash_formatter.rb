@@ -32,7 +32,7 @@ module SimpleCov
             document
           end
 
-        private
+          private
 
           # Contexts are present exactly when the result carried a complete map, so
           # consumers can tell "recorded and empty" from "not recorded". History is
@@ -49,7 +49,7 @@ module SimpleCov
           def format_files(result, include_source:)
             result.files.to_h do |source_file|
               [source_file.project_filename,
-               SourceFileFormatter.call(source_file, include_source: include_source, contexts: result.contexts)]
+                SourceFileFormatter.call(source_file, include_source: include_source, contexts: result.contexts)]
             end
           end
 
@@ -80,7 +80,7 @@ module SimpleCov
           def git_commit
             output, status = Open3.capture2e("git", "-C", SimpleCov.root, "rev-parse", "HEAD")
             output.strip if status.success?
-          rescue StandardError
+          rescue
             nil
           end
 
@@ -99,9 +99,9 @@ module SimpleCov
             line = statistics[:line]
             branch = statistics[:branch]
             method_stat = statistics[:method]
-            result[:lines]    = format_line_statistic(line)          if line
-            result[:branches] = format_single_statistic(branch)      if branch
-            result[:methods]  = format_single_statistic(method_stat) if method_stat
+            result[:lines] = format_line_statistic(line) if line
+            result[:branches] = format_single_statistic(branch) if branch
+            result[:methods] = format_single_statistic(method_stat) if method_stat
             result
           end
 

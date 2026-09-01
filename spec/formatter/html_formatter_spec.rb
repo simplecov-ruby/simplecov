@@ -9,7 +9,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   subject(:formatter) { described_class.new(silent: true) }
 
   let(:loud_formatter) { described_class.new(silent: false) }
-  let(:fixtures_path)  { File.join(source_fixture_base_directory, "fixtures") }
+  let(:fixtures_path) { File.join(source_fixture_base_directory, "fixtures") }
 
   let(:tmp_root) { Dir.mktmpdir("simplecov-html-formatter-") }
   let(:coverage_dir) { File.join(tmp_root, "coverage") }
@@ -64,7 +64,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   it "reads its template from the assets directory beside the formatter" do
     expect(formatter.send(:public_dir))
-      .to eq("#{File.expand_path('../../lib/simplecov/formatter/html_formatter/public', __dir__)}/")
+      .to eq("#{File.expand_path("../../lib/simplecov/formatter/html_formatter/public", __dir__)}/")
   end
 
   describe "#format when an existing coverage.json was written after this process started" do
@@ -75,7 +75,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     it "warns that a concurrent process may have written it" do
       future_timestamp = (Time.now + 3600).iso8601
       File.write(File.join(coverage_dir, "coverage.json"),
-                 JSON.generate(meta: {timestamp: future_timestamp, command_name: "Other Suite"}))
+        JSON.generate(meta: {timestamp: future_timestamp, command_name: "Other Suite"}))
 
       stderr = capture_stderr { formatter.format(make_result) }
 
@@ -86,7 +86,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     it "does not warn when the file carries this run's command_name" do
       result = make_result
       File.write(File.join(coverage_dir, "coverage.json"),
-                 JSON.generate(meta: {timestamp: (Time.now + 3600).iso8601, command_name: result.command_name}))
+        JSON.generate(meta: {timestamp: (Time.now + 3600).iso8601, command_name: result.command_name}))
 
       expect { formatter.format(result) }.not_to output.to_stderr
     end
@@ -240,7 +240,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
       html = formatter.send(:render_report, "{}")
 
       expect(html).to eq(template.sub(described_class::DATA_MARKER,
-                                      %(<script>window.SIMPLECOV_DATA = {};</script>)))
+        %(<script>window.SIMPLECOV_DATA = {};</script>)))
       expect(html).not_to include(described_class::DATA_MARKER)
     end
 
@@ -338,7 +338,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   describe "integration with the full ALL_FIXTURES set" do
     let!(:original_criteria) { SimpleCov.coverage_criteria.dup }
-    let!(:original_filters)  { SimpleCov.filters.dup }
+    let!(:original_filters) { SimpleCov.filters.dup }
 
     let(:full_coverage) { CoverageFixtures::ALL_FIXTURES }
 

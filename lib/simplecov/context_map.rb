@@ -128,7 +128,7 @@ module SimpleCov
         build(contexts, files)
       end
 
-    private
+      private
 
       def build(contexts, files)
         map = new
@@ -164,7 +164,7 @@ module SimpleCov
       end
     end
 
-  private
+    private
 
     # Sorted by index: recording and merge order vary run to run, and a
     # deterministic serialization keeps stored resultsets diffable.
@@ -172,7 +172,7 @@ module SimpleCov
       table.sort.to_h { |index, bitmap| [index.to_s, bitmap.to_s(16)] }
     end
 
-  protected
+    protected
 
     # Live state, not copies, which is why these are protected rather than
     # public.

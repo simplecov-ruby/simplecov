@@ -17,7 +17,7 @@ module SimpleCov
       when Symbol then group_name.to_s
       else
         raise ConfigurationError,
-              "Group names must be Strings, got #{group_name.inspect} (#{group_name.class})"
+          "Group names must be Strings, got #{group_name.inspect} (#{group_name.class})"
       end
     end
 
@@ -27,7 +27,7 @@ module SimpleCov
       return group_names unless group_names.any? { |name| name.eql?(UNGROUPED) }
 
       raise ConfigurationError,
-            "#{UNGROUPED.inspect} is reserved for files that do not match a configured group"
+        "#{UNGROUPED.inspect} is reserved for files that do not match a configured group"
     end
   end
 end

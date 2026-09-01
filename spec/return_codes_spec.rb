@@ -11,10 +11,10 @@ RSpec.describe "return codes" do
       end
     end
 
-    let(:capture)         { Open3.capture3(env, command) }
-    let(:env)             { {} }
+    let(:capture) { Open3.capture3(env, command) }
+    let(:env) { {} }
     let(:captured_stderr) { capture[1] }
-    let(:status)          { capture[2] }
+    let(:status) { capture[2] }
 
     def stderr_without_report_summary(stderr)
       stderr.lines.reject do |line|

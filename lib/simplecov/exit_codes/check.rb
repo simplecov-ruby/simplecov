@@ -31,7 +31,7 @@ module SimpleCov
         report_lines.each { |line| ExitCodes.print_error(line) }
       end
 
-    private
+      private
 
       attr_reader :result, :thresholds
     end

@@ -70,7 +70,7 @@ module SimpleCov
       end
     end
 
-  private
+    private
 
     # mutant:disable — `NOT_RELEVANT` is nil, so naming it and writing
     # the literal are the same value, and so is an `unless` that falls

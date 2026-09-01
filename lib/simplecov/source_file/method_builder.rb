@@ -21,7 +21,7 @@ module SimpleCov
         process_skipped(methods)
       end
 
-    private
+      private
 
       # Coverage reports an eval'd `def` at the eval caller's line and name, so a
       # method whose `(name, start_line)` is absent from the real-source `def` set

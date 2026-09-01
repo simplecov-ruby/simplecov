@@ -31,7 +31,7 @@ module SimpleCov
         else
           Output.emit_text(stdout, rows, CLI.color_enabled?(opts, stdout))
         end
-        opts.fetch(:fail_on_drop) && coverage_drop?(rows) ? 1 : 0
+        (opts.fetch(:fail_on_drop) && coverage_drop?(rows)) ? 1 : 0
       end
 
       def parse(args, stderr)
@@ -42,13 +42,13 @@ module SimpleCov
         end
 
         opts[:baseline] = load_coverage(opts.fetch(:rest).first, stderr) or return nil
-        opts[:current]  = load_coverage(opts.fetch(:input), stderr) or return nil
+        opts[:current] = load_coverage(opts.fetch(:input), stderr) or return nil
         opts
       end
 
       def parse_flags(args)
         opts, rest = parse_common(args, fail_on_drop: false, threshold: 0.0) do |o, options|
-          o.on("--fail-on-drop")       { options[:fail_on_drop] = true }
+          o.on("--fail-on-drop") { options[:fail_on_drop] = true }
           o.on("--threshold N", Float) { |v| options[:threshold] = v }
         end
         opts.merge(rest: rest)
@@ -90,7 +90,7 @@ module SimpleCov
       end
 
       def status_for(current_payload, baseline_payload)
-        return "added"   if baseline_payload.nil?
+        return "added" if baseline_payload.nil?
         return "removed" if current_payload.nil?
 
         "changed"
@@ -108,7 +108,7 @@ module SimpleCov
       # in one criterion cannot fail the run over float noise in another.
       def coverage_drop?(rows)
         rows.reject { |row| row.fetch(:status).eql?("removed") }
-            .any? { |row| row.fetch_values(:line_delta, :branch_delta, :method_delta).min < -EPSILON }
+          .any? { |row| row.fetch_values(:line_delta, :branch_delta, :method_delta).min < -EPSILON }
       end
     end
   end

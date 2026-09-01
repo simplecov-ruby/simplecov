@@ -20,10 +20,10 @@ module SimpleCov
   extend SingleForwardable
 
   def_delegators :current_run,
-                 :pid, :pid=, :process_start_time, :process_start_time=,
-                 :subprocess_serial, :next_subprocess_serial!,
-                 :forked_subprocess?, :mark_forked_subprocess!,
-                 :result?, :collating_result?
+    :pid, :pid=, :process_start_time, :process_start_time=,
+    :subprocess_serial, :next_subprocess_serial!,
+    :forked_subprocess?, :mark_forked_subprocess!,
+    :result?, :collating_result?
 
   class << self
     def current_run
@@ -108,7 +108,7 @@ module SimpleCov
       start_coverage_measurement
     end
 
-  private
+    private
 
     def start_coverage_measurement
       start_arguments = coverage_criteria.to_h do |criterion|

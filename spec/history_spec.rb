@@ -33,7 +33,7 @@ RSpec.describe SimpleCov::History do
   end
 
   describe ".record", mutant_expression: ["SimpleCov::History*", "SimpleCov::History.record",
-                                          "SimpleCov::History.read"] do
+    "SimpleCov::History.read"] do
     it "appends an entry carrying totals, groups, files, and provenance" do
       described_class.record(result)
 
@@ -140,7 +140,7 @@ RSpec.describe SimpleCov::History do
 
     it "answers empty, with a warning, for entries that are not a list" do
       File.write(described_class.history_path,
-                 JSON.dump("simplecov_history" => {"entries" => {"nope" => 1}}))
+        JSON.dump("simplecov_history" => {"entries" => {"nope" => 1}}))
 
       entries = nil
       stderr = capture_stderr { entries = described_class.read }

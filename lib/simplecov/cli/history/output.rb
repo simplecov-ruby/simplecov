@@ -24,14 +24,14 @@ module SimpleCov
         end
 
         def emit_totals(stdout, opts, entries, color)
-          stdout.puts("Coverage history: #{opts.fetch(:input)} (#{pluralize(entries.length, 'run')})")
+          stdout.puts("Coverage history: #{opts.fetch(:input)} (#{pluralize(entries.length, "run")})")
           stdout.puts
           emit_criteria_views(stdout, entries, color, "totals")
         end
 
         def emit_file(stdout, opts, entries, color)
           file = opts.fetch(:file)
-          stdout.puts("Coverage history for #{file} (#{pluralize(entries.length, 'run')})")
+          stdout.puts("Coverage history for #{file} (#{pluralize(entries.length, "run")})")
           stdout.puts
           emit_criteria_views(stdout, entries, color, "files", file)
         end
@@ -55,7 +55,7 @@ module SimpleCov
           width = entries.map { |entry| branch_of(entry).length }.max
           entries.each do |entry|
             commit = (entry["commit"] || "-")[0, 7].ljust(7)
-            stdout.puts("  #{entry['created_at']}  #{branch_of(entry).ljust(width)}  #{commit}  #{yield(entry)}")
+            stdout.puts("  #{entry["created_at"]}  #{branch_of(entry).ljust(width)}  #{commit}  #{yield(entry)}")
           end
         end
 
@@ -127,7 +127,7 @@ module SimpleCov
         end
 
         def pluralize(number, noun)
-          "#{number} #{noun}#{'s' unless number.eql?(1)}"
+          "#{number} #{noun}#{"s" unless number.eql?(1)}"
         end
       end
     end

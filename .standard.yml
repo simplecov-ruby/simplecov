@@ -1,0 +1,35 @@
+# Standard's own entry point. `.rubocop.yml` inherits the same rule set from
+# these gems, so `rake standard` and `rake rubocop` agree on style. Standard
+# takes no configuration beyond ignores, so where this project has a deliberate
+# threshold or layout convention, RuboCop stays the enforcer and Standard is
+# told to look away.
+plugins:
+  - standard-performance
+  - standard-rspec
+
+ruby_version: 3.2
+
+ignore:
+  # Fixtures are byte-stable test inputs: their line numbers, layout, and
+  # sometimes their encodings are what the specs assert against, so they are
+  # not subject to style.
+  - "spec/fixtures/**/*"
+  - "test_projects/**/*"
+  - "tmp/**/*"
+  - "vendor/bundle/**/*"
+
+  # spec/support/ holds helper modules, not a spec suite, so the RSpec
+  # department shouldn't touch it.
+  - "spec/support/**/*":
+      - RSpec/Output
+
+  # .rubocop.yml caps these deliberately, each with a TODO to tighten, and
+  # owns the spec layout (spec/foo_spec.rb mirroring lib/simplecov/foo.rb)
+  # along with the behavior specs that describe no single class.
+  - "spec/**/*":
+      - RSpec/MultipleExpectations
+      - RSpec/ExampleLength
+      - RSpec/MultipleMemoizedHelpers
+      - RSpec/NestedGroups
+      - RSpec/SpecFilePathFormat
+      - RSpec/DescribeClass

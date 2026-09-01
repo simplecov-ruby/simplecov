@@ -11,16 +11,16 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
 
   def write_store(coverage:, last_seen: {}, started_at: "2026-08-01T05:00:00Z", updated_at: "2026-08-25T11:00:00Z")
     File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE => {
-                                 "format_version" => 1,
-                                 "started_at" => started_at, "updated_at" => updated_at,
-                                 "coverage" => coverage, "last_seen" => last_seen
-                               }))
+      "format_version" => 1,
+      "started_at" => started_at, "updated_at" => updated_at,
+      "coverage" => coverage, "last_seen" => last_seen
+    }))
   end
 
   def write_windowless_store(coverage:)
     File.write(path, JSON.dump(SimpleCov::Production::FileSink::ENVELOPE => {
-                                 "format_version" => 1, "coverage" => coverage, "last_seen" => {}
-                               }))
+      "format_version" => 1, "coverage" => coverage, "last_seen" => {}
+    }))
   end
 
   it "returns nil when no store is configured" do
@@ -46,7 +46,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ProductionSectionFormatter d
 
   it "carries the window and each file's lines and stamp" do
     write_store(coverage: {"lib/b.rb" => [2], "lib/a.rb" => [1, 3]},
-                last_seen: {"lib/a.rb" => "2026-08-25T10:00:00Z"})
+      last_seen: {"lib/a.rb" => "2026-08-25T10:00:00Z"})
 
     section = described_class.call(path)
 

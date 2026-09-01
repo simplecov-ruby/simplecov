@@ -14,7 +14,7 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
   describe ".existing_meta" do
     it "reads timestamp and command_name from the head without a full parse" do
       File.write(path, JSON.generate(meta: {timestamp: timestamp, command_name: "RSpec"},
-                                     coverage: {"a.rb" => {"source" => ["x"]}}))
+        coverage: {"a.rb" => {"source" => ["x"]}}))
       allow(described_class).to receive(:parse_meta_full)
 
       meta = described_class.existing_meta(path)
@@ -32,7 +32,7 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
 
     it "falls back to a full parse when meta sits beyond the scanned head" do
       File.write(path, JSON.generate(coverage: {"a.rb" => {"source" => ["x" * 70_000]}},
-                                     meta: {timestamp: timestamp, command_name: "RSpec"}))
+        meta: {timestamp: timestamp, command_name: "RSpec"}))
       allow(described_class).to receive(:parse_meta_full).and_call_original
 
       expect(described_class.existing_meta(path)[:command_name]).to eq("RSpec")

@@ -7,7 +7,7 @@ module SimpleCov
         MINIMUM_COVERAGE
       end
 
-    private
+      private
 
       WORST_FILES_LIMIT = 5
       private_constant :WORST_FILES_LIMIT

@@ -21,7 +21,7 @@ module SimpleCov
             errors
           end
 
-        private
+          private
 
           def format_minimum_overall(result, errors)
             CoverageViolations.minimum_overall(result, SimpleCov.minimum_coverage).each do |violation|

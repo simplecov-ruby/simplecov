@@ -29,7 +29,7 @@ module SimpleCov
         AtomicFile.write(last_run_path, "#{JSON.pretty_generate(json)}\n")
       end
 
-    private
+      private
 
       def invalid_last_run
         warn "[SimpleCov]: Warning! Parsing JSON content of .last_run.json failed, ignoring the previous run"

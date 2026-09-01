@@ -55,8 +55,8 @@ module SimpleCov
       return unless coverage_criteria.empty?
 
       raise ConfigurationError,
-            "At least one coverage criterion must be enabled. " \
-            "Re-enable one with `enable_coverage :line`, `:branch`, or `:method`."
+        "At least one coverage criterion must be enabled. " \
+        "Re-enable one with `enable_coverage :line`, `:branch`, or `:method`."
     end
 
     # Whether this run produces line data at all. The oneshot variant counts:
@@ -100,7 +100,7 @@ module SimpleCov
       require "coverage"
     end
 
-  private
+    private
 
     def add_coverage_criterion(criterion)
       raise_if_criterion_unsupported(criterion)
@@ -121,23 +121,23 @@ module SimpleCov
     def raise_if_criterion_disabled(criterion)
       if criterion.equal?(:eval)
         raise ConfigurationError,
-              "Coverage criterion :eval only toggles measuring eval'd code; " \
-              "it cannot carry thresholds or serve as the primary criterion"
+          "Coverage criterion :eval only toggles measuring eval'd code; " \
+          "it cannot carry thresholds or serve as the primary criterion"
       end
 
       raise_if_criterion_unsupported(criterion)
       return if coverage_criterion_enabled?(criterion)
 
       raise ConfigurationError,
-            "Coverage criterion #{criterion}, is disabled! " \
-            "Please enable it first through enable_coverage #{criterion} (if supported)"
+        "Coverage criterion #{criterion}, is disabled! " \
+        "Please enable it first through enable_coverage #{criterion} (if supported)"
     end
 
     def raise_if_criterion_unsupported(criterion)
       return if SUPPORTED_COVERAGE_CRITERIA.member?(criterion)
 
       raise ConfigurationError,
-            "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
+        "Unsupported coverage criterion #{criterion}, supported values are #{SUPPORTED_COVERAGE_CRITERIA}"
     end
   end
 end

@@ -38,7 +38,7 @@ module SimpleCov
         AtomicFile.write(File.join(output_dir, "index.html"), render_report(json), binary: true)
       end
 
-    private
+      private
 
       def entry_point_filename
         "index.html"
@@ -74,7 +74,7 @@ module SimpleCov
           raise "SimpleCov's HTML template is missing its #{DATA_MARKER.inspect} marker"
         end
 
-        data_script = "<script>window.SIMPLECOV_DATA = #{json.gsub('<') { '\u003c' }};</script>"
+        data_script = "<script>window.SIMPLECOV_DATA = #{json.gsub("<") { '\u003c' }};</script>"
         template.sub(DATA_MARKER) { data_script }
       end
 

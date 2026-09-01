@@ -339,7 +339,7 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
       table = described_class.send(:filter_classes_by_argument_type)
 
       expect(table).to eq(String => SimpleCov::StringFilter, Regexp => SimpleCov::RegexFilter,
-                          Array => SimpleCov::ArrayFilter, Proc => SimpleCov::BlockFilter)
+        Array => SimpleCov::ArrayFilter, Proc => SimpleCov::BlockFilter)
       expect(table).to be_frozen
       expect(described_class.send(:filter_classes_by_argument_type)).to be(table)
     end

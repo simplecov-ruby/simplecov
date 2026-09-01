@@ -54,7 +54,7 @@ module SimpleCov
       @subprocess_serial = subprocess_serial + 1
     end
 
-  protected
+    protected
 
     attr_writer :subprocess_serial
   end

@@ -17,7 +17,7 @@ module SimpleCov
         end
 
         def format_row(row, color)
-          line = "  #{delta_parts(row, color).join('  ')}  #{row.fetch(:file)}"
+          line = "  #{delta_parts(row, color).join("  ")}  #{row.fetch(:file)}"
           suffix = STATUS_SUFFIX[row.fetch(:status)]
           suffix ? "#{line}  #{suffix}" : line
         end

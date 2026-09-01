@@ -14,7 +14,7 @@ RSpec.describe SimpleCov::ViewCoverage do
     File.write(unrendered, "<p><%= 2 %></p>\n")
 
     allow(SimpleCov).to receive_messages(root: root, view_globs: ["app/views/**/*.erb"],
-                                         view_coverage?: true, filters: [])
+      view_coverage?: true, filters: [])
     allow(Coverage).to receive_messages(running?: true, peek_result: {rendered => {lines: [1]}})
     allow(compiler).to receive_messages(available?: true, call: true)
   end

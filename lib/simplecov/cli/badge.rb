@@ -19,7 +19,7 @@ module SimpleCov
         key = TOTAL_KEYS[opts.fetch(:criterion)]
         unless key
           return error(stderr,
-                       "unknown --criterion #{opts.fetch(:criterion).inspect} (expected line, branch, or method)")
+            "unknown --criterion #{opts.fetch(:criterion).inspect} (expected line, branch, or method)")
         end
 
         percent = percent_for(opts, key, stderr)
@@ -33,10 +33,10 @@ module SimpleCov
         opts = {input: CLI.default_input, criterion: :line,
                 label: nil, output: nil} #: Hash[Symbol, untyped]
         build_parser do |parser|
-          parser.on("--input PATH")  { |v| opts[:input] = v }
+          parser.on("--input PATH") { |v| opts[:input] = v }
           parser.on("--output PATH") { |v| opts[:output] = v }
           parser.on("--criterion C") { |v| opts[:criterion] = v.to_sym }
-          parser.on("--label TEXT")  { |v| opts[:label] = v }
+          parser.on("--label TEXT") { |v| opts[:label] = v }
         end.parse(args)
         opts
       end

@@ -63,9 +63,9 @@ module SimpleCov
         return unless section.instance_of?(Hash) && section["total"].to_i.positive?
 
         stdout.puts(stats_row(display,
-                              Color.colorize_percent(section["percent"].to_f, enabled: color),
-                              section["covered"],
-                              section.fetch("total")))
+          Color.colorize_percent(section["percent"].to_f, enabled: color),
+          section["covered"],
+          section.fetch("total")))
       end
 
       def emit_json(stdout, data)

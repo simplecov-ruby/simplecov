@@ -62,10 +62,10 @@ module SimpleCov
         opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false} #: Hash[Symbol, untyped]
         rest =
           build_parser do |parser|
-            parser.on("--port N", Integer)           { |v| opts[:port] = v }
-            parser.on("--host HOST")                 { |v| opts[:host] = v }
-            parser.on("--interval SECONDS", Float)   { |v| opts[:interval] = v }
-            parser.on("--open")                      { opts[:open] = true }
+            parser.on("--port N", Integer) { |v| opts[:port] = v }
+            parser.on("--host HOST") { |v| opts[:host] = v }
+            parser.on("--interval SECONDS", Float) { |v| opts[:interval] = v }
+            parser.on("--open") { opts[:open] = true }
           end.order(args)
         [opts, rest]
       end
@@ -78,7 +78,7 @@ module SimpleCov
 
       def session_for(command, opts, stdout, stderr)
         Session.new(command: command, dir: CLI.coverage_dir,
-                    interval: opts.fetch(:interval), stdout: stdout, stderr: stderr)
+          interval: opts.fetch(:interval), stdout: stdout, stderr: stderr)
       end
     end
   end

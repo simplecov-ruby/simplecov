@@ -12,7 +12,7 @@ RSpec.describe SimpleCov::ExitCodes do
           @computed ||= 0
         end
 
-      private
+        private
 
         def compute_violations
           @computed = computed + 1
@@ -51,7 +51,7 @@ RSpec.describe SimpleCov::ExitCodes do
     context "when nothing violates" do
       let(:check) do
         empty_class = Class.new(described_class) do
-        private
+          private
 
           def compute_violations = []
         end

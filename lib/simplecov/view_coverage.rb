@@ -29,7 +29,7 @@ module SimpleCov
 
       rendered = measured_paths
       discover.reject { |path| rendered.include?(path) }
-              .select { |path| TemplateCompiler.call(path) }
+        .select { |path| TemplateCompiler.call(path) }
     end
 
     def enabled?

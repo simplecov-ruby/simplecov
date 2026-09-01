@@ -16,7 +16,7 @@ end
 # Stashed as early as possible, before rake or test/unit tamper with ARGV
 # (#110). The program name is kept separately as well: the join is lossy for
 # a path containing a space, and the guesser reads the executable from it.
-SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(' ')}"
+SimpleCov::CommandGuesser.original_run_command = "#{$PROGRAM_NAME} #{ARGV.join(" ")}"
 SimpleCov::CommandGuesser.original_program_name = $PROGRAM_NAME
 
 require_relative "load_global_config"

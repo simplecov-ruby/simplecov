@@ -53,7 +53,7 @@ module SimpleCov
           return respond(client, 400) if path.nil?
 
           dispatch(client, method, path, root, routes)
-        rescue StandardError
+        rescue
           # Misbehaving clients (truncated requests, connection resets, invalid
           # encoding) shouldn't take the whole server down.
           nil
@@ -116,10 +116,10 @@ module SimpleCov
         end
 
         def respond(client, status, body = "", content_type = "text/plain")
-          client.write("HTTP/1.1 #{status} #{STATUS_TEXT[status] || 'Error'}\r\n",
-                       "Content-Type: #{content_type || 'application/octet-stream'}\r\n",
-                       "Content-Length: #{body.bytesize}\r\n",
-                       "Connection: close\r\n\r\n")
+          client.write("HTTP/1.1 #{status} #{STATUS_TEXT[status] || "Error"}\r\n",
+            "Content-Type: #{content_type || "application/octet-stream"}\r\n",
+            "Content-Length: #{body.bytesize}\r\n",
+            "Connection: close\r\n\r\n")
           client.write(body)
         end
       end

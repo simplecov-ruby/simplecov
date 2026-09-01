@@ -14,7 +14,7 @@ module SandboxProject
     minitest: "minitest"
   }.freeze
 
-  CommandResult = Struct.new(:output, :exit_status, keyword_init: true) do
+  CommandResult = Struct.new(:output, :exit_status) do
     def success?
       exit_status.zero?
     end
@@ -83,7 +83,7 @@ module SandboxProject
 
   def sorted_rspec_command
     files = Dir.glob("spec/**/*_spec.rb", base: sandbox_dir).sort
-    "bundle exec rspec #{files.join(' ')}"
+    "bundle exec rspec #{files.join(" ")}"
   end
 
   def install_dependencies
@@ -96,8 +96,8 @@ module SandboxProject
     VERIFIED_BUNDLES[key] = read_file("Gemfile.lock")
   end
 
-  # rubocop:disable-next Style/MutableConstant -- the cache fills in as fixtures verify
-  VERIFIED_BUNDLES = {}
+  # The cache fills in as fixtures verify.
+  VERIFIED_BUNDLES = {} # rubocop:disable Style/MutableConstant
 
   def check_or_install_dependencies
     return if run_command("bundle check", timeout: 60).success?
@@ -114,7 +114,7 @@ module SandboxProject
     expect(result.output).to include("Coverage report generated")
     expect(file_exist?("#{coverage_dir}/index.html")).to be(true), "expected #{coverage_dir}/index.html to exist"
     expect(file_exist?("#{coverage_dir}/.resultset.json")).to be(true),
-                                                              "expected #{coverage_dir}/.resultset.json to exist"
+      "expected #{coverage_dir}/.resultset.json to exist"
   end
 
   def expect_no_coverage_report(result, coverage_dir: "coverage")
@@ -161,14 +161,14 @@ module SandboxProject
     SimpleCov.formatters = [SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::JSONFormatter]
   RUBY
 
-private
+  private
 
   def sandbox_command_environment(overrides)
     Bundler.unbundled_env
-           .merge(host_bundle_settings)
-           .merge("BUNDLE_WITH" => bundle_with)
-           .merge(scrub_inherited_markers(overrides))
-           .merge("BUNDLE_GEMFILE" => sandbox_gemfile)
+      .merge(host_bundle_settings)
+      .merge("BUNDLE_WITH" => bundle_with)
+      .merge(scrub_inherited_markers(overrides))
+      .merge("BUNDLE_GEMFILE" => sandbox_gemfile)
   end
 
   def host_bundle_settings
@@ -224,7 +224,7 @@ private
   def scrub_untracked_coverage_dirs(source)
     Dir.glob("**/coverage", base: sandbox_dir).each do |copied|
       tracked = system("git", "-C", source, "ls-files", "--error-unmatch", copied,
-                       out: File::NULL, err: File::NULL)
+        out: File::NULL, err: File::NULL)
       FileUtils.rm_rf(File.join(sandbox_dir, copied)) unless tracked
     end
   end

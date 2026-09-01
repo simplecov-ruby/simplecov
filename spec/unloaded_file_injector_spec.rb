@@ -77,7 +77,7 @@ RSpec.describe SimpleCov::UnloadedFileInjector do
         File.write(other, "2\n")
 
         _coverage, injected = described_class.call({sample => {"lines" => [1]}}, [sample, other],
-                                                   synthesize: false, lines: true)
+          synthesize: false, lines: true)
 
         expect(injected).to eq(Set[other])
       end

@@ -46,7 +46,7 @@ module BranchFuzzer
     LEAVES = ["a", "b", "c", "1", ":x", "foo", "a.b", "self"].freeze
     CONDITIONS = ["a", "b", "c", "foo", "a.b", "a && b", "a || b"].freeze
     FOLDABLE_CONDITIONS = ["true", "false", "nil", "1", "(nil)",
-                           "(1; 2)", "(foo; 2)", "(1; nil)", "(@x; 2)"].freeze
+      "(1; 2)", "(foo; 2)", "(1; nil)", "(@x; 2)"].freeze
     PATTERNS = ["Integer", "String", "[a]", "{x:}", "Symbol"].freeze
     CONSTRUCTS = %i[
       gen_if gen_unless gen_ternary gen_case_when gen_case_in gen_while
@@ -61,7 +61,7 @@ module BranchFuzzer
       "def fx(a, b, c)\n#{statements(0)}\nend\n"
     end
 
-  private
+    private
 
     def statements(depth)
       Array.new(1 + @rng.int(3)) { statement(depth) }.join("\n")

@@ -7,7 +7,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".install_at_exit_hook", mutant_expression: "SimpleCov.install_at_exit_hook" do
     around do |example|
       previous_installed = described_class.instance_variable_get(:@at_exit_hook_installed)
-      previous_external  = described_class.external_at_exit
+      previous_external = described_class.external_at_exit
       described_class.instance_variable_set(:@at_exit_hook_installed, nil)
       example.run
       described_class.instance_variable_set(:@at_exit_hook_installed, previous_installed)
@@ -90,7 +90,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "does not defer to Minitest when it is loaded but autorun has not been called" do
-      fake_minitest = Class.new { def self.after_run; end }
+      fake_minitest = Class.new {
+        def self.after_run
+        end
+      }
       fake_minitest.class_variable_set(:@@installed_at_exit, false)
       stub_const("Minitest", fake_minitest)
       allow(Kernel).to receive(:at_exit)
@@ -103,7 +106,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "does not defer when a Minitest-like constant lacks @@installed_at_exit" do
-      fake_minitest = Class.new { def self.after_run; end }
+      fake_minitest = Class.new {
+        def self.after_run
+        end
+      }
       stub_const("Minitest", fake_minitest)
       allow(Kernel).to receive(:at_exit)
       allow(fake_minitest).to receive(:after_run)
@@ -150,8 +156,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       previous = described_class.instance_variable_get(:@autoloading_dot_simplecov)
       described_class.instance_variable_set(:@autoloading_dot_simplecov, nil)
       allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                 install_at_exit_hook: nil,
-                                                 warn_about_start_in_dot_simplecov: nil)
+        install_at_exit_hook: nil,
+        warn_about_start_in_dot_simplecov: nil)
 
       described_class.start
 
@@ -172,7 +178,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "still applies configuration AND starts tracking (soft deprecation for backward compatibility)" do
         allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                   install_at_exit_hook: nil)
+          install_at_exit_hook: nil)
         allow(described_class).to receive(:warn)
         block = proc {}
 
@@ -185,7 +191,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "emits a one-time deprecation warning pointing at the migration path" do
         allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                   install_at_exit_hook: nil)
+          install_at_exit_hook: nil)
         stderr = capture_stderr { described_class.start }
         expect(stderr).to include("[DEPRECATION]")
         expect(stderr).to include("`.simplecov`")
@@ -195,8 +201,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "doesn't repeat the warning on subsequent calls" do
         allow(described_class).to receive_messages(initial_setup: nil, start_tracking: nil,
-                                                   install_at_exit_hook: nil)
-        first  = capture_stderr { described_class.start }
+          install_at_exit_hook: nil)
+        first = capture_stderr { described_class.start }
         second = capture_stderr { described_class.start }
         expect(first).to include("[DEPRECATION]")
         expect(second).to be_empty
@@ -249,7 +255,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe "starting with all criteria disabled",
-           mutant_expression: "SimpleCov::Configuration#validate_coverage_criteria!" do
+    mutant_expression: "SimpleCov::Configuration#validate_coverage_criteria!" do
     it "raises a ConfigurationError" do
       previous = described_class.coverage_criteria.dup
       previous.each { |c| described_class.disable_coverage(c) }
@@ -597,7 +603,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "takes the caller's word over the criteria" do
         allow(described_class).to receive_messages(branch_coverage?: true, method_coverage?: true,
-                                                   line_coverage?: true)
+          line_coverage?: true)
 
         inject(synthesize: false, lines: false)
         expect(SimpleCov::UnloadedFileInjector).to have_received(:call)
@@ -707,8 +713,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     describe "what has to be true before results are processed" do
       before do
         allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
-                                                   collating_result?: false,
-                                                   parallel_results_complete?: true)
+          collating_result?: false,
+          parallel_results_complete?: true)
       end
 
       it "is false in a process that does not own the finalization" do
@@ -723,7 +729,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "is true for a collate, whatever the siblings did" do
         allow(described_class).to receive_messages(collating_result?: true,
-                                                   parallel_results_complete?: false)
+          parallel_results_complete?: false)
         expect(described_class.ready_to_process_results?).to be(true)
       end
 
@@ -750,7 +756,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     it "is true for a collated result even when worker parallel results are incomplete" do
       described_class.current_run.collating_result = true
       allow(described_class).to receive_messages(merge_finalization_owner?: true, result?: true,
-                                                 parallel_results_complete?: false)
+        parallel_results_complete?: false)
 
       expect(described_class.ready_to_process_results?).to be true
     end
@@ -775,7 +781,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     context "when running under a faked parallel_tests setup" do
       before do
-        stub_const("ParallelTests", Class.new { def self.first_process?; end })
+        stub_const("ParallelTests", Class.new {
+          def self.first_process?
+          end
+        })
         SimpleCov::ParallelAdapters.reset_current!
       end
 
@@ -814,7 +823,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".wait_for_other_processes", mutant_expression: "SimpleCov.wait_for_other_processes" do
     let(:adapter) do
       class_double(SimpleCov::ParallelAdapters::Base, wait_for_siblings: nil,
-                                                      expected_worker_count: 3, native_wait?: true)
+        expected_worker_count: 3, native_wait?: true)
     end
 
     around do |example|
@@ -916,7 +925,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "ignores a settled count when no native wait ran" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
-                                                 resultset_count_settled?: true)
+        resultset_count_settled?: true)
       allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
 
       expect(described_class.send(:wait_for_parallel_results, 4, native_wait: false)).to be(false)
@@ -924,7 +933,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "starts tracking from no workers seen, timed from the moment it began" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
-                                                 resultset_count_settled?: false)
+        resultset_count_settled?: false)
       allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
 
       described_class.send(:wait_for_parallel_results, 4, native_wait: true)
@@ -934,7 +943,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "polls without a native wait unless told there was one" do
       allow(described_class).to receive_messages(current_parallel_worker_count: 1, sleep: nil,
-                                                 resultset_count_settled?: true)
+        resultset_count_settled?: true)
       allow(described_class).to receive(:parallel_wait_timed_out?).and_return(true)
 
       expect(described_class.send(:wait_for_parallel_results, 4)).to be(false)
@@ -1047,7 +1056,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.pid = Process.pid
       allow(Coverage).to receive(:running?).and_return(true)
       allow(described_class).to receive_messages(exit_status_from_exception: 7,
-                                                 defer_to_existing_report?: false, run_exit_tasks!: nil)
+        defer_to_existing_report?: false, run_exit_tasks!: nil)
 
       described_class.at_exit_behavior
 
@@ -1113,7 +1122,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "stands down, and says so, when this run measured nothing" do
         allow(described_class).to receive_messages(result: SimpleCov::Result.new({}),
-                                                   warn_about_deferred_report: nil)
+          warn_about_deferred_report: nil)
 
         expect(described_class.defer_to_existing_report?).to be(true)
         expect(described_class).to have_received(:warn_about_deferred_report)
@@ -1209,9 +1218,9 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     it "runs the configured at_exit block before deciding anything" do
       ran = []
       allow(described_class).to receive_messages(at_exit: -> { ran << :at_exit },
-                                                 exit_status_from_exception: nil,
-                                                 previous_error?: false, ready_to_process_results?: true,
-                                                 result: instance_double(SimpleCov::Result))
+        exit_status_from_exception: nil,
+        previous_error?: false, ready_to_process_results?: true,
+        result: instance_double(SimpleCov::Result))
       allow(described_class).to receive(:process_result) {
         ran << :processed
         0
@@ -1223,7 +1232,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "answers the previous error's own status, reported but not processed" do
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: 7,
-                                                 ready_to_process_results?: true)
+        ready_to_process_results?: true)
       allow(described_class).to receive(:report_previous_error)
       allow(described_class).to receive(:process_result)
 
@@ -1235,7 +1244,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     it "answers what processing this run's result decides when the run is ready" do
       collected = instance_double(SimpleCov::Result)
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
-                                                 ready_to_process_results?: true, result: collected)
+        ready_to_process_results?: true, result: collected)
       allow(described_class).to receive(:report_processing_failure) { |status| status }
       allow(described_class).to receive(:process_result).and_return(3)
 
@@ -1246,7 +1255,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "answers success, exactly, when there is nothing to process" do
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: nil,
-                                                 ready_to_process_results?: false)
+        ready_to_process_results?: false)
       allow(described_class).to receive(:process_result)
 
       expect(described_class.run_exit_tasks).to eql(SimpleCov::ExitCodes::SUCCESS)
@@ -1255,8 +1264,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "asks about the status it was given rather than looking it up again" do
       allow(described_class).to receive_messages(at_exit: proc {}, previous_error?: false,
-                                                 ready_to_process_results?: false,
-                                                 exit_status_from_exception: 9)
+        ready_to_process_results?: false,
+        exit_status_from_exception: 9)
 
       described_class.run_exit_tasks(4)
       expect(described_class).to have_received(:previous_error?).with(4)
@@ -1264,8 +1273,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     it "looks the status up when a caller hands none in" do
       allow(described_class).to receive_messages(at_exit: proc {}, previous_error?: false,
-                                                 ready_to_process_results?: false,
-                                                 exit_status_from_exception: 9)
+        ready_to_process_results?: false,
+        exit_status_from_exception: 9)
 
       described_class.run_exit_tasks
       expect(described_class).to have_received(:previous_error?).with(9)
@@ -1274,7 +1283,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     it "never ends the process itself, whatever it answers" do
       allow(Kernel).to receive(:exit)
       allow(described_class).to receive_messages(at_exit: proc {}, exit_status_from_exception: 7,
-                                                 print_errors: false, ready_to_process_results?: false)
+        print_errors: false, ready_to_process_results?: false)
 
       expect(described_class.run_exit_tasks).to eq(7)
       expect(Kernel).not_to have_received(:exit)
@@ -1326,8 +1335,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       result = instance_double(SimpleCov::Result)
       allow(SimpleCov::ResultMerger).to receive(:merge_and_store).and_return(result)
       allow(described_class).to receive_messages(at_exit: proc {}, finalize_merge?: false,
-                                                 final_result_process?: false,
-                                                 result_exit_status: SimpleCov::ExitCodes::SUCCESS)
+        final_result_process?: false,
+        result_exit_status: SimpleCov::ExitCodes::SUCCESS)
       allow(described_class).to receive(:write_last_run)
       allow(SimpleCov::History).to receive(:record)
 
@@ -1485,7 +1494,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".unloaded_file_discovery_globs", mutant_expression: "SimpleCov.unloaded_file_discovery_globs" do
     it "lays the cover globs out beside the tracked-files one rather than nesting them" do
       allow(described_class).to receive_messages(tracked_files: "lib/**/*.rb",
-                                                 cover_globs: ["app/**/*.rb", "config/**/*.rb"])
+        cover_globs: ["app/**/*.rb", "config/**/*.rb"])
 
       expect(described_class.send(:unloaded_file_discovery_globs))
         .to eq(["lib/**/*.rb", "app/**/*.rb", "config/**/*.rb"])
@@ -1716,7 +1725,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     context "when a non SystemExit occurs" do
       it "return SimpleCov::ExitCodes::EXCEPTION" do
         raise "no system exit"
-      rescue StandardError
+      rescue
         expect(described_class.exit_status_from_exception).to eq(SimpleCov::ExitCodes::EXCEPTION)
       end
     end
@@ -2008,7 +2017,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         end
       end
 
-    private
+      private
 
       def create_mergeable_report(name, resultset, outdated: false)
         result = SimpleCov::Result.new(resultset)
@@ -2111,7 +2120,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(collate_with { |paths| described_class.collate paths, processes: 3 }).to eq(serial)
       end
 
-    private
+      private
 
       def create_mergeable_report(name, index)
         coverage = {
@@ -2308,7 +2317,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "is false where the constant never armed autorun" do
-      stub_const("Minitest", Class.new { def self.after_run; end })
+      stub_const("Minitest", Class.new {
+        def self.after_run
+        end
+      })
 
       expect(described_class.send(:minitest_autorun_pending?)).to be(false)
     end
@@ -2322,7 +2334,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "answers with what autorun recorded" do
-      armed = Class.new { def self.after_run; end }
+      armed = Class.new {
+        def self.after_run
+        end
+      }
       armed.class_variable_set(:@@installed_at_exit, true)
       stub_const("Minitest", armed)
 
@@ -2330,7 +2345,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "answers false where autorun recorded that it is not armed" do
-      disarmed = Class.new { def self.after_run; end }
+      disarmed = Class.new {
+        def self.after_run
+        end
+      }
       disarmed.class_variable_set(:@@installed_at_exit, false)
       stub_const("Minitest", disarmed)
 
@@ -2363,7 +2381,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".warn_about_start_in_dot_simplecov",
-           mutant_expression: "SimpleCov.warn_about_start_in_dot_simplecov" do
+    mutant_expression: "SimpleCov.warn_about_start_in_dot_simplecov" do
     around do |example|
       previous = described_class.instance_variable_get(:@dot_simplecov_start_warned)
       described_class.instance_variable_set(:@dot_simplecov_start_warned, nil)
@@ -2381,7 +2399,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     it "says it once, however many times `.simplecov` calls start" do
-      first  = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
+      first = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
       second = capture_stderr { described_class.send(:warn_about_start_in_dot_simplecov) }
 
       expect(first).not_to be_empty
@@ -2420,7 +2438,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
   describe ".grouped_file_set", mutant_expression: "SimpleCov.grouped_file_set" do
     it "unions the files across every group, not just the first" do
-      lib  = instance_double(SimpleCov::SourceFile, filename: "lib/foo.rb")
+      lib = instance_double(SimpleCov::SourceFile, filename: "lib/foo.rb")
       test = instance_double(SimpleCov::SourceFile, filename: "test/foo.rb")
 
       expect(described_class.send(:grouped_file_set, {"Lib" => [lib], "Test" => [test]}))
@@ -2521,9 +2539,9 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".tracked_file_paths", mutant_expression: "SimpleCov.tracked_file_paths" do
     it "discovers the globs under the root, minus what the path-only filters reject" do
       path_only = instance_double(SimpleCov::StringFilter, path_only?: true)
-      content   = instance_double(SimpleCov::BlockFilter, path_only?: false)
+      content = instance_double(SimpleCov::BlockFilter, path_only?: false)
       allow(described_class).to receive_messages(unloaded_file_discovery_globs: ["lib/**/*.rb"],
-                                                 root: "/project", filters: [path_only, content])
+        root: "/project", filters: [path_only, content])
       allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return(Set.new)
 
       described_class.send(:tracked_file_paths)
@@ -2576,7 +2594,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".existing_report_newer_than_us?",
-           mutant_expression: "SimpleCov.existing_report_newer_than_us?" do
+    mutant_expression: "SimpleCov.existing_report_newer_than_us?" do
     it "is false where this process never recorded when it started" do
       allow(described_class).to receive(:process_start_time).and_return(nil)
 
@@ -2660,11 +2678,11 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".current_parallel_worker_count",
-           mutant_expression: "SimpleCov.current_parallel_worker_count" do
+    mutant_expression: "SimpleCov.current_parallel_worker_count" do
     it "counts the workers that reported into this run, not every worker on record" do
       resultset = {"a" => {}}
       allow(SimpleCov::ResultMerger).to receive_messages(read_resultset: resultset,
-                                                         worker_identities_for_run: %w[w1 w2 w3])
+        worker_identities_for_run: %w[w1 w2 w3])
       allow(described_class).to receive_messages(run_id: "run-1", process_start_time: 99.5)
 
       expect(described_class.send(:current_parallel_worker_count)).to eq(3)
@@ -2739,7 +2757,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   end
 
   describe ".warn_about_incomplete_parallel_results",
-           mutant_expression: "SimpleCov.warn_about_incomplete_parallel_results" do
+    mutant_expression: "SimpleCov.warn_about_incomplete_parallel_results" do
     it "says nothing where print_errors is off" do
       allow(described_class).to receive(:print_errors).and_return(false)
 

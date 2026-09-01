@@ -192,7 +192,7 @@ RSpec.describe SimpleCov::Production::FileSink do
   it "names the file and the reason when the JSON will not parse" do
     expect { described_class.parse("{ nope", path) }
       .to raise_error(SimpleCov::Production::Error,
-                      /\A#{Regexp.escape(path)} is not valid JSON \(.+\)\z/)
+        /\A#{Regexp.escape(path)} is not valid JSON \(.+\)\z/)
   end
 
   it "keeps the first line of a complaint that runs long" do

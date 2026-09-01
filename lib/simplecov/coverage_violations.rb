@@ -84,7 +84,7 @@ module SimpleCov
         end
       end
 
-    private
+      private
 
       # Answers nil, and the caller silently skips, when the criterion was
       # configured but not measured by the runtime (`branch: 100` under the
@@ -164,7 +164,7 @@ module SimpleCov
         group = result.groups[group_name]
         if group.nil? && SimpleCov.print_errors
           ExitCodes.print_error "minimum_coverage_by_group: no group named '#{group_name}' exists. " \
-                                "Available groups: #{result.groups.keys.join(', ')}"
+                                "Available groups: #{result.groups.keys.join(", ")}"
         end
         group
       end

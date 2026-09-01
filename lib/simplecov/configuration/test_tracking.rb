@@ -17,8 +17,8 @@ module SimpleCov
     def track_tests(enabled = nil, granularity: nil)
       if granularity && !TRACK_TESTS_GRANULARITIES.include?(granularity)
         raise ConfigurationError,
-              "Unsupported track_tests granularity #{granularity.inspect}, " \
-              "supported values are #{TRACK_TESTS_GRANULARITIES.inspect}"
+          "Unsupported track_tests granularity #{granularity.inspect}, " \
+          "supported values are #{TRACK_TESTS_GRANULARITIES.inspect}"
       end
 
       @track_tests_granularity = granularity if granularity
@@ -41,8 +41,8 @@ module SimpleCov
       return if coverage_criterion_enabled?(DEFAULT_COVERAGE_CRITERION)
 
       raise ConfigurationError,
-            "`track_tests` needs line coverage with execution counts. " \
-            "Enable it with `enable_coverage :line` (`:oneshot_line` cannot record per-test data)."
+        "`track_tests` needs line coverage with execution counts. " \
+        "Enable it with `enable_coverage :line` (`:oneshot_line` cannot record per-test data)."
     end
   end
 end

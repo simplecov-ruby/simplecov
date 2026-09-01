@@ -19,11 +19,11 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
   let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
   let(:result) do
     res = SimpleCov::Result.new({
-                                  source_fixture("json/sample.rb") => {"lines" => [
-                                    nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                                    1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                                  ]}
-                                })
+      source_fixture("json/sample.rb") => {"lines" => [
+        nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+        1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+      ]}
+    })
     res.created_at = fixed_time
     res
   end
@@ -137,8 +137,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     context "with branch coverage" do
       let(:original_lines) do
         [nil, 1, 1, 1, 1, nil, nil, 1, 1,
-         nil, nil, 1, 1, 0, nil, 1, nil,
-         nil, nil, nil, 1, 0, nil, nil, nil]
+          nil, nil, 1, 1, 0, nil, 1, nil,
+          nil, nil, nil, 1, 0, nil, nil, nil]
       end
 
       let(:original_branches) do
@@ -152,11 +152,11 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {
-                                        "lines" => original_lines,
-                                        "branches" => original_branches
-                                      }
-                                    })
+          source_fixture("json/sample.rb") => {
+            "lines" => original_lines,
+            "branches" => original_branches
+          }
+        })
         res.created_at = fixed_time
         res
       end
@@ -174,8 +174,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     context "with method coverage" do
       let(:original_lines) do
         [nil, 1, 1, 1, 1, nil, nil, 1, 1,
-         nil, nil, 1, 1, 0, nil, 1, nil,
-         nil, nil, nil, 1, 0, nil, nil, nil]
+          nil, nil, 1, 1, 0, nil, 1, nil,
+          nil, nil, nil, 1, 0, nil, nil, nil]
       end
 
       let(:original_methods) do
@@ -189,11 +189,11 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      source_fixture("json/sample.rb") => {
-                                        "lines" => original_lines,
-                                        "methods" => original_methods
-                                      }
-                                    })
+          source_fixture("json/sample.rb") => {
+            "lines" => original_lines,
+            "methods" => original_methods
+          }
+        })
         res.created_at = fixed_time
         res
       end
@@ -280,17 +280,17 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
     context "with minimum_coverage_by_file for branches" do
       let(:result) do
         SimpleCov::Result.new({
-                                source_fixture("json/sample.rb") => {
-                                  "lines" => [nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                                              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil],
-                                  "branches" => {
-                                    [:if, 0, 13, 4, 17, 7] => {
-                                      [:then, 1, 14, 6, 14, 10] => 0,
-                                      [:else, 2, 16, 6, 16, 10] => 1
-                                    }
-                                  }
-                                }
-                              })
+          source_fixture("json/sample.rb") => {
+            "lines" => [nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil],
+            "branches" => {
+              [:if, 0, 13, 4, 17, 7] => {
+                [:then, 1, 14, 6, 14, 10] => 0,
+                [:else, 2, 16, 6, 16, 10] => 1
+              }
+            }
+          }
+        })
       end
 
       before do
@@ -345,15 +345,15 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      sample_filename => {"lines" => [
-                                        nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                                        1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                                      ]}
-                                    })
+          sample_filename => {"lines" => [
+            nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+            1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+          ]}
+        })
 
         mock_file_list = instance_double(SimpleCov::FileList,
-                                         coverage_statistics: {line: line_stats},
-                                         map: [sample_filename])
+          coverage_statistics: {line: line_stats},
+          map: [sample_filename])
         allow(res).to receive_messages(groups: {"Models" => mock_file_list})
         res
       end
@@ -446,16 +446,16 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
       let(:result) do
         res = SimpleCov::Result.new({
-                                      sample_filename => {"lines" => [
-                                        nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
-                                        1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
-                                      ]}
-                                    })
+          sample_filename => {"lines" => [
+            nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+            1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+          ]}
+        })
         res.created_at = fixed_time
 
         mock_file_list = instance_double(SimpleCov::FileList,
-                                         coverage_statistics: {line: line_stats},
-                                         map: [project_fixture_filename("json/sample.rb")])
+          coverage_statistics: {line: line_stats},
+          map: [project_fixture_filename("json/sample.rb")])
         allow(res).to receive_messages(
           groups: {"My Group" => mock_file_list}
         )
@@ -513,7 +513,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         FileUtils.mkdir_p(SimpleCov.coverage_path)
         past_timestamp = (Time.now - 3600).iso8601
         File.write(File.join(SimpleCov.coverage_path, "coverage.json"),
-                   JSON.generate(meta: {timestamp: past_timestamp}))
+          JSON.generate(meta: {timestamp: past_timestamp}))
       end
 
       it "does not warn" do
@@ -551,14 +551,14 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
 
       it "omits line keys from per-file output and totals" do
         result = SimpleCov::Result.new({
-                                         source_fixture("json/sample.rb") => {
-                                           "lines" => [nil, 1, 1, 0],
-                                           "branches" => {[:if, 0, 1, 0, 4, 0] => {
-                                             [:then, 1, 2, 2, 2, 6] => 1,
-                                             [:else, 2, 3, 2, 3, 6] => 0
-                                           }}
-                                         }
-                                       })
+          source_fixture("json/sample.rb") => {
+            "lines" => [nil, 1, 1, 0],
+            "branches" => {[:if, 0, 1, 0, 4, 0] => {
+              [:then, 1, 2, 2, 2, 6] => 1,
+              [:else, 2, 3, 2, 3, 6] => 0
+            }}
+          }
+        })
         result.created_at = fixed_time
         formatter.format(result)
 

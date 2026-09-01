@@ -60,12 +60,12 @@ module SimpleCov
       # where a string's does, one node deeper.
       def parse_element(node)
         case node.fetch(0)
-        when :@int                         then Integer(node.fetch(1))
-        when :unary                        then -Integer(node.fetch(2).fetch(1)) # `-2`
+        when :@int then Integer(node.fetch(1))
+        when :unary then -Integer(node.fetch(2).fetch(1)) # `-2`
         when :symbol_literal, :dyna_symbol then literal_text(node).to_sym
-        when :string_literal               then literal_text(node)
-        when :var_ref                      then node.fetch(1).fetch(1) # `Foo`
-        when :const_path_ref               then const_path(node) # `Foo::Bar`
+        when :string_literal then literal_text(node)
+        when :var_ref then node.fetch(1).fetch(1) # `Foo`
+        when :const_path_ref then const_path(node) # `Foo::Bar`
         else
           raise ArgumentError, "unexpected element: #{node}"
         end

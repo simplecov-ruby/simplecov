@@ -18,7 +18,7 @@ module SimpleCov
         }
       end
 
-    private
+      private
 
       def line_statistics
         {

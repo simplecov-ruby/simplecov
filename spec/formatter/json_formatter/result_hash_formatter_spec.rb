@@ -4,7 +4,7 @@ require "helper"
 require "open3"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
-               mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
+  mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
   subject(:document) { described_class.format(result) }
 
   let(:commit) { "1234567890abcdef1234567890abcdef12345678" }

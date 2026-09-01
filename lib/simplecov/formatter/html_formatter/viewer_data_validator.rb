@@ -28,7 +28,7 @@ module SimpleCov
             data
           end
 
-        private
+          private
 
           def validate_section!(data, key)
             return if data[key].instance_of?(Hash)
@@ -45,15 +45,14 @@ module SimpleCov
             return if source.instance_of?(Array) && source.all?(String)
 
             raise CoverageJSON::Error,
-                  "coverage entry #{filename.inspect} must include an array of source strings; " \
-                  "regenerate with source_in_json true"
+              "coverage entry #{filename.inspect} must include an array of source strings; " \
+              "regenerate with source_in_json true"
           end
 
           def validate_contexts!(data)
             contexts = data["contexts"]
-            unless contexts.nil? || (contexts.instance_of?(Array) && contexts.all?(String))
-              raise CoverageJSON::Error, '"contexts" must be an array of strings'
-            end
+            valid = contexts.nil? || (contexts.instance_of?(Array) && contexts.all?(String))
+            raise CoverageJSON::Error, '"contexts" must be an array of strings' unless valid
 
             count = Array(contexts).size
             data.fetch("coverage").each { |filename, file| validate_context_table!(filename, file["contexts"], count) }
@@ -65,7 +64,7 @@ module SimpleCov
             end)
 
             raise CoverageJSON::Error,
-                  "coverage entry #{filename.inspect} contexts must map recorded context indices to hex bitmaps"
+              "coverage entry #{filename.inspect} contexts must map recorded context indices to hex bitmaps"
           end
 
           def context_entry?(key, value, count)
@@ -86,7 +85,7 @@ module SimpleCov
           def validate_production_file!(filename, entry)
             unless production_lines?(entry)
               raise CoverageJSON::Error,
-                    "production entry #{filename.inspect} must list sorted line numbers"
+                "production entry #{filename.inspect} must list sorted line numbers"
             end
             last_seen = entry["last_seen"]
             return if last_seen.nil? || last_seen.instance_of?(String)

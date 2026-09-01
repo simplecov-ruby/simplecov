@@ -62,7 +62,7 @@ module SimpleCov
           @narrator.result(before, total_percent)
         end
 
-      private
+        private
 
         def accept_loop(server)
           Thread.new do

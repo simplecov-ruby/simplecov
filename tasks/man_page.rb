@@ -24,7 +24,7 @@ module ManPage
 
   def build
     [header, name_section, synopsis_section, description_section, commands_section,
-     options_section, environment_section, files_section, see_also_section].join("\n") << "\n"
+      options_section, environment_section, files_section, see_also_section].join("\n") << "\n"
   end
 
   def sections
@@ -43,7 +43,7 @@ module ManPage
 
   def options_for(command)
     sections.select { |section| SimpleCov::CLI::Usage.section_for?(section, command) }
-            .flat_map { |section| SimpleCov::CLI::Completions.section_options(section) }
+      .flat_map { |section| SimpleCov::CLI::Completions.section_options(section) }
   end
 
   def escape(text)
@@ -76,7 +76,7 @@ module ManPage
   end
 
   def name_section
-    ".SH NAME\n#{escape('simplecov - coverage reports and questions from the terminal')}"
+    ".SH NAME\n#{escape("simplecov - coverage reports and questions from the terminal")}"
   end
 
   def synopsis_section
@@ -86,10 +86,10 @@ module ManPage
   def description_section
     <<~ROFF.chomp
       .SH DESCRIPTION
-      #{paragraph('The simplecov command reads the JSON report a SimpleCov run writes next to its HTML report ' \
-                  '(coverage/coverage.json by default) and answers coverage questions from the terminal. ' \
+      #{paragraph("The simplecov command reads the JSON report a SimpleCov run writes next to its HTML report " \
+                  "(coverage/coverage.json by default) and answers coverage questions from the terminal. " \
                   "Default paths follow SimpleCov.coverage_dir from a project's .simplecov when one is present. " \
-                  'Every command answers --help with its own usage.')}
+                  "Every command answers --help with its own usage.")}
     ROFF
   end
 
@@ -134,7 +134,7 @@ module ManPage
   end
 
   def see_also_section
-    ".SH SEE ALSO\n#{paragraph('Full documentation with examples for every command lives in docs/CLI.md ' \
-                               'in the source tree and at https://github.com/simplecov-ruby/simplecov')}"
+    ".SH SEE ALSO\n#{paragraph("Full documentation with examples for every command lives in docs/CLI.md " \
+                               "in the source tree and at https://github.com/simplecov-ruby/simplecov")}"
   end
 end

@@ -7,11 +7,11 @@ module SimpleCov
 
       def initialize(start_line:, end_line:, coverage:, inline:, type:)
         @start_line = start_line
-        @end_line   = end_line
-        @coverage   = coverage
-        @inline     = inline
-        @type       = type
-        @skipped    = false
+        @end_line = end_line
+        @coverage = coverage
+        @inline = inline
+        @type = type
+        @skipped = false
       end
 
       def inline?

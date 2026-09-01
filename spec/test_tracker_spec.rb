@@ -191,7 +191,7 @@ RSpec.describe SimpleCov::TestTracker do
   end
 
   describe "file granularity", mutant_expression: ["SimpleCov::TestTracker*",
-                                                   "SimpleCov::TestTracker#track"] do
+    "SimpleCov::TestTracker#track"] do
     subject(:tracker) do
       described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i, granularity: :file)
     end
@@ -423,7 +423,8 @@ RSpec.describe SimpleCov::TestTracker do
           :base_ran
         end
 
-        def test_something; end
+        def test_something
+        end
       end
     end
 
@@ -581,7 +582,7 @@ RSpec.describe SimpleCov::TestTracker do
   end
 
   describe SimpleCov::TestTracker::Delta do
-    subject(:delta) { described_class.new(root_regex: /\A#{Regexp.escape('/app')}/) }
+    subject(:delta) { described_class.new(root_regex: /\A#{Regexp.escape("/app")}/) }
 
     def lines(counts) = {lines: counts}
 
@@ -635,7 +636,7 @@ RSpec.describe SimpleCov::TestTracker do
     it "does not walk the lines of a file nothing touched" do
       before = {"/app/a.rb" => lines([1, 2, 3])}
       after = {"/app/a.rb" => lines([1, 2, 3])}
-      walker = described_class.new(root_regex: /\A#{Regexp.escape('/app')}/)
+      walker = described_class.new(root_regex: /\A#{Regexp.escape("/app")}/)
       allow(walker).to receive(:grew?).and_call_original
 
       walker.call(before, after)
@@ -711,7 +712,8 @@ RSpec.describe SimpleCov::TestTracker do
       klass = Class.new do
         def name = "test_example"
 
-        def test_example; end
+        def test_example
+        end
       end
       stub_const("FakeLocatedTest", klass)
       _, line = klass.instance_method(:test_example).source_location
@@ -732,9 +734,10 @@ RSpec.describe SimpleCov::TestTracker do
       klass = Class.new do
         def name = "test_hidden"
 
-      private
+        private
 
-        def test_hidden; end
+        def test_hidden
+        end
       end
       stub_const("FakePrivateTest", klass)
       _, line = klass.instance_method(:test_hidden).source_location

@@ -71,20 +71,20 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         {
           "an if with an else" =>
             ["if a\n  :t\nelse\n  :e\nend\n",
-             {[:if, 0, 1, 0, 5, 3] => {[:then, 1, 2, 2, 2, 4] => 0, [:else, 2, 4, 2, 4, 4] => 0}}],
+              {[:if, 0, 1, 0, 5, 3] => {[:then, 1, 2, 2, 2, 4] => 0, [:else, 2, 4, 2, 4, 4] => 0}}],
 
           "an unless with an else" =>
             ["unless a\n  :t\nelse\n  :e\nend\n",
-             {[:unless, 0, 1, 0, 5, 3] => {[:then, 1, 2, 2, 2, 4] => 0, [:else, 2, 4, 2, 4, 4] => 0}}],
+              {[:unless, 0, 1, 0, 5, 3] => {[:then, 1, 2, 2, 2, 4] => 0, [:else, 2, 4, 2, 4, 4] => 0}}],
 
           "a case with two whens" =>
             ["case a\nwhen 1 then :x\nwhen 2 then :y\nend\n",
-             {[:case, 3, 1, 0, 4, 3] =>
-               {[:when, 0, 2, 12, 2, 14] => 0, [:when, 1, 3, 12, 3, 14] => 0, [:else, 2, 1, 0, 4, 3] => 0}}],
+              {[:case, 3, 1, 0, 4, 3] =>
+                {[:when, 0, 2, 12, 2, 14] => 0, [:when, 1, 3, 12, 3, 14] => 0, [:else, 2, 1, 0, 4, 3] => 0}}],
 
           "a case with one in arm" =>
             ["case a\nin Integer then :x\nend\n",
-             {[:case, 2, 1, 0, 3, 3] => {[:in, 0, 2, 16, 2, 18] => 0, [:else, 1, 1, 0, 3, 3] => 0}}],
+              {[:case, 2, 1, 0, 3, 3] => {[:in, 0, 2, 16, 2, 18] => 0, [:else, 1, 1, 0, 3, 3] => 0}}],
 
           "a while loop" =>
             ["while a\n  :b\nend\n", {[:while, 0, 1, 0, 3, 3] => {[:body, 1, 2, 2, 2, 4] => 0}}],
@@ -94,7 +94,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
           "a safe navigation call with a block" =>
             ["a&.foo(1) { 2 }\n",
-             {[:"&.", 0, 1, 0, 1, 9] => {[:then, 1, 1, 0, 1, 9] => 0, [:else, 2, 1, 0, 1, 9] => 0}}]
+              {[:"&.", 0, 1, 0, 1, 9] => {[:then, 1, 1, 0, 1, 9] => 0, [:else, 2, 1, 0, 1, 9] => 0}}]
         }.each do |description, (source, expected)|
           it "numbers and zeroes every tuple of #{description}" do
             expect(static_branches(source)).to eq(expected)
@@ -102,7 +102,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         end
 
         it "walks a call node that cannot say whether it is safe navigation" do
-          node = Class.new { def each_child_node; end }.new
+          node = Class.new {
+            def each_child_node
+            end
+          }.new
           visitor = described_class::Visitor.new
           visitor.visit_call_node(node)
 
@@ -317,7 +320,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
           it "matches the running compiler for version-dependent eliminable leading reads" do
             srcs = ["if (@x; 2)\n  a\nend\n", "if ([1]; 2)\n  a\nend\n",
-                    "if ({a: 1}; 2)\n  a\nend\n", "if ((3..4); 2)\n  a\nend\n"]
+              "if ({a: 1}; 2)\n  a\nend\n", "if ((3..4); 2)\n  a\nend\n"]
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
               srcs.each { |src| expect(static_branches(src).keys.first.first).to eq(:if) }
             else
@@ -870,43 +873,43 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     def modern_branches(source)
       described_class.call(source)["branches"].to_h do |condition, arms|
         [CoverageDifferential.tuple_identity(condition),
-         arms.keys.map { |arm| CoverageDifferential.tuple_identity(arm) }.sort_by(&:to_s)]
+          arms.keys.map { |arm| CoverageDifferential.tuple_identity(arm) }.sort_by(&:to_s)]
       end
     end
 
     {
       "an empty explicit else, spanning else through end" =>
         ["def fx(a)\n  if a\n    :a\n  else\n  end\nend\n",
-         {["if", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+          {["if", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
       "an empty when arm, keeping the clause's own range" =>
         ["def fx(a)\n  case a\n  when 1\n  end\nend\n",
-         {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 2, 3, 8]]}],
+          {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 2, 3, 8]]}],
       "an empty case else, spanning else through end" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  else\n  end\nend\n",
-         {["case", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["when", 3, 14, 3, 16]]}],
+          {["case", 2, 2, 5, 5] => [["else", 4, 2, 5, 5], ["when", 3, 14, 3, 16]]}],
       "an empty loop body, falling back to the loop's range" =>
         ["def fx(a)\n  while a\n  end\nend\n",
-         {["while", 2, 2, 3, 5] => [["body", 2, 2, 3, 5]]}],
+          {["while", 2, 2, 3, 5] => [["body", 2, 2, 3, 5]]}],
       "an empty then, collapsing to the predicate's end" =>
         ["def fx(a)\n  if a\n  end\nend\n",
-         {["if", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 6, 2, 6]]}],
+          {["if", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 6, 2, 6]]}],
       "an empty unless then, keeping the node's range" =>
         ["def fx(a)\n  unless a\n  end\nend\n",
-         {["unless", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 2, 3, 5]]}],
+          {["unless", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 2, 3, 5]]}],
       "an empty unless else, spanning the construct rather than the else clause" =>
         ["def fx(a)\n  unless a\n    :a\n  else\n  end\nend\n",
-         {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+          {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
       "an elsif chain, whose nested condition ends at the shared end" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  end\nend\n",
-         {["if", 2, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 5, 4, 5, 6]]}],
+          {["if", 2, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 5, 4, 5, 6]]}],
       "an empty when arm with another after it, still keeping its own range" =>
         ["def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 2, 3, 8], ["when", 4, 14, 4, 16]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 2, 3, 8], ["when", 4, 14, 4, 16]]}],
       "a do-while body, spanning the whole begin block rather than its statements" =>
         ["def fx(a)\n  begin\n    a\n  end while a\nend\n",
-         {["while", 2, 2, 4, 13] => [["body", 2, 2, 4, 5]]}]
+          {["while", 2, 2, 4, 13] => [["body", 2, 2, 4, 5]]}]
     }.each do |description, (source, expected)|
       it "places #{description}" do
         expect(modern_branches(source)).to eq(expected)
@@ -925,221 +928,221 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     def legacy_branches(source)
       described_class.call(source)["branches"].to_h do |condition, arms|
         [CoverageDifferential.tuple_identity(condition),
-         arms.keys.map { |arm| CoverageDifferential.tuple_identity(arm) }.sort_by(&:to_s)]
+          arms.keys.map { |arm| CoverageDifferential.tuple_identity(arm) }.sort_by(&:to_s)]
       end
     end
 
     {
       "an elsif chain, whose nested condition spans to the outer end" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  end\nend\n",
-         {["if", 2, 2, 6, 5] => [["else", 4, 2, 5, 6], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 5, 6] => [["else", 4, 2, 5, 6], ["then", 5, 4, 5, 6]]}],
+          {["if", 2, 2, 6, 5] => [["else", 4, 2, 5, 6], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 5, 6] => [["else", 4, 2, 5, 6], ["then", 5, 4, 5, 6]]}],
 
       "an empty else whose result is discarded, collapsed to a point" =>
         ["def fx(a)\n  if a\n    :a\n  else\n  end\n  :tail\nend\n",
-         {["if", 2, 2, 5, 5] => [["else", 4, 6, 4, 6], ["then", 3, 4, 3, 6]]}],
+          {["if", 2, 2, 5, 5] => [["else", 4, 6, 4, 6], ["then", 3, 4, 3, 6]]}],
 
       "an empty else whose result is returned, spanning the construct" =>
         ["def fx(a)\n  if a\n    :a\n  else\n  end\nend\n",
-         {["if", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+          {["if", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
 
       "a when with an empty body, spanning to the following arm" =>
         ["def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 2, 4, 16], ["when", 4, 14, 4, 16]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 2, 4, 16], ["when", 4, 14, 4, 16]]}],
 
       "a trailing when with an empty body, spanning to the case tail" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 8]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 8]]}],
 
       "a trailing when with an empty body after then, spanning its conditions" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 8]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 8]]}],
 
       "an in clause with an empty body after then, collapsed to its pattern's end" =>
         ["def fx(a)\n  case a\n  in Integer then\n  end\nend\n",
-         {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["in", 3, 12, 3, 12]]}],
+          {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["in", 3, 12, 3, 12]]}],
 
       "a loop body" =>
         ["def fx(a)\n  while a\n    :body\n  end\nend\n",
-         {["while", 2, 2, 4, 5] => [["body", 3, 4, 3, 9]]}],
+          {["while", 2, 2, 4, 5] => [["body", 3, 4, 3, 9]]}],
 
       "an empty loop body, collapsed to a point past the predicate" =>
         ["def fx(a)\n  until a\n  end\nend\n",
-         {["until", 2, 2, 3, 5] => [["body", 2, 9, 2, 9]]}],
+          {["until", 2, 2, 3, 5] => [["body", 2, 9, 2, 9]]}],
 
       "a do-while body, which is written before its predicate" =>
         ["def fx(a)\n  begin\n    :body\n  end while a\nend\n",
-         {["while", 2, 2, 4, 13] => [["body", 3, 4, 3, 9]]}],
+          {["while", 2, 2, 4, 13] => [["body", 3, 4, 3, 9]]}],
 
       "a rightward pattern match, whose else spans the whole match" =>
         ["def fx(a)\n  a => Integer\nend\n",
-         {["case", 2, 2, 2, 14] => [["else", 2, 2, 2, 14], ["in", 2, 7, 2, 14]]}],
+          {["case", 2, 2, 2, 14] => [["else", 2, 2, 2, 14], ["in", 2, 7, 2, 14]]}],
 
       "a boolean pattern match, whose else spans the pattern" =>
         ["def fx(a)\n  a in Integer\nend\n",
-         {["case", 2, 2, 2, 14] => [["else", 2, 7, 2, 14], ["in", 2, 7, 2, 14]]}],
+          {["case", 2, 2, 2, 14] => [["else", 2, 7, 2, 14], ["in", 2, 7, 2, 14]]}],
 
       "a three-deep elsif chain ending in an else" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n    " \
          ":c\n  else\n    :d\n  end\nend\n",
-         {["if", 2, 2, 10, 5] => [["else", 4, 2, 9, 6], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 9, 6] => [["else", 6, 2, 9, 6], ["then", 5, 4, 5, 6]],
-          ["if", 6, 2, 9, 6] => [["else", 9, 4, 9, 6], ["then", 7, 4, 7, 6]]}],
+          {["if", 2, 2, 10, 5] => [["else", 4, 2, 9, 6], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 9, 6] => [["else", 6, 2, 9, 6], ["then", 5, 4, 5, 6]],
+           ["if", 6, 2, 9, 6] => [["else", 9, 4, 9, 6], ["then", 7, 4, 7, 6]]}],
 
       "a three-deep elsif chain with no else at all" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n    :c\n  end\nend\n",
-         {["if", 2, 2, 8, 5] => [["else", 4, 2, 7, 6], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 5, 4, 5, 6]],
-          ["if", 6, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 7, 4, 7, 6]]}],
+          {["if", 2, 2, 8, 5] => [["else", 4, 2, 7, 6], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 5, 4, 5, 6]],
+           ["if", 6, 2, 7, 6] => [["else", 6, 2, 7, 6], ["then", 7, 4, 7, 6]]}],
 
       "an elsif with an empty body whose result is returned" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n  end\nend\n",
-         {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 4, 14] => [["else", 4, 2, 4, 14], ["then", 4, 2, 4, 14]]}],
+          {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 4, 14] => [["else", 4, 2, 4, 14], ["then", 4, 2, 4, 14]]}],
 
       "an elsif with an empty body whose result is discarded" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n  end\n  :tail\nend\n",
-         {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 4, 14] => [["else", 4, 2, 4, 14], ["then", 4, 14, 4, 14]]}],
+          {["if", 2, 2, 5, 5] => [["else", 4, 2, 4, 14], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 4, 14] => [["else", 4, 2, 4, 14], ["then", 4, 14, 4, 14]]}],
 
       "an empty first when followed by an else" =>
         ["def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  else :c\n  end\nend\n",
-         {["case", 2, 2, 6, 5] =>
-           [["else", 5, 7, 5, 9], ["when", 3, 2, 5, 9], ["when", 4, 14, 4, 16]]}],
+          {["case", 2, 2, 6, 5] =>
+            [["else", 5, 7, 5, 9], ["when", 3, 2, 5, 9], ["when", 4, 14, 4, 16]]}],
 
       "an empty trailing when followed by an else" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2\n  else :c\n  end\nend\n",
-         {["case", 2, 2, 6, 5] =>
-           [["else", 5, 7, 5, 9], ["when", 3, 14, 3, 16], ["when", 4, 2, 5, 9]]}],
+          {["case", 2, 2, 6, 5] =>
+            [["else", 5, 7, 5, 9], ["when", 3, 14, 3, 16], ["when", 4, 2, 5, 9]]}],
 
       "a case with an else, whose arms keep their own bodies" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then :b\n  else\n    :c\n  end\nend\n",
-         {["case", 2, 2, 7, 5] =>
-           [["else", 6, 4, 6, 6], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16]]}],
+          {["case", 2, 2, 7, 5] =>
+            [["else", 6, 4, 6, 6], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16]]}],
 
       "a case whose result is discarded, collapsing its empty arm" =>
         ["def fx(a)\n  case a\n  when 1\n  end\n  :tail\nend\n",
-         {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 8, 3, 8]]}],
+          {["case", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["when", 3, 8, 3, 8]]}],
 
       "an empty in arm, which collapses even in value position" =>
         ["def fx(a)\n  case a\n  in Integer\n  in String then :s\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["in", 3, 12, 3, 12], ["in", 4, 17, 4, 19]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["in", 3, 12, 3, 12], ["in", 4, 17, 4, 19]]}],
 
       "an empty trailing in arm" =>
         ["def fx(a)\n  case a\n  in Integer then :i\n  in String\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["in", 3, 18, 3, 20], ["in", 4, 11, 4, 11]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["in", 3, 18, 3, 20], ["in", 4, 11, 4, 11]]}],
 
       "a case/in with an else of its own" =>
         ["def fx(a)\n  case a\n  in Integer then :i\n  else :o\n  end\nend\n",
-         {["case", 2, 2, 5, 5] => [["else", 4, 7, 4, 9], ["in", 3, 18, 3, 20]]}],
+          {["case", 2, 2, 5, 5] => [["else", 4, 7, 4, 9], ["in", 3, 18, 3, 20]]}],
 
       "a do-until, which reads its predicate after the body too" =>
         ["def fx(a)\n  begin\n    :body\n  end until a\nend\n",
-         {["until", 2, 2, 4, 13] => [["body", 3, 4, 3, 9]]}],
+          {["until", 2, 2, 4, 13] => [["body", 3, 4, 3, 9]]}],
 
       "a do-while with an empty body, collapsed to a point" =>
         ["def fx(a)\n  begin\n  end while a\nend\n",
-         {["while", 2, 2, 3, 13] => [["body", 2, 7, 2, 7]]}],
+          {["while", 2, 2, 3, 13] => [["body", 2, 7, 2, 7]]}],
 
       "an if with no else, whose result is returned" =>
         ["def fx(a)\n  if a\n    :a\n  end\nend\n",
-         {["if", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
+          {["if", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
 
       "an if with no else, whose result is discarded" =>
         ["def fx(a)\n  if a\n    :a\n  end\n  :tail\nend\n",
-         {["if", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
+          {["if", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
 
       "an unless with no else, whose result is discarded" =>
         ["def fx(a)\n  unless a\n    :a\n  end\n  :tail\nend\n",
-         {["unless", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
+          {["unless", 2, 2, 4, 5] => [["else", 2, 2, 4, 5], ["then", 3, 4, 3, 6]]}],
 
       "an unless with an empty else, whose result is returned" =>
         ["def fx(a)\n  unless a\n    :a\n  else\n  end\nend\n",
-         {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+          {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
 
       "a chain whose last elsif has an empty body" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  elsif a == 3\n  end\nend\n",
-         {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 14], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 6, 14] => [["else", 6, 2, 6, 14], ["then", 5, 4, 5, 6]],
-          ["if", 6, 2, 6, 14] => [["else", 6, 2, 6, 14], ["then", 6, 2, 6, 14]]}],
+          {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 14], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 6, 14] => [["else", 6, 2, 6, 14], ["then", 5, 4, 5, 6]],
+           ["if", 6, 2, 6, 14] => [["else", 6, 2, 6, 14], ["then", 6, 2, 6, 14]]}],
 
       "a chain ending in an empty else" =>
         ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  else\n  end\nend\n",
-         {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 6], ["then", 3, 4, 3, 6]],
-          ["if", 4, 2, 6, 6] => [["else", 4, 2, 6, 6], ["then", 5, 4, 5, 6]]}],
+          {["if", 2, 2, 7, 5] => [["else", 4, 2, 6, 6], ["then", 3, 4, 3, 6]],
+           ["if", 4, 2, 6, 6] => [["else", 4, 2, 6, 6], ["then", 5, 4, 5, 6]]}],
 
       "an empty when between two others, with an else after them" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2\n  when 3 then :c\n  else :d\n  end\nend\n",
-         {["case", 2, 2, 7, 5] =>
-           [["else", 6, 7, 6, 9], ["when", 3, 14, 3, 16], ["when", 4, 2, 6, 9], ["when", 5, 14, 5, 16]]}],
+          {["case", 2, 2, 7, 5] =>
+            [["else", 6, 7, 6, 9], ["when", 3, 14, 3, 16], ["when", 4, 2, 6, 9], ["when", 5, 14, 5, 16]]}],
 
       "an empty when and an empty else, whose result is returned" =>
         ["def fx(a)\n  case a\n  when 1\n  else\n  end\nend\n",
-         {["case", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["when", 3, 2, 3, 8]]}],
+          {["case", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["when", 3, 2, 3, 8]]}],
 
       "an empty when and an empty else, whose result is discarded" =>
         ["def fx(a)\n  case a\n  when 1\n  else\n  end\n  :tail\nend\n",
-         {["case", 2, 2, 5, 5] => [["else", 4, 6, 4, 6], ["when", 3, 8, 3, 8]]}],
+          {["case", 2, 2, 5, 5] => [["else", 4, 6, 4, 6], ["when", 3, 8, 3, 8]]}],
 
       "an empty third when with no else after it" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then :b\n  when 3\n  end\nend\n",
-         {["case", 2, 2, 6, 5] =>
-           [["else", 2, 2, 6, 5], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16], ["when", 5, 2, 5, 8]]}],
+          {["case", 2, 2, 6, 5] =>
+            [["else", 2, 2, 6, 5], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16], ["when", 5, 2, 5, 8]]}],
 
       "an empty third when whose case result is discarded" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2 then :b\n  when 3\n  end\n  :tail\nend\n",
-         {["case", 2, 2, 6, 5] =>
-           [["else", 2, 2, 6, 5], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16], ["when", 5, 8, 5, 8]]}],
+          {["case", 2, 2, 6, 5] =>
+            [["else", 2, 2, 6, 5], ["when", 3, 14, 3, 16], ["when", 4, 14, 4, 16], ["when", 5, 8, 5, 8]]}],
 
       "an empty third in arm with no else after it" =>
         ["def fx(a)\n  case a\n  in 1 then :a\n  in 2 then :b\n  in 3\n  end\nend\n",
-         {["case", 2, 2, 6, 5] =>
-           [["else", 2, 2, 6, 5], ["in", 3, 12, 3, 14], ["in", 4, 12, 4, 14], ["in", 5, 6, 5, 6]]}],
+          {["case", 2, 2, 6, 5] =>
+            [["else", 2, 2, 6, 5], ["in", 3, 12, 3, 14], ["in", 4, 12, 4, 14], ["in", 5, 6, 5, 6]]}],
 
       "a ternary" =>
         ["def fx(a)\n  a ? :t : :f\nend\n",
-         {["if", 2, 2, 2, 13] => [["else", 2, 11, 2, 13], ["then", 2, 6, 2, 8]]}],
+          {["if", 2, 2, 2, 13] => [["else", 2, 11, 2, 13], ["then", 2, 6, 2, 8]]}],
 
       "a modifier if" =>
         ["def fx(a)\n  :t if a\nend\n",
-         {["if", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 4]]}],
+          {["if", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 4]]}],
 
       "a modifier unless" =>
         ["def fx(a)\n  :t unless a\nend\n",
-         {["unless", 2, 2, 2, 13] => [["else", 2, 2, 2, 13], ["then", 2, 2, 2, 4]]}],
+          {["unless", 2, 2, 2, 13] => [["else", 2, 2, 2, 13], ["then", 2, 2, 2, 4]]}],
 
       "a modifier if whose result is discarded" =>
         ["def fx(a)\n  :t if a\n  :tail\nend\n",
-         {["if", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 4]]}],
+          {["if", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 4]]}],
 
       "safe navigation, bare and with arguments and a block" =>
         ["def fx(a)\n  a&.to_s\nend\n",
-         {["&.", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 9]]}],
+          {["&.", 2, 2, 2, 9] => [["else", 2, 2, 2, 9], ["then", 2, 2, 2, 9]]}],
 
       "an empty trailing when matching two values" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2, 3\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 11]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 2, 4, 11]]}],
 
       "an empty trailing when matching two values, result discarded" =>
         ["def fx(a)\n  case a\n  when 1 then :a\n  when 2, 3\n  end\n  :tail\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 11, 4, 11]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 14, 3, 16], ["when", 4, 11, 4, 11]]}],
 
       "an empty when matching two values, with an arm after it" =>
         ["def fx(a)\n  case a\n  when 1, 2\n  when 3 then :c\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["when", 3, 2, 4, 16], ["when", 4, 14, 4, 16]]}],
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["when", 3, 2, 4, 16], ["when", 4, 14, 4, 16]]}],
 
       "an empty trailing in arm matching alternatives" =>
         ["def fx(a)\n  case a\n  in 1 then :a\n  in 2 | 3\n  end\nend\n",
-         {["case", 2, 2, 5, 5] =>
-           [["else", 2, 2, 5, 5], ["in", 3, 12, 3, 14], ["in", 4, 10, 4, 10]]}]
+          {["case", 2, 2, 5, 5] =>
+            [["else", 2, 2, 5, 5], ["in", 3, 12, 3, 14], ["in", 4, 10, 4, 10]]}]
     }.each do |description, (source, expected)|
       it "places #{description}" do
         expect(legacy_branches(source)).to eq(expected)
@@ -1188,7 +1191,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
   end
 
   describe SimpleCov::StaticCoverageExtractor::ValuePositions,
-           if: SimpleCov::StaticCoverageExtractor.available? do
+    if: SimpleCov::StaticCoverageExtractor.available? do
     def marked_leaves(source)
       require "prism"
       root = Prism.parse(source).value

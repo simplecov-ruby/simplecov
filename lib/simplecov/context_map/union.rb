@@ -59,14 +59,14 @@ module SimpleCov
         warn_about_partial_maps
       end
 
-    protected
+      protected
 
       # Protected: only another union folding this one in may read it.
       def partial_map
         @map
       end
 
-    private
+      private
 
       def warn_about_partial_maps
         return unless @carrying.positive? && SimpleCov.print_errors

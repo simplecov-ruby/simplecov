@@ -78,7 +78,7 @@ module SimpleCov
       @map
     end
 
-  private
+    private
 
     # Same-thread reentrancy is fine, since a line the inner test executed was
     # executed on the outer test's watch too, but a second thread means
@@ -146,7 +146,7 @@ module SimpleCov
       return test_id unless @granularity.equal?(:file)
 
       path, sep, tail = test_id.rpartition(":")
-      sep.empty? || !tail.match?(/\A\d+\z/) ? test_id : path
+      (sep.empty? || !tail.match?(/\A\d+\z/)) ? test_id : path
     end
 
     def poison

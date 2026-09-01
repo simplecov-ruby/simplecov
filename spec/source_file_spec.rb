@@ -1579,7 +1579,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
 
     it "reports the branch lines and method names of the parsed source",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+      if: SimpleCov::StaticCoverageExtractor.available? do
       expect(source_file.real_source_positions).to eq(branches: Set[3, 5, 7], methods: Set[[:call, 2]])
     end
 

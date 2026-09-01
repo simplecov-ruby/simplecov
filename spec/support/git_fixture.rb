@@ -69,7 +69,7 @@ module GitFixture
   def commit!(dir, message)
     git!("-C", dir, "add", "-A")
     git!("-C", dir, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-         "commit", "-qm", message)
+      "commit", "-qm", message)
   end
 
   def git!(*argv)

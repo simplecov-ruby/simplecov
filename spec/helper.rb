@@ -7,10 +7,10 @@ unless DOGFOOD_DISABLED
   start_args = {lines: true}
   if Coverage.respond_to?(:supported?)
     start_args[:branches] = true if Coverage.supported?(:branches)
-    start_args[:methods]  = true if Coverage.supported?(:methods)
+    start_args[:methods] = true if Coverage.supported?(:methods)
   else
     start_args[:branches] = true
-    start_args[:methods]  = true
+    start_args[:methods] = true
   end
   Coverage.start(start_args)
 end

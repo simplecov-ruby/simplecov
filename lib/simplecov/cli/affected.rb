@@ -100,7 +100,7 @@ module SimpleCov
       def emit_json(selection, full, stdout)
         none = [] #: Array[String]
         stdout.puts(JSON.pretty_generate("full_suite" => full, "triggers" => selection.fetch(:triggers),
-                                         "tests" => full ? none : selection.fetch(:tests)))
+          "tests" => full ? none : selection.fetch(:tests)))
         0
       end
 
@@ -129,7 +129,7 @@ module SimpleCov
         return note_untouched(stderr) if selection.fetch(:tests).empty?
 
         count = selection.fetch(:tests).size
-        stderr.puts("simplecov affected: running #{count} test file#{'s' unless count.eql?(1)}")
+        stderr.puts("simplecov affected: running #{count} test file#{"s" unless count.eql?(1)}")
         run_command(opts.fetch(:run) + selection.fetch(:tests), opts.fetch(:root), stderr)
       end
 

@@ -71,7 +71,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "synthesizes tuples when the merged files carry them, whatever this process measures",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+      if: SimpleCov::StaticCoverageExtractor.available? do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "methods" => {}})
@@ -80,7 +80,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "synthesizes tuples when the merged files carry branches alone",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+      if: SimpleCov::StaticCoverageExtractor.available? do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "branches" => {}})
@@ -95,7 +95,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "leaves them empty when the merged files carry none",
-       if: SimpleCov::StaticCoverageExtractor.available? do
+      if: SimpleCov::StaticCoverageExtractor.available? do
       allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: true)
 
       entry = injected(loaded => {"lines" => [1, 1]})
@@ -156,10 +156,10 @@ RSpec.describe SimpleCov::ResultMerger do
     before do
       FileUtils.rm_f(described_class.resultset_path)
       stale = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
-                                    command_name: "stale", tracked_files: [never_loaded])
+        command_name: "stale", tracked_files: [never_loaded])
       described_class.store_result(outdated(stale))
       fresh = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
-                                    command_name: "fresh")
+        command_name: "fresh")
       described_class.store_result(fresh)
     end
 
@@ -178,7 +178,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
     it "simulates a tracked file no contributing process loaded" do
       result = described_class.send(:create_result, ["merged"], coverage,
-                                    tracked_files: Set[loaded, never_loaded])
+        tracked_files: Set[loaded, never_loaded])
 
       expect(result.original_result.keys).to include(never_loaded)
       expect(result.files.find { |f| f.filename == never_loaded }).to be_not_loaded
@@ -186,15 +186,15 @@ RSpec.describe SimpleCov::ResultMerger do
 
     it "flags a simulated file that carries no line data" do
       result = described_class.send(:create_result, ["merged"],
-                                    {loaded => {"branches" => {}, "methods" => {}}},
-                                    tracked_files: Set[never_loaded])
+        {loaded => {"branches" => {}, "methods" => {}}},
+        tracked_files: Set[never_loaded])
 
       expect(result.files.find { |f| f.filename == never_loaded }).to be_not_loaded
     end
 
     it "leaves a file some process loaded alone" do
       result = described_class.send(:create_result, ["merged"], coverage,
-                                    tracked_files: Set[loaded, never_loaded])
+        tracked_files: Set[loaded, never_loaded])
 
       expect(result.original_result[loaded]).to eq(coverage[loaded])
       expect(result.files.find { |f| f.filename == loaded }).not_to be_not_loaded
@@ -208,7 +208,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
     it "carries the tracked paths onto the merged result for a later collate" do
       result = described_class.send(:create_result, ["merged"], coverage,
-                                    tracked_files: Set[loaded, never_loaded])
+        tracked_files: Set[loaded, never_loaded])
 
       expect(result.tracked_files).to contain_exactly(loaded, never_loaded)
       expect(result.to_hash["merged"]["tracked_files"]).to contain_exactly(loaded, never_loaded)
@@ -217,7 +217,7 @@ RSpec.describe SimpleCov::ResultMerger do
     it "leaves an already-simulated file from an older resultset untouched" do
       already_simulated = {never_loaded => {"lines" => [0, 0, nil, 0]}}
       result = described_class.send(:create_result, ["merged"], coverage.merge(already_simulated),
-                                    tracked_files: Set[never_loaded])
+        tracked_files: Set[never_loaded])
 
       expect(result.original_result[never_loaded]).to eq(already_simulated[never_loaded])
     end
@@ -425,7 +425,7 @@ RSpec.describe SimpleCov::ResultMerger do
       never_loaded = source_fixture("resultset1.rb")
       described_class.store_result(
         SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
-                              command_name: "RSpec", tracked_files: [never_loaded])
+          command_name: "RSpec", tracked_files: [never_loaded])
       )
 
       merged = described_class.merged_result
@@ -549,7 +549,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
     it "warns and returns an empty hash for a top-level array of entries" do
       File.write(described_class.resultset_path,
-                 JSON.dump([["RSpec", {"timestamp" => Time.now.to_f, "coverage" => {}}]]))
+        JSON.dump([["RSpec", {"timestamp" => Time.now.to_f, "coverage" => {}}]]))
 
       stderr = capture_stderr { expect(described_class.read_resultset).to eq({}) }
 
@@ -583,7 +583,7 @@ RSpec.describe SimpleCov::ResultMerger do
     it "merges through a resultset containing a malformed entry instead of crashing" do
       File.write(described_class.resultset_path, JSON.dump("broken" => nil))
       result = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
-                                     command_name: "RSpec")
+        command_name: "RSpec")
 
       capture_stderr { expect(described_class.store_result(result)).to be true }
 
@@ -1000,7 +1000,7 @@ RSpec.describe SimpleCov::ResultMerger do
     it "injects a file the merged resultset tracked and nobody loaded" do
       never_loaded = source_fixture("resultset1.rb")
       tracked = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1]}},
-                                      command_name: "result1", tracked_files: [never_loaded])
+        command_name: "result1", tracked_files: [never_loaded])
       store_result(tracked, path: single_path)
 
       merged = described_class.merge_results(single_path)
@@ -1013,7 +1013,7 @@ RSpec.describe SimpleCov::ResultMerger do
       map = SimpleCov::ContextMap.new
       map.record("spec/a_spec.rb:1", source_fixture("sample.rb") => 0b10)
       mapped = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
-                                     command_name: "result1", contexts: map)
+        command_name: "result1", contexts: map)
       store_result(mapped, path: single_path)
 
       merged = described_class.merge_results(single_path)
@@ -1158,7 +1158,7 @@ RSpec.describe SimpleCov::ResultMerger do
         described_class.store_result(subprocess)
 
         parent = SimpleCov::Result.new({}, command_name: "RSpec",
-                                           tracked_files: ["/x/shared.rb", "/x/two.rb"])
+          tracked_files: ["/x/shared.rb", "/x/two.rb"])
         parent.created_at = process_start + 2
         described_class.store_result(parent)
 
@@ -1399,7 +1399,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
   end
 
-private
+  private
 
   def store_result(result, path:)
     File.open(path, "w+") { |f| f.puts JSON.pretty_generate(result.to_hash) }

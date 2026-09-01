@@ -61,8 +61,8 @@ module SimpleCov
 
       def missing_production(stderr)
         error_nil(stderr,
-                  "missing --production PATH (the file a SimpleCov::Production sink wrote, " \
-                  "or configure SimpleCov.production_coverage in .simplecov)")
+          "missing --production PATH (the file a SimpleCov::Production sink wrote, " \
+          "or configure SimpleCov.production_coverage in .simplecov)")
       end
 
       def load_production(path, stderr)

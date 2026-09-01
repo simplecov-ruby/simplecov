@@ -95,7 +95,7 @@ module SimpleCov
         return table if table
 
         CoverageFile.report_invalid(stderr, "tests", opts.fetch(:input),
-                                    "entry for #{opts.fetch(:path)} carries a malformed \"contexts\" table")
+          "entry for #{opts.fetch(:path)} carries a malformed \"contexts\" table")
       end
 
       # An absent key is an untouched file; anything malformed, a foreign index or

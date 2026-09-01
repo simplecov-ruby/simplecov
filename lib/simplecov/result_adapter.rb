@@ -22,7 +22,7 @@ module SimpleCov
       end
     end
 
-  private
+    private
 
     # Pre-0.18 resultsets pointed each filename straight at a line-coverage
     # array; everything since uses the `{lines:, branches:, methods:}` shape.
@@ -78,8 +78,8 @@ module SimpleCov
     def normalize_method_key(key)
       receiver, *rest = key
       normalized_receiver = class_display_name(receiver)
-                            .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
-                            .sub(SINGLETON_WRAPPER_PATTERN, '\1')
+        .gsub(ADDRESS_PATTERN, ADDRESS_PLACEHOLDER)
+        .sub(SINGLETON_WRAPPER_PATTERN, '\1')
       [normalized_receiver, *rest]
     end
 
@@ -91,7 +91,7 @@ module SimpleCov
     # never crash the host suite over that (#1236).
     def class_display_name(klass)
       klass.to_s
-    rescue StandardError
+    rescue
       singleton_wrapper_name(klass) || Object.instance_method(:to_s).bind_call(klass)
     end
 
@@ -128,7 +128,7 @@ module SimpleCov
       return unless cover_statistic.key?(:oneshot_lines)
 
       oneshot_lines = cover_statistic.delete(:oneshot_lines)
-      line_stub     = build_line_stub(file_name)
+      line_stub = build_line_stub(file_name)
       oneshot_lines.each { |covered_line| line_stub[covered_line - 1] = 1 }
       cover_statistic[:lines] = line_stub
     end

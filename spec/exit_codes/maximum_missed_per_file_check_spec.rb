@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::MaximumMissedPerFileCheck*",
-                                   "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::MaximumMissedPerFileCheck*",
+    "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_missed_per_file, overrides, baseline: baseline) }
 
   let(:result) { instance_double(SimpleCov::Result, files: files) }

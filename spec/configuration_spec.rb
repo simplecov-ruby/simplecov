@@ -311,9 +311,9 @@ RSpec.describe SimpleCov::Configuration do
 
       it "overrides the default for a String path or Regexp target" do
         config.coverage :line do
-          minimum 80,  per: :file
+          minimum 80, per: :file
           minimum 100, per: "app/mailers/request_mailer.rb"
-          minimum 95,  per: %r{\Aapp/payments/}
+          minimum 95, per: %r{\Aapp/payments/}
         end
         expect(config.minimum_coverage_by_file).to eq(line: 80)
         expect(config.minimum_coverage_by_file_overrides).to eq(
@@ -937,7 +937,7 @@ RSpec.describe SimpleCov::Configuration do
 
         expect { config.group "Ungrouped", // }
           .to raise_error(SimpleCov::ConfigurationError,
-                          %("Ungrouped" is reserved for files that do not match a configured group))
+            %("Ungrouped" is reserved for files that do not match a configured group))
         expect(config.groups.keys).to eq ["Models"]
       end
 
@@ -1679,7 +1679,7 @@ RSpec.describe SimpleCov::Configuration do
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
 
       it "warns with the equivalent `coverage` configuration built from the real arguments" do
-        config.minimum_coverage_by_file line: 70, "app/x.rb" => 100
+        config.minimum_coverage_by_file :line => 70, "app/x.rb" => 100
         expect(SimpleCov::Deprecation).to have_received(:warn).with(
           a_string_including(
             "`SimpleCov.minimum_coverage_by_file` is deprecated",
@@ -1692,7 +1692,7 @@ RSpec.describe SimpleCov::Configuration do
         after { config.clear_coverage_criteria }
 
         it "splits Symbol-keyed defaults from String-keyed overrides" do
-          config.minimum_coverage_by_file line: 70, "app/critical.rb" => 100
+          config.minimum_coverage_by_file :line => 70, "app/critical.rb" => 100
 
           expect(config.minimum_coverage_by_file).to eq line: 70
           expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
@@ -1994,10 +1994,10 @@ RSpec.describe SimpleCov::Configuration do
       it "raises on an unknown token, naming the supported ones" do
         expect { config.coverage(:branch) { ignore :implict_else } }
           .to raise_error(SimpleCov::ConfigurationError,
-                          /branch type :implict_else.*Supported values are \[:implicit_else, :eval_generated\]/m)
+            /branch type :implict_else.*Supported values are \[:implicit_else, :eval_generated\]/m)
         expect { config.coverage(:method) { ignore :nope } }
           .to raise_error(SimpleCov::ConfigurationError,
-                          /Unsupported method type :nope.*Supported values are \[:eval_generated\]/m)
+            /Unsupported method type :nope.*Supported values are \[:eval_generated\]/m)
       end
 
       it "rejects criteria without ignorable entry types" do
@@ -2218,7 +2218,7 @@ RSpec.describe SimpleCov::Configuration do
 
         expect(config.formatter.new.formatters).to eq(
           [SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::JSONFormatter,
-           SimpleCov::Formatter::SimpleFormatter, SimpleCov::Formatter::BaselineFormatter]
+            SimpleCov::Formatter::SimpleFormatter, SimpleCov::Formatter::BaselineFormatter]
         )
       end
 
@@ -2567,8 +2567,7 @@ RSpec.describe SimpleCov::Configuration do
 
       it "resolves require_relative from the configuration source" do
         source_path = File.join(SimpleCov.root, "lib/simplecov.rb")
-        # rubocop:disable-next Style/EvalWithLocation
-        configuration = eval(<<~RUBY, binding, source_path, 1)
+        configuration = eval(<<~RUBY, binding, source_path, 1) # rubocop:disable Style/EvalWithLocation
           proc { require_relative "simplecov/version" }
         RUBY
 
@@ -2577,8 +2576,7 @@ RSpec.describe SimpleCov::Configuration do
 
       it "keeps configuration exceptions anchored to their source" do
         source_path = File.join(SimpleCov.root, "lib/configuration_probe.rb")
-        # rubocop:disable-next Style/EvalWithLocation
-        configuration = eval(<<~RUBY, binding, source_path, 37)
+        configuration = eval(<<~RUBY, binding, source_path, 37) # rubocop:disable Style/EvalWithLocation
           proc { raise "from config" }
         RUBY
 
@@ -2821,7 +2819,7 @@ RSpec.describe SimpleCov::Configuration do
     it "names the setting a deprecated per-file cap belongs to" do
       expect { capture_stderr { config.maximum_missed_per_file(-1) } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "maximum_missed_per_file takes a non-negative integer count of misses, got -1")
+          "maximum_missed_per_file takes a non-negative integer count of misses, got -1")
     end
 
     it "names the setting a deprecated per-file threshold belongs to" do
@@ -2839,7 +2837,7 @@ RSpec.describe SimpleCov::Configuration do
     it "shows a key that is neither a criterion nor a path as it was written" do
       expect { capture_stderr { config.minimum_coverage_by_file(nil => 90) } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got nil")
+          "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got nil")
     end
   end
 
@@ -2864,7 +2862,7 @@ RSpec.describe SimpleCov::Configuration do
     it "shows a symbol where a cap's target belongs as it was written" do
       expect { capture_stderr { config.coverage(:line) { maximum_missed_per_file 5, only: :nope } } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "`only:` must be a String path or Regexp, got :nope")
+          "`only:` must be a String path or Regexp, got :nope")
     end
 
     it "takes a String subclass as a production coverage path" do
@@ -3208,7 +3206,7 @@ RSpec.describe SimpleCov::Configuration do
     it "refuses to ignore anything for a criterion that has nothing to ignore" do
       expect { config.coverage(:line) { ignore :eval_generated } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "`ignore` is supported for `coverage :branch` and `coverage :method`, not :line")
+          "`ignore` is supported for `coverage :branch` and `coverage :method`, not :line")
     end
   end
 
@@ -3313,10 +3311,10 @@ RSpec.describe SimpleCov::Configuration do
   describe "where the report is written" do
     around do |example|
       previous = %i[@root @coverage_dir @coverage_path @coverage_dir_explicit @coverage_path_explicit]
-                 .filter_map do |ivar|
+        .filter_map do |ivar|
         if config.instance_variable_defined?(ivar)
           [ivar,
-           config.instance_variable_get(ivar)]
+            config.instance_variable_get(ivar)]
         end
       end
       example.run
@@ -3386,7 +3384,7 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.coverage_path).to eq(File.expand_path("tmp/explicit"))
     ensure
       FileUtils.rm_rf([File.expand_path("tmp/first"), File.expand_path("tmp/second"),
-                       File.expand_path("tmp/explicit")])
+        File.expand_path("tmp/explicit")])
     end
   end
 
@@ -3540,16 +3538,16 @@ RSpec.describe SimpleCov::Configuration do
     {
       "a string where a count belongs" =>
         [->(config) { config.coverage(:line) { maximum_missed "5" } },
-         %(maximum_missed takes a non-negative integer count of misses, got "5")],
+          %(maximum_missed takes a non-negative integer count of misses, got "5")],
       "a symbol where a path belongs" =>
         [->(config) { config.coverage(:line) { minimum 90, per: :nope } },
-         %(`per:` must be :file, a String path, a Regexp, or group("Name"), got :nope)],
+          %(`per:` must be :file, a String path, a Regexp, or group("Name"), got :nope)],
       "a symbol where a per-file target belongs" =>
         [->(config) { config.coverage(:line) { minimum_per_file 90, only: :nope } },
-         %(`only:` must be a String path or Regexp, got :nope)],
+          %(`only:` must be a String path or Regexp, got :nope)],
       "a string where a history limit belongs" =>
         [->(config) { config.history_limit("10") },
-         %(history_limit takes a non-negative integer, got "10")]
+          %(history_limit takes a non-negative integer, got "10")]
     }.each do |description, (invocation, message)|
       it "shows #{description} as it was written" do
         expect { capture_stderr { invocation.call(config) } }
@@ -3560,7 +3558,7 @@ RSpec.describe SimpleCov::Configuration do
     it "names the block's own setting when its count is refused" do
       expect { config.coverage(:line) { maximum_missed(-1) } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "maximum_missed takes a non-negative integer count of misses, got -1")
+          "maximum_missed takes a non-negative integer count of misses, got -1")
     end
 
     it "refuses a cap for a criterion the run does not measure" do
@@ -3573,28 +3571,28 @@ RSpec.describe SimpleCov::Configuration do
     {
       "a negative suite-wide cap" =>
         [->(config) { config.maximum_missed(-1) },
-         "maximum_missed takes a non-negative integer count of misses, got -1"],
+          "maximum_missed takes a non-negative integer count of misses, got -1"],
       "a fractional per-file cap" =>
         [->(config) { config.coverage(:line) { maximum_missed 2.5, per: :file } },
-         "maximum_missed_per_file takes a non-negative integer count of misses, got 2.5"],
+          "maximum_missed_per_file takes a non-negative integer count of misses, got 2.5"],
       "a per: target that is neither a path nor a pattern" =>
         [->(config) { config.coverage(:line) { maximum_missed 5, per: 42 } },
-         %(`per:` must be :file, a String path, a Regexp, or group("Name"), got 42)],
+          %(`per:` must be :file, a String path, a Regexp, or group("Name"), got 42)],
       "a negative history limit" =>
         [->(config) { config.history_limit(-1) },
-         "history_limit takes a non-negative integer, got -1"],
+          "history_limit takes a non-negative integer, got -1"],
       "an unknown drop baseline" =>
         [->(config) { config.drop_baseline :mean },
-         "drop_baseline takes one of [:last_run, :median, :branch], got :mean"],
+          "drop_baseline takes one of [:last_run, :median, :branch], got :mean"],
       "an unknown deprecation mode" =>
         [->(config) { config.deprecations :silence },
-         "deprecations takes :warn or :raise, got :silence"],
+          "deprecations takes :warn or :raise, got :silence"],
       "a per-file threshold key of the wrong kind" =>
         [->(config) { config.minimum_coverage_by_file(42 => 90) },
-         "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got 42"],
+          "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got 42"],
       "an unsupported criterion" =>
         [->(config) { config.enable_coverage :sentence },
-         "Unsupported coverage criterion sentence, supported values are [:line, :branch, :method, :oneshot_line]"]
+          "Unsupported coverage criterion sentence, supported values are [:line, :branch, :method, :oneshot_line]"]
     }.each do |description, (invocation, message)|
       it "names the setting and the value for #{description}" do
         expect { capture_stderr { invocation.call(config) } }
@@ -3605,7 +3603,7 @@ RSpec.describe SimpleCov::Configuration do
     it "names the value a deprecated per-file cap refused" do
       expect { capture_stderr { config.coverage(:line) { maximum_missed_per_file 5, only: 42 } } }
         .to raise_error(SimpleCov::ConfigurationError,
-                        "`only:` must be a String path or Regexp, got 42")
+          "`only:` must be a String path or Regexp, got 42")
     end
 
     it "names the setting a threshold above 100% belongs to" do

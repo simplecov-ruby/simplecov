@@ -27,7 +27,7 @@ module SimpleCov
       tracked_files = Set.new
       context_maps = ContextMap::Union.new
       pair = absorb_results(file_paths, processes: processes, ignore_timeout: ignore_timeout,
-                                        tracked_files: tracked_files, context_maps: context_maps)
+        tracked_files: tracked_files, context_maps: context_maps)
       return ResultMerger.merge_results(*file_paths, ignore_timeout: ignore_timeout) unless pair
 
       command_names, coverage = pair
@@ -40,7 +40,7 @@ module SimpleCov
     # collector block, since that block would be mutating state in the wrong
     # process.
     def absorb_results(file_paths, processes:, ignore_timeout: false, tracked_files: Set.new,
-                       context_maps: ContextMap::Union.new)
+      context_maps: ContextMap::Union.new)
       return nil if processes < 2 || file_paths.size < 2
       # JRuby cannot fork on the JVM and deliberately answers false here, but
       # still defines `Kernel#fork` and raises `NotImplementedError` from it,
@@ -48,7 +48,7 @@ module SimpleCov
       return nil unless Process.respond_to?(:fork)
 
       fan_out(chunk(file_paths, processes), ignore_timeout: ignore_timeout, tracked_files: tracked_files,
-                                            context_maps: context_maps)
+        context_maps: context_maps)
     end
 
     def chunk(file_paths, processes)
@@ -56,7 +56,7 @@ module SimpleCov
       base, remainder = file_paths.size.divmod(groups)
       remaining = file_paths.dup
 
-      Array.new(groups) { |index| remaining.shift(base + (index < remainder ? 1 : 0)) }
+      Array.new(groups) { |index| remaining.shift(base + ((index < remainder) ? 1 : 0)) }
     end
 
     # A `fork` that fails here raises, and is left to: the runtimes that never
@@ -76,7 +76,7 @@ module SimpleCov
       workers = [] #: Array[Hash[Symbol, untyped]]
       chunks.each do |chunk|
         workers << spawn_worker(chunk, ignore_timeout: ignore_timeout)
-      rescue StandardError
+      rescue
         abandon(workers)
         raise
       end
@@ -118,7 +118,7 @@ module SimpleCov
       Marshal.dump(WorkerPayload.build(chunk, ignore_timeout: ignore_timeout), writer)
       writer.close
       0
-    rescue StandardError => e
+    rescue => e
       warn "[SimpleCov]: parallel merge worker failed: #{e.class}: #{e}" if SimpleCov.print_errors
       1
     end
@@ -148,7 +148,7 @@ module SimpleCov
       # so this is our own data coming back through our own kernel buffer, not
       # input.
       Marshal.load(reader) # rubocop:disable Security/MarshalLoad
-    rescue StandardError
+    rescue
       nil
     end
 

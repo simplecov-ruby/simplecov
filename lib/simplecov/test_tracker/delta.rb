@@ -27,7 +27,7 @@ module SimpleCov
         changed
       end
 
-    private
+      private
 
       # A peek's per-file data is a criteria Hash when Coverage was started with a
       # criteria hash, and a bare Array under the older lines-only form. No lines

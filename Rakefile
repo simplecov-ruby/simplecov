@@ -49,6 +49,14 @@ rescue LoadError
   end
 end
 
+begin
+  require "standard/rake"
+rescue LoadError
+  task :standard do
+    warn "Standard is disabled"
+  end
+end
+
 desc "Regenerate man/simplecov.1 from the usage document"
 task :man do
   require_relative "tasks/man_page"
@@ -64,7 +72,7 @@ end
 namespace :mutant do
   desc "Mutation-test only the subjects touched since REF (default origin/main)"
   task :since, [:ref] do |_task, args|
-    sh "bundle exec mutant run --since #{args[:ref] || 'origin/main'}"
+    sh "bundle exec mutant run --since #{args[:ref] || "origin/main"}"
   end
 
   desc "List the subjects touched since REF, one per line"
@@ -85,7 +93,7 @@ namespace :mutant do
       puts "Shard #{index} of #{total}: no subjects"
     else
       puts "Shard #{index} of #{total}: #{mine.size} of #{subjects.size} subjects"
-      sh "bundle exec mutant run #{mine.map { |subject| Shellwords.escape(subject) }.join(' ')}"
+      sh "bundle exec mutant run #{mine.map { |subject| Shellwords.escape(subject) }.join(" ")}"
     end
   end
 end
@@ -134,6 +142,11 @@ namespace :frontend do
     in_frontend("Frontend dependency installation") { sh "bun", "install", "--frozen-lockfile" }
   end
 
+  desc "Lint the frontend TypeScript with oxlint"
+  task lint: :install do
+    in_frontend("Frontend linting") { sh "bun", "run", "lint" }
+  end
+
   desc "Type-check the frontend TypeScript with tsc"
   task typecheck: :install do
     in_frontend("Frontend type checking") { sh "bun", "run", "typecheck" }
@@ -149,7 +162,7 @@ desc "Validate the RBS type signatures in sig/"
 task :rbs do
   require "rbs"
   sh "rbs", "-r", "forwardable", "-r", "monitor", "-r", "prism", "-r", "socket", "-r", "tempfile",
-     "-I", "sig", "validate"
+    "-I", "sig", "validate"
 rescue LoadError
   warn "RBS is disabled"
 end
@@ -162,11 +175,14 @@ rescue LoadError
   warn "Steep is disabled"
 end
 
+desc "Lint both sides, Ruby with Standard and RuboCop and the frontend with oxlint"
+task lint: %i[standard rubocop frontend:lint]
+
 desc "Type-check both sides, Ruby against sig/ and the frontend TypeScript"
 task typecheck: %i[rbs steep frontend:typecheck]
 
 task test: %i[spec frontend:test]
-task default: %i[rubocop typecheck test]
+task default: %i[lint typecheck test]
 
 def in_frontend(what, &)
   return warn("#{what} is disabled (bun is not installed)") unless
@@ -206,7 +222,7 @@ def minify_css(css, esbuild:)
   output, error, status = Open3.capture3(esbuild, "--minify", "--loader=css", stdin_data: css)
   return output if status.success?
 
-  raise "CSS compilation failed (exit #{status.exitstatus || 'unknown'}): #{error.strip}"
+  raise "CSS compilation failed (exit #{status.exitstatus || "unknown"}): #{error.strip}"
 end
 
 # Custom properties that JavaScript reads or writes by name and must therefore

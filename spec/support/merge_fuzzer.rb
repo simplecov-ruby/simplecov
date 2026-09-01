@@ -49,7 +49,7 @@ module MergeFuzzer
   end
 
   def lines(rng, executed:)
-    counts = Array.new(rng.rand(1..6)) { rng.rand < 0.4 ? nil : 0 }
+    counts = Array.new(rng.rand(1..6)) { (rng.rand < 0.4) ? nil : 0 }
     counts[rng.rand(counts.size)] = rng.rand(1..5) if executed
     counts
   end
@@ -79,6 +79,6 @@ module MergeFuzzer
   end
 
   def serialize(rng, tuple)
-    rng.rand < 0.5 ? tuple : tuple.inspect
+    (rng.rand < 0.5) ? tuple : tuple.inspect
   end
 end

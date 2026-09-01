@@ -15,7 +15,7 @@ module SimpleCov
         return error(stderr, "#{path} not found") unless File.exist?(path)
 
         opener = browser_opener
-        return error(stderr, "no known opener for #{RbConfig::CONFIG.fetch('host_os')}") unless opener
+        return error(stderr, "no known opener for #{RbConfig::CONFIG.fetch("host_os")}") unless opener
 
         system(*opener, path) ? 0 : 1
       end
@@ -35,9 +35,9 @@ module SimpleCov
       # isn't mis-parsed as the title.
       def browser_opener
         case RbConfig::CONFIG.fetch("host_os")
-        when /darwin/             then ["open"]
+        when /darwin/ then ["open"]
         when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", ""]
-        when /linux|bsd|solaris/  then ["xdg-open"]
+        when /linux|bsd|solaris/ then ["xdg-open"]
         end
       end
     end

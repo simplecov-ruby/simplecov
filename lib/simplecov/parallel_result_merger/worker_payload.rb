@@ -15,7 +15,7 @@ module SimpleCov
         tracked_files = Set.new
         context_maps = ContextMap::Union.new
         pair = ResultMerger.absorb_results(chunk, ignore_timeout: ignore_timeout,
-                                           &ResultMerger.entry_collector(tracked_files, context_maps))
+          &ResultMerger.entry_collector(tracked_files, context_maps))
         [pair, tracked_files.to_a, context_maps]
       end
 

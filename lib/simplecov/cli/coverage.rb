@@ -42,7 +42,7 @@ module SimpleCov
         return match if match.last.instance_of?(Hash)
 
         CoverageFile.report_invalid(stderr, "coverage", opts.fetch(:input),
-                                    "entry for #{opts.fetch(:path)} must be an object")
+          "entry for #{opts.fetch(:path)} must be an object")
       end
 
       def report_not_found(stderr, coverage, opts)
@@ -74,9 +74,9 @@ module SimpleCov
 
         pct = payload.fetch(criterion.fetch(:percent)).to_f
         stdout.puts(stats_row(criterion.fetch(:label),
-                              Color.colorize_percent(pct, enabled: color),
-                              payload[criterion.fetch(:covered)],
-                              payload[criterion.fetch(:total)]))
+          Color.colorize_percent(pct, enabled: color),
+          payload[criterion.fetch(:covered)],
+          payload[criterion.fetch(:total)]))
       end
     end
   end

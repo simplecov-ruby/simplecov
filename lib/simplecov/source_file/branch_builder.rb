@@ -22,7 +22,7 @@ module SimpleCov
         process_skipped(branches)
       end
 
-    private
+      private
 
       # Coverage attributes an eval'd branch to the caller's `__FILE__` /
       # `__LINE__`, so a Rails `delegate :foo, to: :bar` call surfaces inside the

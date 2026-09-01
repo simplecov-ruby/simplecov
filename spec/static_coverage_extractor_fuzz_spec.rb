@@ -10,7 +10,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor, if: ENV.fetch("SIMPLECOV_FUZZ
     skip "branch coverage unsupported on this Ruby" unless SimpleCov.branch_coverage_supported?
 
     programs = BranchFuzzer.programs(seeds: Integer(ENV.fetch("SIMPLECOV_FUZZ_SEEDS", "20")),
-                                     per_seed: Integer(ENV.fetch("SIMPLECOV_FUZZ_PER_SEED", "60")))
+      per_seed: Integer(ENV.fetch("SIMPLECOV_FUZZ_PER_SEED", "60")))
     runtime = coverage_branches(programs)
 
     mismatches = programs.filter_map do |name, source|

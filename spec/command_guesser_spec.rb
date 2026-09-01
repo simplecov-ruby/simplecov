@@ -220,12 +220,13 @@ RSpec.describe SimpleCov::CommandGuesser do
       swap_frameworks(singleton, original)
     end
 
-    # rubocop:disable-next RSpec/RemoveConst
+    # rubocop:disable RSpec/RemoveConst
     def swap_frameworks(singleton, list)
       singleton.send(:remove_const, :DEFINED_CONSTANT_FRAMEWORKS)
       singleton.const_set(:DEFINED_CONSTANT_FRAMEWORKS, list)
       singleton.send(:private_constant, :DEFINED_CONSTANT_FRAMEWORKS)
     end
+    # rubocop:enable RSpec/RemoveConst
 
     it "names the first framework whose constant is there" do
       guesser.original_run_command = "/some/path/unremarkable.rb"

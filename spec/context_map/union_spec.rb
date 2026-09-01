@@ -25,7 +25,7 @@ RSpec.describe SimpleCov::ContextMap::Union do
 
     it "treats an empty map as recorded, so a tracked suite that ran nothing keeps the union" do
       union.absorb_resultset("RSpec" => map_entry("spec/a_spec.rb:1", 0b1),
-                             "Idle" => {"contexts" => SimpleCov::ContextMap.new.to_h})
+        "Idle" => {"contexts" => SimpleCov::ContextMap.new.to_h})
 
       expect(union.map.contexts).to eq(["spec/a_spec.rb:1"])
     end

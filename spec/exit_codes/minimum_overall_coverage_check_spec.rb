@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::MinimumOverallCoverageCheck*",
-                                   "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::MinimumOverallCoverageCheck*",
+    "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage) }
 
   let(:result) do
@@ -107,15 +107,15 @@ RSpec.describe SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
     def source_file(path, percent)
       instance_double(
         SimpleCov::SourceFile, project_filename: path,
-                               coverage_statistics: {line: instance_double(SimpleCov::CoverageStatistics, percent: percent)}
+        coverage_statistics: {line: instance_double(SimpleCov::CoverageStatistics, percent: percent)}
       )
     end
 
     let(:minimum_coverage) { {line: 90.0} }
     let(:files) do
       [source_file("f.rb", 60.0), source_file("b.rb", 20.0), source_file("e.rb", 50.0),
-       source_file("a.rb", 10.0), source_file("d.rb", 40.0), source_file("c.rb", 30.0),
-       source_file("whole.rb", 100.0), source_file("nearly.rb", 99.5)]
+        source_file("a.rb", 10.0), source_file("d.rb", 40.0), source_file("c.rb", 30.0),
+        source_file("whole.rb", 100.0), source_file("nearly.rb", 99.5)]
     end
 
     it "names the five lowest, and only files with something missing" do

@@ -80,7 +80,7 @@ module SimpleCov
         def covering_table(path, entry, state)
           unless entry.instance_of?(Hash)
             return CoverageFile.report_invalid(state.fetch(:stderr), "affected", state.fetch(:opts).fetch(:input),
-                                               "entry for #{path} must be an object")
+              "entry for #{path} must be an object")
           end
 
           raw = entry["contexts"] || {}
@@ -88,7 +88,7 @@ module SimpleCov
           return table if table
 
           CoverageFile.report_invalid(state.fetch(:stderr), "affected", state.fetch(:opts).fetch(:input),
-                                      "entry for #{path} carries a malformed \"contexts\" table")
+            "entry for #{path} carries a malformed \"contexts\" table")
         end
 
         # Selected via its file, or a staleness trigger when it has no file to

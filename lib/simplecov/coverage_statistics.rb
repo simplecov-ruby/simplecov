@@ -27,15 +27,15 @@ module SimpleCov
     end
 
     def initialize(covered:, missed:, omitted: 0, total_strength: 0, percent: nil)
-      @covered  = covered
-      @missed   = missed
-      @omitted  = omitted
-      @total    = covered + missed
-      @percent  = percent || compute_percent(covered, missed, total)
+      @covered = covered
+      @missed = missed
+      @omitted = omitted
+      @total = covered + missed
+      @percent = percent || compute_percent(covered, missed, total)
       @strength = compute_strength(total_strength, total)
     end
 
-  private
+    private
 
     def compute_percent(covered, missed, total)
       return 100.0 if missed.zero?

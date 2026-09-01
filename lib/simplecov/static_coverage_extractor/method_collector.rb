@@ -29,7 +29,7 @@ module SimpleCov
         super
       end
 
-    private
+      private
 
       def constant_name(node)
         return "<anonymous>" if node.nil?

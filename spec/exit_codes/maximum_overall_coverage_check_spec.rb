@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MaximumOverallCoverageCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::MaximumOverallCoverageCheck*",
-                                   "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::MaximumOverallCoverageCheck*",
+    "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_coverage) }
 
   let(:result) do

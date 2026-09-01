@@ -98,7 +98,7 @@ module SimpleCov
 
       def with_simplecov_loaded
         previous_no_defaults = ENV.fetch("SIMPLECOV_NO_DEFAULTS", nil) #: String?
-        previous_cli         = ENV.fetch("SIMPLECOV_CLI", nil) #: String?
+        previous_cli = ENV.fetch("SIMPLECOV_CLI", nil) #: String?
         ENV["SIMPLECOV_NO_DEFAULTS"] = "1"
         # SIMPLECOV_CLI lets a project's `.simplecov` opt some config into
         # CLI-only behavior: simplecov itself sets `coverage_dir` to the dogfood
@@ -110,7 +110,7 @@ module SimpleCov
         # @type var previous_no_defaults: String?
         # @type var previous_cli: String?
         ENV["SIMPLECOV_NO_DEFAULTS"] = previous_no_defaults
-        ENV["SIMPLECOV_CLI"]         = previous_cli
+        ENV["SIMPLECOV_CLI"] = previous_cli
       end
 
       # The deferred require exists for a standalone CLI process that has not

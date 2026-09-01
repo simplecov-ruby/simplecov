@@ -5,7 +5,7 @@ require_relative "shape"
 
 module CollateBenchmark
   class FileStructure
-    Entry = Struct.new(:relative_path, :lines, :branches, keyword_init: true)
+    Entry = Struct.new(:relative_path, :lines, :branches)
 
     TOP_LEVEL_DIRS = {
       "app/models" => 22, "app/services" => 18, "app/controllers" => 12, "app/jobs" => 8,
@@ -14,10 +14,10 @@ module CollateBenchmark
     }.freeze
 
     NOUNS = %w[account widget invoice session token report device policy alert channel
-               profile schedule payment contact endpoint record digest bundle roster
-               ledger transfer webhook receipt cursor snapshot boundary segment].freeze
+      profile schedule payment contact endpoint record digest bundle roster
+      ledger transfer webhook receipt cursor snapshot boundary segment].freeze
     QUALIFIERS = %w[legacy internal external primary shared cached pending archived
-                    inbound outbound derived nested scoped].freeze
+      inbound outbound derived nested scoped].freeze
 
     def initialize(scale:, seed:)
       @scale = scale
@@ -34,7 +34,7 @@ module CollateBenchmark
       end
     end
 
-  private
+    private
 
     def line_counts
       Distribution.samples(
@@ -73,13 +73,13 @@ module CollateBenchmark
       Array.new(size) do
         next nil if @rng.rand >= Shape::RELEVANT_LINE_FRACTION
 
-        @rng.rand < Shape::COVERED_RELEVANT_FRACTION ? hit_count : 0
+        (@rng.rand < Shape::COVERED_RELEVANT_FRACTION) ? hit_count : 0
       end
     end
 
     def hit_count
       ceiling = Distribution.weighted_choice(Shape::HIT_COUNT_TAIL, @rng)
-      ceiling == 1 ? 1 : @rng.rand(2..ceiling)
+      (ceiling == 1) ? 1 : @rng.rand(2..ceiling)
     end
 
     def build_branches(lines, conditions)
@@ -110,15 +110,15 @@ module CollateBenchmark
 
     def two_arm_condition
       type = Distribution.weighted_choice(Shape::TWO_ARM_CONDITION_TYPES, @rng)
-      [type, [type == :case ? arm_type : :then, :else]]
+      [type, [(type == :case) ? arm_type : :then, :else]]
     end
 
     def arm_type
-      @rng.rand < Shape::PATTERN_MATCH_FRACTION ? :in : :when
+      (@rng.rand < Shape::PATTERN_MATCH_FRACTION) ? :in : :when
     end
 
     def arm_hit_count
-      @rng.rand < Shape::ZERO_HIT_ARM_FRACTION ? 0 : hit_count
+      (@rng.rand < Shape::ZERO_HIT_ARM_FRACTION) ? 0 : hit_count
     end
 
     def tuple_key(type, id, start_line, max_line)

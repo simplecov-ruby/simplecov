@@ -40,7 +40,7 @@ module SimpleCov
       visitor = Visitor.new
       visitor.visit(result.value)
       {"branches" => visitor.branches, "methods" => visitor.methods}
-    rescue StandardError
+    rescue
       # Parser errors beyond the .failure? check, unsupported AST shapes, or
       # anything else: fall back to empty hashes rather than crashing the whole
       # report.

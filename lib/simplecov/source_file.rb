@@ -31,7 +31,7 @@ module SimpleCov
     def src
       @src ||= SourceLoader.call(filename)
     end
-    alias source src
+    alias_method :source, :src
 
     # The per-criterion coverage statistics for this file. With no argument
     # answers the `{line:, branch:, method:}` Hash, and with a criterion symbol
@@ -46,7 +46,7 @@ module SimpleCov
     def lines
       @lines ||= LineBuilder.new(self).call
     end
-    alias source_lines lines
+    alias_method :source_lines, :lines
 
     def covered_lines
       @covered_lines ||= lines.select(&:covered?)

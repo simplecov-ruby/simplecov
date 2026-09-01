@@ -14,7 +14,7 @@ module SimpleCov
             result
           end
 
-        private
+          private
 
           # An untouched file gets no key at all: under a present document-level
           # `contexts` array, absence already says "no recorded context executed this

@@ -41,7 +41,7 @@ module SimpleCov
       return simulated unless lines
 
       classified = coverage_stub(absolute_path, source_lines) ||
-                   LinesClassifier.new.classify(source_lines)
+        LinesClassifier.new.classify(source_lines)
       {"lines" => classified}.merge(simulated)
     end
 

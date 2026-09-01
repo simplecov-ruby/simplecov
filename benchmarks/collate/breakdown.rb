@@ -20,11 +20,11 @@ module CollateBenchmark
 
     NESTED = {
       "CoverageAccumulator#absorb" => ["LinesCombiner.merge_into", "BranchesCombiner.absorb",
-                                       "MethodsCombiner.absorb"],
+        "MethodsCombiner.absorb"],
       "CoverageAccumulator#result" => ["BranchesCombiner.materialize"]
     }.freeze
 
-    Row = Struct.new(:label, :seconds, :calls, :share, keyword_init: true)
+    Row = Struct.new(:label, :seconds, :calls, :share)
 
     def totals
       @totals ||= Hash.new(0.0)

@@ -19,7 +19,7 @@ module SimpleCov
       enable_eval_coverage
     end
 
-  private
+    private
 
     def enable_eval_coverage
       if coverage_for_eval_supported?

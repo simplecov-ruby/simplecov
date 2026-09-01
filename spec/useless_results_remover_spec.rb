@@ -118,7 +118,7 @@ RSpec.describe SimpleCov::UselessResultsRemover do
 
     it "matches a root whose case differs on disk" do
       SimpleCov.root File.expand_path("/One")
-      expect(described_class.root_regex.match?("#{File.expand_path('/one')}/lib/a.rb")).to be(true)
+      expect(described_class.root_regex.match?("#{File.expand_path("/one")}/lib/a.rb")).to be(true)
     end
   end
 end

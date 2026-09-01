@@ -98,7 +98,7 @@ module SimpleCov
       coverage_statistics[:method]&.percent
     end
 
-  private
+    private
 
     # Seeded with one entry per criterion the user enabled, so an empty FileList
     # still yields the right shape. `SourceFile#coverage_statistics` always
@@ -126,7 +126,7 @@ module SimpleCov
     # pass their own engine-support check.
     def enabled_criteria_for_reporting
       criteria = [] #: Array[SimpleCov::criterion]
-      criteria << :line   if SimpleCov.line_coverage?
+      criteria << :line if SimpleCov.line_coverage?
       criteria << :branch if SimpleCov.branch_coverage?
       criteria << :method if SimpleCov.method_coverage?
       criteria

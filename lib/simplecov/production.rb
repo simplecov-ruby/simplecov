@@ -23,13 +23,13 @@ module SimpleCov
       # survive a fork, and `start` in the child picks the inherited
       # measurement back up.
       def start(root: Dir.pwd, sink: nil, flush_interval: 60, flush_jitter: nil, sample_rate: 1.0,
-                max_buffered_lines: 1_000_000)
+        max_buffered_lines: 1_000_000)
         validate!(flush_interval, flush_jitter, sample_rate, max_buffered_lines)
         return warn_decline("SimpleCov::Production is already running") if running?
         return false unless claim_coverage
 
         configure(root, sink, flush_interval: flush_interval, flush_jitter: flush_jitter,
-                              sample_rate: sample_rate, max_buffered_lines: max_buffered_lines)
+          sample_rate: sample_rate, max_buffered_lines: max_buffered_lines)
         @running = true
         @pid = Process.pid
         install_at_exit
@@ -80,7 +80,7 @@ module SimpleCov
         @started_coverage = false
       end
 
-    private
+      private
 
       def validate!(flush_interval, flush_jitter, sample_rate, max_buffered_lines)
         raise Error, "flush_interval must be a positive number of seconds" unless flush_interval.positive?
@@ -206,7 +206,7 @@ module SimpleCov
         @sink.store(@pending.transform_values(&:sort))
         @pending.clear
         true
-      rescue StandardError => e
+      rescue => e
         warn "[SimpleCov::Production] flush failed (#{e.class}: #{e}); retrying next interval"
         enforce_ceiling
         false

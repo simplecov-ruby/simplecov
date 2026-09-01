@@ -69,16 +69,16 @@ module SimpleCov
 
       def parse(args)
         opts, = parse_common(args, threshold: 100.0, top: DEFAULT_TOP, criterion: :line,
-                                   missing: false, annotate: nil) { |o, options| own_options(o, options) }
+          missing: false, annotate: nil) { |o, options| own_options(o, options) }
         opts
       end
 
       def own_options(parser, options)
         parser.on("--threshold N", Float) { |v| options[:threshold] = v }
-        parser.on("--top N", Integer)     { |v| options[:top] = validate_top(v) }
-        parser.on("--criterion C")        { |v| options[:criterion] = v.to_sym }
-        parser.on("--missing")            { options[:missing] = true }
-        parser.on("--annotate KIND")      { |v| options[:annotate] = v }
+        parser.on("--top N", Integer) { |v| options[:top] = validate_top(v) }
+        parser.on("--criterion C") { |v| options[:criterion] = v.to_sym }
+        parser.on("--missing") { options[:missing] = true }
+        parser.on("--annotate KIND") { |v| options[:annotate] = v }
       end
 
       # A negative count would raise from `Array#first`, so it is reported as the
@@ -93,7 +93,7 @@ module SimpleCov
       def emit_text(stdout, files, color)
         files.each do |fname, pct, covered, total, missed|
           row = format_row(fname, pct, covered, total, color)
-          row += "  missing #{Patch::Output.ranges(missed, ',')}" if missed&.any?
+          row += "  missing #{Patch::Output.ranges(missed, ",")}" if missed&.any?
           stdout.puts(row)
         end
       end
@@ -133,8 +133,8 @@ module SimpleCov
 
       def format_row(fname, pct, covered, total, color)
         format("%<pct>s  %<covered>d/%<total>d  %<fname>s",
-               pct: Color.colorize_percent(pct, format("%6.2f%%", pct), enabled: color),
-               covered: covered, total: total, fname: fname)
+          pct: Color.colorize_percent(pct, format("%6.2f%%", pct), enabled: color),
+          covered: covered, total: total, fname: fname)
       end
     end
   end

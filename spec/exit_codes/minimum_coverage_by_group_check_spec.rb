@@ -3,8 +3,8 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByGroupCheck*",
-                                   "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::MinimumCoverageByGroupCheck*",
+    "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage_by_group) }
 
   let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2), branch: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }

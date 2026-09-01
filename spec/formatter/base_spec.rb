@@ -7,7 +7,7 @@ RSpec.describe SimpleCov::Formatter::Base do
 
   let(:entry_point_formatter_class) do
     Class.new(described_class) do
-    private
+      private
 
       def entry_point_filename
         "report.txt"
@@ -60,7 +60,7 @@ RSpec.describe SimpleCov::Formatter::Base do
 
   it "lets a subclass mark the summary line" do
     marked = Class.new(described_class) do
-    private
+      private
 
       def message_prefix
         "JSON "

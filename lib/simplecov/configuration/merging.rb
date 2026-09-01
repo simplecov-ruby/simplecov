@@ -150,7 +150,7 @@ module SimpleCov
       @parallel_wait_timeout = seconds if seconds.instance_of?(Integer)
     end
 
-  private
+    private
 
     def inferred_finalize_merge?
       return true unless merging

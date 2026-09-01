@@ -97,7 +97,7 @@ module SimpleCov
       clear_filters
     end
 
-  private
+    private
 
     def parse_filter(filter_argument = nil, &filter_proc)
       filter = filter_argument || filter_proc
@@ -121,7 +121,7 @@ module SimpleCov
     def collect_cover_globs(filter_list)
       filter_list.flat_map do |filter|
         case filter
-        when GlobFilter  then filter.filter_argument
+        when GlobFilter then filter.filter_argument
         when ArrayFilter then collect_cover_globs(filter.filter_argument)
         else []
         end

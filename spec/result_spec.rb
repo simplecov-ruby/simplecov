@@ -5,18 +5,18 @@ require "helper"
 RSpec.describe SimpleCov::Result do
   context "with a (mocked) Coverage.result" do
     around do |example|
-      prev_filters   = SimpleCov.filters
-      prev_groups    = SimpleCov.groups
+      prev_filters = SimpleCov.filters
+      prev_groups = SimpleCov.groups
       prev_formatter = SimpleCov.formatter
 
-      SimpleCov.filters   = []
-      SimpleCov.groups    = {}
+      SimpleCov.filters = []
+      SimpleCov.groups = {}
       SimpleCov.formatter = nil
 
       example.run
 
-      SimpleCov.filters   = prev_filters
-      SimpleCov.groups    = prev_groups
+      SimpleCov.filters = prev_filters
+      SimpleCov.groups = prev_groups
       SimpleCov.formatter = prev_formatter
     end
 
@@ -114,7 +114,7 @@ RSpec.describe SimpleCov::Result do
         it "writes every optional key the run does carry" do
           full = described_class.new(
             original_result, command_name: "t", run_id: "run-1", worker_id: "worker-2",
-                             tracked_files: ["/x/one.rb"], contexts: SimpleCov::ContextMap.new
+            tracked_files: ["/x/one.rb"], contexts: SimpleCov::ContextMap.new
           )
 
           expect(full.to_hash.fetch("t").keys).to eq(%w[coverage timestamp run_id worker_id tracked_files contexts])
@@ -606,7 +606,7 @@ RSpec.describe SimpleCov::Result do
 
     it "marks a file nobody loaded as not loaded, and every other file as loaded" do
       files = builder_for({user => {"lines" => [1]}, sample => {"lines" => [1, 0, 1]}},
-                          not_loaded_files: Set[sample]).call
+        not_loaded_files: Set[sample]).call
 
       expect(files.map(&:not_loaded?)).to eq([false, true])
     end

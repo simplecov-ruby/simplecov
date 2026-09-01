@@ -61,7 +61,7 @@ module SimpleCov
         [branch, git("rev-parse", "HEAD")]
       end
 
-    private
+      private
 
       def entry_for(result)
         branch, commit = git_info
@@ -107,7 +107,7 @@ module SimpleCov
       def git(*)
         output, status = Open3.capture2e("git", "-C", SimpleCov.root.to_s, *)
         output.rstrip if status.success?
-      rescue StandardError
+      rescue
         nil
       end
     end

@@ -1,3 +1,12 @@
+# standard-rspec is deliberately absent here and applied through .standard.yml
+# instead. Its config sets a Language parameter on the RSpecRails department
+# that rubocop-rspec_rails does not accept, which RuboCop warns about on every
+# run, and inheriting it drags in the Capybara, FactoryBot and RSpecRails
+# plugins that this project has no use for. `rake standard` still enforces it.
+inherit_gem:
+  standard: config/base.yml
+  standard-performance: config/base.yml
+
 plugins:
   - rubocop-performance
   - rubocop-rake
@@ -15,11 +24,6 @@ AllCops:
     - "vendor/bundle/**/.*"
   TargetRubyVersion: 3.2
   NewCops: enable
-
-Layout/AccessModifierIndentation:
-  Description: Modifiers should be indented as deep as method definitions,
-    or as deep as the class/module keyword, depending on configuration.
-  EnforcedStyle: outdent
 
 Layout/LeadingCommentSpace:
   # `#:` comments are RBS inline type annotations consumed by Steep;

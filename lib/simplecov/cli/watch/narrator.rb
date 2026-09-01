@@ -11,7 +11,7 @@ module SimpleCov
 
         def banner(server, count)
           host = Serve.url_host(server.addr.fetch(3))
-          @stdout.puts("watching #{count} file#{'s' unless count.eql?(1)}, " \
+          @stdout.puts("watching #{count} file#{"s" unless count.eql?(1)}, " \
                        "serving http://#{host}:#{server.addr.fetch(1)}/")
           @stdout.puts("Press Ctrl-C to stop.")
         end
@@ -38,7 +38,7 @@ module SimpleCov
           @stdout.puts("\nsimplecov watch: stopping")
         end
 
-      private
+        private
 
         def name(changed)
           relative = changed.map { |path| path.delete_prefix("#{@root}/") }
@@ -47,7 +47,7 @@ module SimpleCov
         end
 
         def action(tests)
-          tests ? "running #{tests.size} file#{'s' unless tests.one?}" : "running the full suite"
+          tests ? "running #{tests.size} file#{"s" unless tests.one?}" : "running the full suite"
         end
       end
     end

@@ -20,8 +20,7 @@ module CollateBenchmark
     TIMINGS_DIR = File.join(DIR, "timings")
     MANIFEST_PATH = File.join(DIR, "manifest.json")
 
-    Built = Struct.new(:root, :resultset_paths, :file_count, :line_count, :condition_count,
-                       keyword_init: true)
+    Built = Struct.new(:root, :resultset_paths, :file_count, :line_count, :condition_count)
 
     def dir
       DIR
@@ -61,7 +60,7 @@ module CollateBenchmark
 
     def resultset_paths
       Dir.glob(File.join(RESULT_FILES_DIR, ".resultset-*.json"))
-         .sort_by { |path| path[/-(\d+)\.json\z/, 1].to_i }
+        .sort_by { |path| path[/-(\d+)\.json\z/, 1].to_i }
     end
 
     def build(scale, resultsets)

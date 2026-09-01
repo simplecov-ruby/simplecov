@@ -151,7 +151,7 @@ RSpec.describe SimpleCov::FileList do
     let(:branch_only_file_list) do
       branch_stat = SimpleCov::CoverageStatistics.new(covered: 1, missed: 1)
       source_file = instance_double(SimpleCov::SourceFile,
-                                    coverage_statistics: {branch: branch_stat})
+        coverage_statistics: {branch: branch_stat})
       described_class.new([source_file])
     end
 

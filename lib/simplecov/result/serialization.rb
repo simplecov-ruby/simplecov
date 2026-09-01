@@ -12,7 +12,7 @@ module SimpleCov
         {command_name => data}
       end
 
-    private
+      private
 
       # Serialized whenever a map was recorded, even an empty one: for the merge,
       # the key's presence is the signal that this result tracked tests, which is

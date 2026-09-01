@@ -26,7 +26,7 @@ module SimpleCov
       @maximum_missed_per_file_overrides ||= {}
     end
 
-  private
+    private
 
     def normalized_missed_caps(counts, setting)
       counts = {primary_coverage => counts} if counts.is_a?(Numeric)
@@ -39,13 +39,13 @@ module SimpleCov
       return if cap.instance_of?(Integer) && cap >= 0
 
       raise ConfigurationError,
-            "#{setting} takes a non-negative integer count of misses, got #{cap.inspect}"
+        "#{setting} takes a non-negative integer count of misses, got #{cap.inspect}"
     end
 
     def missed_per_file_replacement(counts)
       counts = {primary_coverage => counts} if counts.is_a?(Numeric)
       counts.map { |criterion, cap| "  coverage(#{criterion.inspect}) { maximum_missed #{cap}, per: :file }" }
-            .join("\n")
+        .join("\n")
     end
   end
 end

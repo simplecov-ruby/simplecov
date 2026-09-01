@@ -7,7 +7,7 @@ module SimpleCov
         def format(result)
           formatters.map do |formatter|
             Formatter.format(formatter, result)
-          rescue StandardError => e
+          rescue => e
             warn("Formatter #{formatter} failed with #{e.class}: #{e} (#{(_ = e.backtrace).first})")
           end
         end

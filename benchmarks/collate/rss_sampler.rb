@@ -22,11 +22,11 @@ module CollateBenchmark
 
     def self.current
       `ps -o rss= -p #{Process.pid}`.to_i * 1024
-    rescue StandardError
+    rescue
       0
     end
 
-  private
+    private
 
     def sample_until_stopped
       while @running

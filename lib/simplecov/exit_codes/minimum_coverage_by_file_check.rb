@@ -15,7 +15,7 @@ module SimpleCov
         MINIMUM_COVERAGE
       end
 
-    private
+      private
 
       def compute_violations
         CoverageViolations.minimum_by_file(result, thresholds, @overrides, baseline: @baseline)

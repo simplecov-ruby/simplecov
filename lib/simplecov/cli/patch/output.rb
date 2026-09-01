@@ -27,7 +27,7 @@ module SimpleCov
         end
 
         def format_row(row, color)
-          line = "  #{criterion_cells(row, color).join('  ')}  #{row.fetch(:file)}"
+          line = "  #{criterion_cells(row, color).join("  ")}  #{row.fetch(:file)}"
           note = missing_note(row)
           note.empty? ? line : "#{line}  #{note}"
         end
@@ -43,7 +43,7 @@ module SimpleCov
         # touched lines actually carried one: a hollow 0/0 cell is noise.
         def criterion_cell(label, stats, color)
           percent = pct(stats)
-          cell = Color.colorize(format("%6.2f%%", percent), percent >= 100 ? :green : :red, enabled: color)
+          cell = Color.colorize(format("%6.2f%%", percent), (percent >= 100) ? :green : :red, enabled: color)
           "#{cell} (#{stats.fetch(:covered)}/#{stats.fetch(:relevant)}) #{label}"
         end
 
@@ -59,7 +59,7 @@ module SimpleCov
 
         def format_total(rows, color)
           totals = {line: sum_stats(rows, :line), branch: sum_stats(rows, :branch), method: sum_stats(rows, :method)}
-          "  Patch coverage: #{criterion_cells(totals, color).join(', ')}"
+          "  Patch coverage: #{criterion_cells(totals, color).join(", ")}"
         end
 
         def json_rows(rows)

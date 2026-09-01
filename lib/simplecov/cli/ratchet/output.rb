@@ -18,7 +18,7 @@ module SimpleCov
 
         def change_summary(outcome, generated)
           files = outcome.baseline.entries.size
-          return "#{files} #{one?(files) ? 'file' : 'files'}" if generated
+          return "#{files} #{one?(files) ? "file" : "files"}" if generated
 
           "#{outcome.tightened.size} tightened, #{outcome.pruned.size} pruned, #{outcome.unchanged.size} unchanged"
         end

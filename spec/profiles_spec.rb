@@ -70,8 +70,8 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
   describe "the bundled 'strict' profile (#1061)" do
     around do |example|
       prev_criteria = SimpleCov.coverage_criteria.dup
-      prev_min      = SimpleCov.minimum_coverage.dup
-      prev_eval     = SimpleCov.instance_variable_get(:@coverage_for_eval_enabled)
+      prev_min = SimpleCov.minimum_coverage.dup
+      prev_eval = SimpleCov.instance_variable_get(:@coverage_for_eval_enabled)
       example.run
     ensure
       SimpleCov.clear_coverage_criteria

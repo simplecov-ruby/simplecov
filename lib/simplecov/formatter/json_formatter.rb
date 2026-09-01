@@ -21,7 +21,7 @@ module SimpleCov
         emit_status(result)
       end
 
-    private
+      private
 
       def message_prefix
         "JSON "

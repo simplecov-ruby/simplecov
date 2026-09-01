@@ -68,7 +68,7 @@ module SimpleCov
         end
       end
 
-    private
+      private
 
       def merge_file(existing, file_coverage)
         case existing
@@ -111,7 +111,7 @@ module SimpleCov
           merged
         end
 
-      private
+        private
 
         def new_table
           {} #: Hash[untyped, untyped]

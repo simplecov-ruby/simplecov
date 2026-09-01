@@ -17,7 +17,7 @@ module SimpleCov
         MINIMUM_COVERAGE
       end
 
-    private
+      private
 
       def compute_violations
         CoverageViolations.baseline(result, @baseline)

@@ -66,7 +66,7 @@ module SimpleCov
       true
     end
 
-  private
+    private
 
     def segment_pattern
       @segment_pattern ||= compute_segment_pattern
@@ -74,8 +74,8 @@ module SimpleCov
 
     def compute_segment_pattern
       normalized = filter_argument.delete_prefix("/")
-      escaped    = Regexp.escape(normalized)
-      boundary   = '(?:\A|/)'
+      escaped = Regexp.escape(normalized)
+      boundary = '(?:\A|/)'
 
       if normalized.end_with?("/")
         # Trailing slash signals directory-only matching.

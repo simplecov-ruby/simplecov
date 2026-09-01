@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
-               mutant_expression: ["SimpleCov::ExitCodes::BaselineCheck*", "SimpleCov::CoverageViolations*"] do
+  mutant_expression: ["SimpleCov::ExitCodes::BaselineCheck*", "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, baseline) }
 
   let(:result) { instance_double(SimpleCov::Result, files: files) }

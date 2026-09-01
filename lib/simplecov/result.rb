@@ -24,7 +24,7 @@ module SimpleCov
     # Used only for parallel-result coordination. They do not change which
     # fresh suites are merged.
     attr_reader :run_id, :worker_id
-    alias source_files files
+    alias_method :source_files, :files
     # The `ContextMap` recorded under `track_tests`, or nil when this result
     # carries none: tracking was off, or a merge dropped the map because not
     # every merged result recorded one.
@@ -37,10 +37,10 @@ module SimpleCov
     attr_writer :created_at, :command_name, :command_names
 
     def_delegators :files, :covered_percent, :covered_percentages, :least_covered_file, :covered_strength,
-                   :covered_lines, :missed_lines,
-                   :total_branches, :covered_branches, :missed_branches,
-                   :total_methods, :covered_methods, :missed_methods,
-                   :coverage_statistics, :coverage_statistics_by_file
+      :covered_lines, :missed_lines,
+      :total_branches, :covered_branches, :missed_branches,
+      :total_methods, :covered_methods, :missed_methods,
+      :coverage_statistics, :coverage_statistics_by_file
     def_delegator :files, :lines_of_code, :total_lines
 
     # `filter_config` defaults to the SimpleCov singleton's filter / group
@@ -50,8 +50,8 @@ module SimpleCov
     # `tracked_files` accepts any collection that answers `to_a` (the merge
     # passes a Set), and nil for a run that tracked nothing.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-                   tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, report: false,
-                   filter_config: FilterConfig.new)
+      tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, report: false,
+      filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
@@ -115,12 +115,12 @@ module SimpleCov
     def self.from_hash(hash)
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data.fetch("timestamp")),
-                                    tracked_files: data["tracked_files"], run_id: data["run_id"],
-                                    worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]))
+          tracked_files: data["tracked_files"], run_id: data["run_id"],
+          worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]))
       end
     end
 
-  private
+    private
 
     def initialize_resultset_metadata(tracked_files, run_id, worker_id, contexts)
       @tracked_files = tracked_files.to_a

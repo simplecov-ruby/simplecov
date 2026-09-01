@@ -21,7 +21,7 @@ module SimpleCov
       # answer the four position accessors the emitted tuples are built from.
       PointLocation = Data.define(:start_line, :start_column, :end_line, :end_column)
 
-    private
+      private
 
       # Which arm of each conditional below runs is fixed by the running Ruby's
       # version, so no single process can cover both sides.

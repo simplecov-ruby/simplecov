@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
-               mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
+  mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
   let(:filename) { File.expand_path("/project/lib/a.rb") }
 
   let(:lines) do
@@ -103,8 +103,8 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
 
     expect(described_class.call(source_file).keys).to eq(
       %i[source lines lines_covered_percent covered_lines missed_lines omitted_lines total_lines
-         branches branches_covered_percent covered_branches missed_branches total_branches
-         methods methods_covered_percent covered_methods missed_methods total_methods]
+        branches branches_covered_percent covered_branches missed_branches total_branches
+        methods methods_covered_percent covered_methods missed_methods total_methods]
     )
   end
 

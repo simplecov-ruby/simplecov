@@ -25,7 +25,7 @@ module SimpleCov
           with_queues { |queues| queues.each { |queue| queue << event } }
         end
 
-      private
+        private
 
         # Holds the connection open, forwarding each broadcast as one SSE message,
         # until the tab goes away and the write fails. A closed tab that never sees

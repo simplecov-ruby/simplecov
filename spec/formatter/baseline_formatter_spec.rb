@@ -186,14 +186,14 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   it "includes branch floors when branch coverage is enabled" do
     allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
     result = SimpleCov::Result.new({
-                                     source_fixture("json/sample.rb") => {
-                                       "lines" => [1, 0, 1],
-                                       "branches" => {[:if, 0, 1, 0, 3, 0] => {
-                                         [:then, 1, 2, 2, 2, 6] => 1,
-                                         [:else, 2, 3, 2, 3, 6] => 0
-                                       }}
-                                     }
-                                   })
+      source_fixture("json/sample.rb") => {
+        "lines" => [1, 0, 1],
+        "branches" => {[:if, 0, 1, 0, 3, 0] => {
+          [:then, 1, 2, 2, 2, 6] => 1,
+          [:else, 2, 3, 2, 3, 6] => 0
+        }}
+      }
+    })
 
     capture_stderr { formatter.format(result) }
 

@@ -199,7 +199,7 @@ RSpec.describe SimpleCov::AtomicFile, mutant_expression: "SimpleCov::AtomicFile*
   end
 
   it "uses distinct temporary files for concurrent writers" do
-    payloads = Array.new(16) { |index| "#{index}:#{'x' * 100_000}" }
+    payloads = Array.new(16) { |index| "#{index}:#{"x" * 100_000}" }
     ready = Queue.new
     start = Queue.new
     threads = payloads.map do |payload|

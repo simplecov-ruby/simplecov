@@ -15,9 +15,9 @@ version =
   end
 
 Gem::Specification.new do |gem|
-  gem.name        = "simplecov"
-  gem.version     = version
-  gem.platform    = Gem::Platform::RUBY
+  gem.name = "simplecov"
+  gem.version = version
+  gem.platform = Gem::Platform::RUBY
   gem.authors = [
     "Erik Berlin",
     "Benjamin Fleischer",
@@ -36,12 +36,12 @@ Gem::Specification.new do |gem|
     "deivid.rodriguez@gmail.com",
     "xavier@rhnh.net"
   ]
-  gem.homepage    = "https://github.com/simplecov-ruby/simplecov"
-  gem.summary     = "Code coverage for Ruby"
+  gem.homepage = "https://github.com/simplecov-ruby/simplecov"
+  gem.summary = "Code coverage for Ruby"
   gem.description = "Code coverage for Ruby with a powerful configuration library " \
                     "and automatic merging of coverage across test suites"
-  gem.license     = "MIT"
-  gem.metadata    = {
+  gem.license = "MIT"
+  gem.metadata = {
     "bug_tracker_uri" => "https://github.com/simplecov-ruby/simplecov/issues",
     "changelog_uri" => "https://github.com/simplecov-ruby/simplecov/blob/main/CHANGELOG.md",
     "documentation_uri" => "https://www.rubydoc.info/gems/simplecov/#{gem.version}",
@@ -59,8 +59,8 @@ Gem::Specification.new do |gem|
   # type-check the whole codebase; only the public API signature file ships.
   # The schemas/ directory is also not packaged. Nothing reads it at runtime,
   # the JSON formatter refers consumers to the canonical schema URL on GitHub.
-  gem.files         = Dir["lib/**/*.*", "exe/*", "man/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
-  gem.bindir        = "exe"
-  gem.executables   = ["simplecov"]
+  gem.files = Dir["lib/**/*.*", "exe/*", "man/*", "LICENSE", "README.md", "sig/simplecov.rbs"]
+  gem.bindir = "exe"
+  gem.executables = ["simplecov"]
   gem.require_paths = ["lib"]
 end

@@ -31,7 +31,7 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "dispatch", mutant_expression: ["SimpleCov::CLI#run", "SimpleCov::CLI#dispatch",
-                                           "SimpleCov::CLI#usage", "SimpleCov::CLI#color_enabled?"] do
+    "SimpleCov::CLI#usage", "SimpleCov::CLI#color_enabled?"] do
     it "prints usage and exits 0 with no arguments" do
       expect(run).to eq(0)
       expect(stdout.string).to include("Usage:")
@@ -177,7 +177,7 @@ RSpec.describe SimpleCov::CLI do
         repo!("trunk")
         system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
         system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
-               "refs/remotes/origin/trunk", exception: true)
+          "refs/remotes/origin/trunk", exception: true)
 
         expect(Dir.chdir(tmp) { described_class.default_base }).to eq("trunk")
       end
@@ -263,7 +263,7 @@ RSpec.describe SimpleCov::CLI do
       it "omits the totals line when nothing was measured" do
         expect(described_class::Status.report_lines(facts)).to eq(
           ["by simplecov 9.9.9 running RSpec", "commit not recorded",
-           "tests recorded: none (enable track_tests to select and re-run by test)"]
+            "tests recorded: none (enable track_tests to select and re-run by test)"]
         )
       end
 
@@ -327,7 +327,7 @@ RSpec.describe SimpleCov::CLI do
     it "counts plural commits behind" do
       repo!
       system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-             "commit", "-q", "--allow-empty", "-m", "c2", exception: true)
+        "commit", "-q", "--allow-empty", "-m", "c2", exception: true)
       first_commit = Dir.chdir(tmp) { `git rev-parse HEAD~2`.strip }
       write_report(commit: first_commit)
 
@@ -664,7 +664,7 @@ RSpec.describe SimpleCov::CLI do
 
         answered = facts.gather({"total" => {"lines" => {"percent" => 92.5}}}, path)
         expect(answered).to include(totals: {"line" => 92.5}, contexts: nil,
-                                    resultset_path: path, resultset: [{command: "RSpec", age: 60}])
+          resultset_path: path, resultset: [{command: "RSpec", age: 60}])
       ensure
         FileUtils.remove_entry(dir)
       end
@@ -830,7 +830,7 @@ RSpec.describe SimpleCov::CLI do
       Dir.mktmpdir("simplecov-cli-badge-default-") do |dir|
         FileUtils.mkdir_p(File.join(dir, "coverage"))
         File.write(File.join(dir, "coverage", "coverage.json"),
-                   JSON.dump("meta" => {}, "total" => {"lines" => {"percent" => 92.5}}))
+          JSON.dump("meta" => {}, "total" => {"lines" => {"percent" => 92.5}}))
         Dir.chdir(dir) do
           expect(run("badge")).to eq(0)
           expect(stdout.string).to include('aria-label="line coverage: 92.50%"')
@@ -973,7 +973,7 @@ RSpec.describe SimpleCov::CLI do
       let(:options) do
         {completions_name => [{short: nil, long: "--input", arg: "PATH", desc: "Read from PATH"}],
          "report" => [{short: nil, long: "--json", arg: nil, desc: "Emit JSON"},
-                      {short: "-q", long: "--quiet", arg: nil, desc: "Say nothing"}]}
+           {short: "-q", long: "--quiet", arg: nil, desc: "Say nothing"}]}
       end
 
       it "renders the whole fish script" do
@@ -1083,23 +1083,23 @@ RSpec.describe SimpleCov::CLI do
 
       it "folds a wrapped description onto the option it belongs to, not the first one" do
         section = ["clean options:",
-                   "  --dry-run                 Print what would",
-                   "                            be removed",
-                   "  -q, --quiet               Suppress status",
-                   "                            lines entirely", ""].join("\n")
+          "  --dry-run                 Print what would",
+          "                            be removed",
+          "  -q, --quiet               Suppress status",
+          "                            lines entirely", ""].join("\n")
         options = completions.section_options(section)
         expect(options).to eq(
           [{short: nil, long: "--dry-run", arg: nil, desc: "Print what would be removed"},
-           {short: "-q", long: "--quiet", arg: nil, desc: "Suppress status lines entirely"}]
+            {short: "-q", long: "--quiet", arg: nil, desc: "Suppress status lines entirely"}]
         )
       end
     end
 
     it "folds wrapped descriptions into their option and ignores stray lines before the first" do
       section = ["clean options:",
-                 "  a stray note",
-                 "  --dry-run                 Print what would",
-                 "                            be removed", ""].join("\n")
+        "  a stray note",
+        "  --dry-run                 Print what would",
+        "                            be removed", ""].join("\n")
       options = described_class::Completions.section_options(section)
       expect(options.collect { |option| option[:long] }).to eq(["--dry-run"])
       expect(options.first[:desc]).to eq("Print what would be removed")
@@ -1133,7 +1133,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     %w[coverage show report uncovered tests affected merge diff patch open serve watch clean status
-       completions badge].each do |command|
+      completions badge].each do |command|
       it "answers `#{command} --help` with that command's usage" do
         expect(run(command, "--help")).to eq(0)
         expect(stdout.string).to include("Usage: simplecov #{command} [options]")
@@ -1214,8 +1214,8 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe ".coverage_dir", mutant_expression: ["SimpleCov::CLI#coverage_dir", "SimpleCov::CLI#default_input",
-                                                "SimpleCov::CLI#default_report", "SimpleCov::CLI#default_resultset",
-                                                "SimpleCov::CLI::Dotfile*"] do
+    "SimpleCov::CLI#default_report", "SimpleCov::CLI#default_resultset",
+    "SimpleCov::CLI::Dotfile*"] do
     around do |example|
       previous = described_class.instance_variable_get(:@coverage_dir)
       described_class.instance_variable_set(:@coverage_dir, nil)
@@ -1317,8 +1317,8 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "coverage JSON input errors",
-           mutant_expression: ["SimpleCov::CLI::CoverageFile*", "SimpleCov::CLI::CommandHelpers*",
-                               "SimpleCov::CoverageJSON*"] do
+    mutant_expression: ["SimpleCov::CLI::CoverageFile*", "SimpleCov::CLI::CommandHelpers*",
+      "SimpleCov::CoverageJSON*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-json-errors-spec-") }
     let(:invalid) { File.join(tmp, "invalid.json") }
     let(:valid) { File.join(tmp, "valid.json") }
@@ -1470,9 +1470,9 @@ RSpec.describe SimpleCov::CLI do
 
     it "omits a criterion the report never measured" do
       File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {
-                                        "lines_covered_percent" => 66.67,
-                                        "covered_lines" => 2, "total_lines" => 3
-                                      }}))
+        "lines_covered_percent" => 66.67,
+        "covered_lines" => 2, "total_lines" => 3
+      }}))
 
       expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(0)
       expect(stdout.string).to include("Line:")
@@ -1481,9 +1481,9 @@ RSpec.describe SimpleCov::CLI do
 
     it "reads a percent that arrived as a string" do
       File.write(json_path, JSON.dump("coverage" => {"lib/a.rb" => {
-                                        "lines_covered_percent" => "66.67",
-                                        "covered_lines" => 2, "total_lines" => 3
-                                      }}))
+        "lines_covered_percent" => "66.67",
+        "covered_lines" => 2, "total_lines" => 3
+      }}))
 
       expect(run("coverage", "--input", json_path, "lib/a.rb")).to eq(0)
       expect(stdout.string).to include("66.67%")
@@ -1684,24 +1684,24 @@ RSpec.describe SimpleCov::CLI do
 
     before do
       File.write(json_path, JSON.dump(
-                              "total" => {
-                                "lines" => {"covered" => 80, "total" => 100, "percent" => 80.0},
-                                "branches" => {"covered" => 9, "total" => 10, "percent" => 90.0},
-                                "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
-                              },
-                              "groups" => {
-                                "Models" => {
-                                  "lines" => {"covered" => 40, "total" => 50, "percent" => 80.0},
-                                  "branches" => {"covered" => 5, "total" => 5, "percent" => 100.0},
-                                  "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
-                                },
-                                "All Files" => {
-                                  "lines" => {"covered" => 1, "total" => 2, "percent" => 50.0},
-                                  "branches" => {"covered" => 0, "total" => 0, "percent" => 100.0},
-                                  "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
-                                }
-                              }
-                            ))
+        "total" => {
+          "lines" => {"covered" => 80, "total" => 100, "percent" => 80.0},
+          "branches" => {"covered" => 9, "total" => 10, "percent" => 90.0},
+          "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+        },
+        "groups" => {
+          "Models" => {
+            "lines" => {"covered" => 40, "total" => 50, "percent" => 80.0},
+            "branches" => {"covered" => 5, "total" => 5, "percent" => 100.0},
+            "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+          },
+          "All Files" => {
+            "lines" => {"covered" => 1, "total" => 2, "percent" => 50.0},
+            "branches" => {"covered" => 0, "total" => 0, "percent" => 100.0},
+            "methods" => {"covered" => 0, "total" => 0, "percent" => 100.0}
+          }
+        }
+      ))
     end
 
     after { FileUtils.remove_entry(tmp) }
@@ -1790,13 +1790,13 @@ RSpec.describe SimpleCov::CLI do
 
     it "carries a half-filled section into the payload as it stands" do
       File.write(json_path, JSON.dump(
-                              "total" => {
-                                "lines" => {"covered" => 8, "total" => 10},
-                                "branches" => {"percent" => 50.0, "covered" => 1},
-                                "methods" => {"percent" => 50.0, "total" => 4}
-                              },
-                              "groups" => {"Models" => {"lines" => {"total" => 0}, "branches" => [1, 2]}}
-                            ))
+        "total" => {
+          "lines" => {"covered" => 8, "total" => 10},
+          "branches" => {"percent" => 50.0, "covered" => 1},
+          "methods" => {"percent" => 50.0, "total" => 4}
+        },
+        "groups" => {"Models" => {"lines" => {"total" => 0}, "branches" => [1, 2]}}
+      ))
 
       expect(run("report", "--input", json_path, "--json")).to eq(0)
       expect(JSON.parse(stdout.string)).to eq(
@@ -2043,7 +2043,7 @@ RSpec.describe SimpleCov::CLI do
 
       it "poisons the whole table on any malformed index or bitmap" do
         malformed = [{"1" => "6"}, {"x" => "6"}, {"0abc" => "1"}, {"abc0" => "1"},
-                     {"0" => "zz"}, {"0" => "6g"}, {"0" => "g6"}, {0 => "6"}, {"0" => 6}]
+          {"0" => "zz"}, {"0" => "6g"}, {"0" => "g6"}, {0 => "6"}, {"0" => 6}]
         expect(malformed.map { |raw| tests.decode_table(raw, 1) }).to all(be_nil)
       end
 
@@ -2149,10 +2149,10 @@ RSpec.describe SimpleCov::CLI do
 
       it "notes on stderr when every recorded test covers something uniquely" do
         File.write(json_path, JSON.dump(
-                                "contexts" => ["spec/a_spec.rb:10", "spec/c_spec.rb:30"],
-                                "coverage" => {result_file => {"lines" => [1, 1],
-                                                               "contexts" => {"0" => "1", "1" => "2"}}}
-                              ))
+          "contexts" => ["spec/a_spec.rb:10", "spec/c_spec.rb:30"],
+          "coverage" => {result_file => {"lines" => [1, 1],
+                                         "contexts" => {"0" => "1", "1" => "2"}}}
+        ))
         expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
         expect(stdout.string).to be_empty
         expect(stderr.string)
@@ -2273,7 +2273,7 @@ RSpec.describe SimpleCov::CLI do
 
     let(:source) do
       ["def call(baseline)", "  rows = compare", "  return 1 if rows.empty?", "",
-       "# comment", "again", "done", "more", "covered", "last"]
+        "# comment", "again", "done", "more", "covered", "last"]
     end
     let(:entry) do
       {
@@ -2597,7 +2597,7 @@ RSpec.describe SimpleCov::CLI do
       describe "#each_missed" do
         it "yields the line of every missed item and no other" do
           items = [{"report_line" => 2, "coverage" => 0}, {"report_line" => 3, "coverage" => 1},
-                   {"report_line" => 5, "coverage" => 0}]
+            {"report_line" => 5, "coverage" => 0}]
           expect { |probe| annotator.each_missed(items, &probe) }.to yield_successive_args(2, 5)
         end
 
@@ -2794,7 +2794,7 @@ RSpec.describe SimpleCov::CLI do
       system("git", "-C", tmp, "branch", "-m", "main", "trunk", exception: true)
       system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
       system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
-             "refs/remotes/origin/trunk", exception: true)
+        "refs/remotes/origin/trunk", exception: true)
 
       expect(run_in_repo("affected", "--input", json_path)).to eq(0)
       expect(stderr.string).to eq("simplecov affected: no changes against trunk\n")
@@ -2910,7 +2910,7 @@ RSpec.describe SimpleCov::CLI do
       it "starts with no base, no runner, and both compact forms off" do
         expect(SimpleCov::CLI::Affected.parse([]))
           .to eq(input: described_class.default_input, json: false, no_color: false,
-                 base: nil, run: nil, rest: [])
+            base: nil, run: nil, rest: [])
       end
 
       it "splits the runner command off at --run" do
@@ -3325,10 +3325,10 @@ RSpec.describe SimpleCov::CLI do
                                     "lines" => [1, 0, 0, 0, nil, 0],
                                     "total_branches" => 2, "covered_branches" => 1, "branches_covered_percent" => 50.0,
                                     "branches" => [{"report_line" => 2, "coverage" => 0},
-                                                   {"report_line" => 4, "coverage" => 3}],
+                                      {"report_line" => 4, "coverage" => 3}],
                                     "total_methods" => 2, "covered_methods" => 1, "methods_covered_percent" => 50.0,
                                     "methods" => [{"start_line" => 9, "coverage" => 0},
-                                                  {"start_line" => 1, "coverage" => 2}]
+                                      {"start_line" => 1, "coverage" => 2}]
                                   },
                                   "/abs/lib/stats_only.rb" => {
                                     "total_lines" => 2, "covered_lines" => 1, "lines_covered_percent" => 50.0
@@ -3533,8 +3533,8 @@ RSpec.describe SimpleCov::CLI do
                                   "total_branches" => 4, "covered_branches" => 0,
                                   "branches_covered_percent" => 0.0,
                                   "branches" => [{"report_line" => 7, "coverage" => 0},
-                                                 {"report_line" => 2, "coverage" => 0},
-                                                 {"report_line" => 7, "coverage" => 0}]
+                                    {"report_line" => 2, "coverage" => 0},
+                                    {"report_line" => 7, "coverage" => 0}]
                                 }
                               }
                             ))
@@ -3930,7 +3930,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "lists per-file deltas, regressions first" do
       write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 50, "lib/c.rb" => 100)
-      write_coverage(current,  "lib/a.rb" => 85, "lib/b.rb" => 30, "lib/c.rb" => 100)
+      write_coverage(current, "lib/a.rb" => 85, "lib/b.rb" => 30, "lib/c.rb" => 100)
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
       lines = stdout.string.lines.map(&:strip)
@@ -3943,7 +3943,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "treats new files as a 0%-baseline delta" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 80, "lib/new.rb" => 60)
+      write_coverage(current, "lib/a.rb" => 80, "lib/new.rb" => 60)
 
       run("diff", "--input", current, baseline)
       expect(stdout.string).to include("lib/new.rb")
@@ -3952,7 +3952,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "exits 0 with a friendly message when nothing moved" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 80)
+      write_coverage(current, "lib/a.rb" => 80)
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
       expect(stdout.string).to include("no per-file coverage changes")
@@ -3960,20 +3960,20 @@ RSpec.describe SimpleCov::CLI do
 
     it "exits non-zero on regression when --fail-on-drop is set" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 70)
+      write_coverage(current, "lib/a.rb" => 70)
 
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
     end
 
     it "does not fail on sub-epsilon float noise under --fail-on-drop" do
       write_coverage(baseline,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 20, "covered_branches" => 16,
-                                    "branches_covered_percent" => 80.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 20, "covered_branches" => 16,
+                       "branches_covered_percent" => 80.0})
       write_coverage(current,
-                     "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
-                                    "total_branches" => 20, "covered_branches" => 16,
-                                    "branches_covered_percent" => 80.0 - 1e-14})
+        "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
+                       "total_branches" => 20, "covered_branches" => 16,
+                       "branches_covered_percent" => 80.0 - 1e-14})
 
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(0)
       expect(stdout.string).to include("lib/a.rb")
@@ -3987,7 +3987,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "reads a negative threshold as the same distance as a positive one" do
       write_coverage(baseline, "lib/small.rb" => 80, "lib/big.rb" => 50)
-      write_coverage(current,  "lib/small.rb" => 83, "lib/big.rb" => 56)
+      write_coverage(current, "lib/small.rb" => 83, "lib/big.rb" => 56)
 
       expect(run("diff", "--input", current, "--threshold", "-5", baseline)).to eq(0)
       expect(stdout.string).to include("lib/big.rb")
@@ -3997,8 +3997,8 @@ RSpec.describe SimpleCov::CLI do
     it "reads a file with nothing to cover as 0%, not as fully covered" do
       write_coverage(baseline, "lib/a.rb" => {"total_lines" => 0, "covered_lines" => 0,
                                               "lines_covered_percent" => 100.0})
-      write_coverage(current,  "lib/a.rb" => {"total_lines" => 100, "covered_lines" => 100,
-                                              "lines_covered_percent" => 100.0})
+      write_coverage(current, "lib/a.rb" => {"total_lines" => 100, "covered_lines" => 100,
+                                             "lines_covered_percent" => 100.0})
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
       expect(stdout.string).to include("lib/a.rb")
@@ -4007,7 +4007,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "renders a row as sign, width-aligned delta, criterion and file" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 85)
+      write_coverage(current, "lib/a.rb" => 85)
 
       run("diff", "--input", current, baseline)
       expect(stdout.string).to eq("  +  5.00% lines  lib/a.rb\n")
@@ -4015,17 +4015,17 @@ RSpec.describe SimpleCov::CLI do
 
     it "renders every criterion that moved, and only those" do
       write_coverage(baseline,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 10, "covered_branches" => 5,
-                                    "branches_covered_percent" => 50.0,
-                                    "total_methods" => 10, "covered_methods" => 4,
-                                    "methods_covered_percent" => 40.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 10, "covered_branches" => 5,
+                       "branches_covered_percent" => 50.0,
+                       "total_methods" => 10, "covered_methods" => 4,
+                       "methods_covered_percent" => 40.0})
       write_coverage(current,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 10, "covered_branches" => 7,
-                                    "branches_covered_percent" => 70.0,
-                                    "total_methods" => 10, "covered_methods" => 3,
-                                    "methods_covered_percent" => 30.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 10, "covered_branches" => 7,
+                       "branches_covered_percent" => 70.0,
+                       "total_methods" => 10, "covered_methods" => 3,
+                       "methods_covered_percent" => 30.0})
 
       run("diff", "--input", current, baseline)
       expect(stdout.string).to eq("    0.00% lines  + 20.00% branches  -10.00% methods  lib/a.rb\n")
@@ -4033,7 +4033,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "marks an added file and a removed one by name" do
       write_coverage(baseline, "lib/gone.rb" => 80)
-      write_coverage(current,  "lib/new.rb" => 60)
+      write_coverage(current, "lib/new.rb" => 60)
 
       run("diff", "--input", current, baseline)
       expect(stdout.string.lines.map(&:chomp)).to contain_exactly(
@@ -4044,7 +4044,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "lists a sub-one-percent move under the default threshold" do
       write_coverage(baseline, "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0})
-      write_coverage(current,  "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.5})
+      write_coverage(current, "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.5})
 
       run("diff", "--input", current, baseline)
       expect(stdout.string).to include("lib/a.rb")
@@ -4061,8 +4061,8 @@ RSpec.describe SimpleCov::CLI do
     it "reads the baseline from the first positional argument" do
       other = File.join(tmp, "other.json")
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(other,    "lib/a.rb" => 10)
-      write_coverage(current,  "lib/a.rb" => 85)
+      write_coverage(other, "lib/a.rb" => 10)
+      write_coverage(current, "lib/a.rb" => 85)
 
       run("diff", "--input", current, baseline, other)
       expect(stdout.string).to include("+  5.00%")
@@ -4070,9 +4070,9 @@ RSpec.describe SimpleCov::CLI do
 
     it "coerces a percent that arrived as a string" do
       File.write(baseline, JSON.dump("coverage" => {"lib/a.rb" => {
-                                       "total_lines" => 100, "covered_lines" => 80,
-                                       "lines_covered_percent" => "80.0"
-                                     }}))
+        "total_lines" => 100, "covered_lines" => 80,
+        "lines_covered_percent" => "80.0"
+      }}))
       write_coverage(current, "lib/a.rb" => 85)
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
@@ -4082,17 +4082,17 @@ RSpec.describe SimpleCov::CLI do
     it "colorizes every criterion it prints, not only the first" do
       allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
       write_coverage(baseline,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 10, "covered_branches" => 5,
-                                    "branches_covered_percent" => 50.0,
-                                    "total_methods" => 10, "covered_methods" => 4,
-                                    "methods_covered_percent" => 40.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 10, "covered_branches" => 5,
+                       "branches_covered_percent" => 50.0,
+                       "total_methods" => 10, "covered_methods" => 4,
+                       "methods_covered_percent" => 40.0})
       write_coverage(current,
-                     "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
-                                    "total_branches" => 10, "covered_branches" => 7,
-                                    "branches_covered_percent" => 70.0,
-                                    "total_methods" => 10, "covered_methods" => 3,
-                                    "methods_covered_percent" => 30.0})
+        "lib/a.rb" => {"covered_lines" => 85, "lines_covered_percent" => 85.0,
+                       "total_branches" => 10, "covered_branches" => 7,
+                       "branches_covered_percent" => 70.0,
+                       "total_methods" => 10, "covered_methods" => 3,
+                       "methods_covered_percent" => 30.0})
 
       run("diff", "--input", current, baseline)
       expect(stdout.string).to include("\e[32m+  5.00% lines\e[0m")
@@ -4132,13 +4132,13 @@ RSpec.describe SimpleCov::CLI do
 
     it "fails on a branch coverage drop when --fail-on-drop is set" do
       write_coverage(baseline,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 20, "covered_branches" => 16,
-                                    "branches_covered_percent" => 80.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 20, "covered_branches" => 16,
+                       "branches_covered_percent" => 80.0})
       write_coverage(current,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_branches" => 20, "covered_branches" => 10,
-                                    "branches_covered_percent" => 50.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_branches" => 20, "covered_branches" => 10,
+                       "branches_covered_percent" => 50.0})
 
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
       expect(stdout.string).to include("lib/a.rb")
@@ -4147,13 +4147,13 @@ RSpec.describe SimpleCov::CLI do
 
     it "fails on a method coverage drop when --fail-on-drop is set" do
       write_coverage(baseline,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_methods" => 20, "covered_methods" => 18,
-                                    "methods_covered_percent" => 90.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_methods" => 20, "covered_methods" => 18,
+                       "methods_covered_percent" => 90.0})
       write_coverage(current,
-                     "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
-                                    "total_methods" => 20, "covered_methods" => 15,
-                                    "methods_covered_percent" => 75.0})
+        "lib/a.rb" => {"covered_lines" => 80, "lines_covered_percent" => 80.0,
+                       "total_methods" => 20, "covered_methods" => 15,
+                       "methods_covered_percent" => 75.0})
 
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(1)
       expect(stdout.string).to include("lib/a.rb")
@@ -4162,7 +4162,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "tags new files with (new file) and removed files with (removed)" do
       write_coverage(baseline, "lib/gone.rb" => 95)
-      write_coverage(current,  "lib/new.rb"  => 60)
+      write_coverage(current, "lib/new.rb" => 60)
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
       expect(stdout.string).to include("lib/new.rb")
@@ -4173,7 +4173,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "normalizes leading slashes so pre-`project_filename` baselines diff cleanly" do
       write_coverage(baseline, "/lib/foo.rb" => 80)
-      write_coverage(current,  "lib/foo.rb" => 80)
+      write_coverage(current, "lib/foo.rb" => 80)
 
       expect(run("diff", "--input", current, baseline)).to eq(0)
       expect(stdout.string).to include("no per-file coverage changes")
@@ -4181,7 +4181,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "emits a JSON array under --json" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 70)
+      write_coverage(current, "lib/a.rb" => 70)
 
       expect(run("diff", "--input", current, "--json", baseline)).to eq(0)
       payload = JSON.parse(stdout.string)
@@ -4191,7 +4191,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "honors --threshold to filter out small-delta noise" do
       write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 75, "lib/b.rb" => 60)
+      write_coverage(current, "lib/a.rb" => 75, "lib/b.rb" => 60)
 
       run("diff", "--input", current, "--threshold", "10", baseline)
       expect(stdout.string).to include("lib/b.rb")
@@ -4200,7 +4200,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "includes a file whose delta is exactly the threshold" do
       write_coverage(baseline, "lib/a.rb" => 80)
-      write_coverage(current,  "lib/a.rb" => 70)
+      write_coverage(current, "lib/a.rb" => 70)
 
       run("diff", "--input", current, "--threshold", "10", baseline)
       expect(stdout.string).to include("lib/a.rb")
@@ -4208,7 +4208,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "does not fail on a deleted file under --fail-on-drop" do
       write_coverage(baseline, "lib/a.rb" => 80, "lib/gone.rb" => 100)
-      write_coverage(current,  "lib/a.rb" => 80)
+      write_coverage(current, "lib/a.rb" => 80)
 
       expect(run("diff", "--input", current, "--fail-on-drop", baseline)).to eq(0)
       expect(stdout.string).to include("(removed)")
@@ -4218,7 +4218,7 @@ RSpec.describe SimpleCov::CLI do
       it "colorizes regressions red and improvements green when Color.enabled? is true" do
         allow(SimpleCov::Color).to receive(:enabled?).and_return(true)
         write_coverage(baseline, "lib/a.rb" => 80, "lib/b.rb" => 50)
-        write_coverage(current,  "lib/a.rb" => 85, "lib/b.rb" => 30)
+        write_coverage(current, "lib/a.rb" => 85, "lib/b.rb" => 30)
 
         expect(run("diff", "--input", current, baseline)).to eq(0)
         expect(stdout.string).to match(/\e\[31m-\s*20\.00% lines\e\[0m/)
@@ -4228,7 +4228,7 @@ RSpec.describe SimpleCov::CLI do
       it_behaves_like "a --no-color subcommand" do
         before do
           write_coverage(baseline, "lib/a.rb" => 80)
-          write_coverage(current,  "lib/a.rb" => 70)
+          write_coverage(current, "lib/a.rb" => 70)
         end
 
         let(:no_color_argv) { ["diff", "--input", current, "--no-color", baseline] }
@@ -4254,7 +4254,7 @@ RSpec.describe SimpleCov::CLI do
       }
       if entry[:branch_percent]
         row.merge!("branches_covered_percent" => entry.fetch(:branch_percent), "covered_branches" => 1,
-                   "missed_branches" => entry.fetch(:branch_missed), "total_branches" => 4)
+          "missed_branches" => entry.fetch(:branch_missed), "total_branches" => 4)
       end
       row
     end
@@ -4301,7 +4301,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "names itself when the report cannot be read" do
       expect(run("ratchet", "--input", File.join(tmp, "absent.json"), "--baseline", baseline_path)).to eq(1)
-      expect(stderr.string).to eq("simplecov ratchet: #{File.join(tmp, 'absent.json')} not found\n")
+      expect(stderr.string).to eq("simplecov ratchet: #{File.join(tmp, "absent.json")} not found\n")
     end
 
     it "reports a baseline it cannot make sense of" do
@@ -4490,10 +4490,10 @@ RSpec.describe SimpleCov::CLI do
 
     it "skips report rows without usable counts" do
       File.write(input, JSON.dump("coverage" => {
-                                    "lib/counted.rb" => {"lines_covered_percent" => 80.0, "covered_lines" => 8,
-                                                         "missed_lines" => 2, "total_lines" => 10},
-                                    "lib/percent_only.rb" => {"lines_covered_percent" => 50.0}
-                                  }))
+        "lib/counted.rb" => {"lines_covered_percent" => 80.0, "covered_lines" => 8,
+                             "missed_lines" => 2, "total_lines" => 10},
+        "lib/percent_only.rb" => {"lines_covered_percent" => 50.0}
+      }))
 
       expect(run("ratchet", "--input", input, "--baseline", baseline_path)).to eq(0)
 
@@ -4560,10 +4560,10 @@ RSpec.describe SimpleCov::CLI do
     let(:entries) do
       [{"created_at" => "2026-08-01T00:00:00Z", "branch" => "main", "commit" => "abcdef1234",
         "totals" => {"line" => 90.0, "branch" => 80.0}, "files" => {"lib/a.rb" => {"line" => 50.0}}},
-       {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
-        "totals" => {"line" => 95.0, "branch" => 70.0}, "files" => {}},
-       {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
-        "totals" => {"line" => 100.0, "branch" => 70.0}, "files" => {"lib/a.rb" => {"line" => 75.0}}}]
+        {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
+         "totals" => {"line" => 95.0, "branch" => 70.0}, "files" => {}},
+        {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
+         "totals" => {"line" => 100.0, "branch" => 70.0}, "files" => {"lib/a.rb" => {"line" => 75.0}}}]
     end
 
     it "draws the totals view whole" do
@@ -4614,10 +4614,10 @@ RSpec.describe SimpleCov::CLI do
       expect(JSON.parse(scoped.string)).to eq(
         [{"created_at" => "2026-08-01T00:00:00Z", "branch" => "main", "commit" => "abcdef1234",
           "percents" => {"line" => 50.0}},
-         {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
-          "percents" => nil},
-         {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
-          "percents" => {"line" => 75.0}}]
+          {"created_at" => "2026-08-02T00:00:00Z", "branch" => "feature-x", "commit" => "1234567890",
+           "percents" => nil},
+          {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
+           "percents" => {"line" => 75.0}}]
       )
     end
 
@@ -4700,7 +4700,7 @@ RSpec.describe SimpleCov::CLI do
 
       expect(JSON.parse(out.string)).to eq(
         [{"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil},
-         {"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil}]
+          {"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil}]
       )
     end
 
@@ -4709,7 +4709,7 @@ RSpec.describe SimpleCov::CLI do
 
       expect(out.string).to eq(
         ["  branch  █▁▁  80.0% → 70.0%  (-10.0)",
-         "  line    ▁▅█  90.0% → 100.0%  (+10.0)"].join("\n").concat("\n")
+          "  line    ▁▅█  90.0% → 100.0%  (+10.0)"].join("\n").concat("\n")
       )
     end
 
@@ -4762,7 +4762,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "carries no percents for an entry that has no files section" do
       write_history([{"created_at" => "2026-08-23T10:00:00Z", "totals" => {"line" => 90.0}},
-                     entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/a.rb" => {"line" => 95.0}})])
+        entry("2026-08-24T10:00:00Z", 95.0, files: {"lib/a.rb" => {"line" => 95.0}})])
 
       expect(run_history("--json", "--file", "lib/a.rb")).to eq(0)
       percents = JSON.parse(stdout.string).map { |row| row["percents"] }
@@ -4771,10 +4771,10 @@ RSpec.describe SimpleCov::CLI do
 
     it "prints a sparkline per criterion with the run rows beneath" do
       write_history([
-                      entry("2026-08-23T10:00:00Z", 90.0),
-                      entry("2026-08-24T10:00:00Z", 95.0, branch: nil, commit: nil),
-                      entry("2026-08-25T10:00:00Z", 100.0)
-                    ])
+        entry("2026-08-23T10:00:00Z", 90.0),
+        entry("2026-08-24T10:00:00Z", 95.0, branch: nil, commit: nil),
+        entry("2026-08-25T10:00:00Z", 100.0)
+      ])
 
       expect(run_history("--no-color")).to eq(0)
 
@@ -4822,10 +4822,10 @@ RSpec.describe SimpleCov::CLI do
 
     it "follows one file's per-criterion trajectory under --file, with gaps for unrecorded runs" do
       write_history([
-                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0, "branch" => 25.0}}),
-                      entry("2026-08-24T10:00:00Z", 95.0),
-                      entry("2026-08-25T10:00:00Z", 100.0, files: {"lib/foo.rb" => {"line" => 100.0, "branch" => 75.0}})
-                    ])
+        entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0, "branch" => 25.0}}),
+        entry("2026-08-24T10:00:00Z", 95.0),
+        entry("2026-08-25T10:00:00Z", 100.0, files: {"lib/foo.rb" => {"line" => 100.0, "branch" => 75.0}})
+      ])
 
       expect(run_history("--file", "lib/foo.rb", "--no-color")).to eq(0)
 
@@ -4859,22 +4859,22 @@ RSpec.describe SimpleCov::CLI do
 
     it "narrows the JSON to one file's trajectory under --file" do
       write_history([
-                      entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0}}),
-                      entry("2026-08-24T10:00:00Z", 95.0),
-                      entry("2026-08-25T10:00:00Z", 96.0, files: {"lib/foo.rb" => {"line" => 60.0}})
-                    ])
+        entry("2026-08-23T10:00:00Z", 90.0, files: {"lib/foo.rb" => {"line" => 50.0}}),
+        entry("2026-08-24T10:00:00Z", 95.0),
+        entry("2026-08-25T10:00:00Z", 96.0, files: {"lib/foo.rb" => {"line" => 60.0}})
+      ])
 
       run_history("--file", "lib/foo.rb", "--json")
 
       rows = JSON.parse(stdout.string)
       expect(rows).to eq([
-                           {"created_at" => "2026-08-23T10:00:00Z", "branch" => "main",
-                            "commit" => "abc123def456", "percents" => {"line" => 50.0}},
-                           {"created_at" => "2026-08-24T10:00:00Z", "branch" => "main",
-                            "commit" => "abc123def456", "percents" => nil},
-                           {"created_at" => "2026-08-25T10:00:00Z", "branch" => "main",
-                            "commit" => "abc123def456", "percents" => {"line" => 60.0}}
-                         ])
+        {"created_at" => "2026-08-23T10:00:00Z", "branch" => "main",
+         "commit" => "abc123def456", "percents" => {"line" => 50.0}},
+        {"created_at" => "2026-08-24T10:00:00Z", "branch" => "main",
+         "commit" => "abc123def456", "percents" => nil},
+        {"created_at" => "2026-08-25T10:00:00Z", "branch" => "main",
+         "commit" => "abc123def456", "percents" => {"line" => 60.0}}
+      ])
     end
 
     it "reports an empty history plainly" do
@@ -5007,10 +5007,10 @@ RSpec.describe SimpleCov::CLI do
 
     before do
       File.write(input, JSON.dump("coverage" => {
-                                    "lib/mixed.rb" => {"lines" => [1, 0, nil, 2, 0]},
-                                    "lib/tested_unused.rb" => {"lines" => [2, 1]},
-                                    "lib/ignored.rb" => {"lines" => ["ignored", nil]}
-                                  }))
+        "lib/mixed.rb" => {"lines" => [1, 0, nil, 2, 0]},
+        "lib/tested_unused.rb" => {"lines" => [2, 1]},
+        "lib/ignored.rb" => {"lines" => ["ignored", nil]}
+      }))
       SimpleCov::Production::FileSink.new(path: production_path).store(
         "lib/mixed.rb" => [1, 5], "lib/prod_only.rb" => [3, 4]
       )
@@ -5019,7 +5019,7 @@ RSpec.describe SimpleCov::CLI do
     after { FileUtils.remove_entry(tmp) }
 
     def write_production(coverage:, last_seen: {}, started_at: "2026-01-01T00:00:00Z",
-                         updated_at: "2026-02-01T00:00:00Z")
+      updated_at: "2026-02-01T00:00:00Z")
       window = {"format_version" => 1, "coverage" => coverage, "last_seen" => last_seen}
       window["started_at"] = started_at if started_at
       window["updated_at"] = updated_at if updated_at
@@ -5143,7 +5143,7 @@ RSpec.describe SimpleCov::CLI do
         expect(JSON.parse(stdout.string)).to eq(
           "window" => {"started_at" => "2026-01-01T00:00:00Z", "updated_at" => "2026-02-01T00:00:00Z"},
           "dead" => [{"file" => "lib/apple.rb", "lines" => [1], "last_seen" => "2026-03-04T05:06:07Z"},
-                     {"file" => "lib/zebra.rb", "lines" => [1]}],
+            {"file" => "lib/zebra.rb", "lines" => [1]}],
           "possibly_dead" => [], "untested_in_production" => []
         )
       end
@@ -5192,8 +5192,8 @@ RSpec.describe SimpleCov::CLI do
     describe "reporting what it could not read" do
       it "names the report it could not find, under its own name" do
         expect(run("dead-code", "--input", File.join(tmp, "absent.json"),
-                   "--production", production_path)).to eq(1)
-        expect(stderr.string).to eq("simplecov dead-code: #{File.join(tmp, 'absent.json')} not found\n")
+          "--production", production_path)).to eq(1)
+        expect(stderr.string).to eq("simplecov dead-code: #{File.join(tmp, "absent.json")} not found\n")
       end
 
       it "names the production file it could not find" do
@@ -5249,9 +5249,9 @@ RSpec.describe SimpleCov::CLI do
       expect(run_dead_code).to eq(0)
 
       expect(stdout.string).to include("Dead code (not run in production, not covered by tests):")
-      expect(stdout.string).to include("  lib/mixed.rb:2 (last run #{last_run('lib/mixed.rb')})\n")
+      expect(stdout.string).to include("  lib/mixed.rb:2 (last run #{last_run("lib/mixed.rb")})\n")
       expect(stdout.string).to include("Possibly dead (not run in production, covered only by tests):")
-      expect(stdout.string).to include("  lib/mixed.rb:4 (last run #{last_run('lib/mixed.rb')})\n")
+      expect(stdout.string).to include("  lib/mixed.rb:4 (last run #{last_run("lib/mixed.rb")})\n")
       expect(stdout.string).to include("1 dead line, 3 possibly dead lines")
     end
 
@@ -5269,7 +5269,7 @@ RSpec.describe SimpleCov::CLI do
       run_dead_code
 
       expect(stdout.string)
-        .to include("  lib/tested_unused.rb:1-2 (entire file, last run #{last_run('lib/tested_unused.rb')})\n")
+        .to include("  lib/tested_unused.rb:1-2 (entire file, last run #{last_run("lib/tested_unused.rb")})\n")
     end
 
     it "leaves the annotation off when the store carries no stamps" do
@@ -5287,15 +5287,15 @@ RSpec.describe SimpleCov::CLI do
 
       window = SimpleCov::Production::FileSink.read(production_path)
       expect(stdout.string).to include("Production coverage: #{production_path}")
-      expect(stdout.string).to include("window #{window.fetch('started_at')} to #{window.fetch('updated_at')}")
+      expect(stdout.string).to include("window #{window.fetch("started_at")} to #{window.fetch("updated_at")}")
     end
 
     it "prints the untested-in-production row under --untested-in-production" do
       expect(run_dead_code("--untested-in-production")).to eq(0)
 
       expect(stdout.string).to include("Untested code running in production:")
-      expect(stdout.string).to include("  lib/mixed.rb:5 (last run #{last_run('lib/mixed.rb')})\n")
-      expect(stdout.string).to include("  lib/prod_only.rb:3-4 (last run #{last_run('lib/prod_only.rb')})\n")
+      expect(stdout.string).to include("  lib/mixed.rb:5 (last run #{last_run("lib/mixed.rb")})\n")
+      expect(stdout.string).to include("  lib/prod_only.rb:3-4 (last run #{last_run("lib/prod_only.rb")})\n")
       expect(stdout.string).to include("3 untested lines running in production")
       expect(stdout.string).not_to include("Dead code")
     end
@@ -5309,11 +5309,11 @@ RSpec.describe SimpleCov::CLI do
         .to eq([{"file" => "lib/mixed.rb", "lines" => [2], "last_seen" => store.fetch("lib/mixed.rb")}])
       expect(data.fetch("possibly_dead")).to eq(
         [{"file" => "lib/mixed.rb", "lines" => [4], "last_seen" => store.fetch("lib/mixed.rb")},
-         {"file" => "lib/tested_unused.rb", "lines" => [1, 2]}]
+          {"file" => "lib/tested_unused.rb", "lines" => [1, 2]}]
       )
       expect(data.fetch("untested_in_production")).to eq(
         [{"file" => "lib/mixed.rb", "lines" => [5], "last_seen" => store.fetch("lib/mixed.rb")},
-         {"file" => "lib/prod_only.rb", "lines" => [3, 4], "last_seen" => store.fetch("lib/prod_only.rb")}]
+          {"file" => "lib/prod_only.rb", "lines" => [3, 4], "last_seen" => store.fetch("lib/prod_only.rb")}]
       )
       expect(data.fetch("window")).to include("started_at", "updated_at")
     end
@@ -5594,10 +5594,10 @@ RSpec.describe SimpleCov::CLI do
         line: {covered: 22, relevant: 25, missing: [41, 42, 43, 47]},
         branch: {covered: 1, relevant: 2, missing: [39]},
         method: nil},
-       {file: "lib/b.rb",
-        line: {covered: 4, relevant: 4, missing: []},
-        branch: nil,
-        method: {covered: 0, relevant: 0, missing: []}}]
+        {file: "lib/b.rb",
+         line: {covered: 4, relevant: 4, missing: []},
+         branch: nil,
+         method: {covered: 0, relevant: 0, missing: []}}]
     end
 
     it "prints the rows worst first, with a total beneath them" do
@@ -5644,8 +5644,8 @@ RSpec.describe SimpleCov::CLI do
         [{file: "lib/a.rb",
           line: {covered: 22, relevant: 25, missing: [41, 42, 43, 47], percent: 88.0},
           branch: {covered: 1, relevant: 2, missing: [39], percent: 50.0}},
-         {file: "lib/b.rb",
-          line: {covered: 4, relevant: 4, missing: [], percent: 100.0}}]
+          {file: "lib/b.rb",
+           line: {covered: 4, relevant: 4, missing: [], percent: 100.0}}]
       )
     end
 
@@ -5740,8 +5740,8 @@ RSpec.describe SimpleCov::CLI do
           [{"file" => "lib/a.rb",
             "line" => {"covered" => 22, "relevant" => 25, "missing" => [41, 42, 43, 47], "percent" => 88.0},
             "branch" => {"covered" => 1, "relevant" => 2, "missing" => [39], "percent" => 50.0}},
-           {"file" => "lib/b.rb",
-            "line" => {"covered" => 4, "relevant" => 4, "missing" => [], "percent" => 100.0}}]
+            {"file" => "lib/b.rb",
+             "line" => {"covered" => 4, "relevant" => 4, "missing" => [], "percent" => 100.0}}]
         )
 
         plain = StringIO.new
@@ -5841,7 +5841,7 @@ RSpec.describe SimpleCov::CLI do
 
     def git(*args)
       output, status = Open3.capture2e("git", "-C", tmp, *args)
-      raise "git #{args.join(' ')} failed: #{output}" unless status.success?
+      raise "git #{args.join(" ")} failed: #{output}" unless status.success?
 
       output
     end
@@ -5932,7 +5932,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "reports branch coverage over the touched branches" do
       build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+        branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to match(%r{50\.00%\s+\(1/2\)\s+branches})
@@ -5941,14 +5941,14 @@ RSpec.describe SimpleCov::CLI do
 
     it "fails --minimum on an uncovered touched branch even when lines are covered" do
       build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+        branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
     end
 
     it "reports method coverage over the touched methods" do
       build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+        methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to match(%r{50\.00%\s+\(1/2\)\s+methods})
@@ -5957,14 +5957,14 @@ RSpec.describe SimpleCov::CLI do
 
     it "fails --minimum on an uncovered touched method even when lines are covered" do
       build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+        methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
 
       expect(run_in_repo("patch", "--base", "main", "--input", cov, "--minimum", "100")).to eq(1)
     end
 
     it "includes the method stats in JSON rows" do
       build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+        methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
 
       run_in_repo("patch", "--base", "main", "--input", cov, "--json")
       expect(JSON.parse(stdout.string).first.fetch("method"))
@@ -6077,8 +6077,8 @@ RSpec.describe SimpleCov::CLI do
 
     it "skips malformed and off-change branch entries" do
       build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 branches: ["malformed", {"report_line" => 2, "coverage" => 1},
-                            {"report_line" => 99, "coverage" => 0}])
+        branches: ["malformed", {"report_line" => 2, "coverage" => 1},
+          {"report_line" => 99, "coverage" => 0}])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to match(%r{100\.00%\s+\(1/1\)\s+branches})
@@ -6086,7 +6086,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "includes branch data in --json output" do
       build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
-                 branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+        branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
 
       run_in_repo("patch", "--base", "main", "--input", cov, "--json")
       expect(JSON.parse(stdout.string).first["branch"])
@@ -6095,7 +6095,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "shows 100% for a line cell with no coverable touched lines" do
       build_repo(base: "a\n", head: "a\nif x\n  b\n", line_hits: [1, nil, nil],
-                 branches: [{"report_line" => 2, "coverage" => 1}])
+        branches: [{"report_line" => 2, "coverage" => 1}])
 
       run_in_repo("patch", "--base", "main", "--input", cov)
       expect(stdout.string).to match(%r{100\.00%\s+\(0/0\)\s+lines})
@@ -6615,8 +6615,8 @@ RSpec.describe SimpleCov::CLI do
 
       it "reads an entry by its report line, falling back to where it starts" do
         entries = [{"report_line" => 3, "start_line" => 9, "coverage" => 1},
-                   {"start_line" => 4, "coverage" => 0},
-                   {"report_line" => 5, "coverage" => 2}]
+          {"start_line" => 4, "coverage" => 0},
+          {"report_line" => 5, "coverage" => 2}]
 
         expect(touched(entries, [3, 4, 5])).to eq([[3, 1], [4, 0], [5, 2]])
       end
@@ -6637,7 +6637,7 @@ RSpec.describe SimpleCov::CLI do
 
       it "passes over an entry whose coverage is not a count" do
         entries = [{"start_line" => 4, "coverage" => nil}, {"start_line" => 5, "coverage" => "1"},
-                   {"start_line" => 6, "coverage" => 3}]
+          {"start_line" => 6, "coverage" => 3}]
 
         expect(touched(entries, [4, 5, 6])).to eq([[6, 3]])
       end
@@ -7576,7 +7576,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     def wait_timeout
-      RUBY_ENGINE == "ruby" ? 10 : 60
+      (RUBY_ENGINE == "ruby") ? 10 : 60
     end
 
     def wait_for
@@ -7720,17 +7720,17 @@ RSpec.describe SimpleCov::CLI do
 
     it "reports the primary criterion's percent when the report names one" do
       session = described_class::Watch::Session.new(command: ["true"], dir: coverage_dir,
-                                                    interval: 0.01, stdout: stdout, stderr: stderr)
+        interval: 0.01, stdout: stdout, stderr: stderr)
       session.instance_variable_set(:@document, {
-                                      "meta" => {"primary_coverage" => "branch"},
-                                      "total" => {"lines" => {"percent" => 90.0}, "branches" => {"percent" => 75.0}}
-                                    })
+        "meta" => {"primary_coverage" => "branch"},
+        "total" => {"lines" => {"percent" => 90.0}, "branches" => {"percent" => 75.0}}
+      })
       expect(session.send(:total_percent)).to eq(75.0)
     end
 
     it "collects an editor's save burst into one run" do
       session = described_class::Watch::Session.new(command: ["true"], dir: coverage_dir,
-                                                    interval: 0.01, stdout: stdout, stderr: stderr)
+        interval: 0.01, stdout: stdout, stderr: stderr)
       scripted = Struct.new(:sequence) { def changes = sequence.shift || [] }
       session.instance_variable_set(:@poller, scripted.new([["a.rb"], ["b.rb"], []]))
       expect(session.send(:settled_changes)).to eq(["a.rb", "b.rb"])
@@ -7935,7 +7935,7 @@ RSpec.describe SimpleCov::CLI do
 
         it "waits an interval before looking again" do
           waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
-                                        stdout: stdout, stderr: stderr)
+            stdout: stdout, stderr: stderr)
           waiting.instance_variable_set(:@poller, poller)
           allow(poller).to receive(:changes).and_return(["a.rb"], [])
 
@@ -8105,7 +8105,7 @@ RSpec.describe SimpleCov::CLI do
       describe "#poll_forever" do
         it "waits an interval between steps" do
           waiting = described_class.new(command: %w[true], dir: tmp, interval: 0.05,
-                                        stdout: stdout, stderr: stderr)
+            stdout: stdout, stderr: stderr)
           stamps = []
           allow(waiting).to receive(:step) do
             stamps << Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -8124,9 +8124,9 @@ RSpec.describe SimpleCov::CLI do
 
         it "follows the report's own primary criterion" do
           session.instance_variable_set(:@document,
-                                        {"meta" => {"primary_coverage" => "branch"},
-                                         "total" => {"lines" => {"percent" => 90.0},
-                                                     "branches" => {"percent" => 75.5}}})
+            {"meta" => {"primary_coverage" => "branch"},
+             "total" => {"lines" => {"percent" => 90.0},
+                         "branches" => {"percent" => 75.5}}})
 
           expect(session.send(:total_percent)).to eq(75.5)
         end
@@ -8170,7 +8170,7 @@ RSpec.describe SimpleCov::CLI do
 
       it "names a burst by its first file and counts the rest" do
         narrator.change(["/root/a.rb", "/root/b.rb", "/root/c.rb"],
-                        {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
+          {run: true, tests: ["spec/a_spec.rb", "spec/b_spec.rb"]})
         expect(stdout.string).to eq("a.rb and 2 more changed, running 2 files...")
       end
 
@@ -8432,7 +8432,7 @@ RSpec.describe SimpleCov::CLI do
 
     it "removes a directory whose name prefixes the working directory's" do
       sibling = File.join(tmp, "coverage")
-      nested  = File.join(tmp, "coverage-data")
+      nested = File.join(tmp, "coverage-data")
       FileUtils.mkdir_p(sibling)
       FileUtils.mkdir_p(nested)
 

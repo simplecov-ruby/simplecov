@@ -20,7 +20,7 @@ module SimpleCov
   class Directive
     CATEGORIES = %i[line branch method].freeze
 
-    CATEGORY_PATTERN = "(?:#{CATEGORIES.join('|')})".freeze
+    CATEGORY_PATTERN = "(?:#{CATEGORIES.join("|")})".freeze
     CATEGORIES_PATTERN = "(?:#{CATEGORY_PATTERN}(?:\\s*,\\s*#{CATEGORY_PATTERN})*)".freeze
     PATTERN = /
       \#\s*simplecov\s*:\s*
@@ -117,13 +117,13 @@ module SimpleCov
     end
 
     private_class_method :directives_in, :source_might_contain_directive?,
-                         :parse_comment, :parse_categories, :inline?, :comments_in
+      :parse_comment, :parse_categories, :inline?, :comments_in
 
     def initialize(line_number:, mode:, categories:, inline:)
       @line_number = line_number
-      @mode        = mode
-      @categories  = categories
-      @inline      = inline
+      @mode = mode
+      @categories = categories
+      @inline = inline
     end
 
     def disabled?

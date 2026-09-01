@@ -5,9 +5,9 @@ module SimpleCov
     class Line
       attr_reader :src, :line_number, :coverage, :skipped
 
-      alias source src
-      alias line line_number
-      alias number line_number
+      alias_method :source, :src
+      alias_method :line, :line_number
+      alias_method :number, :line_number
 
       def initialize(src, line_number, coverage)
         raise ArgumentError, "Only String accepted for source" unless src.is_a?(String)
@@ -16,10 +16,10 @@ module SimpleCov
           raise ArgumentError, "Only Integer and nil accepted for coverage"
         end
 
-        @src         = src
+        @src = src
         @line_number = line_number
-        @coverage    = coverage
-        @skipped     = false
+        @coverage = coverage
+        @skipped = false
       end
 
       # Asking `covered?` rather than reading the count a second time keeps the two

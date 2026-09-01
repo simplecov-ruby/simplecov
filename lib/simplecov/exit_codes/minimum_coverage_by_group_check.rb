@@ -7,7 +7,7 @@ module SimpleCov
         MINIMUM_COVERAGE
       end
 
-    private
+      private
 
       def compute_violations
         CoverageViolations.minimum_by_group(result, thresholds)

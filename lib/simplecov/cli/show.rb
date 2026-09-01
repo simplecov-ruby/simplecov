@@ -53,10 +53,10 @@ module SimpleCov
       end
 
       def options(parser, opts)
-        parser.on("--input PATH")     { |v| opts[:input] = v }
-        parser.on("--no-color")       { opts[:no_color] = true }
+        parser.on("--input PATH") { |v| opts[:input] = v }
+        parser.on("--no-color") { opts[:no_color] = true }
         parser.on("--uncovered-only") { opts[:uncovered_only] = true }
-        parser.on("--json")           { opts[:json] = true }
+        parser.on("--json") { opts[:json] = true }
       end
 
       # A line-less report has no per-line hits to put in a gutter, so it is
@@ -89,9 +89,9 @@ module SimpleCov
 
       def emit_json(entry, opts, stdout)
         stdout.puts(JSON.pretty_generate(
-                      path: opts.fetch(:path), missed: Annotator.missed_lines(entry),
-                      lines: relevant_lines(entry), markers: Annotator.markers_for(entry)
-                    ))
+          path: opts.fetch(:path), missed: Annotator.missed_lines(entry),
+          lines: relevant_lines(entry), markers: Annotator.markers_for(entry)
+        ))
         0
       end
 
@@ -106,7 +106,7 @@ module SimpleCov
         if missed.empty?
           stderr.puts("simplecov show: nothing uncovered in #{opts.fetch(:path)}")
         else
-          stdout.puts("#{opts.fetch(:path)}:#{Patch::Output.ranges(missed, ',')}")
+          stdout.puts("#{opts.fetch(:path)}:#{Patch::Output.ranges(missed, ",")}")
         end
         0
       end
@@ -126,7 +126,7 @@ module SimpleCov
         return lines if lines.size.eql?(entry.fetch("lines").size)
 
         error_nil(stderr, "#{filename} has changed since the report (#{lines.size} lines now, " \
-                          "#{entry.fetch('lines').size} recorded), regenerate the report")
+                          "#{entry.fetch("lines").size} recorded), regenerate the report")
       end
     end
   end

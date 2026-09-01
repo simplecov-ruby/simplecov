@@ -35,7 +35,7 @@ module SimpleCov
 
       unless DROP_BASELINES.include?(mode)
         raise ConfigurationError,
-              "drop_baseline takes one of #{DROP_BASELINES}, got #{mode.inspect}"
+          "drop_baseline takes one of #{DROP_BASELINES}, got #{mode.inspect}"
       end
 
       @drop_baseline = mode

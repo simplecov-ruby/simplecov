@@ -21,7 +21,7 @@ RSpec.describe "frontend asset compilation" do
       env = {"PATH" => [tmp, ENV.fetch("PATH")].join(File::PATH_SEPARATOR)}
       command = 'load "./Rakefile"; minify_css("body {}", esbuild: "esbuild")'
       output, error, status = Open3.capture3(env, "bundle", "exec", "ruby", "-rrake", "-e", command,
-                                             chdir: SimpleCov.root.to_s)
+        chdir: SimpleCov.root.to_s)
 
       expect(status).not_to be_success
       expect(output + error).to include("CSS compilation failed (exit 42)").and include("synthetic CSS failure")
@@ -32,7 +32,7 @@ RSpec.describe "frontend asset compilation" do
     css = ".cell--numerator{text-align:right;color:var(--example-token)}.x{--example-token:#fff}"
     command = %(load "./Rakefile"; print mangle_css_custom_properties(#{css.inspect}))
     output, _error, status = Open3.capture3("bundle", "exec", "ruby", "-rrake", "-e", command,
-                                            chdir: SimpleCov.root.to_s)
+      chdir: SimpleCov.root.to_s)
 
     expect(status).to be_success
     expect(output).to include(".cell--numerator{text-align:right")

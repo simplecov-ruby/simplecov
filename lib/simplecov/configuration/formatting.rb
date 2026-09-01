@@ -88,7 +88,7 @@ module SimpleCov
                        "Replace with `# simplecov:disable` / `# simplecov:enable` block comments.")
       current_nocov_token(nocov_token)
     end
-    alias skip_token nocov_token
+    alias_method :skip_token, :nocov_token
 
     def current_nocov_token(value = nil)
       return @nocov_token if instance_variable_defined?(:@nocov_token) && value.nil?
@@ -96,7 +96,7 @@ module SimpleCov
       @nocov_token = value || "nocov"
     end
 
-  private
+    private
 
     # An empty list is how a project opts out of formatting.
     def combined_formatter(formatters)
@@ -111,8 +111,8 @@ module SimpleCov
       constant = BUILT_IN_FORMATS[name]
       unless constant
         raise ConfigurationError,
-              "Unknown format #{name.inspect}. Built-in formats are :html, :json, :simple, and :baseline; " \
-              "pass a formatter class or instance for anything else."
+          "Unknown format #{name.inspect}. Built-in formats are :html, :json, :simple, and :baseline; " \
+          "pass a formatter class or instance for anything else."
       end
 
       require_html_formatter(name)

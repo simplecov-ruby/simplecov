@@ -150,7 +150,7 @@ module SimpleCov
       ExitCodes::ExitCodeHandling.call(result, coverage_limits: build_coverage_limits)
     end
 
-  private
+    private
 
     # Every CoverageLimits member is named after the configuration reader that
     # supplies it, so a new limit only has to be added to the Data definition

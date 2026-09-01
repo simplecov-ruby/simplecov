@@ -39,7 +39,7 @@ module SimpleCov
         return {} if parsed.nil?
 
         parsed.instance_of?(Hash) ? drop_malformed_entries(parsed) : invalid_resultset
-      rescue StandardError
+      rescue
         invalid_resultset
       end
 
@@ -47,7 +47,7 @@ module SimpleCov
         malformed, valid = resultset.partition { |_command_name, data| !well_formed_entry?(data) }
         return resultset if malformed.empty?
 
-        warn "[SimpleCov]: Warning! Ignoring malformed resultset entries: #{malformed.map(&:first).sort.join(', ')}"
+        warn "[SimpleCov]: Warning! Ignoring malformed resultset entries: #{malformed.map(&:first).sort.join(", ")}"
         valid.to_h
       end
 

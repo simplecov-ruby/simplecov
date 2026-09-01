@@ -4,7 +4,7 @@ module SimpleCov
   class SourceFile
     class Method
       attr_reader :source_file, :coverage, :class_name, :method_name,
-                  :start_line, :start_col, :end_line, :end_col
+        :start_line, :start_col, :end_line, :end_col
 
       def initialize(source_file, info, coverage)
         @source_file = source_file
@@ -37,7 +37,7 @@ module SimpleCov
       end
 
       def lines
-        @lines ||= start_line && end_line ? source_file.lines[(start_line - 1)..(end_line - 1)] || [] : []
+        @lines ||= (start_line && end_line) ? source_file.lines[(start_line - 1)..(end_line - 1)] || [] : []
       end
 
       def overlaps_with?(line_range)

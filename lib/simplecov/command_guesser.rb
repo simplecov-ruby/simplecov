@@ -32,7 +32,7 @@ module SimpleCov
         [framework, parallel_data].compact.join(" ")
       end
 
-    private
+      private
 
       # When parallel_tests (or a compatible runner) is driving the suite, tag
       # the command name with this worker's position in the pool.
@@ -100,10 +100,10 @@ module SimpleCov
       # Coverage module even though the constant evaluates as a whole, a known
       # quirk with multi-line array literals.
       DEFINED_CONSTANT_FRAMEWORKS = [
-        ["RSpec",      -> { defined?(::RSpec) }],
+        ["RSpec", -> { defined?(::RSpec) }],
         ["Unit Tests", -> { defined?(Test::Unit) }],   # simplecov:disable
-        ["Minitest",   -> { defined?(::Minitest) }],   # simplecov:disable
-        ["MiniTest",   -> { defined?(MiniTest) }]      # simplecov:disable
+        ["Minitest", -> { defined?(::Minitest) }],   # simplecov:disable
+        ["MiniTest", -> { defined?(MiniTest) }]      # simplecov:disable
       ].freeze
       private_constant :DEFINED_CONSTANT_FRAMEWORKS
 

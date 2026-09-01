@@ -85,7 +85,7 @@ module SimpleCov
         inner
       end
 
-    private
+      private
 
       # Both halves of the read-modify-write happen through the one handle, so
       # processes sharing the file take turns rather than overwriting each

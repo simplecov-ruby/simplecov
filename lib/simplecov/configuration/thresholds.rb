@@ -81,7 +81,7 @@ module SimpleCov
       maximum_coverage_drop(criteria.to_h { |c| [c, 0] })
     end
 
-  private
+    private
 
     # A bare Numeric targets the primary criterion, and the resulting
     # per-criterion hash is validated before it is stored.
@@ -109,7 +109,7 @@ module SimpleCov
       return if key.instance_of?(Symbol) || key.is_a?(String) || key.is_a?(Regexp)
 
       raise ConfigurationError,
-            "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got #{key.inspect}"
+        "minimum_coverage_by_file keys must be Symbol (criterion), String, or Regexp; got #{key.inspect}"
     end
 
     def minimum_possible_coverage_exceeded(coverage_option)
@@ -143,7 +143,7 @@ module SimpleCov
 
     def render_coverage_blocks(by_criterion)
       by_criterion.map do |criterion, statements|
-        "  coverage(#{criterion.inspect}) { #{statements.join('; ')} }"
+        "  coverage(#{criterion.inspect}) { #{statements.join("; ")} }"
       end.join("\n")
     end
   end

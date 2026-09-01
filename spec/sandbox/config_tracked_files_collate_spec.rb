@@ -27,7 +27,7 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
 
   def stash_resultset(number)
     FileUtils.mv(File.join(sandbox_dir, "coverage/.resultset.json"),
-                 File.join(sandbox_dir, "coverage/resultset#{number}.json"))
+      File.join(sandbox_dir, "coverage/resultset#{number}.json"))
     FileUtils.rm(File.join(sandbox_dir, "coverage/index.html"))
   end
 

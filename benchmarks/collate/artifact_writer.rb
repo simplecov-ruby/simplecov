@@ -35,7 +35,7 @@ module CollateBenchmark
       end
     end
 
-  private
+    private
 
     def shard_path(index)
       File.join(@result_files_dir, ".resultset-#{index}.json")
@@ -54,7 +54,7 @@ module CollateBenchmark
     def resultset_json(timestamp)
       coverage = @files.to_h do |file|
         [File.join(@project_dir, file.relative_path),
-         {"lines" => file.lines, "branches" => file.branches}]
+          {"lines" => file.lines, "branches" => file.branches}]
       end
       JSON.pretty_generate("RSpec" => {"coverage" => coverage, "timestamp" => timestamp})
     end

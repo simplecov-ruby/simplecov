@@ -9,8 +9,7 @@ module CollateBenchmark
 
     DEFAULT_PROCESSES = 1
 
-    Options = Struct.new(:label, :resultsets, :scale, :skip, :rebuild, :baseline, :breakdown, :processes,
-                         keyword_init: true)
+    Options = Struct.new(:label, :resultsets, :scale, :skip, :rebuild, :baseline, :breakdown, :processes)
 
     class << self
       def run(argv)
@@ -36,7 +35,7 @@ module CollateBenchmark
       end
 
       def label(argv)
-        argv.first && !argv.first.start_with?("-") ? argv.shift : "run"
+        (argv.first && !argv.first.start_with?("-")) ? argv.shift : "run"
       end
 
       def flag_value(argv, flag)
@@ -50,7 +49,7 @@ module CollateBenchmark
         return requested if unsupported.empty?
 
         raise ArgumentError,
-              "can only SKIP #{Runner::SKIPPABLE_PHASES.join(', ')} (got #{unsupported.to_a.join(', ')})"
+          "can only SKIP #{Runner::SKIPPABLE_PHASES.join(", ")} (got #{unsupported.to_a.join(", ")})"
       end
     end
   end

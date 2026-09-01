@@ -20,7 +20,7 @@ module SimpleCov
         def render(label:, percent:)
           value = format("%.2f%%", percent)
           document(label: escape(label), value: value, fill: color(percent),
-                   geo: geometry(width(label), width(value)))
+            geo: geometry(width(label), width(value)))
         end
 
         # Estimates 11px Verdana; `textLength` absorbs the error.

@@ -12,7 +12,7 @@ RSpec.describe SimpleCov::Production do
 
   def stub_coverage(result: {})
     allow(Coverage).to receive_messages(running?: false, start: nil, suspend: nil, resume: nil,
-                                        supported?: true, result: result)
+      supported?: true, result: result)
   end
 
   def start(**options)
@@ -138,10 +138,10 @@ RSpec.describe SimpleCov::Production do
   describe ".flush" do
     before do
       stub_coverage(result: {
-                      File.expand_path("/elsewhere/b.rb") => {oneshot_lines: [7]},
-                      abs("lib/quiet.rb") => {oneshot_lines: []},
-                      abs("lib/a.rb") => {oneshot_lines: [3, 1]}
-                    })
+        File.expand_path("/elsewhere/b.rb") => {oneshot_lines: [7]},
+        abs("lib/quiet.rb") => {oneshot_lines: []},
+        abs("lib/a.rb") => {oneshot_lines: [3, 1]}
+      })
       start
     end
 
@@ -313,7 +313,7 @@ RSpec.describe SimpleCov::Production do
   end
 
   describe "the default sink", mutant_expression: ["SimpleCov::Production*",
-                                                   "SimpleCov::Production.start"] do
+    "SimpleCov::Production.start"] do
     it "is a FileSink under the root's tmp directory" do
       stub_coverage
       described_class.start(root: root, flush_interval: 600)
@@ -477,7 +477,7 @@ RSpec.describe SimpleCov::Production do
   end
 
   describe "what start configures",
-           mutant_expression: ["SimpleCov::Production*", "SimpleCov::Production.start"] do
+    mutant_expression: ["SimpleCov::Production*", "SimpleCov::Production.start"] do
     before { stub_coverage }
 
     def configured(name)
@@ -486,7 +486,7 @@ RSpec.describe SimpleCov::Production do
 
     it "carries every keyword through to the configured state" do
       described_class.start(root: root, sink: sink, flush_interval: 30, flush_jitter: 7,
-                            sample_rate: 0.25, max_buffered_lines: 42)
+        sample_rate: 0.25, max_buffered_lines: 42)
 
       expect(configured(:sink)).to be(sink)
       expect(configured(:flush_interval)).to eq(30)
@@ -623,7 +623,7 @@ RSpec.describe SimpleCov::Production do
   end
 
   describe "starting in a forked child", mutant_expression: ["SimpleCov::Production*",
-                                                             "SimpleCov::Production.start"] do
+    "SimpleCov::Production.start"] do
     it "picks the inherited measurement back up" do
       stub_coverage
       start

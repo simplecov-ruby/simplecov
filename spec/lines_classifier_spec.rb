@@ -172,10 +172,10 @@ RSpec.describe SimpleCov::LinesClassifier do
     end
 
     expect(classifier.classify(lines)).to eq([
-                                               SimpleCov::LinesClassifier::RELEVANT,
-                                               SimpleCov::LinesClassifier::NOT_RELEVANT,
-                                               SimpleCov::LinesClassifier::RELEVANT
-                                             ])
+      SimpleCov::LinesClassifier::RELEVANT,
+      SimpleCov::LinesClassifier::NOT_RELEVANT,
+      SimpleCov::LinesClassifier::RELEVANT
+    ])
   end
 
   describe SimpleCov::LinesClassifier::SkipState do

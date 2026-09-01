@@ -409,7 +409,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
 
       output = capture_stderr do
         expect(described_class.fan_out(chunks, ignore_timeout: true, tracked_files: Set.new,
-                                               context_maps: SimpleCov::ContextMap::Union.new)).to be_nil
+          context_maps: SimpleCov::ContextMap::Union.new)).to be_nil
       end
 
       expect(output).to include("parallel merge did not complete (3 of 3 workers failed)")
@@ -421,7 +421,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       output = capture_stderr do
         with_print_errors(false) do
           described_class.fan_out(chunks, ignore_timeout: true, tracked_files: Set.new,
-                                          context_maps: SimpleCov::ContextMap::Union.new)
+            context_maps: SimpleCov::ContextMap::Union.new)
         end
       end
 
@@ -461,7 +461,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       capture_stderr do
         expect do
           described_class.fan_out(chunks, ignore_timeout: true, tracked_files: Set.new,
-                                          context_maps: SimpleCov::ContextMap::Union.new)
+            context_maps: SimpleCov::ContextMap::Union.new)
         end.to raise_error(Errno::EAGAIN)
       end
 
@@ -544,7 +544,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
   end
 
-private
+  private
 
   def write_resultset(command_name, coverage, outdated: false, tracked_files: nil, contexts: nil)
     timestamp = Time.now.to_i - (outdated ? SimpleCov.merge_timeout * 2 : 0)

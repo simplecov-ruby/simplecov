@@ -36,7 +36,7 @@ module CollateBenchmark
       report.call(peak_rss: peak_rss, files_reported: @files_reported)
     end
 
-  private
+    private
 
     def install_breakdown
       if processes > 1
@@ -102,7 +102,7 @@ module CollateBenchmark
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       yield
       @timings[name] = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-      warn("\r[#{@label}] #{name}: #{format('%.2fs', @timings[name])}#{' ' * 20}")
+      warn("\r[#{@label}] #{name}: #{format("%.2fs", @timings[name])}#{" " * 20}")
     end
 
     def progress(done, total)

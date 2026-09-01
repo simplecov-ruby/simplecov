@@ -25,11 +25,11 @@ module CollateBenchmark
     end
 
     def print_summary(fixture)
-      merge = @run.processes > 1 ? "across #{@run.processes} forked workers" : "serial, in this process"
+      merge = (@run.processes > 1) ? "across #{@run.processes} forked workers" : "serial, in this process"
       puts "  resultsets:   #{fixture.resultset_paths.size}"
       puts "  merge:        #{merge}"
       puts "  fixture:      #{fixture_summary(fixture)}"
-      puts "  skipping:     #{@run.skip.to_a.join(', ')}" if @run.skip.any?
+      puts "  skipping:     #{@run.skip.to_a.join(", ")}" if @run.skip.any?
     end
 
     def fixture_summary(fixture)
@@ -45,7 +45,7 @@ module CollateBenchmark
       write(peak_rss, files_reported)
     end
 
-  private
+    private
 
     def phase_table(baseline)
       puts
@@ -60,7 +60,7 @@ module CollateBenchmark
       return unless seconds
 
       puts format(PHASE_ROW, phase: name, seconds: Format.duration(seconds),
-                             delta: was ? Format.delta(seconds, was) : "-")
+        delta: was ? Format.delta(seconds, was) : "-")
     end
 
     def breakdown_table
@@ -81,7 +81,7 @@ module CollateBenchmark
 
     def breakdown_row(row)
       format(BREAKDOWN_ROW, label: row.label, seconds: Format.duration(row.seconds),
-                            calls: row.calls, share: row.share)
+        calls: row.calls, share: row.share)
     end
 
     def footer(peak_rss, files_reported)
@@ -107,8 +107,8 @@ module CollateBenchmark
     def warn_if_incomparable(baseline)
       return if baseline["resultsets"] == @run.resultsets_used && baseline["scale"] == @run.scale
 
-      warn "[collate] baseline '#{@baseline_label}' merged #{baseline['resultsets']} resultsets at " \
-           "1/#{baseline['scale']} scale, this run merged #{@run.resultsets_used} at 1/#{@run.scale} — " \
+      warn "[collate] baseline '#{@baseline_label}' merged #{baseline["resultsets"]} resultsets at " \
+           "1/#{baseline["scale"]} scale, this run merged #{@run.resultsets_used} at 1/#{@run.scale} — " \
            "the deltas below are not comparable"
     end
 

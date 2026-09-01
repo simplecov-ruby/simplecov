@@ -99,8 +99,8 @@ module SimpleCov
       end.to_h
 
       Outcome.new(baseline: Baseline.new(ratcheted), tightened: buckets.fetch(:tightened),
-                  pruned: buckets.fetch(:pruned), regressed: buckets.fetch(:regressed),
-                  unchanged: buckets.fetch(:unchanged))
+        pruned: buckets.fetch(:pruned), regressed: buckets.fetch(:regressed),
+        unchanged: buckets.fetch(:unchanged))
     end
 
     # Sorted by path so a ratchet rewrite diffs as the set of floors that
@@ -112,7 +112,7 @@ module SimpleCov
       HEADER + YAML.dump(document).delete_prefix("---\n")
     end
 
-  private
+    private
 
     # A nil current prunes the entry, which carries no replacement and so
     # answers with the bucket alone. Otherwise every measured criterion

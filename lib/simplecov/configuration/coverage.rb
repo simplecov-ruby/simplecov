@@ -3,7 +3,7 @@
 module SimpleCov
   module Configuration
     COVERAGE_THRESHOLD_OPTIONS = %i[minimum maximum exact maximum_drop ignore minimum_per_file
-                                    maximum_missed maximum_missed_per_file].freeze
+      maximum_missed maximum_missed_per_file].freeze
 
     def coverage(criterion, primary: false, enabled: true, oneshot: false, **thresholds, &block)
       criterion = enable_coverage_criterion(criterion, enabled: enabled, oneshot: oneshot)
@@ -17,14 +17,14 @@ module SimpleCov
       criterion
     end
 
-  private
+    private
 
     def apply_threshold_options(configurator, options)
       options.each do |verb, value|
         unless COVERAGE_THRESHOLD_OPTIONS.include?(verb)
           raise ConfigurationError,
-                "Unknown `coverage` option #{verb.inspect}. " \
-                "Supported options are #{COVERAGE_THRESHOLD_OPTIONS.inspect}."
+            "Unknown `coverage` option #{verb.inspect}. " \
+            "Supported options are #{COVERAGE_THRESHOLD_OPTIONS.inspect}."
         end
 
         configurator.public_send(verb, value)
@@ -98,10 +98,10 @@ module SimpleCov
 
       def minimum(percent, per: nil)
         case per
-        when nil                then @config.__send__(:store_overall_threshold, :minimum_coverage, @criterion, percent)
-        when :file              then @config.__send__(:store_minimum_per_file, @criterion, percent, nil)
-        when String, Regexp     then @config.__send__(:store_minimum_per_file, @criterion, percent, per)
-        when GroupTarget        then @config.__send__(:store_minimum_per_group, @criterion, percent, per.name)
+        when nil then @config.__send__(:store_overall_threshold, :minimum_coverage, @criterion, percent)
+        when :file then @config.__send__(:store_minimum_per_file, @criterion, percent, nil)
+        when String, Regexp then @config.__send__(:store_minimum_per_file, @criterion, percent, per)
+        when GroupTarget then @config.__send__(:store_minimum_per_group, @criterion, percent, per.name)
         else raise_invalid_per(per)
         end
       end
@@ -121,12 +121,12 @@ module SimpleCov
 
       def maximum_missed(count, per: nil)
         case per
-        when nil                then @config.__send__(:store_missed_cap, :maximum_missed, @criterion, count)
-        when :file              then @config.__send__(:store_maximum_missed_per_file, @criterion, count, nil)
-        when String, Regexp     then @config.__send__(:store_maximum_missed_per_file, @criterion, count, per)
+        when nil then @config.__send__(:store_missed_cap, :maximum_missed, @criterion, count)
+        when :file then @config.__send__(:store_maximum_missed_per_file, @criterion, count, nil)
+        when String, Regexp then @config.__send__(:store_maximum_missed_per_file, @criterion, count, per)
         when GroupTarget
           raise ConfigurationError,
-                "maximum_missed does not support `per: group(...)` yet; see docs/Roadmap.md"
+            "maximum_missed does not support `per: group(...)` yet; see docs/Roadmap.md"
         else raise_invalid_per(per)
         end
       end
@@ -143,7 +143,7 @@ module SimpleCov
         when :method then @config.__send__(:store_ignored_methods, types.flatten)
         else
           raise ConfigurationError,
-                "`ignore` is supported for `coverage :branch` and `coverage :method`, not #{@criterion.inspect}"
+            "`ignore` is supported for `coverage :branch` and `coverage :method`, not #{@criterion.inspect}"
         end
       end
 
@@ -173,11 +173,11 @@ module SimpleCov
 
       GroupTarget = Data.define(:name)
 
-    private
+      private
 
       def raise_invalid_per(per)
         raise ConfigurationError,
-              "`per:` must be :file, a String path, a Regexp, or group(\"Name\"), got #{per.inspect}"
+          "`per:` must be :file, a String path, a Regexp, or group(\"Name\"), got #{per.inspect}"
       end
     end
   end

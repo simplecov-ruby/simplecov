@@ -19,7 +19,7 @@ module SimpleCov
         emit_status(ratchet(result))
       end
 
-    private
+      private
 
       def ratchet(result)
         current = current_floors(result)
@@ -38,7 +38,7 @@ module SimpleCov
         baseline = Baseline.generate(current)
         write(baseline)
         files = baseline.entries.size
-        "Coverage baseline generated to #{displayable_output_path} (#{files} #{files.eql?(1) ? 'file' : 'files'})"
+        "Coverage baseline generated to #{displayable_output_path} (#{files} #{files.eql?(1) ? "file" : "files"})"
       end
 
       def summary(outcome, changed)
@@ -50,7 +50,7 @@ module SimpleCov
 
       def below_floors(regressed)
         noun = regressed.size.eql?(1) ? "1 file below its floor" : "#{regressed.size} files below their floors"
-        ", #{noun}: #{regressed.join(', ')}"
+        ", #{noun}: #{regressed.join(", ")}"
       end
 
       # `SourceFile#coverage_statistics` answers for disabled criteria too, as

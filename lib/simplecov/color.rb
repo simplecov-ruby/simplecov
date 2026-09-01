@@ -5,7 +5,7 @@ module SimpleCov
   # formatter so a team's mental model of "what's the cutoff" is the same in
   # the terminal and in the report.
   module Color
-    GREEN_THRESHOLD  = 90
+    GREEN_THRESHOLD = 90
     YELLOW_THRESHOLD = 75
 
     ANSI = {
@@ -33,7 +33,7 @@ module SimpleCov
       config = SimpleCov.color if SimpleCov.respond_to?(:color)
       return config if [true, false].include?(config)
       return false if env_set?("NO_COLOR")
-      return true  if env_set?("FORCE_COLOR")
+      return true if env_set?("FORCE_COLOR")
 
       stream.tty?
     rescue IOError
@@ -41,7 +41,7 @@ module SimpleCov
     end
 
     def for_percent(percent)
-      return :green  if percent >= GREEN_THRESHOLD
+      return :green if percent >= GREEN_THRESHOLD
       return :yellow if percent >= YELLOW_THRESHOLD
 
       :red

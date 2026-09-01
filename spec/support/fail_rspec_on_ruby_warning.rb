@@ -22,7 +22,7 @@ class FailOnWarnings
     fail_script(app_warnings) if app_warnings.any?
   end
 
-private
+  private
 
   def close_stream
     $stderr = STDERR
@@ -48,9 +48,9 @@ private
     puts ""
     puts ""
     puts <<~WARNINGS
-      #{'-' * 30} app warnings: #{'-' * 30}
+      #{"-" * 30} app warnings: #{"-" * 30}
           #{app_warnings.join("\n")}
-          #{'-' * 75}
+          #{"-" * 75}
     WARNINGS
   end
 

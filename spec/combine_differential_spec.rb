@@ -13,7 +13,7 @@ RSpec.describe SimpleCov::Combine do
   end
 
   describe "merging N resultsets",
-           if: SimpleCov.branch_coverage_supported? && SimpleCov.method_coverage_supported? do
+    if: SimpleCov.branch_coverage_supported? && SimpleCov.method_coverage_supported? do
     it "agrees with the reference merge on every generated shard set" do
       mismatches = seeds.filter_map { |seed| mismatch_for(seed, :fold, saturate: true) }
 
@@ -78,23 +78,23 @@ RSpec.describe SimpleCov::Combine do
   def describe_mismatches(mismatches)
     detail = mismatches.first(3).map { |mismatch| describe_mismatch(mismatch) }
     "#{mismatches.length} seed(s) disagreed with the reference merge " \
-      "(#{mismatches.map { |m| m[:seed] }.first(20).join(', ')}):\n\n#{detail.join("\n")}"
+      "(#{mismatches.map { |m| m[:seed] }.first(20).join(", ")}):\n\n#{detail.join("\n")}"
   end
 
   def describe_mismatch(mismatch)
     seed, strategy, files = mismatch.values_at(:seed, :strategy, :files)
     detail = files.flat_map { |file| describe_file(file, mismatch) }
-    ["seed #{seed} (#{strategy_label(strategy)}) — files: #{files.join(', ')}", *detail].join("\n")
+    ["seed #{seed} (#{strategy_label(strategy)}) — files: #{files.join(", ")}", *detail].join("\n")
   end
 
   def strategy_label(strategy)
-    strategy == :fold ? "serial fold" : "fan-out over #{strategy} slices"
+    (strategy == :fold) ? "serial fold" : "fan-out over #{strategy} slices"
   end
 
   def describe_file(file, mismatch)
     ["  #{file}",
-     "    shards:    #{mismatch[:shards].map { |shard| shard[file] }.inspect}",
-     "    actual:    #{mismatch[:actual][file].inspect}",
-     "    reference: #{mismatch[:expected][file].inspect}"]
+      "    shards:    #{mismatch[:shards].map { |shard| shard[file] }.inspect}",
+      "    actual:    #{mismatch[:actual][file].inspect}",
+      "    reference: #{mismatch[:expected][file].inspect}"]
   end
 end

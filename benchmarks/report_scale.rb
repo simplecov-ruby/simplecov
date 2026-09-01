@@ -58,7 +58,7 @@ if ENV["REPORT_SCALE_CHILD"]
   end
 
   puts JSON.pretty_generate(n: files.size, phases: phases, gc_time: gc_time,
-                            rss_mb: `ps -o rss= -p #{Process.pid}`.to_i / 1024)
+    rss_mb: `ps -o rss= -p #{Process.pid}`.to_i / 1024)
   $stdout.flush
   # Skip at_exit so the report pipeline isn't run a second time.
   exit!(0)

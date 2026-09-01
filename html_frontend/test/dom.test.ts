@@ -34,6 +34,7 @@ describe('on', () => {
     document.body.innerHTML = '<div id="root"><button class="x"><span id="inner"></span></button></div>';
     const root = document.getElementById('root')!;
     let context: Element | null = null;
+    // oxlint-disable-next-line no-this-alias -- capturing `this` is what this test asserts
     on(root, 'click', 'button.x', function (this: Element) { context = this; });
     document.getElementById('inner')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(context as Element | null).toBe(document.querySelector('button.x')!);

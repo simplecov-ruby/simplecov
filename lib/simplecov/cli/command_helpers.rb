@@ -46,8 +46,8 @@ module SimpleCov
 
       def common_options(parser, opts)
         parser.on("--input PATH") { |v| opts[:input] = v }
-        parser.on("--json")       { opts[:json] = true }
-        parser.on("--no-color")   { opts[:no_color] = true }
+        parser.on("--json") { opts[:json] = true }
+        parser.on("--no-color") { opts[:no_color] = true }
       end
 
       def build_parser

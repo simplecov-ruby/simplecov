@@ -46,9 +46,9 @@ RSpec.describe "groups using a custom filter class", :sandbox do
       expect_faked_project_file_percents(data)
       expect(data.fetch("groups").keys).to eq(["By filter class", "By string", "Ungrouped"])
       expect_group(data, "By filter class", percent: 78.26, files: %w[
-                     lib/faked_project/some_class.rb
-                     lib/faked_project/framework_specific.rb
-                   ])
+        lib/faked_project/some_class.rb
+        lib/faked_project/framework_specific.rb
+      ])
       expect_group(data, "By string", percent: 100.00, files: %w[lib/faked_project/meta_magic.rb])
       expect_group(data, "Ungrouped", percent: 100.00, files: %w[lib/faked_project.rb])
     end

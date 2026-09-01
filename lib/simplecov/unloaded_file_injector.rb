@@ -25,9 +25,9 @@ module SimpleCov
     # exist yet, so those still fall to the merging process's filter chain.
     def discover(globs, root:, reject: [])
       paths = globs.compact
-                   .flat_map { |glob| Dir.glob(glob, base: root) }
-                   .uniq
-                   .map { |path| File.expand_path(path, root) }
+        .flat_map { |glob| Dir.glob(glob, base: root) }
+        .uniq
+        .map { |path| File.expand_path(path, root) }
       return paths if reject.empty?
 
       paths.reject { |path| rejected?(path, reject) }

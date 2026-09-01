@@ -19,7 +19,7 @@ module SimpleCov
         )
       end
 
-    private
+      private
 
       def build_source_file(filename, coverage)
         unless File.file?(filename)

@@ -22,7 +22,7 @@ module SimpleCov
         @every_entry_dropped ? all_missing_warning : partial_missing_warning
       end
 
-    private
+      private
 
       def all_missing_warning
         "SimpleCov dropped all #{@missing_paths.size} source file(s) from the result — " \

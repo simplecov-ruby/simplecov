@@ -97,7 +97,7 @@ RSpec.describe SimpleCov::RunIdentity do
 
   it "memoizes the worker identity" do
     saved = described_class.instance_variable_defined?(:@current_worker_id) &&
-            described_class.remove_instance_variable(:@current_worker_id)
+      described_class.remove_instance_variable(:@current_worker_id)
 
     with_env("TEST_ENV_NUMBER" => "3") { expect(described_class.current_worker_id).to eq("3") }
     with_env("TEST_ENV_NUMBER" => "9") { expect(described_class.current_worker_id).to eq("3") }

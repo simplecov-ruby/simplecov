@@ -66,7 +66,7 @@ module SimpleCov
         matches = suffix_matches(coverage_hash, path).keys
         return "no entry for #{path} in #{input}" if matches.size < 2
 
-        "#{path} matches #{matches.size} files in #{input}: #{matches.sort.join(', ')} " \
+        "#{path} matches #{matches.size} files in #{input}: #{matches.sort.join(", ")} " \
           "(use a longer path to pick one)"
       end
 

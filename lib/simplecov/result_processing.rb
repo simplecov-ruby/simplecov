@@ -12,13 +12,13 @@ module SimpleCov
     # caller's call. Anything below 1 is taken as 1, so an unset
     # `SIMPLECOV_CONCURRENCY` needs no default of its own.
     def collate(result_filenames, profile = nil, processes: ENV["SIMPLECOV_CONCURRENCY"].to_i,
-                ignore_timeout: true, &)
+      ignore_timeout: true, &)
       raise ArgumentError, "There are no reports to be merged" if result_filenames.empty?
 
       initial_setup(profile, &)
 
       current_run.result = ParallelResultMerger.merge_and_store(*result_filenames, processes: [1, processes].max,
-                                                                                   ignore_timeout: ignore_timeout)
+        ignore_timeout: ignore_timeout)
 
       current_run.collating_result = true
       run_exit_tasks!
@@ -68,7 +68,7 @@ module SimpleCov
         FileList.new(files.select { |source_file| filter.matches?(source_file) })
       end
 
-      in_group  = grouped_file_set(grouped)
+      in_group = grouped_file_set(grouped)
       ungrouped = files.reject { |source_file| in_group.include?(source_file) }
       grouped[GroupNames::UNGROUPED] = FileList.new(ungrouped) if ungrouped.any?
 
@@ -113,7 +113,7 @@ module SimpleCov
       )
     end
 
-  private
+    private
 
     def initial_setup(profile, &block)
       load_profile(profile) if profile
@@ -166,7 +166,7 @@ module SimpleCov
     def build_result(raw, coverage, not_loaded:, tracked:, report:)
       Result.new(
         coverage, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
-                  worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
+        worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
       )
     end
   end

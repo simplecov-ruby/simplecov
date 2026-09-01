@@ -26,7 +26,7 @@ module SimpleCov
       raise ConfigurationError, "Could not find SimpleCov Profile called '#{name}'"
     end
 
-  private
+    private
 
     def autoload_profile(name)
       require "simplecov/profiles/#{name}"

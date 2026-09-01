@@ -32,7 +32,7 @@ module SimpleCov
         tracked_files = Set.new
         context_maps = ContextMap::Union.new
         command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
-                                                 &entry_collector(tracked_files, context_maps))
+          &entry_collector(tracked_files, context_maps))
         create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
       end
 
@@ -106,7 +106,7 @@ module SimpleCov
 
         warn "[SimpleCov]: Excluded #{expired_command_names.size} result(s) older than " \
              "merge_timeout (#{SimpleCov.merge_timeout}s) from the merged report: " \
-             "#{expired_command_names.sort.join(', ')}. " \
+             "#{expired_command_names.sort.join(", ")}. " \
              "Increase SimpleCov.merge_timeout to include them."
       end
 

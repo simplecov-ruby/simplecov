@@ -56,7 +56,7 @@ module SimpleCov
         opts = {port: 0, host: "127.0.0.1"} #: Hash[Symbol, untyped]
         build_parser do |o|
           o.on("--port N", Integer) { |v| opts[:port] = v }
-          o.on("--host HOST")       { |v| opts[:host] = v }
+          o.on("--host HOST") { |v| opts[:host] = v }
         end.parse(args)
         opts
       end

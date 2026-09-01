@@ -55,11 +55,11 @@ module SimpleCov
         return "not in this repository's history" unless behind
         return "current HEAD" if behind.zero?
 
-        "#{behind} commit#{'s' unless one?(behind)} behind HEAD"
+        "#{behind} commit#{"s" unless one?(behind)} behind HEAD"
       end
 
       def totals_words(totals)
-        totals.map { |name, percent| "#{name} #{format('%.2f%%', percent)}" }.join(", ")
+        totals.map { |name, percent| "#{name} #{format("%.2f%%", percent)}" }.join(", ")
       end
 
       def contexts_words(count)

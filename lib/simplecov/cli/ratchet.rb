@@ -38,8 +38,8 @@ module SimpleCov
       def parse(args, stderr)
         opts, rest = parse_common(args, init: false, dry_run: false) do |parser, options|
           parser.on("--baseline PATH") { |v| options[:baseline] = v }
-          parser.on("--init")          { options[:init] = true }
-          parser.on("--dry-run")       { options[:dry_run] = true }
+          parser.on("--init") { options[:init] = true }
+          parser.on("--dry-run") { options[:dry_run] = true }
         end
         return error_nil(stderr, "unexpected argument #{rest.first.inspect}") unless rest.empty?
 

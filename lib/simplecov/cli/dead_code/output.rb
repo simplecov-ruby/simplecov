@@ -21,21 +21,21 @@ module SimpleCov
 
         def emit_dead(stdout, matrix, last_seen)
           rows = section(stdout, "Dead code (not run in production, not covered by tests):", matrix, :dead,
-                         last_seen)
+            last_seen)
           rows += section(stdout, "Possibly dead (not run in production, covered only by tests):", matrix,
-                          :possibly_dead, last_seen)
+            :possibly_dead, last_seen)
           return stdout.puts("No dead code found.") if rows.zero?
 
           dead = count(matrix, :dead)
           possibly = count(matrix, :possibly_dead)
-          stdout.puts("#{pluralize(dead, 'dead line')}, #{pluralize(possibly, 'possibly dead line')}")
+          stdout.puts("#{pluralize(dead, "dead line")}, #{pluralize(possibly, "possibly dead line")}")
         end
 
         def emit_untested(stdout, matrix, last_seen)
           rows = section(stdout, "Untested code running in production:", matrix, :untested_in_production, last_seen)
           return stdout.puts("No untested production code found.") if rows.zero?
 
-          stdout.puts("#{pluralize(count(matrix, :untested_in_production), 'untested line')} running in production")
+          stdout.puts("#{pluralize(count(matrix, :untested_in_production), "untested line")} running in production")
         end
 
         def section(stdout, heading, matrix, bucket, last_seen)
@@ -44,7 +44,7 @@ module SimpleCov
 
           stdout.puts(heading)
           rows.each do |file, lines|
-            stdout.puts("  #{file}:#{Patch::Output.ranges(lines, ',')}#{markers(matrix, file, last_seen)}")
+            stdout.puts("  #{file}:#{Patch::Output.ranges(lines, ",")}#{markers(matrix, file, last_seen)}")
           end
           stdout.puts
           rows.size
@@ -60,7 +60,7 @@ module SimpleCov
           markers << "entire file" if matrix.fetch(:entire).include?(file)
           stamp = last_seen[file]
           markers << "last run #{stamp[0, 10]}" if stamp.instance_of?(String)
-          " (#{markers.join(', ')})" unless markers.empty?
+          " (#{markers.join(", ")})" unless markers.empty?
         end
 
         def count(matrix, bucket)
@@ -68,7 +68,7 @@ module SimpleCov
         end
 
         def pluralize(number, noun)
-          "#{number} #{noun}#{'s' unless one?(number)}"
+          "#{number} #{noun}#{"s" unless one?(number)}"
         end
 
         def window_suffix(production)

@@ -33,7 +33,7 @@ module SimpleCov
         @directive_chunks ||= Directive.disabled_ranges(@src)
       end
 
-    private
+      private
 
       # An uneven number of nocovs is assumed to run to the end of the file. It
       # cannot be handled inside the each_slice because JRuby behaves differently

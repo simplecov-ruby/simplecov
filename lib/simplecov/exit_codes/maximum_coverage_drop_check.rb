@@ -7,7 +7,7 @@ module SimpleCov
         MAXIMUM_COVERAGE_DROP
       end
 
-    private
+      private
 
       def compute_violations
         CoverageViolations.maximum_drop(result, thresholds)

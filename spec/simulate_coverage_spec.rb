@@ -39,7 +39,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
 
     context "when Prism is available" do
       it "synthesizes branch entries for unloaded files",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+        if: SimpleCov::StaticCoverageExtractor.available? do
         with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
           result = described_class.call(path)
           expect(result["branches"]).not_to be_empty
@@ -49,7 +49,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
 
       it "synthesizes method entries for unloaded files",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+        if: SimpleCov::StaticCoverageExtractor.available? do
         with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
           result = described_class.call(path)
           method_names = result["methods"].keys.map { |k| k[1] }
@@ -142,7 +142,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       let(:source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
       it "returns empty branches and methods",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+        if: SimpleCov::StaticCoverageExtractor.available? do
         with_tmp_source(source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
 
@@ -160,7 +160,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
 
       it "does not parse the file at all",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+        if: SimpleCov::StaticCoverageExtractor.available? do
         with_tmp_source(source) do |path|
           allow(SimpleCov::StaticCoverageExtractor).to receive(:call).and_call_original
 
@@ -181,7 +181,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       end
 
       it "still synthesizes branches and methods",
-         if: SimpleCov::StaticCoverageExtractor.available? do
+        if: SimpleCov::StaticCoverageExtractor.available? do
         with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
           expect(described_class.call(path, lines: false)["branches"]).not_to be_empty
         end
