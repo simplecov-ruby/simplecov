@@ -6,7 +6,7 @@ require "coverage"
 Coverage.start
 require_relative "../lib/simplecov"
 require_relative "../test_projects/faked_project/lib/faked_project"
-result = Coverage.result
+result = SimpleCov::ResultAdapter.call(Coverage.result)
 
 class MyFormatter
   def format(result)
