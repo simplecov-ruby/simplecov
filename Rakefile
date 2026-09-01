@@ -3,6 +3,7 @@
 require "rubygems"
 require "bundler/setup"
 require "open3"
+require "shellwords"
 Bundler::GemHelper.install_tasks
 
 Rake::Task["release"].clear
@@ -60,10 +61,53 @@ task :mutant do
   sh "bundle exec mutant run"
 end
 
+# The subjects mutant selects for a diff. Mutant matches each subject's line
+# range against the diff, so a comment removed above a method marks every
+# method below it as touched: a formatting pass over the tree selects most of
+# the library. `mutant:shard` exists so that case fans out instead of running
+# for hours in one job.
+def mutant_subjects_since(ref)
+  output, status = Open3.capture2("bundle", "exec", "mutant", "environment", "subject", "list", "--since", ref)
+  raise "mutant could not list the subjects touched since #{ref}" unless status.success?
+
+  # A subject name never contains a space, which is what tells it apart from
+  # the "Subjects in environment: N" line mutant ends the listing with.
+  output.lines.map(&:chomp).select { |line| line.start_with?("SimpleCov") && !line.include?(" ") }
+end
+
+# Round robin rather than contiguous slices. Mutant lists subjects sorted, so a
+# namespace lands together and the expensive ones cluster: every
+# `SimpleCov::CLI::Diff` subject shells out, and contiguous slicing would put
+# them all in one shard, which is the shard that times out. Taking every
+# TOTAL-th subject spreads a slow namespace across every runner instead.
+def mutant_shard(subjects, index, total)
+  subjects.select.with_index { |_subject, position| position % total == index }
+end
+
 namespace :mutant do
   desc "Mutation-test only the subjects touched since REF (default origin/main)"
   task :since, [:ref] do |_task, args|
     sh "bundle exec mutant run --since #{args[:ref] || 'origin/main'}"
+  end
+
+  desc "List the subjects touched since REF, one per line"
+  task :subjects, [:ref] do |_task, args|
+    puts mutant_subjects_since(args[:ref] || "origin/main")
+  end
+
+  desc "Mutation-test shard INDEX of TOTAL over the subjects touched since REF"
+  task :shard, [:ref, :index, :total] do |_task, args|
+    index = Integer(args.fetch(:index))
+    total = Integer(args.fetch(:total))
+    subjects = mutant_subjects_since(args[:ref] || "origin/main")
+    mine = mutant_shard(subjects, index, total)
+
+    if mine.empty?
+      puts "Shard #{index} of #{total}: no subjects"
+    else
+      puts "Shard #{index} of #{total}: #{mine.size} of #{subjects.size} subjects"
+      sh "bundle exec mutant run #{mine.map { |subject| Shellwords.escape(subject) }.join(' ')}"
+    end
   end
 end
 

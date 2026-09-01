@@ -5,16 +5,29 @@ on:
     branches: [main]
   pull_request:
 
-jobs:
-  mutation:
-    runs-on: ubuntu-latest
-    # Only the touched subjects are analysed, but a change to a slow
-    # namespace (the CLI subcommands that shell out, SimpleCov itself)
-    # is still minutes of work per subject.
-    timeout-minutes: 30
+env:
+  BUNDLE_WITHOUT: "benchmark"
+  # Subjects per runner. Mutant costs anywhere from half a second to twenty
+  # seconds a subject, depending on how many examples the subject drags in, so
+  # 50 is the size that keeps even a shard of the slow ones inside the timeout
+  # below while leaving an ordinary pull request on a single runner.
+  SUBJECTS_PER_SHARD: 50
+  # A ceiling on the fan-out, so a formatting pass over the whole tree grows
+  # the shards rather than the runners. Mutant selects a subject whose line
+  # range the diff touches, and a comment removed above a method moves every
+  # method below it, so such a change can select most of the library.
+  MAX_SHARDS: 24
 
-    env:
-      BUNDLE_WITHOUT: "benchmark"
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    outputs:
+      base: ${{ steps.plan.outputs.base }}
+      count: ${{ steps.plan.outputs.count }}
+      shards: ${{ steps.plan.outputs.shards }}
+      total: ${{ steps.plan.outputs.total }}
 
     steps:
       # Mutant selects subjects by diffing against a revision, so the
@@ -34,30 +47,75 @@ jobs:
         if: github.event_name == 'pull_request'
         run: git fetch --no-tags origin ${{ github.base_ref }}
 
-      # Keeps the analysis to the subjects whose own lines the pull
-      # request touched, rather than the whole library: mutant matches
-      # each subject's line range against the diff, so an untouched
-      # method in a touched file is left alone too.
-      #
-      # A pull request that touches no library code selects nothing and
-      # passes, which is what a docs- or spec-only change should do.
-      - name: Analyse the mutations the pull request touches
-        if: github.event_name == 'pull_request'
-        run: bundle exec rake "mutant:since[origin/${{ github.base_ref }}]"
-
-      # The same analysis for a push, against the head the push replaced,
-      # so a multi-commit push is diffed as a whole. A force push can
-      # leave that head unreachable. Then the diff falls back to the tip
-      # commit alone, which covers the amend-and-push case that produces
-      # most force pushes here.
-      - name: Analyse the mutations the push touches
-        if: github.event_name == 'push'
+      # A pull request is diffed against its base branch. A push is diffed
+      # against the head it replaced, so a multi-commit push is diffed as a
+      # whole. A force push can leave that head unreachable, and then the diff
+      # falls back to the tip commit alone, which covers the amend-and-push
+      # case that produces most force pushes here.
+      - name: Plan the shards
+        id: plan
         run: |
-          base="${{ github.event.before }}"
-          if [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            base="HEAD~1"
-          elif ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            git fetch --no-tags origin "$base" 2>/dev/null || base="HEAD~1"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+          else
+            base="${{ github.event.before }}"
+            if [ "$base" = "0000000000000000000000000000000000000000" ]; then
+              base="HEAD~1"
+            elif ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "$base" 2>/dev/null || base="HEAD~1"
+            fi
           fi
+          base=$(git rev-parse "$base^{commit}")
           echo "Comparing against $base"
-          bundle exec rake "mutant:since[$base]"
+
+          count=$(bundle exec rake -s "mutant:subjects[$base]" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then
+            total=0
+          else
+            total=$(( (count + SUBJECTS_PER_SHARD - 1) / SUBJECTS_PER_SHARD ))
+            if [ "$total" -gt "$MAX_SHARDS" ]; then total="$MAX_SHARDS"; fi
+          fi
+          echo "$count subject(s) across $total shard(s)"
+
+          {
+            echo "base=$base"
+            echo "count=$count"
+            echo "total=$total"
+            echo "shards=$(jq -nc --argjson n "$total" '[range($n)]')"
+          } >> "$GITHUB_OUTPUT"
+
+  # A change that touches no library code selects nothing and never reaches
+  # here, which is what a docs- or spec-only change should do.
+  mutate:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      # Every shard reports its own survivors. Stopping the others on the
+      # first failure would hide the rest of them.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby
+          rubygems: default
+          bundler-cache: true
+
+      - name: Make the base revision available
+        run: |
+          git cat-file -e "${{ needs.plan.outputs.base }}^{commit}" 2>/dev/null ||
+            git fetch --no-tags origin "${{ needs.plan.outputs.base }}"
+
+      - name: Analyse this shard of the mutations the change touches
+        run: |
+          bundle exec rake \
+            "mutant:shard[${{ needs.plan.outputs.base }},${{ matrix.shard }},${{ needs.plan.outputs.total }}]"
