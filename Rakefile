@@ -101,6 +101,33 @@ task :fuzz, [:seeds, :per_seed] do |_task, args|
   sh "bundle exec rspec spec/static_coverage_extractor_fuzz_spec.rb"
 end
 
+namespace :benchmark do
+  desc "Iterations per second for formatting a Result"
+  task :result do
+    sh "bundle", "exec", "ruby", "benchmarks/result.rb"
+  end
+
+  desc "Iterations per second for simulating coverage of tracked-but-unloaded files"
+  task :simulate_coverage do
+    sh "bundle", "exec", "ruby", "benchmarks/simulate_coverage.rb"
+  end
+
+  desc "Per-phase report timings over a synthetic project of FILES files"
+  task :report_scale, [:files] do |_task, args|
+    command = ["bundle", "exec", "ruby", "benchmarks/report_scale.rb"]
+    command << args[:files] if args[:files]
+    sh(*command)
+  end
+
+  desc "Per-phase collate timings recorded under LABEL, optionally compared against BASELINE"
+  task :collate, [:label, :baseline] do |_task, args|
+    command = ["bundle", "exec", "ruby", "benchmarks/collate.rb"]
+    command << args[:label] if args[:label]
+    command += ["--baseline", args[:baseline]] if args[:baseline]
+    sh(*command)
+  end
+end
+
 namespace :frontend do
   desc "Run the frontend TypeScript tests with bun (100% coverage enforced)"
   task :test do
