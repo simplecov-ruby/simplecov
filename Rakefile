@@ -129,13 +129,19 @@ namespace :benchmark do
 end
 
 namespace :frontend do
+  desc "Install the frontend dependencies with bun"
+  task :install do
+    in_frontend("Frontend dependency installation") { sh "bun", "install", "--frozen-lockfile" }
+  end
+
+  desc "Type-check the frontend TypeScript with tsc"
+  task typecheck: :install do
+    in_frontend("Frontend type checking") { sh "bun", "run", "typecheck" }
+  end
+
   desc "Run the frontend TypeScript tests with bun (100% coverage enforced)"
-  task :test do
-    if system("bun", "--version", out: File::NULL, err: File::NULL)
-      Dir.chdir(File.expand_path("html_frontend", __dir__)) { sh "bun", "test" }
-    else
-      warn "Frontend tests are disabled (bun is not installed)"
-    end
+  task test: :install do
+    in_frontend("Frontend tests") { sh "bun", "test" }
   end
 end
 
@@ -157,7 +163,14 @@ rescue LoadError
 end
 
 task test: %i[spec frontend:test]
-task default: %i[rubocop rbs steep spec frontend:test]
+task default: %i[rubocop rbs steep spec frontend:typecheck frontend:test]
+
+def in_frontend(what, &)
+  return warn("#{what} is disabled (bun is not installed)") unless
+    system("bun", "--version", out: File::NULL, err: File::NULL)
+
+  Dir.chdir(File.expand_path("html_frontend", __dir__), &)
+end
 
 def frontend_esbuild(frontend)
   executable = Gem.win_platform? ? "esbuild.cmd" : "esbuild"
