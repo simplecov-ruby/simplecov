@@ -9,6 +9,8 @@ RSpec.describe "rspec-rails integration", :sandbox do
     install_dependencies
   end
 
+  let(:data) { html_report_data }
+
   def reported_groups(data)
     data.fetch("groups").to_h do |name, group|
       coverage = displayed_percent(group.fetch("lines").fetch("percent"))
@@ -16,24 +18,36 @@ RSpec.describe "rspec-rails integration", :sandbox do
     end
   end
 
-  it "produces a coverage report with the rails profile's groups" do
-    result = run_command_and_expect_success("bundle exec rspec", timeout: 120)
-    expect_coverage_report_generated(result)
+  describe "the rails profile" do
+    let!(:result) { run_command_and_expect_success("bundle exec rspec", timeout: 120) }
+    let(:expected_groups) do
+      {
+        "Controllers" => {"coverage" => 0.00, "files" => 1},
+        "Channels" => {"coverage" => 100.00, "files" => 0},
+        "Models" => {"coverage" => 60.00, "files" => 2},
+        "Mailers" => {"coverage" => 100.00, "files" => 0},
+        "Helpers" => {"coverage" => 100.00, "files" => 1},
+        "Views" => {"coverage" => 100.00, "files" => 0},
+        "Jobs" => {"coverage" => 0.00, "files" => 1},
+        "Libraries" => {"coverage" => 100.00, "files" => 0}
+      }
+    end
 
-    data = html_report_data
-    expect(reported_total_percent(data)).to eq(50.00)
-    expect(data.fetch("coverage").keys.length).to eq(5)
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
 
-    expect(reported_groups(data)).to eq(
-      "Controllers" => {"coverage" => 0.00, "files" => 1},
-      "Channels" => {"coverage" => 100.00, "files" => 0},
-      "Models" => {"coverage" => 60.00, "files" => 2},
-      "Mailers" => {"coverage" => 100.00, "files" => 0},
-      "Helpers" => {"coverage" => 100.00, "files" => 1},
-      "Views" => {"coverage" => 100.00, "files" => 0},
-      "Jobs" => {"coverage" => 0.00, "files" => 1},
-      "Libraries" => {"coverage" => 100.00, "files" => 0}
-    )
+    it "totals the coverage" do
+      expect(reported_total_percent(data)).to eq(50.00)
+    end
+
+    it "covers the app's files" do
+      expect(data.fetch("coverage").keys.length).to eq(5)
+    end
+
+    it "buckets them into the profile's groups" do
+      expect(reported_groups(data)).to eq(expected_groups)
+    end
   end
 
   context "with cover_views" do
@@ -46,28 +60,35 @@ RSpec.describe "rspec-rails integration", :sandbox do
       RUBY
     end
 
-    def view_coverage(data)
-      data.fetch("coverage").select { |path, _| path.end_with?(".erb") }
+    let!(:result) { run_command_and_expect_success("bundle exec rspec", timeout: 120) }
+    let(:views) { data.fetch("coverage").select { |path, _| path.end_with?(".erb") } }
+
+    it "generates a report" do
+      expect_coverage_report_generated(result)
     end
 
-    it "reports rendered and unrendered templates under the profile's Views group" do
-      result = run_command_and_expect_success("bundle exec rspec", timeout: 120)
-      expect_coverage_report_generated(result)
-
-      data = html_report_data
-      views = view_coverage(data)
-
+    it "reports every template" do
       expect(views.keys).to contain_exactly(
         "app/views/foos/show.html.erb",
         "app/views/foos/orphan.html.erb",
         "app/views/layouts/application.html.erb"
       )
-      expect(views.fetch("app/views/foos/show.html.erb").fetch("lines")).to eq([1, 1, 0, nil])
-      expect(views.fetch("app/views/foos/orphan.html.erb").fetch("lines")).to eq([0])
-      expect(views.fetch("app/views/layouts/application.html.erb").fetch("lines")).to all(satisfy do |hits|
-        hits.nil? || hits.zero?
-      end)
+    end
 
+    it "records hits against a rendered template's own lines" do
+      expect(views.fetch("app/views/foos/show.html.erb").fetch("lines")).to eq([1, 1, 0, nil])
+    end
+
+    it "reports an unrendered template at 0%" do
+      expect(views.fetch("app/views/foos/orphan.html.erb").fetch("lines")).to eq([0])
+    end
+
+    it "records no hits against the layout" do
+      expect(views.fetch("app/views/layouts/application.html.erb").fetch("lines"))
+        .to all(satisfy { |hits| hits.nil? || hits.zero? })
+    end
+
+    it "puts the templates in the profile's Views group" do
       expect(reported_groups(data).fetch("Views")).to eq("coverage" => 22.22, "files" => 3)
     end
   end

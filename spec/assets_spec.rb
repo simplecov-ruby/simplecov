@@ -5,38 +5,67 @@ require "open3"
 require "tmpdir"
 
 RSpec.describe "frontend asset compilation" do
-  it "fails when the CSS minifier exits unsuccessfully" do
-    skip "the fake esbuild is a POSIX shell script" if Gem.win_platform?
-
-    Dir.mktmpdir("simplecov-failing-esbuild-") do |tmp|
-      esbuild = File.join(tmp, "esbuild")
-      File.write(esbuild, <<~SH)
+  describe "a CSS minifier that exits unsuccessfully" do
+    let(:failing_esbuild) do
+      <<~SH
         #!/bin/sh
         cat >/dev/null
         echo "synthetic CSS failure" >&2
         exit 42
       SH
-      FileUtils.chmod(0o755, esbuild)
+    end
+    let(:run) do
+      Dir.mktmpdir("simplecov-failing-esbuild-") do |tmp|
+        esbuild = File.join(tmp, "esbuild")
+        File.write(esbuild, failing_esbuild)
+        FileUtils.chmod(0o755, esbuild)
+        run_rakefile('minify_css("body {}", esbuild: "esbuild")',
+          "PATH" => [tmp, ENV.fetch("PATH")].join(File::PATH_SEPARATOR))
+      end
+    end
+    let(:status) { run.last }
+    let(:output) { run.first(2).join }
 
-      env = {"PATH" => [tmp, ENV.fetch("PATH")].join(File::PATH_SEPARATOR)}
-      command = 'load "./Rakefile"; minify_css("body {}", esbuild: "esbuild")'
-      output, error, status = Open3.capture3(env, "bundle", "exec", "ruby", "-rrake", "-e", command,
-        chdir: SimpleCov.root.to_s)
+    before { skip "the fake esbuild is a POSIX shell script" if Gem.win_platform? }
 
+    it "fails the compilation" do
       expect(status).not_to be_success
-      expect(output + error).to include("CSS compilation failed (exit 42)").and include("synthetic CSS failure")
+    end
+
+    it "reports the minifier's exit status" do
+      expect(output).to include("CSS compilation failed (exit 42)")
+    end
+
+    it "passes the minifier's own complaint through" do
+      expect(output).to include("synthetic CSS failure")
     end
   end
 
-  it "mangles real custom properties but leaves BEM class modifiers alone" do
-    css = ".cell--numerator{text-align:right;color:var(--example-token)}.x{--example-token:#fff}"
-    command = %(load "./Rakefile"; print mangle_css_custom_properties(#{css.inspect}))
-    output, _error, status = Open3.capture3("bundle", "exec", "ruby", "-rrake", "-e", command,
-      chdir: SimpleCov.root.to_s)
+  describe "mangling CSS custom properties" do
+    let(:css) { ".cell--numerator{text-align:right;color:var(--example-token)}.x{--example-token:#fff}" }
+    let(:run) { run_rakefile("print mangle_css_custom_properties(#{css.inspect})") }
+    let(:status) { run.last }
+    let(:output) { run.first }
 
-    expect(status).to be_success
-    expect(output).to include(".cell--numerator{text-align:right")
-    expect(output).not_to include("--example-token")
-    expect(output).to match(/color:var\(--[a-z]{1,2}\)/)
+    it "succeeds" do
+      expect(status).to be_success
+    end
+
+    it "leaves a BEM class modifier alone" do
+      expect(output).to include(".cell--numerator{text-align:right")
+    end
+
+    it "renames the custom property" do
+      expect(output).not_to include("--example-token")
+    end
+
+    it "renames it to a short alias" do
+      expect(output).to match(/color:var\(--[a-z]{1,2}\)/)
+    end
+  end
+
+  def run_rakefile(snippet, env = {})
+    Open3.capture3(env, "bundle", "exec", "ruby", "-rrake", "-e", %(load "./Rakefile"; #{snippet}),
+      chdir: SimpleCov.root.to_s)
   end
 end # rubocop:enable RSpec/DescribeClass

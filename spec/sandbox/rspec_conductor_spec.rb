@@ -32,6 +32,19 @@ RSpec.describe "rspec-conductor integration", :sandbox do
     )
   end
 
+  def expect_branch_results(data)
+    files = data.fetch("coverage").values
+    expect(files.sum { |file| file.fetch("covered_branches") }).to eq(4)
+    expect(files.sum { |file| file.fetch("total_branches") }).to eq(8)
+    expect(reported_file_percents(data, criterion: "branches")).to eq(
+      "lib/all.rb" => 100.00,
+      "lib/a.rb" => 50.00,
+      "lib/b.rb" => 100.00,
+      "lib/c.rb" => 50.00,
+      "lib/d.rb" => 50.00
+    )
+  end
+
   def configure_conductor_coverage(*settings)
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
@@ -79,19 +92,8 @@ RSpec.describe "rspec-conductor integration", :sandbox do
 
     run_conductor
     expect_report_files
-
-    data = html_report_data
-    expect_line_results(data)
-    files = data.fetch("coverage").values
-    expect(files.sum { |file| file.fetch("covered_branches") }).to eq(4)
-    expect(files.sum { |file| file.fetch("total_branches") }).to eq(8)
-    expect(reported_file_percents(data, criterion: "branches")).to eq(
-      "lib/all.rb" => 100.00,
-      "lib/a.rb" => 50.00,
-      "lib/b.rb" => 100.00,
-      "lib/c.rb" => 50.00,
-      "lib/d.rb" => 50.00
-    )
+    expect_line_results(html_report_data)
+    expect_branch_results(html_report_data)
   end
 
   it "enforces coverage thresholds against the merged result, not per worker" do

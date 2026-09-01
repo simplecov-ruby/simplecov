@@ -6,37 +6,56 @@ require "support/sandbox_project"
 RSpec.describe "no_defaults configuration", :sandbox do
   before { setup_project("faked_project") }
 
-  it "loads no default formatter, so a resultset is written but no report rendered" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov/no_defaults'
+  describe "loading no default formatter" do
+    let!(:result) do
+      configure_simplecov(:test_unit, <<~RUBY)
+        require 'simplecov/no_defaults'
 
-      SimpleCov.start do
-        command_name "No Defaults"
-      end
-    RUBY
+        SimpleCov.start do
+          command_name "No Defaults"
+        end
+      RUBY
+      run_command_and_expect_success("bundle exec rake test")
+    end
 
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect(file_exist?("coverage/.resultset.json")).to be(true)
-    expect(file_exist?("coverage/index.html")).to be(false)
-    expect(result.output).not_to include("Coverage report generated")
+    it "writes a resultset" do
+      expect(file_exist?("coverage/.resultset.json")).to be(true)
+    end
+
+    it "renders no report" do
+      expect(file_exist?("coverage/index.html")).to be(false)
+    end
+
+    it "announces no report" do
+      expect(result.output).not_to include("Coverage report generated")
+    end
   end
 
-  it "loads no default filters, so the report keeps the test files" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov/no_defaults'
-      require 'simplecov/formatter/html_formatter'
+  describe "loading no default filters" do
+    let(:files) { html_report_data.fetch("coverage").keys }
+    let!(:result) do
+      configure_simplecov(:test_unit, <<~RUBY)
+        require 'simplecov/no_defaults'
+        require 'simplecov/formatter/html_formatter'
 
-      SimpleCov.start do
-        formatter SimpleCov::Formatter::HTMLFormatter
-        command_name "No Defaults"
-      end
-    RUBY
+        SimpleCov.start do
+          formatter SimpleCov::Formatter::HTMLFormatter
+          command_name "No Defaults"
+        end
+      RUBY
+      run_command_and_expect_success("bundle exec rake test")
+    end
 
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_coverage_report_generated(result)
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
 
-    files = html_report_data.fetch("coverage").keys
-    expect(files.length).to eq(6)
-    expect(files).to include("test/some_class_test.rb", "test/meta_magic_test.rb")
+    it "keeps every file the suite loaded" do
+      expect(files.length).to eq(6)
+    end
+
+    it "keeps the test files" do
+      expect(files).to include("test/some_class_test.rb", "test/meta_magic_test.rb")
+    end
   end
 end

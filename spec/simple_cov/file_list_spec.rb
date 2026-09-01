@@ -1,0 +1,186 @@
+# frozen_string_literal: true
+
+require "helper"
+require "support/coverage_fixtures"
+
+RSpec.describe SimpleCov::FileList do
+  subject(:file_list) do
+    original_result = {
+      source_fixture("sample.rb") => {
+        "lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil],
+        "branches" => {}
+      },
+      source_fixture("app/models/user.rb") => {
+        "lines" => [nil, 1, 1, 1, nil, nil, 1, 0, nil, nil],
+        "branches" => {}
+      },
+      source_fixture("app/controllers/sample_controller.rb") => {
+        "lines" => [nil, 2, 2, 0, nil, nil, 0, nil, nil, nil],
+        "branches" => {}
+      }
+    }
+    SimpleCov::Result.new(original_result).files
+  end
+
+  it "has 11 covered lines" do
+    expect(file_list.covered_lines).to eq(11)
+  end
+
+  it "has 3 missed lines" do
+    expect(file_list.missed_lines).to eq(3)
+  end
+
+  it "has 17 never lines" do
+    expect(file_list.never_lines).to eq(17)
+  end
+
+  it "has 14 lines of code" do
+    expect(file_list.lines_of_code).to eq(14)
+  end
+
+  it "has 5 skipped lines" do
+    expect(file_list.skipped_lines).to eq(5)
+  end
+
+  it "has the correct covered percent" do
+    expect(file_list.covered_percent).to eq(78.57142857142857)
+  end
+
+  it "has the correct covered percentages" do
+    expect(file_list.covered_percentages).to eq([50.0, 80.0, 100.0])
+  end
+
+  it "has the correct least covered file" do
+    expect(file_list.least_covered_file).to eq(source_fixture("app/controllers/sample_controller.rb"))
+  end
+
+  it "has the correct covered strength" do
+    expect(file_list.covered_strength).to eq(0.9285714285714286)
+  end
+
+  describe "#least_covered_file" do
+    def list_of(*percentages)
+      files = percentages.each_with_index.map do |percent, index|
+        instance_double(SimpleCov::SourceFile, covered_percent: percent, filename: "#{index}.rb")
+      end
+      described_class.new(files)
+    end
+
+    it "answers the filename of the lowest percentage, wherever it sits" do
+      expect(list_of(80.0, 20.0, 50.0).least_covered_file).to eq("1.rb")
+    end
+
+    it "treats an unmeasured file as 0%, not as the worst" do
+      expect(list_of(0.0, nil).least_covered_file).to eq("0.rb")
+    end
+
+    it "treats an unmeasured file as 0%, not as the best" do
+      expect(list_of(nil, 0.5).least_covered_file).to eq("0.rb")
+    end
+
+    it "answers nil for a list with no files at all" do
+      expect(described_class.new([]).least_covered_file).to be_nil
+    end
+  end
+
+  context "without branch or method coverage enabled" do
+    let(:line_only_file_list) do
+      original_result = {source_fixture("sample.rb") => CoverageFixtures::SAMPLE_RB}
+      SimpleCov::Result.new(original_result).files
+    end
+
+    it "returns nil from total_branches/covered_branches/missed_branches/branch_covered_percent" do
+      expect(line_only_file_list).to have_attributes(
+        total_branches: nil, covered_branches: nil, missed_branches: nil, branch_covered_percent: nil
+      )
+    end
+
+    it "returns nil from total_methods/covered_methods/missed_methods/method_covered_percent" do
+      expect(line_only_file_list).to have_attributes(
+        total_methods: nil, covered_methods: nil, missed_methods: nil, method_covered_percent: nil
+      )
+    end
+  end
+
+  context "when the FileList is empty" do
+    let(:empty_file_list) { described_class.new([]) }
+
+    it "returns 0 for never_lines and skipped_lines" do
+      expect(empty_file_list).to have_attributes(never_lines: 0, skipped_lines: 0)
+    end
+
+    it "returns nil for least_covered_file instead of raising" do
+      expect(empty_file_list.least_covered_file).to be_nil
+    end
+  end
+
+  context "with branch and method coverage criteria enabled", if: SimpleCov.branch_coverage_supported? do
+    around do |example|
+      SimpleCov.enable_coverage :branch
+      SimpleCov.enable_coverage :method
+      example.run
+      SimpleCov.clear_coverage_criteria
+    end
+
+    let(:branch_method_file_list) do
+      original_result = {
+        source_fixture("branches.rb") => CoverageFixtures::BRANCHES_RB
+      }
+      SimpleCov::Result.new(original_result).files
+    end
+
+    it "delegates total_branches/covered_branches/missed_branches/branch_covered_percent" do
+      expect(branch_method_file_list).to have_attributes(
+        total_branches: 6, covered_branches: 3, missed_branches: 3, branch_covered_percent: 50.0
+      )
+    end
+
+    it "delegates total_methods/covered_methods/missed_methods/method_covered_percent" do
+      expect(branch_method_file_list).to have_attributes(
+        total_methods: a_kind_of(Integer), covered_methods: a_kind_of(Integer),
+        missed_methods: a_kind_of(Integer), method_covered_percent: a_kind_of(Float)
+      )
+    end
+  end
+
+  describe "when :line coverage is disabled" do
+    let(:branch_only_file_list) do
+      branch_stat = SimpleCov::CoverageStatistics.new(covered: 1, missed: 1)
+      source_file = instance_double(SimpleCov::SourceFile,
+        coverage_statistics: {branch: branch_stat})
+      described_class.new([source_file])
+    end
+
+    before do
+      allow(SimpleCov).to receive_messages(branch_coverage?: true, method_coverage?: false)
+      allow(SimpleCov).to receive(:line_coverage?).and_return(false)
+    end
+
+    it "returns nil from line-coverage accessors" do
+      expect(branch_only_file_list).to have_attributes(
+        covered_lines: nil, missed_lines: nil, lines_of_code: nil,
+        covered_percent: nil, covered_strength: nil
+      )
+    end
+
+    it "answers covered_percent for the criterion it is given" do
+      expect(branch_only_file_list.covered_percent(:branch)).to eq(50.0)
+    end
+
+    it "answers covered_strength for the criterion it is given" do
+      expect(branch_only_file_list.covered_strength(:branch)).to eq(0.0)
+    end
+
+    it "buckets each file's statistics under the enabled criteria only" do
+      expect(branch_only_file_list.coverage_statistics_by_file.keys).to eq([:branch])
+    end
+
+    it "buckets the one file it holds under the criterion it measures" do
+      expect(branch_only_file_list.coverage_statistics_by_file.fetch(:branch).size).to eq(1)
+    end
+
+    it "omits :line from enabled_criteria_for_reporting" do
+      expect(branch_only_file_list.send(:enabled_criteria_for_reporting)).to contain_exactly(:branch)
+    end
+  end
+end

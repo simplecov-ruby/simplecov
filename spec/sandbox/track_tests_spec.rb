@@ -4,6 +4,15 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "track_tests", :sandbox do
+  let(:tracking_config) do
+    <<~RUBY
+      require 'simplecov'
+      SimpleCov.start do
+        track_tests
+      end
+    RUBY
+  end
+
   before { setup_project("faked_project") }
 
   def stored_contexts
@@ -14,38 +23,40 @@ RSpec.describe "track_tests", :sandbox do
     SimpleCov::ContextMap.from_hash(map)
   end
 
-  it "records each RSpec example against the lines it covered" do
-    configure_simplecov(:rspec, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        track_tests
-      end
-    RUBY
+  describe "an RSpec suite" do
+    let!(:result) do
+      configure_simplecov(:rspec, tracking_config)
+      run_command_and_expect_success(sorted_rspec_command)
+    end
+    let(:some_class) { File.join(sandbox_dir, "lib/faked_project/some_class.rb") }
 
-    result = run_command_and_expect_success(sorted_rspec_command)
-    expect_coverage_report_generated(result)
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
 
-    map = stored_contexts
-    expect(map.contexts).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+    it "records each example as a context" do
+      expect(stored_contexts.contexts).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+    end
 
-    reversible = File.join(sandbox_dir, "lib/faked_project/some_class.rb")
-    expect(map.covering(reversible, 12)).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+    it "records each example against the lines it covered" do
+      expect(stored_contexts.covering(some_class, 12)).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+    end
   end
 
-  it "records each Minitest test against the lines it covered" do
-    self.bundle_with = "minitest"
-    install_dependencies
-    configure_simplecov(:minitest, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        track_tests
-      end
-    RUBY
+  describe "a Minitest suite" do
+    let!(:result) do
+      self.bundle_with = "minitest"
+      install_dependencies
+      configure_simplecov(:minitest, tracking_config)
+      run_command_and_expect_success("bundle exec rake minitest")
+    end
 
-    result = run_command_and_expect_success("bundle exec rake minitest")
-    expect_coverage_report_generated(result)
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
 
-    map = stored_contexts
-    expect(map.contexts).to include(match(%r{\Aminitest/some_test\.rb:\d+\z}))
+    it "records each test as a context" do
+      expect(stored_contexts.contexts).to include(match(%r{\Aminitest/some_test\.rb:\d+\z}))
+    end
   end
 end

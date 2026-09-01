@@ -22,19 +22,37 @@ RSpec.describe "groups and filters", :sandbox do
   end
 
   shared_examples "a grouped report" do
-    it "groups the lib files and filters the test suite out" do
-      result = run_command_and_expect_success(command)
-      expect_coverage_report_generated(result)
-
-      data = html_report_data
-      expect(reported_total_percent(data)).to eq(88.09)
-      expect_faked_project_file_percents(data)
-      expect(data.fetch("groups").keys).to eq(%w[Libs Ungrouped])
-      expect_group(data, "Libs", percent: 86.11, files: %w[
+    let!(:result) { run_command_and_expect_success(command) }
+    let(:data) { html_report_data }
+    let(:lib_files) do
+      %w[
         lib/faked_project/some_class.rb
         lib/faked_project/framework_specific.rb
         lib/faked_project/meta_magic.rb
-      ])
+      ]
+    end
+
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "totals the coverage" do
+      expect(reported_total_percent(data)).to eq(88.09)
+    end
+
+    it "filters the test suite out" do
+      expect_faked_project_file_percents(data)
+    end
+
+    it "names the groups" do
+      expect(data.fetch("groups").keys).to eq(%w[Libs Ungrouped])
+    end
+
+    it "groups the lib files" do
+      expect_group(data, "Libs", percent: 86.11, files: lib_files)
+    end
+
+    it "leaves the rest ungrouped" do
       expect_group(data, "Ungrouped", percent: 100.00, files: %w[lib/faked_project.rb])
     end
   end

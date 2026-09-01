@@ -6,6 +6,8 @@ require "support/sandbox_project"
 RSpec.describe "complex groups and filters", :sandbox do
   before { setup_project("faked_project") }
 
+  let(:data) { html_report_data }
+
   def expect_meta_magic_only(data)
     expect(reported_total_percent(data)).to eq(100.00)
     expect(reported_file_percents(data)).to eq("lib/faked_project/meta_magic.rb" => 100.00)
@@ -37,13 +39,21 @@ RSpec.describe "complex groups and filters", :sandbox do
       RUBY
     end
 
-    it "trims the report to one file present in every group" do
-      result = run_command_and_expect_success(sorted_rspec_command)
-      expect_coverage_report_generated(result)
+    let!(:result) { run_command_and_expect_success(sorted_rspec_command) }
 
-      data = html_report_data
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "trims the report to one file" do
       expect_meta_magic_only(data)
+    end
+
+    it "names the groups" do
       expect(data.fetch("groups").keys).to eq(["By block", "By string", "By array"])
+    end
+
+    it "puts that file in every group" do
       expect_all_groups_hold_meta_magic(data)
     end
   end
@@ -76,21 +86,31 @@ RSpec.describe "complex groups and filters", :sandbox do
       RUBY
     end
 
-    it "keeps all five names distinct, including empty groups" do
-      result = run_command_and_expect_success(sorted_rspec_command)
-      expect_coverage_report_generated(result)
-
-      data = html_report_data
-      expect_meta_magic_only(data)
-
-      expect(data.fetch("groups").keys).to eq(["<group", ">group", "By/group", "By_2f_group", "All Files"])
-      expect(data.fetch("groups").transform_values { |group| group.fetch("files") }).to eq(
+    let!(:result) { run_command_and_expect_success(sorted_rspec_command) }
+    let(:expected_group_files) do
+      {
         "<group" => ["lib/faked_project/meta_magic.rb"],
         ">group" => [],
         "By/group" => ["lib/faked_project/meta_magic.rb"],
         "By_2f_group" => [],
         "All Files" => []
-      )
+      }
+    end
+
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "trims the report to one file" do
+      expect_meta_magic_only(data)
+    end
+
+    it "keeps all five names distinct" do
+      expect(data.fetch("groups").keys).to eq(["<group", ">group", "By/group", "By_2f_group", "All Files"])
+    end
+
+    it "keeps the empty groups" do
+      expect(data.fetch("groups").transform_values { |group| group.fetch("files") }).to eq(expected_group_files)
     end
   end
 
@@ -112,13 +132,21 @@ RSpec.describe "complex groups and filters", :sandbox do
       RUBY
     end
 
-    it "trims the report to one file present in every group" do
-      result = run_command_and_expect_success("bundle exec rake test")
-      expect_coverage_report_generated(result)
+    let!(:result) { run_command_and_expect_success("bundle exec rake test") }
 
-      data = html_report_data
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "trims the report to one file" do
       expect_meta_magic_only(data)
+    end
+
+    it "names the groups" do
       expect(data.fetch("groups").keys).to eq(["By block", "By string"])
+    end
+
+    it "puts that file in every group" do
       expect_all_groups_hold_meta_magic(data)
     end
   end

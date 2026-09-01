@@ -106,7 +106,7 @@ task :fuzz, [:seeds, :per_seed] do |_task, args|
   ENV["SIMPLECOV_FUZZ"] = "1"
   ENV["SIMPLECOV_FUZZ_SEEDS"] = args[:seeds] if args[:seeds]
   ENV["SIMPLECOV_FUZZ_PER_SEED"] = args[:per_seed] if args[:per_seed]
-  sh "bundle exec rspec spec/static_coverage_extractor_fuzz_spec.rb"
+  sh "bundle exec rspec spec/simple_cov/static_coverage_extractor_fuzz_spec.rb"
 end
 
 namespace :benchmark do

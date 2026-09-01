@@ -24,12 +24,8 @@ ignore:
       - RSpec/Output
 
   # .rubocop.yml caps these deliberately, each with a TODO to tighten, and
-  # owns the spec layout (spec/foo_spec.rb mirroring lib/simplecov/foo.rb)
-  # along with the behavior specs that describe no single class.
+  # owns the behavior specs that describe no single class.
   - "spec/**/*":
-      - RSpec/MultipleExpectations
-      - RSpec/ExampleLength
       - RSpec/MultipleMemoizedHelpers
       - RSpec/NestedGroups
-      - RSpec/SpecFilePathFormat
       - RSpec/DescribeClass

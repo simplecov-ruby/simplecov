@@ -4,8 +4,6 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "tracked files across merges and collation", :sandbox do
-  before { setup_project("faked_project") }
-
   let(:tracking_config) do
     <<~RUBY
       require 'simplecov'
@@ -13,6 +11,12 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
         track_files "lib/**/*.rb"
       end
     RUBY
+  end
+  let(:data) { html_report_data }
+
+  before do
+    setup_project("faked_project")
+    configure_simplecov(:test_unit, tracking_config)
   end
 
   def expect_tracked_file_percents(data, framework_specific:)
@@ -31,37 +35,68 @@ RSpec.describe "tracked files across merges and collation", :sandbox do
     FileUtils.rm(File.join(sandbox_dir, "coverage/index.html"))
   end
 
-  it "keeps never-loaded tracked files when two suites merge in one process" do
-    configure_simplecov(:test_unit, tracking_config)
-    configure_simplecov(:rspec, tracking_config)
+  describe "two suites merging in one process" do
+    before { configure_simplecov(:rspec, tracking_config) }
 
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_coverage_report_generated(result)
-    expect_tracked_file_percents(html_report_data, framework_specific: 75.00)
+    context "when only the first suite has run" do
+      let!(:result) { run_command_and_expect_success("bundle exec rake test") }
 
-    result = run_command_and_expect_success(sorted_rspec_command)
-    expect_coverage_report_generated(result)
-    expect(result.output).to include("Coverage report generated for RSpec, Unit Tests")
+      it "generates a report" do
+        expect_coverage_report_generated(result)
+      end
 
-    data = html_report_data
-    expect(data.fetch("meta").fetch("command_name")).to eq("RSpec, Unit Tests")
-    expect(reported_total_percent(data)).to eq(79.16)
-    expect_tracked_file_percents(data, framework_specific: 87.50)
+      it "keeps the never-loaded tracked files" do
+        expect_tracked_file_percents(data, framework_specific: 75.00)
+      end
+    end
+
+    context "when the second suite has merged into it" do
+      let!(:result) do
+        run_command_and_expect_success("bundle exec rake test")
+        run_command_and_expect_success(sorted_rspec_command)
+      end
+
+      it "generates a report" do
+        expect_coverage_report_generated(result)
+      end
+
+      it "names both suites in the output" do
+        expect(result.output).to include("Coverage report generated for RSpec, Unit Tests")
+      end
+
+      it "names both suites in the report" do
+        expect(data.fetch("meta").fetch("command_name")).to eq("RSpec, Unit Tests")
+      end
+
+      it "totals the merged coverage" do
+        expect(reported_total_percent(data)).to eq(79.16)
+      end
+
+      it "keeps the never-loaded tracked files" do
+        expect_tracked_file_percents(data, framework_specific: 87.50)
+      end
+    end
   end
 
-  it "keeps never-loaded tracked files when resultsets are collated by a separate step" do
-    configure_simplecov(:test_unit, tracking_config)
+  describe "resultsets collated by a separate step" do
+    let!(:result) do
+      expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part1"))
+      stash_resultset(1)
+      expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part2"))
+      stash_resultset(2)
+      run_command_and_expect_success("bundle exec rake collate")
+    end
 
-    expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part1"))
-    stash_resultset(1)
-    expect_coverage_report_generated(run_command_and_expect_success("bundle exec rake part2"))
-    stash_resultset(2)
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
 
-    result = run_command_and_expect_success("bundle exec rake collate")
-    expect_coverage_report_generated(result)
+    it "totals the collated coverage" do
+      expect(reported_total_percent(data)).to eq(77.08)
+    end
 
-    data = html_report_data
-    expect(reported_total_percent(data)).to eq(77.08)
-    expect_tracked_file_percents(data, framework_specific: 75.00)
+    it "keeps the never-loaded tracked files" do
+      expect_tracked_file_percents(data, framework_specific: 75.00)
+    end
   end
 end

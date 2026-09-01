@@ -39,12 +39,18 @@ RSpec.describe "template language integration", :sandbox do
   end
 
   shared_examples "a template language" do
-    it "records hits against the template's own lines and reports an unrendered template at 0%" do
-      result = run_command_and_expect_success("bundle exec rspec", timeout: 120)
-      expect_coverage_report_generated(result)
+    let!(:result) { run_command_and_expect_success("bundle exec rspec", timeout: 120) }
 
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "records hits against the rendered template's own lines" do
       expect(template_coverage.fetch("app/views/pages/page.html.#{language}").fetch("lines"))
         .to eq([1, 1, 0, 1, 1, 2])
+    end
+
+    it "reports an unrendered template at 0%" do
       expect(template_coverage.fetch("app/views/pages/orphan.html.#{language}").fetch("lines")).to eq([0])
     end
   end

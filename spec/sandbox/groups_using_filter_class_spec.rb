@@ -37,19 +37,40 @@ RSpec.describe "groups using a custom filter class", :sandbox do
       RUBY
     end
 
-    it "buckets files by the filter class's covered-percent threshold" do
-      result = run_command_and_expect_success(command)
-      expect_coverage_report_generated(result)
-
-      data = html_report_data
-      expect(reported_total_percent(data)).to eq(88.09)
-      expect_faked_project_file_percents(data)
-      expect(data.fetch("groups").keys).to eq(["By filter class", "By string", "Ungrouped"])
-      expect_group(data, "By filter class", percent: 78.26, files: %w[
+    let!(:result) { run_command_and_expect_success(command) }
+    let(:data) { html_report_data }
+    let(:under_threshold) do
+      %w[
         lib/faked_project/some_class.rb
         lib/faked_project/framework_specific.rb
-      ])
+      ]
+    end
+
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "totals the coverage" do
+      expect(reported_total_percent(data)).to eq(88.09)
+    end
+
+    it "reports each file's percentage" do
+      expect_faked_project_file_percents(data)
+    end
+
+    it "names the groups" do
+      expect(data.fetch("groups").keys).to eq(["By filter class", "By string", "Ungrouped"])
+    end
+
+    it "buckets the files under the filter class's threshold" do
+      expect_group(data, "By filter class", percent: 78.26, files: under_threshold)
+    end
+
+    it "buckets the file matched by string" do
       expect_group(data, "By string", percent: 100.00, files: %w[lib/faked_project/meta_magic.rb])
+    end
+
+    it "leaves the rest ungrouped" do
       expect_group(data, "Ungrouped", percent: 100.00, files: %w[lib/faked_project.rb])
     end
   end

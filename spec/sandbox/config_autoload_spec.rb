@@ -14,26 +14,41 @@ RSpec.describe "config autoload via .simplecov", :sandbox do
     RUBY
     configure_simplecov(:test_unit, "require 'simplecov'")
     configure_simplecov(:rspec, "require 'simplecov'")
+    run_command_and_expect_success("bundle exec rake test")
+  end
+
+  let!(:result) { run_command_and_expect_success(sorted_rspec_command) }
+  let(:data) { html_report_data }
+  let(:expected_file_percents) do
+    {
+      "lib/faked_project.rb" => 100.00,
+      "lib/faked_project/some_class.rb" => 80.00,
+      "lib/faked_project/framework_specific.rb" => 87.50,
+      "lib/faked_project/meta_magic.rb" => 100.00
+    }
   end
 
   def html_file_percents(data)
     data.fetch("coverage").transform_values { |file| displayed_percent(file.fetch("lines_covered_percent")) }
   end
 
-  it "applies the shared .simplecov config to both suites and merges their results" do
-    run_command_and_expect_success("bundle exec rake test")
-    result = run_command_and_expect_success(sorted_rspec_command)
+  it "generates a report" do
     expect_coverage_report_generated(result)
-    expect(result.output).to include("Coverage report generated for RSpec, Unit Tests")
+  end
 
-    data = html_report_data
+  it "names both suites in the output" do
+    expect(result.output).to include("Coverage report generated for RSpec, Unit Tests")
+  end
+
+  it "names both suites in the report" do
     expect(data.dig("meta", "command_name")).to eq("RSpec, Unit Tests")
+  end
+
+  it "merges the two suites into one total" do
     expect(displayed_percent(data.dig("total", "lines", "percent"))).to eq(90.47)
-    expect(html_file_percents(data)).to eq(
-      "lib/faked_project.rb" => 100.00,
-      "lib/faked_project/some_class.rb" => 80.00,
-      "lib/faked_project/framework_specific.rb" => 87.50,
-      "lib/faked_project/meta_magic.rb" => 100.00
-    )
+  end
+
+  it "applies the shared config's filters to both suites" do
+    expect(html_file_percents(data)).to eq(expected_file_percents)
   end
 end

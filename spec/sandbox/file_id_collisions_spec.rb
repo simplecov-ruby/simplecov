@@ -38,18 +38,35 @@ RSpec.describe "source files with colliding hashes", :sandbox do
     RUBY
   end
 
-  it "reports both colliding files as distinct entries" do
+  let!(:result) { run_command_and_expect_success("bundle exec rspec spec/file_id_collisions_spec.rb") }
+  let(:coverage) { html_report_data.fetch("coverage") }
+
+  it "starts from two file names whose hashes collide" do
     expect(Digest::SHA1.hexdigest("lib/file_46276.rb")[0, 8])
       .to eq(Digest::SHA1.hexdigest("lib/file_56865.rb")[0, 8])
+  end
 
-    result = run_command_and_expect_success("bundle exec rspec spec/file_id_collisions_spec.rb")
+  it "generates a report" do
     expect_coverage_report_generated(result)
+  end
 
-    coverage = html_report_data.fetch("coverage")
+  it "reports both colliding files as distinct entries" do
     expect(coverage.keys).to include("lib/file_46276.rb", "lib/file_56865.rb")
+  end
+
+  it "covers the first of them" do
     expect(coverage.fetch("lib/file_46276.rb").fetch("lines_covered_percent")).to eq(100.0)
+  end
+
+  it "covers the second of them" do
     expect(coverage.fetch("lib/file_56865.rb").fetch("lines_covered_percent")).to eq(100.0)
+  end
+
+  it "keeps the first one's own source" do
     expect(coverage.fetch("lib/file_46276.rb").fetch("source").join).to include("File46276")
+  end
+
+  it "keeps the second one's own source" do
     expect(coverage.fetch("lib/file_56865.rb").fetch("source").join).to include("File56865")
   end
 end

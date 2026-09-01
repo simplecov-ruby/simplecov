@@ -82,3 +82,34 @@ def capture_stdout
 ensure
   $stdout = previous_stdout
 end
+
+# capture_stderr and capture_stdout answer what was written; these answer what
+# the block returned, for the examples that assert on the value, not the noise.
+def without_stderr
+  answer = nil
+  capture_stderr { answer = yield }
+  answer
+end
+
+def without_stdout
+  answer = nil
+  capture_stdout { answer = yield }
+  answer
+end
+
+# Runs the block for its effect, swallowing the error it is expected to raise,
+# so an example about what survives the error needs no expectation for it.
+def suppress(klass)
+  yield
+rescue klass
+  nil
+end
+
+# Answers the error the block raised, for the examples that ask what an error
+# says rather than that it was raised at all.
+def capture_error(klass)
+  yield
+  nil
+rescue klass => error
+  error
+end

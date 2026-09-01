@@ -4,6 +4,23 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "custom nocov tokens", :sandbox do
+  let(:nocov_token_config) do
+    <<~RUBY
+      require 'simplecov'
+      SimpleCov.start 'test_frameworks' do
+        nocov_token 'skippit'
+      end
+    RUBY
+  end
+  let(:skip_token_config) do
+    <<~RUBY
+      require 'simplecov'
+      SimpleCov.start 'test_frameworks' do
+        skip_token 'skippit'
+      end
+    RUBY
+  end
+
   before { setup_project("faked_project") }
 
   def skipped_line_count(data = html_report_data)
@@ -34,7 +51,11 @@ RSpec.describe "custom nocov tokens", :sandbox do
     }
   end
 
-  def expect_skippit_block_skipped(result)
+  def expect_skippit_block_skipped(config)
+    configure_simplecov(:test_unit, config)
+    write_skippit_file
+
+    result = run_command_and_expect_success("bundle exec rake test")
     expect_coverage_report_generated(result)
     expect(result.output).to include("Coverage report generated for Unit Tests")
 
@@ -44,28 +65,10 @@ RSpec.describe "custom nocov tokens", :sandbox do
   end
 
   it "honors a custom token configured via nocov_token" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start 'test_frameworks' do
-        nocov_token 'skippit'
-      end
-    RUBY
-    write_skippit_file
-
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_skippit_block_skipped(result)
+    expect_skippit_block_skipped(nocov_token_config)
   end
 
   it "honors a custom token configured via skip_token" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start 'test_frameworks' do
-        skip_token 'skippit'
-      end
-    RUBY
-    write_skippit_file
-
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_skippit_block_skipped(result)
+    expect_skippit_block_skipped(skip_token_config)
   end
 end

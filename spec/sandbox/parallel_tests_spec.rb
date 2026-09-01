@@ -88,40 +88,58 @@ RSpec.describe "parallel_tests integration", :sandbox do
     expect_branch_results(html_report_data)
   end
 
-  it "does not print coverage violations from individual workers" do
-    configure_simplecov(:rspec, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        minimum_coverage 81.48
-      end
-    RUBY
-
-    result = run_command_and_expect_success("bundle exec parallel_rspec -n 2 spec", timeout: 120)
-    expect(result.output).not_to match(/cover.+below.+minimum/)
-  end
-
-  it "keeps turbo-style external collation free of worker coverage violations" do
-    configure_simplecov(:rspec, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        minimum_coverage 81.48
-        coverage_dir File.join("coverage", "turbo_tests", ENV.fetch("TEST_ENV_NUMBER"))
-        command_name "rspec-\#{ENV.fetch("TEST_ENV_NUMBER")}"
-        finalize_merge false
-      end
-    RUBY
-
-    worker_groups = {"1" => "spec/a_spec.rb spec/b_spec.rb", "2" => "spec/c_spec.rb spec/d_spec.rb"}
-    worker_groups.each do |worker, files|
-      env = {"TEST_ENV_NUMBER" => worker, "PARALLEL_TEST_GROUPS" => "2"}
-      result = run_command_and_expect_success("bundle exec rspec #{files}", env: env)
-      expect(result.output).not_to include("SimpleCov failed with exit 2")
-      expect(result.output).not_to match(/cover.+below.+minimum/)
+  describe "a minimum coverage the whole suite meets" do
+    let!(:result) do
+      configure_simplecov(:rspec, <<~RUBY)
+        require 'simplecov'
+        SimpleCov.start do
+          minimum_coverage 81.48
+        end
+      RUBY
+      run_command_and_expect_success("bundle exec parallel_rspec -n 2 spec", timeout: 120)
     end
 
-    collate = %(SimpleCov.collate(Dir["coverage/turbo_tests/*/.resultset.json"]) { minimum_coverage 81.48 })
-    result = run_command_and_expect_success("bundle exec ruby -rsimplecov -e '#{collate}'")
-    expect(result.output).to include("Coverage report generated")
-    expect(result.output).not_to include("SimpleCov failed with exit 2")
+    it "does not print coverage violations from individual workers" do
+      expect(result.output).not_to match(/cover.+below.+minimum/)
+    end
+  end
+
+  describe "turbo-style external collation" do
+    let(:collate_script) do
+      %(SimpleCov.collate(Dir["coverage/turbo_tests/*/.resultset.json"]) { minimum_coverage 81.48 })
+    end
+    let(:worker_groups) { {"1" => "spec/a_spec.rb spec/b_spec.rb", "2" => "spec/c_spec.rb spec/d_spec.rb"} }
+    let!(:worker_outputs) do
+      configure_simplecov(:rspec, <<~RUBY)
+        require 'simplecov'
+        SimpleCov.start do
+          minimum_coverage 81.48
+          coverage_dir File.join("coverage", "turbo_tests", ENV.fetch("TEST_ENV_NUMBER"))
+          command_name "rspec-\#{ENV.fetch("TEST_ENV_NUMBER")}"
+          finalize_merge false
+        end
+      RUBY
+      worker_groups.map do |worker, files|
+        env = {"TEST_ENV_NUMBER" => worker, "PARALLEL_TEST_GROUPS" => "2"}
+        run_command_and_expect_success("bundle exec rspec #{files}", env: env).output
+      end
+    end
+    let(:collated) { run_command_and_expect_success("bundle exec ruby -rsimplecov -e '#{collate_script}'") }
+
+    it "fails no worker" do
+      expect(worker_outputs.grep(/SimpleCov failed with exit 2/)).to be_empty
+    end
+
+    it "prints no worker coverage violation" do
+      expect(worker_outputs.grep(/cover.+below.+minimum/)).to be_empty
+    end
+
+    it "generates a report from the collated resultsets" do
+      expect(collated.output).to include("Coverage report generated")
+    end
+
+    it "does not fail the collation" do
+      expect(collated.output).not_to include("SimpleCov failed with exit 2")
+    end
   end
 end

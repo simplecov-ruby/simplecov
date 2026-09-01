@@ -92,7 +92,7 @@ it quietly, so know they exist:
   callers dispatch to the copy, so mutant's re-inserted instance methods would
   be invisible and every mutation would survive. RuboCop enforces this.
 * Spec describes that don't name a constant carry a `mutant_expression`
-  metadata tag naming the namespace they exercise (see `spec/cli_spec.rb`), so
+  metadata tag naming the namespace they exercise (see `spec/simple_cov/cli_spec.rb`), so
   mutant selects only those examples for the namespace's subjects. An
   untagged group is selected for every subject in the file's top constant,
   which is slow. Specs that only observe subprocesses can't kill an in-memory

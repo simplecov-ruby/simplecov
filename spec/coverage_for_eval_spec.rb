@@ -17,18 +17,20 @@ RSpec.describe "coverage for eval" do
       capture
       JSON.parse(File.read("./coverage/.resultset.json"))
     end
+    let(:erb_entry) do
+      resultset.values.first.fetch("coverage").find { |path, _data| path.end_with?("eval_test.erb") }
+    end
 
     it "produces a coverage report" do
       expect(stderr).to include("Coverage report generated")
     end
 
-    it "records line hits for the eval'd .erb source" do
-      coverage = resultset.values.first.fetch("coverage")
-      erb_entry = coverage.find { |path, _data| path.end_with?("eval_test.erb") }
+    it "records the eval'd .erb source" do
       expect(erb_entry).not_to be_nil
+    end
 
-      lines = erb_entry.last.fetch("lines")
-      expect(lines).to include(be_positive)
+    it "records line hits for it" do
+      expect(erb_entry.last.fetch("lines")).to include(be_positive)
     end
   end
 end

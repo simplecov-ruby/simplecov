@@ -6,62 +6,74 @@ require "support/sandbox_project"
 RSpec.describe "expected coverage enforcement", :sandbox do
   before { setup_project("faked_project") }
 
-  it "passes when the actual coverage matches exactly" do
+  def run_with_thresholds(thresholds)
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
         add_filter 'test.rb'
-        expected_coverage 88.09
+        #{thresholds}
       end
     RUBY
-
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).to eq(0)
+    run_command("bundle exec rake test")
   end
 
-  it "fails when actual coverage is below" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        expected_coverage 90
-      end
-    RUBY
+  describe "coverage matching the expectation exactly" do
+    let!(:result) { run_with_thresholds("expected_coverage 88.09") }
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
-    expect(result.output).to include("SimpleCov failed with exit 2")
+    it "passes" do
+      expect(result.exit_status).to eq(0)
+    end
   end
 
-  it "fails when actual coverage is above" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        expected_coverage 80
-      end
-    RUBY
+  describe "coverage below the expectation" do
+    let!(:result) { run_with_thresholds("expected_coverage 90") }
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is above the expected maximum coverage (80.00%).")
-    expect(result.output).to include("Time to bump the threshold!")
-    expect(result.output).to include("SimpleCov failed with exit 4")
+    it "fails" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "says how far below it fell" do
+      expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
+    end
+
+    it "exits 2" do
+      expect(result.output).to include("SimpleCov failed with exit 2")
+    end
   end
 
-  it "fails when actual is above maximum_coverage on its own" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        maximum_coverage 85
-      end
-    RUBY
+  describe "coverage above the expectation" do
+    let!(:result) { run_with_thresholds("expected_coverage 80") }
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is above the expected maximum coverage (85.00%).")
-    expect(result.output).to include("SimpleCov failed with exit 4")
+    it "fails" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "says how far above it rose" do
+      expect(result.output).to include("Line coverage (88.09%) is above the expected maximum coverage (80.00%).")
+    end
+
+    it "suggests bumping the threshold" do
+      expect(result.output).to include("Time to bump the threshold!")
+    end
+
+    it "exits 4" do
+      expect(result.output).to include("SimpleCov failed with exit 4")
+    end
+  end
+
+  describe "coverage above maximum_coverage on its own" do
+    let!(:result) { run_with_thresholds("maximum_coverage 85") }
+
+    it "fails" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "says how far above it rose" do
+      expect(result.output).to include("Line coverage (88.09%) is above the expected maximum coverage (85.00%).")
+    end
+
+    it "exits 4" do
+      expect(result.output).to include("SimpleCov failed with exit 4")
+    end
   end
 end

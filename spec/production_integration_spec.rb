@@ -27,21 +27,31 @@ RSpec.describe "production coverage integration" do
       File.readlines("workload.rb").index { |line| line.include?(source_fragment) } + 1
     end
 
-    it "records the lines one process executed, root-relative" do
-      run_fixture("even")
+    context "when one process has run" do
+      before { run_fixture("even") }
 
-      lines = stored_coverage.fetch("workload.rb")
-      expect(lines).to include(line_of("2 + 2"))
-      expect(lines).not_to include(line_of("3 + 3"))
+      it "records the lines it executed, root-relative" do
+        expect(stored_coverage.fetch("workload.rb")).to include(line_of("2 + 2"))
+      end
+
+      it "records nothing it did not execute" do
+        expect(stored_coverage.fetch("workload.rb")).not_to include(line_of("3 + 3"))
+      end
     end
 
-    it "union-merges runs from separate processes into the shared store" do
-      run_fixture("even")
-      run_fixture("odd")
+    context "when separate processes have run" do
+      before do
+        run_fixture("even")
+        run_fixture("odd")
+      end
 
-      lines = stored_coverage.fetch("workload.rb")
-      expect(lines).to include(line_of("2 + 2"))
-      expect(lines).to include(line_of("3 + 3"))
+      it "union-merges the first one's lines into the shared store" do
+        expect(stored_coverage.fetch("workload.rb")).to include(line_of("2 + 2"))
+      end
+
+      it "union-merges the second one's lines into the shared store" do
+        expect(stored_coverage.fetch("workload.rb")).to include(line_of("3 + 3"))
+      end
     end
   end
 end

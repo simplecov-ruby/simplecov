@@ -1,0 +1,681 @@
+# frozen_string_literal: true
+
+require "helper"
+require "fileutils"
+require "tmpdir"
+require "open3"
+
+STUB_WORKING_DIRECTORY = "STUB_WORKING_DIRECTORY"
+
+STUB_COMMAND_NAME = "STUB_COMMAND_NAME"
+
+STUB_PROJECT_NAME = "STUB_PROJECT_NAME"
+
+STUB_COMMIT = "1234567890abcdef1234567890abcdef12345678"
+
+RSpec.describe SimpleCov::Formatter::JSONFormatter do
+  subject(:formatter) { described_class.new(silent: true) }
+
+  let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
+  let(:result) do
+    res = SimpleCov::Result.new({
+      source_fixture("json/sample.rb") => {"lines" => [
+        nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+        1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+      ]}
+    })
+    res.created_at = fixed_time
+    res
+  end
+
+  let(:coverage_dir) { Dir.mktmpdir("simplecov-json-formatter-") }
+
+  before do
+    allow(SimpleCov).to receive_messages(coverage_dir: coverage_dir, coverage_path: coverage_dir)
+    SimpleCov.process_start_time = Time.now
+    allow(Open3).to receive(:capture2e)
+      .and_return(["#{STUB_COMMIT}\n", instance_double(Process::Status, success?: true)])
+  end
+
+  after do
+    SimpleCov.process_start_time = nil
+    FileUtils.remove_entry(coverage_dir)
+  end
+
+  describe "with output_dir" do
+    let(:output_dir) { Dir.mktmpdir("simplecov-json-formatter-output-") }
+
+    after { FileUtils.remove_entry(output_dir) }
+
+    it "writes coverage.json into the explicit directory" do
+      described_class.new(silent: true, output_dir: output_dir).format(result)
+
+      expect(File.exist?(File.join(output_dir, described_class::FILENAME))).to be true
+    end
+
+    it "writes nothing into SimpleCov.coverage_path" do
+      described_class.new(silent: true, output_dir: output_dir).format(result)
+
+      expect(File.exist?(File.join(SimpleCov.coverage_path, "coverage.json"))).to be false
+    end
+
+    it "names the explicit directory in the output message" do
+      out = capture_stderr { described_class.new(output_dir: output_dir).format(result) }
+
+      expect(out.lines.first.chomp)
+        .to eq("JSON Coverage report generated for RSpec to #{File.join(output_dir, described_class::FILENAME)}")
+    end
+  end
+
+  context "with a read-only coverage.json" do
+    let(:report_path) { File.join(SimpleCov.coverage_path, described_class::FILENAME) }
+
+    before do
+      formatter.format(result)
+      File.chmod(0o400, report_path)
+    end
+
+    after { File.chmod(0o600, report_path) if File.exist?(report_path) }
+
+    it "replaces it atomically" do
+      expect { formatter.format(result) }.not_to raise_error
+    end
+
+    it "writes the coverage payload over it" do
+      formatter.format(result)
+
+      expect(JSON.parse(File.read(report_path))).to include("coverage")
+    end
+  end
+
+  describe "format" do
+    context "with line coverage" do
+      it "includes line coverage and covered_percent per file" do
+        formatter.format(result)
+        expect(json_output).to eq(json_result("sample"))
+      end
+
+      context "with a percentage that does not divide evenly" do
+        let(:result) { SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}) }
+
+        before { formatter.format(result) }
+
+        it "preserves raw total percentage and strength precision" do
+          expect(json_output.fetch("total").fetch("lines")).to include(
+            "percent" => 66.66666666666667,
+            "strength" => 0.6666666666666666
+          )
+        end
+
+        it "preserves raw per-file percentage precision" do
+          expect(sample_file_entry).to include("lines_covered_percent" => 66.66666666666667)
+        end
+      end
+    end
+
+    context "with the source_in_json toggle" do
+      it "includes the source array by default" do
+        formatter.format(result)
+
+        expect(sample_file_entry).to include("source" => a_kind_of(Array))
+      end
+
+      it "includes a source array that is not empty" do
+        formatter.format(result)
+
+        expect(sample_file_entry.fetch("source")).not_to be_empty
+      end
+
+      it "omits the source array when SimpleCov.source_in_json is false" do
+        allow(SimpleCov).to receive(:source_in_json).and_return(false)
+        formatter.format(result)
+        expect(sample_file_entry).not_to have_key("source")
+      end
+
+      it "still includes line / branch / method sections when source is omitted" do
+        allow(SimpleCov).to receive(:source_in_json).and_return(false)
+        formatter.format(result)
+        expect(sample_file_entry)
+          .to include("lines", "covered_lines", "missed_lines", "total_lines", "lines_covered_percent")
+      end
+
+      context "with source bytes that are not valid UTF-8" do
+        let(:coverage) do
+          Dir.mktmpdir do |dir|
+            path = File.join(dir, "invalid.rb")
+            File.binwrite(path, "x = 1 # caf\xE9\n")
+            described_class.build_hash(invalid_byte_result(path), include_source: true).fetch(:coverage)
+          end
+        end
+        let(:first_source_line) { coverage.values.first.fetch(:source).first }
+
+        def invalid_byte_result(path)
+          SimpleCov::Result.new(
+            {path => {"lines" => [1]}},
+            filter_config: SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [], groups: {})
+          )
+        end
+
+        it "reports the one file it was given" do
+          expect(coverage.size).to eq 1
+        end
+
+        it "replaces the invalid bytes" do
+          expect(first_source_line).to eq("x = 1 # caf�")
+        end
+
+        it "answers UTF-8 source" do
+          expect(first_source_line.encoding).to eq(Encoding::UTF_8)
+        end
+      end
+    end
+
+    context "with branch coverage" do
+      let(:original_lines) do
+        [nil, 1, 1, 1, 1, nil, nil, 1, 1,
+          nil, nil, 1, 1, 0, nil, 1, nil,
+          nil, nil, nil, 1, 0, nil, nil, nil]
+      end
+
+      let(:original_branches) do
+        {
+          [:if, 0, 13, 4, 17, 7] => {
+            [:then, 1, 14, 6, 14, 10] => 0,
+            [:else, 2, 16, 6, 16, 10] => 1
+          }
+        }
+      end
+
+      let(:result) do
+        res = SimpleCov::Result.new({
+          source_fixture("json/sample.rb") => {
+            "lines" => original_lines,
+            "branches" => original_branches
+          }
+        })
+        res.created_at = fixed_time
+        res
+      end
+
+      before do
+        enable_branch_coverage
+      end
+
+      it "includes branch data and branches_covered_percent per file" do
+        formatter.format(result)
+        expect(json_output).to eq(json_result("sample_with_branch"))
+      end
+    end
+
+    context "with method coverage" do
+      let(:original_lines) do
+        [nil, 1, 1, 1, 1, nil, nil, 1, 1,
+          nil, nil, 1, 1, 0, nil, 1, nil,
+          nil, nil, nil, 1, 0, nil, nil, nil]
+      end
+
+      let(:original_methods) do
+        {
+          ["Foo", :initialize, 3, 2, 6, 5] => 1,
+          ["Foo", :bar, 8, 2, 10, 5] => 1,
+          ["Foo", :foo, 12, 2, 18, 5] => 1,
+          ["Foo", :skipped, 21, 2, 23, 5] => 0
+        }
+      end
+
+      let(:result) do
+        res = SimpleCov::Result.new({
+          source_fixture("json/sample.rb") => {
+            "lines" => original_lines,
+            "methods" => original_methods
+          }
+        })
+        res.created_at = fixed_time
+        res
+      end
+
+      before do
+        enable_method_coverage
+      end
+
+      it "includes methods array and methods_covered_percent per file" do
+        formatter.format(result)
+
+        expect(json_output).to eq(json_result("sample_with_method"))
+      end
+
+      it "counts only the covered methods in total_methods" do
+        formatter.format(result)
+
+        expect(sample_file_entry.fetch("total_methods")).to eq(3)
+      end
+
+      it "lists every method, covered or not" do
+        formatter.format(result)
+
+        expect(sample_file_entry.fetch("methods").size).to eq(4)
+      end
+    end
+
+    it "builds a fresh errors hash for every serialization" do
+      allow(SimpleCov).to receive(:minimum_coverage).and_return({line: 95}, {line: 80})
+
+      expect([described_class::ErrorsFormatter.call(result), described_class::ErrorsFormatter.call(result)])
+        .to eq([{minimum_coverage: {lines: {expected: 95, actual: 90.0}}}, {}])
+    end
+
+    context "with minimum_coverage below threshold" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 95)
+      end
+
+      it "reports the violation in errors" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage" => {"lines" => {"expected" => 95, "actual" => 90.0}}
+        )
+      end
+    end
+
+    context "with minimum_coverage above threshold" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(line: 80)
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with minimum_coverage keyed on :oneshot_line" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage).and_return(oneshot_line: 95)
+      end
+
+      it "reports the violation under :lines without raising" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "minimum_coverage" => {"lines" => {"expected" => 95, "actual" => 90.0}}
+        )
+      end
+    end
+
+    context "with minimum_coverage_by_file for lines" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(line: 95)
+      end
+
+      it "reports files below the threshold in errors" do
+        formatter.format(result)
+
+        expect(json_output.fetch("errors")).to eq("minimum_coverage_by_file" => {
+          project_fixture_filename("json/sample.rb") => {"lines" => {"expected" => 95, "actual" => 90.0}}
+        })
+      end
+    end
+
+    context "with minimum_coverage_by_file for branches" do
+      let(:result) do
+        SimpleCov::Result.new({
+          source_fixture("json/sample.rb") => {
+            "lines" => [nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+              1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil],
+            "branches" => {
+              [:if, 0, 13, 4, 17, 7] => {
+                [:then, 1, 14, 6, 14, 10] => 0,
+                [:else, 2, 16, 6, 16, 10] => 1
+              }
+            }
+          }
+        })
+      end
+
+      before do
+        enable_branch_coverage
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(branch: 75)
+      end
+
+      it "reports files below the threshold in errors" do
+        formatter.format(result)
+
+        expect(json_output.fetch("errors")).to eq("minimum_coverage_by_file" => {
+          project_fixture_filename("json/sample.rb") => {"branches" => {"expected" => 75, "actual" => 50.0}}
+        })
+      end
+    end
+
+    context "with minimum_coverage_by_file when all files pass" do
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_file).and_return(line: 80)
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with a minimum_coverage_by_file per-path override" do
+      before do
+        allow(SimpleCov).to receive_messages(
+          minimum_coverage_by_file: {},
+          minimum_coverage_by_file_overrides: {project_fixture_filename("json/sample.rb") => {line: 100}}
+        )
+      end
+
+      it "reports the file under its override threshold in errors" do
+        formatter.format(result)
+
+        expect(json_output.fetch("errors")).to eq("minimum_coverage_by_file" => {
+          project_fixture_filename("json/sample.rb") => {"lines" => {"expected" => 100, "actual" => 90.0}}
+        })
+      end
+    end
+
+    context "with minimum_coverage_by_group below threshold" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
+      let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 7, missed: 3) }
+
+      let(:result) do
+        res = SimpleCov::Result.new({
+          sample_filename => {"lines" => [
+            nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+            1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+          ]}
+        })
+
+        mock_file_list = instance_double(SimpleCov::FileList,
+          coverage_statistics: {line: line_stats},
+          map: [sample_filename])
+        allow(res).to receive_messages(groups: {"Models" => mock_file_list})
+        res
+      end
+
+      before do
+        allow(SimpleCov).to receive(:minimum_coverage_by_group).and_return("Models" => {line: 80})
+      end
+
+      it "reports the group violation in errors" do
+        formatter.format(result)
+
+        expect(json_output.fetch("errors")).to eq(
+          "minimum_coverage_by_group" => {"Models" => {"lines" => {"expected" => 80, "actual" => 70.0}}}
+        )
+      end
+    end
+
+    context "with maximum_coverage exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage).and_return(line: 85)
+      end
+
+      it "reports the violation in errors" do
+        formatter.format(result)
+        errors = json_output.fetch("errors")
+        expect(errors).to eq(
+          "maximum_coverage" => {"lines" => {"expected" => 85, "actual" => 90.0}}
+        )
+      end
+    end
+
+    context "with maximum_coverage not exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage).and_return(line: 95)
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with maximum_coverage_drop exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return({result: {line: 95.0}})
+      end
+
+      it "reports the drop in errors" do
+        formatter.format(result)
+
+        expect(json_output.fetch("errors")).to eq(
+          "maximum_coverage_drop" => {"lines" => {"maximum" => 2, "actual" => 5.0}}
+        )
+      end
+    end
+
+    context "with maximum_coverage_drop not exceeded" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return({result: {line: 91.0}})
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with maximum_coverage_drop and no last run" do
+      before do
+        allow(SimpleCov).to receive(:maximum_coverage_drop).and_return(line: 2)
+        allow(SimpleCov::LastRun).to receive(:read).and_return(nil)
+      end
+
+      it "returns empty errors" do
+        formatter.format(result)
+        expect(json_output.fetch("errors")).to eq({})
+      end
+    end
+
+    context "with groups" do
+      let(:sample_filename) { source_fixture("json/sample.rb") }
+
+      let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 8, missed: 2) }
+
+      let(:result) do
+        res = SimpleCov::Result.new({
+          sample_filename => {"lines" => [
+            nil, 1, 1, 1, 1, nil, nil, 1, 1, nil, nil,
+            1, 1, 0, nil, 1, nil, nil, nil, nil, 1, 0, nil, nil, nil
+          ]}
+        })
+        res.created_at = fixed_time
+
+        mock_file_list = instance_double(SimpleCov::FileList,
+          coverage_statistics: {line: line_stats},
+          map: [project_fixture_filename("json/sample.rb")])
+        allow(res).to receive_messages(
+          groups: {"My Group" => mock_file_list}
+        )
+        res
+      end
+
+      it "displays groups correctly in the JSON" do
+        formatter.format(result)
+        expect(json_output).to eq(json_result("sample_groups"))
+      end
+    end
+
+    context "when an existing coverage.json was written after this process started" do
+      let(:coverage_path) { File.join(SimpleCov.coverage_path, "coverage.json") }
+      let(:future_timestamp) { (Time.now + 3600).iso8601 }
+
+      before do
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(coverage_path, JSON.generate(meta: {timestamp: future_timestamp}))
+      end
+
+      it "warns that a concurrent process may have written it" do
+        stderr = capture_stderr { formatter.format(result) }
+
+        expect(stderr).to include("simplecov:").and include(future_timestamp).and include("concurrent test run")
+      end
+
+      it "still writes the new file" do
+        capture_stderr { formatter.format(result) }
+
+        expect(json_output.fetch("meta").fetch("timestamp")).to eq(fixed_time.iso8601(3))
+      end
+    end
+
+    context "when an existing coverage.json is from the same run (matching command_name)" do
+      let(:future_timestamp) { (Time.now + 3600).iso8601 }
+
+      before do
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(
+          File.join(SimpleCov.coverage_path, "coverage.json"),
+          JSON.generate(meta: {timestamp: future_timestamp, command_name: result.command_name})
+        )
+      end
+
+      it "does not warn" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
+    context "when an existing coverage.json predates this process" do
+      before do
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        past_timestamp = (Time.now - 3600).iso8601
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"),
+          JSON.generate(meta: {timestamp: past_timestamp}))
+      end
+
+      it "does not warn" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
+    context "when the existing coverage.json is malformed" do
+      before do
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"), "not-json")
+      end
+
+      it "does not warn or raise" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
+    context "when the existing coverage.json has no meta timestamp" do
+      before do
+        FileUtils.mkdir_p(SimpleCov.coverage_path)
+        File.write(File.join(SimpleCov.coverage_path, "coverage.json"), JSON.generate(meta: {command_name: "Other"}))
+      end
+
+      it "does not warn" do
+        expect { formatter.format(result) }.not_to output.to_stderr
+      end
+    end
+
+    context "with :line coverage disabled" do
+      let(:result) do
+        res = SimpleCov::Result.new({
+          source_fixture("json/sample.rb") => {
+            "lines" => [nil, 1, 1, 0],
+            "branches" => {[:if, 0, 1, 0, 4, 0] => {
+              [:then, 1, 2, 2, 2, 6] => 1,
+              [:else, 2, 3, 2, 3, 6] => 0
+            }}
+          }
+        })
+        res.created_at = fixed_time
+        res
+      end
+
+      before do
+        allow(SimpleCov).to receive(:line_coverage?).and_return(false)
+        enable_branch_coverage
+        formatter.format(result)
+      end
+
+      it "omits the line totals" do
+        expect(json_output["total"]).not_to include("lines")
+      end
+
+      it "keeps the branch totals" do
+        expect(json_output["total"]).to include("branches")
+      end
+
+      it "omits the line keys from per-file output" do
+        expect(json_output["coverage"].values.first.keys)
+          .not_to include("lines", "lines_covered_percent", "covered_lines", "total_lines")
+      end
+    end
+  end
+
+  describe "meta.commit" do
+    it "records the git commit SHA of the project HEAD" do
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to eq(STUB_COMMIT)
+    end
+
+    it "is null when the project is not a git checkout" do
+      allow(Open3).to receive(:capture2e)
+        .and_return(["fatal: not a git repository", instance_double(Process::Status, success?: false)])
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to be_nil
+    end
+
+    it "is null when git is not available" do
+      allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT)
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("commit")).to be_nil
+    end
+  end
+
+  describe "meta.command_names" do
+    it "carries the result's run names as an array" do
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("command_names")).to eq([result.command_name])
+    end
+
+    it "carries every distinct run name of a merged result" do
+      result.command_names = %w[result1 result2]
+      formatter.format(result)
+      expect(json_output.fetch("meta").fetch("command_names")).to eq(%w[result1 result2])
+    end
+  end
+
+  def enable_branch_coverage
+    allow(SimpleCov).to receive(:branch_coverage?).and_return(true)
+  end
+
+  def enable_method_coverage
+    allow(SimpleCov).to receive(:method_coverage?).and_return(true)
+  end
+
+  def json_output
+    JSON.parse(File.read(File.join(SimpleCov.coverage_path, "coverage.json")))
+  end
+
+  def sample_file_entry
+    json_output.fetch("coverage").fetch(project_fixture_filename("json/sample.rb"))
+  end
+
+  def json_result(filename)
+    file = File.read(source_fixture("json/#{filename}.json"))
+    file = replace_stubs(file)
+    JSON.parse(file)
+  end
+
+  def project_fixture_filename(path)
+    SimpleCov::SourceFile.new(source_fixture(path), []).project_filename
+  end
+
+  def replace_stubs(file)
+    current_working_directory = File.expand_path("..", source_fixture_base_directory)
+    file
+      .gsub("/#{STUB_WORKING_DIRECTORY}/", "#{current_working_directory}/")
+      .gsub("\"/#{STUB_WORKING_DIRECTORY}\"", "\"#{current_working_directory}\"")
+      .gsub("\"#{STUB_COMMAND_NAME}\"", "\"#{SimpleCov.command_name}\"")
+      .gsub("\"#{STUB_PROJECT_NAME}\"", "\"#{SimpleCov.project_name}\"")
+      .gsub("\"STUB_SIMPLECOV_VERSION\"", "\"#{SimpleCov::VERSION}\"")
+      .gsub("\"STUB_COMMIT_SHA\"", "\"#{STUB_COMMIT}\"")
+  end
+end

@@ -22,45 +22,95 @@ RSpec.describe "refuse coverage drop enforcement", :sandbox do
     JSON.parse(read_file("coverage/.last_run.json"))
   end
 
-  it "refuses any coverage drop when refuse_coverage_drop is configured" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        refuse_coverage_drop
+  describe "refuse_coverage_drop configured" do
+    before do
+      configure_simplecov(:test_unit, <<~RUBY)
+        require 'simplecov'
+        SimpleCov.start do
+          add_filter 'test.rb'
+          refuse_coverage_drop
+        end
+      RUBY
+    end
+
+    context "when the suite first runs" do
+      let!(:result) { run_command("bundle exec rake test") }
+
+      it "passes" do
+        expect(result.exit_status).to eq(0)
       end
-    RUBY
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).to eq(0)
-    expect(last_run_json).to eq("result" => {"line" => 88.09})
+      it "records the coverage" do
+        expect(last_run_json).to eq("result" => {"line" => 88.09})
+      end
+    end
 
-    write_file("lib/faked_project/missed.rb", uncovered_source)
+    context "when coverage has since dropped" do
+      let!(:result) do
+        run_command("bundle exec rake test")
+        write_file("lib/faked_project/missed.rb", uncovered_source)
+        run_command("bundle exec rake test")
+      end
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage has dropped by 3.31% since the last time (maximum allowed: 0.00%).")
-    expect(last_run_json).to eq("result" => {"line" => 88.09})
+      it "fails the run" do
+        expect(result.exit_status).not_to eq(0)
+      end
+
+      it "says how far coverage dropped" do
+        expect(result.output)
+          .to include("Line coverage has dropped by 3.31% since the last time (maximum allowed: 0.00%).")
+      end
+
+      it "leaves the recorded coverage alone" do
+        expect(last_run_json).to eq("result" => {"line" => 88.09})
+      end
+    end
   end
 
-  it "updates the resultset when refuse_coverage_drop is not configured" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
+  describe "refuse_coverage_drop not configured" do
+    before do
+      configure_simplecov(:test_unit, <<~RUBY)
+        require 'simplecov'
+        SimpleCov.start do
+          add_filter 'test.rb'
+        end
+      RUBY
+    end
+
+    context "when the suite first runs" do
+      let!(:result) { run_command("bundle exec rake test") }
+
+      it "passes" do
+        expect(result.exit_status).to eq(0)
       end
-    RUBY
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).to eq(0)
-    expect(file_exist?("coverage/.last_run.json")).to be(true)
-    expect(last_run_json).to eq("result" => {"line" => 88.09})
+      it "writes the last_run file" do
+        expect(file_exist?("coverage/.last_run.json")).to be(true)
+      end
 
-    write_file("lib/faked_project/missed.rb", uncovered_source)
+      it "records the coverage" do
+        expect(last_run_json).to eq("result" => {"line" => 88.09})
+      end
+    end
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).to eq(0)
-    expect(file_exist?("coverage/.last_run.json")).to be(true)
-    expect(last_run_json).to eq("result" => {"line" => 84.78})
+    context "when coverage has since dropped" do
+      let!(:result) do
+        run_command("bundle exec rake test")
+        write_file("lib/faked_project/missed.rb", uncovered_source)
+        run_command("bundle exec rake test")
+      end
+
+      it "passes" do
+        expect(result.exit_status).to eq(0)
+      end
+
+      it "keeps the last_run file" do
+        expect(file_exist?("coverage/.last_run.json")).to be(true)
+      end
+
+      it "updates the recorded coverage" do
+        expect(last_run_json).to eq("result" => {"line" => 84.78})
+      end
+    end
   end
 end

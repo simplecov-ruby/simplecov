@@ -4,18 +4,29 @@ require "helper"
 require_relative "../tasks/man_page"
 
 RSpec.describe ManPage do
+  let(:page) { described_class.build }
+
   it "matches the committed man/simplecov.1 (regenerate with `rake man`)" do
-    committed = File.read(File.expand_path("../man/simplecov.1", __dir__))
-    expect(committed).to eq(described_class.build)
+    expect(File.read(File.expand_path("../man/simplecov.1", __dir__))).to eq(page)
   end
 
-  it "renders every command with roff-safe text" do
-    page = described_class.build
+  it "opens with the roff title macro" do
     expect(page).to start_with(".TH SIMPLECOV 1")
-    SimpleCov::CLI::COMMANDS.each_key do |command|
-      expect(page).to include("\n.B #{described_class.escape(command)}")
-    end
-    expect(page).to include(".B \\-\\-criterion C").and include("badge")
+  end
+
+  it "renders every command" do
+    expect(page).to include(*SimpleCov::CLI::COMMANDS.keys.map { |command| "\n.B #{described_class.escape(command)}" })
+  end
+
+  it "escapes the dashes in an option name" do
+    expect(page).to include(".B \\-\\-criterion C")
+  end
+
+  it "documents the badge command's own text" do
+    expect(page).to include("badge")
+  end
+
+  it "leaves the suite's own dogfood paths out" do
     expect(page).not_to include("tmp/dogfood")
   end
 

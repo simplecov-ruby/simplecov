@@ -4,6 +4,33 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "skipping code blocks with :nocov:", :sandbox do
+  let(:tight_nocov_source) do
+    <<~RUBY
+      class SourceCodeWithNocov
+        #:nocov:
+        def some_weird_code
+          never_reached
+        rescue => err
+          but no one cares about invalid ruby here
+        end
+        #:nocov:
+      end
+    RUBY
+  end
+  let(:padded_nocov_source) do
+    <<~RUBY
+      class SourceCodeWithNocov
+           #    :nocov:
+        def some_weird_code
+          never_reached
+        rescue => err
+          but no one cares about invalid ruby here
+        end
+          #   :nocov:
+      end
+    RUBY
+  end
+
   before do
     setup_project("faked_project")
     configure_simplecov(:test_unit, <<~RUBY)
@@ -26,7 +53,9 @@ RSpec.describe "skipping code blocks with :nocov:", :sandbox do
     }
   end
 
-  def expect_unchanged_coverage_with_nocov_file(result)
+  def expect_unchanged_coverage_with_nocov_file(source)
+    write_file("lib/faked_project/nocov.rb", source)
+    result = run_command_and_expect_success("bundle exec rake test")
     expect_coverage_report_generated(result)
     expect(result.output).to include("Coverage report generated for Unit Tests")
 
@@ -36,36 +65,10 @@ RSpec.describe "skipping code blocks with :nocov:", :sandbox do
   end
 
   it "skips a nocov'd method without hurting the file's coverage" do
-    write_file("lib/faked_project/nocov.rb", <<~RUBY)
-      class SourceCodeWithNocov
-        #:nocov:
-        def some_weird_code
-          never_reached
-        rescue => err
-          but no one cares about invalid ruby here
-        end
-        #:nocov:
-      end
-    RUBY
-
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_unchanged_coverage_with_nocov_file(result)
+    expect_unchanged_coverage_with_nocov_file(tight_nocov_source)
   end
 
   it "recognizes nocov tokens regardless of surrounding whitespace" do
-    write_file("lib/faked_project/nocov.rb", <<~RUBY)
-      class SourceCodeWithNocov
-           #    :nocov:
-        def some_weird_code
-          never_reached
-        rescue => err
-          but no one cares about invalid ruby here
-        end
-          #   :nocov:
-      end
-    RUBY
-
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_unchanged_coverage_with_nocov_file(result)
+    expect_unchanged_coverage_with_nocov_file(padded_nocov_source)
   end
 end

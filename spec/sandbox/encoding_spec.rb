@@ -6,43 +6,74 @@ require "support/sandbox_project"
 RSpec.describe "source file encodings", :sandbox do
   before { setup_project("encodings") }
 
-  def report_data
-    @report_data ||= begin
-      result = run_command_and_expect_success("bundle exec rspec spec")
-      expect_coverage_report_generated(result)
-      html_report_data
-    end
-  end
+  let!(:result) { run_command_and_expect_success("bundle exec rspec spec") }
+  let(:report_data) { html_report_data }
 
   def source_text(filename)
     report_data.fetch("coverage").fetch(filename).fetch("source").join("\n")
   end
 
-  it "covers all four encoding fixtures" do
+  it "generates a report" do
+    expect_coverage_report_generated(result)
+  end
+
+  it "totals the encoding fixtures" do
     expect(reported_total_percent(report_data)).to eq(55.55)
+  end
+
+  it "covers all four encoding fixtures" do
     expect(report_data.fetch("coverage").keys.length).to eq(4)
   end
 
-  it "decodes UTF-8 and declared EUC-JP sources legibly" do
-    utf8 = source_text("lib/utf8.rb")
-    expect(utf8).not_to include("�")
-    expect(utf8).to include("🇯🇵")
-    expect(utf8).to include("おはよう")
+  describe "a UTF-8 source" do
+    let(:source) { source_text("lib/utf8.rb") }
 
-    euc_jp = source_text("lib/euc_jp.rb")
-    expect(euc_jp).not_to include("�")
-    expect(euc_jp).to include("おはよう")
+    it "decodes legibly" do
+      expect(source).not_to include("�")
+    end
+
+    it "keeps its emoji" do
+      expect(source).to include("🇯🇵")
+    end
+
+    it "keeps its Japanese text" do
+      expect(source).to include("おはよう")
+    end
   end
 
-  it "decodes an undeclared EUC-JP source that was loaded by the tests" do
-    euc_jp_not_declared = source_text("lib/euc_jp_not_declared.rb")
-    expect(euc_jp_not_declared).not_to include("�")
-    expect(euc_jp_not_declared).to include("Fun3")
+  describe "a declared EUC-JP source" do
+    let(:source) { source_text("lib/euc_jp.rb") }
+
+    it "decodes legibly" do
+      expect(source).not_to include("�")
+    end
+
+    it "keeps its Japanese text" do
+      expect(source).to include("おはよう")
+    end
   end
 
-  it "falls back to replacement characters for a tracked-only undeclared EUC-JP source" do
-    tracked = source_text("lib/euc_jp_not_declared_tracked.rb")
-    expect(tracked).to include("�")
-    expect(tracked).to include("NoDeclare")
+  describe "an undeclared EUC-JP source the tests loaded" do
+    let(:source) { source_text("lib/euc_jp_not_declared.rb") }
+
+    it "decodes legibly" do
+      expect(source).not_to include("�")
+    end
+
+    it "keeps its ASCII text" do
+      expect(source).to include("Fun3")
+    end
+  end
+
+  describe "an undeclared EUC-JP source that was only tracked" do
+    let(:source) { source_text("lib/euc_jp_not_declared_tracked.rb") }
+
+    it "falls back to replacement characters" do
+      expect(source).to include("�")
+    end
+
+    it "keeps its ASCII text" do
+      expect(source).to include("NoDeclare")
+    end
   end
 end

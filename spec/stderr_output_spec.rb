@@ -27,14 +27,17 @@ RSpec.describe "stderr output contract" do
       expect_no_warning
     end
 
-    it "still reports violations when Ruby warnings are disabled (-W0)" do
-      verbose = $VERBOSE
-      $VERBOSE = nil
-      begin
-        expect { check.report }
-          .to output(/below the expected minimum coverage/).to_stderr
+    context "when Ruby warnings are disabled (-W0)" do
+      around do |example|
+        verbose = $VERBOSE
+        $VERBOSE = nil
+        example.run
       ensure
         $VERBOSE = verbose
+      end
+
+      it "still reports violations" do
+        expect { check.report }.to output(/below the expected minimum coverage/).to_stderr
       end
     end
   end

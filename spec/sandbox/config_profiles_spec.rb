@@ -4,21 +4,8 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "configuration profiles", :sandbox do
-  before do
-    setup_project("faked_project")
-    configure_simplecov(:test_unit, "require 'simplecov'")
-  end
-
-  def expect_profile_applied(command_name)
-    result = run_command_and_expect_success("bundle exec rake test")
-    expect_coverage_report_generated(result)
-    data = html_report_data
-    expect(data.fetch("coverage").keys.length).to eq(4)
-    expect(data.dig("meta", "command_name")).to eq(command_name)
-  end
-
-  it "defines and loads a custom profile inside the start block" do
-    write_file(".simplecov", <<~RUBY)
+  let(:custom_profile_in_start_block) do
+    <<~RUBY
       SimpleCov.profiles.define 'custom_command' do
         command_name "Profile Command"
       end
@@ -28,11 +15,9 @@ RSpec.describe "configuration profiles", :sandbox do
         load_profile 'custom_command'
       end
     RUBY
-    expect_profile_applied("Profile Command")
   end
-
-  it "nests profiles and passes the profile name to start" do
-    write_file(".simplecov", <<~RUBY)
+  let(:nested_profile_named_at_start) do
+    <<~RUBY
       SimpleCov.profiles.define 'my_profile' do
         load_profile 'test_frameworks'
         command_name "My Profile"
@@ -40,6 +25,27 @@ RSpec.describe "configuration profiles", :sandbox do
 
       SimpleCov.start 'my_profile'
     RUBY
-    expect_profile_applied("My Profile")
+  end
+
+  before do
+    setup_project("faked_project")
+    configure_simplecov(:test_unit, "require 'simplecov'")
+  end
+
+  def expect_profile_applied(dotfile, command_name)
+    write_file(".simplecov", dotfile)
+    result = run_command_and_expect_success("bundle exec rake test")
+    expect_coverage_report_generated(result)
+    data = html_report_data
+    expect(data.fetch("coverage").keys.length).to eq(4)
+    expect(data.dig("meta", "command_name")).to eq(command_name)
+  end
+
+  it "defines and loads a custom profile inside the start block" do
+    expect_profile_applied(custom_profile_in_start_block, "Profile Command")
+  end
+
+  it "nests profiles and passes the profile name to start" do
+    expect_profile_applied(nested_profile_named_at_start, "My Profile")
   end
 end

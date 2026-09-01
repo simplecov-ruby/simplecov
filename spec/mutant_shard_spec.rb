@@ -42,6 +42,13 @@ RSpec.describe MutantShard do
       stub_mutant("SimpleCov::Foo#bar\nSimpleCov::Baz.qux\n")
 
       expect(described_class.subjects_since("origin/main")).to eq(["SimpleCov::Foo#bar", "SimpleCov::Baz.qux"])
+    end
+
+    it "asks mutant for the subjects the revision touched" do
+      stub_mutant("SimpleCov::Foo#bar\n")
+
+      described_class.subjects_since("origin/main")
+
       expect(Open3).to have_received(:capture2).with(
         "bundle", "exec", "mutant", "environment", "subject", "list", "--since", "origin/main"
       )

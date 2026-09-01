@@ -6,81 +6,105 @@ require "support/sandbox_project"
 RSpec.describe "minimum coverage enforcement", :sandbox do
   before { setup_project("faked_project") }
 
-  it "fails against too high coverage" do
+  def run_with_thresholds(thresholds)
     configure_simplecov(:test_unit, <<~RUBY)
       require 'simplecov'
       SimpleCov.start do
         add_filter 'test.rb'
-        minimum_coverage 90
+        #{thresholds}
       end
     RUBY
-
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
-    expect(result.output).to include("SimpleCov failed with exit 2")
+    run_command("bundle exec rake test")
   end
 
-  it "fails if it's just 0.01% too low" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage 88.10
-      end
-    RUBY
+  describe "a minimum well above the actual coverage" do
+    let!(:result) { run_with_thresholds("minimum_coverage 90") }
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (88.10%).")
-    expect(result.output).to include("SimpleCov failed with exit 2")
+    it "fails the run" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "says how far below it fell" do
+      expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
+    end
+
+    it "exits 2" do
+      expect(result.output).to include("SimpleCov failed with exit 2")
+    end
   end
 
-  it "passes when it is exactly the coverage" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
-        minimum_coverage 88.09
-      end
-    RUBY
+  describe "a minimum 0.01% above the actual coverage" do
+    let!(:result) { run_with_thresholds("minimum_coverage 88.10") }
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).to eq(0)
+    it "fails the run" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "says how far below it fell" do
+      expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (88.10%).")
+    end
+
+    it "exits 2" do
+      expect(result.output).to include("SimpleCov failed with exit 2")
+    end
   end
 
-  it "works together with branch coverage and the new criterion announcing both failures" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
+  describe "a minimum exactly at the actual coverage" do
+    let!(:result) { run_with_thresholds("minimum_coverage 88.09") }
+
+    it "passes" do
+      expect(result.exit_status).to eq(0)
+    end
+  end
+
+  describe "line and branch minimums together" do
+    let!(:result) do
+      run_with_thresholds(<<~RUBY.strip)
         enable_coverage :branch
         minimum_coverage line: 90, branch: 80
-      end
-    RUBY
+      RUBY
+    end
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
-    expect(result.output).to include("Branch coverage (50.00%) is below the expected minimum coverage (80.00%).")
-    expect(result.output).to include("SimpleCov failed with exit 2")
+    it "fails the run" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "announces the line shortfall" do
+      expect(result.output).to include("Line coverage (88.09%) is below the expected minimum coverage (90.00%).")
+    end
+
+    it "announces the branch shortfall" do
+      expect(result.output).to include("Branch coverage (50.00%) is below the expected minimum coverage (80.00%).")
+    end
+
+    it "exits 2" do
+      expect(result.output).to include("SimpleCov failed with exit 2")
+    end
   end
 
-  it "can set branch as primary coverage and it will fail if branch is below minimum coverage" do
-    configure_simplecov(:test_unit, <<~RUBY)
-      require 'simplecov'
-      SimpleCov.start do
-        add_filter 'test.rb'
+  describe "one minimum with branch as the primary criterion" do
+    let!(:result) do
+      run_with_thresholds(<<~RUBY.strip)
         enable_coverage :branch
         primary_coverage :branch
         minimum_coverage 80
-      end
-    RUBY
+      RUBY
+    end
 
-    result = run_command("bundle exec rake test")
-    expect(result.exit_status).not_to eq(0)
-    expect(result.output).to include("Branch coverage (50.00%) is below the expected minimum coverage (80.00%).")
-    expect(result.output).not_to include("Line coverage (")
-    expect(result.output).to include("SimpleCov failed with exit 2")
+    it "fails the run" do
+      expect(result.exit_status).not_to eq(0)
+    end
+
+    it "announces the branch shortfall" do
+      expect(result.output).to include("Branch coverage (50.00%) is below the expected minimum coverage (80.00%).")
+    end
+
+    it "says nothing about lines" do
+      expect(result.output).not_to include("Line coverage (")
+    end
+
+    it "exits 2" do
+      expect(result.output).to include("SimpleCov failed with exit 2")
+    end
   end
 end

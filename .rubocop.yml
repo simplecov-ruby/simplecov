@@ -143,22 +143,6 @@ RSpec/DescribeClass:
     - "spec/return_codes_spec.rb"
     - "spec/stderr_output_spec.rb"
 
-RSpec/ExampleLength:
-  Max: 20 # TODO: Lower to 5
-RSpec/MultipleExpectations:
-  Max: 6 # TODO: Lower to 1
-RSpec/SpecFilePathFormat:
-  # The project layout puts simplecov specs at spec/foo_spec.rb (mirroring
-  # lib/simplecov/foo.rb) rather than spec/simple_cov/foo_spec.rb. Map the
-  # SimpleCov module to an empty path segment so the cop accepts that.
-  CustomTransform:
-    SimpleCov: ''
-  # Mapping SimpleCov to an empty segment leaves the top-level
-  # `describe SimpleCov` spec (the SimpleCov module itself, mirroring
-  # lib/simplecov.rb) with an empty expected path, so there's nothing for
-  # the cop to match a filename against. Exempt it.
-  Exclude:
-    - spec/simplecov_spec.rb
 RSpec/NestedGroups:
   Max: 5 # TODO: Lower to 3
 RSpec/MultipleMemoizedHelpers:
