@@ -1029,6 +1029,16 @@ RSpec.describe SimpleCov::CLI do
         ZSH
       end
 
+      it "escapes quotes in zsh command and option descriptions" do
+        script = scripts.zsh(
+          [["show", "Print the file's source"]],
+          {"show" => [{short: nil, long: "--json", arg: nil, desc: "Emit the file's JSON"}]}
+        )
+
+        expect(script).to include("'show:Print the file'\\''s source'")
+        expect(script).to include("'--json[Emit the file'\\''s JSON]'")
+      end
+
       it "escapes every quote and backslash for fish, not just the first" do
         expect(scripts.fish_quote(%q(a \ b \ c))).to eq("'a \\\\ b \\\\ c'")
         expect(scripts.fish_quote("it's o'clock")).to eq(%q('it\'s o\'clock'))

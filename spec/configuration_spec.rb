@@ -964,7 +964,13 @@ RSpec.describe SimpleCov::Configuration do
 
       it "rejects group names that are neither String nor Symbol" do
         expect { config.group 42, // }
-          .to raise_error(SimpleCov::ConfigurationError, /Group names must be Strings/)
+          .to raise_error(SimpleCov::ConfigurationError, "Group names must be Strings, got 42 (Integer)")
+        expect(config.groups).to be_empty
+      end
+
+      it "names the rejected value and its class, inspecting the value" do
+        expect { config.group nil, // }
+          .to raise_error(SimpleCov::ConfigurationError, "Group names must be Strings, got nil (NilClass)")
         expect(config.groups).to be_empty
       end
 

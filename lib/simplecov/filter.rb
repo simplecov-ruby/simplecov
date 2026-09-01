@@ -84,8 +84,10 @@ module SimpleCov
         # Bare filename pattern ("test.rb" matches "faked_test.rb"): allow a
         # substring match within a single path segment. Multi-segment arguments
         # must not get this relaxation, or "app/models/user.rb" would also
-        # match "webapp/models/user.rb".
-        %r{#{boundary}[^/]*#{escaped}(?=[/.]|\z)}
+        # match "webapp/models/user.rb". No boundary here: `[^/]*` already
+        # reaches back to the segment start, so prefixing one matches the same
+        # paths.
+        %r{[^/]*#{escaped}(?=[/.]|\z)}
       else
         # Require a segment-boundary match so "lib" matches "lib/" but not
         # "library/".

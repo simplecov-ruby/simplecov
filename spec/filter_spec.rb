@@ -39,6 +39,23 @@ RSpec.describe SimpleCov::Filter, mutant_expression: ["SimpleCov::Filter*", "Sim
     expect(SimpleCov::StringFilter.new("lib")).not_to be_matches library_file
   end
 
+  it "escapes regexp metacharacters in the filter argument" do
+    file = SimpleCov::SourceFile.new(File.join(SimpleCov.root, "app/axb.rb"), [nil, 1, 1])
+    expect(SimpleCov::StringFilter.new("a.b")).not_to be_matches file
+  end
+
+  it "anchors a directory-only filter to a segment boundary" do
+    file = SimpleCov::SourceFile.new(File.join(SimpleCov.root, "mylib/foo.rb"), [nil, 1, 1])
+    expect(SimpleCov::StringFilter.new("lib/")).not_to be_matches file
+    expect(SimpleCov::StringFilter.new("mylib/")).to be_matches file
+  end
+
+  it "relaxes to a within-segment match for a bare filename and not for a bare segment" do
+    file = SimpleCov::SourceFile.new(File.join(SimpleCov.root, "mylib/foo.rb"), [nil, 1, 1])
+    expect(SimpleCov::StringFilter.new("lib")).not_to be_matches file
+    expect(SimpleCov::StringFilter.new("oo.rb")).to be_matches file
+  end
+
   it "doesn't match a new SimpleCov::StringFilter '.pl'" do
     expect(SimpleCov::StringFilter.new(".pl")).not_to be_matches source_file
   end
