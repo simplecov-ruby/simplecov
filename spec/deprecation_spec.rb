@@ -10,6 +10,42 @@ describe SimpleCov::Deprecation do
     described_class.warn(message)
   end
 
+  describe ".mode" do
+    it "defaults to warning the first time it is asked" do
+      described_class.remove_instance_variable(:@mode) if
+        described_class.instance_variable_defined?(:@mode)
+
+      expect(described_class.mode).to eq(:warn)
+    end
+
+    it "answers what was last assigned" do
+      described_class.mode = :raise
+      expect(described_class.mode).to eq(:raise)
+
+      described_class.mode = :warn
+      expect(described_class.mode).to eq(:warn)
+    end
+
+    it "refuses a mode that is neither" do
+      expect { described_class.mode = :silence }.to raise_error(
+        SimpleCov::ConfigurationError, "deprecations takes :warn or :raise, got :silence"
+      )
+    end
+
+    it "refuses a mode that is not a symbol at all" do
+      expect { described_class.mode = nil }.to raise_error(
+        SimpleCov::ConfigurationError, "deprecations takes :warn or :raise, got nil"
+      )
+    end
+
+    it "leaves the mode alone when it refused one" do
+      described_class.mode = :raise
+      expect { described_class.mode = :silence }.to raise_error(SimpleCov::ConfigurationError)
+
+      expect(described_class.mode).to eq(:raise)
+    end
+  end
+
   describe ".caller_location" do
     it "reads the first frame of the window it asked for" do
       allow(Kernel).to receive(:caller).with(3..3).and_return(["lib/user.rb:1:in 'block'", "lib/deeper.rb:9"])
@@ -50,7 +86,7 @@ describe SimpleCov::Deprecation do
       expect(stderr.scan("[DEPRECATION]").size).to eq(2)
     end
 
-    context "with `SimpleCov.deprecations :raise`" do
+    context "with the mode set to raise" do
       before { described_class.mode = :raise }
 
       it "raises instead of warning" do
@@ -120,6 +156,20 @@ describe SimpleCov::Deprecation do
 
       described_class.reset!
       expect(described_class.emitted).to eq(Set.new)
+    end
+
+    it "puts the mode back to warning" do
+      described_class.mode = :raise
+      described_class.reset!
+
+      expect(described_class.mode).to eq(:warn)
+    end
+
+    it "leaves the mode set rather than unset" do
+      described_class.mode = :raise
+      described_class.reset!
+
+      expect(described_class.instance_variable_get(:@mode)).to eq(:warn)
     end
 
     it "leaves an empty set behind rather than nothing" do
