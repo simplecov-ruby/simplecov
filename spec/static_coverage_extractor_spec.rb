@@ -109,8 +109,8 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(visitor.branches).to be_empty
         end
 
-        it "runs no value-position pass where the conventions do not need one",
-           if: !SimpleCov::StaticCoverageExtractor::LocationConventions::LEGACY_COVERAGE_LOCATIONS do
+        it "runs no value-position pass where the conventions do not need one" do
+          stub_const("#{described_class}::LocationConventions::LEGACY_COVERAGE_LOCATIONS", false)
           allow(described_class::ValuePositions).to receive(:call).and_call_original
 
           described_class.call("def fx(a)\n  if a\n  end\nend\n")
@@ -169,6 +169,16 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
           expect(static.keys.first.first).to eq(:unless)
           arms = static.values.first
           expect(arms.keys.map(&:first)).to contain_exactly(:then, :else)
+        end
+
+        {
+          "an unless" => ["unless a\n  if b\n    :x\n  end\nend\n", %i[unless if]],
+          "a while loop" => ["while a\n  if b\n    :x\n  end\nend\n", %i[while if]],
+          "an until loop" => ["until a\n  if b\n    :x\n  end\nend\n", %i[until if]]
+        }.each do |description, (source, expected)|
+          it "descends into #{description}, collecting the branches nested in its body" do
+            expect(static_branches(source).keys.map(&:first)).to eq(expected)
+          end
         end
 
         it "handles empty arm bodies (e.g., `if cond then end`)" do
@@ -349,6 +359,15 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
           it "keeps the else contents of a folded truthy unless" do
             branches = static_branches("unless true\n  a ? :x : :y\nelse\n  if b\n    :z\n  end\nend\n")
+            if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
+              expect(branches.keys.map(&:first)).to eq(%i[if if])
+            else
+              expect(branches.keys.map(&:first)).to eq([:if])
+            end
+          end
+
+          it "keeps the body contents of a folded falsy unless" do
+            branches = static_branches("unless false\n  if b\n    :z\n  end\nelse\n  a ? :x : :y\nend\n")
             if SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
               expect(branches.keys.map(&:first)).to eq(%i[if if])
             else
@@ -873,7 +892,21 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
          {["if", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 6, 2, 6]]}],
       "an empty unless then, keeping the node's range" =>
         ["def fx(a)\n  unless a\n  end\nend\n",
-         {["unless", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 2, 3, 5]]}]
+         {["unless", 2, 2, 3, 5] => [["else", 2, 2, 3, 5], ["then", 2, 2, 3, 5]]}],
+      "an empty unless else, spanning the construct rather than the else clause" =>
+        ["def fx(a)\n  unless a\n    :a\n  else\n  end\nend\n",
+         {["unless", 2, 2, 5, 5] => [["else", 2, 2, 5, 5], ["then", 3, 4, 3, 6]]}],
+      "an elsif chain, whose nested condition ends at the shared end" =>
+        ["def fx(a)\n  if a == 1\n    :a\n  elsif a == 2\n    :b\n  end\nend\n",
+         {["if", 2, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 3, 4, 3, 6]],
+          ["if", 4, 2, 6, 5] => [["else", 4, 2, 6, 5], ["then", 5, 4, 5, 6]]}],
+      "an empty when arm with another after it, still keeping its own range" =>
+        ["def fx(a)\n  case a\n  when 1\n  when 2 then :b\n  end\nend\n",
+         {["case", 2, 2, 5, 5] =>
+           [["else", 2, 2, 5, 5], ["when", 3, 2, 3, 8], ["when", 4, 14, 4, 16]]}],
+      "a do-while body, spanning the whole begin block rather than its statements" =>
+        ["def fx(a)\n  begin\n    a\n  end while a\nend\n",
+         {["while", 2, 2, 4, 13] => [["body", 2, 2, 4, 5]]}]
     }.each do |description, (source, expected)|
       it "places #{description}" do
         expect(modern_branches(source)).to eq(expected)

@@ -5,7 +5,7 @@ require "support/branch_fuzzer"
 require "support/coverage_differential"
 require "simplecov/static_coverage_extractor"
 
-RSpec.describe SimpleCov::StaticCoverageExtractor, if: ENV.fetch("SIMPLECOV_FUZZ", nil) do
+RSpec.describe SimpleCov::StaticCoverageExtractor, if: ENV.fetch("SIMPLECOV_FUZZ", nil), mutant: false do
   it "synthesizes tuples identical to Coverage across fuzzed programs" do
     skip "branch coverage unsupported on this Ruby" unless SimpleCov.branch_coverage_supported?
 
