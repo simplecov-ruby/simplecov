@@ -135,7 +135,6 @@ RSpec/DescribeClass:
     - "spec/deleted_source_spec.rb"
     - "spec/formatter/coverage_schema_spec.rb"
     - "spec/gemspec_spec.rb"
-    - "spec/mutation_sharding_spec.rb"
     - "spec/production_integration_spec.rb"
     - "spec/return_codes_spec.rb"
     - "spec/stderr_output_spec.rb"
