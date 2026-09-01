@@ -162,8 +162,11 @@ rescue LoadError
   warn "Steep is disabled"
 end
 
+desc "Type-check both sides, Ruby against sig/ and the frontend TypeScript"
+task typecheck: %i[rbs steep frontend:typecheck]
+
 task test: %i[spec frontend:test]
-task default: %i[rubocop rbs steep spec frontend:typecheck frontend:test]
+task default: %i[rubocop typecheck test]
 
 def in_frontend(what, &)
   return warn("#{what} is disabled (bun is not installed)") unless
