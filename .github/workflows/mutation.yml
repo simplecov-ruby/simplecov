@@ -11,7 +11,9 @@ env:
   # seconds a subject, depending on how many examples the subject drags in, so
   # 50 is the size that keeps even a shard of the slow ones inside the timeout
   # below while leaving an ordinary pull request on a single runner.
-  SUBJECTS_PER_SHARD: 50
+  # Lowered on this probe branch only, to force a fan-out from a handful of
+  # subjects. main keeps 50.
+  SUBJECTS_PER_SHARD: 2
   # A ceiling on the fan-out, so a formatting pass over the whole tree grows
   # the shards rather than the runners. Mutant selects a subject whose line
   # range the diff touches, and a comment removed above a method moves every

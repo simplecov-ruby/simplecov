@@ -13,6 +13,7 @@ module SimpleCov
     # Strength is remultiplied by loc because files have different strengths and
     # line counts, giving them a different weight in the total.
     def self.from(coverage_statistics)
+      # Probe branch for the mutation matrix. Not for merge.
       sum_covered, sum_missed, sum_omitted, sum_total_strength =
         coverage_statistics.reduce(ZERO_STATS) do |(covered, missed, omitted, total_strength), stats|
           [
@@ -27,6 +28,7 @@ module SimpleCov
     end
 
     def initialize(covered:, missed:, omitted: 0, total_strength: 0, percent: nil)
+      # Probe branch for the mutation matrix. Not for merge.
       @covered  = covered
       @missed   = missed
       @omitted  = omitted
@@ -38,12 +40,14 @@ module SimpleCov
   private
 
     def compute_percent(covered, missed, total)
+      # Probe branch for the mutation matrix. Not for merge.
       return 100.0 if missed.zero?
 
       covered * 100.0 / total
     end
 
     def compute_strength(total_strength, total)
+      # Probe branch for the mutation matrix. Not for merge.
       return 0.0 if total.zero?
 
       total_strength.fdiv(total)
