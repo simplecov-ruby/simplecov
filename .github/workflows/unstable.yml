@@ -41,3 +41,24 @@ jobs:
       # same task.
       - name: Run tests
         run: bundle exec rake test
+
+  # The extractor synthesizes the branch tuples Ruby's Coverage would have
+  # emitted for files no process loaded, so a convention change in a
+  # prerelease Ruby shows up here as a differential mismatch rather than as
+  # phantom branches in someone's report. Prism-only, so CRuby alone.
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BUNDLE_WITHOUT: "benchmark"
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby-head
+          bundler-cache: true
+
+      - name: Fuzz the static coverage extractor against Coverage
+        run: bundle exec rake "fuzz[500]"
