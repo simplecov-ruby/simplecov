@@ -1,9 +1,12 @@
 name: typecheck
 
-# Push is scoped to main so a pull request runs this once rather than twice.
+# Push is scoped so a pull request runs this once rather than twice. Tags are
+# here so a release runs the checks against the tree it is about to publish.
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
   pull_request:
 
 jobs:
