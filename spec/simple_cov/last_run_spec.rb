@@ -26,6 +26,10 @@ RSpec.describe SimpleCov::LastRun do
   end
 
   context "when reading" do
+    # The examples that write the file themselves reach past LastRun.write, which
+    # is what would otherwise have created the directory to write it into.
+    before { FileUtils.mkdir_p(File.dirname(last_run.last_run_path)) }
+
     after { FileUtils.rm_f(last_run.last_run_path) }
 
     context "when the last_run file does not exist" do
