@@ -35,10 +35,6 @@ inherit_mode:
   merge:
     - Exclude
 
-Lint/ConstantDefinitionInBlock:
-  Exclude:
-    - "spec/**/*_spec.rb"
-
 # spec/support/ holds helper modules, not a spec suite, so the RSpec
 # department shouldn't touch it. (Fixtures are excluded wholesale under
 # AllCops.)
