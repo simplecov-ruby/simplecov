@@ -66,13 +66,16 @@ def merge_runtime_log
   File.write(RUNTIME_LOG, partials.sort.flat_map { |partial| File.readlines(partial) }.join)
 end
 
-begin
-  require "rubocop/rake_task"
-  RuboCop::RakeTask.new
+# RuboCop runs in its own process. Standard's rake task runs in this one and
+# registers the Capybara, FactoryBot and RSpecRails cops its plugin loads, and
+# an in-process RuboCop run that follows it would execute those cops without
+# the configuration their plugins carry, which crashes every one of them.
+desc "Lint with RuboCop"
+task :rubocop do
+  require "rubocop"
+  sh "rubocop"
 rescue LoadError
-  task :rubocop do
-    warn "Rubocop is disabled"
-  end
+  warn "RuboCop is disabled"
 end
 
 begin
