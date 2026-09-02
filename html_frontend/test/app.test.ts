@@ -18,6 +18,7 @@ async function until(check: () => boolean): Promise<void> {
 describe('application boot', () => {
   beforeAll(async () => {
     installPageSkeleton();
+    window.location.hash = '';
 
     const data = coverageData();
     data.groups = {Libraries: {files: ['lib/covered.rb'], lines: {covered: 3, missed: 0, total: 3, percent: 100, strength: 1}}};
