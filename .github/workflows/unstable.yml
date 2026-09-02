@@ -34,6 +34,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # The development bundle excludes the CRuby-only mutation and type
+      # checking stack on JRuby. A frozen lockfile still records those direct
+      # dependencies and Bundler rejects the engine-specific Gemfile as a
+      # deletion, so resolve JRuby's actual dependency set afresh.
+      - name: Remove Gemfile.lock for JRuby head
+        if: matrix.ruby-version == 'jruby-head'
+        run: rm Gemfile.lock
+        shell: bash
+
       - uses: ruby/setup-ruby@v1.321.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
