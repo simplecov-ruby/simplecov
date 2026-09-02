@@ -4,25 +4,7 @@ require "helper"
 require "tempfile"
 require "timeout"
 
-RSpec.describe SimpleCov::ResultMerger do
-  around do |example|
-    previous_dir = SimpleCov.coverage_dir
-    Dir.mktmpdir("simplecov-resultset") do |dir|
-      SimpleCov.coverage_dir(dir)
-      example.run
-    ensure
-      SimpleCov.coverage_dir(previous_dir)
-    end
-  end
-
-  before do
-    FileUtils.mkdir_p(File.dirname(described_class.resultset_path))
-  end
-
-  after do
-    FileUtils.rm_f(described_class.resultset_path)
-  end
-
+RSpec.shared_context "with two resultsets" do
   let(:first_resultset) do
     {
       source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]},
@@ -60,6 +42,26 @@ RSpec.describe SimpleCov::ResultMerger do
 
   let(:first_result) { SimpleCov::Result.new(first_resultset, command_name: "result1") }
   let(:second_result) { SimpleCov::Result.new(second_resultset, command_name: "result2") }
+end
+
+RSpec.describe SimpleCov::ResultMerger do
+  around do |example|
+    previous_dir = SimpleCov.coverage_dir
+    Dir.mktmpdir("simplecov-resultset") do |dir|
+      SimpleCov.coverage_dir(dir)
+      example.run
+    ensure
+      SimpleCov.coverage_dir(previous_dir)
+    end
+  end
+
+  before do
+    FileUtils.mkdir_p(File.dirname(described_class.resultset_path))
+  end
+
+  after do
+    FileUtils.rm_f(described_class.resultset_path)
+  end
 
   describe "the shape of an injected file" do
     let(:loaded) { source_fixture("resultset1.rb") }
@@ -224,12 +226,11 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     context "with an already-simulated file from an older resultset" do
-      let(:already_simulated) { {never_loaded => {"lines" => [0, 0, nil, 0]}} }
-      let(:coverage) { super().merge(already_simulated) }
+      let(:coverage) { super().merge(never_loaded => {"lines" => [0, 0, nil, 0]}) }
       let(:tracked) { Set[never_loaded] }
 
       it "leaves it untouched" do
-        expect(result.original_result[never_loaded]).to eq(already_simulated[never_loaded])
+        expect(result.original_result[never_loaded]).to eq("lines" => [0, 0, nil, 0])
       end
     end
   end
@@ -293,8 +294,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
     context "with a path no process loaded" do
       let(:never_loaded) { source_fixture("resultset1.rb") }
-      let(:coverage) { {source_fixture("sample.rb") => {"lines" => [nil, 1]}} }
-      let(:injection) { unloaded_files.inject(coverage, [never_loaded].each) }
+      let(:injection) { unloaded_files.inject({source_fixture("sample.rb") => {"lines" => [nil, 1]}}, [never_loaded].each) }
       let(:injected) { injection.first }
       let(:added) { injection.last }
 
@@ -351,8 +351,9 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe "dropping the results that are past the merge timeout" do
-    let(:fresh) { {"timestamp" => Time.now.to_f, "coverage" => {}} }
-    let(:expired) { {"timestamp" => Time.now.to_f - (SimpleCov.merge_timeout * 2), "coverage" => {}} }
+    def fresh = {"timestamp" => Time.now.to_f, "coverage" => {}}
+
+    def expired = {"timestamp" => Time.now.to_f - (SimpleCov.merge_timeout * 2), "coverage" => {}}
 
     let(:dropping) do
       kept = nil
@@ -378,7 +379,7 @@ RSpec.describe SimpleCov::ResultMerger do
       let(:results) { {"z-stale" => expired, "current" => fresh, "a-stale" => expired} }
 
       it "keeps the fresh results" do
-        expect(kept).to eq("current" => fresh)
+        expect(kept).to eq(results.slice("current"))
       end
 
       it "names the expired ones in sorted order" do
@@ -815,6 +816,8 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe "basic workings with 2 resultsets" do
+    include_context "with two resultsets"
+
     before do
       FileUtils.rm_f(described_class.resultset_path)
       described_class.store_result(first_result)
@@ -856,9 +859,13 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".merge_and_store" do
-    let(:resultset_prefix) { File.join(SimpleCov.coverage_path, "test_resultset") }
-    let(:resultset1_path) { "#{resultset_prefix}1.json" }
-    let(:resultset2_path) { "#{resultset_prefix}2.json" }
+    include_context "with two resultsets"
+
+    def resultset_prefix = File.join(SimpleCov.coverage_path, "test_resultset")
+
+    def resultset1_path = "#{resultset_prefix}1.json"
+
+    def resultset2_path = "#{resultset_prefix}2.json"
 
     describe "merging behavior" do
       before do
@@ -978,8 +985,10 @@ RSpec.describe SimpleCov::ResultMerger do
 
     context "with method coverage", if: SimpleCov.method_coverage_supported? do
       let(:method_lines) { [1, 1, 1, 1, nil, nil, 1, nil, 1, 1, nil, nil, 1, 0, nil, nil, nil, 1] }
-      let(:method_resultset1_path) { "#{resultset_prefix}_method1.json" }
-      let(:method_resultset2_path) { "#{resultset_prefix}_method2.json" }
+
+      def method_resultset1_path = "#{resultset_prefix}_method1.json"
+
+      def method_resultset2_path = "#{resultset_prefix}_method2.json"
 
       before do
         SimpleCov.enable_coverage :method
@@ -1041,6 +1050,8 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".absorb_results" do
+    include_context "with two resultsets"
+
     let(:resultset_prefix) { File.join(SimpleCov.coverage_path, "fold_test_resultset") }
     let(:paths) { [1, 2].map { |index| "#{resultset_prefix}#{index}.json" } }
     let(:absorbed) { described_class.absorb_results(paths, ignore_timeout: true) }
@@ -1127,6 +1138,8 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".valid_results" do
+    include_context "with two resultsets"
+
     let(:single_path) { File.join(SimpleCov.coverage_path, "valid_results_resultset.json") }
 
     it "yields the entries that survived to the caller's block" do
@@ -1172,6 +1185,8 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".merge_results" do
+    include_context "with two resultsets"
+
     let(:single_path) { File.join(SimpleCov.coverage_path, "merge_results_resultset.json") }
     let(:mapped_result) do
       map = SimpleCov::ContextMap.new
@@ -1229,6 +1244,8 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".store_result" do
+    include_context "with two resultsets"
+
     it "refreshes the resultset" do
       set = described_class.read_resultset
       described_class.store_result({})
@@ -1463,7 +1480,7 @@ RSpec.describe SimpleCov::ResultMerger do
   end
 
   describe ".synchronize_resultset" do
-    let(:resultset_store) { SimpleCov::ResultMerger::ResultsetStore }
+    include_context "with two resultsets"
 
     def expected_protocol
       {
@@ -1531,11 +1548,11 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "takes the file lock once across nested and sibling calls" do
-      allow(resultset_store).to receive(:with_flock).and_call_original
+      allow(described_class::ResultsetStore).to receive(:with_flock).and_call_original
 
       nested_and_sibling_calls
 
-      expect(resultset_store).to have_received(:with_flock).once
+      expect(described_class::ResultsetStore).to have_received(:with_flock).once
     end
 
     it "lets the error through when the critical section raises" do

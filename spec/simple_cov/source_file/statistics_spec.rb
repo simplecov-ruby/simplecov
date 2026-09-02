@@ -103,12 +103,10 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
   end
 
   context "when a covered entry carries no coverage" do
-    let(:uncounted_line) { instance_double(SimpleCov::SourceFile::Line, coverage: nil) }
-
     let(:source_file) do
       instance_double(
         SimpleCov::SourceFile,
-        covered_lines: [covered_line, uncounted_line],
+        covered_lines: [covered_line, instance_double(SimpleCov::SourceFile::Line, coverage: nil)],
         missed_lines: [],
         never_lines: [],
         covered_branches: [],
