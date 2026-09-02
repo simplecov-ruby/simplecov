@@ -40,6 +40,15 @@ Install Bun to run those tests (the rake task skips them with a warning otherwis
     $ bun install
     $ bun test
 
+Style is whatever `rake lint` says, which is Standard plus a few RSpec rules.
+`.rubocop.yml` deliberately holds almost nothing: a cop Standard disables stays
+disabled no matter what you configure for it, so conventions that have to hold
+are written down here instead. One that is easy to trip over: a command whose
+name is a verb may still return a boolean. `stop`, `store`, `store_result`,
+`remove_filter` and `warn_decline` report whether they acted, and the action is
+the point while the boolean is the receipt, so neither a `?` nor a bare command
+would read better.
+
 If you want to contribute, please:
 
   * Fork the project.
@@ -90,7 +99,8 @@ it quietly, so know they exist:
 * Library modules use `extend self`, never `module_function`.
   `module_function` copies each method to a second singleton definition and
   callers dispatch to the copy, so mutant's re-inserted instance methods would
-  be invisible and every mutation would survive. RuboCop enforces this.
+  be invisible and every mutation would survive. Nothing checks this for you,
+  because Standard disables the cop that would.
 * Spec describes that don't name a constant carry a `mutant_expression`
   metadata tag naming the namespace they exercise (see `spec/simple_cov/cli_spec.rb`), so
   mutant selects only those examples for the namespace's subjects. An

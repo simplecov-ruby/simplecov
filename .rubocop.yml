@@ -1,3 +1,9 @@
+# Standard owns the style, so this file carries only what Standard leaves to
+# us: the RSpec department, which Standard does not run from here, and the
+# handful of excludes that are about this repository's layout rather than about
+# style. Configuring a cop Standard disables does nothing, so a rule that has to
+# hold belongs in docs/Contributing.md or beside the code, not here.
+#
 # standard-rspec is deliberately absent here and applied through .standard.yml
 # instead. Its config sets a Language parameter on the RSpecRails department
 # that rubocop-rspec_rails does not accept, which RuboCop warns about on every
@@ -25,100 +31,13 @@ AllCops:
   TargetRubyVersion: 3.2
   NewCops: enable
 
-Layout/LeadingCommentSpace:
-  # `#:` comments are RBS inline type annotations consumed by Steep;
-  # inserting a space after # would break them.
-  AllowRBSInlineAnnotation: true
-
-Layout/LineLength:
-  AllowURI: true
-
-Layout/SpaceInsideHashLiteralBraces:
-  Description: Use spaces inside hash literal braces - or don't.
-  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#spaces-operators
-  EnforcedStyle: no_space
-
-Lint/AmbiguousRegexpLiteral:
-  Description: Checks for ambiguous regexp literals in the first argument of a method invocation without parentheses.
-  Exclude:
-    - "spec/**/*_steps.rb"
-    - "tmp/**/*_steps.rb"
+inherit_mode:
+  merge:
+    - Exclude
 
 Lint/ConstantDefinitionInBlock:
   Exclude:
     - "spec/**/*_spec.rb"
-
-Metrics/ModuleLength:
-  Exclude:
-    # One settings module per concern; the explicit writers beside each
-    # dual-purpose reader push this one just past the default.
-    - "lib/simplecov/configuration/merging.rb"
-    # One cohesive runtime state machine, kept in one place for the same
-    # reason a state machine is not split across files by size alone.
-    - "lib/simplecov/production.rb"
-    # One check per threshold family; each reads better next to the others.
-    - "lib/simplecov/coverage_violations.rb"
-    # One usage document; its length is the command surface, not logic.
-    - "lib/simplecov/cli/usage.rb"
-    # One home for the per-construct, per-Ruby-version Coverage location
-    # conventions; splitting it would scatter closely-related resolvers.
-    - "lib/simplecov/static_coverage_extractor/location_conventions.rb"
-    # One check per section the viewer reads; the length tracks the
-    # document's surface, not an accumulation of concerns.
-    - "lib/simplecov/formatter/html_formatter/viewer_data_validator.rb"
-    # One cohesive sandbox harness; splitting it would scatter
-    # closely-related helpers.
-    - "spec/support/sandbox_project.rb"
-
-Metrics/ClassLength:
-  Exclude:
-    # The same two one-concern homes the ModuleLength exclusions cover;
-    # this cop counts their `class << self` bodies.
-    - "lib/simplecov/production.rb"
-    - "lib/simplecov/coverage_violations.rb"
-
-Metrics/MethodLength:
-  Exclude:
-    - "spec/support/dogfood_report.rb"
-
-Metrics/AbcSize:
-  Exclude:
-    - "spec/support/dogfood_report.rb"
-
-Metrics/BlockLength:
-  Description: Checks if the length of a block exceeds some maximum value.
-  Exclude:
-    - "spec/**/*.rb"
-
-Metrics/ParameterLists:
-  Description: Avoid parameter lists longer than three or four parameters.
-  StyleGuide: https://github.com/rubocop-hq/ruby-style-guide#too-many-params
-  Max: 5
-  # Keyword args are self-documenting at call sites and don't carry the
-  # readability cost of a long positional list, so don't count them
-  # toward the cap.
-  CountKeywordArgs: false
-
-Naming/FileName:
-  Description: makes sure that Ruby source files have snake_case names.
-  Exclude:
-    - "lib/simplecov-html.rb"
-
-Naming/PredicateMethod:
-  # Commands that report whether they acted. Their names are verbs
-  # because the action is the point and the boolean is the receipt, so
-  # neither a `?` (they are not questions) nor a bare command (callers
-  # do read the answer) would say it better.
-  AllowedMethods:
-    - stop
-    - store
-    - store_result
-    - remove_filter
-    - warn_decline
-
-inherit_mode:
-  merge:
-    - Exclude
 
 # spec/support/ holds helper modules, not a spec suite, so the RSpec
 # department shouldn't touch it. (Fixtures are excluded wholesale under
@@ -130,8 +49,8 @@ RSpec/DescribeClass:
   Exclude:
     # End-to-end sandbox specs describe user-visible behaviors, not classes.
     - "spec/sandbox/**/*"
-    # These specs describe cross-cutting behaviors and contracts —
-    # exit codes, output streams, file formats, build artifacts — that
+    # These specs describe cross-cutting behaviors and contracts (e.g.
+    # exit codes, output streams, file formats, build artifacts), which
     # no single class owns.
     - "spec/assets_spec.rb"
     - "spec/config_loader_spec.rb"
@@ -154,46 +73,3 @@ RSpec/NestedGroups:
   Max: 5 # TODO: Lower to 3
 RSpec/MultipleMemoizedHelpers:
   Max: 11 # TODO: Lower to 5
-
-Style/CollectionMethods:
-  Description: Enforces the use of consistent method names from the Enumerable module.
-  PreferredMethods:
-    map: "collect"
-    reduce: "inject"
-    find: "detect"
-    find_all: "select"
-
-Style/ClassVars:
-  Exclude:
-    # The minitest plugin's arming flag is a class variable on
-    # Minitest itself, so the fakes standing in for Minitest here have
-    # to carry one too.
-    - "spec/simplecov_spec.rb"
-
-Style/Documentation:
-  # Class and module names carry the explanation; a banner comment restating
-  # them is a maintenance liability, not documentation.
-  Enabled: false
-
-Style/FrozenStringLiteralComment:
-  Description:
-    Add the frozen_string_literal comment to the top of files to help transition
-    from Ruby 2.3.0 to Ruby 3.0.
-  EnforcedStyle: always
-
-Style/EnvHome:
-  # `Dir.home` raises ArgumentError on JRuby when HOME is unset, defeating
-  # the `||` fall-through chain in lib/simplecov/load_global_config.rb.
-  Enabled: false
-
-Style/ModuleFunction:
-  # `module_function` copies each method into a second, singleton
-  # definition, and callers dispatch to the copy. Mutant re-inserts
-  # mutated instance methods, so under module_function every mutation is
-  # invisible to the tests. `extend self` routes singleton dispatch
-  # through the one real definition, which mutation testing can see.
-  EnforcedStyle: extend_self
-
-Style/StringLiterals:
-  Description: Allow double-quoted strings without interpolation.
-  EnforcedStyle: double_quotes
