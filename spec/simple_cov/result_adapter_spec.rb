@@ -25,6 +25,8 @@ RSpec.describe SimpleCov::ResultAdapter do
       end
 
       it "keeps the stub's other relevant lines as misses" do
+        skip "this runtime has no Coverage.line_stub" unless Coverage.respond_to?(:line_stub)
+
         expect(adapter[existing_file][:lines].values_at(6, 7)).to eq([0, 0])
       end
     end
