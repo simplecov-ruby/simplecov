@@ -24,20 +24,46 @@ Rake::Task[:build].prerequisites.unshift :fix_permissions
 require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:"spec:serial")
 
+RUNTIME_LOG = "tmp/parallel_runtime_rspec.log"
+RUNTIME_PARTIALS = "tmp/parallel_runtime"
+
 desc "Run the RSpec suite across parallel workers"
 # Splitting by runtime matters here: the sandbox spec files are tiny on disk
 # but each spends seconds driving fixture subprocesses, so the default
-# file-size split parks them on a couple of workers. The RuntimeLogger in
-# .rspec_parallel records per-file runtimes during every parallel run. The
-# first run has no log yet and splits by size, and --allowed-missing 100 keeps
-# a log that predates new or renamed spec files from failing the run.
+# file-size split parks them on a couple of workers. RuntimeLogFormatter in
+# .rspec_parallel records per-file runtimes during every parallel run, one file
+# per worker, and the merge below collects them.
 task :spec do
   require "parallel_tests"
   rm_rf "tmp/dogfood-partials"
-  grouping = File.size?("tmp/parallel_runtime_rspec.log") ? "--group-by runtime --allowed-missing 100 " : ""
-  sh "bundle exec parallel_rspec --serialize-stdout #{grouping}spec"
+  rm_rf RUNTIME_PARTIALS
+  sh "bundle exec parallel_rspec --serialize-stdout #{runtime_grouping}spec"
+  merge_runtime_log
 rescue LoadError
   Rake::Task[:"spec:serial"].invoke
+end
+
+# A log written against a different set of spec files groups everything it does
+# not recognise onto one worker, which is slower than not grouping at all. The
+# first run has no log, and --allowed-missing 100 lets a handful of new or
+# renamed files through, but a log whose paths have largely stopped existing
+# describes some other tree and is thrown away.
+def runtime_grouping
+  return "" unless File.size?(RUNTIME_LOG)
+
+  logged = File.readlines(RUNTIME_LOG).filter_map { |line| line[/\A(.+):[\d.]+$/, 1] }
+  return "" if logged.empty? || logged.count { |file| File.exist?(file) } < logged.size * 0.9
+
+  "--group-by runtime --allowed-missing 100 "
+end
+
+# Only after a run that finished, so a suite that died halfway cannot replace a
+# whole log with its fragment.
+def merge_runtime_log
+  partials = FileList["#{RUNTIME_PARTIALS}/*.log"]
+  return if partials.empty?
+
+  File.write(RUNTIME_LOG, partials.sort.flat_map { |partial| File.readlines(partial) }.join)
 end
 
 begin

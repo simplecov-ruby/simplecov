@@ -50,6 +50,17 @@ jobs:
           rubygems: default
           bundler-cache: true
 
+      # rake spec groups by runtime when tmp/parallel_runtime_rspec.log exists,
+      # and a fresh checkout has no tmp/. The key carries the sha so every run
+      # writes a fresh log and restore-keys picks the last one up. A log from a
+      # different spec layout is rejected by the task itself, not here.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: tmp/parallel_runtime_rspec.log
+          key: parallel-runtime-${{ matrix.os }}-${{ matrix.ruby-version }}-${{ github.sha }}
+          restore-keys: |
+            parallel-runtime-${{ matrix.os }}-${{ matrix.ruby-version }}-
+
       # The sandbox specs skip themselves on alternative Ruby implementations
       # and on Windows (see spec/support/sandbox_project.rb), and the frontend
       # tests skip when bun isn't installed, so every matrix entry runs the
