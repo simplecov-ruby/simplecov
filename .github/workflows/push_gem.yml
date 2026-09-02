@@ -41,6 +41,15 @@ jobs:
       - uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
       - name: Update RubyGems
         run: gem update --system
+      # The GitHub Release's notes are the version's CHANGELOG.md section.
+      # GitHub's generated notes list only merged pull requests, and most work
+      # lands on main as direct commits, so they would name the dependency
+      # bumps and miss the release itself. Cut them before publishing so a
+      # changelog without this version's section stops the run with nothing
+      # pushed.
+      - name: Cut the release notes from the changelog
+        run: bundle exec rake release:notes > "$RUNNER_TEMP/release-notes.md"
+
       - name: Build gem
         run: bundle exec rake build
       - name: Sign gem with Sigstore
@@ -58,7 +67,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${{ github.ref_name }}"
-          flags=(--generate-notes --verify-tag)
+          flags=(--verify-tag --notes-file "$RUNNER_TEMP/release-notes.md")
           if [ "$(ruby -Ilib -rsimplecov/version -e 'print Gem::Version.new(SimpleCov::VERSION).prerelease?')" = "true" ]; then
             flags+=(--prerelease)
           fi

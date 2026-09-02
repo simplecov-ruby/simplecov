@@ -93,6 +93,15 @@ task :man do
   File.write("man/simplecov.1", ManPage.build)
 end
 
+namespace :release do
+  desc "Print one release's CHANGELOG.md section as GitHub Release notes (VERSION defaults to the gem's)"
+  task :notes, [:version] do |_task, args|
+    require_relative "tasks/release_notes"
+    require "simplecov/version"
+    puts ReleaseNotes.for(args[:version] || SimpleCov::VERSION)
+  end
+end
+
 desc "Mutation-test the whole lib with mutant (slow)"
 task :mutant do
   sh "bundle exec mutant run"
