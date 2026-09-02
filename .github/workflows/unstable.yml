@@ -37,6 +37,10 @@ jobs:
       - uses: ruby/setup-ruby@v1.321.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
+          # ruby-head ships the matching development Bundler. Installing the
+          # older BUNDLED WITH version beside it can leave the executable and
+          # default-gem specification disagreeing about which version loaded.
+          bundler: ${{ matrix.ruby-version == 'ruby-head' && 'default' || 'Gemfile.lock' }}
           bundler-cache: true
 
       # rake spec groups by runtime when tmp/parallel_runtime_rspec.log exists,
@@ -73,6 +77,7 @@ jobs:
       - uses: ruby/setup-ruby@v1.321.0
         with:
           ruby-version: ruby-head
+          bundler: default
           bundler-cache: true
 
       - name: Fuzz the static coverage extractor against Coverage
