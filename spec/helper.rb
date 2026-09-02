@@ -49,6 +49,7 @@ unless DOGFOOD_DISABLED
   SimpleCov.start_tracking
 
   require "support/dogfood_report"
+  DogfoodReport.announce
 
   RSpec.configure do |config|
     config.after(:suite) { DogfoodReport.generate }

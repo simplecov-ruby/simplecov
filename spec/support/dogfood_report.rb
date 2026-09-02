@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
-require "json"
 require "fileutils"
+require "json"
+require "simplecov/atomic_file"
 
 module DogfoodReport
   OUTPUT_DIR = "tmp/dogfood"
   PARTIALS_ROOT = "tmp/dogfood-partials"
+
+  PARTIAL_TIMEOUT = 900
 
   THRESHOLDS = {
     "ruby" => {line: 100.0, branch: 100.0, method: 100.0},
@@ -21,7 +24,7 @@ module DogfoodReport
       store_partial(coverage)
       return unless first_worker?
 
-      wait_for_sibling_workers
+      wait_for_sibling_partials
       coverage = merged_partials
     end
     report(coverage, contexts)
@@ -45,20 +48,44 @@ module DogfoodReport
     File.join(PARTIALS_ROOT, File.basename(SPEC_PARALLEL_PID_FILE || "run"))
   end
 
+  # Atomically, because the first worker is reading this directory while the
+  # others write into it and a half-written partial is not valid JSON.
   def store_partial(coverage)
-    FileUtils.mkdir_p(partials_dir)
     partial = {"dogfood worker #{SPEC_PARALLEL_WORKER}" => {"coverage" => coverage, "timestamp" => Time.now.to_f}}
-    File.write(File.join(partials_dir, "worker#{SPEC_PARALLEL_WORKER}.json"), JSON.dump(partial))
+    SimpleCov::AtomicFile.write(File.join(partials_dir, "worker#{SPEC_PARALLEL_WORKER}.json"), JSON.dump(partial))
   end
 
-  def wait_for_sibling_workers
-    require "parallel_tests"
-    ENV["TEST_ENV_NUMBER"] = SPEC_PARALLEL_WORKER
-    ENV["PARALLEL_PID_FILE"] = SPEC_PARALLEL_PID_FILE
-    ParallelTests.wait_for_other_processes_to_finish
-  ensure
-    ENV.delete("TEST_ENV_NUMBER")
-    ENV.delete("PARALLEL_PID_FILE")
+  # Called as the suite starts, so that the worker merging the results can tell
+  # how many it is waiting for. Neither of the things parallel_tests offers can
+  # say: PARALLEL_TEST_GROUPS is the process count that was asked for, before
+  # the groups that came out empty are dropped, and the pid file is written by
+  # ParallelTests::Pids#add, which appends to a shared array outside its own
+  # mutex. Under JRuby's real threads those appends are lost, so the file names
+  # fewer workers than are running, which is what used to end this wait early
+  # and merge a fraction of the coverage.
+  def announce
+    return unless parallel_worker?
+
+    FileUtils.mkdir_p(partials_dir)
+    FileUtils.touch(File.join(partials_dir, "worker#{SPEC_PARALLEL_WORKER}.started"))
+  end
+
+  # The timeout is only a backstop against a worker that dies without writing,
+  # so that it says so rather than hanging until the job's own timeout.
+  def wait_for_sibling_partials
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + PARTIAL_TIMEOUT
+    until partial_paths.size >= started_paths.size
+      if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+        raise "dogfood coverage waited #{PARTIAL_TIMEOUT}s for #{started_paths.size} " \
+          "workers' partials and has #{partial_paths.size}"
+      end
+
+      sleep 0.1
+    end
+  end
+
+  def started_paths
+    Dir.glob(File.join(partials_dir, "worker*.started"))
   end
 
   def partial_paths
