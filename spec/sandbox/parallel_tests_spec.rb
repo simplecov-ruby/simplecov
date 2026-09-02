@@ -124,7 +124,7 @@ RSpec.describe "parallel_tests integration", :sandbox do
         run_command_and_expect_success("bundle exec rspec #{files}", env: env).output
       end
     end
-    let(:collated) { run_command_and_expect_success("bundle exec ruby -rsimplecov -e '#{collate_script}'") }
+    let(:collated) { run_command_and_expect_success(%(bundle exec ruby -e 'require "simplecov"; #{collate_script}')) }
 
     it "fails no worker" do
       expect(worker_outputs.grep(/SimpleCov failed with exit 2/)).to be_empty
