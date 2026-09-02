@@ -72,6 +72,34 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include("Commands:")
     end
 
+    it "exits 0 on `version`" do
+      expect(run("version")).to eq(0)
+    end
+
+    it "prints the gem version on `version`" do
+      run("version")
+
+      expect(stdout.string).to eq("simplecov #{SimpleCov::VERSION}\n")
+    end
+
+    it "prints the gem version on `--version`" do
+      run("--version")
+
+      expect(stdout.string).to eq("simplecov #{SimpleCov::VERSION}\n")
+    end
+
+    it "prints the gem version on `-v`" do
+      run("-v")
+
+      expect(stdout.string).to eq("simplecov #{SimpleCov::VERSION}\n")
+    end
+
+    it "lists version among the commands" do
+      run("help")
+
+      expect(stdout.string).to match(/^  version\s+Print the version/)
+    end
+
     it "exits non-zero on an unknown command" do
       expect(run("nope")).to eq(1)
     end

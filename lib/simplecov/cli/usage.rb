@@ -50,6 +50,7 @@ module SimpleCov
             clean                     Remove the coverage report directory
             completions <shell>       Emit the completion script for fish, bash, or zsh
             help                      Show this message
+            version                   Print the version (also --version / -v)
 
           Every command answers `--help` / `-h`. Default paths follow a project's
           `.simplecov` SimpleCov.coverage_dir (#{cli.coverage_dir} for this run).

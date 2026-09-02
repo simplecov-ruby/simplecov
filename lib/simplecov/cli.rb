@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "version"
 require_relative "color"
 require_relative "cli/dotfile"
 require_relative "cli/badge"
@@ -88,6 +89,7 @@ module SimpleCov
       handler = COMMANDS[command]
       return dispatch(handler, command, rest, stdout: stdout, stderr: stderr) if handler
       return stdout.puts(usage) || 0 if [nil, "help", "--help", "-h"].include?(command)
+      return stdout.puts("simplecov #{VERSION}") || 0 if %w[version --version -v].include?(command)
 
       stderr.puts("simplecov: unknown command #{command.inspect}", usage)
       1
