@@ -716,52 +716,54 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(described_class.worker_identities_for_run(resultset, "current", Time.at(100.5))).to be_empty
     end
 
-    context "with an authoritative run identity" do
+    context "with an authoritative run identity and entries from several runs" do
+      let(:started_at) { Time.now }
+      let(:resultset) do
+        {
+          "worker 1" => {"run_id" => "current", "worker_id" => "1"},
+          "worker 1 child" => {"run_id" => "current", "worker_id" => "1"},
+          "worker 2" => {"run_id" => "current", "worker_id" => "2"},
+          "stale" => {"run_id" => "old", "worker_id" => "3"},
+          "legacy current" => {"timestamp" => started_at.to_f + 1},
+          "malformed" => nil
+        }
+      end
+
       before { allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true) }
 
-      context "when entries from several runs are stored" do
-        let(:started_at) { Time.now }
-        let(:resultset) do
-          {
-            "worker 1" => {"run_id" => "current", "worker_id" => "1"},
-            "worker 1 child" => {"run_id" => "current", "worker_id" => "1"},
-            "worker 2" => {"run_id" => "current", "worker_id" => "2"},
-            "stale" => {"run_id" => "old", "worker_id" => "3"},
-            "legacy current" => {"timestamp" => started_at.to_f + 1},
-            "malformed" => nil
-          }
-        end
+      it "returns distinct identified workers from only the requested run" do
+        expect(described_class.worker_identities_for_run(resultset, "current", started_at))
+          .to contain_exactly([:worker, "1"], [:worker, "2"], [:legacy, "legacy current"])
+      end
+    end
 
-        it "returns distinct identified workers from only the requested run" do
-          expect(described_class.worker_identities_for_run(resultset, "current", started_at))
-            .to contain_exactly([:worker, "1"], [:worker, "2"], [:legacy, "legacy current"])
-        end
+    context "with an authoritative run identity and a worker id spelling a legacy entry's identity" do
+      let(:resultset) do
+        {
+          "spoofing worker" => {"run_id" => "current", "worker_id" => "legacy:suite"},
+          "suite" => {"timestamp" => 100.75}
+        }
       end
 
-      context "when a worker id spells a legacy entry's identity" do
-        let(:resultset) do
-          {
-            "spoofing worker" => {"run_id" => "current", "worker_id" => "legacy:suite"},
-            "suite" => {"timestamp" => 100.75}
-          }
-        end
+      before { allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true) }
 
-        it "cannot alias a worker id to a legacy entry's synthesized identity" do
-          expect(described_class.worker_identities_for_run(resultset, "current", Time.at(100.5)).size).to eq(2)
-        end
+      it "cannot alias a worker id to a legacy entry's synthesized identity" do
+        expect(described_class.worker_identities_for_run(resultset, "current", Time.at(100.5)).size).to eq(2)
+      end
+    end
+
+    context "with an authoritative run identity and one worker id spelled two ways" do
+      let(:resultset) do
+        {
+          "worker 1 parent" => {"run_id" => "current", "worker_id" => 1},
+          "worker 1 child" => {"run_id" => "current", "worker_id" => "1"}
+        }
       end
 
-      context "when one worker id is spelled two ways" do
-        let(:resultset) do
-          {
-            "worker 1 parent" => {"run_id" => "current", "worker_id" => 1},
-            "worker 1 child" => {"run_id" => "current", "worker_id" => "1"}
-          }
-        end
+      before { allow(SimpleCov::RunIdentity).to receive(:authoritative?).and_return(true) }
 
-        it "counts numeric and string spellings of one worker id once" do
-          expect(described_class.worker_identities_for_run(resultset, "current", Time.now)).to eq([[:worker, "1"]])
-        end
+      it "counts numeric and string spellings of one worker id once" do
+        expect(described_class.worker_identities_for_run(resultset, "current", Time.now)).to eq([[:worker, "1"]])
       end
     end
 
@@ -867,122 +869,120 @@ RSpec.describe SimpleCov::ResultMerger do
 
     def resultset2_path = "#{resultset_prefix}2.json"
 
-    describe "merging behavior" do
-      before do
-        store_result(first_result, path: resultset1_path)
-        store_result(second_result, path: resultset2_path)
+    before do
+      store_result(first_result, path: resultset1_path)
+      store_result(second_result, path: resultset2_path)
+    end
+
+    after do
+      FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
+    end
+
+    def absorbing_both_resultsets
+      described_class.absorb_results([resultset1_path, resultset2_path], ignore_timeout: true)
+    end
+
+    it "absorbs the command names without a block" do
+      expect(absorbing_both_resultsets.first).to contain_exactly("result1", "result2")
+    end
+
+    it "absorbs the coverage without a block" do
+      expect(absorbing_both_resultsets.last.keys).to include(source_fixture("sample.rb"))
+    end
+
+    context "when 2 normal results" do
+      it "correctly merges the 2 results" do
+        result = described_class.merge_and_store(resultset1_path, resultset2_path)
+        expect_resultset_1_and_2_merged(result.to_hash)
       end
 
-      after do
-        FileUtils.rm Dir.glob("#{resultset_prefix}*.json")
+      it "has the result stored" do
+        described_class.merge_and_store(resultset1_path, resultset2_path)
+
+        expect_resultset_1_and_2_merged(described_class.read_resultset)
+      end
+    end
+
+    context "when 1 resultset is outdated" do
+      let(:first_result) { outdated(super()) }
+      let(:merge) do
+        result_hash = nil
+        stderr = capture_stderr do
+          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path).to_hash
+        end
+        [result_hash, stderr]
+      end
+      let(:result_hash) { merge.first }
+      let(:stderr) { merge.last }
+
+      it "completely omits the result from the merge" do
+        expect(result_hash.keys).to eq ["result2"]
       end
 
-      def absorbing_both_resultsets
-        described_class.absorb_results([resultset1_path, resultset2_path], ignore_timeout: true)
+      it "keeps the coverage of the result it did not omit" do
+        expect(result_hash.fetch("result2").fetch("coverage")).to eq(second_resultset)
       end
 
-      it "absorbs the command names without a block" do
-        expect(absorbing_both_resultsets.first).to contain_exactly("result1", "result2")
+      it "says a result was older than the merge timeout" do
+        expect(stderr).to include("[SimpleCov]").and include("merge_timeout")
       end
 
-      it "absorbs the coverage without a block" do
-        expect(absorbing_both_resultsets.last.keys).to include(source_fixture("sample.rb"))
+      it "names the result it omitted" do
+        expect(stderr).to include("result1")
       end
 
-      context "when 2 normal results" do
-        it "correctly merges the 2 results" do
-          result = described_class.merge_and_store(resultset1_path, resultset2_path)
-          expect_resultset_1_and_2_merged(result.to_hash)
-        end
+      it "stays silent when print_errors is disabled" do
+        allow(SimpleCov).to receive(:print_errors).and_return(false)
 
-        it "has the result stored" do
-          described_class.merge_and_store(resultset1_path, resultset2_path)
+        expect(stderr).to be_empty
+      end
+    end
 
-          expect_resultset_1_and_2_merged(described_class.read_resultset)
+    context "when 1 resultset is outdated and we say ignore_timeout: true" do
+      let(:first_result) { outdated(super()) }
+      let(:merge) do
+        result_hash = nil
+        stderr = capture_stderr do
+          result_hash = described_class.merge_and_store(
+            resultset1_path, resultset2_path, ignore_timeout: true
+          ).to_hash
         end
+        [result_hash, stderr]
+      end
+      let(:result_hash) { merge.first }
+      let(:stderr) { merge.last }
+
+      it "includes it" do
+        expect_resultset_1_and_2_merged(result_hash)
       end
 
-      context "when 1 resultset is outdated" do
-        let(:first_result) { outdated(super()) }
-        let(:merge) do
-          result_hash = nil
-          stderr = capture_stderr do
-            result_hash = described_class.merge_and_store(resultset1_path, resultset2_path).to_hash
-          end
-          [result_hash, stderr]
-        end
-        let(:result_hash) { merge.first }
-        let(:stderr) { merge.last }
+      it "says nothing" do
+        expect(stderr).to be_empty
+      end
+    end
 
-        it "completely omits the result from the merge" do
-          expect(result_hash.keys).to eq ["result2"]
-        end
+    context "when both resultsets outdated" do
+      let(:first_result) { outdated(super()) }
+      let(:second_result) { outdated(super()) }
 
-        it "keeps the coverage of the result it did not omit" do
-          expect(result_hash.fetch("result2").fetch("coverage")).to eq(second_resultset)
-        end
+      it "completely omits the result from the merge" do
+        allow(described_class).to receive(:store_result)
 
-        it "says a result was older than the merge timeout" do
-          expect(stderr).to include("[SimpleCov]").and include("merge_timeout")
-        end
-
-        it "names the result it omitted" do
-          expect(stderr).to include("result1")
-        end
-
-        it "stays silent when print_errors is disabled" do
-          allow(SimpleCov).to receive(:print_errors).and_return(false)
-
-          expect(stderr).to be_empty
-        end
+        expect(described_class.merge_and_store(resultset1_path, resultset2_path)).to be_nil
       end
 
-      context "when 1 resultset is outdated and we say ignore_timeout: true" do
-        let(:first_result) { outdated(super()) }
-        let(:merge) do
-          result_hash = nil
-          stderr = capture_stderr do
-            result_hash = described_class.merge_and_store(
-              resultset1_path, resultset2_path, ignore_timeout: true
-            ).to_hash
-          end
-          [result_hash, stderr]
-        end
-        let(:result_hash) { merge.first }
-        let(:stderr) { merge.last }
+      it "stores nothing" do
+        allow(described_class).to receive(:store_result)
 
-        it "includes it" do
-          expect_resultset_1_and_2_merged(result_hash)
-        end
+        described_class.merge_and_store(resultset1_path, resultset2_path)
 
-        it "says nothing" do
-          expect(stderr).to be_empty
-        end
+        expect(described_class).not_to have_received(:store_result)
       end
 
-      context "when both resultsets outdated" do
-        let(:first_result) { outdated(super()) }
-        let(:second_result) { outdated(super()) }
+      it "includes both when we say ignore_timeout: true" do
+        result_hash = described_class.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
 
-        it "completely omits the result from the merge" do
-          allow(described_class).to receive(:store_result)
-
-          expect(described_class.merge_and_store(resultset1_path, resultset2_path)).to be_nil
-        end
-
-        it "stores nothing" do
-          allow(described_class).to receive(:store_result)
-
-          described_class.merge_and_store(resultset1_path, resultset2_path)
-
-          expect(described_class).not_to have_received(:store_result)
-        end
-
-        it "includes both when we say ignore_timeout: true" do
-          result_hash = described_class.merge_and_store(resultset1_path, resultset2_path, ignore_timeout: true).to_hash
-
-          expect_resultset_1_and_2_merged(result_hash)
-        end
+        expect_resultset_1_and_2_merged(result_hash)
       end
     end
 
@@ -1125,17 +1125,19 @@ RSpec.describe SimpleCov::ResultMerger do
       it "honours the merge timeout on the coverage when the caller states no preference" do
         expect(absorbed.last).to be_nil
       end
+    end
 
-      context "when told to ignore the timeout" do
-        let(:absorbed) { described_class.absorb_results(paths, ignore_timeout: true) }
+    context "when both resultsets are past the merge timeout and it is told to ignore that" do
+      let(:first_result) { outdated(super()) }
+      let(:second_result) { outdated(super()) }
+      let(:absorbed) { described_class.absorb_results(paths, ignore_timeout: true) }
 
-        it "keeps both command names" do
-          expect(absorbed.first).to eq(%w[result1 result2])
-        end
+      it "keeps both command names" do
+        expect(absorbed.first).to eq(%w[result1 result2])
+      end
 
-        it "keeps both coverages" do
-          expect(absorbed.last).to eq(merged_resultsets)
-        end
+      it "keeps both coverages" do
+        expect(absorbed.last).to eq(merged_resultsets)
       end
     end
   end
@@ -1169,20 +1171,20 @@ RSpec.describe SimpleCov::ResultMerger do
       it "drops its coverage when the caller states no preference" do
         expect(results.last).to be_nil
       end
+    end
 
-      context "when told to ignore the timeout" do
-        let(:results) do
-          store_result(outdated(first_result), path: single_path)
-          described_class.valid_results(single_path, ignore_timeout: true)
-        end
+    context "with an expired entry and a request to ignore the timeout" do
+      let(:results) do
+        store_result(outdated(first_result), path: single_path)
+        described_class.valid_results(single_path, ignore_timeout: true)
+      end
 
-        it "keeps its command name" do
-          expect(results.first).to eq(["result1"])
-        end
+      it "keeps its command name" do
+        expect(results.first).to eq(["result1"])
+      end
 
-        it "keeps its coverage" do
-          expect(results.last).to eq(first_resultset)
-        end
+      it "keeps its coverage" do
+        expect(results.last).to eq(first_resultset)
       end
     end
   end
@@ -1296,70 +1298,6 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(events).to eq(%i[locked wrote unlocked])
     end
 
-    describe "per-test maps across the merge" do
-      def store_mapped_result(command_name, test_id, bitmap)
-        map = SimpleCov::ContextMap.new
-        map.record(test_id, source_fixture("sample.rb") => bitmap)
-        described_class.store_result(
-          SimpleCov::Result.new(
-            {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
-            command_name: command_name, contexts: map
-          )
-        )
-      end
-
-      def store_unmapped_result(command_name)
-        described_class.store_result(
-          SimpleCov::Result.new(
-            {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
-            command_name: command_name
-          )
-        )
-      end
-
-      context "when every merged entry carries a map" do
-        let(:merged) do
-          store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
-          store_mapped_result("Cucumber", "features/b.feature:4", 0b100)
-          described_class.merged_result
-        end
-
-        it "unions what the first entry recorded" do
-          expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
-        end
-
-        it "unions what the second entry recorded" do
-          expect(merged.contexts.covering(source_fixture("sample.rb"), 3)).to eq(["features/b.feature:4"])
-        end
-      end
-
-      context "when only some merged entries carry a map" do
-        let(:merging) do
-          store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
-          store_unmapped_result("Cucumber")
-          merged = nil
-          output = capture_stderr { merged = described_class.merged_result }
-          [merged, output]
-        end
-
-        it "drops the map" do
-          expect(merging.first.contexts).to be_nil
-        end
-
-        it "says it dropped the map" do
-          expect(merging.last).to include("Dropped the per-test map")
-        end
-      end
-
-      it "carries the union through merge_results, the collate path" do
-        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
-
-        merged = described_class.merge_results(described_class.resultset_path, ignore_timeout: true)
-
-        expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
-      end
-    end
-
     describe "merging same-command-name entries written by a concurrent runner" do
       let(:process_start) { Time.now }
       let(:subprocess_result) do
@@ -1471,6 +1409,70 @@ RSpec.describe SimpleCov::ResultMerger do
 
         expect(described_class.read_resultset.fetch("RSpec").fetch("coverage")).to be_empty
       end
+    end
+  end
+
+  describe "per-test maps across the merge" do
+    def store_mapped_result(command_name, test_id, bitmap)
+      map = SimpleCov::ContextMap.new
+      map.record(test_id, source_fixture("sample.rb") => bitmap)
+      described_class.store_result(
+        SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+          command_name: command_name, contexts: map
+        )
+      )
+    end
+
+    def store_unmapped_result(command_name)
+      described_class.store_result(
+        SimpleCov::Result.new(
+          {source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+          command_name: command_name
+        )
+      )
+    end
+
+    context "when every merged entry carries a map" do
+      let(:merged) do
+        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+        store_mapped_result("Cucumber", "features/b.feature:4", 0b100)
+        described_class.merged_result
+      end
+
+      it "unions what the first entry recorded" do
+        expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
+      end
+
+      it "unions what the second entry recorded" do
+        expect(merged.contexts.covering(source_fixture("sample.rb"), 3)).to eq(["features/b.feature:4"])
+      end
+    end
+
+    context "when only some merged entries carry a map" do
+      let(:merging) do
+        store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+        store_unmapped_result("Cucumber")
+        merged = nil
+        output = capture_stderr { merged = described_class.merged_result }
+        [merged, output]
+      end
+
+      it "drops the map" do
+        expect(merging.first.contexts).to be_nil
+      end
+
+      it "says it dropped the map" do
+        expect(merging.last).to include("Dropped the per-test map")
+      end
+    end
+
+    it "carries the union through merge_results, the collate path" do
+      store_mapped_result("RSpec", "spec/a_spec.rb:1", 0b10)
+
+      merged = described_class.merge_results(described_class.resultset_path, ignore_timeout: true)
+
+      expect(merged.contexts.covering(source_fixture("sample.rb"), 2)).to eq(["spec/a_spec.rb:1"])
     end
   end
 

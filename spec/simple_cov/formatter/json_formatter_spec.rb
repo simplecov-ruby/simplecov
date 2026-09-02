@@ -94,22 +94,22 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         formatter.format(result)
         expect(json_output).to eq(json_result("sample"))
       end
+    end
 
-      context "with a percentage that does not divide evenly" do
-        let(:result) { SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}) }
+    context "with a line percentage that does not divide evenly" do
+      let(:result) { SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}}) }
 
-        before { formatter.format(result) }
+      before { formatter.format(result) }
 
-        it "preserves raw total percentage and strength precision" do
-          expect(json_output.fetch("total").fetch("lines")).to include(
-            "percent" => 66.66666666666667,
-            "strength" => 0.6666666666666666
-          )
-        end
+      it "preserves raw total percentage and strength precision" do
+        expect(json_output.fetch("total").fetch("lines")).to include(
+          "percent" => 66.66666666666667,
+          "strength" => 0.6666666666666666
+        )
+      end
 
-        it "preserves raw per-file percentage precision" do
-          expect(sample_file_entry).to include("lines_covered_percent" => 66.66666666666667)
-        end
+      it "preserves raw per-file percentage precision" do
+        expect(sample_file_entry).to include("lines_covered_percent" => 66.66666666666667)
       end
     end
 
@@ -138,35 +138,35 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter do
         expect(sample_file_entry)
           .to include("lines", "covered_lines", "missed_lines", "total_lines", "lines_covered_percent")
       end
+    end
 
-      context "with source bytes that are not valid UTF-8" do
-        let(:coverage) do
-          Dir.mktmpdir do |dir|
-            path = File.join(dir, "invalid.rb")
-            File.binwrite(path, "x = 1 # caf\xE9\n")
-            described_class.build_hash(invalid_byte_result(path), include_source: true).fetch(:coverage)
-          end
+    context "with source bytes that are not valid UTF-8" do
+      let(:coverage) do
+        Dir.mktmpdir do |dir|
+          path = File.join(dir, "invalid.rb")
+          File.binwrite(path, "x = 1 # caf\xE9\n")
+          described_class.build_hash(invalid_byte_result(path), include_source: true).fetch(:coverage)
         end
-        let(:first_source_line) { coverage.values.first.fetch(:source).first }
+      end
+      let(:first_source_line) { coverage.values.first.fetch(:source).first }
 
-        def invalid_byte_result(path)
-          SimpleCov::Result.new(
-            {path => {"lines" => [1]}},
-            filter_config: SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [], groups: {})
-          )
-        end
+      def invalid_byte_result(path)
+        SimpleCov::Result.new(
+          {path => {"lines" => [1]}},
+          filter_config: SimpleCov::Result::FilterConfig.new(filters: [], cover_filters: [], groups: {})
+        )
+      end
 
-        it "reports the one file it was given" do
-          expect(coverage.size).to eq 1
-        end
+      it "reports the one file it was given" do
+        expect(coverage.size).to eq 1
+      end
 
-        it "replaces the invalid bytes" do
-          expect(first_source_line).to eq("x = 1 # caf�")
-        end
+      it "replaces the invalid bytes" do
+        expect(first_source_line).to eq("x = 1 # caf�")
+      end
 
-        it "answers UTF-8 source" do
-          expect(first_source_line.encoding).to eq(Encoding::UTF_8)
-        end
+      it "answers UTF-8 source" do
+        expect(first_source_line.encoding).to eq(Encoding::UTF_8)
       end
     end
 

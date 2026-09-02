@@ -65,60 +65,60 @@ RSpec.describe SimpleCov::LinesClassifier do
 
         expect(classifier.classify(lines)).to match([be_irrelevant, be_irrelevant, be_irrelevant])
       end
+    end
 
-      describe ":nocov: blocks" do
-        let(:closed_block) { ["# :nocov:", "def hi", "end", "# :nocov:"] }
-        let(:reopened_block) do
-          ["# :nocov:", "puts 'Not relevant'", "# :nocov:", "puts 'Relevant again'",
-            "puts 'Still relevant'", "# :nocov:", "puts 'Not relevant till the end'", "puts 'Ditto'"]
-        end
-
-        it "determines :nocov: blocks are not-relevant" do
-          expect(classifier.classify(closed_block)).to match(Array.new(4) { be_irrelevant })
-        end
-
-        it "determines all lines after a non-closing :nocov: as not-relevant" do
-          expect(classifier.classify(reopened_block)).to match(
-            [be_irrelevant, be_irrelevant, be_irrelevant, be_relevant,
-              be_relevant, be_irrelevant, be_irrelevant, be_irrelevant]
-          )
-        end
+    describe "not-relevant :nocov: blocks" do
+      let(:closed_block) { ["# :nocov:", "def hi", "end", "# :nocov:"] }
+      let(:reopened_block) do
+        ["# :nocov:", "puts 'Not relevant'", "# :nocov:", "puts 'Relevant again'",
+          "puts 'Still relevant'", "# :nocov:", "puts 'Not relevant till the end'", "puts 'Ditto'"]
       end
 
-      describe "the disable line and enable line directives" do
-        let(:paired_block) do
-          ["puts 'before'", "# simplecov:disable line", "puts 'inside 1'",
-            "puts 'inside 2'", "# simplecov:enable line", "puts 'after'"]
-        end
-        let(:unclosed_block) do
-          ["puts 'before'", "# simplecov:disable", "puts 'after 1'", "puts 'after 2'"]
-        end
-        let(:inline_disable) do
-          ["puts 'kept'", "raise 'absurd' # simplecov:disable", "puts 'kept too'"]
-        end
-        let(:branch_only_block) do
-          ["# simplecov:disable branch", "puts 'still relevant'", "# simplecov:enable branch"]
-        end
+      it "determines :nocov: blocks are not-relevant" do
+        expect(classifier.classify(closed_block)).to match(Array.new(4) { be_irrelevant })
+      end
 
-        it "marks lines inside a paired disable/enable block as not-relevant" do
-          expect(classifier.classify(paired_block)).to match(
-            [be_relevant, be_irrelevant, be_irrelevant, be_irrelevant, be_irrelevant, be_relevant]
-          )
-        end
+      it "determines all lines after a non-closing :nocov: as not-relevant" do
+        expect(classifier.classify(reopened_block)).to match(
+          [be_irrelevant, be_irrelevant, be_irrelevant, be_relevant,
+            be_relevant, be_irrelevant, be_irrelevant, be_irrelevant]
+        )
+      end
+    end
 
-        it "treats an unclosed disable as running through end of file" do
-          expect(classifier.classify(unclosed_block)).to match(
-            [be_relevant, be_irrelevant, be_irrelevant, be_irrelevant]
-          )
-        end
+    describe "the not-relevant disable line and enable line directives" do
+      let(:paired_block) do
+        ["puts 'before'", "# simplecov:disable line", "puts 'inside 1'",
+          "puts 'inside 2'", "# simplecov:enable line", "puts 'after'"]
+      end
+      let(:unclosed_block) do
+        ["puts 'before'", "# simplecov:disable", "puts 'after 1'", "puts 'after 2'"]
+      end
+      let(:inline_disable) do
+        ["puts 'kept'", "raise 'absurd' # simplecov:disable", "puts 'kept too'"]
+      end
+      let(:branch_only_block) do
+        ["# simplecov:disable branch", "puts 'still relevant'", "# simplecov:enable branch"]
+      end
 
-        it "applies inline disable to only the trailing line" do
-          expect(classifier.classify(inline_disable)).to match([be_relevant, be_irrelevant, be_relevant])
-        end
+      it "marks lines inside a paired disable/enable block as not-relevant" do
+        expect(classifier.classify(paired_block)).to match(
+          [be_relevant, be_irrelevant, be_irrelevant, be_irrelevant, be_irrelevant, be_relevant]
+        )
+      end
 
-        it "does not affect line classification when only branch is disabled" do
-          expect(classifier.classify(branch_only_block)[1]).to be_relevant
-        end
+      it "treats an unclosed disable as running through end of file" do
+        expect(classifier.classify(unclosed_block)).to match(
+          [be_relevant, be_irrelevant, be_irrelevant, be_irrelevant]
+        )
+      end
+
+      it "applies inline disable to only the trailing line" do
+        expect(classifier.classify(inline_disable)).to match([be_relevant, be_irrelevant, be_relevant])
+      end
+
+      it "does not affect line classification when only branch is disabled" do
+        expect(classifier.classify(branch_only_block)[1]).to be_relevant
       end
     end
   end

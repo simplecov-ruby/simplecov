@@ -65,9 +65,7 @@ RSpec/DescribeClass:
 RSpec/SpecFilePathFormat:
   Exclude:
     # SimpleCov::CLI is one class, but its spec was far too slow to leave on
-    # one parallel worker, so the two heaviest subcommands have files of their
-    # own here. They still describe the class the directory is named for.
+    # one parallel worker, so the heaviest subcommands and the classes the CLI
+    # is built from have files of their own here. They still describe the
+    # class the directory is named for.
     - "spec/simple_cov/cli/**/*"
-
-RSpec/NestedGroups:
-  Max: 4 # TODO: Lower to 3

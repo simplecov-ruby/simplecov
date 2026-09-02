@@ -13,6 +13,20 @@ require "support/cli_context"
 require "support/git_fixture"
 require "tmpdir"
 
+RSpec.shared_context "with a tests report" do
+  let(:tmp) { Dir.mktmpdir("simplecov-cli-tests-spec-") }
+
+  def json_path = File.join(tmp, "coverage.json")
+
+  def result_file = "/abs/project/lib/result.rb"
+
+  def quiet_file = "/abs/project/lib/quiet.rb"
+
+  before { File.write(json_path, JSON.dump(payload)) }
+
+  after { FileUtils.remove_entry(tmp) }
+end
+
 RSpec.describe SimpleCov::CLI do
   include_context "a CLI"
 
@@ -181,100 +195,6 @@ RSpec.describe SimpleCov::CLI do
       run("serve", "--port", "foo")
 
       expect(stderr.string).to eq("simplecov serve: invalid argument: --port foo (run `simplecov help` for usage)\n")
-    end
-  end
-
-  describe SimpleCov::CLI::Git, mutant_expression: "SimpleCov::CLI::Git*" do
-    let(:tmp) { Dir.mktmpdir("simplecov-cli-git-spec-") }
-
-    after { FileUtils.rm_rf(tmp) }
-
-    def repo!(branch)
-      GitFixture.init_repo(tmp, branch: branch)
-      system("git", "-C", tmp, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
-    end
-
-    describe ".capture" do
-      context "when git complains" do
-        let(:captured) { described_class.capture("rev-parse", "--nope") }
-
-        before do
-          allow(Open3).to receive(:capture3).and_return(
-            ["", "  fatal: not a thing  \nhint: try something else\n",
-              instance_double(Process::Status, success?: false)]
-          )
-        end
-
-        it "answers the first line of the complaint, trimmed" do
-          expect(captured[1]).to eq("fatal: not a thing")
-        end
-
-        it "answers an unsuccessful run" do
-          expect(captured[2]).to be(false)
-        end
-      end
-
-      context "when git cannot be spawned" do
-        let(:captured) { described_class.capture("status") }
-
-        before { allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT, "git") }
-
-        it "answers nothing said on stdout" do
-          expect(captured[0]).to be_nil
-        end
-
-        it "carries the message" do
-          expect(captured[1]).to include("git")
-        end
-
-        it "answers an unsuccessful run" do
-          expect(captured[2]).to be(false)
-        end
-      end
-
-      it "answers nothing said when git said nothing" do
-        allow(Open3).to receive(:capture3).and_return(["out\n", "", instance_double(Process::Status, success?: true)])
-
-        expect(described_class.capture("rev-parse", "HEAD")).to eq(["out\n", "", true])
-      end
-    end
-
-    describe ".toplevel" do
-      it "answers the working tree's root, without the newline git adds" do
-        repo!("main")
-        expect(Dir.chdir(tmp) { described_class.toplevel }).to eq(File.realpath(tmp))
-      end
-
-      it "answers nothing outside a working tree" do
-        allow(described_class).to receive(:capture).and_return(["", "fatal: not a git repository", false])
-        expect(described_class.toplevel).to be_nil
-      end
-    end
-
-    describe ".default_base" do
-      it "resolves the branch origin's HEAD points at" do
-        repo!("trunk")
-        system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
-        system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
-          "refs/remotes/origin/trunk", exception: true)
-
-        expect(Dir.chdir(tmp) { described_class.default_base }).to eq("trunk")
-      end
-
-      it "falls back to main when no origin HEAD is recorded" do
-        repo!("main")
-        expect(Dir.chdir(tmp) { described_class.default_base }).to eq("main")
-      end
-    end
-
-    describe ".option_like_ref?" do
-      it "flags a ref git would parse as an option" do
-        expect(described_class.option_like_ref?("--output=x")).to be(true)
-      end
-
-      it "leaves a plain branch name alone" do
-        expect(described_class.option_like_ref?("main")).to be(false)
-      end
     end
   end
 
@@ -642,188 +562,6 @@ RSpec.describe SimpleCov::CLI do
 
     it "speaks days" do
       expect(described_class::Status.age_in_words(200_000)).to eq("2 days")
-    end
-  end
-
-  describe SimpleCov::CLI::CommandHelpers, mutant_expression: "SimpleCov::CLI::CommandHelpers*" do
-    let(:host) do
-      Module.new do
-        def self.name = "SimpleCov::CLI::Pretend"
-        extend SimpleCov::CLI::CommandHelpers
-      end
-    end
-
-    describe ".build_parser" do
-      it "wires --help into every parser it builds" do
-        expect { host.build_parser.parse(["--help"]) }
-          .to raise_error(SimpleCov::CLI::CommandHelpers::HelpRequested)
-      end
-
-      it "answers -h the same way" do
-        expect { host.build_parser.parse(["-h"]) }
-          .to raise_error(SimpleCov::CLI::CommandHelpers::HelpRequested)
-      end
-
-      it "yields the parser it is building to the command's own options" do
-        seen = nil
-
-        parser = host.build_parser { |own| seen = own }
-
-        expect(seen).to be(parser)
-      end
-
-      it "builds a parser for a command with no options of its own" do
-        expect(host.build_parser).to be_a(OptionParser)
-      end
-    end
-
-    describe ".quiet_option" do
-      it "declares the long form and its short alias, both setting :quiet" do
-        opts = {quiet: false}
-        parser = host.build_parser { |own| host.quiet_option(own, opts) }
-
-        parser.parse(["--quiet"])
-
-        expect(opts).to eq(quiet: true)
-      end
-    end
-
-    describe ".one?" do
-      subject(:helpers) { Module.new { extend SimpleCov::CLI::CommandHelpers } }
-
-      it "is true only for exactly one" do
-        expect(helpers.one?(1)).to be(true)
-      end
-
-      it "is false for none" do
-        expect(helpers.one?(0)).to be(false)
-      end
-
-      it "is false for several" do
-        expect(helpers.one?(2)).to be(false)
-      end
-    end
-
-    describe "#on_help" do
-      ["--help", "-h"].each do |flag|
-        it "raises HelpRequested for #{flag}" do
-          parser = host.build_parser
-          expect { parser.parse([flag]) }
-            .to raise_error(SimpleCov::CLI::CommandHelpers::HelpRequested)
-        end
-      end
-    end
-
-    describe "#command_name" do
-      it "names the command after the last segment of the module, downcased" do
-        expect(host.command_name).to eq("pretend")
-      end
-    end
-
-    describe "#parse_common" do
-      it "seeds the shared defaults" do
-        opts, = host.parse_common([])
-        expect(opts).to eq(input: SimpleCov::CLI.default_input, json: false, no_color: false)
-      end
-
-      it "lets a command's own defaults join the shared ones" do
-        opts, = host.parse_common([], threshold: 2.5)
-        expect(opts).to include(threshold: 2.5, json: false)
-      end
-
-      it "returns the positional arguments after the flags, in order" do
-        _opts, rest = host.parse_common(["--json", "first", "second"])
-        expect(rest).to eq(%w[first second])
-      end
-
-      it "reads the shared trio" do
-        opts, = host.parse_common(["--input", "cov.json", "--json", "--no-color"])
-        expect(opts).to include(input: "cov.json", json: true, no_color: true)
-      end
-
-      it "yields the parser so a command can add its own options" do
-        opts, = parse_only_mine
-
-        expect(opts).to include(mine: true)
-      end
-
-      it "yields the very options hash it answers" do
-        opts, = parse_only_mine
-
-        expect(yielded_options.first).to be(opts)
-      end
-
-      def yielded_options
-        @yielded_options ||= []
-      end
-
-      def parse_only_mine
-        host.parse_common(["--only-mine"]) do |parser, options|
-          yielded_options << options
-          parser.on("--only-mine") { options[:mine] = true }
-        end
-      end
-    end
-
-    describe "#stats_row" do
-      it "labels, aligns and counts the row" do
-        expect(host.stats_row("lines", "80.00%", 8, 10)).to eq("  lines:  80.00% (8 / 10)")
-      end
-
-      it "reads a count that carries trailing text" do
-        expect(host.stats_row("branches", "50.00%", "3 of them", "6 total")).to eq("  branches: 50.00% (3 / 6)")
-      end
-    end
-
-    describe "#recorded_contexts" do
-      let(:stderr) { StringIO.new }
-
-      it "answers the recorded contexts" do
-        contexts = %w[a_spec.rb:1 b_spec.rb:2]
-        expect(host.recorded_contexts({"contexts" => contexts}, {input: "cov.json"}, stderr)).to eq(contexts)
-      end
-
-      context "when nothing was recorded" do
-        it "answers nothing" do
-          expect(host.recorded_contexts({}, {input: "cov.json"}, stderr)).to be_nil
-        end
-
-        it "names the report it looked in" do
-          host.recorded_contexts({}, {input: "cov.json"}, stderr)
-
-          expect(stderr.string).to include("no test contexts recorded in cov.json")
-        end
-
-        it "points at the switch that records them" do
-          host.recorded_contexts({}, {input: "cov.json"}, stderr)
-
-          expect(stderr.string).to include("track_tests")
-        end
-      end
-
-      context "with a context list that is not strings" do
-        it "answers nothing" do
-          expect(host.recorded_contexts({"contexts" => [1, 2]}, {input: "cov.json"}, stderr)).to be_nil
-        end
-
-        it "says what the list should have held" do
-          host.recorded_contexts({"contexts" => [1, 2]}, {input: "cov.json"}, stderr)
-
-          expect(stderr.string).to include('"contexts" must be an array of strings')
-        end
-      end
-
-      context "with contexts that are not a list at all" do
-        it "answers nothing" do
-          expect(host.recorded_contexts({"contexts" => "a_spec.rb"}, {input: "cov.json"}, stderr)).to be_nil
-        end
-
-        it "says what the list should have held" do
-          host.recorded_contexts({"contexts" => "a_spec.rb"}, {input: "cov.json"}, stderr)
-
-          expect(stderr.string).to include('"contexts" must be an array of strings')
-        end
-      end
     end
   end
 
@@ -2864,7 +2602,8 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "tests subcommand", mutant_expression: ["SimpleCov::CLI::Tests*", "SimpleCov::CLI::CommandHelpers*"] do
-    let(:tmp) { Dir.mktmpdir("simplecov-cli-tests-spec-") }
+    include_context "with a tests report"
+
     let(:payload) do
       {
         "contexts" => ["spec/result_spec.rb:42", "spec/result_spec.rb:57"],
@@ -2874,16 +2613,6 @@ RSpec.describe SimpleCov::CLI do
         }
       }
     end
-
-    def json_path = File.join(tmp, "coverage.json")
-
-    def result_file = "/abs/project/lib/result.rb"
-
-    def quiet_file = "/abs/project/lib/quiet.rb"
-
-    before { File.write(json_path, JSON.dump(payload)) }
-
-    after { FileUtils.remove_entry(tmp) }
 
     it "succeeds with a bare invocation" do
       expect(run("tests", "--input", json_path)).to eq(0)
@@ -3266,175 +2995,125 @@ RSpec.describe SimpleCov::CLI do
         expect(tests.context_table({"contexts" => raw}, ["a"], {}, StringIO.new)).to eq(0 => 6)
       end
     end
+  end
 
-    describe "--redundant" do
-      let(:payload) do
-        {
-          "contexts" => ["spec/d_spec.rb:40", "spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30"],
-          "coverage" => {
-            result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"1" => "6", "2" => "4"}},
-            other_file => {"lines" => [1], "contexts" => {"3" => "1"}},
-            quiet_file => {"lines" => [1, nil]}
-          }
+  describe "tests subcommand --redundant", mutant_expression: ["SimpleCov::CLI::Tests*", "SimpleCov::CLI::CommandHelpers*"] do
+    include_context "with a tests report"
+
+    let(:payload) do
+      {
+        "contexts" => ["spec/d_spec.rb:40", "spec/a_spec.rb:10", "spec/b_spec.rb:20", "spec/c_spec.rb:30"],
+        "coverage" => {
+          result_file => {"lines" => [nil, 1, 2, 0], "contexts" => {"1" => "6", "2" => "4"}},
+          other_file => {"lines" => [1], "contexts" => {"3" => "1"}},
+          quiet_file => {"lines" => [1, nil]}
         }
+      }
+    end
+
+    def other_file = "/abs/project/lib/other.rb"
+
+    it "succeeds" do
+      expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
+    end
+
+    it "lists the tests whose covered lines other tests also cover" do
+      run("tests", "--input", json_path, "--redundant")
+
+      expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/d_spec.rb:40\n")
+    end
+
+    it "succeeds for a file" do
+      expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb")).to eq(0)
+    end
+
+    it "narrows to the redundant tests touching a file" do
+      run("tests", "--input", json_path, "--redundant", "lib/result.rb")
+
+      expect(stdout.string).to eq("spec/b_spec.rb:20\n")
+    end
+
+    context "with a line only unique tests cover" do
+      before { run("tests", "--input", json_path, "--redundant", "lib/result.rb:2") }
+
+      it "succeeds" do
+        expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb:2")).to eq(0)
       end
 
-      def other_file = "/abs/project/lib/other.rb"
+      it "answers an empty list" do
+        expect(stdout.string).to be_empty
+      end
+
+      it "notes it on stderr" do
+        expect(stderr.string).to eq("simplecov tests: no redundant test covers lib/result.rb:2\n")
+      end
+    end
+
+    it "lists both of two tests covering exactly the same lines" do
+      payload["coverage"][result_file]["contexts"] = {"1" => "6", "2" => "6"}
+      File.write(json_path, JSON.dump(payload))
+      run("tests", "--input", json_path, "--redundant")
+
+      expect(stdout.string).to eq("spec/a_spec.rb:10\nspec/b_spec.rb:20\nspec/d_spec.rb:40\n")
+    end
+
+    context "when every recorded test covers something uniquely" do
+      before do
+        File.write(json_path, JSON.dump(
+          "contexts" => ["spec/a_spec.rb:10", "spec/c_spec.rb:30"],
+          "coverage" => {result_file => {"lines" => [1, 1],
+                                         "contexts" => {"0" => "1", "1" => "2"}}}
+        ))
+        run("tests", "--input", json_path, "--redundant")
+      end
 
       it "succeeds" do
         expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
       end
 
-      it "lists the tests whose covered lines other tests also cover" do
+      it "answers an empty list" do
+        expect(stdout.string).to be_empty
+      end
+
+      it "notes it on stderr" do
+        expect(stderr.string)
+          .to eq("simplecov tests: no redundant tests, every recorded test covers at least one line uniquely\n")
+      end
+    end
+
+    context "when the contexts list is empty" do
+      before do
+        File.write(json_path, JSON.dump("contexts" => [], "coverage" => {quiet_file => {"lines" => [1, nil]}}))
         run("tests", "--input", json_path, "--redundant")
-
-        expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/d_spec.rb:40\n")
       end
 
-      it "succeeds for a file" do
-        expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb")).to eq(0)
+      it "succeeds" do
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
       end
 
-      it "narrows to the redundant tests touching a file" do
-        run("tests", "--input", json_path, "--redundant", "lib/result.rb")
-
-        expect(stdout.string).to eq("spec/b_spec.rb:20\n")
+      it "answers an empty list" do
+        expect(stdout.string).to be_empty
       end
 
-      context "with a line only unique tests cover" do
-        before { run("tests", "--input", json_path, "--redundant", "lib/result.rb:2") }
-
-        it "succeeds" do
-          expect(run("tests", "--input", json_path, "--redundant", "lib/result.rb:2")).to eq(0)
-        end
-
-        it "answers an empty list" do
-          expect(stdout.string).to be_empty
-        end
-
-        it "notes it on stderr" do
-          expect(stderr.string).to eq("simplecov tests: no redundant test covers lib/result.rb:2\n")
-        end
+      it "keeps the no-recording note" do
+        expect(stderr.string).to eq("simplecov tests: no tests recorded\n")
       end
+    end
 
-      it "lists both of two tests covering exactly the same lines" do
-        payload["coverage"][result_file]["contexts"] = {"1" => "6", "2" => "6"}
-        File.write(json_path, JSON.dump(payload))
-        run("tests", "--input", json_path, "--redundant")
+    it "succeeds under --json" do
+      expect(run("tests", "--input", json_path, "--redundant", "--json")).to eq(0)
+    end
 
-        expect(stdout.string).to eq("spec/a_spec.rb:10\nspec/b_spec.rb:20\nspec/d_spec.rb:40\n")
-      end
+    it "emits the redundant ids as a JSON array under --json" do
+      run("tests", "--input", json_path, "--redundant", "--json")
 
-      context "when every recorded test covers something uniquely" do
+      expect(JSON.parse(stdout.string)).to eq(["spec/b_spec.rb:20", "spec/d_spec.rb:40"])
+    end
+
+    [{"9" => "1"}, "junk"].each do |malformed|
+      context "with #{malformed.inspect} for a contexts table in the sweep" do
         before do
-          File.write(json_path, JSON.dump(
-            "contexts" => ["spec/a_spec.rb:10", "spec/c_spec.rb:30"],
-            "coverage" => {result_file => {"lines" => [1, 1],
-                                           "contexts" => {"0" => "1", "1" => "2"}}}
-          ))
-          run("tests", "--input", json_path, "--redundant")
-        end
-
-        it "succeeds" do
-          expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
-        end
-
-        it "answers an empty list" do
-          expect(stdout.string).to be_empty
-        end
-
-        it "notes it on stderr" do
-          expect(stderr.string)
-            .to eq("simplecov tests: no redundant tests, every recorded test covers at least one line uniquely\n")
-        end
-      end
-
-      context "when the contexts list is empty" do
-        before do
-          File.write(json_path, JSON.dump("contexts" => [], "coverage" => {quiet_file => {"lines" => [1, nil]}}))
-          run("tests", "--input", json_path, "--redundant")
-        end
-
-        it "succeeds" do
-          expect(run("tests", "--input", json_path, "--redundant")).to eq(0)
-        end
-
-        it "answers an empty list" do
-          expect(stdout.string).to be_empty
-        end
-
-        it "keeps the no-recording note" do
-          expect(stderr.string).to eq("simplecov tests: no tests recorded\n")
-        end
-      end
-
-      it "succeeds under --json" do
-        expect(run("tests", "--input", json_path, "--redundant", "--json")).to eq(0)
-      end
-
-      it "emits the redundant ids as a JSON array under --json" do
-        run("tests", "--input", json_path, "--redundant", "--json")
-
-        expect(JSON.parse(stdout.string)).to eq(["spec/b_spec.rb:20", "spec/d_spec.rb:40"])
-      end
-
-      [{"9" => "1"}, "junk"].each do |malformed|
-        context "with #{malformed.inspect} for a contexts table in the sweep" do
-          before do
-            payload["coverage"][other_file]["contexts"] = malformed
-            File.write(json_path, JSON.dump(payload))
-          end
-
-          it "errors" do
-            expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
-          end
-
-          it "treats it as invalid input" do
-            run("tests", "--input", json_path, "--redundant")
-
-            expect(stderr.string).to eq(
-              %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ) +
-              %[(entry for #{other_file} carries a malformed "contexts" table)\n]
-            )
-          end
-        end
-      end
-
-      context "with a non-object coverage section" do
-        before { File.write(json_path, JSON.dump(payload.merge("coverage" => "junk"))) }
-
-        it "errors on the bare sweep" do
-          expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
-        end
-
-        it "treats it as invalid input" do
-          run("tests", "--input", json_path, "--redundant")
-
-          expect(stderr.string).to eq(
-            %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
-          )
-        end
-      end
-
-      context "with no coverage section at all" do
-        before { File.write(json_path, JSON.dump({"contexts" => payload["contexts"]})) }
-
-        it "errors on the bare sweep" do
-          expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
-        end
-
-        it "treats it like any other non-object one" do
-          run("tests", "--input", json_path, "--redundant")
-
-          expect(stderr.string).to eq(
-            %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
-          )
-        end
-      end
-
-      context "with a wrong-typed entry in the sweep" do
-        before do
-          payload["coverage"][quiet_file] = "junk"
+          payload["coverage"][other_file]["contexts"] = malformed
           File.write(json_path, JSON.dump(payload))
         end
 
@@ -3447,82 +3126,134 @@ RSpec.describe SimpleCov::CLI do
 
           expect(stderr.string).to eq(
             %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ) +
-            %((entry for #{quiet_file} must be an object)\n)
+            %[(entry for #{other_file} carries a malformed "contexts" table)\n]
           )
         end
       end
+    end
 
-      describe "sweep helpers" do
-        let(:redundancy) { SimpleCov::CLI::Tests::Redundancy }
+    context "with a non-object coverage section" do
+      before { File.write(json_path, JSON.dump(payload.merge("coverage" => "junk"))) }
 
-        {
-          {} => 0,
-          {0 => 0b1} => 0b1,
-          {0 => 0b0110, 1 => 0b0100, 2 => 0b1100} => 0b1010,
-          {0 => 0b1, 1 => 0b1, 2 => 0b1} => 0
-        }.each do |bitmaps, lone|
-          it "extracts the bits set in exactly one of #{bitmaps.inspect}" do
-            expect(redundancy.lone_bits(bitmaps)).to eq(lone)
-          end
-        end
+      it "errors on the bare sweep" do
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+      end
 
-        it "credits a uniquely covered bit to its owning context" do
-          expect(redundancy.unique_owners([{0 => 0b11, 1 => 0b10}], 3)).to eq([true, false, false])
-        end
+      it "treats it as invalid input" do
+        run("tests", "--input", json_path, "--redundant")
 
-        it "credits each file's own uniquely covered bit" do
-          expect(redundancy.unique_owners([{0 => 0b1}, {1 => 0b10}], 2)).to eq([true, true])
-        end
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+        )
+      end
+    end
 
-        it "decodes a table arriving as a Hash subclass" do
-          raw = Class.new(Hash).new
-          raw["0"] = "6"
-          expect(redundancy.swept_table({"contexts" => raw}, ["spec/a_spec.rb:1"])).to eq(0 => 6)
-        end
+    context "with no coverage section at all" do
+      before { File.write(json_path, JSON.dump({"contexts" => payload["contexts"]})) }
 
-        it "complains about the table, not the entry, for a Hash-subclass entry" do
-          entry = Class.new(Hash).new
+      it "errors on the bare sweep" do
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+      end
 
-          expect(redundancy.complaint("/p.rb", entry))
-            .to eq(%(entry for /p.rb carries a malformed "contexts" table))
-        end
+      it "treats it like any other non-object one" do
+        run("tests", "--input", json_path, "--redundant")
 
-        it "complains about the entry for anything that is not a Hash at all" do
-          expect(redundancy.complaint("/p.rb", "junk")).to eq("entry for /p.rb must be an object")
-        end
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ("coverage" must be an object)\n)
+        )
+      end
+    end
 
-        it "answers nothing for an invalid document" do
-          expect(redundancy.invalid({input: nil}, StringIO.new, "why")).to be_nil
-        end
+    context "with a wrong-typed entry in the sweep" do
+      before do
+        payload["coverage"][quiet_file] = "junk"
+        File.write(json_path, JSON.dump(payload))
+      end
 
-        it "renders a nil input path rather than raising" do
-          io = StringIO.new
-          redundancy.invalid({input: nil}, io, "why")
+      it "errors" do
+        expect(run("tests", "--input", json_path, "--redundant")).to eq(1)
+      end
 
-          expect(io.string).to eq(%(simplecov tests: input file nil isn't valid JSON (why)\n))
-        end
+      it "treats it as invalid input" do
+        run("tests", "--input", json_path, "--redundant")
 
-        it "sweeps a document built from Hash subclasses" do
-          subclass = Class.new(Hash)
-          raw = subclass.new.merge!("0" => "1")
-          entry = subclass.new.merge!("contexts" => raw)
-          coverage = subclass.new.merge!("/f.rb" => entry)
-          expect(redundancy.sweep_tables({"coverage" => coverage}, ["a"], {input: "x"}, StringIO.new)).to eq([{0 => 1}])
-        end
+        expect(stderr.string).to eq(
+          %(simplecov tests: input file #{json_path.inspect} isn't valid JSON ) +
+          %((entry for #{quiet_file} must be an object)\n)
+        )
+      end
+    end
 
-        it "answers sorted ids regardless of the recording order" do
-          document = {"coverage" => {"/f.rb" => {"contexts" => {"2" => "1"}}}}
-          contexts = ["z_spec.rb:9", "m_spec.rb:5", "a_spec.rb:1"]
-          expect(redundancy.redundant_ids(document, contexts, {input: "x"}, StringIO.new))
-            .to eq(["m_spec.rb:5", "z_spec.rb:9"])
+    describe "sweep helpers" do
+      let(:redundancy) { SimpleCov::CLI::Tests::Redundancy }
+
+      {
+        {} => 0,
+        {0 => 0b1} => 0b1,
+        {0 => 0b0110, 1 => 0b0100, 2 => 0b1100} => 0b1010,
+        {0 => 0b1, 1 => 0b1, 2 => 0b1} => 0
+      }.each do |bitmaps, lone|
+        it "extracts the bits set in exactly one of #{bitmaps.inspect}" do
+          expect(redundancy.lone_bits(bitmaps)).to eq(lone)
         end
       end
 
-      it "documents --redundant in the usage text" do
-        run("help")
-
-        expect(stdout.string).to include("--redundant")
+      it "credits a uniquely covered bit to its owning context" do
+        expect(redundancy.unique_owners([{0 => 0b11, 1 => 0b10}], 3)).to eq([true, false, false])
       end
+
+      it "credits each file's own uniquely covered bit" do
+        expect(redundancy.unique_owners([{0 => 0b1}, {1 => 0b10}], 2)).to eq([true, true])
+      end
+
+      it "decodes a table arriving as a Hash subclass" do
+        raw = Class.new(Hash).new
+        raw["0"] = "6"
+        expect(redundancy.swept_table({"contexts" => raw}, ["spec/a_spec.rb:1"])).to eq(0 => 6)
+      end
+
+      it "complains about the table, not the entry, for a Hash-subclass entry" do
+        entry = Class.new(Hash).new
+
+        expect(redundancy.complaint("/p.rb", entry))
+          .to eq(%(entry for /p.rb carries a malformed "contexts" table))
+      end
+
+      it "complains about the entry for anything that is not a Hash at all" do
+        expect(redundancy.complaint("/p.rb", "junk")).to eq("entry for /p.rb must be an object")
+      end
+
+      it "answers nothing for an invalid document" do
+        expect(redundancy.invalid({input: nil}, StringIO.new, "why")).to be_nil
+      end
+
+      it "renders a nil input path rather than raising" do
+        io = StringIO.new
+        redundancy.invalid({input: nil}, io, "why")
+
+        expect(io.string).to eq(%(simplecov tests: input file nil isn't valid JSON (why)\n))
+      end
+
+      it "sweeps a document built from Hash subclasses" do
+        subclass = Class.new(Hash)
+        raw = subclass.new.merge!("0" => "1")
+        entry = subclass.new.merge!("contexts" => raw)
+        coverage = subclass.new.merge!("/f.rb" => entry)
+        expect(redundancy.sweep_tables({"coverage" => coverage}, ["a"], {input: "x"}, StringIO.new)).to eq([{0 => 1}])
+      end
+
+      it "answers sorted ids regardless of the recording order" do
+        document = {"coverage" => {"/f.rb" => {"contexts" => {"2" => "1"}}}}
+        contexts = ["z_spec.rb:9", "m_spec.rb:5", "a_spec.rb:1"]
+        expect(redundancy.redundant_ids(document, contexts, {input: "x"}, StringIO.new))
+          .to eq(["m_spec.rb:5", "z_spec.rb:9"])
+      end
+    end
+
+    it "documents --redundant in the usage text" do
+      run("help")
+
+      expect(stdout.string).to include("--redundant")
     end
   end
 
@@ -4008,163 +3739,163 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to include("no source for lib/code.rb")
       end
     end
+  end
 
-    describe SimpleCov::CLI::Show::Annotator do
-      let(:annotator) { described_class }
-      let(:out) { StringIO.new }
+  describe SimpleCov::CLI::Show::Annotator, mutant_expression: "SimpleCov::CLI::Show::Annotator*" do
+    let(:annotator) { described_class }
+    let(:out) { StringIO.new }
 
-      describe "#count_width" do
-        it "measures the widest hit count" do
-          expect(annotator.count_width({"lines" => [1, 100, 5]})).to eq(3)
-        end
-
-        it "ignores the lines carrying no count at all" do
-          expect(annotator.count_width({"lines" => [nil, 7, nil]})).to eq(1)
-        end
-
-        it "falls back to a single column when nothing is counted" do
-          expect(annotator.count_width({"lines" => [nil, nil]})).to eq(1)
-        end
-
-        it "falls back to a single column for no lines at all" do
-          expect(annotator.count_width({"lines" => []})).to eq(1)
-        end
+    describe "#count_width" do
+      it "measures the widest hit count" do
+        expect(annotator.count_width({"lines" => [1, 100, 5]})).to eq(3)
       end
 
-      describe "#missed_line_of" do
-        it "reads a zero-hit item's reported line" do
-          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 0})).to eq(4)
-        end
-
-        it "prefers the reported line to the starting one" do
-          expect(annotator.missed_line_of({"report_line" => 4, "start_line" => 9, "coverage" => 0})).to eq(4)
-        end
-
-        it "falls back to the starting line" do
-          expect(annotator.missed_line_of({"start_line" => 9, "coverage" => 0})).to eq(9)
-        end
-
-        it "passes over an item that was hit" do
-          expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 1})).to be_nil
-        end
-
-        [
-          ["a count that is nothing", {"report_line" => 4, "coverage" => nil}],
-          ["a count that is a string", {"report_line" => 4, "coverage" => "0"}],
-          ["no count at all", {"report_line" => 4}],
-          ["a line that is a string", {"report_line" => "4", "coverage" => 0}],
-          ["no line at all", {"coverage" => 0}],
-          ["a string in place of the item", "junk"],
-          ["nothing in place of the item", nil],
-          ["a list in place of the item", [{"report_line" => 4, "coverage" => 0}]]
-        ].each do |description, item|
-          it "passes over an item with #{description}" do
-            expect(annotator.missed_line_of(item)).to be_nil
-          end
-        end
+      it "ignores the lines carrying no count at all" do
+        expect(annotator.count_width({"lines" => [nil, 7, nil]})).to eq(1)
       end
 
-      describe "#each_missed" do
-        it "yields the line of every missed item and no other" do
-          items = [{"report_line" => 2, "coverage" => 0}, {"report_line" => 3, "coverage" => 1},
-            {"report_line" => 5, "coverage" => 0}]
-
-          expect { |probe| annotator.each_missed(items, &probe) }.to yield_successive_args(2, 5)
-        end
-
-        [["nothing", nil], ["a string", "junk"], ["an empty list", []]].each do |description, items|
-          it "yields nothing for #{description} to walk" do
-            expect { |probe| annotator.each_missed(items, &probe) }.not_to yield_control
-          end
-        end
+      it "falls back to a single column when nothing is counted" do
+        expect(annotator.count_width({"lines" => [nil, nil]})).to eq(1)
       end
 
-      describe "#missed_lines" do
-        it "numbers the zero-hit lines from one" do
-          expect(annotator.missed_lines({"lines" => [0, 1, 0, nil]})).to eq([1, 3])
-        end
+      it "falls back to a single column for no lines at all" do
+        expect(annotator.count_width({"lines" => []})).to eq(1)
+      end
+    end
 
-        it "passes over the lines that carry no count" do
-          expect(annotator.missed_lines({"lines" => [nil, nil]})).to be_empty
-        end
-
-        it "passes over a zero that is no count" do
-          expect(annotator.missed_lines({"lines" => [0.0]})).to be_empty
-        end
+    describe "#missed_line_of" do
+      it "reads a zero-hit item's reported line" do
+        expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 0})).to eq(4)
       end
 
-      describe "#call" do
-        it "leaves the gutter blank past the end of the counts" do
-          annotator.call(%w[one two], {"lines" => [1], "branches" => [], "methods" => []}, out, color: false)
-
-          expect(out.string).to eq("1  1  one\n2     two\n")
-        end
-
-        it "paints the caret as well as the count" do
-          annotator.call(%w[one], {"lines" => [0], "branches" => [], "methods" => []}, out, color: true)
-
-          expect(out.string).to eq("1  \e[31m0\e[0m  one\n      \e[31m^ missed\e[0m\n")
-        end
+      it "prefers the reported line to the starting one" do
+        expect(annotator.missed_line_of({"report_line" => 4, "start_line" => 9, "coverage" => 0})).to eq(4)
       end
 
-      describe "#row" do
-        def widths = {number: 2, count: 3}
-
-        it "right-aligns the number and the count in their columns" do
-          expect(annotator.row(7, 42, "code", widths, false)).to eq(" 7   42  code")
-        end
-
-        it "leaves the count column blank for a line that carries none" do
-          expect(annotator.row(7, nil, "code", widths, false)).to eq(" 7       code")
-        end
-
-        it "leaves the column blank for a count that is no number" do
-          expect(annotator.row(7, "3", "code", widths, false)).to eq(" 7       code")
-        end
-
-        it "trims a row whose source line is empty" do
-          expect(annotator.row(7, nil, "", widths, false)).to eq(" 7")
-        end
-
-        it "paints a missed count red, after padding" do
-          expect(annotator.row(7, 0, "code", widths, true)).to eq(" 7  \e[31m  0\e[0m  code")
-        end
-
-        it "paints a hit count green, after padding" do
-          expect(annotator.row(7, 1, "code", widths, true)).to eq(" 7  \e[32m  1\e[0m  code")
-        end
-
-        it "leaves a blank count unpainted" do
-          expect(annotator.row(7, nil, "code", widths, true)).to eq(" 7       code")
-        end
+      it "falls back to the starting line" do
+        expect(annotator.missed_line_of({"start_line" => 9, "coverage" => 0})).to eq(9)
       end
 
-      describe "#emit" do
-        def widths = {number: 2, count: 3}
+      it "passes over an item that was hit" do
+        expect(annotator.missed_line_of({"report_line" => 4, "coverage" => 1})).to be_nil
+      end
 
-        it "prints the row alone when nothing is missed on it" do
-          annotator.emit(out, " 7   42  code", [], widths, false)
-
-          expect(out.string).to eq(" 7   42  code\n")
+      [
+        ["a count that is nothing", {"report_line" => 4, "coverage" => nil}],
+        ["a count that is a string", {"report_line" => 4, "coverage" => "0"}],
+        ["no count at all", {"report_line" => 4}],
+        ["a line that is a string", {"report_line" => "4", "coverage" => 0}],
+        ["no line at all", {"coverage" => 0}],
+        ["a string in place of the item", "junk"],
+        ["nothing in place of the item", nil],
+        ["a list in place of the item", [{"report_line" => 4, "coverage" => 0}]]
+      ].each do |description, item|
+        it "passes over an item with #{description}" do
+          expect(annotator.missed_line_of(item)).to be_nil
         end
+      end
+    end
 
-        it "points a caret at the source column under the row" do
-          annotator.emit(out, " 7    0  code", ["missed"], widths, false)
+    describe "#each_missed" do
+      it "yields the line of every missed item and no other" do
+        items = [{"report_line" => 2, "coverage" => 0}, {"report_line" => 3, "coverage" => 1},
+          {"report_line" => 5, "coverage" => 0}]
 
-          expect(out.string).to eq(" 7    0  code\n         ^ missed\n")
+        expect { |probe| annotator.each_missed(items, &probe) }.to yield_successive_args(2, 5)
+      end
+
+      [["nothing", nil], ["a string", "junk"], ["an empty list", []]].each do |description, items|
+        it "yields nothing for #{description} to walk" do
+          expect { |probe| annotator.each_missed(items, &probe) }.not_to yield_control
         end
+      end
+    end
 
-        it "joins a line's labels on the one caret" do
-          annotator.emit(out, " 7    0  code", ["missed", "branch missed"], widths, false)
+    describe "#missed_lines" do
+      it "numbers the zero-hit lines from one" do
+        expect(annotator.missed_lines({"lines" => [0, 1, 0, nil]})).to eq([1, 3])
+      end
 
-          expect(out.string).to include("^ missed, branch missed\n")
-        end
+      it "passes over the lines that carry no count" do
+        expect(annotator.missed_lines({"lines" => [nil, nil]})).to be_empty
+      end
 
-        it "paints the caret line red" do
-          annotator.emit(out, " 7    0  code", ["missed"], widths, true)
+      it "passes over a zero that is no count" do
+        expect(annotator.missed_lines({"lines" => [0.0]})).to be_empty
+      end
+    end
 
-          expect(out.string).to include("\e[31m^ missed\e[0m")
-        end
+    describe "#call" do
+      it "leaves the gutter blank past the end of the counts" do
+        annotator.call(%w[one two], {"lines" => [1], "branches" => [], "methods" => []}, out, color: false)
+
+        expect(out.string).to eq("1  1  one\n2     two\n")
+      end
+
+      it "paints the caret as well as the count" do
+        annotator.call(%w[one], {"lines" => [0], "branches" => [], "methods" => []}, out, color: true)
+
+        expect(out.string).to eq("1  \e[31m0\e[0m  one\n      \e[31m^ missed\e[0m\n")
+      end
+    end
+
+    describe "#row" do
+      def widths = {number: 2, count: 3}
+
+      it "right-aligns the number and the count in their columns" do
+        expect(annotator.row(7, 42, "code", widths, false)).to eq(" 7   42  code")
+      end
+
+      it "leaves the count column blank for a line that carries none" do
+        expect(annotator.row(7, nil, "code", widths, false)).to eq(" 7       code")
+      end
+
+      it "leaves the column blank for a count that is no number" do
+        expect(annotator.row(7, "3", "code", widths, false)).to eq(" 7       code")
+      end
+
+      it "trims a row whose source line is empty" do
+        expect(annotator.row(7, nil, "", widths, false)).to eq(" 7")
+      end
+
+      it "paints a missed count red, after padding" do
+        expect(annotator.row(7, 0, "code", widths, true)).to eq(" 7  \e[31m  0\e[0m  code")
+      end
+
+      it "paints a hit count green, after padding" do
+        expect(annotator.row(7, 1, "code", widths, true)).to eq(" 7  \e[32m  1\e[0m  code")
+      end
+
+      it "leaves a blank count unpainted" do
+        expect(annotator.row(7, nil, "code", widths, true)).to eq(" 7       code")
+      end
+    end
+
+    describe "#emit" do
+      def widths = {number: 2, count: 3}
+
+      it "prints the row alone when nothing is missed on it" do
+        annotator.emit(out, " 7   42  code", [], widths, false)
+
+        expect(out.string).to eq(" 7   42  code\n")
+      end
+
+      it "points a caret at the source column under the row" do
+        annotator.emit(out, " 7    0  code", ["missed"], widths, false)
+
+        expect(out.string).to eq(" 7    0  code\n         ^ missed\n")
+      end
+
+      it "joins a line's labels on the one caret" do
+        annotator.emit(out, " 7    0  code", ["missed", "branch missed"], widths, false)
+
+        expect(out.string).to include("^ missed, branch missed\n")
+      end
+
+      it "paints the caret line red" do
+        annotator.emit(out, " 7    0  code", ["missed"], widths, true)
+
+        expect(out.string).to include("\e[31m^ missed\e[0m")
       end
     end
   end
@@ -6325,23 +6056,6 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to eq(whole_report)
       end
 
-      context "with more than one file in a category" do
-        let(:listed) do
-          File.write(input, JSON.dump("coverage" => {"lib/zebra.rb" => {"lines" => [0]},
-                                                     "lib/apple.rb" => {"lines" => [0]}}))
-          ok!(run_dead_code)
-          stdout.string.lines.grep(/\.rb:/).map(&:strip)
-        end
-
-        it "lists the first in a settled order" do
-          expect(listed.first).to start_with("lib/apple.rb:")
-        end
-
-        it "lists the last after it" do
-          expect(listed.last).to start_with("lib/zebra.rb:")
-        end
-      end
-
       it "prints neither heading nor blank line for a category with nothing in it" do
         File.write(input, JSON.dump("coverage" => {"lib/dead.rb" => {"lines" => [0]}}))
 
@@ -6364,6 +6078,25 @@ RSpec.describe SimpleCov::CLI do
         ok!(run_dead_code("--untested-in-production"))
 
         expect(stdout.string).to end_with("No untested production code found.\n")
+      end
+    end
+
+    context "with more than one file in a report category" do
+      let(:listed) do
+        File.write(input, JSON.dump("coverage" => {"lib/zebra.rb" => {"lines" => [0]},
+                                                   "lib/apple.rb" => {"lines" => [0]}}))
+        ok!(run_dead_code)
+        stdout.string.lines.grep(/\.rb:/).map(&:strip)
+      end
+
+      before { write_production(coverage: {}) }
+
+      it "lists the first in a settled order" do
+        expect(listed.first).to start_with("lib/apple.rb:")
+      end
+
+      it "lists the last after it" do
+        expect(listed.last).to start_with("lib/zebra.rb:")
       end
     end
 
@@ -6491,25 +6224,25 @@ RSpec.describe SimpleCov::CLI do
         expect(stderr.string).to eq("simplecov dead-code: #{absent} not found\n")
       end
 
-      context "with a production file it could not read" do
-        before do
-          File.write(production_path, "not json at all")
-          exited!(1, run_dead_code)
-        end
-
-        it "reports it under its own name" do
-          expect(stderr.string).to start_with("simplecov dead-code:")
-        end
-
-        it "keeps the raw exception out of the message" do
-          expect(stderr.string).not_to include("#<")
-        end
-      end
-
       it "refuses a stray positional argument, naming the first one" do
         exited!(1, run_dead_code("stray", "another"))
 
         expect(stderr.string).to eq("simplecov dead-code: unexpected argument \"stray\"\n")
+      end
+    end
+
+    context "with a production file it could not read" do
+      before do
+        File.write(production_path, "not json at all")
+        exited!(1, run_dead_code)
+      end
+
+      it "reports it under its own name" do
+        expect(stderr.string).to start_with("simplecov dead-code:")
+      end
+
+      it "keeps the raw exception out of the message" do
+        expect(stderr.string).not_to include("#<")
       end
     end
 
@@ -8537,34 +8270,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "preparing the report" do
-      def preparer = described_class::Serve::ReportPreparer
-
-      context "when it builds the index" do
-        let(:formatter) { instance_double(SimpleCov::Formatter::HTMLFormatter) }
-        let(:built) do
-          allow(preparer).to receive(:require_relative)
-          allow(SimpleCov::Formatter::HTMLFormatter).to receive(:new).and_return(formatter)
-          allow(formatter).to receive(:format_from_json).and_return("report")
-          preparer.send(:build_index, "cov/coverage.json", "cov")
-        end
-
-        it "reports nothing" do
-          expect(built).to be_nil
-        end
-
-        it "loads the HTML formatter" do
-          built
-
-          expect(preparer).to have_received(:require_relative).with("../../formatter/html_formatter")
-        end
-
-        it "hands the JSON to it" do
-          built
-
-          expect(formatter).to have_received(:format_from_json).with("cov/coverage.json", "cov")
-        end
-      end
-
       it "answers nothing when the index is already there" do
         FileUtils.mkdir_p(tmp)
         File.write(File.join(tmp, "index.html"), "existing")
@@ -8607,6 +8312,34 @@ RSpec.describe SimpleCov::CLI do
 
         expect(preparer.call(tmp))
           .to match(/\Acannot build index\.html from #{Regexp.escape(json_path)}: \S/)
+      end
+    end
+
+    def preparer = described_class::Serve::ReportPreparer
+
+    context "when the report preparer builds the index" do
+      let(:formatter) { instance_double(SimpleCov::Formatter::HTMLFormatter) }
+      let(:built) do
+        allow(preparer).to receive(:require_relative)
+        allow(SimpleCov::Formatter::HTMLFormatter).to receive(:new).and_return(formatter)
+        allow(formatter).to receive(:format_from_json).and_return("report")
+        preparer.send(:build_index, "cov/coverage.json", "cov")
+      end
+
+      it "reports nothing" do
+        expect(built).to be_nil
+      end
+
+      it "loads the HTML formatter" do
+        built
+
+        expect(preparer).to have_received(:require_relative).with("../../formatter/html_formatter")
+      end
+
+      it "hands the JSON to it" do
+        built
+
+        expect(formatter).to have_received(:format_from_json).with("cov/coverage.json", "cov")
       end
     end
 
@@ -8675,25 +8408,6 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "binding the socket" do
-      context "when it cannot bind" do
-        let(:err) { StringIO.new }
-        let(:status) do
-          allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE)
-          described_class::Serve.send(:with_server, {host: "127.0.0.1", port: 8080}, err) { 0 }
-        end
-
-        it "answers a failing status" do
-          expect(status).to eq(1)
-        end
-
-        it "reports the host, the port, and what the system said" do
-          status
-
-          expect(err.string).to eq("simplecov serve: cannot bind to 127.0.0.1:8080 " \
-                                   "(#{Errno::EADDRINUSE.new.message})\n")
-        end
-      end
-
       it "answers what the block answered" do
         allow(TCPServer).to receive(:new).and_return(instance_double(TCPServer, close: nil))
 
@@ -8706,6 +8420,25 @@ RSpec.describe SimpleCov::CLI do
         described_class::Serve.send(:with_server, {host: "::1", port: 0}, StringIO.new) { 7 }
 
         expect(server).to have_received(:close)
+      end
+    end
+
+    context "when it cannot bind the socket" do
+      let(:err) { StringIO.new }
+      let(:status) do
+        allow(TCPServer).to receive(:new).and_raise(Errno::EADDRINUSE)
+        described_class::Serve.send(:with_server, {host: "127.0.0.1", port: 8080}, err) { 0 }
+      end
+
+      it "answers a failing status" do
+        expect(status).to eq(1)
+      end
+
+      it "reports the host, the port, and what the system said" do
+        status
+
+        expect(err.string).to eq("simplecov serve: cannot bind to 127.0.0.1:8080 " \
+                                 "(#{Errno::EADDRINUSE.new.message})\n")
       end
     end
 
