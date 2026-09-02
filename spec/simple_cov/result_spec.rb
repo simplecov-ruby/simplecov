@@ -199,35 +199,35 @@ RSpec.describe SimpleCov::Result do
 
           expect(mapped.to_hash["t"]["contexts"]).to eq("version" => 1, "contexts" => [], "files" => {})
         end
+      end
 
-        context "when loaded back with from_hash" do
-          let(:dumped_result) do
-            described_class.from_hash(result.to_hash).first
-          end
+      context "when dumped with to_hash and loaded back with from_hash" do
+        let(:dumped_result) do
+          described_class.from_hash(result.to_hash).first
+        end
 
-          it "has 3 source files" do
-            expect(dumped_result.source_files.count).to eq(result.source_files.count)
-          end
+        it "has 3 source files" do
+          expect(dumped_result.source_files.count).to eq(result.source_files.count)
+        end
 
-          it "has the same covered_percent" do
-            expect(dumped_result.covered_percent).to eq(result.covered_percent)
-          end
+        it "has the same covered_percent" do
+          expect(dumped_result.covered_percent).to eq(result.covered_percent)
+        end
 
-          it "has the same covered_percentages" do
-            expect(dumped_result.covered_percentages).to eq(result.covered_percentages)
-          end
+        it "has the same covered_percentages" do
+          expect(dumped_result.covered_percentages).to eq(result.covered_percentages)
+        end
 
-          it "has the same timestamp" do
-            expect(dumped_result.created_at.to_i).to eq(result.created_at.to_i)
-          end
+        it "has the same timestamp" do
+          expect(dumped_result.created_at.to_i).to eq(result.created_at.to_i)
+        end
 
-          it "has the same command_name" do
-            expect(dumped_result.command_name).to eq(result.command_name)
-          end
+        it "has the same command_name" do
+          expect(dumped_result.command_name).to eq(result.command_name)
+        end
 
-          it "has the same original_result" do
-            expect(dumped_result.original_result).to eq(result.original_result)
-          end
+        it "has the same original_result" do
+          expect(dumped_result.original_result).to eq(result.original_result)
         end
       end
     end

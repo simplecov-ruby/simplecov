@@ -935,25 +935,28 @@ RSpec.describe SimpleCov::ResultMerger do
 
           expect(stderr).to be_empty
         end
+      end
 
-        context "when we say ignore_timeout: true" do
-          let(:merge) do
-            result_hash = nil
-            stderr = capture_stderr do
-              result_hash = described_class.merge_and_store(
-                resultset1_path, resultset2_path, ignore_timeout: true
-              ).to_hash
-            end
-            [result_hash, stderr]
+      context "when 1 resultset is outdated and we say ignore_timeout: true" do
+        let(:first_result) { outdated(super()) }
+        let(:merge) do
+          result_hash = nil
+          stderr = capture_stderr do
+            result_hash = described_class.merge_and_store(
+              resultset1_path, resultset2_path, ignore_timeout: true
+            ).to_hash
           end
+          [result_hash, stderr]
+        end
+        let(:result_hash) { merge.first }
+        let(:stderr) { merge.last }
 
-          it "includes it" do
-            expect_resultset_1_and_2_merged(result_hash)
-          end
+        it "includes it" do
+          expect_resultset_1_and_2_merged(result_hash)
+        end
 
-          it "says nothing" do
-            expect(stderr).to be_empty
-          end
+        it "says nothing" do
+          expect(stderr).to be_empty
         end
       end
 

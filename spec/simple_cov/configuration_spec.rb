@@ -1957,6 +1957,7 @@ RSpec.describe SimpleCov::Configuration do
 
     describe "#minimum_coverage_by_file" do
       before { allow(SimpleCov::Deprecation).to receive(:warn) }
+      after { config.clear_coverage_criteria }
 
       it_behaves_like "setting coverage expectations", :minimum_coverage_by_file
 
@@ -1969,33 +1970,31 @@ RSpec.describe SimpleCov::Configuration do
         ))
       end
 
+      context "with Symbol-keyed defaults beside String-keyed overrides" do
+        before { config.minimum_coverage_by_file :line => 70, "app/critical.rb" => 100 }
+
+        it "reads the Symbol keys as the default" do
+          expect(config.minimum_coverage_by_file).to eq line: 70
+        end
+
+        it "reads the String keys as overrides" do
+          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
+        end
+      end
+
+      context "with a Numeric override alone" do
+        before { config.minimum_coverage_by_file "app/critical.rb" => 100 }
+
+        it "sets no default" do
+          expect(config.minimum_coverage_by_file).to eq({})
+        end
+
+        it "normalizes it into the primary criterion" do
+          expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
+        end
+      end
+
       context "with per-path overrides" do
-        after { config.clear_coverage_criteria }
-
-        context "with Symbol-keyed defaults beside String-keyed overrides" do
-          before { config.minimum_coverage_by_file :line => 70, "app/critical.rb" => 100 }
-
-          it "reads the Symbol keys as the default" do
-            expect(config.minimum_coverage_by_file).to eq line: 70
-          end
-
-          it "reads the String keys as overrides" do
-            expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
-          end
-        end
-
-        context "with a Numeric override alone" do
-          before { config.minimum_coverage_by_file "app/critical.rb" => 100 }
-
-          it "sets no default" do
-            expect(config.minimum_coverage_by_file).to eq({})
-          end
-
-          it "normalizes it into the primary criterion" do
-            expect(config.minimum_coverage_by_file_overrides).to eq("app/critical.rb" => {line: 100})
-          end
-        end
-
         it "accepts a per-criterion Hash as an override value" do
           config.enable_coverage :branch
           config.minimum_coverage_by_file "app/critical.rb" => {line: 100, branch: 90}
