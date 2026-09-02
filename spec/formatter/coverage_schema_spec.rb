@@ -5,8 +5,10 @@ require "json"
 require "json_schemer"
 
 describe "coverage.json schema" do
-  let(:schema_path) { File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__) }
-  let(:alias_path) { File.expand_path("../../schemas/coverage.schema.json", __dir__) }
+  def schema_path = File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__)
+
+  def alias_path = File.expand_path("../../schemas/coverage.schema.json", __dir__)
+
   let(:schema_doc) { JSON.parse(File.read(schema_path)) }
   let(:alias_doc) { JSON.parse(File.read(alias_path)) }
   let(:schemer) { JSONSchemer.schema(schema_doc) }

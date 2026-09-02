@@ -13,10 +13,14 @@ RSpec.describe SimpleCov::CLI do
 
   describe "watch subcommand", mutant_expression: "SimpleCov::CLI::Watch*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-watch-spec-") }
-    let(:coverage_dir) { File.join(tmp, "coverage") }
-    let(:json_path) { File.join(coverage_dir, "coverage.json") }
-    let(:log_path) { File.join(tmp, "runs.log") }
-    let(:code_path) { File.join(tmp, "lib/code.rb") }
+
+    def coverage_dir = File.join(tmp, "coverage")
+
+    def json_path = File.join(coverage_dir, "coverage.json")
+
+    def log_path = File.join(tmp, "runs.log")
+
+    def code_path = File.join(tmp, "lib/code.rb")
 
     after { FileUtils.rm_rf(tmp) }
 

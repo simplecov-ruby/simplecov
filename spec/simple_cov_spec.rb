@@ -2229,7 +2229,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         }
       }
     end
-    let(:resultset_folder) { File.dirname(resultset_path) }
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
     let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-spec-") }
     let(:second_resultset) do
@@ -2238,6 +2237,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     let(:first_resultset) do
       {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
+
+    def resultset_folder = File.dirname(resultset_path)
 
     after { FileUtils.remove_entry(coverage_folder) }
     before { allow(described_class).to receive_messages(coverage_path: coverage_folder, coverage_dir: coverage_folder) }
@@ -2485,10 +2486,11 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
   describe ".collate across processes", mutant_expression: "SimpleCov.collate" do
     let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-processes-spec-") }
     let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
-    let(:resultset_folder) { File.dirname(resultset_path) }
     let(:collated) do
       JSON.parse(File.read(resultset_path)).transform_values { |data| data.reject { |key| key == "timestamp" } }
     end
+
+    def resultset_folder = File.dirname(resultset_path)
 
     before { allow(described_class).to receive_messages(coverage_path: coverage_folder, coverage_dir: coverage_folder) }
 

@@ -14,7 +14,6 @@ RSpec.describe SimpleCov::Formatter::Base do
       end
     end
   end
-  let(:output_dir) { File.join(Dir.pwd, "tmp", "formatter-base") }
   let(:entry_point_formatter) { entry_point_formatter_class.new(output_dir: output_dir) }
   let(:prefixed_formatter_class) do
     Class.new(described_class) do
@@ -32,7 +31,10 @@ RSpec.describe SimpleCov::Formatter::Base do
       end
     end
   end
-  let(:all_criteria_message) do
+
+  def output_dir = File.join(Dir.pwd, "tmp", "formatter-base")
+
+  def all_criteria_message
     <<~TEXT.chomp
       Coverage report generated for RSpec to #{SimpleCov.coverage_dir}
       Line coverage: 8 / 10 (80.00%)

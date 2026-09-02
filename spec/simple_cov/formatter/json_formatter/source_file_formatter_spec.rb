@@ -4,7 +4,7 @@ require "helper"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
   mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
-  let(:filename) { File.expand_path("/project/lib/a.rb") }
+  def filename = File.expand_path("/project/lib/a.rb")
 
   let(:lines) do
     [

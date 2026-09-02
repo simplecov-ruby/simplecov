@@ -5,17 +5,6 @@ require "tmpdir"
 
 RSpec.describe SimpleCov::ParallelResultMerger do
   let(:resultset_dir) { Dir.mktmpdir("simplecov-parallel-merge") }
-
-  let(:shards) do
-    [
-      ["resultset1.rb", {"lines" => [nil, 1, 1, nil]}],
-      ["resultset2.rb", {"lines" => [nil, 1, nil, 2]}],
-      ["three.rb", {"lines" => [nil, 0, 1, nil]}],
-      ["never.rb", {"lines" => [1, nil, nil, nil]}],
-      ["inline.rb", {"lines" => [nil, 2, nil, nil]}]
-    ]
-  end
-
   let(:paths) do
     shards.each_with_index.map do |(fixture, lines), index|
       write_resultset(
@@ -27,8 +16,17 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       )
     end
   end
-
   let(:serial) { SimpleCov::ResultMerger.absorb_results(paths, ignore_timeout: true) }
+
+  def shards
+    [
+      ["resultset1.rb", {"lines" => [nil, 1, 1, nil]}],
+      ["resultset2.rb", {"lines" => [nil, 1, nil, 2]}],
+      ["three.rb", {"lines" => [nil, 0, 1, nil]}],
+      ["never.rb", {"lines" => [1, nil, nil, nil]}],
+      ["inline.rb", {"lines" => [nil, 2, nil, nil]}]
+    ]
+  end
 
   after { FileUtils.remove_entry(resultset_dir) }
 
@@ -575,7 +573,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe "WorkerPayload" do
-    let(:worker_payload) { SimpleCov::ParallelResultMerger::WorkerPayload }
+    def worker_payload = SimpleCov::ParallelResultMerger::WorkerPayload
 
     let(:built) do
       map = SimpleCov::ContextMap.new

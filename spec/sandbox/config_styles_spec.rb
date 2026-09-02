@@ -4,7 +4,7 @@ require "helper"
 require "support/sandbox_project"
 
 RSpec.describe "configuration styles", :sandbox do
-  let(:start_block) do
+  def start_block
     <<~RUBY
       SimpleCov.start do
         add_filter 'test'
@@ -12,7 +12,8 @@ RSpec.describe "configuration styles", :sandbox do
       end
     RUBY
   end
-  let(:parameterized_start_block) do
+
+  def parameterized_start_block
     <<~RUBY
       @filter = 'test'
       SimpleCov.start do |config|
@@ -21,7 +22,8 @@ RSpec.describe "configuration styles", :sandbox do
       end
     RUBY
   end
-  let(:start_block_over_a_local) do
+
+  def start_block_over_a_local
     <<~RUBY
       filter = 'test'
       SimpleCov.start do
@@ -30,21 +32,24 @@ RSpec.describe "configuration styles", :sandbox do
       end
     RUBY
   end
-  let(:explicit_before_start) do
+
+  def explicit_before_start
     <<~RUBY
       SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
       SimpleCov.start
     RUBY
   end
-  let(:explicit_after_start) do
+
+  def explicit_after_start
     <<~RUBY
       SimpleCov.start
       SimpleCov.skip 'test'
       SimpleCov.command_name 'Config Test Runner'
     RUBY
   end
-  let(:configure_after_start) do
+
+  def configure_after_start
     <<~RUBY
       SimpleCov.start
       SimpleCov.configure do
@@ -53,7 +58,8 @@ RSpec.describe "configuration styles", :sandbox do
       end
     RUBY
   end
-  let(:configure_before_start) do
+
+  def configure_before_start
     <<~RUBY
       SimpleCov.configure do
         add_filter 'test'
@@ -62,7 +68,8 @@ RSpec.describe "configuration styles", :sandbox do
       SimpleCov.start
     RUBY
   end
-  let(:configure_and_start_block) do
+
+  def configure_and_start_block
     <<~RUBY
       SimpleCov.configure do
         command_name 'Config Test Runner'

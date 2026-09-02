@@ -7,10 +7,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
   mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
   subject(:document) { described_class.format(result) }
 
-  let(:commit) { "1234567890abcdef1234567890abcdef12345678" }
-  let(:fixed_time) { Time.utc(2024, 1, 2, 3, 4, 5, 678_900) }
-  let(:sample_path) { source_fixture("json/sample.rb") }
-  let(:project_filename) { SimpleCov::SourceFile.new(sample_path, []).project_filename }
   let(:coverage_data) { {sample_path => {"lines" => [nil, 1, 1, 0, nil]}} }
 
   let(:result) do
@@ -19,9 +15,6 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
     res
   end
 
-  let(:line_statistics) do
-    {covered: 2, missed: 1, omitted: 17, total: 3, percent: 200 / 3.0, strength: 2 / 3.0}
-  end
   let(:expected_meta) do
     {
       schema_version: described_class.const_get(:SCHEMA_VERSION),
@@ -40,6 +33,18 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
     map = SimpleCov::ContextMap.new
     map.record("a test", {sample_path => 0b0110})
     described_class.format(result_with_contexts(map))
+  end
+
+  def commit = "1234567890abcdef1234567890abcdef12345678"
+
+  def fixed_time = Time.utc(2024, 1, 2, 3, 4, 5, 678_900)
+
+  def sample_path = source_fixture("json/sample.rb")
+
+  def project_filename = SimpleCov::SourceFile.new(sample_path, []).project_filename
+
+  def line_statistics
+    {covered: 2, missed: 1, omitted: 17, total: 3, percent: 200 / 3.0, strength: 2 / 3.0}
   end
 
   before do

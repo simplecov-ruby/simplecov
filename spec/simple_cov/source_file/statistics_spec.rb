@@ -5,14 +5,21 @@ require "helper"
 RSpec.describe SimpleCov::SourceFile::Statistics do
   subject(:statistics) { described_class.new(source_file).call }
 
-  let(:covered_line) { instance_double(SimpleCov::SourceFile::Line, coverage: 2) }
-  let(:missed_line) { instance_double(SimpleCov::SourceFile::Line, coverage: 0) }
-  let(:ignored_line) { instance_double(SimpleCov::SourceFile::Line, coverage: 100) }
-  let(:never_line) { instance_double(SimpleCov::SourceFile::Line) }
-  let(:covered_branch) { instance_double(SimpleCov::SourceFile::Branch, coverage: 4) }
-  let(:missed_branch) { instance_double(SimpleCov::SourceFile::Branch, coverage: 0) }
-  let(:covered_method) { instance_double(SimpleCov::SourceFile::Method, coverage: 6) }
-  let(:missed_method) { instance_double(SimpleCov::SourceFile::Method, coverage: 0) }
+  def covered_line = instance_double(SimpleCov::SourceFile::Line, coverage: 2)
+
+  def missed_line = instance_double(SimpleCov::SourceFile::Line, coverage: 0)
+
+  def ignored_line = instance_double(SimpleCov::SourceFile::Line, coverage: 100)
+
+  def never_line = instance_double(SimpleCov::SourceFile::Line)
+
+  def covered_branch = instance_double(SimpleCov::SourceFile::Branch, coverage: 4)
+
+  def missed_branch = instance_double(SimpleCov::SourceFile::Branch, coverage: 0)
+
+  def covered_method = instance_double(SimpleCov::SourceFile::Method, coverage: 6)
+
+  def missed_method = instance_double(SimpleCov::SourceFile::Method, coverage: 0)
 
   let(:source_file) do
     instance_double(

@@ -3522,9 +3522,6 @@ RSpec.describe SimpleCov::CLI do
 
   describe "show subcommand", mutant_expression: "SimpleCov::CLI::Show*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-show-spec-") }
-    let(:json_path) { File.join(tmp, "coverage.json") }
-    let(:code_path) { File.join(tmp, "lib/code.rb") }
-
     let(:source) do
       ["def call(baseline)", "  rows = compare", "  return 1 if rows.empty?", "",
         "# comment", "again", "done", "more", "covered", "last"]
@@ -3559,6 +3556,10 @@ RSpec.describe SimpleCov::CLI do
                ^ missed
       OUT
     end
+
+    def json_path = File.join(tmp, "coverage.json")
+
+    def code_path = File.join(tmp, "lib/code.rb")
 
     before { File.write(json_path, JSON.dump(payload)) }
 
@@ -4162,27 +4163,34 @@ RSpec.describe SimpleCov::CLI do
 
   describe "uncovered subcommand", mutant_expression: "SimpleCov::CLI::Uncovered*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-uncovered-spec-") }
-    let(:json_path) { File.join(tmp, "coverage.json") }
-    let(:unreadable_lines) do
+
+    def json_path = File.join(tmp, "coverage.json")
+
+    def unreadable_lines
       {"total_lines" => 4, "covered_lines" => 2, "lines_covered_percent" => 50.0, "lines" => "junk"}
     end
-    let(:repeated_missed_branches) do
+
+    def repeated_missed_branches
       {
         "total_branches" => 4, "covered_branches" => 0, "branches_covered_percent" => 0.0,
         "branches" => [{"report_line" => 7, "coverage" => 0}, {"report_line" => 2, "coverage" => 0},
           {"report_line" => 7, "coverage" => 0}]
       }
     end
-    let(:rooted_misses) do
+
+    def rooted_misses
       {"total_lines" => 2, "covered_lines" => 0, "lines_covered_percent" => 0.0, "lines" => [0, 0]}
     end
-    let(:fully_covered) do
+
+    def fully_covered
       {"total_lines" => 10, "covered_lines" => 10, "lines_covered_percent" => 100.0}
     end
-    let(:half_covered) do
+
+    def half_covered
       {"total_lines" => 10, "covered_lines" => 5, "lines_covered_percent" => 50.0}
     end
-    let(:partial_branches) do
+
+    def partial_branches
       {"total_branches" => 4, "covered_branches" => 1, "branches_covered_percent" => 25.0}
     end
 
@@ -4653,15 +4661,20 @@ RSpec.describe SimpleCov::CLI do
 
   describe "merge subcommand", mutant_expression: "SimpleCov::CLI::Merge*" do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-merge-spec-") }
-    let(:a) { File.join(tmp, "a.json") }
-    let(:b) { File.join(tmp, "b.json") }
-    let(:out) { File.join(tmp, "merged.json") }
-    let(:file) { File.expand_path("spec/fixtures/sample.rb", SimpleCov.root) }
-    let(:c) { File.join(tmp, "c.json") }
     let(:shared_command_name_warning) do
       "simplecov merge: warning \u2014 command_name \"RSpec\" appears in 2 input files " \
         "(#{a}, #{b}); entries will be merged\n"
     end
+
+    def a = File.join(tmp, "a.json")
+
+    def b = File.join(tmp, "b.json")
+
+    def out = File.join(tmp, "merged.json")
+
+    def file = File.expand_path("spec/fixtures/sample.rb", SimpleCov.root)
+
+    def c = File.join(tmp, "c.json")
 
     after { FileUtils.remove_entry(tmp) }
 
@@ -5674,7 +5687,6 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "history output", mutant_expression: "SimpleCov::CLI::History*" do
-    let(:renderer) { SimpleCov::CLI::History::Output }
     let(:out) { StringIO.new }
     let(:null_row) { {"created_at" => nil, "branch" => nil, "commit" => nil, "percents" => nil} }
     let(:totals_view) do
@@ -5727,6 +5739,8 @@ RSpec.describe SimpleCov::CLI do
         {"created_at" => "2026-08-03T00:00:00Z", "branch" => nil, "commit" => nil,
          "totals" => {"line" => 100.0, "branch" => 70.0}, "files" => {"lib/a.rb" => {"line" => 75.0}}}]
     end
+
+    def renderer = SimpleCov::CLI::History::Output
 
     it "draws the totals view whole" do
       renderer.emit(out, {input: "coverage/.history.json", json: false, file: nil}, entries, color: false)
@@ -6224,7 +6238,6 @@ RSpec.describe SimpleCov::CLI do
   end
 
   describe "dead-code subcommand", mutant_expression: "SimpleCov::CLI::DeadCode*" do
-    let(:absent) { File.join(tmp, "absent.json") }
     let(:whole_report) do
       <<~REPORT
         Production coverage: #{production_path} (window 2026-01-01T00:00:00Z to 2026-02-01T00:00:00Z)
@@ -6254,8 +6267,12 @@ RSpec.describe SimpleCov::CLI do
       }
     end
     let(:tmp) { Dir.mktmpdir("simplecov-cli-dead-code-spec-") }
-    let(:input) { File.join(tmp, "coverage.json") }
-    let(:production_path) { File.join(tmp, "production.json") }
+
+    def absent = File.join(tmp, "absent.json")
+
+    def input = File.join(tmp, "coverage.json")
+
+    def production_path = File.join(tmp, "production.json")
 
     before do
       File.write(input, JSON.dump("coverage" => {
