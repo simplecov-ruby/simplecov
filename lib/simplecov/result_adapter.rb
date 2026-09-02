@@ -133,11 +133,14 @@ module SimpleCov
       cover_statistic[:lines] = line_stub
     end
 
-    # A file that has vanished or no longer parses has no stub to build from, so
+    # A file that has vanished or no longer parses has no stub to build from,
+    # and neither does a runtime without `Coverage.line_stub` (TruffleRuby), so
     # start from nothing: the assignments in `adapt_oneshot_lines_if_needed`
     # grow the array to the highest covered line, which is as far as the
     # oneshot data reaches anyway.
     def build_line_stub(file_name)
+      return [] unless Coverage.respond_to?(:line_stub)
+
       Coverage.line_stub(file_name)
     rescue Errno::ENOENT, SyntaxError
       []

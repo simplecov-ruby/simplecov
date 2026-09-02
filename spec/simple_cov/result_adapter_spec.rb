@@ -23,6 +23,10 @@ RSpec.describe SimpleCov::ResultAdapter do
       it "marks every oneshot line as hit once" do
         expect(adapter[existing_file][:lines].values_at(1, 2, 3)).to eq([1, 1, 1])
       end
+
+      it "keeps the stub's other relevant lines as misses" do
+        expect(adapter[existing_file][:lines].values_at(6, 7)).to eq([0, 0])
+      end
     end
 
     context "when a tracked file no longer exists on disk" do
@@ -67,6 +71,19 @@ RSpec.describe SimpleCov::ResultAdapter do
 
       it "still adapts the existing file normally" do
         expect(adapter[existing_file][:lines][1]).to eq(1)
+      end
+    end
+
+    context "when the runtime has no Coverage.line_stub" do
+      let(:result_set) { {existing_file => {oneshot_lines: [2, 3, 4]}} }
+
+      before do
+        allow(Coverage).to receive(:respond_to?).and_call_original
+        allow(Coverage).to receive(:respond_to?).with(:line_stub).and_return(false)
+      end
+
+      it "marks the oneshot lines without a stub, as for a vanished file" do
+        expect(adapter[existing_file][:lines]).to eq([nil, 1, 1, 1])
       end
     end
   end
