@@ -21,6 +21,12 @@ RSpec.describe SimpleCov::CLI::Watch::Session, mutant_expression: "SimpleCov::CL
   before { session.instance_variable_set(:@poller, poller) }
   after { FileUtils.rm_rf(tmp) }
 
+  it "polls with a poller of its own" do
+    fresh = described_class.new(command: %w[true], dir: tmp, interval: 0, stdout: stdout, stderr: stderr)
+
+    expect(fresh.instance_variable_get(:@poller)).to be_a(SimpleCov::CLI::Watch::Poller)
+  end
+
   describe "#settled_changes" do
     it "answers nothing when nothing changed" do
       allow(poller).to receive(:changes).and_return([])

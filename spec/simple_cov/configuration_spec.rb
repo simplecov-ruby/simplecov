@@ -1028,6 +1028,17 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.cover_filters.first).to be_a(SimpleCov::BlockFilter)
     end
 
+    it "hands the block to the predicate filter" do
+      predicate = proc { |sf| sf.filename.end_with?("foo.rb") }
+      config.cover(&predicate)
+
+      expect(config.cover_filters.first.filter_argument).to equal(predicate)
+    end
+
+    it "answers the cover filters it holds" do
+      expect(config.cover("lib/**/*.rb")).to equal(config.cover_filters)
+    end
+
     it "accepts a Proc passed positionally" do
       config.cover(proc { |sf| sf.filename.end_with?("foo.rb") })
 
@@ -1077,6 +1088,19 @@ RSpec.describe SimpleCov::Configuration do
 
       expect(config.filters.size).to eq 2
     end
+
+    it "stores a String as a path filter" do
+      config.skip "lib/legacy"
+
+      expect(config.filters.last).to be_a(SimpleCov::StringFilter)
+    end
+
+    it "stores a block as a predicate filter" do
+      predicate = proc { |sf| sf.filename.include?("legacy") }
+      config.skip(&predicate)
+
+      expect(config.filters.last).to be_a(SimpleCov::BlockFilter)
+    end
   end
 
   describe "#add_filter (deprecated)" do
@@ -1115,6 +1139,18 @@ RSpec.describe SimpleCov::Configuration do
       config.group "Models", "app/models"
 
       expect(config.groups.keys).to eq ["Models"]
+    end
+
+    it "stores the filter it was given under the name" do
+      config.group "Models", "app/models"
+
+      expect(config.groups["Models"]).to be_a(SimpleCov::StringFilter)
+    end
+
+    it "takes a block as the group's filter" do
+      config.group("Models") { |sf| sf.filename.include?("models") }
+
+      expect(config.groups["Models"]).to be_a(SimpleCov::BlockFilter)
     end
 
     it "reserves Ungrouped for files that match no configured group" do
@@ -1500,6 +1536,13 @@ RSpec.describe SimpleCov::Configuration do
       config.merge_subprocesses true
       expect(config.merge_subprocesses).to be true
     end
+
+    it "replaces a stored value with a later one" do
+      config.merge_subprocesses true
+      config.merge_subprocesses false
+
+      expect(config.merge_subprocesses).to be false
+    end
   end
 
   describe "#parallel_tests" do
@@ -1694,7 +1737,7 @@ RSpec.describe SimpleCov::Configuration do
 
     it "reject a negative count" do
       expect { config.maximum_missed(-1) }
-        .to raise_error(SimpleCov::ConfigurationError, /non-negative integer/)
+        .to raise_error(SimpleCov::ConfigurationError, /maximum_missed takes a non-negative integer/)
     end
 
     it "reject a non-integer count" do
@@ -1769,6 +1812,10 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.history_limit).to eq(100)
     end
 
+    it "answers the limit it was given" do
+      expect(config.history_limit(10)).to eq(10)
+    end
+
     it "measures against the last run by default" do
       expect(config.drop_baseline).to eq(:last_run)
     end
@@ -1828,6 +1875,10 @@ RSpec.describe SimpleCov::Configuration do
     it "takes a custom path" do
       config.baseline_file "config/coverage_floors.yml"
       expect(config.baseline_file).to eq("config/coverage_floors.yml")
+    end
+
+    it "answers the path it was given" do
+      expect(config.baseline_file("config/coverage_floors.yml")).to eq("config/coverage_floors.yml")
     end
 
     it "returns nil when no baseline file exists under root" do
@@ -1900,6 +1951,10 @@ RSpec.describe SimpleCov::Configuration do
   shared_examples "setting coverage expectations" do |coverage_setting|
     after do
       config.clear_coverage_criteria
+    end
+
+    it "expects nothing until it is told to" do
+      expect(config.public_send(coverage_setting)).to eq({})
     end
 
     it "does not warn that coverage exceeds 100% for a valid value" do
@@ -2024,6 +2079,14 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.minimum_coverage_by_file_overrides).to eq(%r{\Aapp/mailers/} => {line: 100})
       end
 
+      it "warns about an override above 100% under the setting's own name" do
+        allow(config).to receive(:warn)
+        config.minimum_coverage_by_file "app/critical.rb" => 100.01
+
+        expect(config).to have_received(:warn)
+          .with("The coverage you set for minimum_coverage_by_file is greater than 100%")
+      end
+
       it "preserves the declaration order of overrides" do
         config.minimum_coverage_by_file("lib/" => 80, "lib/critical.rb" => 100, %r{spec/} => 50)
 
@@ -2059,6 +2122,10 @@ RSpec.describe SimpleCov::Configuration do
 
     after do
       config.clear_coverage_criteria
+    end
+
+    it "expects nothing until it is told to" do
+      expect(config.minimum_coverage_by_group).to eq({})
     end
 
     it "does not warn that coverage exceeds 100% for a valid value" do
@@ -2458,6 +2525,14 @@ RSpec.describe SimpleCov::Configuration do
       expect(config.primary_coverage).to eq :branch
     end
 
+    it "leaves a primary criterion that is still enabled alone", if: SimpleCov.method_coverage_supported? do
+      config.enable_coverage :branch, :method
+      config.primary_coverage :method
+      config.disable_coverage :line
+
+      expect(config.primary_coverage).to eq :method
+    end
+
     it "turns the eval toggle back off" do
       allow(config).to receive(:coverage_for_eval_supported?).and_return(true)
       config.enable_coverage :eval
@@ -2522,6 +2597,13 @@ RSpec.describe SimpleCov::Configuration do
 
       expect(config).not_to be_branch_coverage
     end
+
+    it "returns false where the runtime cannot measure branches, even when asked to" do
+      config.enable_coverage :branch
+      allow(config).to receive(:branch_coverage_supported?).and_return(false)
+
+      expect(config).not_to be_branch_coverage
+    end
   end
 
   describe "#method_coverage?", if: SimpleCov.method_coverage_supported? do
@@ -2533,6 +2615,13 @@ RSpec.describe SimpleCov::Configuration do
 
     it "returns false for line coverage" do
       config.primary_coverage :line
+
+      expect(config).not_to be_method_coverage
+    end
+
+    it "returns false where the runtime cannot measure methods, even when asked to" do
+      config.enable_coverage :method
+      allow(config).to receive(:method_coverage_supported?).and_return(false)
 
       expect(config).not_to be_method_coverage
     end
@@ -2574,6 +2663,18 @@ RSpec.describe SimpleCov::Configuration do
   describe "#formatter" do
     after do
       config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
+    end
+
+    it "answers the formatter it was given" do
+      config.formatter(SimpleCov::Formatter::SimpleFormatter)
+
+      expect(config.formatter).to eq(SimpleCov::Formatter::SimpleFormatter)
+    end
+
+    it "answers a formatter stored through the writer when called bare" do
+      config.formatter = SimpleCov::Formatter::SimpleFormatter
+
+      expect(config.formatter).to eq(SimpleCov::Formatter::SimpleFormatter)
     end
 
     it "treats false as an explicit opt-out (no raise)" do
@@ -2631,11 +2732,29 @@ RSpec.describe SimpleCov::Configuration do
       config.formatter = SimpleCov::Formatter::SimpleFormatter
       expect(config.formats).to eq([SimpleCov::Formatter::SimpleFormatter])
     end
+
+    it "answers the formatters it configured" do
+      expect(config.formats(:json, :simple)).to eq([config.formatter])
+    end
   end
 
   describe "#formatters" do
     after do
       config.instance_variable_set(:@formatter, SimpleCov::Formatter::HTMLFormatter)
+    end
+
+    it "stores the formatters it is given" do
+      config.formatter = SimpleCov::Formatter::HTMLFormatter
+      config.formatters([SimpleCov::Formatter::SimpleFormatter])
+
+      expect(config.formatter.new.formatters).to eq([SimpleCov::Formatter::SimpleFormatter])
+    end
+
+    it "answers what it was given" do
+      config.formatter = SimpleCov::Formatter::HTMLFormatter
+
+      expect(config.formatters([SimpleCov::Formatter::SimpleFormatter]))
+        .to eq([SimpleCov::Formatter::SimpleFormatter])
     end
 
     it "wraps a single formatter as an Array" do
@@ -2817,28 +2936,22 @@ RSpec.describe SimpleCov::Configuration do
   end
 
   describe "#at_fork" do
-    around do |example|
-      previous = SimpleCov.instance_variable_get(:@at_fork)
-      SimpleCov.instance_variable_set(:@at_fork, nil)
-      example.run
-      SimpleCov.instance_variable_set(:@at_fork, previous)
-    end
-
     it "remembers an explicit block across calls" do
       explicit = proc { |_pid| }
-      SimpleCov.at_fork(&explicit)
-      expect(SimpleCov.at_fork).to equal(explicit)
+      config.at_fork(&explicit)
+
+      expect(config.at_fork).to equal(explicit)
     end
 
     context "when the default lambda fires" do
       before do
-        allow(SimpleCov).to receive_messages(command_name: nil, print_errors: nil, formatter: nil,
+        allow(SimpleCov).to receive_messages(command_name: "Suite", print_errors: nil, formatter: nil,
           minimum_coverage: nil, start: nil, subprocess_serial: 3)
-        SimpleCov.at_fork.call(12_345)
+        config.at_fork.call(12_345)
       end
 
-      it "names the subprocess" do
-        expect(SimpleCov).to have_received(:command_name).with(/subprocess: 3/)
+      it "names the subprocess after the suite" do
+        expect(SimpleCov).to have_received(:command_name).with("Suite (subprocess: 3)")
       end
 
       it "silences the child's errors" do
@@ -2886,6 +2999,12 @@ RSpec.describe SimpleCov::Configuration do
       config.command_name("My Suite")
       expect(config.command_name).to eq("My Suite")
     end
+
+    it "guesses one from the running process when none was given" do
+      allow(SimpleCov::CommandGuesser).to receive(:guess).and_return("Guessed")
+
+      expect(config.command_name).to eq("Guessed")
+    end
   end
 
   describe "#merge_timeout" do
@@ -2905,6 +3024,12 @@ RSpec.describe SimpleCov::Configuration do
     it "ignores a malformed SIMPLECOV_MERGE_TIMEOUT" do
       stub_const("ENV", ENV.to_hash.merge("SIMPLECOV_MERGE_TIMEOUT" => "soon"))
       expect(config.merge_timeout).to eq(600)
+    end
+
+    it "keeps the timeout it worked out for later reads" do
+      config.merge_timeout
+
+      expect(config.instance_variable_get(:@merge_timeout)).to eq(600)
     end
   end
 
@@ -2929,6 +3054,14 @@ RSpec.describe SimpleCov::Configuration do
   describe "#parse_filter" do
     it "raises when given neither a filter argument nor a block" do
       expect { config.send(:parse_filter) }.to raise_error(ArgumentError, /filter or a block/)
+    end
+
+    it "builds a filter from a String argument" do
+      expect(config.send(:parse_filter, "lib/legacy")).to be_a(SimpleCov::StringFilter)
+    end
+
+    it "builds a filter from a block" do
+      expect(config.send(:parse_filter) { |sf| sf.filename.include?("legacy") }).to be_a(SimpleCov::BlockFilter)
     end
   end
 
@@ -3372,14 +3505,6 @@ RSpec.describe SimpleCov::Configuration do
       config.minimum_coverage 90
 
       expect(config.minimum_coverage).to eq(line: 90)
-    end
-
-    it "keeps the timeout it worked out for later reads" do
-      config.merge_timeout
-
-      expect(config.instance_variable_get(:@merge_timeout)).to eq(600)
-    ensure
-      config.remove_instance_variable(:@merge_timeout) if config.instance_variable_defined?(:@merge_timeout)
     end
 
     it "passes over a criterion with no threshold at all" do

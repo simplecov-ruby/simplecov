@@ -3825,7 +3825,34 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    describe "#markers_for" do
+      def entry
+        {"lines" => [0, 1, 1, 0],
+         "branches" => [{"report_line" => 2, "coverage" => 0}, {"report_line" => 3, "coverage" => 1}],
+         "methods" => [{"start_line" => 1, "coverage" => 0}, {"start_line" => 3, "coverage" => 0}]}
+      end
+
+      it "labels every miss under the line it happened on" do
+        expect(annotator.markers_for(entry))
+          .to eq(1 => ["missed", "method missed"], 2 => ["branch missed"], 3 => ["method missed"], 4 => ["missed"])
+      end
+
+      it "labels nothing for an entry that carries no branches or methods" do
+        expect(annotator.markers_for("lines" => [1])).to be_empty
+      end
+
+      it "answers an empty label list for a line nothing was missed on" do
+        expect(annotator.markers_for("lines" => [1])[1]).to eq([])
+      end
+    end
+
     describe "#call" do
+      it "prints each line's own carets" do
+        annotator.call(%w[one two], {"lines" => [1, 0], "branches" => [], "methods" => []}, out, color: false)
+
+        expect(out.string).to eq("1  1  one\n2  0  two\n      ^ missed\n")
+      end
+
       it "leaves the gutter blank past the end of the counts" do
         annotator.call(%w[one two], {"lines" => [1], "branches" => [], "methods" => []}, out, color: false)
 

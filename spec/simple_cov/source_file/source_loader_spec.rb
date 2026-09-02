@@ -43,6 +43,16 @@ RSpec.describe SimpleCov::SourceFile::SourceLoader do
         .to eq ["# encoding: EUC-JP\n", "# 亜\n"]
     end
 
+    it "honours a magic comment that follows a shebang" do
+      expect(described_class.call(source_path("#!/usr/bin/env ruby\n# encoding: EUC-JP\n# \xB0\xA1\n")))
+        .to eq ["#!/usr/bin/env ruby\n", "# encoding: EUC-JP\n", "# 亜\n"]
+    end
+
+    it "replaces invalid bytes on the line under a shebang, before any regex sees it" do
+      expect(described_class.call(source_path("#!/usr/bin/env ruby\n# caf\xE9\n")))
+        .to eq ["#!/usr/bin/env ruby\n", "# caf�\n"]
+    end
+
     context "when the default external encoding is not UTF-8" do
       around do |example|
         original = Encoding.default_external
@@ -108,6 +118,13 @@ RSpec.describe SimpleCov::SourceFile::SourceLoader do
         described_class.set_encoding_based_on_magic_comment(file, "# encoding: EUC-JP\n")
 
         expect(file.internal_encoding).to eq Encoding::UTF_8
+      end
+    end
+
+    it "declares the encoding without a word of warning" do
+      File.open(source_path("# encoding: EUC-JP\n"), "rb:UTF-8") do |file|
+        expect { described_class.set_encoding_based_on_magic_comment(file, "# encoding: EUC-JP\n") }
+          .not_to output.to_stderr
       end
     end
 
