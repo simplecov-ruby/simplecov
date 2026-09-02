@@ -21,7 +21,7 @@ module SimpleCov
         @on_added = on_added
         watch = self #: ConstantWatch
         define_method(:const_added) do |added|
-          super(added) # steep:ignore UnresolvedOverloading
+          super(added) # steep:ignore UnexpectedPositionalArgument
           watch.notice(added)
         end
       end

@@ -30,8 +30,8 @@ group :development do
     gem "mutant", require: false
     gem "mutant-rspec", require: false
 
-    gem "rbs", "~> 4.0.0"
-    gem "steep", ">= 1.10", require: false
+    gem "rbs", "~> 4.0"
+    gem "steep", "~> 2.0", require: false
   end
 
   if RUBY_VERSION > "3.2"

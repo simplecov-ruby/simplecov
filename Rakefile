@@ -195,7 +195,7 @@ end
 
 desc "Type-check lib/ against sig/ with Steep (strict mode)"
 task :steep do
-  require "rbs"
+  require "steep"
   sh "steep", "check"
 rescue LoadError
   warn "Steep is disabled"
