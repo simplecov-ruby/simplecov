@@ -42,3 +42,5 @@ test_projects/**/coverage
 /.resultset.json
 /.resultset.json.lock
 /coverage.json
+html_frontend/.stryker-tmp
+html_frontend/reports

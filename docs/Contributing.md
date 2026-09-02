@@ -93,6 +93,17 @@ Where the library's own shape makes mutation testing slower or harder than it
 needs to be, and what a major version could do about it, is written down in
 [docs/Roadmap.md](Roadmap.md).
 
+The HTML frontend has the same check in [Stryker](https://stryker-mutator.io),
+configured in `html_frontend/stryker.config.mjs`. Its tests run under
+`bun test`, which Stryker has no runner plugin for, so it runs the whole suite
+per mutant through the command runner and writes an HTML report to
+`html_frontend/reports/mutation/index.html`:
+
+```bash
+bundle exec rake frontend:mutate                   # every src module, about ten minutes
+cd html_frontend && bun run mutate --mutate src/sort.ts   # one module, seconds
+```
+
 Three suite conventions keep mutant fast and honest, and touching them breaks
 it quietly, so know they exist:
 

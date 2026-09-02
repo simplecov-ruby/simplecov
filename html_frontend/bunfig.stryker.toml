@@ -1,0 +1,6 @@
+# `bun test` configuration for Stryker's mutation runs. It keeps the
+# happy-dom preload from bunfig.toml and drops the coverage threshold: a
+# mutant that leaves a line unreached would otherwise fail the run on
+# coverage and be counted as killed without any test having caught it.
+[test]
+preload = ["./test/setup.ts"]

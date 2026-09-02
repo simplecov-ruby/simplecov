@@ -194,6 +194,11 @@ namespace :frontend do
   task test: :install do
     in_frontend("Frontend tests") { sh "bun", "test" }
   end
+
+  desc "Mutation-test the frontend TypeScript with Stryker (slow)"
+  task mutate: :install do
+    in_frontend("Frontend mutation testing") { sh "bun", "run", "mutate" }
+  end
 end
 
 desc "Validate the RBS type signatures in sig/"
