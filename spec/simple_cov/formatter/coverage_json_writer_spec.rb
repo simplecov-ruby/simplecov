@@ -6,8 +6,9 @@ require "tmpdir"
 
 RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
   let(:tmp) { Dir.mktmpdir("simplecov-coverage-json-writer-spec-") }
-  let(:path) { File.join(tmp, "coverage.json") }
   let(:timestamp) { Time.now.iso8601(3) }
+
+  def path = File.join(tmp, "coverage.json")
 
   after { FileUtils.rm_rf(tmp) }
 

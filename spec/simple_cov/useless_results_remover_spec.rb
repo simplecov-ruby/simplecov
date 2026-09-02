@@ -7,9 +7,6 @@ RSpec.describe SimpleCov::UselessResultsRemover do
     described_class.call(result_set)
   end
 
-  let(:gem_file_path) { "usr/bin/lib/2.5.0/gems/sample-gem/sample.rb" }
-  let(:source_path) { source_fixture("app/models/user.rb") }
-
   let(:result_set) do
     {
       gem_file_path => {
@@ -22,6 +19,10 @@ RSpec.describe SimpleCov::UselessResultsRemover do
       }
     }
   end
+
+  def gem_file_path = "usr/bin/lib/2.5.0/gems/sample-gem/sample.rb"
+
+  def source_path = source_fixture("app/models/user.rb")
 
   it "starts from a result set that carries the gem file" do
     expect(result_set[gem_file_path]).to be_a(Hash)
@@ -87,8 +88,6 @@ RSpec.describe SimpleCov::UselessResultsRemover do
     end
 
     context "when the root changes" do
-      let(:one) { File.expand_path("/one") }
-      let(:two) { File.expand_path("/two") }
       let(:first) do
         SimpleCov.root one
         described_class.root_regex
@@ -98,6 +97,10 @@ RSpec.describe SimpleCov::UselessResultsRemover do
         SimpleCov.root two
         described_class.root_regex
       end
+
+      def one = File.expand_path("/one")
+
+      def two = File.expand_path("/two")
 
       it "matches under the root it was built for" do
         expect(first.match?("#{one}/lib/a.rb")).to be(true)

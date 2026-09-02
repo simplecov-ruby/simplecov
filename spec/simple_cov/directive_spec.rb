@@ -4,8 +4,9 @@ require "helper"
 
 RSpec.describe SimpleCov::Directive do
   describe ".disabled_ranges" do
-    let(:empty_ranges) { {line: [], branch: [], method: []} }
-    let(:block_disable) do
+    def empty_ranges = {line: [], branch: [], method: []}
+
+    def block_disable
       [
         "def foo",                    # 1
         "  # simplecov:disable line", # 2
@@ -15,7 +16,8 @@ RSpec.describe SimpleCov::Directive do
         "end"                         # 6
       ]
     end
-    let(:independent_categories) do
+
+    def independent_categories
       [
         "# simplecov:disable line",         # 1
         "# simplecov:disable branch,method", # 2
@@ -25,7 +27,8 @@ RSpec.describe SimpleCov::Directive do
         "# simplecov:enable branch"         # 6
       ]
     end
-    let(:multiple_pairs) do
+
+    def multiple_pairs
       [
         "# simplecov:disable line", # 1
         "a",                        # 2
@@ -36,7 +39,8 @@ RSpec.describe SimpleCov::Directive do
         "# simplecov:enable line"   # 7
       ]
     end
-    let(:loose_whitespace) do
+
+    def loose_whitespace
       [
         "#simplecov:disable line",              # 1
         "code",                                 # 2

@@ -5,7 +5,9 @@ require "helper"
 RSpec.describe SimpleCov::Formatter::Base do
   subject(:formatter) { described_class.new }
 
-  let(:entry_point_formatter_class) do
+  let(:entry_point_formatter) { entry_point_formatter_class.new(output_dir: output_dir) }
+
+  def entry_point_formatter_class
     Class.new(described_class) do
       private
 
@@ -14,8 +16,8 @@ RSpec.describe SimpleCov::Formatter::Base do
       end
     end
   end
-  let(:entry_point_formatter) { entry_point_formatter_class.new(output_dir: output_dir) }
-  let(:prefixed_formatter_class) do
+
+  def prefixed_formatter_class
     Class.new(described_class) do
       private
 
@@ -24,7 +26,8 @@ RSpec.describe SimpleCov::Formatter::Base do
       end
     end
   end
-  let(:formatting_formatter_class) do
+
+  def formatting_formatter_class
     Class.new(described_class) do
       def format(_result)
         "report"

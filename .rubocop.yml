@@ -71,5 +71,3 @@ RSpec/SpecFilePathFormat:
 
 RSpec/NestedGroups:
   Max: 4 # TODO: Lower to 3
-RSpec/MultipleMemoizedHelpers:
-  Max: 7 # TODO: Lower to 5

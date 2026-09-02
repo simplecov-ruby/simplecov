@@ -8,13 +8,10 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
   subject(:check) { described_class.new(result, maximum_coverage_drop) }
 
   let(:result) do
-    instance_double(SimpleCov::Result, coverage_statistics: stats)
-  end
-  let(:stats) do
-    {
+    instance_double(SimpleCov::Result, coverage_statistics: {
       line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2),
       branch: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)
-    }
+    })
   end
   let(:last_run) do
     {
@@ -23,6 +20,8 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
   end
   let(:last_coverage) { {line: 80.0, branch: 80.0} }
   let(:maximum_coverage_drop) { {line: 0, branch: 0} }
+
+  def output = check.report_lines.join("\n")
 
   before do
     allow(SimpleCov::LastRun).to receive(:read).and_return(last_run)
@@ -94,8 +93,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumCoverageDropCheck,
   describe "#report" do
     let(:last_coverage) { {line: 90.0} }
     let(:maximum_coverage_drop) { {line: 5} }
-
-    let(:output) { check.report_lines.join("\n") }
 
     it "names the criterion" do
       expect(output).to include("Line coverage")

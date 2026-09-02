@@ -16,7 +16,8 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       )
     end
   end
-  let(:serial) { SimpleCov::ResultMerger.absorb_results(paths, ignore_timeout: true) }
+
+  def serial = SimpleCov::ResultMerger.absorb_results(paths, ignore_timeout: true)
 
   def shards
     [
@@ -400,7 +401,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
     end
 
     context "when the merged pair cannot be shipped back" do
-      let(:failed_run) do
+      def failed_run
         reported = nil
         output = capture_stderr { reported = described_class.run_worker(paths, pipe.last, ignore_timeout: true) }
         [reported, output]
@@ -573,21 +574,22 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe "WorkerPayload" do
-    def worker_payload = SimpleCov::ParallelResultMerger::WorkerPayload
-
     let(:built) do
       map = SimpleCov::ContextMap.new
       map.record("spec/a_spec.rb:1", lib_file => 0b1)
       slice = [write_resultset("mapped", {}, tracked_files: ["tracked.rb"], contexts: map.to_h)]
       worker_payload.build(slice, ignore_timeout: true)
     end
-    let(:payload) do
+    let(:tracked_files) { Set.new }
+    let(:context_maps) { SimpleCov::ContextMap::Union.new }
+
+    def worker_payload = SimpleCov::ParallelResultMerger::WorkerPayload
+
+    def payload
       union = SimpleCov::ContextMap::Union.new
       union.absorb_entry("contexts" => SimpleCov::ContextMap.new.to_h)
       [:pair, ["tracked.rb"], union]
     end
-    let(:tracked_files) { Set.new }
-    let(:context_maps) { SimpleCov::ContextMap::Union.new }
 
     it "builds the pair the slice merges to" do
       pair, = built

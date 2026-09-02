@@ -5,8 +5,9 @@ require "helper"
 RSpec.describe SimpleCov::ContextMap do
   subject(:map) { described_class.new }
 
-  let(:lib_file) { File.join(SimpleCov.root, "lib/thing.rb") }
-  let(:other_file) { File.join(SimpleCov.root, "lib/other.rb") }
+  def lib_file = File.join(SimpleCov.root, "lib/thing.rb")
+
+  def other_file = File.join(SimpleCov.root, "lib/other.rb")
 
   def from_another_directory
     Dir.mktmpdir do |elsewhere|
@@ -234,7 +235,7 @@ RSpec.describe SimpleCov::ContextMap do
 
     let(:valid_files) { {lib_file => {"0" => "1"}} }
 
-    let(:malformed_envelopes) do
+    def malformed_envelopes
       [
         nil,
         "junk",
@@ -249,7 +250,7 @@ RSpec.describe SimpleCov::ContextMap do
       ]
     end
 
-    let(:malformed_file_tables) do
+    def malformed_file_tables
       [
         {"contexts" => ["a"], "files" => {lib_file => {0 => "1"}}},
         {"contexts" => ["a"], "files" => {lib_file => {"x" => "1"}}},

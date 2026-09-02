@@ -7,19 +7,19 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
     "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, maximum_missed_per_file, overrides, baseline: baseline) }
 
-  let(:result) { instance_double(SimpleCov::Result, files: files) }
-  let(:files) do
-    [
-      instance_double(
-        SimpleCov::SourceFile,
-        coverage_statistics: {line: SimpleCov::CoverageStatistics.new(covered: 15, missed: 5)},
-        filename: "/abs/lib/foo.rb",
-        project_filename: "lib/foo.rb"
-      )
-    ]
+  let(:result) do
+    file = instance_double(
+      SimpleCov::SourceFile,
+      coverage_statistics: {line: SimpleCov::CoverageStatistics.new(covered: 15, missed: 5)},
+      filename: "/abs/lib/foo.rb",
+      project_filename: "lib/foo.rb"
+    )
+    instance_double(SimpleCov::Result, files: [file])
   end
   let(:overrides) { {} }
   let(:baseline) { nil }
+
+  def output = check.report_lines.join("\n")
 
   context "when every file is within the cap" do
     let(:maximum_missed_per_file) { {line: 5} }
@@ -29,7 +29,6 @@ RSpec.describe SimpleCov::ExitCodes::MaximumMissedPerFileCheck,
 
   context "when a file exceeds the cap" do
     let(:maximum_missed_per_file) { {line: 4} }
-    let(:output) { check.report_lines.join("\n") }
 
     it { is_expected.to be_failing }
 

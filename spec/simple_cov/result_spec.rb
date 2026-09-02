@@ -102,7 +102,6 @@ RSpec.describe SimpleCov::Result do
       end
 
       context "when dumped with to_hash" do
-        let(:tracked_paths) { ["/some/path/one.rb", "/some/path/two.rb"] }
         let(:tracked_result) { described_class.new(original_result, command_name: "t", tracked_files: tracked_paths) }
 
         let(:recorded_map) do
@@ -112,7 +111,10 @@ RSpec.describe SimpleCov::Result do
           map
         end
         let(:mapped_result) { described_class.new(original_result, command_name: "t", contexts: recorded_map) }
-        let(:restored_map) { described_class.from_hash(mapped_result.to_hash).first.contexts }
+
+        def tracked_paths = ["/some/path/one.rb", "/some/path/two.rb"]
+
+        def restored_map = described_class.from_hash(mapped_result.to_hash).first.contexts
 
         it "is a hash" do
           expect(result.to_hash).to be_a Hash
@@ -447,14 +449,17 @@ RSpec.describe SimpleCov::Result do
     end
 
     describe ".from_hash" do
-      let(:other_result) do
+      let(:created_at) { Time.now.to_i }
+      let(:two_command_results) { described_class.from_hash(two_command_input).sort_by(&:command_name) }
+      let(:restored_identified) { described_class.from_hash(identified_input).first }
+
+      def other_result
         {
           source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 0, 0, nil, nil]}
         }
       end
-      let(:created_at) { Time.now.to_i }
 
-      let(:two_command_input) do
+      def two_command_input
         {
           "rspec" => {
             "coverage" => original_result,
@@ -466,9 +471,8 @@ RSpec.describe SimpleCov::Result do
           }
         }
       end
-      let(:two_command_results) { described_class.from_hash(two_command_input).sort_by(&:command_name) }
 
-      let(:identified_input) do
+      def identified_input
         {
           "rspec" => {
             "coverage" => original_result,
@@ -480,7 +484,6 @@ RSpec.describe SimpleCov::Result do
           }
         }
       end
-      let(:restored_identified) { described_class.from_hash(identified_input).first }
 
       it "can consume multiple commands" do
         expect(described_class.from_hash(two_command_input).size).to eq 2

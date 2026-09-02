@@ -24,9 +24,6 @@ RSpec.describe SimpleCov::CLI do
       }
     end
     let(:tmp) { GitFixture.checkout(fixture_files) }
-    let(:json_path) { File.join(tmp, "coverage.json") }
-    let(:out_path) { File.join(tmp, "out.txt") }
-
     let(:payload) do
       {
         "contexts" => [
@@ -48,6 +45,10 @@ RSpec.describe SimpleCov::CLI do
         }
       }
     end
+
+    def json_path = File.join(tmp, "coverage.json")
+
+    def out_path = File.join(tmp, "out.txt")
 
     def file!(path, content = "# original\n")
       full = File.join(tmp, path)

@@ -3,8 +3,9 @@
 require "helper"
 
 RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::CoverageViolations*" do
-  let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 80, missed: 20) }
-  let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 5, missed: 5) }
+  def line_stats = SimpleCov::CoverageStatistics.new(covered: 80, missed: 20)
+
+  def branch_stats = SimpleCov::CoverageStatistics.new(covered: 5, missed: 5)
 
   describe ".minimum_overall" do
     it "reports violations for criteria below threshold" do

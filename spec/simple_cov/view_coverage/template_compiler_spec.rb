@@ -3,19 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
-  let(:template_class) do
-    Class.new do
-      attr_reader :compiled_into
-
-      def compile(mod)
-        @compiled_into = mod
-      end
-      private :compile
-    end
-  end
   let(:template) { template_class.new }
-  let(:path) { "app/views/foos/show.html.erb" }
-
   let(:handler) { Object.new }
   let(:handlers) { {"erb" => handler} }
   let(:built) { [] }
@@ -31,6 +19,19 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
       end
     end
   end
+
+  def template_class
+    Class.new do
+      attr_reader :compiled_into
+
+      def compile(mod)
+        @compiled_into = mod
+      end
+      private :compile
+    end
+  end
+
+  def path = "app/views/foos/show.html.erb"
 
   describe ".available?" do
     it "is false in a project that doesn't load ActionView" do

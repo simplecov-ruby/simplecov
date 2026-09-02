@@ -7,21 +7,21 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, minimum_coverage_by_file, overrides) }
 
-  let(:result) do
-    instance_double(SimpleCov::Result, files: files)
-  end
-  let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }
   let(:files) do
     [
       instance_double(
         SimpleCov::SourceFile,
-        coverage_statistics: coverage_statistics,
+        coverage_statistics: {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)},
         filename: "/abs/lib/foo.rb",
         project_filename: "lib/foo.rb"
       )
     ]
   end
   let(:overrides) { {} }
+
+  def result = instance_double(SimpleCov::Result, files: files)
+
+  def output = check.report_lines.join("\n")
 
   context "when all files passing requirements" do
     let(:minimum_coverage_by_file) { {line: 80} }
@@ -37,7 +37,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
 
   describe "#report" do
     let(:minimum_coverage_by_file) { {line: 90} }
-    let(:output) { check.report_lines.join("\n") }
 
     it "names the criterion" do
       expect(output).to include("Line coverage by file")
@@ -74,7 +73,6 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
       ]
     end
     let(:minimum_coverage_by_file) { {line: 70} }
-    let(:output) { check.report_lines.join("\n") }
 
     context "when an override raises the bar for one specific file" do
       let(:overrides) { {"lib/critical.rb" => {line: 100}} }
@@ -141,17 +139,14 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
     end
 
     context "when override + defaults differ per criterion" do
-      let(:coverage_statistics) do
-        {
-          line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2),
-          branch: SimpleCov::CoverageStatistics.new(covered: 6, missed: 4)
-        }
-      end
       let(:files) do
         [
           instance_double(
             SimpleCov::SourceFile,
-            coverage_statistics: coverage_statistics,
+            coverage_statistics: {
+              line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2),
+              branch: SimpleCov::CoverageStatistics.new(covered: 6, missed: 4)
+            },
             filename: "/abs/lib/critical.rb",
             project_filename: "lib/critical.rb"
           )

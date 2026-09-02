@@ -4,8 +4,6 @@ require "helper"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
   mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
-  def filename = File.expand_path("/project/lib/a.rb")
-
   let(:lines) do
     [
       line("# a comment\n", 1, nil),
@@ -16,18 +14,9 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
       line("end\n", 6, nil)
     ]
   end
-
-  let(:inline_branch) do
-    SimpleCov::SourceFile::Branch.new(start_line: 3, end_line: 3, coverage: 2, inline: true, type: :then)
-  end
-  let(:block_branch) do
-    SimpleCov::SourceFile::Branch.new(start_line: 5, end_line: 6, coverage: 0, inline: false, type: :else)
-  end
-
   let(:line_source) { instance_double(SimpleCov::SourceFile, lines: lines) }
   let(:covered_method) { SimpleCov::SourceFile::Method.new(line_source, ["Foo", :bar, 2, 2, 3, 5], 2) }
   let(:missed_method) { SimpleCov::SourceFile::Method.new(line_source, ["Foo", :baz, 5, 2, 6, 5], 0) }
-
   let(:source_file) do
     instance_double(
       SimpleCov::SourceFile,
@@ -40,6 +29,16 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::SourceFileFormatter,
       methods: [covered_method, missed_method],
       covered_methods: [covered_method], missed_methods: [missed_method]
     )
+  end
+
+  def filename = File.expand_path("/project/lib/a.rb")
+
+  def inline_branch
+    SimpleCov::SourceFile::Branch.new(start_line: 3, end_line: 3, coverage: 2, inline: true, type: :then)
+  end
+
+  def block_branch
+    SimpleCov::SourceFile::Branch.new(start_line: 5, end_line: 6, coverage: 0, inline: false, type: :else)
   end
 
   def line_section

@@ -4,9 +4,12 @@ require "helper"
 
 RSpec.describe SimpleCov::ViewCoverage do
   let(:root) { Dir.mktmpdir("view-coverage") }
-  let(:rendered) { File.join(root, "app/views/foos/show.html.erb") }
-  let(:unrendered) { File.join(root, "app/views/foos/index.html.erb") }
-  let(:compiler) { SimpleCov::ViewCoverage::TemplateCompiler }
+
+  def rendered = File.join(root, "app/views/foos/show.html.erb")
+
+  def unrendered = File.join(root, "app/views/foos/index.html.erb")
+
+  def compiler = SimpleCov::ViewCoverage::TemplateCompiler
 
   before do
     FileUtils.mkdir_p(File.dirname(rendered))

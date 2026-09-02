@@ -4,15 +4,18 @@ require "helper"
 
 RSpec.describe SimpleCov::Formatter::JSONFormatter::ErrorsFormatter,
   mutant_expression: "SimpleCov::Formatter::JSONFormatter*" do
-  let(:line_stats) { SimpleCov::CoverageStatistics.new(covered: 9, missed: 1) }
-  let(:branch_stats) { SimpleCov::CoverageStatistics.new(covered: 1, missed: 1) }
-  let(:method_stats) { SimpleCov::CoverageStatistics.new(covered: 3, missed: 1) }
   let(:all_statistics) { {line: line_stats, branch: branch_stats, method: method_stats} }
 
   let(:a_file) { file_double("lib/a.rb", all_statistics) }
   let(:b_file) { file_double("lib/b.rb", {line: SimpleCov::CoverageStatistics.new(covered: 1, missed: 3)}) }
 
   let(:result) { result_double(a_file) }
+
+  def line_stats = SimpleCov::CoverageStatistics.new(covered: 9, missed: 1)
+
+  def branch_stats = SimpleCov::CoverageStatistics.new(covered: 1, missed: 1)
+
+  def method_stats = SimpleCov::CoverageStatistics.new(covered: 3, missed: 1)
 
   before do
     allow(SimpleCov).to receive_messages(

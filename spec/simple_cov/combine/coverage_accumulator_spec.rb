@@ -3,7 +3,7 @@
 require "helper"
 
 RSpec.describe SimpleCov::Combine::CoverageAccumulator do
-  let(:executed) do
+  def executed
     {
       "lines" => [nil, 1, 1, 0, nil],
       "branches" => {
@@ -12,7 +12,7 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     }
   end
 
-  let(:simulated_drifted) do
+  def simulated_drifted
     {
       "lines" => [nil, 0, 0, 0, nil],
       "branches" => {
@@ -235,14 +235,14 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       SimpleCov.clear_coverage_criteria
     end
 
-    let(:other_simulated) do
+    def other_simulated
       {
         "lines" => [nil, 0, 0, 0, nil],
         "branches" => {[:if, 0, 2, 2, 4, 20] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 20] => 0}}
       }
     end
 
-    let(:other_executed_run) do
+    def other_executed_run
       {
         "lines" => [nil, 1, 1, 1, nil],
         "branches" => {
@@ -281,8 +281,9 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     end
 
     context "when one side carries no lines table" do
-      let(:line_only) { {"lines" => [nil, 1, 1]} }
-      let(:branch_only) do
+      def line_only = {"lines" => [nil, 1, 1]}
+
+      def branch_only
         {"branches" => {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 7, [:else, 2, 4, 4, 4, 10] => 3}}}
       end
 

@@ -7,13 +7,15 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   subject(:formatter) { described_class.new }
 
   let(:tmp) { Dir.mktmpdir("simplecov-baseline-formatter-spec-") }
-  let(:baseline_path) { File.join(tmp, ".simplecov_baseline.yml") }
+  let(:formatted) { capture_stderr { formatter.format(result) } }
 
-  let(:result) do
+  def baseline_path = File.join(tmp, ".simplecov_baseline.yml")
+
+  def result
     SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]}})
   end
-  let(:project_filename) { SimpleCov::SourceFile.new(source_fixture("json/sample.rb"), []).project_filename }
-  let(:formatted) { capture_stderr { formatter.format(result) } }
+
+  def project_filename = SimpleCov::SourceFile.new(source_fixture("json/sample.rb"), []).project_filename
 
   before { allow(SimpleCov).to receive(:baseline_file).and_return(baseline_path) }
 
@@ -35,7 +37,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
     end
 
     context "with more than one file in the report" do
-      let(:result) do
+      def result
         SimpleCov::Result.new(
           {
             source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]},
@@ -118,8 +120,9 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   end
 
   context "with several files below their floors" do
-    let(:sibling_filename) { SimpleCov::SourceFile.new(source_fixture("sample.rb"), []).project_filename }
-    let(:result) do
+    def sibling_filename = SimpleCov::SourceFile.new(source_fixture("sample.rb"), []).project_filename
+
+    def result
       SimpleCov::Result.new(
         {
           source_fixture("json/sample.rb") => {"lines" => [1, 0, 1]},
@@ -219,7 +222,7 @@ RSpec.describe SimpleCov::Formatter::BaselineFormatter do
   end
 
   context "when branch coverage is enabled" do
-    let(:result) do
+    def result
       SimpleCov::Result.new({
         source_fixture("json/sample.rb") => {
           "lines" => [1, 0, 1],

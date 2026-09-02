@@ -6,9 +6,11 @@ require "coverage"
 RSpec.describe SimpleCov::TestTracker do
   subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i) }
 
-  let(:project_root) { File.expand_path("/proj") }
-  let(:lib_file) { File.join(project_root, "lib/thing.rb") }
-  let(:gem_file) { File.expand_path("/gems/rspec/lib/rspec.rb") }
+  def project_root = File.expand_path("/proj")
+
+  def lib_file = File.join(project_root, "lib/thing.rb")
+
+  def gem_file = File.expand_path("/gems/rspec/lib/rspec.rb")
 
   def stub_peeks(before, after)
     allow(Coverage).to receive(:peek_result).and_return(before, after)

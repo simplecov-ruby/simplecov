@@ -489,12 +489,15 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.instance_variable_set(:@filters, previous_filters)
     end
 
-    let(:sample) { File.expand_path("spec/fixtures/sample.rb", described_class.root) }
-    let(:other) { File.expand_path("spec/fixtures/resultset1.rb", described_class.root) }
-    let(:excluded) { File.expand_path("spec/fixtures/app/models/user.rb", described_class.root) }
     let(:sample_block_filter) do
       SimpleCov::BlockFilter.new(->(source_file) { source_file.filename.include?("sample") })
     end
+
+    def sample = File.expand_path("spec/fixtures/sample.rb", described_class.root)
+
+    def other = File.expand_path("spec/fixtures/resultset1.rb", described_class.root)
+
+    def excluded = File.expand_path("spec/fixtures/app/models/user.rb", described_class.root)
 
     def process_slice(report: false, inject_unloaded: false)
       described_class.send(:process_coverage_result, report: report, inject_unloaded: inject_unloaded)
@@ -2218,7 +2221,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     let(:collated) do
       JSON.parse(File.read(resultset_path)).transform_values { |v| v.reject { |k| k == "timestamp" } }
     end
-    let(:merged_result) do
+    let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
+    let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-spec-") }
+
+    def merged_result
       {
         "result1, result2" => {
           "coverage" => {
@@ -2229,12 +2235,12 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         }
       }
     end
-    let(:resultset_path) { SimpleCov::ResultMerger.resultset_path }
-    let(:coverage_folder) { Dir.mktmpdir("simplecov-collate-spec-") }
-    let(:second_resultset) do
+
+    def second_resultset
       {source_fixture("sample.rb") => {"lines" => [1, nil, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
-    let(:first_resultset) do
+
+    def first_resultset
       {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, 1, nil, nil, 1, 1, nil, nil]}}
     end
 

@@ -5,13 +5,13 @@ require "json"
 require "json_schemer"
 
 describe "coverage.json schema" do
-  def schema_path = File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__)
-
-  def alias_path = File.expand_path("../../schemas/coverage.schema.json", __dir__)
-
   let(:schema_doc) { JSON.parse(File.read(schema_path)) }
   let(:alias_doc) { JSON.parse(File.read(alias_path)) }
   let(:schemer) { JSONSchemer.schema(schema_doc) }
+
+  def schema_path = File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__)
+
+  def alias_path = File.expand_path("../../schemas/coverage.schema.json", __dir__)
 
   def validate_against_schema(document)
     schemer.validate(document).map { |e| "#{e["data_pointer"]}: #{e["error"]}" }
@@ -59,7 +59,6 @@ describe "coverage.json schema" do
   end
 
   context "with fresh JSONFormatter output" do
-    let(:fixed_time) { Time.new(2024, 1, 1, 0, 0, 0, "+00:00") }
     let(:formatter) { SimpleCov::Formatter::JSONFormatter.new(silent: true) }
 
     before do

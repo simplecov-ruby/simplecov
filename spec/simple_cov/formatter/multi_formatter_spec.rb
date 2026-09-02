@@ -5,13 +5,14 @@ require "helper"
 require "simplecov/formatter/multi_formatter"
 
 RSpec.describe SimpleCov::Formatter::MultiFormatter do
-  let(:result) { instance_double(SimpleCov::Result, command_name: "RSpec") }
   let(:good_formatter) do
     Class.new { def format(result) = "ok: #{result.command_name}" }
   end
   let(:bad_formatter) do
     Class.new { def format(_) = raise(ArgumentError, "boom") }
   end
+
+  def result = instance_double(SimpleCov::Result, command_name: "RSpec")
 
   describe "#format" do
     it "hands the result to each formatter and collects what they return" do

@@ -81,7 +81,7 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
 
     let(:checks) { described_class.coverage_checks(result, limits) }
 
-    let(:expected_classes) do
+    def expected_classes
       [
         SimpleCov::ExitCodes::MinimumOverallCoverageCheck,
         SimpleCov::ExitCodes::MinimumCoverageByFileCheck,
@@ -93,7 +93,8 @@ RSpec.describe SimpleCov::ExitCodes::ExitCodeHandling,
         SimpleCov::ExitCodes::MaximumMissedPerFileCheck
       ]
     end
-    let(:expected_thresholds) do
+
+    def expected_thresholds
       [
         {line: 90.0}, {line: 80.0}, nil,
         {"Libs" => {line: 70.0}},

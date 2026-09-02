@@ -6,26 +6,20 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
   mutant_expression: ["SimpleCov::ExitCodes::BaselineCheck*", "SimpleCov::CoverageViolations*"] do
   subject(:check) { described_class.new(result, baseline) }
 
-  let(:result) { instance_double(SimpleCov::Result, files: files) }
-  let(:files) do
-    [
-      instance_double(
-        SimpleCov::SourceFile,
-        coverage_statistics: coverage_statistics,
-        filename: "/abs/lib/foo.rb",
-        project_filename: "lib/foo.rb"
-      )
-    ]
+  let(:result) do
+    file = instance_double(
+      SimpleCov::SourceFile,
+      coverage_statistics: coverage_statistics,
+      filename: "/abs/lib/foo.rb",
+      project_filename: "lib/foo.rb"
+    )
+    instance_double(SimpleCov::Result, files: [file])
   end
   let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }
+  let(:baseline) { SimpleCov::Baseline.new("lib/foo.rb" => {line: floor}) }
+  let(:floor) { SimpleCov::Baseline::Floor.new(percent: 80.0, missed: 2) }
 
-  let(:baseline) do
-    SimpleCov::Baseline.new(
-      "lib/foo.rb" => {line: SimpleCov::Baseline::Floor.new(percent: floor_percent, missed: floor_missed)}
-    )
-  end
-  let(:floor_percent) { 80.0 }
-  let(:floor_missed) { 2 }
+  def output = check.report_lines.join("\n")
 
   context "with no baseline" do
     let(:baseline) { nil }
@@ -38,16 +32,13 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
   end
 
   context "when the file is above its floor" do
-    let(:floor_percent) { 70.0 }
-    let(:floor_missed) { 3 }
+    let(:floor) { SimpleCov::Baseline::Floor.new(percent: 70.0, missed: 3) }
 
     it { is_expected.not_to be_failing }
   end
 
   context "when the file dropped below its floor on both axes" do
-    let(:floor_percent) { 90.0 }
-    let(:floor_missed) { 1 }
-    let(:output) { check.report_lines.join("\n") }
+    let(:floor) { SimpleCov::Baseline::Floor.new(percent: 90.0, missed: 1) }
 
     it { is_expected.to be_failing }
 
@@ -69,16 +60,13 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
   end
 
   context "when the percent dropped but the missed count did not grow" do
-    let(:floor_percent) { 90.0 }
-    let(:floor_missed) { 2 }
+    let(:floor) { SimpleCov::Baseline::Floor.new(percent: 90.0, missed: 2) }
 
     it { is_expected.not_to be_failing }
   end
 
   context "with a percent-only floor" do
-    let(:floor_missed) { nil }
-    let(:floor_percent) { 90.0 }
-    let(:output) { check.report_lines.join("\n") }
+    let(:floor) { SimpleCov::Baseline::Floor.new(percent: 90.0, missed: nil) }
 
     it "fails on the percent alone" do
       expect(check).to be_failing
@@ -133,8 +121,6 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
       )
     end
 
-    let(:output) { check.report_lines.join("\n") }
-
     it "names the violated criterion" do
       expect(output).to include("Branch coverage")
     end
@@ -153,8 +139,7 @@ RSpec.describe SimpleCov::ExitCodes::BaselineCheck,
   end
 
   describe "what it reports" do
-    let(:floor_percent) { 90.0 }
-    let(:floor_missed) { 1 }
+    let(:floor) { SimpleCov::Baseline::Floor.new(percent: 90.0, missed: 1) }
 
     before { allow(SimpleCov::Color).to receive(:enabled?).and_return(false) }
 

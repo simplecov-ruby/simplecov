@@ -8,11 +8,13 @@ require "support/coverage_fixtures"
 RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   subject(:formatter) { described_class.new(silent: true) }
 
-  let(:loud_formatter) { described_class.new(silent: false) }
-  let(:fixtures_path) { File.join(source_fixture_base_directory, "fixtures") }
-
   let(:tmp_root) { Dir.mktmpdir("simplecov-html-formatter-") }
-  let(:coverage_dir) { File.join(tmp_root, "coverage") }
+
+  def loud_formatter = described_class.new(silent: false)
+
+  def fixtures_path = File.join(source_fixture_base_directory, "fixtures")
+
+  def coverage_dir = File.join(tmp_root, "coverage")
 
   before do
     FileUtils.mkdir_p(coverage_dir)
@@ -215,8 +217,10 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
 
   describe "#format when source_in_json is false" do
     let(:result) { make_result }
-    let(:embedded) { coverage_data }
-    let(:external) { JSON.parse(File.read(File.join(coverage_dir, "coverage.json"))) }
+
+    def embedded = coverage_data
+
+    def external = JSON.parse(File.read(File.join(coverage_dir, "coverage.json")))
 
     before do
       allow(SimpleCov).to receive(:source_in_json).and_return(false)
@@ -299,9 +303,11 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
   end
 
   describe "#format_from_json" do
-    let(:standalone_dir) { File.join(coverage_dir, "standalone") }
-    let(:json_path) { File.join(coverage_dir, "coverage.json") }
-    let(:index_path) { File.join(standalone_dir, "index.html") }
+    def standalone_dir = File.join(coverage_dir, "standalone")
+
+    def json_path = File.join(coverage_dir, "coverage.json")
+
+    def index_path = File.join(standalone_dir, "index.html")
 
     before { formatter.format(make_result) }
 
@@ -390,7 +396,7 @@ RSpec.describe SimpleCov::Formatter::HTMLFormatter do
     let!(:original_criteria) { SimpleCov.coverage_criteria.dup }
     let!(:original_filters) { SimpleCov.filters.dup }
 
-    let(:full_coverage) { CoverageFixtures::ALL_FIXTURES }
+    def full_coverage = CoverageFixtures::ALL_FIXTURES
 
     before do
       SimpleCov.enable_coverage(:branch)
