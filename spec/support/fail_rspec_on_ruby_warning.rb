@@ -6,6 +6,7 @@ class FailOnWarnings
   def initialize
     @stderr_stream = StringIO.new
     @app_root = Dir.pwd
+    @bundle_path = Bundler.bundle_path.to_s if defined?(Bundler)
   end
 
   def collect_warnings
@@ -38,10 +39,16 @@ class FailOnWarnings
     nocov_deprecation_marker = "Replace with `# simplecov:disable` / `# simplecov:enable`"
     coverage_report_summary_marker = "Coverage report generated"
     lines.partition do |line|
-      line.include?(@app_root) &&
+      app_line?(line) &&
         !line.include?(nocov_deprecation_marker) &&
         !line.start_with?(coverage_report_summary_marker)
     end
+  end
+
+  # CI installs the bundle under the project (vendor/bundle), so a gem's
+  # warning carries the app root too. It is the gem's, not ours.
+  def app_line?(line)
+    line.include?(@app_root) && !(@bundle_path && line.include?(@bundle_path))
   end
 
   def print_own_warnings(app_warnings)
