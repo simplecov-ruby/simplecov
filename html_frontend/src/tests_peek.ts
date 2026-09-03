@@ -57,7 +57,7 @@ export function setupTestsPeekDismissal(): void {
   document.addEventListener('click', (event) => {
     if (!openPeek) return;
     const target = event.target as Element;
-    if (openPeek.contains(target) || target === openBadge || openBadge?.contains(target)) return;
+    if (openPeek.contains(target) || openBadge!.contains(target)) return;
     closeTestsPeek();
   }, true);
 }

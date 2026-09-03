@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { invalidateFileRowCache } from '../src/file_rows';
 import {
   hasFocusedRow,
@@ -19,11 +19,19 @@ function buildRows(): HTMLElement[] {
   return ['row-1', 'row-2', 'row-3'].map((id) => document.getElementById(id)!);
 }
 
+function focused(rows: HTMLElement[]): boolean[] {
+  return rows.map((row) => row.classList.contains('keyboard-focus'));
+}
+
 describe('navigation', () => {
   beforeEach(() => {
     setFocusedRow(null);
     invalidateFileRowCache();
     window.location.hash = '';
+  });
+
+  afterEach(() => {
+    mock.restore();
   });
 
   test('setFocusedRow moves the keyboard-focus class between rows', () => {
@@ -43,6 +51,13 @@ describe('navigation', () => {
     expect(second.classList.contains('keyboard-focus')).toBe(false);
   });
 
+  test('setFocusedRow scrolls the row into view without jumping the page', () => {
+    const [first] = buildRows();
+    const scroll = spyOn(first, 'scrollIntoView');
+    setFocusedRow(first);
+    expect(scroll).toHaveBeenCalledWith({block: 'nearest'});
+  });
+
   test('moveFocus is a no-op with no rows', () => {
     document.body.innerHTML = '';
     moveFocus(1);
@@ -52,34 +67,42 @@ describe('navigation', () => {
   test('moveFocus enters the list from either end', () => {
     const rows = buildRows();
     moveFocus(1);
-    expect(rows[0].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([true, false, false]);
 
     setFocusedRow(null);
     moveFocus(-1);
-    expect(rows[2].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([false, false, true]);
   });
 
   test('moveFocus steps through rows and stops at the boundaries', () => {
     const rows = buildRows();
     moveFocus(1);
+    moveFocus(-1);
+    expect(focused(rows)).toEqual([true, false, false]);
+    expect(hasFocusedRow()).toBe(true);
+
     moveFocus(1);
-    expect(rows[1].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([false, true, false]);
 
     moveFocus(1);
     moveFocus(1);
-    expect(rows[2].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([false, false, true]);
 
     moveFocus(-1);
-    expect(rows[1].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([false, true, false]);
   });
 
-  test('moveFocus re-enters the list when the focused row went stale', () => {
+  test('moveFocus re-enters the list from the matching end when the focused row went stale', () => {
     const rows = buildRows();
     setFocusedRow(rows[1]);
     rows[1].remove();
     invalidateFileRowCache();
+    moveFocus(-1);
+    expect(focused(rows)).toEqual([false, false, true]);
+
+    setFocusedRow(rows[1]);
     moveFocus(1);
-    expect(rows[0].classList.contains('keyboard-focus')).toBe(true);
+    expect(focused(rows)).toEqual([true, false, false]);
   });
 
   test('openFocusedRow follows the row link, tolerating linkless rows', () => {

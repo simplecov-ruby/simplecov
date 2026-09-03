@@ -29,15 +29,9 @@ export function setupEventDelegation(): void {
     if (list) list.style.display = list.style.display === 'none' ? '' : 'none';
   });
 
-  on(document, 'click', 'a.src_link', function (e: Event) {
-    e.preventDefault();
-    window.location.hash = this.getAttribute('href')!.substring(1);
-  });
-
-  on(document, 'click', 'table.file_list tbody tr', function (e: Event) {
-    if ((e.target as Element).closest('a')) return;
+  on(document, 'click', 'table.file_list tbody tr', function () {
     const link = this.querySelector('a.src_link');
-    if (link) window.location.hash = link.getAttribute('href')!.substring(1);
+    if (link) window.location.hash = link.getAttribute('href')!;
   });
 
   on(document, 'click', 'button.hits--tests', function (e: Event) {

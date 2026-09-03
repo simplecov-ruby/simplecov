@@ -13,13 +13,12 @@ export default function slim(hljs: HLJSApi): Language {
         excludeBegin: true,
         relevance: 0
       },
-      { begin: /^\s*[|']/, end: /$/, relevance: 0 },
       {
         className: 'name',
         begin: /^\s*[A-Za-z][A-Za-z0-9_-]*/,
         relevance: 0,
         starts: {
-          end: /\s|$/,
+          end: /\s/,
           relevance: 0,
           contains: [
             { className: 'selector-class', begin: /\.[A-Za-z][A-Za-z0-9_-]*/, relevance: 0 },

@@ -31,6 +31,14 @@ describe('getVisibleFileRows', () => {
     expect(getVisibleFileRows()).toEqual([]);
   });
 
+  test('ignores the rows of a hidden container', () => {
+    document.body.innerHTML = `
+      <div class="file_list_container" style="display: none">
+        <table><tbody><tr class="t-file" id="hidden-group-row"></tr></tbody></table>
+      </div>`;
+    expect(getVisibleFileRows()).toEqual([]);
+  });
+
   test('serves the cached array until invalidated', () => {
     buildContainers();
     const first = getVisibleFileRows();

@@ -9,7 +9,7 @@ import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
-import { decodeFileContexts, contextIdsForLine, type FileContextIndex } from './contexts';
+import { decodeFileContexts, contextIdsForLine } from './contexts';
 import type { CoverageData, FileCoverage, ProductionData } from './types';
 
 hljs.registerLanguage('ruby', ruby);
@@ -17,10 +17,9 @@ hljs.registerLanguage('erb', erb);
 hljs.registerLanguage('haml', haml);
 hljs.registerLanguage('slim', slim);
 
-let faviconBand: string | null = null;
+let faviconBand: string | undefined;
 
 export function updateFavicon(): void {
-  if (!faviconBand) return;
   const color = getComputedStyle(document.documentElement).getPropertyValue(`--${faviconBand}`).trim();
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 16;
@@ -49,8 +48,6 @@ interface RenderState {
   production: ProductionData | null;
 }
 let renderState: RenderState | null = null;
-
-const contextIndexCache = new Map<string, FileContextIndex>();
 
 const FOOTER_RUN_LIMIT = 3;
 
@@ -120,7 +117,6 @@ export function renderPage(data: CoverageData): void {
     contexts: data.contexts || null,
     production: data.production || null
   };
-  contextIndexCache.clear();
 
   const timestamp = new Date(meta.timestamp);
   const footerHtml = `Generated <abbr class="timeago" title="${timestamp.toISOString()}">${timestamp.toISOString()}</abbr>` +
@@ -129,36 +125,30 @@ export function renderPage(data: CoverageData): void {
   document.getElementById('footer')!.innerHTML = footerHtml;
   document.getElementById('source-dialog-footer')!.innerHTML = footerHtml;
 
-  const legend = document.getElementById('source-legend')!;
-  let legendHtml = '';
+  const rows: string[] = [];
   if (lineCoverage) {
     const coveredChips = data.contexts
-      ? '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered by tests</span>' +
-        '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--outside-tests"></span>Covered outside tests</span>'
-      : '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--covered"></span>Covered</span>';
-    legendHtml += '<div class="source-legend__row source-legend__row--line">' +
-      coveredChips +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--skipped"></span>Skipped</span>' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed"></span>Missed line</span>' +
-      '</div>';
+      ? [legendItem('covered', 'Covered by tests'), legendItem('outside-tests', 'Covered outside tests')]
+      : [legendItem('covered', 'Covered')];
+    rows.push(legendRow('line', [...coveredChips, legendItem('skipped', 'Skipped'), legendItem('missed', 'Missed line')]));
   }
   if (data.production && lineCoverage) {
-    legendHtml += '<div class="source-legend__row source-legend__row--production">' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--production-never"></span>Never ran in production</span>' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--production-ran"></span>Untested, runs in production</span>' +
-      '</div>';
+    rows.push(legendRow('production', [
+      legendItem('production-never', 'Never ran in production'),
+      legendItem('production-ran', 'Untested, runs in production')
+    ]));
   }
-  if (branchCoverage) {
-    legendHtml += '<div class="source-legend__row source-legend__row--branch">' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-branch"></span>Missed branch</span>' +
-      '</div>';
-  }
-  if (methodCoverage) {
-    legendHtml += '<div class="source-legend__row source-legend__row--method">' +
-      '<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--missed-method"></span>Missed method</span>' +
-      '</div>';
-  }
-  legend.innerHTML = legendHtml;
+  if (branchCoverage) rows.push(legendRow('branch', [legendItem('missed-branch', 'Missed branch')]));
+  if (methodCoverage) rows.push(legendRow('method', [legendItem('missed-method', 'Missed method')]));
+  document.getElementById('source-legend')!.innerHTML = rows.join('');
+}
+
+function legendRow(kind: string, items: string[]): string {
+  return `<div class="source-legend__row source-legend__row--${kind}">${items.join('')}</div>`;
+}
+
+function legendItem(swatch: string, label: string): string {
+  return `<span class="source-legend__item"><span class="source-legend__swatch source-legend__swatch--${swatch}"></span>${label}</span>`;
 }
 
 export function materializeSourceFile(sourceFileId: string): HTMLElement | null {
@@ -193,11 +183,7 @@ export function contextsForSourceLine(sourceFileId: string, line: number): strin
   const filename = renderState.idToFilename[sourceFileId];
   if (!filename) return null;
 
-  let index = contextIndexCache.get(sourceFileId);
-  if (!index) {
-    const file = renderState.coverage[filename];
-    index = decodeFileContexts(file.contexts, file.source.length);
-    contextIndexCache.set(sourceFileId, index);
-  }
+  const file = renderState.coverage[filename];
+  const index = decodeFileContexts(file.contexts, file.source.length);
   return contextIdsForLine(index, renderState.contexts, line);
 }

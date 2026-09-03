@@ -25,8 +25,6 @@ function toggleButtons(kind: string): HTMLElement[] {
 // this only wires the toggles (issue #534).
 export function initColorblindMode(): void {
   const toggles = toggleButtons('colorblind');
-  if (toggles.length === 0) return;
-
   const root = document.documentElement;
 
   const sync = (): void => {
@@ -49,8 +47,6 @@ export function initColorblindMode(): void {
 // handler and is kept in sync, so the two copies always agree.
 export function initDarkMode(): void {
   const toggles = toggleButtons('dark');
-  if (toggles.length === 0) return;
-
   const root = document.documentElement;
 
   function isDark(): boolean {
@@ -90,9 +86,9 @@ export function initDarkMode(): void {
 
 
 function focusActiveFilter(): void {
-  const visible = $$('.file_list_container').filter(c => (c as HTMLElement).style.display !== 'none');
-  const input = visible.length ? $('.col-filter--name', visible[0]) as HTMLElement | null : null;
-  if (input) input.focus();
+  const visible = $$('.file_list_container').find(c => (c as HTMLElement).style.display !== 'none');
+  if (!visible) return;
+  ($('.col-filter--name', visible) as HTMLElement).focus();
 }
 
 function handleEscape(e: KeyboardEvent, inInput: boolean): void {
@@ -101,7 +97,7 @@ function handleEscape(e: KeyboardEvent, inInput: boolean): void {
     navigateToActiveTab();
   } else if (inInput) {
     (e.target as HTMLElement).blur();
-  } else if (hasFocusedRow()) {
+  } else {
     setFocusedRow(null);
   }
 }
@@ -118,7 +114,7 @@ function handleFileListKeys(e: KeyboardEvent): void {
 }
 
 export function handleKeydown(e: KeyboardEvent): void {
-  const inInput = (e.target as Element).matches('input, select, textarea');
+  const inInput = e.target instanceof Element && e.target.matches('input, select, textarea');
 
   if (e.key === '/' && !inInput) {
     e.preventDefault();

@@ -13,6 +13,41 @@ async function boot(data: CoverageData): Promise<void> {
   renderPage(data);
 }
 
+function fakeCanvas(): string[] {
+  const fills: string[] = [];
+  const fakeCtx = {
+    fillStyle: '',
+    fillRect(x: number, y: number, w: number, h: number) {
+      fills.push(`${this.fillStyle}:${x},${y},${w},${h}`);
+    }
+  };
+  const realCreateElement = document.createElement.bind(document);
+  spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+    if (tag !== 'canvas') return realCreateElement(tag);
+    return {
+      width: 0,
+      height: 0,
+      getContext: (kind: string) => (kind === '2d' ? fakeCtx : null),
+      toDataURL: (type: string) => `data:${type};base64,AAAA`
+    };
+  }) as typeof document.createElement);
+  return fills;
+}
+
+function setBandColours(): void {
+  document.documentElement.style.setProperty('--red', '#ff0000');
+  document.documentElement.style.setProperty('--yellow', '#ffff00');
+  document.documentElement.style.setProperty('--green', '#00ff00');
+}
+
+function clearBandColours(): void {
+  for (const band of ['--red', '--yellow', '--green']) document.documentElement.style.removeProperty(band);
+}
+
+function textNodeCount(el: Element): number {
+  return el.childNodes.length - el.children.length;
+}
+
 beforeEach(() => {
   installPageSkeleton();
   document.body.removeAttribute('data-branch-coverage');
@@ -38,29 +73,14 @@ describe('updateFavicon', () => {
   test('draws a favicon in the coverage band colour once a context exists', async () => {
     const data = coverageData();
     await boot(data);
-    document.documentElement.style.setProperty('--red', '#ff0000');
+    document.documentElement.style.setProperty('--red', ' #ff0000 ');
 
-    const fills: string[] = [];
-    const fakeCtx = {
-      fillStyle: '',
-      fillRect(x: number, y: number, w: number, h: number) {
-        fills.push(`${this.fillStyle}:${x},${y},${w},${h}`);
-      }
-    };
-    const realCreateElement = document.createElement.bind(document);
-    spyOn(document, 'createElement').mockImplementation(((tag: string) => {
-      if (tag !== 'canvas') return realCreateElement(tag);
-      return {
-        width: 0,
-        height: 0,
-        getContext: () => fakeCtx,
-        toDataURL: () => 'data:image/png;base64,AAAA'
-      };
-    }) as typeof document.createElement);
+    const fills = fakeCanvas();
 
     updateFavicon();
     const link = document.head.querySelector('link[rel="icon"]') as HTMLLinkElement;
     expect(link.href).toBe('data:image/png;base64,AAAA');
+    expect(link.type).toBe('image/png');
     expect(fills).toEqual(['#ff0000:0,0,16,16']);
 
     updateFavicon();
@@ -100,7 +120,14 @@ describe('renderPage', () => {
     expect(legend.textContent).not.toContain('Missed branch');
     expect(legend.textContent).not.toContain('Missed method');
     expect(legend.querySelectorAll('.source-legend__row')).toHaveLength(1);
-    expect(legend.querySelector('.source-legend__row--line')!.textContent).toContain('Covered');
+    expect(legend.children).toHaveLength(1);
+    expect(textNodeCount(legend)).toBe(0);
+    const lineRow = legend.querySelector('.source-legend__row--line')!;
+    expect(lineRow.textContent).toContain('Covered');
+    expect(textNodeCount(lineRow)).toBe(0);
+    expect(lineRow.querySelector('.source-legend__swatch--covered')).not.toBeNull();
+    expect(lineRow.querySelector('.source-legend__swatch--skipped')).not.toBeNull();
+    expect(lineRow.querySelector('.source-legend__swatch--missed')).not.toBeNull();
   });
 
   test('renders branch and method coverage with groups', async () => {
@@ -135,8 +162,15 @@ describe('renderPage', () => {
     expect(legend.textContent).toContain('Missed branch');
     expect(legend.textContent).toContain('Missed method');
     expect(legend.querySelectorAll('.source-legend__row')).toHaveLength(3);
+    expect(legend.children).toHaveLength(3);
+    expect(textNodeCount(legend)).toBe(0);
     expect(legend.querySelector('.source-legend__row--branch')!.textContent).toContain('Missed branch');
+    expect(legend.querySelector('.source-legend__row--branch .source-legend__swatch--missed-branch')).not.toBeNull();
     expect(legend.querySelector('.source-legend__row--method')!.textContent).toContain('Missed method');
+    expect(legend.querySelector('.source-legend__row--method .source-legend__swatch--missed-method')).not.toBeNull();
+
+    const groupRows = groupContainer.querySelectorAll('tr.t-file[data-covered-outside-lines]');
+    expect(groupRows).toHaveLength(0);
   });
 
   test('falls back to a 100% favicon band when the primary stat is missing', async () => {
@@ -144,6 +178,69 @@ describe('renderPage', () => {
     data.total = {};
     await boot(data);
     expect(document.getElementById('g-total')).not.toBeNull();
+  });
+
+  test('draws the favicon during render in the band of the overall percentage', async () => {
+    setBandColours();
+    const fills = fakeCanvas();
+    await boot(coverageData());
+    expect(fills).toEqual(['#ff0000:0,0,16,16']);
+    expect(document.head.querySelector('link[rel="icon"]')).not.toBeNull();
+    clearBandColours();
+  });
+
+  test('treats a report with nothing to cover as fully covered for the favicon', async () => {
+    setBandColours();
+    const fills = fakeCanvas();
+    const data = coverageData();
+    data.total.lines = {covered: 0, missed: 0, total: 0, percent: 0, strength: 0};
+    await boot(data);
+    expect(fills).toEqual(['#00ff00:0,0,16,16']);
+    clearBandColours();
+  });
+
+  test('names the all-files list and keeps the sections free of stray text', async () => {
+    const data = coverageData();
+    data.groups = {Libraries: {files: ['lib/covered.rb'], lines: {covered: 3, missed: 0, total: 3, percent: 100, strength: 1}}};
+    await boot(data);
+    expect(document.querySelector('#g-total .group_name')!.textContent).toBe('All Files');
+    const content = document.getElementById('content')!;
+    expect(content.children).toHaveLength(2);
+    expect(textNodeCount(content)).toBe(0);
+  });
+
+  test('renders an empty list for a group without files', async () => {
+    const data = coverageData();
+    data.groups = {Empty: {lines: {covered: 0, missed: 0, total: 0, percent: 100, strength: 0}}};
+    await boot(data);
+    const group = document.getElementById(toHtmlId('group-Empty'))!;
+    expect(group.querySelectorAll('tbody tr.t-file')).toHaveLength(0);
+    expect(group.getAttribute('data-total-files')).toBe('0');
+  });
+
+  test('attributes lines to tests only when the report recorded contexts', async () => {
+    const data = coverageData();
+    data.groups = {Libraries: {files: ['lib/covered.rb'], lines: {covered: 3, missed: 0, total: 3, percent: 100, strength: 1}}};
+    await boot(data);
+    expect(document.querySelector('#g-total tr.t-file[data-covered-outside-lines]')).toBeNull();
+    expect(document.querySelector(`#${toHtmlId('group-Libraries')} tr.t-file[data-covered-outside-lines]`)).toBeNull();
+
+    installPageSkeleton();
+    data.contexts = ['spec/covered_spec.rb:4'];
+    await boot(data);
+    expect(document.querySelectorAll('#g-total tr.t-file[data-covered-outside-lines]')).toHaveLength(2);
+    expect(document.querySelectorAll(`#${toHtmlId('group-Libraries')} tr.t-file[data-covered-outside-lines]`)).toHaveLength(1);
+  });
+
+  test('omits the line legend row when line coverage is off', async () => {
+    const data = coverageData();
+    data.meta.line_coverage = false;
+    data.meta.branch_coverage = true;
+    data.total.branches = {covered: 1, missed: 1, total: 2, percent: 50.0, strength: 1};
+    await boot(data);
+    const legend = document.getElementById('source-legend')!;
+    expect(legend.querySelector('.source-legend__row--line')).toBeNull();
+    expect(legend.children).toHaveLength(1);
   });
 });
 
@@ -255,6 +352,7 @@ describe('renderPage with recorded contexts', () => {
   test('resolves nothing when the report recorded no contexts', async () => {
     await boot(coverageData());
     expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toBeNull();
+    expect(materializeSourceFile(fileId('lib/covered.rb'))!.querySelector('button.hits--tests')).toBeNull();
   });
 });
 
@@ -275,11 +373,11 @@ describe('footer run names', () => {
 
   test('renders a few distinct runs inline, without a disclosure', async () => {
     const data = coverageData();
-    data.meta.command_names = ['Cucumber', 'RSpec'];
+    data.meta.command_names = ['Cucumber', 'RSpec', 'Minitest'];
     await boot(data);
 
     const footer = document.getElementById('footer')!;
-    expect(footer.textContent).toContain('using Cucumber, RSpec');
+    expect(footer.textContent).toContain('using Cucumber, RSpec, Minitest');
     expect(footer.querySelector('details')).toBeNull();
   });
 
@@ -336,6 +434,7 @@ describe('renderPage with production coverage', () => {
     installPageSkeleton();
     await boot(withProduction());
     const legend = document.getElementById('source-legend')!;
+    expect(legend.children).toHaveLength(2);
     const row = legend.querySelector('.source-legend__row--production')!;
     const labels = Array.from(row.querySelectorAll('.source-legend__item'), (item) => item.textContent);
     expect(labels).toEqual(['Never ran in production', 'Untested, runs in production']);

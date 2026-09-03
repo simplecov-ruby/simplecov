@@ -30,5 +30,5 @@ export function moveFocus(direction: 1 | -1): void {
 export function openFocusedRow(): void {
   if (!focusedRow) return;
   const link = focusedRow.querySelector('a.src_link');
-  if (link) window.location.hash = link.getAttribute('href')!.substring(1);
+  if (link) window.location.hash = link.getAttribute('href')!;
 }

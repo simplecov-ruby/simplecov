@@ -68,3 +68,14 @@ describe('coveredOutsideCount', () => {
     expect(coveredOutsideCount({ '0': '1' }, undefined)).toBe(0);
   });
 });
+
+describe('coveredOutsideCount bit placement', () => {
+  test('a context covering only line 2 leaves line 1 outside', () => {
+    expect(coveredOutsideCount({ '0': '2' }, [1, 1])).toBe(1);
+  });
+
+  test('reads multi-digit bitmaps from the least significant nibble', () => {
+    expect(coveredOutsideCount({ '0': '10' }, [1, 0, 0, 0, null])).toBe(1);
+    expect(coveredOutsideCount({ '0': '10' }, [null, 0, 0, 0, 1])).toBe(0);
+  });
+});

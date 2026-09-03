@@ -10,10 +10,12 @@ import { setupEventDelegation } from './events';
 import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
 import { setupTabScrollFade } from './tab_scroll';
 
-function scheduleTimeago(): void {
+export function scheduleTimeago(): void {
   let minDelay = Infinity;
   $$('abbr.timeago').forEach(el => {
-    const date = new Date(el.getAttribute('title') || '');
+    const title = el.getAttribute('title');
+    if (!title) return;
+    const date = new Date(title);
     if (Number.isNaN(date.getTime())) return;
     el.textContent = timeago(date);
     minDelay = Math.min(minDelay, timeagoNextTick(date));
@@ -25,16 +27,12 @@ function setupTabs(): void {
   $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
 
   $$('.file_list_container').forEach(container => {
-    const id = container.id;
-    const groupName = container.querySelector('.group_name');
-    const coveredPct = container.querySelector('.covered_percent');
-
     const li = document.createElement('li');
     li.setAttribute('role', 'tab');
     const a = document.createElement('a');
-    a.href = '#' + id;
-    a.className = id;
-    a.innerHTML = (groupName ? groupName.innerHTML : '') + ' (' + (coveredPct ? coveredPct.innerHTML : '') + ')';
+    a.href = '#' + container.id;
+    a.className = container.id;
+    a.innerHTML = `${container.querySelector('.group_name')!.innerHTML} (${container.querySelector('.covered_percent')!.innerHTML})`;
     li.appendChild(a);
     document.querySelector('.group_tabs')!.appendChild(li);
   });
@@ -45,15 +43,12 @@ function setupTabs(): void {
   });
 }
 
-function finishLoading(loadingEl: HTMLElement | null): void {
-  if (loadingEl) {
-    loadingEl.style.transition = 'opacity 0.3s';
-    loadingEl.style.opacity = '0';
-    setTimeout(() => { loadingEl.style.display = 'none'; }, 300);
-  }
+function finishLoading(loadingEl: HTMLElement): void {
+  loadingEl.style.transition = 'opacity 0.3s';
+  loadingEl.style.opacity = '0';
+  setTimeout(() => { loadingEl.style.display = 'none'; }, 300);
 
-  const wrapperEl = document.getElementById('wrapper');
-  if (wrapperEl) wrapperEl.classList.remove('hide');
+  document.getElementById('wrapper')!.classList.remove('hide');
 
   equalizeBarWidths();
 }
@@ -61,8 +56,8 @@ function finishLoading(loadingEl: HTMLElement | null): void {
 async function init(): Promise<void> {
   const data = window.SIMPLECOV_DATA;
 
-  const loadingEl = document.getElementById('loading');
-  if (loadingEl) loadingEl.style.display = '';
+  const loadingEl = document.getElementById('loading')!;
+  loadingEl.style.display = '';
 
   await precomputeFileIds(Object.keys(data.coverage));
 

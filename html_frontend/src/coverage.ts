@@ -9,7 +9,6 @@ export function normalizeCoverageType(value: string | undefined): CoverageType |
 
 export function activeCoverageType(meta: CoverageData['meta']): CoverageType {
   const primary = normalizeCoverageType(meta.primary_coverage);
-  if (primary === 'line' && meta.line_coverage) return primary;
   if (primary === 'branch' && meta.branch_coverage) return primary;
   if (primary === 'method' && meta.method_coverage) return primary;
   if (meta.line_coverage) return 'line';

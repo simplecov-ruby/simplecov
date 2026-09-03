@@ -4,7 +4,7 @@ import { renderFileList } from '../src/render_list';
 import type { FileCoverage, ProductionData, StatGroup } from '../src/types';
 
 const FULL = 'lib/full.rb';
-const BARE = 'lib/<bare>.rb'; // markup-significant name to prove escaping
+const BARE = 'lib/<bare>.rb';
 
 beforeAll(async () => {
   await precomputeFileIds([FULL, BARE]);
@@ -37,32 +37,40 @@ function parse(html: string): HTMLElement {
   return el.firstElementChild as HTMLElement;
 }
 
+function texts(root: Element, selector: string): string[] {
+  return Array.from(root.querySelectorAll(selector)).map((el) => el.textContent);
+}
+
 describe('renderFileList', () => {
+  function fullList(): string {
+    return renderFileList({
+      containerId: 'g-total',
+      title: 'All Files',
+      filenames: [FULL, BARE, 'lib/ghost.rb'],
+      stats,
+      allCoverage: { [FULL]: fullCoverage, [BARE]: bareCoverage },
+      lineCoverage: true,
+      branchCoverage: true,
+      methodCoverage: true,
+      primaryCoverage: 'line'
+    });
+  }
+
   test('renders headers, totals, and rows for every enabled criterion', () => {
-    const container = parse(
-      renderFileList({
-        containerId: 'g-total',
-        title: 'All Files',
-        filenames: [FULL, BARE, 'lib/ghost.rb'],
-        stats,
-        allCoverage: { [FULL]: fullCoverage, [BARE]: bareCoverage },
-        lineCoverage: true,
-        branchCoverage: true,
-        methodCoverage: true,
-        primaryCoverage: 'line'
-      })
-    );
+    const container = parse(fullList());
 
     expect(container.id).toBe('g-total');
     expect(container.getAttribute('data-total-files')).toBe('3');
     expect(container.querySelector('.group_name')!.textContent).toBe('All Files');
     expect(container.querySelector('.covered_percent .yellow')!.textContent).toBe('80.00%');
 
-    const headers = Array.from(container.querySelectorAll('thead th .th-label')).map(
-      (el) => el.textContent
-    );
-    expect(headers).toEqual(['File Name', 'Line Coverage', 'Branch Coverage', 'Method Coverage']);
-    expect(container.querySelector('thead th')!.getAttribute('data-sort-key')).toBe('file');
+    expect(texts(container, 'thead th .th-label')).toEqual(['File Name', 'Line Coverage', 'Branch Coverage', 'Method Coverage']);
+    expect(Array.from(container.querySelectorAll('thead th')).map((th) => th.getAttribute('data-sort-key'))).toEqual([
+      'file', 'line-percent', 'line-covered', 'line-total', 'branch-percent', 'branch-covered', 'branch-total',
+      'method-percent', 'method-covered', 'method-total'
+    ]);
+    expect(texts(container, 'thead th.cell--numerator')).toEqual(['Covered', 'Covered', 'Covered']);
+    expect(texts(container, 'thead th.cell--denominator')).toEqual(['Lines', 'Branches', 'Methods']);
 
     expect(container.querySelector('.t-file-count')!.textContent).toBe('3 files');
     expect(container.querySelector('.t-totals__line-num')!.textContent).toBe('8/');
@@ -79,6 +87,11 @@ describe('renderFileList', () => {
     expect(full.dataset.totalBranches).toBe('4');
     expect(full.dataset.coveredMethods).toBe('1');
     expect(full.dataset.totalMethods).toBe('2');
+    expect(full.querySelector('.cell--line-pct')!.getAttribute('data-order')).toBe('80.00');
+    expect(full.querySelector('.cell--branch-pct')!.getAttribute('data-order')).toBe('75.00');
+    expect(full.querySelector('.cell--method-pct')!.getAttribute('data-order')).toBe('50.00');
+    expect(texts(full, 'td.cell--numerator')).toEqual(['8/', '3/', '1/']);
+    expect(texts(full, 'td.cell--denominator')).toEqual(['10', '4', '2']);
     const link = full.querySelector('a.src_link')!;
     expect(link.getAttribute('href')).toBe('#' + fileId(FULL));
     expect(link.getAttribute('title')).toBe(FULL);
@@ -90,6 +103,20 @@ describe('renderFileList', () => {
     expect(bare.querySelector('.cell--line-pct')!.getAttribute('data-order')).toBe('100.00');
     expect(bare.querySelector('.cell--branch-pct')!.className).toContain('green');
     expect(bare.querySelector('.cell--method-pct')!.getAttribute('data-order')).toBe('100.00');
+    expect(texts(bare, 'td.cell--numerator')).toEqual(['0/', '0/', '0/']);
+    expect(texts(bare, 'td.cell--denominator')).toEqual(['0', '0', '0']);
+  });
+
+  test('emits well-formed markup with the cells and rows joined seamlessly', () => {
+    const html = fullList();
+    expect(html).toContain('</span><span class="covered_percent hide">');
+    expect(html).toContain('</th></tr><tr class="totals-row">');
+    expect(html).toContain(
+      '<tbody><tr class="t-file" data-covered-lines="8" data-relevant-lines="10" data-covered-branches="3" ' +
+      'data-total-branches="4" data-covered-methods="1" data-total-methods="2">'
+    );
+    expect(html).toContain('</a></td><td class="cell--coverage cell--line-pct');
+    expect(html).toMatch(/<\/td><\/tr><\/tbody><\/table><\/div><\/div>$/);
   });
 
   test('uses the singular file label and renders only the enabled criterion', () => {
@@ -108,6 +135,27 @@ describe('renderFileList', () => {
     expect(html).not.toContain('Branch Coverage');
     expect(html).not.toContain('Method Coverage');
     expect(html).not.toContain('data-covered-branches');
+    expect(html).not.toContain('data-covered-methods');
+    expect(html).not.toContain('cell--branch-pct');
+    expect(html).not.toContain('cell--method-pct');
+  });
+
+  test('leaves line coverage out entirely when it is disabled', () => {
+    const html = renderFileList({
+      containerId: 'g-branches',
+      title: 'Branches',
+      filenames: [FULL],
+      stats: { branches: stats.branches },
+      allCoverage: { [FULL]: fullCoverage },
+      lineCoverage: false,
+      branchCoverage: true,
+      methodCoverage: false,
+      primaryCoverage: 'branch'
+    });
+    expect(html).not.toContain('Line Coverage');
+    expect(html).not.toContain('data-covered-lines');
+    expect(html).not.toContain('cell--line-pct');
+    expect(html).toContain('cell--branch-pct');
   });
 
   test('falls back to a 100% tab percentage when stats lack any criterion', () => {
@@ -152,7 +200,7 @@ describe('renderFileList with recorded contexts', () => {
       renderFileList({
         containerId: 'g-total',
         title: 'All Files',
-        filenames: [FULL, BARE],
+        filenames: [FULL, BARE, 'lib/ghost.rb'],
         stats: {
           lines: { covered: 5, missed: 1, total: 6, percent: 83.33, strength: 1 }
         },
@@ -168,6 +216,7 @@ describe('renderFileList with recorded contexts', () => {
 
   test('splits each line bar and carries the by-tests sort key', () => {
     const container = trackedList(true);
+    expect(container.querySelectorAll('tbody tr.t-file')).toHaveLength(2);
     const row = container.querySelector('tbody tr.t-file')!;
     expect(row.getAttribute('data-covered-outside-lines')).toBe('2');
     const pctCell = row.querySelector('td.cell--line-pct')!;
@@ -251,8 +300,9 @@ describe('renderFileList with production coverage', () => {
     const container = productionList({
       files: { [FULL]: { lines: [1] }, [BARE]: { lines: [2], last_seen: 'junk' } }
     });
-    const cells = container.querySelectorAll('tbody td.cell--production');
-    for (const cell of Array.from(cells)) {
+    const cells = Array.from(container.querySelectorAll('tbody td.cell--production'));
+    expect(cells).toHaveLength(2);
+    for (const cell of cells) {
       expect(cell.textContent).toBe('ran');
       expect(cell.getAttribute('data-order')).toBe('0');
     }

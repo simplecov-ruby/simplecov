@@ -19,7 +19,6 @@ function affordanceRow(tbody: Element, columns: number): HTMLElement {
       windowDisabled.add(tbody);
       applyRowWindow(tbody.closest('table')!);
     });
-    tbody.appendChild(row);
   }
   return row;
 }
@@ -44,7 +43,7 @@ export function applyRowWindow(table: Element): void {
   }
 
   const row = affordanceRow(tbody, rows[0].children.length);
-  row.style.display = '';
+  row.style.removeProperty('display');
   row.firstElementChild!.innerHTML =
     `Showing the first ${fmtNum(MAX_VISIBLE_ROWS)} of ${fmtNum(matched)} files. ` +
     '<a href="#" class="t-show-all__link">Show all</a>';

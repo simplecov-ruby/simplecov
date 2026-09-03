@@ -19,14 +19,11 @@ export function updateTotalsRow(container: Element): void {
     .filter(r => (r as HTMLElement).style.display !== 'none');
 
   function sumData(attr: string): number {
-    return rows.reduce(
-      (total, r) => total + (Number.parseInt((r as HTMLElement).dataset[attr] || '0', 10) || 0),
-      0
-    );
+    return rows.reduce((total, r) => total + (Number((r as HTMLElement).dataset[attr]) || 0), 0);
   }
 
   const fileCount = $('.t-file-count', container);
-  const totalFiles = Number.parseInt(container.getAttribute('data-total-files') || '0', 10);
+  const totalFiles = Number(container.getAttribute('data-total-files'));
   if (fileCount) {
     const label = rows.length === 1 ? ' file' : ' files';
     fileCount.textContent = rows.length === totalFiles
@@ -34,14 +31,10 @@ export function updateTotalsRow(container: Element): void {
       : fmtNum(rows.length) + '/' + fmtNum(totalFiles) + label;
   }
 
-  const tracked = rows.some((r) => (r as HTMLElement).dataset.coveredOutsideLines !== undefined);
-
   for (const type of Object.keys(dataAttrMap)) {
     const attrs = dataAttrMap[type];
-    const prefix = `.t-totals__${type}`;
-    if (!$(prefix + '-pct', container)) continue;
-    const outside = type === 'line' && tracked ? sumData('coveredOutsideLines') : undefined;
-    updateCoverageCells(container, prefix, sumData(attrs.covered), sumData(attrs.total), outside);
+    const outside = type === 'line' ? sumData('coveredOutsideLines') : 0;
+    updateCoverageCells(container, `.t-totals__${type}`, sumData(attrs.covered), sumData(attrs.total), outside);
   }
 }
 
@@ -50,7 +43,7 @@ function updateCoverageCells(
   prefix: string,
   covered: number,
   total: number,
-  outside?: number
+  outside: number
 ): void {
   const covCell = $(prefix + '-pct', container);
   const numEl = $(prefix + '-num', container);
@@ -65,12 +58,10 @@ function updateCoverageCells(
     return;
   }
   const p = (covered * 100.0) / total;
-  const cls = pctClass(p);
   if (covCell) {
-    const outsidePct = outside === undefined ? undefined : (outside * 100.0) / total;
-    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p, outsidePct)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
+    covCell.innerHTML = `<div class="coverage-cell">${renderCoverageBar(p, (outside * 100.0) / total)}<span class="coverage-pct">${fmtPct(p)}%</span></div>`;
     covCell.classList.remove('green', 'yellow', 'red');
-    covCell.classList.add(cls);
+    covCell.classList.add(pctClass(p));
   }
   if (numEl) numEl.textContent = fmtNum(covered) + '/';
   if (denEl) denEl.textContent = fmtNum(total);

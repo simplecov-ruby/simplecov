@@ -1,10 +1,12 @@
-import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { installPageSkeleton, coverageData } from './fixture';
 import { renderPage } from '../src/page';
 import { precomputeFileIds, fileId } from '../src/format';
 import { setupSourceDialog, navigateToHash, getDialogBody, dialogIsOpen } from '../src/dialog';
 import { setupEventDelegation, jumpToMissedLine } from '../src/events';
+
+const listenerErrors: string[] = [];
 
 function clearHash(): void {
   window.location.hash = '';
@@ -26,17 +28,29 @@ async function boot(): Promise<void> {
   clearHash();
 }
 
-function click(el: Element): void {
-  el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+function click(el: Element): MouseEvent {
+  const event = new MouseEvent('click', {bubbles: true, cancelable: true});
+  el.dispatchEvent(event);
+  return event;
 }
 
 beforeAll(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
   await GlobalRegistrator.unregister();
   GlobalRegistrator.register();
+  window.addEventListener('error', (event) => { listenerErrors.push((event as ErrorEvent).message); });
   setupEventDelegation();
 });
 
-beforeEach(boot);
+beforeEach(async () => {
+  listenerErrors.length = 0;
+  await boot();
+});
+
+afterEach(() => {
+  expect(listenerErrors).toEqual([]);
+});
 
 describe('missed-method toggle', () => {
   function toggleMarkup(): string {
@@ -47,7 +61,7 @@ describe('missed-method toggle', () => {
   test('flips the list inside a source header', () => {
     document.body.insertAdjacentHTML('beforeend', `<div class="header">${toggleMarkup()}</div>`);
     const list = document.querySelector('.t-missed-method-list') as HTMLElement;
-    click(document.querySelector('.t-missed-method-toggle')!);
+    expect(click(document.querySelector('.t-missed-method-toggle')!).defaultPrevented).toBe(true);
     expect(list.style.display).toBe('');
     click(document.querySelector('.t-missed-method-toggle')!);
     expect(list.style.display).toBe('none');
@@ -101,12 +115,12 @@ describe('file-list clicks', () => {
 describe('source-line clicks', () => {
   test('rewrite the hash to the clicked line and scroll to it', () => {
     const id = fileId('lib/missed.rb');
-    window.location.hash = '#' + id + '-L1';
+    window.location.hash = '#' + id + '-L10';
     navigateToHash();
 
     const line = getDialogBody().querySelector('li[data-linenumber="2"]') as HTMLElement;
     Object.defineProperty(line, 'offsetTop', {get: () => 55, configurable: true});
-    click(line);
+    expect(click(line).defaultPrevented).toBe(true);
 
     expect(getDialogBody().scrollTop).toBe(55);
     expect(window.location.hash).toBe('#' + id + '-L2');
@@ -157,6 +171,20 @@ describe('jumpToMissedLine', () => {
     expect(body.scrollTop).toBe(200);
   });
 
+  test('measures from the viewport midpoint and lands a third of the way down', () => {
+    openMissedFile();
+    const body = getDialogBody();
+    Object.defineProperty(body, 'clientHeight', {get: () => 300, configurable: true});
+
+    body.scrollTop = 0;
+    jumpToMissedLine(1);
+    expect(body.scrollTop).toBe(100);
+
+    body.scrollTop = 60;
+    jumpToMissedLine(-1);
+    expect(body.scrollTop).toBe(0);
+  });
+
   test('does nothing without missed lines', () => {
     expect(dialogIsOpen()).toBe(false);
     jumpToMissedLine(1);
@@ -188,7 +216,7 @@ describe('tests badge clicks', () => {
 
     const badge = getDialogBody().querySelector('button.hits--tests[data-tests-line="2"]') as HTMLElement;
     const hashBefore = window.location.hash;
-    click(badge);
+    expect(click(badge).defaultPrevented).toBe(true);
 
     const peek = getDialogBody().querySelector('li.tests-peek')!;
     expect(peek).not.toBeNull();
@@ -196,6 +224,18 @@ describe('tests badge clicks', () => {
     expect(window.location.hash).toBe(hashBefore);
 
     click(badge);
+    expect(getDialogBody().querySelector('li.tests-peek')).toBeNull();
+  });
+
+  test('a click elsewhere dismisses the peek', async () => {
+    await bootWithContexts();
+    window.location.hash = '#' + fileId('lib/covered.rb');
+    navigateToHash();
+
+    click(getDialogBody().querySelector('button.hits--tests[data-tests-line="2"]') as HTMLElement);
+    expect(getDialogBody().querySelector('li.tests-peek')).not.toBeNull();
+
+    click(getDialogBody().querySelector('li[data-linenumber="1"]') as HTMLElement);
     expect(getDialogBody().querySelector('li.tests-peek')).toBeNull();
   });
 

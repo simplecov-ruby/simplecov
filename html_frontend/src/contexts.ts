@@ -12,25 +12,24 @@ export interface FileContextIndex {
 // recording happened at all is the document-level `contexts` array's presence,
 // which callers gate on before decoding anything. Nibbles are walked from the
 // least significant end, so hex digit p from the right carries lines p*4+1
-// through p*4+4.
+// through p*4+4. Integer-like keys enumerate in ascending order, so each line's
+// list comes out in context index order without sorting.
 export function decodeFileContexts(
   tables: Record<string, string> | undefined,
   lineCount: number
 ): FileContextIndex {
   const perLine: number[][] = Array.from({ length: lineCount }, () => []);
 
-  const indices = Object.keys(tables || {}).map(Number).sort((a, b) => a - b);
-  for (const contextIndex of indices) {
-    const hex = tables![String(contextIndex)];
-    for (let p = 0; p < hex.length; p++) {
-      const nibble = parseInt(hex[hex.length - 1 - p], 16);
-      if (nibble === 0) continue;
-      for (let bit = 0; bit < 4; bit++) {
+  for (const [key, hex] of Object.entries(tables || {})) {
+    const contextIndex = Number(key);
+    Array.from(hex).reverse().forEach((digit, p) => {
+      const nibble = parseInt(digit, 16);
+      for (const bit of [0, 1, 2, 3]) {
         if (!(nibble & (1 << bit))) continue;
         const lineIndex = p * 4 + bit;
         if (lineIndex < lineCount) perLine[lineIndex].push(contextIndex);
       }
-    }
+    });
   }
 
   return { perLine };
@@ -48,17 +47,16 @@ export function coveredOutsideCount(
 
   const union: number[] = [];
   for (const hex of Object.values(tables || {})) {
-    for (let p = 0; p < hex.length; p++) {
-      union[p] = (union[p] || 0) | parseInt(hex[hex.length - 1 - p], 16);
-    }
+    Array.from(hex).reverse().forEach((digit, p) => {
+      union[p] = (union[p] || 0) | parseInt(digit, 16);
+    });
   }
 
   let outside = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const cov = lines[i];
-    if (typeof cov !== 'number' || cov <= 0) continue;
+  lines.forEach((cov, i) => {
+    if (typeof cov !== 'number' || cov <= 0) return;
     if (!((union[i >> 2] || 0) & (1 << (i & 3)))) outside++;
-  }
+  });
   return outside;
 }
 

@@ -29,7 +29,7 @@ describe('renderCoverageCells', () => {
 
   test('file-row cells expose data-order for the sorter and group digits', () => {
     const html = renderCoverageCells(100, 1250, 1250, 'branch', false);
-    expect(html).toContain('cell--branch-pct green" data-order="100.00"');
+    expect(html).toContain('cell--branch-pct green" data-order="100.00">');
     expect(html).toContain('cell--numerator" data-order="1250">1,250/');
     expect(html).toContain('cell--denominator" data-order="1250">1,250');
   });
@@ -61,14 +61,22 @@ describe('renderCoverageSummary', () => {
     showMethodToggle: true
   };
 
-  test('renders each enabled criterion with its missed count', () => {
+  function summaryOf(html: string, type: string): string {
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    return el.querySelector(`.t-${type}-summary`)!.innerHTML;
+  }
+
+  test('renders each enabled criterion with its percent and missed count', () => {
     const html = renderCoverageSummary(base);
-    expect(html).toContain('Line coverage');
-    expect(html).toContain('8/10 relevant lines covered');
-    expect(html).toContain('<span class="red"><b>2</b> missed</span>');
-    expect(html).toContain('3/4 covered');
-    expect(html).toContain('<span class="missed-branch-text"><b>1</b> missed</span>');
-    expect(html).toContain('t-missed-method-toggle');
+    expect(summaryOf(html, 'line')).toContain('Line coverage: <span class="yellow"><b>80.00%</b></span>');
+    expect(summaryOf(html, 'line')).toContain('8/10 relevant lines covered');
+    expect(summaryOf(html, 'line')).toContain('<span class="red"><b>2</b> missed</span>');
+    expect(summaryOf(html, 'branch')).toContain('Branch coverage: <span class="yellow"><b>75.00%</b></span>');
+    expect(summaryOf(html, 'branch')).toContain('3/4 covered');
+    expect(summaryOf(html, 'branch')).toContain('<span class="missed-branch-text"><b>1</b> missed</span>');
+    expect(summaryOf(html, 'method')).toContain('Method coverage: <span class="red"><b>50.00%</b></span>');
+    expect(summaryOf(html, 'method')).toContain('t-missed-method-toggle');
   });
 
   test('marks disabled criteria instead of showing numbers', () => {
@@ -79,6 +87,7 @@ describe('renderCoverageSummary', () => {
       methodCoverage: false
     });
     expect(html.match(/coverage-disabled/g)).toHaveLength(3);
+    expect(summaryOf(html, 'branch')).toContain('Branch coverage: <span class="coverage-disabled">disabled</span>');
   });
 
   test('omits the missed span at full coverage and treats an empty criterion as 100%', () => {
@@ -92,14 +101,46 @@ describe('renderCoverageSummary', () => {
       totalMethods: 2
     });
     expect(html).not.toContain('missed');
-    expect(html).toContain('<span class="green"><b>100.00%</b></span>');
-    expect(html).toContain('0/0 covered');
+    expect(summaryOf(html, 'line')).toContain('<span class="green"><b>100.00%</b></span>');
+    expect(summaryOf(html, 'branch')).toContain('<span class="green"><b>100.00%</b></span>');
+    expect(summaryOf(html, 'branch')).toContain('0/0 covered');
   });
 
   test('renders missed methods as plain text when the toggle is hidden', () => {
     const html = renderCoverageSummary({ ...base, showMethodToggle: false });
     expect(html).toContain('<span class="missed-method-text-color"><b>1</b> missed</span>');
     expect(html).not.toContain('t-missed-method-toggle');
+  });
+
+  test('splits a tracked line summary into by-tests and outside-tests shares', () => {
+    const html = renderCoverageSummary({ ...base, coveredByTests: 6, coveredOutsideTests: 2 });
+    expect(summaryOf(html, 'line')).toBe(
+      '\n    Line coverage: <span class="yellow"><b>80.00%</b></span>' +
+      '<span class="coverage-cell__fraction"> 6/10 relevant lines covered by tests</span>' +
+      '<span class="coverage-cell__fraction">,</span>\n    ' +
+      '<span class="coverage-cell__fraction outside-tests-text">2/10 relevant lines covered outside tests</span>' +
+      '<span class="coverage-cell__fraction">,</span>\n    ' +
+      '<span class="red"><b>2</b> missed</span>\n  '
+    );
+  });
+
+  test('a tracked summary omits the outside and missed parts when they are zero', () => {
+    const html = renderCoverageSummary({ ...base, coveredLines: 10, coveredByTests: 10 });
+    expect(summaryOf(html, 'line')).toBe(
+      '\n    Line coverage: <span class="green"><b>100.00%</b></span>' +
+      '<span class="coverage-cell__fraction"> 10/10 relevant lines covered by tests</span>\n  '
+    );
+  });
+
+  test('a tracked summary treats an empty file set as 100%', () => {
+    const html = renderCoverageSummary({ ...base, coveredLines: 0, totalLines: 0, coveredByTests: 0 });
+    expect(summaryOf(html, 'line')).toContain('<span class="green"><b>100.00%</b></span>');
+    expect(summaryOf(html, 'line')).toContain('0/0 relevant lines covered by tests');
+  });
+
+  test('a tracked summary falls back to the plain one when line coverage is off', () => {
+    const html = renderCoverageSummary({ ...base, lineCoverage: false, coveredByTests: 6 });
+    expect(summaryOf(html, 'line')).toContain('coverage-disabled');
   });
 });
 
@@ -145,8 +186,16 @@ describe('renderCoverageCells with recorded contexts', () => {
     expect(html).not.toContain('coverage-bar__fill--split');
   });
 
+  test('a file without relevant lines gets no tiebreak', () => {
+    const html = renderCoverageCells(100, 0, 0, 'line', false, 0);
+    expect(html).toContain('data-order="100.00">');
+    expect(html).not.toContain('data-order-2');
+    expect(html).not.toContain('NaN');
+  });
+
   test('an untracked run renders exactly as before', () => {
     const html = renderCoverageCells(100, 10, 10, 'line', false);
+    expect(html).toContain('data-order="100.00">');
     expect(html).not.toContain('data-order-2');
     expect(html).not.toContain('coverage-bar__fill--outside');
   });

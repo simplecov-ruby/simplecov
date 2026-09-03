@@ -28,16 +28,13 @@ function parseFilters(container: Element): ActiveFilter[] {
   const filters: ActiveFilter[] = [];
   for (const input of $$('.col-filter__value', container)) {
     const inp = input as HTMLInputElement;
-    if (!inp.value) continue;
-
     const threshold = Number.parseFloat(inp.value);
     if (Number.isNaN(threshold)) continue;
 
-    const type = inp.dataset.type || '';
+    const type = inp.dataset.type;
+    const attrs = type && dataAttrMap[type];
     const opSelect = $(`.col-filter__op[data-type="${type}"]`, container) as HTMLSelectElement | null;
-    const op = opSelect ? opSelect.value : '';
-    const attrs = dataAttrMap[type];
-    if (op && attrs) filters.push({ attrs, op, threshold });
+    if (attrs && opSelect) filters.push({ attrs, op: opSelect.value, threshold });
   }
   return filters;
 }
@@ -47,7 +44,7 @@ const rowNameCache = new WeakMap<Element, string>();
 function rowName(row: Element): string {
   let name = rowNameCache.get(row);
   if (name === undefined) {
-    name = (row.children[0].textContent || '').toLowerCase();
+    name = row.children[0].textContent!.toLowerCase();
     rowNameCache.set(row, name);
   }
   return name;
@@ -64,13 +61,12 @@ function filterTable(container: Element): void {
   $$('tbody tr.t-file', table).forEach(row => {
     const htmlRow = row as HTMLElement;
     const visible = (!nameQuery || rowName(row).includes(nameQuery)) && filters.every((f) => {
-      const covered = Number.parseInt(htmlRow.dataset[f.attrs.covered] || '0', 10) || 0;
-      const total = Number.parseInt(htmlRow.dataset[f.attrs.total] || '0', 10) || 0;
+      const covered = Number(htmlRow.dataset[f.attrs.covered]) || 0;
+      const total = Number(htmlRow.dataset[f.attrs.total]) || 0;
       const pct = total > 0 ? (covered * 100.0) / total : 100;
       return compare(f.op, pct, f.threshold);
     });
-    const display = visible ? '' : 'none';
-    if (htmlRow.style.display !== display) htmlRow.style.display = display;
+    htmlRow.style.display = visible ? '' : 'none';
   });
 
   applyRowWindow(table);
@@ -94,6 +90,11 @@ function updateFilterOptions(input: HTMLInputElement): void {
   }
 }
 
+function refilter(this: Element): void {
+  if (this.classList.contains('col-filter__value')) updateFilterOptions(this as HTMLInputElement);
+  filterTable(this.closest('.file_list_container')!);
+}
+
 export function setupColumnFilters(): void {
   $$('.col-filter__value').forEach(el => updateFilterOptions(el as HTMLInputElement));
 
@@ -101,12 +102,6 @@ export function setupColumnFilters(): void {
     el.addEventListener('click', e => e.stopPropagation());
   });
 
-  on(document, 'input', '.col-filter--name, .col-filter__op, .col-filter__value', function () {
-    if (this.classList.contains('col-filter__value')) updateFilterOptions(this as HTMLInputElement);
-    filterTable(this.closest('.file_list_container')!);
-  });
-  on(document, 'change', '.col-filter__op, .col-filter__value', function () {
-    if (this.classList.contains('col-filter__value')) updateFilterOptions(this as HTMLInputElement);
-    filterTable(this.closest('.file_list_container')!);
-  });
+  on(document, 'input', '.col-filter--name, .col-filter__op, .col-filter__value', refilter);
+  on(document, 'change', '.col-filter__op, .col-filter__value', refilter);
 }

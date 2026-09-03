@@ -1,25 +1,27 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { installPageSkeleton, coverageData } from './fixture';
 import { initDarkMode, initColorblindMode, handleKeydown } from '../src/controls';
-import { renderPage } from '../src/page';
+import * as page from '../src/page';
 import { precomputeFileIds, fileId } from '../src/format';
 import { setupSourceDialog, navigateToHash, dialogIsOpen, getDialogBody } from '../src/dialog';
 import { setFocusedRow, hasFocusedRow } from '../src/navigation';
 import { invalidateFileRowCache } from '../src/file_rows';
+import type { CoverageData } from '../src/types';
 
 beforeAll(() => {
   document.addEventListener('keydown', handleKeydown);
 });
 
-async function boot(): Promise<void> {
+async function boot(customize: (data: CoverageData) => void = () => {}): Promise<void> {
   document.querySelectorAll('dialog').forEach((d) => {
     (d as HTMLDialogElement).close();
     d.remove();
   });
   installPageSkeleton();
   const data = coverageData();
+  customize(data);
   await precomputeFileIds(Object.keys(data.coverage));
-  renderPage(data);
+  page.renderPage(data);
   setupSourceDialog();
   const li = document.createElement('li');
   li.innerHTML = '<a href="#g-total" class="g-total">All Files (100.00%)</a>';
@@ -27,6 +29,10 @@ async function boot(): Promise<void> {
   window.location.hash = '';
   setFocusedRow(null);
   invalidateFileRowCache();
+}
+
+function threeMissedLines(data: CoverageData): void {
+  data.coverage['lib/missed.rb'].lines = [1, 0, 0, 0, 1];
 }
 
 beforeEach(() => {
@@ -48,6 +54,28 @@ function darkToggles(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>('[data-toggle="dark"]'));
 }
 
+function colorblindToggles(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-toggle="colorblind"]'));
+}
+
+type MediaMock = {matches: boolean; queries: string[]; events: string[]; listeners: Array<() => void>};
+
+function mockMatchMedia(matches: boolean): MediaMock {
+  const media: MediaMock = {matches, queries: [], events: [], listeners: []};
+  spyOn(window, 'matchMedia').mockImplementation(((query: string) => {
+    media.queries.push(query);
+    return {
+      get matches() { return media.matches; },
+      media: query,
+      addEventListener: (type: string, cb: () => void) => {
+        media.events.push(type);
+        media.listeners.push(cb);
+      }
+    };
+  }) as unknown as typeof window.matchMedia);
+  return media;
+}
+
 describe('initColorblindMode', () => {
   test('does nothing on a page without toggles', () => {
     document.body.innerHTML = '';
@@ -58,7 +86,7 @@ describe('initColorblindMode', () => {
   test('keeps both toggle copies and the preference in sync', async () => {
     await boot();
     initColorblindMode();
-    const toggles = Array.from(document.querySelectorAll<HTMLElement>('[data-toggle="colorblind"]'));
+    const toggles = colorblindToggles();
     expect(toggles.length).toBe(2);
     expect(toggles.map((t) => t.getAttribute('aria-pressed'))).toEqual(['false', 'false']);
 
@@ -70,6 +98,21 @@ describe('initColorblindMode', () => {
     toggles[1].click();
     expect(document.documentElement.classList.contains('colorblind-mode')).toBe(false);
     expect(localStorage.getItem('simplecov-colorblind-mode')).toBe('off');
+  });
+
+  test('reflects a palette that was applied before paint', async () => {
+    await boot();
+    document.documentElement.classList.add('colorblind-mode');
+    initColorblindMode();
+    expect(colorblindToggles().map((t) => t.getAttribute('aria-pressed'))).toEqual(['true', 'true']);
+  });
+
+  test('refreshes the favicon when the palette flips', async () => {
+    await boot();
+    const favicon = spyOn(page, 'updateFavicon').mockImplementation(() => {});
+    initColorblindMode();
+    colorblindToggles()[0].click();
+    expect(favicon).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -100,35 +143,50 @@ describe('initDarkMode', () => {
     expect(toggles[0].textContent).toBe('🌙 Dark');
   });
 
+  test('honors an explicit light theme over a dark system preference', async () => {
+    await boot();
+    mockMatchMedia(true);
+    document.documentElement.classList.add('light-mode');
+    initDarkMode();
+    expect(darkToggles()[0].textContent).toBe('🌙 Dark');
+  });
+
   test('tracks system preference changes until a theme is chosen', async () => {
     await boot();
-    const changeListeners: Array<() => void> = [];
-    spyOn(window, 'matchMedia').mockImplementation(((query: string) => ({
-      matches: true,
-      media: query,
-      addEventListener: (_type: string, cb: () => void) => changeListeners.push(cb)
-    })) as unknown as typeof window.matchMedia);
+    const media = mockMatchMedia(false);
 
     initDarkMode();
     const toggle = darkToggles()[0];
-    expect(toggle.textContent).toBe('☀️ Light');
+    expect(toggle.textContent).toBe('🌙 Dark');
+    expect(new Set(media.queries)).toEqual(new Set(['(prefers-color-scheme: dark)']));
+    expect(media.events).toEqual(['change']);
 
-    changeListeners.forEach((cb) => cb());
+    media.matches = true;
+    media.listeners.forEach((cb) => cb());
     expect(toggle.textContent).toBe('☀️ Light');
 
     localStorage.setItem('simplecov-dark-mode', 'dark');
-    changeListeners.forEach((cb) => cb());
+    media.matches = false;
+    media.listeners.forEach((cb) => cb());
     expect(toggle.textContent).toBe('☀️ Light');
+  });
+
+  test('refreshes the favicon when the theme flips or the system preference changes', async () => {
+    await boot();
+    const media = mockMatchMedia(false);
+    const favicon = spyOn(page, 'updateFavicon').mockImplementation(() => {});
+
+    initDarkMode();
+    darkToggles()[0].click();
+    expect(favicon).toHaveBeenCalledTimes(1);
+
+    media.listeners.forEach((cb) => cb());
+    expect(favicon).toHaveBeenCalledTimes(2);
   });
 
   test('survives a locked-down localStorage', async () => {
     await boot();
-    const changeListeners: Array<() => void> = [];
-    spyOn(window, 'matchMedia').mockImplementation(((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: (_type: string, cb: () => void) => changeListeners.push(cb)
-    })) as unknown as typeof window.matchMedia);
+    const media = mockMatchMedia(false);
     const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage')!;
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
@@ -142,7 +200,7 @@ describe('initDarkMode', () => {
       darkToggles()[0].click();
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true);
 
-      changeListeners.forEach((cb) => cb());
+      media.listeners.forEach((cb) => cb());
       expect(darkToggles()[0].textContent).toBe('☀️ Light');
     } finally {
       Object.defineProperty(window, 'localStorage', descriptor);
@@ -211,47 +269,82 @@ describe('handleKeydown', () => {
   });
 
   test('n/N/p jump between missed lines while the dialog is open', async () => {
-    await boot();
+    await boot(threeMissedLines);
     window.location.hash = '#' + fileId('lib/missed.rb');
     navigateToHash();
     const lines = Array.from(
       document.querySelectorAll('.source-dialog .source_table li.missed')
     ) as HTMLElement[];
-    expect(lines.length).toBe(2);
-    Object.defineProperty(lines[0], 'offsetTop', {get: () => 100, configurable: true});
-    Object.defineProperty(lines[1], 'offsetTop', {get: () => 200, configurable: true});
+    expect(lines.length).toBe(3);
+    lines.forEach((line, i) => Object.defineProperty(line, 'offsetTop', {get: () => 100 * (i + 1), configurable: true}));
     const body = getDialogBody();
 
-    keydown(document.body, 'n');
+    expect(keydown(document.body, 'n').defaultPrevented).toBe(true);
     expect(body.scrollTop).toBe(100);
     keydown(document.body, 'n');
+    expect(body.scrollTop).toBe(200);
+    keydown(document.body, 'n');
+    expect(body.scrollTop).toBe(300);
+    expect(keydown(document.body, 'N').defaultPrevented).toBe(true);
     expect(body.scrollTop).toBe(200);
     keydown(document.body, 'p');
     expect(body.scrollTop).toBe(100);
-    keydown(document.body, 'N');
-    expect(body.scrollTop).toBe(200);
     keydown(document.body, 'n', {shiftKey: true});
-    expect(body.scrollTop).toBe(100);
+    expect(body.scrollTop).toBe(300);
+
+    const other = keydown(document.body, 'J', {shiftKey: true});
+    expect(other.defaultPrevented).toBe(false);
+    expect(body.scrollTop).toBe(300);
   });
 
   test('j/k/Enter walk and open the file list', async () => {
     await boot();
     const rows = Array.from(document.querySelectorAll('#g-total tbody tr.t-file')) as HTMLElement[];
 
-    keydown(document.body, 'j');
+    expect(keydown(document.body, 'j').defaultPrevented).toBe(true);
     expect(rows[0].classList.contains('keyboard-focus')).toBe(true);
     keydown(document.body, 'j');
     expect(rows[1].classList.contains('keyboard-focus')).toBe(true);
-    keydown(document.body, 'k');
+    expect(keydown(document.body, 'k').defaultPrevented).toBe(true);
     expect(rows[0].classList.contains('keyboard-focus')).toBe(true);
 
-    keydown(document.body, 'Enter');
+    const other = keydown(document.body, 'x');
+    expect(other.defaultPrevented).toBe(false);
+    expect(window.location.hash).toBe('');
+
+    const enter = keydown(document.body, 'Enter');
+    expect(enter.defaultPrevented).toBe(true);
     expect(window.location.hash).toBe(rows[0].querySelector('a.src_link')!.getAttribute('href')!);
   });
 
-  test('Enter without a focused row does nothing', async () => {
+  test('Enter without a focused row is left alone', async () => {
     await boot();
-    keydown(document.body, 'Enter');
+    const event = keydown(document.body, 'Enter');
+    expect(event.defaultPrevented).toBe(false);
     expect(window.location.hash).toBe('');
+  });
+
+  test('ignores keys dispatched at the document itself', async () => {
+    await boot();
+    const errors: string[] = [];
+    const record = (event: Event): void => { errors.push((event as ErrorEvent).message); };
+    window.addEventListener('error', record);
+    try {
+      const event = keydown(document, 'j');
+      expect(event.defaultPrevented).toBe(true);
+      expect(hasFocusedRow()).toBe(true);
+      expect(errors).toEqual([]);
+    } finally {
+      window.removeEventListener('error', record);
+    }
+  });
+
+  test('list shortcuts typed inside an input are left to the input', async () => {
+    await boot();
+    const input = document.querySelector('#g-total .col-filter--name') as HTMLInputElement;
+    input.focus();
+    const event = keydown(input, 'j');
+    expect(event.defaultPrevented).toBe(false);
+    expect(hasFocusedRow()).toBe(false);
   });
 });

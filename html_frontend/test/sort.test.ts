@@ -55,12 +55,24 @@ function names(table: Element): string[] {
   );
 }
 
+function rowIds(table: Element): string[] {
+  return Array.from(table.querySelectorAll('tbody tr.t-file')).map((row) => row.id);
+}
+
 function headerAt(table: Element, index: number): HTMLElement {
   return table.querySelectorAll('thead tr:first-child th')[index] as HTMLElement;
 }
 
+function classesOf(header: Element): string[] {
+  return Array.from(header.classList).sort();
+}
+
 function click(el: Element): void {
   el.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+}
+
+async function afterAnimationFrames(): Promise<void> {
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))));
 }
 
 beforeEach(() => localStorage.clear());
@@ -72,9 +84,9 @@ describe('default sort', () => {
     setupTableSorting('branch');
     expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
 
-    expect(headerAt(table, 2).classList.contains('sorting_asc')).toBe(true);
-    expect(headerAt(table, 0).classList.contains('sorting')).toBe(true);
-    expect(headerAt(table, 1).classList.contains('sorting')).toBe(true);
+    expect(classesOf(headerAt(table, 2))).toEqual(['sorting_asc']);
+    expect(classesOf(headerAt(table, 0))).toEqual(['sorting']);
+    expect(classesOf(headerAt(table, 1))).toEqual(['sorting']);
     expect(headerAt(table, 0).style.cursor).toBe('pointer');
   });
 
@@ -90,13 +102,18 @@ describe('default sort', () => {
     expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
   });
 
-  test('leaves tables without sortable cells in document order', () => {
+  test('leaves tables without sortable cells in document order until a header is clicked', () => {
     const table = buildTable('<th>File</th>', [
       '<tr class="t-file"><td>lib/z.rb</td></tr>',
       '<tr class="t-file"><td>lib/a.rb</td></tr>'
     ]);
     setupTableSorting();
     expect(names(table)).toEqual(['lib/z.rb', 'lib/a.rb']);
+    expect(classesOf(headerAt(table, 0))).toEqual(['sorting']);
+
+    click(headerAt(table, 0));
+    expect(names(table)).toEqual(['lib/a.rb', 'lib/z.rb']);
+    expect(localStorage.getItem('simplecov-sort')).toBeNull();
   });
 
   test('tolerates tables without a tbody or without rows', () => {
@@ -104,10 +121,12 @@ describe('default sort', () => {
       <table class="file_list" id="headless"><thead><tr><th>File</th></tr></thead></table>
       <table class="file_list" id="empty"><thead><tr><th>File</th></tr></thead><tbody></tbody></table>`;
     setupTableSorting();
+    expect(classesOf(document.querySelector('#headless th')!)).toEqual(['sorting']);
 
     const emptyTh = document.querySelector('#empty th') as HTMLElement;
+    expect(classesOf(emptyTh)).toEqual(['sorting']);
     click(emptyTh);
-    expect(emptyTh.classList.contains('sorting_asc')).toBe(true);
+    expect(classesOf(emptyTh)).toEqual(['sorting_asc']);
   });
 });
 
@@ -119,14 +138,21 @@ describe('click sorting', () => {
 
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
-    expect(headerAt(table, 1).classList.contains('sorting_asc')).toBe(true);
+    expect(classesOf(headerAt(table, 1))).toEqual(['sorting_asc']);
+    expect(classesOf(headerAt(table, 2))).toEqual(['sorting']);
 
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/a.rb', 'lib/c.rb', 'lib/b.rb']);
-    expect(headerAt(table, 1).classList.contains('sorting_desc')).toBe(true);
+    expect(classesOf(headerAt(table, 1))).toEqual(['sorting_desc']);
+
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
+    expect(classesOf(headerAt(table, 1))).toEqual(['sorting_asc']);
 
     click(headerAt(table, 0));
     expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
+    expect(classesOf(headerAt(table, 0))).toEqual(['sorting_asc']);
+    expect(classesOf(headerAt(table, 1))).toEqual(['sorting']);
 
     click(headerAt(table, 1));
     expect(names(table)).toEqual(['lib/b.rb', 'lib/c.rb', 'lib/a.rb']);
@@ -144,7 +170,7 @@ describe('click sorting', () => {
     table = buildTable(HEADERS, ROWS);
     setupTableSorting('line');
     expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
-    expect(headerAt(table, 2).classList.contains('sorting_desc')).toBe(true);
+    expect(classesOf(headerAt(table, 2))).toEqual(['sorting_desc']);
   });
 
   test('preserves Covered Branches tie order across reloads in both directions', () => {
@@ -175,7 +201,7 @@ describe('click sorting', () => {
     setupTableSorting('line');
     expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
 
-    for (const preference of ['not json', '{}', '{"column":"file","direction":"sideways"}']) {
+    for (const preference of ['not json', '{}', 'null', '{"column":"file","direction":"sideways"}']) {
       localStorage.setItem('simplecov-sort', preference);
       table = buildTable(HEADERS, ROWS);
       setupTableSorting('branch');
@@ -213,7 +239,7 @@ describe('click sorting', () => {
     expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
 
     click(headerAt(table, 4));
-    expect(headerAt(table, 4).classList.contains('sorting_asc')).toBe(true);
+    expect(classesOf(headerAt(table, 4))).toEqual(['sorting_asc']);
     expect(names(table)).toEqual(['lib/full.rb', 'lib/short.rb']);
   });
 
@@ -244,6 +270,66 @@ describe('click sorting', () => {
   });
 });
 
+describe('value comparison', () => {
+  const TEXT_HEADERS = '<th>File</th><th>Note</th>';
+
+  function textRow(name: string, note: string, id = ''): string {
+    return `<tr class="t-file" id="${id}"><td>${name}</td><td>${note}</td></tr>`;
+  }
+
+  test('compares text case-insensitively and breaks ties by filename', () => {
+    const table = buildTable(TEXT_HEADERS, [textRow('lib/z.rb', 'foo'), textRow('lib/a.rb', 'Foo')]);
+    setupTableSorting();
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/a.rb', 'lib/z.rb']);
+  });
+
+  test('ignores the whitespace around cell text', () => {
+    const table = buildTable(TEXT_HEADERS, [textRow('  lib/z.rb  ', 'x'), textRow('lib/a.rb', 'x')]);
+    setupTableSorting();
+    click(headerAt(table, 0));
+    expect(names(table)).toEqual(['lib/a.rb', 'lib/z.rb']);
+  });
+
+  test('orders numeric text before words and a missing cell before both', () => {
+    const table = buildTable(TEXT_HEADERS, [
+      textRow('lib/a.rb', 'abc'),
+      textRow('lib/b.rb', '10'),
+      '<tr class="t-file"><td>lib/c.rb</td></tr>',
+      textRow('lib/d.rb', '5')
+    ]);
+    setupTableSorting();
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/d.rb', 'lib/b.rb', 'lib/a.rb']);
+  });
+
+  test('orders a number before a word whichever comes first in the document', () => {
+    let table = buildTable(TEXT_HEADERS, [textRow('lib/a.rb', 'abc'), textRow('lib/b.rb', '5')]);
+    setupTableSorting();
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/b.rb', 'lib/a.rb']);
+
+    table = buildTable(TEXT_HEADERS, [textRow('lib/b.rb', '5'), textRow('lib/a.rb', 'abc')]);
+    setupTableSorting();
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/b.rb', 'lib/a.rb']);
+  });
+
+  test('keeps identical rows in document order and reverses them on a repeat click', () => {
+    const table = buildTable(TEXT_HEADERS, [
+      textRow('lib/same.rb', 'x', 'r1'),
+      textRow('lib/same.rb', 'x', 'r2'),
+      textRow('lib/same.rb', 'x', 'r3')
+    ]);
+    setupTableSorting();
+    click(headerAt(table, 1));
+    expect(rowIds(table)).toEqual(['r1', 'r2', 'r3']);
+
+    click(headerAt(table, 1));
+    expect(rowIds(table)).toEqual(['r3', 'r2', 'r1']);
+  });
+});
+
 describe('slow-sort overlay', () => {
   test('large tables sort behind a dimming overlay that fades back out', async () => {
     const rows: string[] = [];
@@ -253,26 +339,48 @@ describe('slow-sort overlay', () => {
     }
     const table = buildTable('<th>File</th><th>Line</th>', rows);
     setupTableSorting();
-    expect(names(table)[0]).toBe('lib/f499.rb'); // default sort by data-order
+    expect(names(table)[0]).toBe('lib/f499.rb');
 
     click(headerAt(table, 0));
     const overlay = document.getElementById('sort-overlay') as HTMLElement;
     expect(overlay.style.display).toBe('flex');
     expect(overlay.style.opacity).toBe('1');
+    expect(overlay.style.transition).toBe('none');
     expect(overlay.textContent).toContain('Sorting…');
 
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))));
+    await afterAnimationFrames();
     expect(names(table)[0]).toBe('lib/f000.rb');
     expect(overlay.style.opacity).toBe('0');
+    expect(overlay.style.transition).toBe('opacity 0.15s');
     await new Promise((resolve) => setTimeout(resolve, 220));
     expect(overlay.style.display).toBe('none');
 
     click(headerAt(table, 1));
     expect(document.querySelectorAll('#sort-overlay').length).toBe(1);
     expect(overlay.style.display).toBe('flex');
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))));
+    await afterAnimationFrames();
     await new Promise((resolve) => setTimeout(resolve, 220));
     expect(overlay.style.display).toBe('none');
+  });
+
+  test('re-windows the rows after a large table is re-sorted', async () => {
+    const rows: string[] = [];
+    for (let i = 0; i <= 1000; i++) {
+      const n = String(i).padStart(4, '0');
+      rows.push(`<tr class="t-file" id="f${n}"><td>lib/f${n}.rb</td><td data-order="${i}">${i}</td></tr>`);
+    }
+    const table = buildTable('<th>File</th><th>Line</th>', rows);
+    setupTableSorting();
+    expect(table.querySelector('tr.t-show-all')).not.toBeNull();
+    expect(document.getElementById('f1000')!.classList.contains('t-window-hidden')).toBe(true);
+    expect(document.getElementById('f0000')!.classList.contains('t-window-hidden')).toBe(false);
+
+    click(headerAt(table, 1));
+    await afterAnimationFrames();
+    expect(rowIds(table)[0]).toBe('f1000');
+    expect(document.getElementById('f1000')!.classList.contains('t-window-hidden')).toBe(false);
+    expect(document.getElementById('f0000')!.classList.contains('t-window-hidden')).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 220));
   });
 });
 
@@ -289,8 +397,8 @@ describe('by-tests secondary sort', () => {
   }
 
   const TRACKED_ROWS = [
-    trackedRow('lib/a.rb', '100.00', '80.00'),
-    trackedRow('lib/b.rb', '100.00', '90.00'),
+    trackedRow('lib/a.rb', '100.00', '90.00'),
+    trackedRow('lib/b.rb', '100.00', '80.00'),
     trackedRow('lib/c.rb', '50.00', '50.00')
   ];
 
@@ -298,13 +406,21 @@ describe('by-tests secondary sort', () => {
     const table = buildTable(TRACKED_HEADERS, TRACKED_ROWS);
     setupTableSorting('line');
     click(headerAt(table, 1));
-    expect(names(table)).toEqual(['lib/b.rb', 'lib/a.rb', 'lib/c.rb']);
+    expect(names(table)).toEqual(['lib/a.rb', 'lib/b.rb', 'lib/c.rb']);
   });
 
   test('ascending ranks the lower by-tests percent first among ties', () => {
     const table = buildTable(TRACKED_HEADERS, TRACKED_ROWS);
     setupTableSorting('line');
-    expect(names(table)).toEqual(['lib/c.rb', 'lib/a.rb', 'lib/b.rb']);
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
+  });
+
+  test('a freshly sorted column ranks ties by by-tests percent, not document order', () => {
+    const table = buildTable(TRACKED_HEADERS, TRACKED_ROWS);
+    setupTableSorting();
+    click(headerAt(table, 3));
+    click(headerAt(table, 1));
+    expect(names(table)).toEqual(['lib/c.rb', 'lib/b.rb', 'lib/a.rb']);
   });
 
   test('falls through to the filename when the by-tests percents tie too', () => {

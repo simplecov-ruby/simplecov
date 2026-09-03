@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { setupTabScrollFade } from '../src/tab_scroll';
 
-function buildStrip(): HTMLElement {
+function buildStrip(scrollLeft = 0): HTMLElement {
   document.body.innerHTML = '<ul class="group_tabs"><li><a href="#g-total">All Files</a></li></ul>';
   const strip = document.querySelector('.group_tabs') as HTMLElement;
-  let scrollLeft = 0;
   Object.defineProperty(strip, 'scrollLeft', {
     configurable: true,
     get: () => scrollLeft,
@@ -20,6 +19,12 @@ describe('setupTabScrollFade', () => {
     const strip = buildStrip();
     setupTabScrollFade();
     expect(strip.classList.contains('is-scrolled')).toBe(false);
+  });
+
+  test('marks a strip that was already scrolled when it was set up', () => {
+    const strip = buildStrip(64);
+    setupTabScrollFade();
+    expect(strip.classList.contains('is-scrolled')).toBe(true);
   });
 
   test('marks the strip once it scrolls and unmarks it on the way back', () => {

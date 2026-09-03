@@ -9,7 +9,7 @@ interface SortEntry {
 }
 
 interface SortPreference {
-  column: string;
+  column: unknown;
   direction: 'asc' | 'desc';
 }
 
@@ -17,12 +17,8 @@ const sortState = new WeakMap<Element, SortEntry>();
 const SORT_STORAGE_KEY = 'simplecov-sort';
 
 function readSortPreference(): SortPreference | null {
-  const raw = readPreference(SORT_STORAGE_KEY);
-  if (!raw) return null;
-
   try {
-    const value = JSON.parse(raw) as Partial<SortPreference>;
-    if (typeof value.column !== 'string' || !value.column) return null;
+    const value = JSON.parse(String(readPreference(SORT_STORAGE_KEY))) as Partial<SortPreference>;
     if (value.direction !== 'asc' && value.direction !== 'desc') return null;
     return { column: value.column, direction: value.direction };
   } catch {
@@ -34,7 +30,7 @@ function writeSortPreference(preference: SortPreference): void {
   writePreference(SORT_STORAGE_KEY, JSON.stringify(preference));
 }
 
-function visibleChildIndex(row: Element, index: number): number | null {
+function visibleChildIndex(row: Element, index: number): number {
   let visible = 0;
   const children = row.children;
   for (let i = 0; i < children.length; i++) {
@@ -42,74 +38,48 @@ function visibleChildIndex(row: Element, index: number): number | null {
     if (visible === index) return i;
     visible += 1;
   }
-  return null;
+  return -1;
 }
 
-function getSortValue(td: Element | null): number | string {
+function getSortValue(td: Element | undefined): number | string {
   if (!td) return '';
   const order = td.getAttribute('data-order');
   if (order !== null) return Number.parseFloat(order);
-  const text = (td.textContent || '').trim();
+  const text = td.textContent!.trim();
   const num = Number.parseFloat(text);
-  return Number.isNaN(num) ? text.toLowerCase() : num;
+  return Number.isNaN(num) ? text : num;
 }
 
-const rowValueCache = new WeakMap<Element, Map<number, number | string>>();
-const rowTiebreakCache = new WeakMap<Element, Map<number, number | null>>();
-
-function cachedSortValue(row: Element, childIndex: number | null): number | string {
-  if (childIndex === null) return '';
-  let cache = rowValueCache.get(row);
-  if (!cache) {
-    cache = new Map();
-    rowValueCache.set(row, cache);
-  }
-  const hit = cache.get(childIndex);
-  if (hit !== undefined) return hit;
-  const value = getSortValue(row.children[childIndex] ?? null);
-  cache.set(childIndex, value);
-  return value;
+function tiebreakValue(td: Element | undefined): number {
+  return Number.parseFloat(String(td?.getAttribute('data-order-2')));
 }
 
-function cachedTiebreakValue(row: Element, childIndex: number | null): number | null {
-  if (childIndex === null) return null;
-  let cache = rowTiebreakCache.get(row);
-  if (!cache) {
-    cache = new Map();
-    rowTiebreakCache.set(row, cache);
-  }
-  const hit = cache.get(childIndex);
-  if (hit !== undefined) return hit;
-  const order = (row.children[childIndex] ?? null)?.getAttribute('data-order-2');
-  const value = order == null ? null : Number.parseFloat(order);
-  cache.set(childIndex, value);
-  return value;
-}
-
-function compareTiebreaks(a: number | null, b: number | null): number {
-  return a === null || b === null ? 0 : a - b;
-}
-
-const collator = new Intl.Collator();
+const collator = new Intl.Collator(undefined, { sensitivity: 'accent' });
 
 function compareValues(a: number | string, b: number | string): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
   return collator.compare(String(a), String(b));
 }
 
-function orderRows(rows: Element[], childIndex: number | null, dir: 'asc' | 'desc'): Element[] {
+interface Decorated {
+  row: Element;
+  value: number | string;
+  tiebreak: number;
+  filename: number | string;
+}
+
+function orderRows(rows: Element[], childIndex: number, dir: 'asc' | 'desc'): Element[] {
   const decorated = rows.map((row) => ({
     row,
-    value: cachedSortValue(row, childIndex),
-    tiebreak: cachedTiebreakValue(row, childIndex),
-    filename: cachedSortValue(row, 0)
+    value: getSortValue(row.children[childIndex]),
+    tiebreak: tiebreakValue(row.children[childIndex]),
+    filename: getSortValue(row.children[0])
   }));
-  const factor = dir === 'asc' ? 1 : -1;
-  decorated.sort((a, b) => factor * (
+  const ascending = (a: Decorated, b: Decorated): number =>
     compareValues(a.value, b.value) ||
-    compareTiebreaks(a.tiebreak, b.tiebreak) ||
-    compareValues(a.filename, b.filename)
-  ));
+    (a.tiebreak - b.tiebreak) ||
+    compareValues(a.filename, b.filename);
+  decorated.sort(dir === 'asc' ? ascending : (a, b) => ascending(b, a));
   return decorated.map(({ row }) => row);
 }
 
@@ -142,11 +112,10 @@ function performSort(table: Element, colIndex: number, dir: 'asc' | 'desc'): voi
     return;
   }
 
-  if (state && state.colIndex === colIndex && state.direction !== dir) {
+  if (state && state.colIndex === colIndex) {
     rows.reverse();
   } else {
-    const childIndex = visibleChildIndex(rows[0], colIndex);
-    rows = orderRows(rows, childIndex, dir);
+    rows = orderRows(rows, visibleChildIndex(rows[0], colIndex), dir);
   }
 
   reorderRows(tbody, rows);
@@ -158,27 +127,21 @@ const SORT_OVERLAY_THRESHOLD = 500;
 
 let sortOverlay: HTMLElement | null = null;
 
-function ensureSortOverlay(): HTMLElement {
-  if (sortOverlay) return sortOverlay;
-  const el = document.createElement('div');
-  el.id = 'sort-overlay';
-  el.innerHTML = '<span id="sort-overlay-label">Sorting…</span>';
-  el.style.display = 'none';
-  document.body.appendChild(el);
-  sortOverlay = el;
-  return el;
-}
-
-function showSortOverlay(): void {
-  const el = ensureSortOverlay();
+function showSortOverlay(): HTMLElement {
+  if (!sortOverlay) {
+    sortOverlay = document.createElement('div');
+    sortOverlay.id = 'sort-overlay';
+    sortOverlay.innerHTML = '<span id="sort-overlay-label">Sorting…</span>';
+    document.body.appendChild(sortOverlay);
+  }
+  const el = sortOverlay;
   el.style.transition = 'none';
   el.style.opacity = '1';
   el.style.display = 'flex';
+  return el;
 }
 
-function hideSortOverlay(): void {
-  if (!sortOverlay) return;
-  const el = sortOverlay;
+function hideSortOverlay(el: HTMLElement): void {
   el.style.transition = 'opacity 0.15s';
   el.style.opacity = '0';
   setTimeout(() => { el.style.display = 'none'; }, 150);
@@ -198,11 +161,11 @@ function sortTable(table: Element, header: Element): void {
     return;
   }
 
-  showSortOverlay();
+  const overlay = showSortOverlay();
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       performSort(table, colIndex, direction);
-      hideSortOverlay();
+      hideSortOverlay(overlay);
     })
   );
 }
@@ -219,11 +182,8 @@ function thToTdIndex(table: Element, clickedTh: Element): number {
 
 function primarySortColumn(row: Element, primaryCoverage?: string): number | null {
   const cells = Array.from(row.children);
-  if (primaryCoverage) {
-    const primary = cells.findIndex((cell) => cell.classList.contains(`cell--${primaryCoverage}-pct`));
-    if (primary !== -1) return primary;
-  }
-  const first = cells.findIndex((cell) => cell.hasAttribute('data-order'));
+  const primary = cells.findIndex((cell) => cell.classList.contains(`cell--${primaryCoverage}-pct`));
+  const first = primary === -1 ? cells.findIndex((cell) => cell.hasAttribute('data-order')) : primary;
   return first === -1 ? null : first;
 }
 
@@ -234,7 +194,7 @@ function applyInitialSort(table: Element, primaryCoverage: string | undefined, p
   const rows = Array.from(tbody.querySelectorAll('tr.t-file'));
   if (rows.length === 0) return;
 
-  const preferredHeader = preference && $$('thead tr:first-child th', table)
+  const preferredHeader = preference && $$('thead tr:first-child th[data-sort-key]', table)
     .find((header) => header.getAttribute('data-sort-key') === preference.column);
   const colIndex = preferredHeader
     ? thToTdIndex(table, preferredHeader)

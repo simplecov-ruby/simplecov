@@ -37,6 +37,14 @@ describe('applyRowWindow', () => {
     expect(affordance(table)).toBeNull();
   });
 
+  test('shows exactly 1000 matched rows without an affordance', () => {
+    document.body.innerHTML = '';
+    const table = buildTable(1000);
+    applyRowWindow(table);
+    expect(windowHiddenCount(table)).toBe(0);
+    expect(affordance(table)).toBeNull();
+  });
+
   test('windows matched rows past 1000 behind a Show all affordance', () => {
     document.body.innerHTML = '';
     const table = buildTable(1105);
@@ -65,8 +73,10 @@ describe('applyRowWindow', () => {
     expect(windowHiddenCount(table)).toBe(10);
 
     const link = affordance(table)!.querySelector('a.t-show-all__link')!;
-    link.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+    const click = new Event('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
 
+    expect(click.defaultPrevented).toBe(true);
     expect(windowHiddenCount(table)).toBe(0);
     expect(affordance(table)!.style.display).toBe('none');
 
@@ -75,7 +85,7 @@ describe('applyRowWindow', () => {
     expect(affordance(table)!.style.display).toBe('none');
   });
 
-  test('hides the affordance again when filtering brings the table under the limit', () => {
+  test('hides the affordance while a filter keeps the table under the limit', () => {
     document.body.innerHTML = '';
     const table = buildTable(1005);
     applyRowWindow(table);
@@ -88,5 +98,11 @@ describe('applyRowWindow', () => {
 
     expect(windowHiddenCount(table)).toBe(0);
     expect(affordance(table)!.style.display).toBe('none');
+
+    for (const row of rows.slice(0, 10)) row.style.display = '';
+    applyRowWindow(table);
+
+    expect(windowHiddenCount(table)).toBe(5);
+    expect(affordance(table)!.style.display).toBe('');
   });
 });

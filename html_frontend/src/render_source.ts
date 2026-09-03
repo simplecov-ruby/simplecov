@@ -73,12 +73,13 @@ interface SourceLineArgs {
 function renderSourceLine(args: SourceLineArgs): string {
   const { index, source, language, lineCov, status, branchCoverage, lineBranches, testCount, productionRan } = args;
   const lineNum = index + 1;
-  const hitsAttr = typeof lineCov === 'number' ? ` data-hits="${lineCov}"` : '';
+  const hits = typeof lineCov === 'number' ? lineCov : null;
+  const hitsAttr = hits === null ? '' : ` data-hits="${hits}"`;
   const productionClass = productionRan === undefined ? '' : (productionRan ? ' production-ran' : ' production-never');
   const lineHtml = [`<li class="${status}${productionClass}"${hitsAttr} data-linenumber="${lineNum}">`];
 
-  if (typeof lineCov === 'number' && lineCov > 0) {
-    lineHtml.push(`<span class="hits" data-content="${lineCov}"></span>`);
+  if (hits) {
+    lineHtml.push(`<span class="hits" data-content="${hits}"></span>`);
   } else if (lineCov === 'ignored') {
     lineHtml.push('<span class="hits" data-content="skipped"></span>');
   }
@@ -134,7 +135,7 @@ export function renderSourceFile(
   const coveredMethods = methodCoverage ? (data.covered_methods || 0) : 0;
   const totalMethods = methodCoverage ? (data.total_methods || 0) : 0;
 
-  const missedMethodsList = (data.methods || []).filter(m => m.coverage === 0);
+  const missedMethodsList = data.methods?.filter(m => m.coverage === 0) ?? [];
   const showMethodToggle = methodCoverage && missedMethodsList.length > 0;
 
   const branchesReport = buildBranchesReport(data.branches);
@@ -143,18 +144,19 @@ export function renderSourceFile(
   const contextIndex: FileContextIndex | null =
     contexts ? decodeFileContexts(data.contexts, data.source.length) : null;
   let outsideLines = 0;
-  const productionLines = production === undefined ? null : new Set(production ? production.lines : []);
+  const productionLines = production === undefined ? null : new Set(production?.lines);
   let productionRanCount = 0;
 
   const lineRows: string[] = [];
   for (let i = 0; i < data.source.length; i++) {
     const lineCov = data.lines?.[i];
+    const hits = typeof lineCov === 'number' ? lineCov : null;
     let status = lineStatus({
       lineIndex: i, lineCov, branchesReport,
       missedMethodLines: missedMethodLineSet, branchCoverage, methodCoverage
     });
     let testCount: number | undefined;
-    if (contextIndex && typeof lineCov === 'number' && lineCov > 0) {
+    if (contextIndex && hits) {
       testCount = contextIndex.perLine[i].length;
       if (testCount === 0) {
         outsideLines++;
@@ -162,7 +164,7 @@ export function renderSourceFile(
       }
     }
     let productionRan: boolean | undefined;
-    if (productionLines && typeof lineCov === 'number') {
+    if (productionLines && hits !== null) {
       productionRan = productionLines.has(i + 1);
       if (productionRan) productionRanCount++;
     }

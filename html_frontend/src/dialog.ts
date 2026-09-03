@@ -9,7 +9,7 @@ let dialog: HTMLDialogElement;
 let dialogBody: HTMLElement;
 let dialogTitle: HTMLElement;
 let activeSourceEl: HTMLElement | null = null;
-let savedHeaderHTML = '';
+let savedHeader: Element | null = null;
 
 export function dialogIsOpen(): boolean {
   return dialog.open;
@@ -21,9 +21,9 @@ export function getDialogBody(): HTMLElement {
 
 function restoreActiveSource(): void {
   if (!activeSourceEl) return;
-  if (savedHeaderHTML) {
-    activeSourceEl.insertAdjacentHTML('afterbegin', savedHeaderHTML);
-    savedHeaderHTML = '';
+  if (savedHeader) {
+    activeSourceEl.prepend(savedHeader);
+    savedHeader = null;
   }
   const container = document.querySelector('.source_files');
   if (container) container.appendChild(activeSourceEl);
@@ -38,7 +38,7 @@ function openSourceFile(sourceFileId: string, linenumber?: string): void {
 
   const header = el.querySelector('.header');
   if (header) {
-    savedHeaderHTML = header.outerHTML;
+    savedHeader = header;
     dialogTitle.innerHTML = header.innerHTML;
     header.remove();
   }
@@ -50,23 +50,19 @@ function openSourceFile(sourceFileId: string, linenumber?: string): void {
   document.documentElement.style.overflow = 'hidden';
   dialogBody.focus();
 
-  if (linenumber) {
-    const targetLine = dialogBody.querySelector('li[data-linenumber="' + linenumber + '"]') as HTMLElement | null;
-    if (targetLine) dialogBody.scrollTop = targetLine.offsetTop;
-  }
+  const targetLine = dialogBody.querySelector(`li[data-linenumber="${linenumber}"]`) as HTMLElement | null;
+  if (targetLine) dialogBody.scrollTop = targetLine.offsetTop;
 }
 
 function showFileList(tabId: string): void {
   setFocusedRow(null);
   invalidateFileRowCache();
 
-  if (dialog.open) {
-    restoreActiveSource();
-    dialog.close();
-    dialogBody.innerHTML = '';
-    dialogTitle.innerHTML = '';
-    document.documentElement.style.overflow = '';
-  }
+  restoreActiveSource();
+  dialog.close();
+  dialogBody.innerHTML = '';
+  dialogTitle.innerHTML = '';
+  document.documentElement.style.overflow = '';
 
   if (tabId) {
     const tab = document.querySelector('.group_tabs a.' + tabId);
@@ -74,8 +70,7 @@ function showFileList(tabId: string): void {
       $$('.group_tabs li').forEach(li => li.classList.remove('active'));
       tab.parentElement!.classList.add('active');
       $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
-      const target = document.getElementById(tabId);
-      if (target) target.style.display = '';
+      document.getElementById(tabId)!.style.display = '';
     }
   }
   const wrapper = document.getElementById('wrapper');

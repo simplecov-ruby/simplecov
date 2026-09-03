@@ -73,23 +73,60 @@ describe('renderSourceFile', () => {
       'elsif< branch hit 0 times'
     );
 
+    expect(lis[4].querySelectorAll('.hits')).toHaveLength(1);
     expect(lis[4].querySelector('.hits')!.getAttribute('data-content')).toBe('skipped');
+    expect(lis[4].getAttribute('data-hits')).toBeNull();
     expect(lis[5].getAttribute('data-hits')).toBe('0');
     expect(lis[5].querySelector('.hits')).toBeNull();
     expect(lis[6].getAttribute('data-hits')).toBeNull();
+    expect(lis[6].outerHTML).toStartWith('<li class="never" data-linenumber="7">');
+    expect(lis[0].textContent).toBe('if a');
+  });
+
+  test('keeps the rows as the only children of the list', () => {
+    const el = render(data);
+    expect(el.firstChild).toBe(el.querySelector('.header'));
+    const ol = el.querySelector('pre > ol')!;
+    expect(ol.parentElement!.parentElement).toBe(el);
+    expect(ol.childNodes).toHaveLength(8);
+    expect(renderSourceFile(FILE, data, true, true, true)).toEndWith('</ol></pre></div>');
   });
 
   test('renders the header summary and the hidden missed-method toggle list', () => {
     const el = render(data);
     expect(el.id).toBe(fileId(FILE));
     expect(el.querySelector('.header h2')!.textContent).toBe(FILE);
-    expect(el.querySelector('.summary-stats')!.textContent).toContain('5/6 relevant lines covered');
+    const summary = el.querySelector('.summary-stats')!.textContent;
+    expect(summary).toContain('5/6 relevant lines covered');
+    expect(summary).toContain('Branch coverage: 66.66% 2/3 covered');
+    expect(summary).toContain('Method coverage: 50.00% 1/2 covered');
     expect(el.querySelector('.t-missed-method-toggle')).not.toBeNull();
 
     const list = el.querySelector('.t-missed-method-list') as HTMLElement;
     expect(list.style.display).toBe('none');
-    const names = Array.from(list.querySelectorAll('tt')).map((tt) => tt.textContent);
-    expect(names).toEqual(['<Foo>#missed']);
+    expect(list.textContent).toBe('<Foo>#missed');
+    expect(list.querySelector('pre')).toBeNull();
+  });
+
+  test('lists every missed method back to back', () => {
+    const list = render({
+      source: ['def a', 'end', 'def b', 'end'],
+      lines: [0, null, 0, null],
+      methods: [
+        { name: 'Foo#a', start_line: 1, end_line: 2, coverage: 0 },
+        { name: 'Foo#b', start_line: 3, end_line: 4, coverage: 0 }
+      ],
+      covered_methods: 0,
+      total_methods: 2
+    }).querySelector('.t-missed-method-list')!;
+    expect(list.textContent).toBe('Foo#aFoo#b');
+    expect(list.querySelectorAll('li')).toHaveLength(2);
+  });
+
+  test('ignores missed branches when branch coverage is off', () => {
+    const statuses = Array.from(render(data, true, false, true).querySelectorAll('ol li')).map((li) => li.className);
+    expect(statuses[1]).toBe('covered');
+    expect(render(data, true, false, true).querySelectorAll('ol li')[1].querySelectorAll('.hits')).toHaveLength(1);
   });
 
   test('handles disabled criteria and a file without line data', () => {
@@ -98,6 +135,12 @@ describe('renderSourceFile', () => {
     expect(statuses).toEqual(['never', 'never']);
     expect(el.querySelector('.t-missed-method-list')).toBeNull();
     expect(el.querySelectorAll('.summary-stats .coverage-disabled')).toHaveLength(3);
+  });
+
+  test('shows no toggle when method coverage is on but the file has no methods', () => {
+    const el = render({ source: ['a'], lines: [1] });
+    expect(el.querySelector('.t-missed-method-toggle')).toBeNull();
+    expect(el.querySelector('.t-missed-method-list')).toBeNull();
   });
 
   test('skips the toggle list when method coverage is on but nothing is missed', () => {
@@ -152,6 +195,7 @@ describe('renderSourceFile with recorded contexts', () => {
     const badge = lines[0].querySelector('button.hits--tests')!;
     expect(badge.getAttribute('data-content')).toBe('2 tests');
     expect(badge.getAttribute('data-tests-line')).toBe('1');
+    expect(badge.classList.contains('hits--tests-none')).toBe(false);
     expect(lines[2].querySelector('button.hits--tests')).toBeNull();
     expect(lines[3].querySelector('button.hits--tests')).toBeNull();
   });
@@ -162,6 +206,17 @@ describe('renderSourceFile with recorded contexts', () => {
     const badge = lines[1].querySelector('button.hits--tests')!;
     expect(badge.getAttribute('data-content')).toBe('0 tests');
     expect(badge.classList.contains('hits--tests-none')).toBe(true);
+  });
+
+  test('gives an ignored line no badge and leaves it out of the attribution', () => {
+    const skipped: FileCoverage = {
+      source: ['a', ':skip'], lines: [1, 'ignored'], covered_lines: 1, total_lines: 1, contexts: { '0': '1' }
+    };
+    const table = renderCtx(skipped);
+    const lines = Array.from(table.querySelectorAll('ol li'));
+    expect(lines[1].className).toBe('skipped');
+    expect(lines[1].querySelector('button.hits--tests')).toBeNull();
+    expect(table.querySelector('.t-line-summary')!.textContent).toContain('1/1 relevant lines covered by tests');
   });
 
   test('uses the singular for a single covering test', () => {
@@ -274,11 +329,13 @@ describe('renderSourceFile with production coverage', () => {
 
   test('summarizes the ran share and the last-run date in the header', () => {
     const table = renderProduction({ lines: [1, 3], last_seen: '2026-08-25T10:30:00Z' });
-    const summary = table.querySelector('.summary-stats--production .t-production-summary')!;
-    expect(summary.textContent).toContain('Production:');
-    expect(summary.textContent).toContain('2/3 relevant lines ran');
+    const summary = table.querySelector('.summary-stats--production > .t-production-summary')!;
+    expect(summary.textContent).toContain('Production: 2/3 relevant lines ran');
     expect(summary.textContent).toContain('last run 2026-08-25');
-    expect(summary.querySelector('[title="2026-08-25T10:30:00Z"]')).not.toBeNull();
+    expect(summary.querySelector('[title="2026-08-25T10:30:00Z"]')!.textContent).toBe('2026-08-25');
+    expect(table.querySelector('.summary-stats--production pre')).toBeNull();
+    expect(table.querySelector('.summary-stats--production')!.children).toHaveLength(1);
+    expect(table.querySelector('pre')!.parentElement).toBe(table);
   });
 
   test('omits the last-run clause for a stamp-less entry', () => {

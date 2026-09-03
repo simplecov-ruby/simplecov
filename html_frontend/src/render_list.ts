@@ -68,10 +68,10 @@ function renderProductionCell(filename: string, production: ProductionData): str
   const entry = production.files[filename];
   if (!entry) return '<td class="cell--production t-file__production t-file__production--never" data-order="-1">never</td>';
 
-  const stamp = entry.last_seen === undefined ? NaN : new Date(entry.last_seen).getTime();
+  const iso = String(entry.last_seen);
+  const stamp = Date.parse(iso);
   if (Number.isNaN(stamp)) return '<td class="cell--production t-file__production" data-order="0">ran</td>';
 
-  const iso = entry.last_seen!;
   return `<td class="cell--production t-file__production" data-order="${stamp}">` +
     `<abbr class="timeago" title="${escapeHTML(iso)}">${escapeHTML(iso.slice(0, 10))}</abbr></td>`;
 }
