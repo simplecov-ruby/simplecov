@@ -20,7 +20,6 @@ hljs.registerLanguage('slim', slim);
 let faviconBand: string | undefined;
 
 export function updateFavicon(): void {
-  // Stryker disable next-line MethodExpression: browsers return the property with its leading space, happy-dom without
   const color = getComputedStyle(document.documentElement).getPropertyValue(`--${faviconBand}`).trim();
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 16;
@@ -48,7 +47,11 @@ interface RenderState {
   contexts: string[] | null;
   production: ProductionData | null;
 }
-let renderState: RenderState | null = null;
+let renderState: RenderState | undefined;
+
+function state(): RenderState {
+  return renderState!;
+}
 
 const FOOTER_RUN_LIMIT = 3;
 
@@ -155,20 +158,19 @@ function legendItem(swatch: string, label: string): string {
 export function materializeSourceFile(sourceFileId: string): HTMLElement | null {
   const existing = document.getElementById(sourceFileId);
   if (existing) return existing;
-  // Stryker disable next-line ConditionalExpression: only reachable before renderPage, which earlier test files have already run
-  if (!renderState) return null;
 
-  const targetFilename = renderState.idToFilename[sourceFileId];
+  const { idToFilename, coverage, lineCoverage, branchCoverage, methodCoverage, contexts, production } = state();
+  const targetFilename = idToFilename[sourceFileId];
   if (!targetFilename) return null;
 
   const html = renderSourceFile(
     targetFilename,
-    renderState.coverage[targetFilename],
-    renderState.lineCoverage,
-    renderState.branchCoverage,
-    renderState.methodCoverage,
-    renderState.contexts || undefined,
-    renderState.production ? (renderState.production.files[targetFilename] || null) : undefined,
+    coverage[targetFilename],
+    lineCoverage,
+    branchCoverage,
+    methodCoverage,
+    contexts || undefined,
+    production ? (production.files[targetFilename] || null) : undefined,
   );
   const container = document.querySelector('.source_files')!;
   const wrapper = document.createElement('div');
@@ -181,11 +183,12 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
 }
 
 export function contextsForSourceLine(sourceFileId: string, line: number): string[] | null {
-  if (!renderState || !renderState.contexts) return null;
-  const filename = renderState.idToFilename[sourceFileId];
+  const { contexts, idToFilename, coverage } = state();
+  if (!contexts) return null;
+  const filename = idToFilename[sourceFileId];
   if (!filename) return null;
 
-  const file = renderState.coverage[filename];
+  const file = coverage[filename];
   const index = decodeFileContexts(file.contexts, file.source.length);
-  return contextIdsForLine(index, renderState.contexts, line);
+  return contextIdsForLine(index, contexts, line);
 }

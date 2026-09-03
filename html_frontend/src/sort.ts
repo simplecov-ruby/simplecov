@@ -16,16 +16,18 @@ interface SortPreference {
 const sortState = new WeakMap<Element, SortEntry>();
 const SORT_STORAGE_KEY = 'simplecov-sort';
 
-function readSortPreference(): SortPreference | null {
+function storedPreference(): Partial<SortPreference> {
   try {
-    const value = JSON.parse(String(readPreference(SORT_STORAGE_KEY))) as Partial<SortPreference>;
-    if (value.direction !== 'asc' && value.direction !== 'desc') return null;
-    return { column: value.column, direction: value.direction };
+    return JSON.parse(String(readPreference(SORT_STORAGE_KEY))) ?? {};
+  } catch {
+    return {};
   }
-  // Stryker disable next-line BlockStatement: a type error TypeScript 7 cannot report to Stryker, and undefined reads as null here
-  catch {
-    return null;
-  }
+}
+
+function readSortPreference(): SortPreference | null {
+  const value = storedPreference();
+  if (value.direction !== 'asc' && value.direction !== 'desc') return null;
+  return { column: value.column, direction: value.direction };
 }
 
 function writeSortPreference(preference: SortPreference): void {

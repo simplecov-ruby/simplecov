@@ -58,16 +58,18 @@ afterEach(() => {
   mock.restore();
 });
 
-describe('materializeSourceFile before rendering', () => {
-  test('returns null for an id no render has resolved', () => {
-    expect(materializeSourceFile('deadbeef')).toBeNull();
-  });
-});
-
 describe('updateFavicon', () => {
   test('is a no-op without a drawable canvas', () => {
     updateFavicon();
     expect(document.head.querySelector('link[rel="icon"]')).toBeNull();
+  });
+
+  test('trims the leading space browsers keep on a custom property value', async () => {
+    const fills = fakeCanvas();
+    await boot(coverageData());
+    spyOn(globalThis, 'getComputedStyle').mockReturnValue({ getPropertyValue: () => ' #ff0000' } as unknown as CSSStyleDeclaration);
+    updateFavicon();
+    expect(fills.at(-1)).toBe('#ff0000:0,0,16,16');
   });
 
   test('draws a favicon in the coverage band colour once a context exists', async () => {
