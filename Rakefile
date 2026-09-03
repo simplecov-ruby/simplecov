@@ -203,17 +203,31 @@ namespace :frontend do
   namespace :mutate do
     desc "Mutation-test only the frontend modules changed since REF (default origin/main)"
     task :since, [:ref] => :install do |_task, args|
-      ref = args[:ref] || "origin/main"
-      diff = IO.popen(["git", "diff", "--name-only", ref, "--", "html_frontend/src"], &:read)
-      modules = diff.lines.map(&:chomp).select { |path| path.end_with?(".ts") && File.exist?(path) }
-      if modules.empty?
-        puts "No frontend modules changed since #{ref}"
-      else
-        files = modules.map { |path| path.delete_prefix("html_frontend/") }.join(",")
-        in_frontend("Frontend mutation testing") { sh "bun", "run", "mutate", "--mutate", files }
-      end
+      mutate_frontend_modules(frontend_modules_since(args[:ref] || "origin/main"))
+    end
+
+    desc "Mutation-test shard INDEX of TOTAL over the frontend modules changed since REF"
+    task :shard, [:ref, :index, :total] => :install do |_task, args|
+      index = Integer(args.fetch(:index))
+      total = Integer(args.fetch(:total))
+      modules = frontend_modules_since(args[:ref] || "origin/main")
+      mine = modules.select.with_index { |_module, position| position % total == index }
+      puts "Shard #{index} of #{total}: #{mine.size} of #{modules.size} modules"
+      mutate_frontend_modules(mine)
     end
   end
+end
+
+def frontend_modules_since(ref)
+  diff = IO.popen(["git", "diff", "--name-only", ref, "--", "html_frontend/src"], &:read)
+  diff.lines.map(&:chomp).select { |path| path.end_with?(".ts") && File.exist?(path) }
+end
+
+def mutate_frontend_modules(modules)
+  return puts("No frontend modules to mutation-test") if modules.empty?
+
+  files = modules.map { |path| path.delete_prefix("html_frontend/") }.join(",")
+  in_frontend("Frontend mutation testing") { sh "bun", "run", "mutate", "--mutate", files }
 end
 
 desc "Validate the RBS type signatures in sig/"

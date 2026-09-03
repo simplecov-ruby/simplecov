@@ -18,6 +18,10 @@ env:
   # range the diff touches, and a comment removed above a method moves every
   # method below it, so such a change can select most of the library.
   MAX_SHARDS: 24
+  # Stryker runs the viewer's whole test suite per mutant, about a second on
+  # a runner, and a module carries up to 240 mutants, so a shard of three
+  # modules stays inside the timeout below with room to spare.
+  MAX_FRONTEND_SHARDS: 6
 
 jobs:
   plan:
@@ -30,6 +34,8 @@ jobs:
       shards: ${{ steps.plan.outputs.shards }}
       total: ${{ steps.plan.outputs.total }}
       frontend: ${{ steps.plan.outputs.frontend }}
+      frontend_shards: ${{ steps.plan.outputs.frontend_shards }}
+      frontend_total: ${{ steps.plan.outputs.frontend_total }}
 
     steps:
       # Mutant selects subjects by diffing against a revision, so the
@@ -80,7 +86,9 @@ jobs:
           echo "$count subject(s) across $total shard(s)"
 
           frontend=$(git diff --name-only "$base" -- html_frontend/src | grep -c '\.ts$' || true)
-          echo "$frontend frontend module(s)"
+          frontend_total="$frontend"
+          if [ "$frontend_total" -gt "$MAX_FRONTEND_SHARDS" ]; then frontend_total="$MAX_FRONTEND_SHARDS"; fi
+          echo "$frontend frontend module(s) across $frontend_total shard(s)"
 
           {
             echo "base=$base"
@@ -88,6 +96,8 @@ jobs:
             echo "total=$total"
             echo "shards=$(jq -nc --argjson n "$total" '[range($n)]')"
             echo "frontend=$frontend"
+            echo "frontend_total=$frontend_total"
+            echo "frontend_shards=$(jq -nc --argjson n "$frontend_total" '[range($n)]')"
           } >> "$GITHUB_OUTPUT"
 
   # A change that touches no library code selects nothing and never reaches
@@ -127,14 +137,18 @@ jobs:
             "mutant:shard[${{ needs.plan.outputs.base }},${{ matrix.shard }},${{ needs.plan.outputs.total }}]"
 
   # The viewer's modules the change touches go through Stryker the same way,
-  # one runner for all of them: its whole suite runs in under two seconds, so
-  # even every module fits well inside the timeout. A test-only change
+  # a module per shard until the cap, then round robin. A test-only change
   # selects nothing, as on the Ruby side.
   mutate-frontend:
     needs: plan
     if: needs.plan.outputs.frontend != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.frontend_shards) }}
 
     steps:
       - uses: actions/checkout@v7.0.1
@@ -154,5 +168,7 @@ jobs:
           git cat-file -e "${{ needs.plan.outputs.base }}^{commit}" 2>/dev/null ||
             git fetch --no-tags origin "${{ needs.plan.outputs.base }}"
 
-      - name: Mutation-test the frontend modules the change touches
-        run: bundle exec rake "frontend:mutate:since[${{ needs.plan.outputs.base }}]"
+      - name: Mutation-test this shard of the frontend modules the change touches
+        run: |
+          bundle exec rake \
+            "frontend:mutate:shard[${{ needs.plan.outputs.base }},${{ matrix.shard }},${{ needs.plan.outputs.frontend_total }}]"

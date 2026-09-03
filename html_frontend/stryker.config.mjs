@@ -20,7 +20,6 @@ export default {
   htmlReporter: {fileName: 'reports/mutation/index.html'},
   tempDirName: '.stryker-tmp',
   cleanTempDir: true,
-  concurrency: 6,
   timeoutMS: 15000,
   // Every mutant is either killed or carries a `Stryker disable` directive
   // naming why it is equivalent, so one survivor fails the run.
