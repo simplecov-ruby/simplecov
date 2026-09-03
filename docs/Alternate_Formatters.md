@@ -5,6 +5,10 @@ HTML and JSON formatters.
 
 If you have built or found one that is missing here, please send a Pull Request for this document!
 
+If you are building one, read the result SimpleCov hands your formatter or the schema'd `coverage.json` the JSON
+formatter writes, never the private `.resultset.json` cache. The reasons, and what to do when `coverage.json` lacks
+something you need, are in [Formatters.md](Formatters.md#build-on-coveragejson-not-resultsetjson).
+
 ### Terminal output
 
 #### [simplecov-console](https://github.com/chetan/simplecov-console)

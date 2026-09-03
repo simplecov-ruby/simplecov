@@ -187,8 +187,21 @@ time. Top-level structure:
 }
 ```
 
-The `.resultset.json` file is **not** schema'd — it's SimpleCov-internal and may change shape across releases. Build
-integrations on top of `coverage.json`.
+### Build on `coverage.json`, not `.resultset.json`
+
+`coverage.json` is the public API for tools built on SimpleCov. It carries the versioned schema described above, and
+a published schema version never changes shape underneath a consumer that pinned to it.
+
+`.resultset.json` is not an API. It is the private, hidden cache SimpleCov uses to merge results across processes and
+runs. Its shape follows SimpleCov's internal needs and can change in any release, minor or patch, without notice or a
+changelog entry. Nothing validates it, nothing versions it, and the [`simplecov merge`](CLI.md) and `collate` commands
+are the only supported way to touch it.
+
+If your tool needs data that `coverage.json` does not carry, open an issue describing the data and what the tool does
+with it. Additions to `coverage.json` are cheap: they bump the schema's minor version and leave existing consumers
+untouched, so a reasonable request is likely to land. Reading the resultset instead is not a shortcut, because no
+accommodation is made for tools that depend on it. A release that reshapes `.resultset.json` ships when SimpleCov
+needs it to, regardless of how widely used a tool built on the old shape has become.
 
 ### More formatters, editor integrations, and hosted services
 
