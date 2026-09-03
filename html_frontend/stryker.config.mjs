@@ -22,5 +22,7 @@ export default {
   cleanTempDir: true,
   concurrency: 6,
   timeoutMS: 15000,
-  thresholds: {high: 100, low: 90, break: null},
+  // Every mutant is either killed or carries a `Stryker disable` directive
+  // naming why it is equivalent, so one survivor fails the run.
+  thresholds: {high: 100, low: 90, break: 100},
 };

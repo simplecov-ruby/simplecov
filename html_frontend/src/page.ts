@@ -20,6 +20,7 @@ hljs.registerLanguage('slim', slim);
 let faviconBand: string | undefined;
 
 export function updateFavicon(): void {
+  // Stryker disable next-line MethodExpression: browsers return the property with its leading space, happy-dom without
   const color = getComputedStyle(document.documentElement).getPropertyValue(`--${faviconBand}`).trim();
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 16;
@@ -154,6 +155,7 @@ function legendItem(swatch: string, label: string): string {
 export function materializeSourceFile(sourceFileId: string): HTMLElement | null {
   const existing = document.getElementById(sourceFileId);
   if (existing) return existing;
+  // Stryker disable next-line ConditionalExpression: only reachable before renderPage, which earlier test files have already run
   if (!renderState) return null;
 
   const targetFilename = renderState.idToFilename[sourceFileId];

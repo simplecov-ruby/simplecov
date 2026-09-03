@@ -29,6 +29,7 @@ jobs:
       count: ${{ steps.plan.outputs.count }}
       shards: ${{ steps.plan.outputs.shards }}
       total: ${{ steps.plan.outputs.total }}
+      frontend: ${{ steps.plan.outputs.frontend }}
 
     steps:
       # Mutant selects subjects by diffing against a revision, so the
@@ -78,11 +79,15 @@ jobs:
           fi
           echo "$count subject(s) across $total shard(s)"
 
+          frontend=$(git diff --name-only "$base" -- html_frontend/src | grep -c '\.ts$' || true)
+          echo "$frontend frontend module(s)"
+
           {
             echo "base=$base"
             echo "count=$count"
             echo "total=$total"
             echo "shards=$(jq -nc --argjson n "$total" '[range($n)]')"
+            echo "frontend=$frontend"
           } >> "$GITHUB_OUTPUT"
 
   # A change that touches no library code selects nothing and never reaches
@@ -120,3 +125,34 @@ jobs:
         run: |
           bundle exec rake \
             "mutant:shard[${{ needs.plan.outputs.base }},${{ matrix.shard }},${{ needs.plan.outputs.total }}]"
+
+  # The viewer's modules the change touches go through Stryker the same way,
+  # one runner for all of them: its whole suite runs in under two seconds, so
+  # even every module fits well inside the timeout. A test-only change
+  # selects nothing, as on the Ruby side.
+  mutate-frontend:
+    needs: plan
+    if: needs.plan.outputs.frontend != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: ruby/setup-ruby@v1.321.0
+        with:
+          ruby-version: ruby
+          rubygems: default
+          bundler-cache: true
+
+      - name: Make the base revision available
+        run: |
+          git cat-file -e "${{ needs.plan.outputs.base }}^{commit}" 2>/dev/null ||
+            git fetch --no-tags origin "${{ needs.plan.outputs.base }}"
+
+      - name: Mutation-test the frontend modules the change touches
+        run: bundle exec rake "frontend:mutate:since[${{ needs.plan.outputs.base }}]"

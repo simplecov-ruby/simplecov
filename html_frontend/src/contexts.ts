@@ -45,6 +45,7 @@ export function coveredOutsideCount(
 ): number {
   if (!lines) return 0;
 
+  // Stryker disable next-line ArrayDeclaration: a type error TypeScript 7 cannot report to Stryker, and a string ORs as 0
   const union: number[] = [];
   for (const hex of Object.values(tables || {})) {
     Array.from(hex).reverse().forEach((digit, p) => {

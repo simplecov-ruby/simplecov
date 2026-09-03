@@ -21,7 +21,9 @@ function readSortPreference(): SortPreference | null {
     const value = JSON.parse(String(readPreference(SORT_STORAGE_KEY))) as Partial<SortPreference>;
     if (value.direction !== 'asc' && value.direction !== 'desc') return null;
     return { column: value.column, direction: value.direction };
-  } catch {
+  }
+  // Stryker disable next-line BlockStatement: a type error TypeScript 7 cannot report to Stryker, and undefined reads as null here
+  catch {
     return null;
   }
 }

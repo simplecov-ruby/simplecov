@@ -25,6 +25,7 @@ const BAR_WIDTH_STEP = 8;
 // imperceptible on a 160-240px bar, and the answer still fits.
 function fitBarWidth(table: HTMLElement, client: number): number {
   let lo = MIN_BAR_WIDTH, hi = MAX_BAR_WIDTH;
+  // Stryker disable next-line EqualityOperator: the halving never lands a bracket of exactly STEP for the 160..240 range
   while (hi - lo > BAR_WIDTH_STEP) {
     const mid = Math.ceil((lo + hi) / 2);
     setBarSizerWidth(table, mid);

@@ -97,12 +97,19 @@ The HTML frontend has the same check in [Stryker](https://stryker-mutator.io),
 configured in `html_frontend/stryker.config.mjs`. Its tests run under
 `bun test`, which Stryker has no runner plugin for, so it runs the whole suite
 per mutant through the command runner and writes an HTML report to
-`html_frontend/reports/mutation/index.html`:
+`html_frontend/reports/mutation/index.html`. The score must be 100%: a mutant
+that is genuinely equivalent carries a `// Stryker disable next-line` directive
+naming the mutator and the reason, the frontend's `mutant:disable`.
 
 ```bash
-bundle exec rake frontend:mutate                   # every src module, about ten minutes
 cd html_frontend && bun run mutate --mutate src/sort.ts   # one module, seconds
+bundle exec rake frontend:mutate:since             # modules changed since origin/main
+bundle exec rake frontend:mutate                   # every src module, about ten minutes
 ```
+
+Pull requests run `frontend:mutate:since` against their base branch in CI
+alongside `mutant:since`, so a change to the viewer answers for the mutations
+it introduces the same way a change to the library does.
 
 Three suite conventions keep mutant fast and honest, and touching them breaks
 it quietly, so know they exist:

@@ -199,6 +199,21 @@ namespace :frontend do
   task mutate: :install do
     in_frontend("Frontend mutation testing") { sh "bun", "run", "mutate" }
   end
+
+  namespace :mutate do
+    desc "Mutation-test only the frontend modules changed since REF (default origin/main)"
+    task :since, [:ref] => :install do |_task, args|
+      ref = args[:ref] || "origin/main"
+      diff = IO.popen(["git", "diff", "--name-only", ref, "--", "html_frontend/src"], &:read)
+      modules = diff.lines.map(&:chomp).select { |path| path.end_with?(".ts") && File.exist?(path) }
+      if modules.empty?
+        puts "No frontend modules changed since #{ref}"
+      else
+        files = modules.map { |path| path.delete_prefix("html_frontend/") }.join(",")
+        in_frontend("Frontend mutation testing") { sh "bun", "run", "mutate", "--mutate", files }
+      end
+    end
+  end
 end
 
 desc "Validate the RBS type signatures in sig/"
