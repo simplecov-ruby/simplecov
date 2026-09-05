@@ -50,7 +50,7 @@ Gem::Specification.new do |gem|
     "rubygems_mfa_required" => "true"
   }
 
-  gem.required_ruby_version = ">= 3.2"
+  gem.required_ruby_version = ">= 3.3"
 
   # The changelog is intentionally not packaged — it grows every release and is
   # the gem's largest avoidable payload. The `changelog_uri` metadata above

@@ -3,7 +3,6 @@ module SimpleCov
     module MethodCollector : ::Prism::Visitor
       @methods: Hash[untyped, Integer]
       @class_stack: Array[String]
-      @suppress_methods: bool
 
       def visit_class_node: (Prism::ClassNode node) -> void
 

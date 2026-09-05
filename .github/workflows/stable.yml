@@ -27,7 +27,6 @@ jobs:
         # starting the long pole first keeps it off the critical path.
         ruby-version:
           - jruby-10.0
-          - '3.2'
           - '3.3'
           - '3.4'
           - '4.0'

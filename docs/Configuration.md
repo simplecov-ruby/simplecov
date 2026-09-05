@@ -270,8 +270,8 @@ end
 
 `:eval_generated` is the only supported method token. Both filters detect eval-generated entries
 by walking the static source with [Prism](https://github.com/ruby/prism) and dropping any Coverage entry whose start
-line lacks a real `def` keyword (for methods) or branch construct (for branches). Prism is bundled with Ruby 3.3+; on
-older Rubies `gem install prism` enables the filter, otherwise it's a silent no-op. Real `def`s and branches that share
+line lacks a real `def` keyword (for methods) or branch construct (for branches). Prism is bundled with every
+supported Ruby, so the filter is always available. Real `def`s and branches that share
 a line with an eval-generated entry are kept (line-presence is the matcher).
 
 ### Oneshot lines coverage
@@ -294,7 +294,7 @@ end
 
 ### Eval coverage
 
-You can measure coverage for code evaluated by `Kernel#eval`. Supported in CRuby 3.2+.
+You can measure coverage for code evaluated by `Kernel#eval`. Supported on CRuby, which JRuby does not implement.
 
 ```ruby
 SimpleCov.start do
@@ -322,7 +322,7 @@ templates that live somewhere else:
 cover_views "app/views/**/*.erb", "app/components/**/*.erb"
 ```
 
-Templates are measured through eval coverage, which `cover_views` enables, so this needs CRuby 3.2 or later. No
+Templates are measured through eval coverage, which `cover_views` enables, so this needs CRuby. No
 `ERB#filename=` wiring is required: ActionView already compiles each template with the template's own path as the eval
 identifier, at an offset that cancels the wrapper it generates, so the coverage data lands on the template file at its
 own line numbers.
@@ -705,9 +705,9 @@ end
 ```
 
 The profile drops the branch / method clauses on engines that don't support those criteria (JRuby), so it still loads
-cleanly there, enforcing line coverage at 100%. `:eval` is included on Ruby 3.2+ (where the runtime supports it), so
+cleanly there, enforcing line coverage at 100%. `:eval` is included where the runtime supports it, so
 any code reached through `Kernel#eval` — typically ERB templates with `ERB#filename=` set — is held to the same 100%
-bar. On older Rubies, the `:eval` clause is silently skipped.
+bar. On engines without it, the `:eval` clause is silently skipped.
 
 ### Custom profiles
 

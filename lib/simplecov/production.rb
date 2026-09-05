@@ -90,7 +90,7 @@ module SimpleCov
         raise Error, "max_buffered_lines must be positive" unless max_buffered_lines.positive?
         return unless sample_rate < 1 && !Coverage.respond_to?(:suspend)
 
-        raise Error, "sample_rate below 1.0 needs Coverage.suspend (Ruby 3.2 or later)"
+        raise Error, "sample_rate below 1.0 needs Coverage.suspend, which this Ruby does not provide"
       end
 
       def validate_jitter!(flush_jitter)

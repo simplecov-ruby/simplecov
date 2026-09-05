@@ -28,7 +28,7 @@ AllCops:
     - "tmp/**/*"
     - "vendor/bundle/**/*"
     - "vendor/bundle/**/.*"
-  TargetRubyVersion: 3.2
+  TargetRubyVersion: 3.3
   NewCops: enable
 
 inherit_mode:

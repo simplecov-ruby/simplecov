@@ -5,26 +5,6 @@ require "coverage"
 require "support/coverage_differential"
 
 RSpec.describe SimpleCov::StaticCoverageExtractor do
-  def parens_always_transparent?
-    SimpleCov::StaticCoverageExtractor::ConditionFolding::PARENS_ALWAYS_TRANSPARENT
-  end
-
-  def dead_arm_branches_survive?
-    SimpleCov::StaticCoverageExtractor::ConditionFolding::DEAD_ARM_BRANCHES_SURVIVE
-  end
-
-  describe ".available?" do
-    it "answers exactly true where Prism is loaded, which every stdlib Prism Ruby is" do
-      expect(described_class.available?).to be(true)
-    end
-
-    it "answers exactly false where Prism never loaded" do
-      hide_const("Prism")
-
-      expect(described_class.available?).to be(false)
-    end
-  end
-
   describe "#begin_modifier_loop?" do
     let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
 
@@ -42,23 +22,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
   end
 
   describe ".call" do
-    context "when Prism is not available" do
-      before { allow(described_class).to receive(:available?).and_return(false) }
-
-      it "returns nil so callers fall back to empty hashes" do
-        expect(described_class.call("a = 1\n")).to be_nil
-      end
-
-      it "parses nothing at all" do
-        allow(Prism).to receive(:parse)
-
-        described_class.call("a = 1\n")
-
-        expect(Prism).not_to have_received(:parse)
-      end
-    end
-
-    context "when Prism is available", if: described_class.available? do
+    context "with parseable and unparseable sources" do
       it "returns nil on a parse failure" do
         expect(described_class.call("def f(\n")).to be_nil
       end
@@ -76,7 +40,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "branch enumeration", if: described_class.available? do
+  describe "branch enumeration" do
     let(:childless_call_node) do
       Class.new {
         def each_child_node
@@ -259,7 +223,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         ["if (a; 2)\n  x\nend\n", "if (x = 5; 2)\n  x\nend\n",
           "if ([a]; 2)\n  x\nend\n", "if ({a: b}; 2)\n  x\nend\n"]
       end
-      let(:version_dependent_sequences) do
+      let(:eliminable_read_sequences) do
         ["if (@x; 2)\n  a\nend\n", "if ([1]; 2)\n  a\nend\n",
           "if ({a: 1}; 2)\n  a\nend\n", "if ((3..4); 2)\n  a\nend\n"]
       end
@@ -305,10 +269,8 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         expect(static_branches("if lambda { x }\n  a\nend\n").keys.first.first).to eq(:if)
       end
 
-      it "matches the running compiler's paren transparency for `(nil)`, `(\"x\")`, and `(-> {})`" do
-        expected = parens_always_transparent? ? [] : [:if]
-
-        expect(paren_trio.map { |src| condition_kinds(src) }).to all(eq(expected))
+      it "keeps the branch for `(nil)`, `(\"x\")`, and `(-> {})`" do
+        expect(paren_trio.map { |src| condition_kinds(src) }).to all(eq([:if]))
       end
 
       it "folds a multi-statement paren condition with eliminable leading statements" do
@@ -328,28 +290,19 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
 
       it "applies paren opacity to the last statement of a sequence" do
-        expected = parens_always_transparent? ? [] : [:if]
-
-        expect(condition_kinds("if (1; nil)\n  x\nelse\n  y\nend\n")).to eq(expected)
+        expect(condition_kinds("if (1; nil)\n  x\nelse\n  y\nend\n")).to eq([:if])
       end
 
-      it "matches the running compiler for version-dependent eliminable leading reads" do
-        expected = parens_always_transparent? ? [:if] : []
-
-        expect(version_dependent_sequences.map { |src| condition_kinds(src) }).to all(eq(expected))
+      it "folds eliminable leading reads and static containers" do
+        expect(eliminable_read_sequences.map { |src| static_branches(src) }).to all(be_empty)
       end
 
-      it "matches the running compiler for a branch nested in a dead then arm" do
-        expected = dead_arm_branches_survive? ? [:if] : []
-
-        expect(condition_kinds("if false\n  if a\n    :x\n  end\nend\n")).to eq(expected)
+      it "emits nothing for a branch nested in a dead then arm" do
+        expect(static_branches("if false\n  if a\n    :x\n  end\nend\n")).to be_empty
       end
 
-      it "matches the running compiler for a branch nested in a dead else arm" do
-        expected = dead_arm_branches_survive? ? [:if] : []
-        src = "if true\n  :a\nelse\n  if a\n    :x\n  end\nend\n"
-
-        expect(condition_kinds(src)).to eq(expected)
+      it "emits nothing for a branch nested in a dead else arm" do
+        expect(static_branches("if true\n  :a\nelse\n  if a\n    :x\n  end\nend\n")).to be_empty
       end
 
       it "emits no method tuple for a def in a dead arm" do
@@ -367,22 +320,16 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
 
       it "keeps the else contents of a folded truthy unless" do
-        expected = dead_arm_branches_survive? ? %i[if if] : [:if]
-        src = "unless true\n  a ? :x : :y\nelse\n  if b\n    :z\n  end\nend\n"
-
-        expect(condition_kinds(src)).to eq(expected)
+        expect(condition_kinds("unless true\n  a ? :x : :y\nelse\n  if b\n    :z\n  end\nend\n")).to eq([:if])
       end
 
       it "keeps the body contents of a folded falsy unless" do
-        expected = dead_arm_branches_survive? ? %i[if if] : [:if]
-        src = "unless false\n  if b\n    :z\n  end\nelse\n  a ? :x : :y\nend\n"
-
-        expect(condition_kinds(src)).to eq(expected)
+        expect(condition_kinds("unless false\n  if b\n    :z\n  end\nelse\n  a ? :x : :y\nend\n")).to eq([:if])
       end
     end
   end
 
-  describe "container eliminability predicates", if: described_class.available? do
+  describe "container eliminability predicates" do
     def predicate(name, source)
       node = Prism.parse(source).value.statements.body.first
       SimpleCov::StaticCoverageExtractor::Visitor.new.send(name, node)
@@ -519,53 +466,13 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
       end
 
       it "declines to fold the literals parentheses shield" do
-        shielded = parens_always_transparent?
-
-        expect(predicates(:folded_condition, ["(nil)", '("x")']))
-          .to eq([shielded ? :falsy : nil, shielded ? :truthy : nil])
+        expect(predicates(:folded_condition, ["(nil)", '("x")'])).to all(be_nil)
       end
     end
 
     describe "the parse.y era conventions" do
-      let(:dead_else_arm) { "if true\n  :a\nelse\n  b ? :c : :d\n  def dead_fn\n  end\nend\n" }
-      let(:dead_then_arm) { "if false\n  b ? :c : :d\n  def dead_fn\n  end\nelse\n  :a\nend\n" }
-
       def stub_era(constant, value)
         stub_const("SimpleCov::StaticCoverageExtractor::ConditionFolding::#{constant}", value)
-      end
-
-      def paren_pair(source)
-        node = Prism.parse(source).value.statements.body.first
-        [node, Prism.parse(source.delete("()")).value.statements.body.first]
-      end
-
-      it "sees through parentheses for a literal 3.3 shields" do
-        stub_era("PARENS_ALWAYS_TRANSPARENT", true)
-        visitor = SimpleCov::StaticCoverageExtractor::Visitor.new
-        expect(visitor.send(:foldable?, *paren_pair("(nil)"))).to be true
-      end
-
-      it "shields that same literal once opacity arrives" do
-        stub_era("PARENS_ALWAYS_TRANSPARENT", false)
-        visitor = SimpleCov::StaticCoverageExtractor::Visitor.new
-        expect(visitor.send(:foldable?, *paren_pair("(nil)"))).to be false
-      end
-
-      it "eliminates a container literal once parens are opaque" do
-        stub_era("PARENS_ALWAYS_TRANSPARENT", false)
-        expect(predicate(:static_container_literal?, "[1, 2]")).to be true
-      end
-
-      it "eliminates no container literal" do
-        stub_era("PARENS_ALWAYS_TRANSPARENT", true)
-
-        expect(predicate(:static_container_literal?, "[1, 2]")).to be false
-      end
-
-      it "eliminates a scalar literal even so" do
-        stub_era("PARENS_ALWAYS_TRANSPARENT", true)
-
-        expect(predicate(:static_container_literal?, "1")).to be true
       end
 
       it "asks only that container contents be effect-free" do
@@ -591,60 +498,10 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
         expect(predicate(:container_contents_eliminable?, "1")).to be true
       end
-
-      it "keeps the dead arm's branches" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-
-        expect(described_class.call(dead_else_arm)["branches"].keys.map(&:first)).to eq([:if])
-      end
-
-      it "drops the dead arm's methods" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-
-        expect(described_class.call(dead_else_arm)["methods"]).to be_empty
-      end
-
-      it "keeps the dead then arm's branches under a falsy fold" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-
-        expect(described_class.call(dead_then_arm)["branches"].keys.map(&:first)).to eq([:if])
-      end
-
-      it "drops the dead then arm's methods under a falsy fold" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-
-        expect(described_class.call(dead_then_arm)["methods"]).to be_empty
-      end
-
-      it "drops the branches from 3.3 on" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", false)
-
-        expect(described_class.call(dead_else_arm)["branches"]).to be_empty
-      end
-
-      it "drops the methods from 3.3 on" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", false)
-
-        expect(described_class.call(dead_else_arm)["methods"]).to be_empty
-      end
-
-      it "keeps methods suppressed after a fold nested in the dead arm" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-        result = described_class.call(
-          "if true\n  :a\nelse\n  if false\n    :b\n  end\n  def dead_fn\n  end\nend\n"
-        )
-        expect(result["methods"]).to be_empty
-      end
-
-      it "restores collection once the dead arm is behind it" do
-        stub_era("DEAD_ARM_BRANCHES_SURVIVE", true)
-        result = described_class.call("if true\n  :a\nelse\n  :b\nend\ndef live_fn\nend\n")
-        expect(result["methods"].keys.map { |key| key[1] }).to eq([:live_fn])
-      end
     end
   end
 
-  describe "runtime tuple equivalence", if: described_class.available? do
+  describe "runtime tuple equivalence" do
     let(:branch_fixtures) do
       {
         "if_else" => "def fx(a)\n  if a\n    :a\n  else\n    :b\n  end\nend\n",
@@ -771,7 +628,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "method enumeration", if: described_class.available? do
+  describe "method enumeration" do
     it "tracks top-level methods under \"Object\"" do
       result = described_class.call("def free; end\n")
 
@@ -813,7 +670,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "sequential id assignment", if: described_class.available? do
+  describe "sequential id assignment" do
     it "assigns ascending ids across all branches and arms in source order" do
       src = "if a\n  :a\nelse\n  :b\nend\nif b\n  :c\nelse\n  :d\nend\n"
       result = described_class.call(src)
@@ -824,15 +681,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
   end
 
   describe ".real_source_positions" do
-    context "when Prism is not available" do
-      before { allow(described_class).to receive(:available?).and_return(false) }
-
-      it "returns nil so the eval_generated filter is a no-op" do
-        expect(described_class.real_source_positions("def f; end\n")).to be_nil
-      end
-    end
-
-    context "when Prism is available", if: described_class.available? do
+    context "with parseable and unparseable sources" do
       it "returns nil on a parse failure" do
         expect(described_class.real_source_positions("def f(\n")).to be_nil
       end
@@ -874,7 +723,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "naming the class a method belongs to", if: described_class.available? do
+  describe "naming the class a method belongs to" do
     let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
 
     it "names a constant path by its source form" do
@@ -892,24 +741,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "a def whose methods are suppressed", if: described_class.available? do
-    let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
-
-    before do
-      visitor.instance_variable_set(:@suppress_methods, true)
-      visitor.visit(Prism.parse("def f\n  if a\n    1\n  end\nend\n").value)
-    end
-
-    it "registers no method" do
-      expect(visitor.methods).to be_empty
-    end
-
-    it "still collects the branches inside it" do
-      expect(visitor.branches.keys.map(&:first)).to eq([:if])
-    end
-  end
-
-  describe "the modern branch conventions", if: described_class.available? do
+  describe "the modern branch conventions" do
     before { stub_const("#{described_class}::LocationConventions::LEGACY_COVERAGE_LOCATIONS", false) }
 
     def modern_branches(source)
@@ -965,7 +797,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "the legacy branch conventions", if: described_class.available? do
+  describe "the legacy branch conventions" do
     before { stub_const("#{described_class}::LocationConventions::LEGACY_COVERAGE_LOCATIONS", true) }
 
     def legacy_branches(source)
@@ -1251,8 +1083,7 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe SimpleCov::StaticCoverageExtractor::ValuePositions,
-    if: SimpleCov::StaticCoverageExtractor.available? do
+  describe SimpleCov::StaticCoverageExtractor::ValuePositions do
     let(:same_leaf_positions) do
       require "prism"
       described_class.call(Prism.parse("def fx\n  :same\nend\n").value)

@@ -11,9 +11,8 @@ module SimpleCov
     # them as empty.
     #
     # Templates the suite renders are measured through eval coverage, which this
-    # enables, so it needs Ruby 3.2 or later. Templates it never renders are
-    # compiled at the end of the run so they appear at 0% instead of going
-    # missing.
+    # enables. Templates it never renders are compiled at the end of the run so
+    # they appear at 0% instead of going missing.
     def cover_views(*globs)
       globs = globs.flatten.compact
       globs = DEFAULT_VIEW_GLOBS.dup if globs.empty?

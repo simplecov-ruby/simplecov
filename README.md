@@ -212,7 +212,7 @@ Both commands are documented in [the CLI docs](docs/CLI.md).
 
 View templates execute real logic, and now they can be part of the report.
 `cover_views` brings ERB, Haml, and Slim templates in, measured through eval
-coverage (CRuby 3.2+):
+coverage:
 
 ```ruby
 SimpleCov.start 'rails' do

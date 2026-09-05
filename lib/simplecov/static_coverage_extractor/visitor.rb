@@ -12,7 +12,7 @@ module SimpleCov
     # Ruby's `Coverage` reports. Tuple ids are sequential across the file like
     # `Coverage`'s, but the numbering order can differ. That's fine: the
     # combiners intern on source span and the report output drops ids, so
-    # nothing downstream compares them. Only defined when Prism is loadable.
+    # nothing downstream compares them.
     class Visitor < Prism::Visitor
       include MethodCollector
       include LocationConventions
@@ -31,7 +31,6 @@ module SimpleCov
         @next_id = 0
         @class_stack = []
         @value_positions = nil
-        @suppress_methods = false
       end
 
       # On legacy Rubies the location of an empty branch arm depends on whether
@@ -48,11 +47,9 @@ module SimpleCov
       # Coverage synthesizes a `:else` arm attributed to the whole condition's
       # range, and so do we.
       #
-      # A folded condition emits no tuple, and on modern Rubies only its live
-      # arm is descended into: the compiler eliminates the dead arm's entire
-      # subtree, so a branch or method nested there would be a phantom no
-      # loaded run can produce. On 3.2 the dead arm is visited too, branches
-      # only.
+      # A folded condition emits no tuple, and only its live arm is descended
+      # into: the compiler eliminates the dead arm's entire subtree, so a branch
+      # or method nested there would be a phantom no loaded run can produce.
       def visit_if_node(node)
         verdict = folded_condition(node.predicate)
         return visit_folded_arms(verdict, node.statements, PrismCompat.subsequent(node)) if verdict

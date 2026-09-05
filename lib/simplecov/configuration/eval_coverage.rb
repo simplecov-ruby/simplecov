@@ -25,7 +25,7 @@ module SimpleCov
       if coverage_for_eval_supported?
         @coverage_for_eval_enabled = true
       else
-        warn "Coverage for eval is not available; Use Ruby 3.2.0 or later"
+        warn "Coverage for eval is not available on this Ruby"
       end
     end
 

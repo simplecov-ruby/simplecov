@@ -22,8 +22,8 @@ module SimpleCov
     # left both as empty hashes, which made unloaded files invisible to the
     # branch/method denominators while their lines did count, so a glob that
     # picked up files without specs silently inflated branch% relative to
-    # line% (#1059). When Prism isn't loadable or the file can't be parsed,
-    # fall back to the old empty hashes.
+    # line% (#1059). When the file can't be parsed, fall back to the old empty
+    # hashes.
     #
     # Pass `synthesize: false` to skip the static analysis. Callers use it when
     # neither branch nor method coverage is enabled, since nothing will read
