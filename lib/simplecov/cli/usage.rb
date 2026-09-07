@@ -89,7 +89,7 @@ module SimpleCov
             --top N                   Show at most N files (default: 10)
             --criterion C             line, branch, or method (default: line)
             --missing                 Append the missed line ranges to each row
-            --annotate github         Emit ::warning workflow commands instead of rows
+            --annotate KIND           Emit CI annotations instead of rows: github, gitlab, rdjson, azure, teamcity, or buildkite
             --json                    Emit results as a JSON array (for CI)
 
           tests options:
@@ -116,7 +116,7 @@ module SimpleCov
             --base REF                Diff against the merge-base of REF for the touched lines (default: origin's HEAD, else main, or in CI the PR's target branch)
             --minimum N               Exit non-zero when patch coverage on any measured criterion is below N%
             --find-renames            Follow a renamed file instead of counting the moved file as all-new
-            --annotate github         Emit ::warning workflow commands instead of rows
+            --annotate KIND           Emit CI annotations instead of rows: github, gitlab, rdjson, azure, teamcity, or buildkite
             --json                    Emit results as a JSON array (for CI)
 
           dead-code options:

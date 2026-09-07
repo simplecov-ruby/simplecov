@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "annotations"
 require_relative "command_helpers"
 require_relative "patch/changed_lines"
 require_relative "patch/output"
@@ -35,7 +36,8 @@ module SimpleCov
         return 1 unless diffed
 
         rows = compute_rows(opts.fetch(:coverage), diffed, stderr)
-        opts.fetch(:annotate) ? Output.annotate(stdout, rows) : Output.emit(stdout, rows, opts)
+        kind = opts.fetch(:annotate)
+        kind ? Output.annotate(stdout, rows, kind) : Output.emit(stdout, rows, opts)
         Output.gate(rows, opts.fetch(:minimum))
       end
 
@@ -50,7 +52,7 @@ module SimpleCov
         end
         return unless positional_ok?(rest, stderr)
 
-        issue = annotate_issue(opts)
+        issue = Annotations.issue(opts)
         return error_nil(stderr, issue) if issue
 
         opts[:coverage] = CoverageFile.load_coverage(opts.fetch(:input), command: "patch", stderr: stderr) or return nil

@@ -26,15 +26,6 @@ module SimpleCov
         1
       end
 
-      def annotate_issue(opts)
-        return nil unless opts.fetch(:annotate)
-        unless opts.fetch(:annotate).eql?("github")
-          return "unknown --annotate #{opts.fetch(:annotate).inspect} (only github is supported)"
-        end
-
-        "cannot combine --annotate with --json" if opts.fetch(:json)
-      end
-
       # `error` returns 1 for an exit status; query helpers need nil so their
       # callers can tell "reported" from a real answer.
       def error_nil(stderr, message)

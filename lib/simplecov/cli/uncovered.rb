@@ -2,6 +2,7 @@
 
 require "json"
 require "optparse"
+require_relative "annotations"
 require_relative "command_helpers"
 require_relative "patch/output"
 require_relative "show/annotator"
@@ -21,7 +22,7 @@ module SimpleCov
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
-        issue = annotate_issue(opts)
+        issue = Annotations.issue(opts)
         return error(stderr, issue) if issue
 
         keys = CoverageFile::CRITERIA[opts.fetch(:criterion)]
@@ -35,15 +36,7 @@ module SimpleCov
         coverage = CoverageFile.load_coverage(opts.fetch(:input), command: "uncovered", stderr: stderr)
         return 1 unless coverage
 
-        files = rank(coverage, opts, keys).first(opts.fetch(:top))
-        return empty(opts, stdout) if files.empty?
-
-        emit(stdout, files, opts)
-        0
-      end
-
-      def empty(opts, stdout)
-        stdout.puts(empty_message(opts.fetch(:json))) unless opts.fetch(:annotate)
+        emit(stdout, rank(coverage, opts, keys).first(opts.fetch(:top)), opts)
         0
       end
 
@@ -53,7 +46,9 @@ module SimpleCov
       end
 
       def emit(stdout, files, opts)
-        return Misses.annotate(stdout, files) if opts.fetch(:annotate)
+        kind = opts.fetch(:annotate)
+        return Misses.annotate(stdout, files, opts.fetch(:criterion), kind) if kind
+        return stdout.puts(empty_message(opts.fetch(:json))) if files.empty?
 
         opts.fetch(:json) ? emit_json(stdout, files) : emit_text(stdout, files, CLI.color_enabled?(opts, stdout))
       end

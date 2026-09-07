@@ -168,8 +168,9 @@ line, branch, or method (default: line)
 .B \-\-missing
 Append the missed line ranges to each row
 .TP
-.B \-\-annotate github
-Emit ::warning workflow commands instead of rows
+.B \-\-annotate KIND
+Emit CI annotations instead of rows: github, gitlab, rdjson, azure, teamcity,
+or buildkite
 .TP
 .B \-\-json
 Emit results as a JSON array (for CI)
@@ -252,8 +253,9 @@ Exit non\-zero when patch coverage on any measured criterion is below N%
 .B \-\-find\-renames
 Follow a renamed file instead of counting the moved file as all\-new
 .TP
-.B \-\-annotate github
-Emit ::warning workflow commands instead of rows
+.B \-\-annotate KIND
+Emit CI annotations instead of rows: github, gitlab, rdjson, azure, teamcity,
+or buildkite
 .TP
 .B \-\-json
 Emit results as a JSON array (for CI)

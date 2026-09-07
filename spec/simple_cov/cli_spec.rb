@@ -4141,13 +4141,58 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "rejects an unknown annotation format" do
-        expect(run("uncovered", "--input", json_path, "--annotate", "gitlab")).to eq(1)
+        expect(run("uncovered", "--input", json_path, "--annotate", "jenkins")).to eq(1)
       end
 
       it "names the formats it knows" do
-        run("uncovered", "--input", json_path, "--annotate", "gitlab")
+        run("uncovered", "--input", json_path, "--annotate", "jenkins")
 
-        expect(stderr.string).to eq(%(simplecov uncovered: unknown --annotate "gitlab" (only github is supported)\n))
+        expect(stderr.string).to eq(%(simplecov uncovered: unknown --annotate "jenkins" (expected github, gitlab, rdjson, azure, teamcity, or buildkite)\n))
+      end
+
+      it "emits a GitLab Code Quality report under --annotate gitlab" do
+        run!("uncovered", "--input", json_path, "--annotate", "gitlab")
+
+        expect(JSON.parse(stdout.string).map { |finding| finding.dig("location", "path") })
+          .to eq(["/abs/lib/b.rb", "/abs/lib/b.rb", "lib/rooted.rb"])
+      end
+
+      it "emits an empty Code Quality report when nothing is below the threshold" do
+        run!("uncovered", "--input", json_path, "--annotate", "gitlab", "--threshold", "0")
+
+        expect(stdout.string).to eq("[]\n")
+      end
+
+      it "emits reviewdog diagnostics under --annotate rdjson" do
+        run!("uncovered", "--input", json_path, "--annotate", "rdjson")
+
+        expect(JSON.parse(stdout.string).fetch("diagnostics").size).to eq(3)
+      end
+
+      it "emits Azure Pipelines logging commands under --annotate azure" do
+        run!("uncovered", "--input", json_path, "--annotate", "azure")
+
+        expect(stdout.string).to include("##vso[task.logissue type=warning;sourcepath=lib/rooted.rb;linenumber=2]")
+      end
+
+      it "emits TeamCity inspections under --annotate teamcity" do
+        run!("uncovered", "--input", json_path, "--annotate", "teamcity")
+
+        expect(stdout.string).to include("##teamcity[inspection typeId='simplecov.line'")
+      end
+
+      it "emits Buildkite annotation Markdown under --annotate buildkite" do
+        run!("uncovered", "--input", json_path, "--annotate", "buildkite")
+
+        expect(stdout.string).to start_with("#### Not covered by tests\n- `/abs/lib/b.rb:2-4`\n")
+      end
+
+      it "labels the chosen criterion" do
+        write_coverage("/abs/lib/c.rb" => {"total_branches" => 1, "covered_branches" => 0, "branches_covered_percent" => 0.0,
+                                           "branches" => [{"report_line" => 3, "coverage" => 0}]})
+        run!("uncovered", "--input", json_path, "--annotate", "github", "--criterion", "branch")
+
+        expect(stdout.string).to eq("::warning file=/abs/lib/c.rb,line=3,endLine=3::Branch not covered by tests\n")
       end
 
       it "refuses to combine --annotate with --json" do
@@ -7143,38 +7188,27 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "emits one warning per contiguous missed range of every measured criterion" do
-        renderer.annotate(stdout, rows)
+        renderer.annotate(stdout, rows, "github")
 
         expect(stdout.string).to eq(annotations)
       end
 
       it "labels a missed method" do
-        renderer.annotate(stdout, [method_row])
+        renderer.annotate(stdout, [method_row], "github")
 
         expect(stdout.string).to eq("::warning file=lib/m.rb,line=7,endLine=7::Method not covered by tests\n")
       end
 
       it "emits nothing for a row without misses" do
-        renderer.annotate(stdout, tied_rows.first(1))
+        renderer.annotate(stdout, tied_rows.first(1), "github")
 
         expect(stdout.string).to be_empty
       end
-    end
 
-    describe "#warnings" do
-      it "splits at every gap" do
-        renderer.warnings(stdout, "lib/a.rb", [1, 3], "Gone")
+      it "hands the kind to the emitter" do
+        renderer.annotate(stdout, [method_row], "buildkite")
 
-        expect(stdout.string.lines).to eq([
-          "::warning file=lib/a.rb,line=1,endLine=1::Gone\n",
-          "::warning file=lib/a.rb,line=3,endLine=3::Gone\n"
-        ])
-      end
-
-      it "keeps adjacent lines in one range" do
-        renderer.warnings(stdout, "lib/a.rb", [1, 2], "Gone")
-
-        expect(stdout.string).to eq("::warning file=lib/a.rb,line=1,endLine=2::Gone\n")
+        expect(stdout.string).to eq("#### Method not covered by tests\n- `lib/m.rb:7`\n")
       end
     end
   end
@@ -7344,14 +7378,56 @@ RSpec.describe SimpleCov::CLI do
       it "rejects an unknown annotation format" do
         build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
-        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "gitlab")).to eq(1)
+        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "jenkins")).to eq(1)
       end
 
       it "names the formats it knows" do
         build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
 
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "jenkins")
+        expect(stderr.string).to eq(%(simplecov patch: unknown --annotate "jenkins" (expected github, gitlab, rdjson, azure, teamcity, or buildkite)\n))
+      end
+
+      it "emits a GitLab Code Quality report under --annotate gitlab" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
         run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "gitlab")
-        expect(stderr.string).to eq(%(simplecov patch: unknown --annotate "gitlab" (only github is supported)\n))
+        expect(JSON.parse(stdout.string).first.fetch("location")).to eq("path" => "lib/foo.rb", "lines" => {"begin" => 3, "end" => 3})
+      end
+
+      it "emits an empty Code Quality report when every touched line is covered" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "gitlab")
+        expect(stdout.string).to eq("[]\n")
+      end
+
+      it "emits reviewdog diagnostics under --annotate rdjson" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "rdjson")
+        expect(JSON.parse(stdout.string).fetch("diagnostics").first.dig("location", "path")).to eq("lib/foo.rb")
+      end
+
+      it "emits Azure Pipelines logging commands under --annotate azure" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "azure")
+        expect(stdout.string).to eq("##vso[task.logissue type=warning;sourcepath=lib/foo.rb;linenumber=3]Not covered by tests\n")
+      end
+
+      it "emits TeamCity inspections under --annotate teamcity" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "teamcity")
+        expect(stdout.string).to include("##teamcity[inspection typeId='simplecov.line' message='Not covered by tests' file='lib/foo.rb' line='3'")
+      end
+
+      it "emits Buildkite annotation Markdown under --annotate buildkite" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "buildkite")
+        expect(stdout.string).to eq("#### Not covered by tests\n- `lib/foo.rb:3`\n")
       end
 
       it "refuses to combine --annotate with --json" do

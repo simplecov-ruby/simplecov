@@ -2,7 +2,7 @@ Unreleased
 ==========
 
 ## Enhancements
-* `simplecov patch --annotate github` emits `::warning` workflow commands instead of rows, the form `simplecov uncovered` already offered, so a GitHub Actions step annotates exactly the touched lines a change left untested, plus any uncovered branch or method those lines carry when the report measured them, with no upload step and no code-scanning permissions. Nothing else reaches stdout in that mode and `--minimum` still sets the exit status, so one step can annotate and gate.
+* `simplecov patch` and `simplecov uncovered` annotate CI hosts natively. `--annotate KIND` on both commands turns the answer into inline annotations in the host's own channel, one per contiguous missed range with project-relative paths (`patch` adds one per uncovered touched branch or method when the report measured them): `github` emits `::warning` workflow commands, `gitlab` a Code Quality report for the `codequality` artifact, `rdjson` reviewdog's Diagnostic Format for any host reviewdog posts to, `azure` `##vso[task.logissue]` logging commands, `teamcity` code inspection service messages, and `buildkite` the Markdown body for `buildkite-agent annotate`. `uncovered` previously offered only `github`, and its annotations now name the chosen criterion the way `patch`'s do. Nothing else reaches stdout in that mode and `patch --minimum` still sets the exit status, so one CI step can annotate and gate. Documented under CI annotations in docs/CLI.md.
 
 1.2.0 (2026-09-04)
 ==================

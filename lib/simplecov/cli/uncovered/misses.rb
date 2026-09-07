@@ -20,11 +20,12 @@ module SimpleCov
           missed.uniq.sort
         end
 
-        def annotate(stdout, files)
-          files.each do |fname, _pct, _covered, _total, missed|
-            path = fname.delete_prefix("#{File.expand_path(SimpleCov.root)}/")
-            Patch::Output.warnings(stdout, path, missed, Patch::Output::ANNOTATIONS.fetch(:line))
+        def annotate(stdout, files, criterion, kind)
+          root = "#{File.expand_path(SimpleCov.root)}/"
+          diagnostics = files.flat_map do |fname, _pct, _covered, _total, missed|
+            Annotations.diagnostics(fname.delete_prefix(root), missed, criterion)
           end
+          Annotations.emit(stdout, kind, diagnostics)
         end
       end
     end

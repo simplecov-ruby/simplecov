@@ -4,11 +4,9 @@ module SimpleCov
       module Output
         OPTIONAL_CRITERIA: Array[Symbol]
 
-        ANNOTATIONS: Hash[Symbol, String]
+        CRITERIA: Array[Symbol]
 
-        def self?.annotate: (untyped stdout, untyped rows) -> untyped
-
-        def self?.warnings: (untyped stdout, untyped path, Array[Integer] missed, String message) -> untyped
+        def self?.annotate: (untyped stdout, untyped rows, String kind) -> untyped
 
         def self?.emit: (untyped stdout, untyped rows, untyped opts) -> untyped
 

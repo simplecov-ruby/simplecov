@@ -212,9 +212,9 @@ $ simplecov uncovered --criterion branch
 `--threshold N` filters to files below N% coverage (default `100`); `--top N` caps the list at N entries (default
 `10`); `--criterion line|branch|method` chooses which coverage to rank by (default `line`). `--missing` appends the
 missed line ranges to each row (`50.00%  5/10  lib/foo.rb  missing 4-7,9`), following the chosen criterion, so the
-list says not just where to add tests but which lines they're for. `--annotate github` emits `::warning` workflow
-commands instead of rows, one per contiguous missed range with project-relative paths, so a plain GitHub Actions
-workflow gets inline diff annotations with no upload step and no code-scanning permissions. `--json` emits the rows
+list says not just where to add tests but which lines they're for. `--annotate KIND` emits CI annotations instead of
+rows, one per contiguous missed range with project-relative paths, in the form the chosen host reads natively (see
+[CI annotations](#ci-annotations)). `--json` emits the rows
 as a JSON array (empty when nothing is below the threshold, with a `missing` array per row under `--missing`),
 useful for piping into a CI gate.
 
@@ -359,10 +359,10 @@ are already satisfied:
 $ simplecov patch --base origin/main --minimum 100
 ```
 
-`--annotate github` emits `::warning` workflow commands instead of rows, one per contiguous missed range on the touched
-lines, and one per uncovered touched branch or method when the report measured them, so a GitHub Actions workflow
-annotates exactly the new code that lacks a test with no upload step and no code-scanning permissions. Nothing else
-reaches stdout in that mode, and `--minimum` still decides the exit status, so the same step can annotate and gate:
+`--annotate KIND` emits CI annotations instead of rows, one per contiguous missed range on the touched lines, and one
+per uncovered touched branch or method when the report measured them, so the host marks exactly the new code that lacks
+a test (see [CI annotations](#ci-annotations)). Nothing else reaches stdout in that mode, and `--minimum` still decides
+the exit status, so the same step can annotate and gate:
 
 ```sh
 $ simplecov patch --base origin/main --annotate github --minimum 100
@@ -380,6 +380,47 @@ brand-new file that was never `git add`ed counts too, with every line the report
 files resolve against the report by exact path, and when a changed line lies beyond what the report knows for its
 file, the command warns that the report looks stale instead of silently scoring nothing. Generate the report first:
 run your suite with the JSON formatter enabled, then `simplecov patch` reads `coverage/coverage.json`.
+
+### CI annotations
+
+`uncovered` and `patch` share `--annotate KIND`, which turns their answer into the inline-annotation form a CI host
+reads natively, so a coverage gap appears on the diff or the build page with no upload step and no extra gem. Each
+annotation names a contiguous range of missed lines (`patch` adds one per uncovered touched branch or method), with a
+project-relative path and a message naming the criterion: "Not covered by tests", "Branch not covered by tests", or
+"Method not covered by tests". `--annotate` cannot combine with `--json`.
+
+| Kind | Output | Where it lands |
+|------|--------|----------------|
+| `github` | `::warning` workflow commands | GitHub Actions inline annotations on the pull request diff |
+| `gitlab` | Code Quality JSON | GitLab merge request widget and diff, via a `codequality` report artifact |
+| `rdjson` | reviewdog Diagnostic Format JSON | Any host reviewdog supports, via `reviewdog -f=rdjson` |
+| `azure` | `##vso[task.logissue]` logging commands | Azure Pipelines build issues, linked to the file and line |
+| `teamcity` | Code inspection service messages | The TeamCity build's Code Inspections tab |
+| `buildkite` | Markdown | A Buildkite build annotation, via `buildkite-agent annotate` |
+
+```sh
+# GitHub Actions reads the workflow commands as the step runs
+simplecov patch --annotate github --minimum 100
+
+# GitLab reads the file the job declares under reports: codequality:
+simplecov patch --annotate gitlab > gl-code-quality-report.json
+
+# reviewdog posts to whichever host it is configured for
+simplecov patch --annotate rdjson | reviewdog -f=rdjson -reporter=github-pr-review
+
+# Azure Pipelines and TeamCity read the commands from the step's output
+simplecov patch --annotate azure
+simplecov patch --annotate teamcity
+
+# Buildkite takes the Markdown body from the agent
+simplecov patch --annotate buildkite > annotation.md
+test -s annotation.md && buildkite-agent annotate --style warning --context simplecov < annotation.md
+```
+
+`gitlab` and `rdjson` produce a complete, empty document when there is nothing to annotate, since both consumers read
+a file that must exist. The other kinds print nothing, which is why the Buildkite example guards the pipe. A range
+spanning several lines is passed through where the host accepts one (GitHub, GitLab, reviewdog) and named in the
+message where it accepts a single line (Azure Pipelines, TeamCity).
 
 ### `ratchet` — per-file floors that only tighten
 

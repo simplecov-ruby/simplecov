@@ -1,0 +1,51 @@
+module SimpleCov
+  module CLI
+    module Annotations
+      type diagnostic = { path: String, first: Integer, last: Integer, criterion: Symbol, message: String }
+
+      KINDS: Array[String]
+
+      MESSAGES: Hash[Symbol, String]
+
+      DESCRIPTIONS: Hash[Symbol, String]
+
+      SOURCE: Hash[String, String]
+
+      TEAMCITY_ESCAPES: Hash[String, String]
+
+      AZURE_ESCAPES: Hash[String, String]
+
+      def self?.issue: (untyped opts) -> String?
+
+      def self?.expected_kinds: () -> String
+
+      def self?.diagnostics: (String path, Array[Integer] missed, Symbol criterion) -> Array[diagnostic]
+
+      def self?.emit: (untyped stdout, String kind, Array[diagnostic] diagnostics) -> untyped
+
+      def self?.github: (untyped stdout, Array[diagnostic] diagnostics) -> untyped
+
+      def self?.gitlab: (Array[diagnostic] diagnostics) -> Array[Hash[String, untyped]]
+
+      def self?.fingerprint: (diagnostic diagnostic) -> String
+
+      def self?.rdjson: (Array[diagnostic] diagnostics) -> Hash[String, untyped]
+
+      def self?.rdjson_diagnostic: (diagnostic diagnostic) -> Hash[String, untyped]
+
+      def self?.azure: (untyped stdout, Array[diagnostic] diagnostics) -> untyped
+
+      def self?.teamcity: (untyped stdout, Array[diagnostic] diagnostics) -> untyped
+
+      def self?.service_message: (String name, Hash[Symbol, untyped] attributes) -> String
+
+      def self?.buildkite: (untyped stdout, Array[diagnostic] diagnostics) -> untyped
+
+      def self?.described: (diagnostic diagnostic) -> String
+
+      def self?.range: (diagnostic diagnostic) -> String
+
+      def self?.escape: (String text, Hash[String, String] escapes) -> String
+    end
+  end
+end

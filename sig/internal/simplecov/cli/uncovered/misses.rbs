@@ -6,7 +6,7 @@ module SimpleCov
 
         def self?.collect: (untyped items) -> ::Array[::Integer]
 
-        def self?.annotate: (untyped stdout, untyped files) -> untyped
+        def self?.annotate: (untyped stdout, untyped files, Symbol criterion, String kind) -> untyped
       end
     end
   end

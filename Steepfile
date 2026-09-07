@@ -6,6 +6,7 @@ target :lib do
   check "lib"
 
   library "coverage"
+  library "digest"
   library "fileutils"
   library "forwardable"
   library "json"

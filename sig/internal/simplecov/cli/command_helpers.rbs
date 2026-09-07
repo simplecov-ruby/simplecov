@@ -20,8 +20,6 @@ module SimpleCov
 
       def error: (untyped stderr, untyped message) -> 1
 
-      def annotate_issue: (untyped opts) -> ::String?
-
       def error_nil: (untyped stderr, untyped message) -> nil
 
       def recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?

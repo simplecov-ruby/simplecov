@@ -152,7 +152,9 @@ A Markdown summary, handy for pasting into pull requests and chat.
 #### [simplecov-review](https://github.com/kukicola/simplecov-review)
 *by Karol Bąk*
 
-Reports missed lines in a format for review tools like reviewdog, so coverage gaps surface as PR annotations.
+Reports missed lines in a format for review tools like reviewdog, so coverage gaps surface as PR annotations. The
+bundled `--annotate rdjson` on [`simplecov uncovered` and `simplecov patch`](CLI.md#ci-annotations) emits reviewdog's
+input without an extra gem.
 
 #### [simplecov-ai](https://github.com/VitaliiLazebnyi/simplecov-ai)
 *by Vitalii Lazebnyi*
