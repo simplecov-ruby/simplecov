@@ -20,15 +20,10 @@ module SimpleCov
           missed.uniq.sort
         end
 
-        # GitHub workflow commands, one ::warning per contiguous missed range, so a
-        # plain workflow gets inline diff annotations with no upload step and no
-        # code-scanning permissions.
         def annotate(stdout, files)
           files.each do |fname, _pct, _covered, _total, missed|
             path = fname.delete_prefix("#{File.expand_path(SimpleCov.root)}/")
-            missed.slice_when { |previous, current| current > previous + 1 }.each do |run|
-              stdout.puts("::warning file=#{path},line=#{run.first},endLine=#{run.last}::Not covered by tests")
-            end
+            Patch::Output.warnings(stdout, path, missed, Patch::Output::ANNOTATIONS.fetch(:line))
           end
         end
       end

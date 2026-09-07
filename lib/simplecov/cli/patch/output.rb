@@ -8,7 +8,32 @@ module SimpleCov
       module Output
         OPTIONAL_CRITERIA = %i[branch method].freeze
 
+        ANNOTATIONS = {
+          line: "Not covered by tests",
+          branch: "Branch not covered by tests",
+          method: "Method not covered by tests"
+        }.freeze
+
         extend self
+
+        # GitHub workflow commands, one ::warning per contiguous missed range per
+        # criterion, so a plain workflow gets inline diff annotations with no upload
+        # step and no code-scanning permissions. Totals and the empty-change notice
+        # stay off stdout: the exit status under --minimum is the verdict.
+        def annotate(stdout, rows)
+          rows.each do |row|
+            ANNOTATIONS.each do |criterion, message|
+              stats = row.fetch(criterion)
+              warnings(stdout, row.fetch(:file), stats.fetch(:missing), message) if stats
+            end
+          end
+        end
+
+        def warnings(stdout, path, missed, message)
+          missed.slice_when { |previous, current| current > previous + 1 }.each do |run|
+            stdout.puts("::warning file=#{path},line=#{run.first},endLine=#{run.last}::#{message}")
+          end
+        end
 
         def emit(stdout, rows, opts)
           if opts.fetch(:json)

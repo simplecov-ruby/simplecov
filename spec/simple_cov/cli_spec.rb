@@ -3955,7 +3955,7 @@ RSpec.describe SimpleCov::CLI do
     end
   end
 
-  describe "uncovered subcommand", mutant_expression: "SimpleCov::CLI::Uncovered*" do
+  describe "uncovered subcommand", mutant_expression: ["SimpleCov::CLI::Uncovered*", "SimpleCov::CLI::CommandHelpers*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-uncovered-spec-") }
 
     def json_path = File.join(tmp, "coverage.json")
@@ -7128,9 +7128,58 @@ RSpec.describe SimpleCov::CLI do
         {file: "f", line: {covered: 1, relevant: 1, missing: []}, branch: nil, method: nil}
       end
     end
+
+    describe "#annotate" do
+      let(:annotations) do
+        <<~OUT
+          ::warning file=lib/a.rb,line=41,endLine=43::Not covered by tests
+          ::warning file=lib/a.rb,line=47,endLine=47::Not covered by tests
+          ::warning file=lib/a.rb,line=39,endLine=39::Branch not covered by tests
+        OUT
+      end
+      let(:method_row) do
+        {file: "lib/m.rb", line: {covered: 1, relevant: 1, missing: []}, branch: nil,
+         method: {covered: 0, relevant: 1, missing: [7]}}
+      end
+
+      it "emits one warning per contiguous missed range of every measured criterion" do
+        renderer.annotate(stdout, rows)
+
+        expect(stdout.string).to eq(annotations)
+      end
+
+      it "labels a missed method" do
+        renderer.annotate(stdout, [method_row])
+
+        expect(stdout.string).to eq("::warning file=lib/m.rb,line=7,endLine=7::Method not covered by tests\n")
+      end
+
+      it "emits nothing for a row without misses" do
+        renderer.annotate(stdout, tied_rows.first(1))
+
+        expect(stdout.string).to be_empty
+      end
+    end
+
+    describe "#warnings" do
+      it "splits at every gap" do
+        renderer.warnings(stdout, "lib/a.rb", [1, 3], "Gone")
+
+        expect(stdout.string.lines).to eq([
+          "::warning file=lib/a.rb,line=1,endLine=1::Gone\n",
+          "::warning file=lib/a.rb,line=3,endLine=3::Gone\n"
+        ])
+      end
+
+      it "keeps adjacent lines in one range" do
+        renderer.warnings(stdout, "lib/a.rb", [1, 2], "Gone")
+
+        expect(stdout.string).to eq("::warning file=lib/a.rb,line=1,endLine=2::Gone\n")
+      end
+    end
   end
 
-  describe "patch subcommand", mutant_expression: "SimpleCov::CLI::Patch*" do
+  describe "patch subcommand", mutant_expression: ["SimpleCov::CLI::Patch*", "SimpleCov::CLI::CommandHelpers*"] do
     let(:tmp) { Dir.mktmpdir("simplecov-cli-patch-spec-") }
     let(:cov) { File.join(tmp, "coverage.json") }
 
@@ -7232,6 +7281,91 @@ RSpec.describe SimpleCov::CLI do
       rows = JSON.parse(stdout.string)
       expect(rows).to eq([{"file" => "lib/foo.rb",
                            "line" => {"covered" => 1, "relevant" => 2, "missing" => [3], "percent" => 50.0}}])
+    end
+
+    describe "--annotate github" do
+      let(:warnings) do
+        <<~OUT
+          ::warning file=lib/foo.rb,line=3,endLine=4::Not covered by tests
+          ::warning file=lib/foo.rb,line=6,endLine=6::Not covered by tests
+        OUT
+      end
+
+      it "succeeds" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")).to eq(0)
+      end
+
+      it "emits one workflow warning per contiguous missed range" do
+        build_repo(base: "a\n", head: "a\nb\nc\nd\ne\nf\n", line_hits: [1, 1, 0, 0, 1, 0])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")
+        expect(stdout.string).to eq(warnings)
+      end
+
+      it "annotates an uncovered touched branch at its line" do
+        build_repo(base: "a\n", head: "a\nif x\n  b\nend\n", line_hits: [1, 1, 1, nil],
+          branches: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 2, "coverage" => 0}])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")
+        expect(stdout.string).to eq("::warning file=lib/foo.rb,line=2,endLine=2::Branch not covered by tests\n")
+      end
+
+      it "annotates an uncovered touched method at its line" do
+        build_repo(base: "a\n", head: "a\ndef m\n  b\nend\n", line_hits: [1, 1, 1, nil],
+          methods: [{"report_line" => 2, "coverage" => 1}, {"report_line" => 3, "coverage" => 0}])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")
+        expect(stdout.string).to eq("::warning file=lib/foo.rb,line=3,endLine=3::Method not covered by tests\n")
+      end
+
+      it "stays silent when every touched line is covered" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")
+        expect(stdout.string).to be_empty
+      end
+
+      it "stays silent when no coverable lines changed" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], file: "README.md", cover: false)
+        write_coverage(File.join(tmp, "lib/other.rb") => [1])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github")
+        expect(stdout.string).to be_empty
+      end
+
+      it "still gates on --minimum" do
+        build_repo(base: "a\n", head: "a\nb\nc\n", line_hits: [1, 1, 0])
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github", "--minimum", "100")).to eq(1)
+      end
+
+      it "rejects an unknown annotation format" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "gitlab")).to eq(1)
+      end
+
+      it "names the formats it knows" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "gitlab")
+        expect(stderr.string).to eq(%(simplecov patch: unknown --annotate "gitlab" (only github is supported)\n))
+      end
+
+      it "refuses to combine --annotate with --json" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        expect(run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github", "--json")).to eq(1)
+      end
+
+      it "names the flag it cannot honor" do
+        build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 1])
+
+        run_in_repo("patch", "--base", "main", "--input", cov, "--annotate", "github", "--json")
+        expect(stderr.string).to eq("simplecov patch: cannot combine --annotate with --json\n")
+      end
     end
 
     it "reports branch coverage over the touched branches" do

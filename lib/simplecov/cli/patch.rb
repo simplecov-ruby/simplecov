@@ -35,19 +35,23 @@ module SimpleCov
         return 1 unless diffed
 
         rows = compute_rows(opts.fetch(:coverage), diffed, stderr)
-        Output.emit(stdout, rows, opts)
+        opts.fetch(:annotate) ? Output.annotate(stdout, rows) : Output.emit(stdout, rows, opts)
         Output.gate(rows, opts.fetch(:minimum))
       end
 
       def parse(args, stderr)
         # No `base:` default: the run fills it in from the repository when the
         # option is left out.
-        opts, rest = parse_common(args, find_renames: false, minimum: nil) do |parser, options|
+        opts, rest = parse_common(args, find_renames: false, minimum: nil, annotate: nil) do |parser, options|
           parser.on("--base REF") { |v| options[:base] = v }
           parser.on("--minimum N", Float) { |v| options[:minimum] = v }
           parser.on("--find-renames") { options[:find_renames] = true }
+          parser.on("--annotate KIND") { |v| options[:annotate] = v }
         end
         return unless positional_ok?(rest, stderr)
+
+        issue = annotate_issue(opts)
+        return error_nil(stderr, issue) if issue
 
         opts[:coverage] = CoverageFile.load_coverage(opts.fetch(:input), command: "patch", stderr: stderr) or return nil
         opts

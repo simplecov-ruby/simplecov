@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Enhancements
+* `simplecov patch --annotate github` emits `::warning` workflow commands instead of rows, the form `simplecov uncovered` already offered, so a GitHub Actions step annotates exactly the touched lines a change left untested, plus any uncovered branch or method those lines carry when the report measured them, with no upload step and no code-scanning permissions. Nothing else reaches stdout in that mode and `--minimum` still sets the exit status, so one step can annotate and gate.
+
 1.2.0 (2026-09-04)
 ==================
 

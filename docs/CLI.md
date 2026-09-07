@@ -359,6 +359,17 @@ are already satisfied:
 $ simplecov patch --base origin/main --minimum 100
 ```
 
+`--annotate github` emits `::warning` workflow commands instead of rows, one per contiguous missed range on the touched
+lines, and one per uncovered touched branch or method when the report measured them, so a GitHub Actions workflow
+annotates exactly the new code that lacks a test with no upload step and no code-scanning permissions. Nothing else
+reaches stdout in that mode, and `--minimum` still decides the exit status, so the same step can annotate and gate:
+
+```sh
+$ simplecov patch --base origin/main --annotate github --minimum 100
+::warning file=lib/simplecov/cli/patch.rb,line=41,endLine=43::Not covered by tests
+::warning file=lib/simplecov/cli/patch.rb,line=39,endLine=39::Branch not covered by tests
+```
+
 `--find-renames` follows a renamed file instead of counting the moved file as entirely new, and `--json` emits the rows
 as a JSON array. Only files the report already tracks are scored — a changed file outside the configured `cover` /
 `track_files` set is out of scope — and a touched line SimpleCov considers never relevant (blank or comment) stays out of

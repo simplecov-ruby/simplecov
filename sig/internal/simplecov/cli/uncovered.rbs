@@ -33,8 +33,6 @@ module SimpleCov
 
       def self?.build_row: (untyped fname, untyped pct, untyped payload, untyped opts, untyped keys) -> ::Array[untyped]
 
-      def self?.precheck: (untyped opts) -> ::String?
-
       def self?.empty: (untyped opts, untyped stdout) -> ::Integer
 
       def self?.own_options: (untyped parser, untyped options) -> untyped

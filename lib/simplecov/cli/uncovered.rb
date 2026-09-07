@@ -21,7 +21,7 @@ module SimpleCov
 
       def run(args, stdout:, stderr:, **)
         opts = parse(args)
-        issue = precheck(opts)
+        issue = annotate_issue(opts)
         return error(stderr, issue) if issue
 
         keys = CoverageFile::CRITERIA[opts.fetch(:criterion)]
@@ -29,15 +29,6 @@ module SimpleCov
 
         opts[:missing] = true if opts.fetch(:annotate)
         report(opts, keys, stdout, stderr)
-      end
-
-      def precheck(opts)
-        return nil unless opts.fetch(:annotate)
-        unless opts.fetch(:annotate).eql?("github")
-          return "unknown --annotate #{opts.fetch(:annotate).inspect} (only github is supported)"
-        end
-
-        "cannot combine --annotate with --json" if opts.fetch(:json)
       end
 
       def report(opts, keys, stdout, stderr)
