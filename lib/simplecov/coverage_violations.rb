@@ -159,10 +159,12 @@ module SimpleCov
       end
 
       # The misconfiguration notice is enforcement output, not a Ruby warning: it
-      # must survive `-W0` and `Warning.warn` hooks, and honor `print_errors`.
+      # must survive `-W0` and `Warning.warn` hooks, and honor `print_errors`. A
+      # configured group that matched no files is absent from `result.groups`
+      # too, but has nothing to gate rather than nothing to look up.
       def lookup_group(result, group_name)
         group = result.groups[group_name]
-        if group.nil? && SimpleCov.print_errors
+        if group.nil? && SimpleCov.print_errors && !result.configured_group?(group_name)
           ExitCodes.print_error "minimum_coverage_by_group: no group named '#{group_name}' exists. " \
                                 "Available groups: #{result.groups.keys.join(", ")}"
         end

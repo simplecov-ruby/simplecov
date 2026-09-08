@@ -1834,6 +1834,17 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(result.keys).to contain_exactly("All")
     end
 
+    it "omits a group that no file matches" do
+      described_class.group("Lib", "lib")
+      described_class.group("Mailers", "app/mailers")
+      expect(described_class.grouped(files).keys).to contain_exactly("Lib", "Ungrouped")
+    end
+
+    it "returns {} when every configured group is empty and nothing is ungrouped" do
+      described_class.group("Mailers", "app/mailers")
+      expect(described_class.grouped([])).to eq({})
+    end
+
     it "rejects a reserved group inserted by direct hash mutation" do
       described_class.groups["Ungrouped"] = SimpleCov::StringFilter.new("lib")
 

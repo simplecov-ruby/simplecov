@@ -315,6 +315,20 @@ RSpec.describe SimpleCov::Result do
       expect(result.groups.length).to eq(3)
     end
 
+    it "omits a configured group that no file matches" do
+      SimpleCov.group "Mailers", "app/mailers"
+      expect(result.groups.keys).to contain_exactly("Models", "Controllers", "Other")
+    end
+
+    it "still knows a group that matched nothing is configured" do
+      SimpleCov.group "Mailers", "app/mailers"
+      expect(result.configured_group?("Mailers")).to be(true)
+    end
+
+    it "does not know a group nothing configured" do
+      expect(result.configured_group?("Mailers")).to be(false)
+    end
+
     it "groups by an explicitly-passed configuration instead of the singleton's" do
       filter_config = SimpleCov::Result::FilterConfig.new(groups: {"Only Models" => SimpleCov::StringFilter.new("app/models")})
       grouped = described_class.new(original_result, filter_config: filter_config)

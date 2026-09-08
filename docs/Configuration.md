@@ -652,6 +652,10 @@ end
 Files that match no configured group appear in an implicit `Ungrouped` group. That name is reserved; use another name
 such as `Other` for an explicit group.
 
+A group that matches no files is left out of the report, so groups can be declared for directories a project may not
+have. The `rails` profile's `Mailers` group, for example, only appears in an app that has mailers. A
+`minimum_coverage_by_group` threshold on such a group has nothing to check and passes.
+
 ## Profiles
 
 By default, SimpleCov's only assumption is that you want coverage for files inside your project root. To avoid

@@ -60,7 +60,9 @@ module SimpleCov
       FileList.new result
     end
 
-    # Files matched by no group fall into the implicit "Ungrouped" bucket.
+    # Files matched by no group fall into the implicit "Ungrouped" bucket. Any
+    # group left empty, Ungrouped included, is dropped so a profile's unused
+    # groups (#1293) don't pad the report as 100% covered.
     def grouped(files, groups: default_groups)
       return {} if GroupNames.validate!(groups.keys).empty?
 
@@ -69,10 +71,9 @@ module SimpleCov
       end
 
       in_group = grouped_file_set(grouped)
-      ungrouped = files.reject { |source_file| in_group.include?(source_file) }
-      grouped[GroupNames::UNGROUPED] = FileList.new(ungrouped) if ungrouped.any?
+      grouped[GroupNames::UNGROUPED] = FileList.new(files.reject { |source_file| in_group.include?(source_file) })
 
-      grouped
+      grouped.reject { |_name, group_files| group_files.empty? }
     end
 
     def load_profile(name)

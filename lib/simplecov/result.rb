@@ -84,6 +84,12 @@ module SimpleCov
       @groups ||= SimpleCov.grouped(files, groups: @groups_config)
     end
 
+    # True for a group the configuration defines, whether or not any file
+    # matched it; `groups` omits the ones that matched nothing.
+    def configured_group?(group_name)
+      @groups_config.key?(group_name)
+    end
+
     # Returns nil if formatting has been opted out of (`SimpleCov.formatter
     # false` / `SimpleCov.formatters []`), the cheap path for non-final
     # processes in a parallel CI run, which only need their `.resultset.json`

@@ -23,13 +23,9 @@ RSpec.describe "rspec-rails integration", :sandbox do
     let(:expected_groups) do
       {
         "Controllers" => {"coverage" => 0.00, "files" => 1},
-        "Channels" => {"coverage" => 100.00, "files" => 0},
         "Models" => {"coverage" => 60.00, "files" => 2},
-        "Mailers" => {"coverage" => 100.00, "files" => 0},
         "Helpers" => {"coverage" => 100.00, "files" => 1},
-        "Views" => {"coverage" => 100.00, "files" => 0},
-        "Jobs" => {"coverage" => 0.00, "files" => 1},
-        "Libraries" => {"coverage" => 100.00, "files" => 0}
+        "Jobs" => {"coverage" => 0.00, "files" => 1}
       }
     end
 
@@ -45,7 +41,7 @@ RSpec.describe "rspec-rails integration", :sandbox do
       expect(data.fetch("coverage").keys.length).to eq(5)
     end
 
-    it "buckets them into the profile's groups" do
+    it "buckets them into the profile's groups, omitting the ones the app has no files for" do
       expect(reported_groups(data)).to eq(expected_groups)
     end
   end

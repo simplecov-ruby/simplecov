@@ -8,7 +8,10 @@ RSpec.describe SimpleCov::ExitCodes::MinimumCoverageByGroupCheck,
   subject(:check) { described_class.new(result, minimum_coverage_by_group) }
 
   let(:coverage_statistics) { {line: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2), branch: SimpleCov::CoverageStatistics.new(covered: 8, missed: 2)} }
-  let(:result) { instance_double(SimpleCov::Result, groups: {"Test Group 1" => instance_double(SimpleCov::FileList, coverage_statistics: coverage_statistics)}) }
+  let(:result) do
+    instance_double(SimpleCov::Result, configured_group?: false,
+      groups: {"Test Group 1" => instance_double(SimpleCov::FileList, coverage_statistics: coverage_statistics)})
+  end
   let(:stats) { {"Test Group 1" => coverage_statistics} }
 
   context "when everything exactly ok" do

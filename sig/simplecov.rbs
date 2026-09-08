@@ -669,6 +669,7 @@ module SimpleCov
     def source_file_for: (String path) -> SourceFile?
     def coverage_for: (String path) -> Hash[criterion, CoverageStatistics]?
     def groups: () -> Hash[String, FileList]
+    def configured_group?: (String group_name) -> bool
     def format!: () -> untyped
     def created_at: () -> Time
     def command_name: () -> String

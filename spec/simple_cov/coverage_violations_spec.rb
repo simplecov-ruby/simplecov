@@ -605,7 +605,7 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
   end
 
   describe ".minimum_by_group with a missing group" do
-    let(:result) { instance_double(SimpleCov::Result, groups: {"Models" => nil}) }
+    let(:result) { instance_double(SimpleCov::Result, groups: {"Models" => nil}, configured_group?: false) }
 
     it "names the missing group and the available ones on stderr" do
       allow(result).to receive(:groups).and_return({"Models" => nil, "Views" => nil}.compact)
@@ -627,6 +627,17 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
       group = instance_double(SimpleCov::FileList, coverage_statistics: {line: line_stats})
       present = instance_double(SimpleCov::Result, groups: {"Models" => group})
       expect(capture_stderr { described_class.minimum_by_group(present, "Models" => {line: 100}) }).to be_empty
+    end
+
+    it "says nothing about a configured group that matched no files" do
+      empty = instance_double(SimpleCov::Result, groups: {})
+      allow(empty).to receive(:configured_group?).with("Mailers").and_return(true)
+      expect(capture_stderr { described_class.minimum_by_group(empty, "Mailers" => {line: 100}) }).to be_empty
+    end
+
+    it "reports no violations for a configured group that matched no files" do
+      empty = instance_double(SimpleCov::Result, groups: {}, configured_group?: true)
+      expect(described_class.minimum_by_group(empty, "Mailers" => {line: 100})).to eq([])
     end
   end
 end
