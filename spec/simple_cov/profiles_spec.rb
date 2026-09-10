@@ -188,6 +188,12 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       expect(filtered?(config, "config/environment.rb")).to be_truthy
     end
 
+    it "alphabetizes the rails profile's groups by name" do
+      config.load_profile(:rails)
+
+      expect(config.groups.keys).to eq(config.groups.keys.sort)
+    end
+
     it "enables subprocess support in the rails profile (covers parallelize forks)" do
       config.load_profile(:rails)
       expect(config.enabled_for_subprocesses?).to be true

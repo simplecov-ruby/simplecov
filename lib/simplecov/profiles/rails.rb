@@ -6,14 +6,14 @@ SimpleCov.profiles.define "rails" do
   skip %r{\Aconfig/}
   skip %r{\Adb/}
 
-  group "Controllers", "app/controllers"
   group "Channels", "app/channels"
-  group "Models", "app/models"
-  group "Mailers", "app/mailers"
+  group "Controllers", "app/controllers"
   group "Helpers", "app/helpers"
-  group "Views", "app/views"
   group "Jobs", %w[app/jobs app/workers]
   group "Libraries", "lib/"
+  group "Mailers", "app/mailers"
+  group "Models", "app/models"
+  group "Views", "app/views"
 
   @tracked_files = "{app,lib}/**/*.rb"
 
