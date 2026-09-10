@@ -1,0 +1,13 @@
+module SimpleCov
+  class Directive
+    module Erb
+      SEGMENT: ::Regexp
+
+      def self.ruby_lines: (untyped lines) -> untyped
+
+      def self.convert: (untyped match) -> untyped
+
+      def self.blank: (untyped text) -> untyped
+    end
+  end
+end

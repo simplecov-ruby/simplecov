@@ -42,6 +42,10 @@ module CoverageFixtures
     }
   }.freeze
 
+  ERB_DIRECTIVE_HTML_ERB = {
+    "lines" => [1, nil, nil, 1, nil, 0, nil, nil, nil, nil, 1]
+  }.freeze
+
   EVAL_GENERATED_RB = {
     "lines" => [nil, 1, 1, 1, nil, 1, nil, nil],
     "branches" => {

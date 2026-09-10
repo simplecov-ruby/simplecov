@@ -30,10 +30,14 @@ module SimpleCov
       end
 
       def directive_chunks
-        @directive_chunks ||= Directive.disabled_ranges(@src)
+        @directive_chunks ||= Directive.disabled_ranges(directive_source)
       end
 
       private
+
+      def directive_source
+        File.extname(@filename).eql?(".erb") ? Directive::Erb.ruby_lines(@src) : @src
+      end
 
       # An uneven number of nocovs is assumed to run to the end of the file. It
       # cannot be handled inside the each_slice because JRuby behaves differently

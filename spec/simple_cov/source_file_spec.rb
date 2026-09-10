@@ -961,6 +961,24 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
+  context "when an ERB template holds directives inside its tags" do
+    let(:source_file) do
+      described_class.new(source_fixture("erb_directive.html.erb"), CoverageFixtures::ERB_DIRECTIVE_HTML_ERB)
+    end
+
+    it "skips the lines between the directives" do
+      expect(source_file.skipped_lines.map(&:line)).to eq([3, 4, 5, 6, 7, 8, 9])
+    end
+
+    it "leaves the rendered lines outside them covered" do
+      expect(source_file.covered_lines.map(&:line)).to eq([1, 11])
+    end
+
+    it "misses nothing" do
+      expect(source_file.missed_lines).to be_empty
+    end
+  end
+
   context "when a file using the deprecated # :nocov: directive" do
     subject(:source_file) do
       described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)

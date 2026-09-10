@@ -88,4 +88,52 @@ RSpec.describe "rspec-rails integration", :sandbox do
       expect(reported_groups(data).fetch("Views")).to eq("coverage" => 22.22, "files" => 3)
     end
   end
+
+  context "with cover_views and directives inside the templates" do
+    before do
+      write_file("spec/spec_helper.rb", <<~RUBY)
+        require "simplecov"
+        SimpleCov.start "rails" do
+          cover_views
+        end
+      RUBY
+      write_file("app/views/foos/show.html.erb", <<~ERB)
+        <h1><%= @foo.bar %></h1>
+        <%-
+          # simplecov:disable
+          if @admin
+        %>
+          <p>Only an admin sees this.</p>
+        <%
+          end
+          # simplecov:enable
+        %>
+      ERB
+      write_file("app/views/foos/orphan.html.erb", <<~ERB)
+        <%# simplecov:disable %>
+        <p>No spec renders this template.</p>
+        <%# simplecov:enable %>
+      ERB
+    end
+
+    let!(:result) { run_command_and_expect_success("bundle exec rspec", timeout: 120) }
+    let(:views) { data.fetch("coverage").select { |path, _| path.end_with?(".erb") } }
+    let(:show_lines) { views.fetch("app/views/foos/show.html.erb").fetch("lines") }
+
+    it "generates a report" do
+      expect_coverage_report_generated(result)
+    end
+
+    it "ignores the lines between Ruby comment directives inside code tags" do
+      expect(show_lines[2..8]).to all(eq("ignored"))
+    end
+
+    it "still records the hits outside them" do
+      expect(show_lines.first).to eq(1)
+    end
+
+    it "ignores the lines between ERB comment tag directives" do
+      expect(views.fetch("app/views/foos/orphan.html.erb").fetch("lines")).to all(eq("ignored"))
+    end
+  end
 end

@@ -1,0 +1,11 @@
+<h1><%= @title %></h1>
+<%-
+  # simplecov:disable
+  if @confirmable
+%>
+  <p><%= link_to "Confirm", confirmation_path %></p>
+<%
+  end
+  # simplecov:enable
+%>
+<p><%= @footer %></p>

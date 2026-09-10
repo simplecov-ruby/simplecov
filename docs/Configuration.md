@@ -582,6 +582,28 @@ Inline directives (trailing real code) only affect the line they sit on. Block d
 remain in effect until the matching `# simplecov:enable` for the same category — or end of file if never closed.
 Directive markers inside string literals or heredocs are ignored.
 
+ERB templates measured with `cover_views` take the same directives, either as Ruby comments inside a code tag or as
+ERB comment tags. Both forms below skip the block through its `<% end %>`, so a branch the app never takes stays out of
+the template's coverage:
+
+```erb
+<%# simplecov:disable %>
+<% if devise_mapping.confirmable? %>
+  <%= link_to "Didn't receive confirmation instructions?", new_confirmation_path(resource_name) %>
+<% end %>
+<%# simplecov:enable %>
+
+<%
+  # simplecov:disable
+  if devise_mapping.lockable?
+%>
+  <%= link_to "Didn't receive unlock instructions?", new_unlock_path(resource_name) %>
+<%
+  end
+  # simplecov:enable
+%>
+```
+
 > [!WARNING]
 > The older `# :nocov:` toggle still works but is **deprecated** and will be removed in a future release. Each file
 > that uses it emits a one-time deprecation warning pointing at the recommended `# simplecov:disable` /
