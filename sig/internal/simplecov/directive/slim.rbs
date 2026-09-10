@@ -1,0 +1,17 @@
+module SimpleCov
+  class Directive
+    module Slim
+      include IndentedTemplate
+
+      extend IndentedTemplate
+
+      CODE: ::Regexp
+
+      TAG_CODE: ::Regexp
+
+      def convert: (untyped indent, untyped rest) -> untyped
+
+      def self.convert: (untyped indent, untyped rest) -> untyped
+    end
+  end
+end

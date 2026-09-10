@@ -45,9 +45,14 @@ RSpec.describe "template language integration", :sandbox do
       expect_coverage_report_generated(result)
     end
 
+    let(:page_lines) { template_coverage.fetch("app/views/pages/page.html.#{language}").fetch("lines") }
+
     it "records hits against the rendered template's own lines" do
-      expect(template_coverage.fetch("app/views/pages/page.html.#{language}").fetch("lines"))
-        .to eq([1, 1, 0, 1, 1, 2])
+      expect(page_lines.values_at(0, 5, 6, 7)).to eq([1, 1, 1, 2])
+    end
+
+    it "ignores the lines between the template's directives" do
+      expect(page_lines[1..4]).to all(eq("ignored"))
     end
 
     it "reports an unrendered template at 0%" do
@@ -60,8 +65,10 @@ RSpec.describe "template language integration", :sandbox do
     let(:rendered_template) do
       <<~HAML
         %h1= @foo.bar
+        -# simplecov:disable
         - if @admin
           %p Only an admin sees this.
+        -# simplecov:enable
         %ul
           - @items.each do |item|
             %li= item
@@ -77,8 +84,10 @@ RSpec.describe "template language integration", :sandbox do
     let(:rendered_template) do
       <<~SLIM
         h1 = @foo.bar
+        / simplecov:disable
         - if @admin
           p Only an admin sees this.
+        / simplecov:enable
         ul
           - @items.each do |item|
             li = item

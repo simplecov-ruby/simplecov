@@ -1,0 +1,15 @@
+module SimpleCov
+  class Directive
+    module IndentedTemplate
+      COMMENT: ::Proc
+
+      RUBY: ::Proc
+
+      TEXT: ::Proc
+
+      def ruby_lines: (untyped lines) -> untyped
+
+      def convert: (untyped indent, untyped rest) -> untyped
+    end
+  end
+end

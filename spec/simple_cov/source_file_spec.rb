@@ -963,7 +963,7 @@ RSpec.describe SimpleCov::SourceFile do
 
   context "when an ERB template holds directives inside its tags" do
     let(:source_file) do
-      described_class.new(source_fixture("erb_directive.html.erb"), CoverageFixtures::ERB_DIRECTIVE_HTML_ERB)
+      described_class.new(source_fixture("directive.html.erb"), CoverageFixtures::DIRECTIVE_HTML_ERB)
     end
 
     it "skips the lines between the directives" do
@@ -977,6 +977,32 @@ RSpec.describe SimpleCov::SourceFile do
     it "misses nothing" do
       expect(source_file.missed_lines).to be_empty
     end
+  end
+
+  shared_examples "a template with directives around its unrendered branch" do |fixture, coverage|
+    let(:source_file) { described_class.new(source_fixture(fixture), coverage) }
+
+    it "skips the lines between the directives" do
+      expect(source_file.skipped_lines.map(&:line)).to eq([2, 3, 4, 5])
+    end
+
+    it "leaves the rendered lines outside them covered" do
+      expect(source_file.covered_lines.map(&:line)).to eq([1, 6])
+    end
+
+    it "misses nothing" do
+      expect(source_file.missed_lines).to be_empty
+    end
+  end
+
+  context "when a Haml template holds directives" do
+    it_behaves_like "a template with directives around its unrendered branch",
+      "directive.html.haml", CoverageFixtures::DIRECTIVE_HTML_HAML
+  end
+
+  context "when a Slim template holds directives" do
+    it_behaves_like "a template with directives around its unrendered branch",
+      "directive.html.slim", CoverageFixtures::DIRECTIVE_HTML_SLIM
   end
 
   context "when a file using the deprecated # :nocov: directive" do

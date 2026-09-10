@@ -1,0 +1,17 @@
+module SimpleCov
+  class Directive
+    module Haml
+      include IndentedTemplate
+
+      extend IndentedTemplate
+
+      SCRIPT: ::Regexp
+
+      TAG_SCRIPT: ::Regexp
+
+      def convert: (untyped indent, untyped rest) -> untyped
+
+      def self.convert: (untyped indent, untyped rest) -> untyped
+    end
+  end
+end

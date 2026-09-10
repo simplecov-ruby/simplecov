@@ -35,7 +35,7 @@ module SimpleCov
       end
 
       def self.blank(text)
-        text.gsub(/[^\n]/, " ")
+        Template.blank(text)
       end
 
       private_class_method :convert, :blank

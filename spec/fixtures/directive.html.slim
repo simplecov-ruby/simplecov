@@ -1,0 +1,6 @@
+h1 = @title
+/ simplecov:disable
+- if @confirmable
+  p = link_to "Confirm", confirmation_path
+/ simplecov:enable
+p = @footer

@@ -23,8 +23,6 @@ module SimpleCov
 
       private
 
-      def directive_source: () -> untyped
-
       def build_nocov_chunks: () -> untyped
 
       def warn_nocov_deprecation: (untyped first_line_number) -> (nil | untyped)

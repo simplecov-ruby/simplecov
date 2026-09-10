@@ -582,9 +582,11 @@ Inline directives (trailing real code) only affect the line they sit on. Block d
 remain in effect until the matching `# simplecov:enable` for the same category — or end of file if never closed.
 Directive markers inside string literals or heredocs are ignored.
 
-ERB templates measured with `cover_views` take the same directives, either as Ruby comments inside a code tag or as
-ERB comment tags. Both forms below skip the block through its `<% end %>`, so a branch the app never takes stays out of
-the template's coverage:
+Templates measured with `cover_views` take the same directives in their own comment syntax, or as Ruby comments on a
+code line. Every form below skips the block through its `end`, so a branch the app never takes stays out of the
+template's coverage.
+
+In ERB, either as comment tags or as Ruby comments inside a code tag:
 
 ```erb
 <%# simplecov:disable %>
@@ -602,6 +604,24 @@ the template's coverage:
   end
   # simplecov:enable
 %>
+```
+
+In Haml, as `-#` comments (or `- # simplecov:disable` silent script):
+
+```haml
+-# simplecov:disable
+- if devise_mapping.confirmable?
+  = link_to "Didn't receive confirmation instructions?", new_confirmation_path(resource_name)
+-# simplecov:enable
+```
+
+In Slim, as `/` comments (or `- # simplecov:disable` control code):
+
+```slim
+/ simplecov:disable
+- if devise_mapping.confirmable?
+  = link_to "Didn't receive confirmation instructions?", new_confirmation_path(resource_name)
+/ simplecov:enable
 ```
 
 > [!WARNING]

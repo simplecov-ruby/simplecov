@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "ripper"
-require_relative "directive/erb"
+require_relative "directive/template"
 
 module SimpleCov
   # Parses `# simplecov:disable` / `# simplecov:enable` directive comments, in

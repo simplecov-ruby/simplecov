@@ -1,0 +1,11 @@
+module SimpleCov
+  class Directive
+    module Template
+      EXTRACTORS: ::Hash[::String, singleton(Erb) | singleton(Haml) | singleton(Slim)]
+
+      def self.ruby_lines: (untyped filename, untyped lines) -> untyped
+
+      def self.blank: (untyped text) -> untyped
+    end
+  end
+end

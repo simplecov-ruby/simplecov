@@ -42,9 +42,13 @@ module CoverageFixtures
     }
   }.freeze
 
-  ERB_DIRECTIVE_HTML_ERB = {
+  DIRECTIVE_HTML_ERB = {
     "lines" => [1, nil, nil, 1, nil, 0, nil, nil, nil, nil, 1]
   }.freeze
+
+  DIRECTIVE_HTML_HAML = {"lines" => [1, nil, 1, 0, nil, 1]}.freeze
+
+  DIRECTIVE_HTML_SLIM = {"lines" => [1, nil, 1, 0, nil, 1]}.freeze
 
   EVAL_GENERATED_RB = {
     "lines" => [nil, 1, 1, 1, nil, 1, nil, nil],
