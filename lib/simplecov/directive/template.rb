@@ -12,6 +12,10 @@ module SimpleCov
     module Template
       EXTRACTORS = {".erb" => Erb, ".haml" => Haml, ".slim" => Slim}.freeze
 
+      def self.template?(filename)
+        EXTRACTORS.key?(File.extname(filename))
+      end
+
       def self.ruby_lines(filename, lines)
         extractor = EXTRACTORS[File.extname(filename)]
         extractor ? extractor.ruby_lines(lines) : lines

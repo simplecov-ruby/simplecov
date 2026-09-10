@@ -1896,6 +1896,41 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
+  context "with the eval_generated filter on and a template whose text happens to parse as Ruby",
+    if: SimpleCov::StaticCoverageExtractor.available? do
+    around do |example|
+      previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
+      capture_stderr { SimpleCov.ignore_branches :eval_generated }
+      example.run
+    ensure
+      SimpleCov.instance_variable_set(:@ignored_branches, previous)
+    end
+
+    shared_examples "a template whose branches are all eval-generated" do |fixture|
+      let(:source_file) { described_class.new(source_fixture(fixture), CoverageFixtures::TERNARY_TEMPLATE) }
+
+      it "keeps every branch" do
+        expect(source_file.total_branches.size).to eq 2
+      end
+
+      it "consults no parsed source" do
+        expect(source_file.real_source_positions).to be_nil
+      end
+    end
+
+    context "with a Haml template whose id tag reads as a Ruby comment" do
+      it_behaves_like "a template whose branches are all eval-generated", "ternary.html.haml"
+    end
+
+    context "with a Slim template whose id tag reads as a Ruby comment" do
+      it_behaves_like "a template whose branches are all eval-generated", "ternary.html.slim"
+    end
+
+    context "with an ERB template whose text line reads as a Ruby comment" do
+      it_behaves_like "a template whose branches are all eval-generated", "ternary.html.erb"
+    end
+  end
+
   describe "a branch arm disabled on its own line but reported elsewhere" do
     subject(:source_file) do
       source_file_with(

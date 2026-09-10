@@ -50,6 +50,13 @@ module CoverageFixtures
 
   DIRECTIVE_HTML_SLIM = {"lines" => [1, nil, 1, 0, nil, 1]}.freeze
 
+  TERNARY_TEMPLATE = {
+    "lines" => [1],
+    "branches" => {
+      [:if, 0, 1, 7, 1, 28] => {[:then, 1, 1, 16, 1, 21] => 1, [:else, 2, 1, 24, 1, 28] => 0}
+    }
+  }.freeze
+
   EVAL_GENERATED_RB = {
     "lines" => [nil, 1, 1, 1, nil, 1, nil, nil],
     "branches" => {
