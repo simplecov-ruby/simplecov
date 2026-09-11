@@ -30,16 +30,25 @@ module SimpleCov
       end
 
       def directive_chunks
-        @directive_chunks ||= Directive.disabled_ranges(Directive::Template.ruby_lines(@filename, @src))
+        @directive_chunks ||= Directive.disabled_ranges(ruby_lines)
       end
 
       private
+
+      # The Ruby the file holds, which for a template means the Ruby inside its
+      # tags or script lines with its own comments turned into Ruby comments.
+      # Both kinds of marker are found there, so a toggle in a template's
+      # comment syntax gets the same treatment, and the same deprecation
+      # warning, as one in a Ruby file.
+      def ruby_lines
+        @ruby_lines ||= Directive::Template.ruby_lines(@filename, @src)
+      end
 
       # An uneven number of nocovs is assumed to run to the end of the file. It
       # cannot be handled inside the each_slice because JRuby behaves differently
       # there (jruby/jruby#6048).
       def build_nocov_chunks
-        no_cov_lines = @src.filter_map.with_index(1) do |line_src, index|
+        no_cov_lines = ruby_lines.filter_map.with_index(1) do |line_src, index|
           index if LinesClassifier.no_cov_line?(line_src)
         end
 

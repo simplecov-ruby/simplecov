@@ -1005,6 +1005,37 @@ RSpec.describe SimpleCov::SourceFile do
       "directive.html.slim", CoverageFixtures::DIRECTIVE_HTML_SLIM
   end
 
+  shared_examples "a template with the deprecated toggle in its own comment syntax" do |fixture|
+    let(:source_file) { described_class.new(source_fixture(fixture), CoverageFixtures::NOCOV_TEMPLATE) }
+    let(:nocov_warning) { capture_stderr { source_file.lines } }
+
+    before { SimpleCov::SourceFile::SkipChunks.nocov_warned.clear }
+
+    it "skips the lines between the toggles" do
+      capture_stderr { expect(source_file.skipped_lines.map(&:line)).to eq([2, 3, 4]) }
+    end
+
+    it "misses nothing" do
+      capture_stderr { expect(source_file.missed_lines).to be_empty }
+    end
+
+    it "warns that the toggle is deprecated, naming the replacement" do
+      expect(nocov_warning).to include("[DEPRECATION]").and include("# simplecov:disable")
+    end
+  end
+
+  context "when an ERB template uses the deprecated toggle in a comment tag" do
+    it_behaves_like "a template with the deprecated toggle in its own comment syntax", "nocov.html.erb"
+  end
+
+  context "when a Haml template uses the deprecated toggle in a Haml comment" do
+    it_behaves_like "a template with the deprecated toggle in its own comment syntax", "nocov.html.haml"
+  end
+
+  context "when a Slim template uses the deprecated toggle in a Slim comment" do
+    it_behaves_like "a template with the deprecated toggle in its own comment syntax", "nocov.html.slim"
+  end
+
   context "when a file using the deprecated # :nocov: directive" do
     subject(:source_file) do
       described_class.new(source_fixture("single_nocov.rb"), CoverageFixtures::SINGLE_NOCOV_RB)

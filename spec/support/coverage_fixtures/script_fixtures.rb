@@ -50,6 +50,8 @@ module CoverageFixtures
 
   DIRECTIVE_HTML_SLIM = {"lines" => [1, nil, 1, 0, nil, 1]}.freeze
 
+  NOCOV_TEMPLATE = {"lines" => [1, nil, 0, nil]}.freeze
+
   TERNARY_TEMPLATE = {
     "lines" => [1],
     "branches" => {

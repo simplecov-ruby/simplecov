@@ -11,6 +11,8 @@ module SimpleCov
 
       @directive_chunks: untyped
 
+      @ruby_lines: untyped
+
       attr_reader self.nocov_warned: untyped
 
       def initialize: (untyped filename, untyped src) -> void
@@ -22,6 +24,8 @@ module SimpleCov
       def directive_chunks: () -> untyped
 
       private
+
+      def ruby_lines: () -> untyped
 
       def build_nocov_chunks: () -> untyped
 
