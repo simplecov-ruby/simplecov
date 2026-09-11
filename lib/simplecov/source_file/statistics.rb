@@ -30,15 +30,11 @@ module SimpleCov
         }
       end
 
-      # Files added via track_files but never loaded have no branch or method data,
-      # and report 0% instead of the empty-set default of 100% (#902). A file with
-      # missed entries and none covered already computes to 0%, so only a file that
-      # really has covered entries keeps its computed percentage.
       def branch_statistics
         sf = @source_file
         covered = sf.covered_branches
         missed = sf.missed_branches
-        percent = 0.0 if sf.not_loaded? && covered.empty?
+        percent = 0.0 if covered.empty? && unaccounted?(sf, "branches")
 
         {branch: coverage_statistics(covered, missed, percent: percent)}
       end
@@ -47,9 +43,26 @@ module SimpleCov
         sf = @source_file
         covered = sf.covered_methods
         missed = sf.missed_methods
-        percent = 0.0 if sf.not_loaded? && covered.empty?
+        percent = 0.0 if covered.empty? && unaccounted?(sf, "methods")
 
         {method: coverage_statistics(covered, missed, percent: percent)}
+      end
+
+      # A file tracked but never loaded once carried no branch or method tuples
+      # at all, so an empty set meant "nobody knows", and answering the
+      # empty-set default of 100% overstated it (#902). Simulation now
+      # synthesizes those tuples statically, so a file carrying a table at all,
+      # empty or not, has been accounted for: it has no branches, or a
+      # directive skipped the ones it has, and it is as covered as a loaded
+      # file with none. One carrying no table is still unaccounted for, and so
+      # is every file when the extractor those tables come from isn't there to
+      # run. A file with missed entries and none covered already computes to 0%
+      # either way, so only one that really has covered entries keeps its
+      # computed percentage.
+      def unaccounted?(source_file, table)
+        return false unless source_file.not_loaded?
+
+        source_file.coverage_data[table].nil? || !StaticCoverageExtractor.available?
       end
 
       def coverage_statistics(covered, missed, omitted: 0, percent: nil)

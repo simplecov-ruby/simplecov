@@ -1249,11 +1249,23 @@ RSpec.describe SimpleCov::SourceFile do
         expect(source_file.not_loaded?).to be true
       end
 
-      it "reports 0% branch coverage instead of 100%" do
+      it "reports its empty branch set as fully covered, since the extractor found none to miss" do
+        expect(source_file.covered_percent(:branch)).to eq 100.0
+      end
+
+      it "reports its empty method set as fully covered" do
+        expect(source_file.coverage_statistics[:method].percent).to eq 100.0
+      end
+
+      it "reports 0% branch coverage when nothing can establish what it holds" do
+        allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false)
+
         expect(source_file.covered_percent(:branch)).to eq 0.0
       end
 
-      it "reports 0% method coverage instead of 100%" do
+      it "reports 0% method coverage when nothing can establish what it holds" do
+        allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false)
+
         expect(source_file.coverage_statistics[:method].percent).to eq 0.0
       end
     end

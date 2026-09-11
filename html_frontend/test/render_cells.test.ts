@@ -106,6 +106,28 @@ describe('renderCoverageSummary', () => {
     expect(summaryOf(html, 'branch')).toContain('0/0 covered');
   });
 
+  test('shows the percentage the report computed rather than recomputing the fraction', () => {
+    const html = renderCoverageSummary({
+      ...base,
+      coveredBranches: 0,
+      totalBranches: 0,
+      branchPercent: 0,
+      coveredMethods: 0,
+      totalMethods: 0,
+      methodPercent: 0
+    });
+    expect(summaryOf(html, 'branch')).toContain('Branch coverage: <span class="red"><b>0.00%</b></span>');
+    expect(summaryOf(html, 'branch')).toContain('0/0 covered');
+    expect(summaryOf(html, 'method')).toContain('Method coverage: <span class="red"><b>0.00%</b></span>');
+  });
+
+  test('a tracked line summary shows the reported percentage too', () => {
+    const html = renderCoverageSummary({
+      ...base, coveredLines: 0, totalLines: 0, coveredByTests: 0, linePercent: 0
+    });
+    expect(summaryOf(html, 'line')).toContain('<span class="red"><b>0.00%</b></span>');
+  });
+
   test('renders missed methods as plain text when the toggle is hidden', () => {
     const html = renderCoverageSummary({ ...base, showMethodToggle: false });
     expect(html).toContain('<span class="missed-method-text-color"><b>1</b> missed</span>');

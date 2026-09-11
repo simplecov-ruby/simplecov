@@ -50,9 +50,20 @@ interface TypeSummary {
   covered: number;
   total: number;
   enabled: boolean;
+  percent?: number;
   suffix?: string;
   missedClass?: string;
   toggle?: boolean;
+}
+
+// The report computes each percentage itself, so prefer the one it sent over
+// recomputing from the fraction: a file whose coverage could not be measured
+// carries a percentage its own covered/total cannot reproduce, and the file
+// list shows that number. Recomputing here is the fallback for a payload that
+// carries no percentage of its own.
+export function summaryPercent(covered: number, total: number, percent?: number): number {
+  if (percent !== undefined) return percent;
+  return total > 0 ? (covered * 100.0 / total) : 100.0;
 }
 
 function renderTypeSummary(summary: TypeSummary): string {
@@ -61,7 +72,7 @@ function renderTypeSummary(summary: TypeSummary): string {
     return `<div class="t-${type}-summary">\n    ${label}: <span class="coverage-disabled">disabled</span>\n  </div>`;
   }
   const missed = total - covered;
-  const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
+  const pct = summaryPercent(covered, total, summary.percent);
   const css = pctClass(pct);
   const suffix = summary.suffix || 'covered';
   const missedClass = summary.missedClass || 'red';
@@ -80,8 +91,8 @@ function renderTypeSummary(summary: TypeSummary): string {
   return parts;
 }
 
-function renderTrackedLineSummary(covered: number, total: number, byTests: number, outside: number): string {
-  const pct = total > 0 ? (covered * 100.0 / total) : 100.0;
+function renderTrackedLineSummary(covered: number, total: number, byTests: number, outside: number, percent?: number): string {
+  const pct = summaryPercent(covered, total, percent);
   const missed = total - covered;
 
   let parts = '<div class="t-line-summary">\n    Line coverage: ' +
@@ -112,15 +123,18 @@ interface CoverageSummaryArgs {
   showMethodToggle: boolean;
   coveredByTests?: number;
   coveredOutsideTests?: number;
+  linePercent?: number;
+  branchPercent?: number;
+  methodPercent?: number;
 }
 
 export function renderCoverageSummary(args: CoverageSummaryArgs): string {
   const lineSummary = args.coveredByTests === undefined || !args.lineCoverage
-    ? renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, suffix: 'relevant lines covered' })
-    : renderTrackedLineSummary(args.coveredLines, args.totalLines, args.coveredByTests, args.coveredOutsideTests || 0);
+    ? renderTypeSummary({ type: 'line', label: 'Line coverage', covered: args.coveredLines, total: args.totalLines, enabled: args.lineCoverage, percent: args.linePercent, suffix: 'relevant lines covered' })
+    : renderTrackedLineSummary(args.coveredLines, args.totalLines, args.coveredByTests, args.coveredOutsideTests || 0, args.linePercent);
   return '<div class="summary-stats">' +
     lineSummary +
-    renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, missedClass: 'missed-branch-text' }) +
-    renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
+    renderTypeSummary({ type: 'branch', label: 'Branch coverage', covered: args.coveredBranches, total: args.totalBranches, enabled: args.branchCoverage, percent: args.branchPercent, missedClass: 'missed-branch-text' }) +
+    renderTypeSummary({ type: 'method', label: 'Method coverage', covered: args.coveredMethods, total: args.totalMethods, enabled: args.methodCoverage, percent: args.methodPercent, missedClass: 'missed-method-text-color', toggle: args.showMethodToggle }) +
     '</div>';
 }

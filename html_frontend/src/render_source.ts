@@ -191,7 +191,10 @@ export function renderSourceFile(
       coveredMethods, totalMethods,
       lineCoverage, branchCoverage, methodCoverage, showMethodToggle,
       coveredByTests: contextIndex ? coveredLines - outsideLines : undefined,
-      coveredOutsideTests: contextIndex ? outsideLines : undefined
+      coveredOutsideTests: contextIndex ? outsideLines : undefined,
+      linePercent: lineCoverage ? data.lines_covered_percent : undefined,
+      branchPercent: branchCoverage ? data.branches_covered_percent : undefined,
+      methodPercent: methodCoverage ? data.methods_covered_percent : undefined
     })
   ];
 

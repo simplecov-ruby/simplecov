@@ -956,6 +956,8 @@ module SimpleCov
 
       def method_statistics: () -> Hash[criterion, CoverageStatistics]
 
+      def unaccounted?: (SourceFile source_file, String table) -> bool
+
       def coverage_statistics: (Array[Line | Branch | Method] covered, Array[Line | Branch | Method] missed, ?omitted: Integer, ?percent: Float?) -> CoverageStatistics
     end
   end

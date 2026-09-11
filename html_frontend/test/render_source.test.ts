@@ -83,6 +83,24 @@ describe('renderSourceFile', () => {
     expect(lis[0].textContent).toBe('if a');
   });
 
+  test('takes each header percentage from the payload when it carries one', () => {
+    const el = render({
+      ...data,
+      lines_covered_percent: 12.5,
+      branches_covered_percent: 0,
+      methods_covered_percent: 0
+    });
+    const summary = el.querySelector('.summary-stats')!.textContent;
+    expect(summary).toContain('Line coverage: 12.50% 5/6 relevant lines covered');
+    expect(summary).toContain('Branch coverage: 0.00% 2/3 covered');
+    expect(summary).toContain('Method coverage: 0.00% 1/2 covered');
+  });
+
+  test('ignores the payload percentage of a criterion the run did not measure', () => {
+    const el = render({ ...data, branches_covered_percent: 0 }, true, false, true);
+    expect(el.querySelector('.t-branch-summary')!.textContent).toContain('disabled');
+  });
+
   test('keeps the rows as the only children of the list', () => {
     const el = render(data);
     expect(el.firstChild).toBe(el.querySelector('.header'));
