@@ -3109,6 +3109,47 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       expect(described_class.send(:tracked_file_paths)).to eq(Set["/project/lib/foo.rb"])
     end
+
+    it "says nothing when the injector discovered no template" do
+      allow(described_class).to receive_messages(unloaded_file_discovery_globs: [], root: "/project", filters: [])
+      allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return(Set["/project/lib/foo.rb"])
+
+      expect(capture_stderr { described_class.send(:tracked_file_paths) }).to be_empty
+    end
+
+    context "with templates among the discovered paths" do
+      let(:warning) { capture_stderr { described_class.send(:tracked_file_paths) } }
+
+      before do
+        allow(described_class).to receive_messages(unloaded_file_discovery_globs: ["app/**/*"], root: "/project", filters: [])
+        allow(SimpleCov::UnloadedFileInjector).to receive(:discover).and_return([
+          "/project/app/models/foo.rb", "/project/app/views/foos/show.html.erb", "/project/app/views/foos/index.html.haml"
+        ])
+      end
+
+      it "leaves the templates out, since they cannot be simulated" do
+        paths = nil
+        capture_stderr { paths = described_class.send(:tracked_file_paths) }
+
+        expect(paths).to eq(["/project/app/models/foo.rb"])
+      end
+
+      it "warns that templates belong in cover_views" do
+        expect(warning).to include("`cover`").and include("`cover_views`")
+      end
+
+      it "names the templates relative to the root" do
+        expect(warning).to include("app/views/foos/show.html.erb, app/views/foos/index.html.haml")
+      end
+
+      it "names no path outside the templates" do
+        expect(warning).not_to include("foo.rb")
+      end
+
+      it "names them without the root" do
+        expect(warning).not_to include("/project")
+      end
+    end
   end
 
   describe ".build_coverage_limits", mutant_expression: "SimpleCov.build_coverage_limits" do

@@ -123,6 +123,8 @@ module SimpleCov
 
   def self.tracked_file_paths: () -> Array[String]
 
+  def self.warn_templates_tracked: (Array[String] templates) -> void
+
   def self.inject_unloaded_files: (Hash[String, untyped] result, Array[String] candidate_paths, ?synthesize: bool?, ?lines: bool?) -> [Hash[String, untyped], Set[String]]
 
   def self.collect_own_coverage: (standalone: bool) -> void

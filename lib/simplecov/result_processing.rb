@@ -130,9 +130,23 @@ module SimpleCov
     # nobody loaded without needing this process's `cover` / `track_files`
     # configuration. A standalone `collate` never ran `SimpleCov.start` (#1250).
     def tracked_file_paths
-      UnloadedFileInjector.discover(
+      paths = UnloadedFileInjector.discover(
         unloaded_file_discovery_globs, root: root, reject: filters.select(&:path_only?)
       )
+      templates = paths.select { |path| Directive::Template.template?(path) }
+      return paths if templates.empty?
+
+      warn_templates_tracked(templates)
+      paths - templates
+    end
+
+    # Simulating a template means classifying its lines as Ruby and parsing it
+    # for branches, both of which produce a wrong shape, whereas `cover_views`
+    # compiles it and measures the real thing.
+    def warn_templates_tracked(templates)
+      names = templates.map { |path| path.delete_prefix(root).sub(%r{\A[/\\]}, "") }
+      warn "[SimpleCov]: `cover` matched templates it cannot simulate (#{names.join(", ")}). " \
+           "Add `cover_views` to measure templates."
     end
 
     # The legacy `track_files` glob (additive only) plus every string glob

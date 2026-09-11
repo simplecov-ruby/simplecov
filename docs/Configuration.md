@@ -583,6 +583,9 @@ Inline directives (trailing real code) only affect the line they sit on. Block d
 remain in effect until the matching `# simplecov:enable` for the same category — or end of file if never closed.
 Directive markers inside string literals or heredocs are ignored.
 
+Templates belong in `cover_views` rather than in a `cover` glob. A `cover` glob that matches a template warns and
+leaves it out, because an unrendered template can only be measured by compiling it, which is what `cover_views` does.
+
 Templates measured with `cover_views` take the same directives in their own comment syntax, or as Ruby comments on a
 code line. Every form below skips the block through its `end`, so a branch the app never takes stays out of the
 template's coverage.
