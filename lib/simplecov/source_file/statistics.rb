@@ -54,15 +54,12 @@ module SimpleCov
       # synthesizes those tuples statically, so a file carrying a table at all,
       # empty or not, has been accounted for: it has no branches, or a
       # directive skipped the ones it has, and it is as covered as a loaded
-      # file with none. One carrying no table is still unaccounted for, and so
-      # is every file when the extractor those tables come from isn't there to
-      # run. A file with missed entries and none covered already computes to 0%
-      # either way, so only one that really has covered entries keeps its
-      # computed percentage.
+      # file with none. Only a file carrying no table for the criterion is
+      # still unaccounted for. A file with missed entries and none covered
+      # already computes to 0% either way, so only one that really has covered
+      # entries keeps its computed percentage.
       def unaccounted?(source_file, table)
-        return false unless source_file.not_loaded?
-
-        source_file.coverage_data[table].nil? || !StaticCoverageExtractor.available?
+        source_file.not_loaded? && source_file.coverage_data[table].nil?
       end
 
       def coverage_statistics(covered, missed, omitted: 0, percent: nil)

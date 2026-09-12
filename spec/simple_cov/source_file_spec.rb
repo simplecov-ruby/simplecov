@@ -819,7 +819,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "with ignore_branches :eval_generated configured", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "with ignore_branches :eval_generated configured" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -860,7 +860,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "with ignore_methods :eval_generated configured", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "with ignore_methods :eval_generated configured" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -879,7 +879,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "without the eval_generated filter (default)", if: SimpleCov::StaticCoverageExtractor.available? do
+  context "without the eval_generated filter (default)" do
     subject(:source_file) do
       described_class.new(source_fixture("eval_generated.rb"), CoverageFixtures::EVAL_GENERATED_RB)
     end
@@ -1249,23 +1249,25 @@ RSpec.describe SimpleCov::SourceFile do
         expect(source_file.not_loaded?).to be true
       end
 
-      it "reports its empty branch set as fully covered, since the extractor found none to miss" do
+      it "reports its empty branch set as fully covered, the extractor having found none to miss" do
         expect(source_file.covered_percent(:branch)).to eq 100.0
       end
 
       it "reports its empty method set as fully covered" do
         expect(source_file.coverage_statistics[:method].percent).to eq 100.0
       end
+    end
 
-      it "reports 0% branch coverage when nothing can establish what it holds" do
-        allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false)
+    context "when a not loaded file carries no tables at all" do
+      subject(:source_file) do
+        described_class.new(source_fixture("sample.rb"), {"lines" => [nil, 1, nil, 1, nil, nil, nil]}, loaded: false)
+      end
 
+      it "reports 0% branch coverage, nothing having accounted for it" do
         expect(source_file.covered_percent(:branch)).to eq 0.0
       end
 
-      it "reports 0% method coverage when nothing can establish what it holds" do
-        allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false)
-
+      it "reports 0% method coverage, nothing having accounted for it" do
         expect(source_file.coverage_statistics[:method].percent).to eq 0.0
       end
     end
@@ -1834,8 +1836,7 @@ RSpec.describe SimpleCov::SourceFile do
       described_class.new(source_fixture("branches.rb"), CoverageFixtures::BRANCHES_RB)
     end
 
-    it "reports the branch lines and method names of the parsed source",
-      if: SimpleCov::StaticCoverageExtractor.available? do
+    it "reports the branch lines and method names of the parsed source" do
       expect(source_file.real_source_positions).to eq(branches: Set[3, 5, 7], methods: Set[[:call, 2]])
     end
 
@@ -1939,8 +1940,7 @@ RSpec.describe SimpleCov::SourceFile do
     end
   end
 
-  context "with the eval_generated filter on and a template whose text happens to parse as Ruby",
-    if: SimpleCov::StaticCoverageExtractor.available? do
+  context "with the eval_generated filter on and a template whose text happens to parse as Ruby" do
     around do |example|
       previous = SimpleCov.instance_variable_get(:@ignored_branches)&.dup
       capture_stderr { SimpleCov.ignore_branches :eval_generated }

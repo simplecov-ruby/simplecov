@@ -78,13 +78,7 @@ rescue LoadError
   warn "RuboCop is disabled"
 end
 
-begin
-  require "standard/rake"
-rescue LoadError
-  task :standard do
-    warn "Standard is disabled"
-  end
-end
+require "standard/rake"
 
 desc "Regenerate man/simplecov.1 from the usage document"
 task :man do

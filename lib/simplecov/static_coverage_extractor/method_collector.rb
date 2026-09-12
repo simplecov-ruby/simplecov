@@ -17,12 +17,8 @@ module SimpleCov
 
       # `def name(...)` and `def self.name(...)` both produce DefNode. The class
       # context is the surrounding lexical class or module, or `Object` at the top
-      # level, matching `Coverage`'s convention. Suppression covers 3.2's folded
-      # dead arms, where nested branches stay instrumented but a `def` never
-      # registers.
+      # level, matching `Coverage`'s convention.
       def visit_def_node(node)
-        return super if @suppress_methods
-
         class_name = @class_stack.last || "Object"
         key = [class_name, node.name, node.start_line, node.start_column, node.end_line, node.end_column]
         @methods[key] = 0

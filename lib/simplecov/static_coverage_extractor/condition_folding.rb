@@ -8,14 +8,9 @@ module SimpleCov
     # must not synthesize one either: the arm would be a phantom no loaded run
     # can hit, the same unmergeable-tuple failure as #1226 / #1233.
     module ConditionFolding
-      # CRuby 3.4 rebuilt the fold on the Prism compiler, and the parse.y fold it
-      # replaced differed in three observable ways: `__FILE__` folded on
-      # 3.2/3.3; parentheses were transparent for every literal on 3.2; and on
-      # 3.2 the dead arm's branch table entries survive the fold while its
-      # `def`s still never register.
+      # CRuby 3.4 rebuilt the fold on the Prism compiler, and the parse.y fold
+      # it replaced still differs on 3.3, where `__FILE__` folds.
       FOLDS_SOURCE_FILE = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.4")
-      PARENS_ALWAYS_TRANSPARENT = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.3")
-      DEAD_ARM_BRANCHES_SURVIVE = PARENS_ALWAYS_TRANSPARENT
       # Container literals in discarded position are eliminated from 3.3 on, but
       # 3.3's compile.c elides a container whose contents are merely
       # effect-free (`[x]`), while the Prism compiler demands fully static
@@ -42,8 +37,7 @@ module SimpleCov
 
       # CRuby folds `if nil`, `if "x"`, and `if -> {}` but keeps a real branch
       # for `if (nil)`, `if ("x")`, and `if (-> {})`, while every other literal
-      # folds parenthesized or not. Consulted only when parentheses are not
-      # always transparent.
+      # folds parenthesized or not.
       PAREN_OPAQUE_TYPES = [
         ::Prism::NilNode, ::Prism::StringNode, ::Prism::LambdaNode, ::Prism::SourceFileNode
       ].freeze
@@ -58,42 +52,18 @@ module SimpleCov
         ::Prism::SourceLineNode, ::Prism::SourceFileNode, ::Prism::SourceEncodingNode, ::Prism::RegularExpressionNode
       ].freeze
 
-      # `self` is eliminated by every supported compiler; local/ivar/defined?
-      # elimination arrived with the Prism-era compilers. Anything that can
-      # raise or run hooks is never eliminated and keeps the branch real.
-      PRISM_ERA_ELIMINABLE_READS = [
-        ::Prism::LocalVariableReadNode, ::Prism::InstanceVariableReadNode, ::Prism::DefinedNode
-      ].freeze
-
-      # simplecov:disable branch — which arm runs is fixed by the running Ruby's version
+      # Non-literal reads that are also eliminated when discarded. Anything that
+      # can raise or run hooks is never eliminated and keeps the branch real.
       ELIMINABLE_READ_TYPES = [
-        ::Prism::SelfNode,
-        *(PRISM_ERA_ELIMINABLE_READS unless PARENS_ALWAYS_TRANSPARENT)
+        ::Prism::SelfNode, ::Prism::LocalVariableReadNode,
+        ::Prism::InstanceVariableReadNode, ::Prism::DefinedNode
       ].freeze
-      # simplecov:enable branch
 
       private
 
-      # On 3.2 the dead arm's branch table entries survive the fold (parse.y
-      # instrumented branches before eliminating dead code) while its methods
-      # never register, so the dead arm is visited with method collection
-      # suppressed.
+      # `visit` is nil-safe, so a missing arm just visits nothing.
       def visit_folded_arms(verdict, truthy_arm, falsy_arm)
-        live, dead = verdict.equal?(:truthy) ? [truthy_arm, falsy_arm] : [falsy_arm, truthy_arm]
-        visit(live)
-        visit_dead_arm(dead) if DEAD_ARM_BRANCHES_SURVIVE
-      end
-
-      def visit_dead_arm(arm)
-        # Save/restore rather than set/clear: a fold nested inside this dead arm
-        # re-enters here and must not clear suppression for the rest of it.
-        previous = @suppress_methods
-        begin
-          @suppress_methods = true
-          visit(arm)
-        ensure
-          @suppress_methods = previous
-        end
+        visit(verdict.equal?(:truthy) ? truthy_arm : falsy_arm)
       end
 
       # `:truthy` or `:falsy` when the compiler folds, nil when it doesn't. The
@@ -114,8 +84,6 @@ module SimpleCov
       # through.
       def foldable?(node, unwrapped)
         return false unless STATIC_CONDITION_TYPES.any? { |type| unwrapped.instance_of?(type) }
-
-        return true if PARENS_ALWAYS_TRANSPARENT
 
         unwrapped.equal?(node) || PAREN_OPAQUE_TYPES.none? { |type| unwrapped.instance_of?(type) }
       end
@@ -151,7 +119,6 @@ module SimpleCov
 
       def static_container_literal?(node)
         return true if STATIC_LITERAL_LEAF_TYPES.any? { |type| node.instance_of?(type) }
-        return false if PARENS_ALWAYS_TRANSPARENT
 
         static_container?(node)
       end

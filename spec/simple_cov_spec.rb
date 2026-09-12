@@ -877,7 +877,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     context "when a criterion that reads the tuples is enabled" do
-      it "synthesizes them", if: SimpleCov::StaticCoverageExtractor.available? do
+      it "synthesizes them" do
         allow(described_class).to receive_messages(branch_coverage?: false, method_coverage?: true)
         described_class.cover "spec/fixtures/sample.rb"
         result, = inject_tracked({})

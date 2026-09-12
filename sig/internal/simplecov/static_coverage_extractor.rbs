@@ -1,7 +1,5 @@
 module SimpleCov
   module StaticCoverageExtractor
-    def self?.available?: () -> (true | false)
-
     def self?.call: (untyped source) -> untyped
 
     def self?.real_source_positions: (untyped source) -> (nil | { branches: untyped, methods: untyped })

@@ -81,24 +81,8 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
       )
     end
 
-    context "with the static extractor to establish what it holds" do
-      before { allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(true) }
-
-      it "reports its empty branch and method sets as fully covered, the way a loaded file's are" do
-        expect(statistics.values_at(:branch, :method)).to all(have_attributes(percent: 100.0))
-      end
-    end
-
-    context "without the static extractor to establish what it holds" do
-      before { allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false) }
-
-      it "keeps empty branch and method coverage at zero percent and strength" do
-        expect(statistics.values_at(:branch, :method)).to all(have_attributes(percent: 0.0, strength: 0.0))
-      end
-
-      it "leaves line coverage to the empty-set default" do
-        expect(statistics.fetch(:line).percent).to eq(100.0)
-      end
+    it "reports its empty branch and method sets as fully covered, the way a loaded file's are" do
+      expect(statistics.values_at(:branch, :method)).to all(have_attributes(percent: 100.0))
     end
   end
 
@@ -118,8 +102,12 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
       )
     end
 
-    it "keeps empty branch and method coverage at zero percent, nothing having accounted for it" do
-      expect(statistics.values_at(:branch, :method)).to all(have_attributes(percent: 0.0))
+    it "keeps empty branch and method coverage at zero percent and strength" do
+      expect(statistics.values_at(:branch, :method)).to all(have_attributes(percent: 0.0, strength: 0.0))
+    end
+
+    it "leaves line coverage to the empty-set default" do
+      expect(statistics.fetch(:line).percent).to eq(100.0)
     end
   end
 
@@ -142,8 +130,8 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
       expect(statistics.values_at(:line, :branch, :method)).to all(have_attributes(percent: 100.0))
     end
 
-    it "reports it as fully covered even with no static extractor, which only speaks for unloaded files" do
-      allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false)
+    it "reports it as fully covered even carrying no tables, the rule speaking only for unloaded files" do
+      allow(source_file).to receive(:coverage_data).and_return({})
 
       expect(statistics.values_at(:line, :branch, :method)).to all(have_attributes(percent: 100.0))
     end
@@ -191,18 +179,6 @@ RSpec.describe SimpleCov::SourceFile::Statistics do
 
     it "keeps the percentage the methods earned" do
       expect(statistics.fetch(:method).percent).to eq(50.0)
-    end
-
-    context "without the static extractor to establish what it holds" do
-      before { allow(SimpleCov::StaticCoverageExtractor).to receive(:available?).and_return(false) }
-
-      it "still keeps the percentage the branches earned" do
-        expect(statistics.fetch(:branch).percent).to eq(50.0)
-      end
-
-      it "still keeps the percentage the methods earned" do
-        expect(statistics.fetch(:method).percent).to eq(50.0)
-      end
     end
   end
 end

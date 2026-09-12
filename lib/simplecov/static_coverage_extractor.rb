@@ -1,12 +1,6 @@
 # frozen_string_literal: true
 
-begin
-  require "prism"
-rescue LoadError
-  # Prism isn't available on this Ruby (older than 3.3 without the gem).
-  # `StaticCoverageExtractor.available?` will return false and callers fall
-  # back to the previous "empty hashes" behavior.
-end
+require "prism"
 
 module SimpleCov
   # Static enumeration of the branches and methods Ruby's `Coverage` library
@@ -23,17 +17,11 @@ module SimpleCov
   module StaticCoverageExtractor
     extend self
 
-    def available?
-      defined?(Prism) ? true : false
-    end
-
     # Parse `source` and return `{"branches" => {...}, "methods" => {...}}`
     # matching the shape `Coverage.result[path]` produces. Returns nil on parse
-    # failure or when Prism isn't available, which callers treat as "couldn't
-    # extract, fall back to empty hashes".
+    # failure, which callers treat as "couldn't extract, fall back to empty
+    # hashes".
     def call(source)
-      return nil unless available?
-
       result = Prism.parse(source)
       return nil if result.failure?
 
@@ -61,8 +49,8 @@ module SimpleCov
     # Coincidental line-sharing between a real branch and an eval-generated one
     # keeps both, an acceptable false-negative for an opt-in filter.
     #
-    # Returns nil when Prism is unavailable or parsing fails, signaling callers
-    # to keep every Coverage entry.
+    # Returns nil when parsing fails, signaling callers to keep every Coverage
+    # entry.
     def real_source_positions(source)
       extracted = call(source)
       return nil unless extracted
@@ -87,8 +75,4 @@ module SimpleCov
   end
 end
 
-# simplecov:disable branch
-# The `else` arm (Prism missing) is unreachable on engines where the dogfood
-# report runs; the Visitor class only matters when Prism is loadable.
-require_relative "static_coverage_extractor/visitor" if SimpleCov::StaticCoverageExtractor.available?
-# simplecov:enable branch
+require_relative "static_coverage_extractor/visitor"

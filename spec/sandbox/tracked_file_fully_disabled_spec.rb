@@ -7,6 +7,10 @@ RSpec.describe "a tracked file with nothing left to cover", :sandbox do
   before { setup_project("faked_project") }
 
   let(:reported) { html_report_data.fetch("coverage").fetch("lib/all_disabled.rb") }
+  let(:percents) do
+    reported.values_at("lines_covered_percent", "branches_covered_percent", "methods_covered_percent")
+  end
+
   let!(:result) do
     configure_simplecov(:rspec, <<~RUBY)
       require 'simplecov'
@@ -35,9 +39,7 @@ RSpec.describe "a tracked file with nothing left to cover", :sandbox do
     expect(reported.values_at("total_lines", "total_branches", "total_methods")).to eq([0, 0, 0])
   end
 
-  it "reports it as fully covered under every criterion, the way the source view renders it" do
-    percents = reported.values_at("lines_covered_percent", "branches_covered_percent", "methods_covered_percent")
-
+  it "reports it as fully covered, the way the source view renders it" do
     expect(percents).to eq([100.0, 100.0, 100.0])
   end
 end

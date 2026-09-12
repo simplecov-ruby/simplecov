@@ -48,23 +48,20 @@ RSpec.describe SimpleCov::SimulateCoverage do
     context "when Prism is available" do
       let(:ternary_source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
-      it "synthesizes branch entries for unloaded files",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "synthesizes branch entries for unloaded files" do
         with_tmp_source(ternary_source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
         end
       end
 
-      it "names the type of the branch it synthesized",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "names the type of the branch it synthesized" do
         with_tmp_source(ternary_source) do |path|
           types = described_class.call(path)["branches"].keys.map(&:first)
           expect(types).to include(:if)
         end
       end
 
-      it "synthesizes method entries for unloaded files",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "synthesizes method entries for unloaded files" do
         with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
           result = described_class.call(path)
           method_names = result["methods"].keys.map { |k| k[1] }
@@ -156,22 +153,19 @@ RSpec.describe SimpleCov::SimulateCoverage do
     context "with synthesize: false" do
       let(:source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
-      it "has branches to skip in the first place",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "has branches to skip in the first place" do
         with_tmp_source(source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
         end
       end
 
-      it "returns empty branches",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "returns empty branches" do
         with_tmp_source(source) do |path|
           expect(described_class.call(path, synthesize: false)["branches"]).to be_empty
         end
       end
 
-      it "returns empty methods",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "returns empty methods" do
         with_tmp_source(source) do |path|
           expect(described_class.call(path, synthesize: false)["methods"]).to be_empty
         end
@@ -184,8 +178,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
         end
       end
 
-      it "does not parse the file at all",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "does not parse the file at all" do
         with_tmp_source(source) do |path|
           allow(SimpleCov::StaticCoverageExtractor).to receive(:call).and_call_original
 
@@ -209,8 +202,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
         end
       end
 
-      it "still synthesizes branches and methods",
-        if: SimpleCov::StaticCoverageExtractor.available? do
+      it "still synthesizes branches and methods" do
         with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
           expect(described_class.call(path, lines: false)["branches"]).not_to be_empty
         end

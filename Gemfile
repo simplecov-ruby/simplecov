@@ -34,17 +34,15 @@ group :development do
     gem "steep", "~> 2.0", require: false
   end
 
-  if RUBY_VERSION > "3.2"
-    gem "rubocop"
-    gem "rubocop-minitest"
-    gem "rubocop-performance"
-    gem "rubocop-rake"
-    gem "rubocop-rspec"
+  gem "rubocop"
+  gem "rubocop-minitest"
+  gem "rubocop-performance"
+  gem "rubocop-rake"
+  gem "rubocop-rspec"
 
-    gem "standard", ">= 1.35.1"
-    gem "standard-performance"
-    gem "standard-rspec"
-  end
+  gem "standard", ">= 1.35.1"
+  gem "standard-performance"
+  gem "standard-rspec"
 end
 
 group :benchmark do

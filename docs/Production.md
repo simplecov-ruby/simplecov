@@ -48,7 +48,7 @@ SimpleCov::Production.start(
   sink: SimpleCov::Production::FileSink.new(path: "/var/data/coverage/production.json"),
   flush_interval: 60,            # seconds between drains (default 60)
   flush_jitter: 6,               # extra random wait per drain (default a tenth of the interval)
-  sample_rate: 1.0,              # fraction of intervals measured (default 1.0; below 1 needs Ruby 3.2+)
+  sample_rate: 1.0,              # fraction of intervals measured (default 1.0)
   max_buffered_lines: 1_000_000  # ceiling on lines held across failed flushes (default one million)
 )
 ```
@@ -74,7 +74,7 @@ handlers.
 
 `sample_rate` is a duty cycle: at 0.25, roughly one flush interval in four is measured and the rest are suspended,
 capping the steady-state overhead while every line still gets its chance over time. The first interval after `start`
-always measures. Rates below 1.0 use `Coverage.suspend` / `Coverage.resume` and therefore need Ruby 3.2 or later.
+always measures. Rates below 1.0 use `Coverage.suspend` / `Coverage.resume`, which every supported Ruby provides.
 
 Each wait adds a fresh random share of `flush_jitter` to the interval, so a fleet of workers booted together (one
 worker-boot hook starts them all at once) drifts apart instead of contending on the shared sink at the same instant
