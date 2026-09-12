@@ -45,10 +45,10 @@ RSpec.describe SimpleCov::SimulateCoverage do
       expect(described_class.call(fixture)["methods"]).to be_a(Hash)
     end
 
-    context "when Prism is available" do
+    context "with an unloaded source" do
       let(:ternary_source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
-      it "synthesizes branch entries for unloaded files" do
+      it "synthesizes branch entries" do
         with_tmp_source(ternary_source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
         end
@@ -61,7 +61,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
         end
       end
 
-      it "synthesizes method entries for unloaded files" do
+      it "synthesizes method entries" do
         with_tmp_source("class Foo\n  def bar; end\nend\n") do |path|
           result = described_class.call(path)
           method_names = result["methods"].keys.map { |k| k[1] }
