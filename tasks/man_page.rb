@@ -69,7 +69,7 @@ module ManPage
 
   # A literal date keeps the artifact deterministic (Date.today would fail the
   # freshness spec every day); bump it when it matters.
-  DATE = "2026-08-24"
+  DATE = "2026-09-12"
 
   def header
     %(.TH SIMPLECOV 1 "#{DATE}" "simplecov #{SimpleCov::VERSION}" "User Commands")
