@@ -7,8 +7,8 @@ GEM
   remote: https://rubygems.org/
   specs:
     diff-lcs (1.6.2)
-    parallel (2.1.0)
-    parallel_tests (5.7.0)
+    parallel (2.2.0)
+    parallel_tests (5.8.0)
       parallel
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
@@ -36,8 +36,8 @@ DEPENDENCIES
 CHECKSUMS
   bundler (4.0.19) sha256=b48056e4c77fb3853cc47775b5447ede44aaa4f53c32f168014ab4fe86587d47
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
-  parallel (2.1.0) sha256=b35258865c2e31134c5ecb708beaaf6772adf9d5efae28e93e99260877b09356
-  parallel_tests (5.7.0) sha256=3f1762c46ca2c223b8af8ef877217f9d76974e191bfa934f2580b58bcf1d005c
+  parallel (2.2.0) sha256=e1059c5fd7b649558a0aec38a769f06a42942bdb40503d005a59c352fe011cd8
+  parallel_tests (5.8.0) sha256=181898cbee2ffb1c796274ce31d27f792a421324609bfc7e9b5531d929d91eda
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
   rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
   rspec-expectations (3.13.5) sha256=33a4d3a1d95060aea4c94e9f237030a8f9eae5615e9bd85718fe3a09e4b58836
