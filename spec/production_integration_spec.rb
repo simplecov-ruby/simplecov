@@ -15,7 +15,7 @@ RSpec.describe "production coverage integration" do
     end
 
     def run_fixture(mode)
-      _out, stderr, status = Open3.capture3("bundle e ruby production_test.rb #{mode}")
+      _out, stderr, status = Open3.capture3(child_env, "bundle e ruby production_test.rb #{mode}")
       raise "fixture failed: #{stderr}" unless status.success?
     end
 

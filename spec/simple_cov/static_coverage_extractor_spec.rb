@@ -4,6 +4,10 @@ require "helper"
 require "coverage"
 require "support/coverage_differential"
 
+# Prism's FFI backend cannot open libprism on JRuby on Windows, so there is
+# nothing here to exercise. spec/unloadable_prism_spec.rb covers the fallback.
+return unless SimpleCov::StaticCoverageExtractor.prism_loaded?
+
 RSpec.describe SimpleCov::StaticCoverageExtractor do
   describe "#begin_modifier_loop?" do
     let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
@@ -36,6 +40,57 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
         allow(Prism).to receive(:parse).and_raise(RuntimeError, "unsupported node")
 
         expect(described_class.call("a = 1\n")).to be_nil
+      end
+    end
+  end
+
+  describe ".prism_loaded?" do
+    around do |example|
+      forget_prism_probe
+      example.run
+    ensure
+      forget_prism_probe
+    end
+
+    def forget_prism_probe
+      return unless described_class.instance_variable_defined?(:@prism_loaded)
+
+      described_class.remove_instance_variable(:@prism_loaded)
+    end
+
+    it "answers true where Prism loads" do
+      expect(described_class.prism_loaded?).to be(true)
+    end
+
+    it "loads the Prism visitor" do
+      allow(described_class).to receive(:require_relative).and_return(true)
+
+      described_class.prism_loaded?
+
+      expect(described_class).to have_received(:require_relative).with("static_coverage_extractor/visitor")
+    end
+
+    context "when Prism cannot load" do
+      before do
+        allow(described_class).to receive(:require_relative).and_raise(LoadError, "Could not open library 'libprism'")
+      end
+
+      it "answers false rather than raising" do
+        expect(described_class.prism_loaded?).to be(false)
+      end
+
+      it "tries only once" do
+        2.times { described_class.prism_loaded? }
+
+        expect(described_class).to have_received(:require_relative).once
+      end
+
+      it "makes .call answer nil" do
+        expect(described_class.call("def f; 1; end\n")).to be_nil
+      end
+
+      it "makes .real_source_positions answer nil" do
+        expect(described_class.real_source_positions("def f; 1; end\n")).to be_nil
       end
     end
   end

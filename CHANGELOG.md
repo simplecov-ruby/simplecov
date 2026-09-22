@@ -1,6 +1,9 @@
-## Unreleased
+Unreleased
+==========
 
+## Bugfixes
 * `cover_views` compiles templates on Rails main again. Rails removed `ActionView::Template.registered_template_handler`; the lookup reads `ActionView::Template::Handlers.template_handlers` and still skips an extension with no handler. See https://github.com/simplecov-ruby/simplecov/issues/1300.
+* `require "simplecov"` works again on JRuby on Windows, where 1.3.0 raised `LoadError: Could not open library '.../libprism.dll'`. Prism's FFI backend cannot open its native library there, and 1.3.0 required Prism as soon as SimpleCov loaded. Prism now loads only when branch or method coverage needs the static extractor, which a line-only run never does. Where it cannot load at all, the extractor falls back to empty branch and method tables for never-loaded files, as it did before 1.3.0. See https://github.com/simplecov-ruby/simplecov/issues/1299.
 
 1.3.0 (2026-09-12)
 ==================

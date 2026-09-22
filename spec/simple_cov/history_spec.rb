@@ -261,15 +261,15 @@ RSpec.describe SimpleCov::History do
   describe ".git_info" do
     def checkout(dir)
       GitFixture.init_repo(dir, branch: "trunk")
-      system("git", "-C", dir, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
+      GitFixture.git!("-C", dir, "commit", "-q", "--allow-empty", "-m", "init")
       allow(described_class).to receive(:git_info).and_call_original
       allow(SimpleCov).to receive(:root).and_return(dir)
     end
 
     def detached_checkout(dir)
       GitFixture.init_repo(dir)
-      system("git", "-C", dir, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
-      system("git", "-C", dir, "checkout", "-q", "--detach", exception: true)
+      GitFixture.git!("-C", dir, "commit", "-q", "--allow-empty", "-m", "init")
+      GitFixture.git!("-C", dir, "checkout", "-q", "--detach")
       allow(described_class).to receive(:git_info).and_call_original
       allow(SimpleCov).to receive(:root).and_return(dir)
     end

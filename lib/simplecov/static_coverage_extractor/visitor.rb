@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "prism"
 require_relative "prism_compat"
 require_relative "condition_folding"
 require_relative "location_conventions"

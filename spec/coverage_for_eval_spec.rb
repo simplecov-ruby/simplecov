@@ -16,7 +16,7 @@ RSpec.describe "coverage for eval" do
     # hand back what it wrote as well as what it printed.
     let(:capture) do
       CapturedRuns.once(:coverage_for_eval) do
-        _stdout, stderr, = Open3.capture3("bundle e ruby eval_test.rb")
+        _stdout, stderr, = Open3.capture3(child_env, "bundle e ruby eval_test.rb")
         [stderr, JSON.parse(File.read("./coverage/.resultset.json"))]
       end
     end

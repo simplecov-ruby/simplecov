@@ -1,11 +1,21 @@
 module SimpleCov
   module StaticCoverageExtractor
+    @prism_loaded: bool
+
+    self.@prism_loaded: bool
+
     def self?.call: (untyped source) -> untyped
 
     def self?.real_source_positions: (untyped source) -> (nil | { branches: untyped, methods: untyped })
 
+    def self?.prism_loaded?: () -> bool
+
     def self?.branch_start_line: (untyped, untyped, untyped, *untyped) -> untyped
 
     def self?.method_identity: (untyped, untyped, untyped, *untyped) -> Array[untyped]
+
+    private
+
+    def self?.load_prism: () -> bool
   end
 end

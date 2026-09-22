@@ -72,7 +72,7 @@ RSpec.describe SimpleCov::ResultMerger do
       result.original_result.fetch(never_loaded)
     end
 
-    it "synthesizes tuples when the merged files carry them, whatever this process measures" do
+    it "synthesizes tuples when the merged files carry them, whatever this process measures", :prism do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "methods" => {}})
@@ -80,7 +80,7 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(entry["methods"]).not_to be_empty
     end
 
-    it "synthesizes tuples when the merged files carry branches alone" do
+    it "synthesizes tuples when the merged files carry branches alone", :prism do
       allow(SimpleCov).to receive_messages(branch_coverage?: false, method_coverage?: false)
 
       entry = injected(loaded => {"lines" => [1, 1], "branches" => {}})
@@ -1645,6 +1645,7 @@ RSpec.describe SimpleCov::ResultMerger do
     after { FileUtils.remove_entry(tmp) }
 
     def probed_while_holding_writelock(mode)
+      skip_same_process_flock_probe
       probed = nil
       store.send(:holding_writelock) do
         File.open(lock_path) { |probe| probed = probe.flock(mode | File::LOCK_NB) }
@@ -1665,6 +1666,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     it "lets the lock go afterwards" do
+      skip_same_process_flock_probe
       store.send(:holding_writelock) { :written }
 
       File.open(lock_path) do |probe|

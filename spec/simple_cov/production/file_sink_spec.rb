@@ -31,6 +31,7 @@ RSpec.describe SimpleCov::Production::FileSink do
 
   describe "#locked" do
     let(:probes) do
+      skip_same_process_flock_probe
       sink.send(:with_exclusive_lock) do |_file|
         File.open(path) do |probe|
           {exclusive: probe.flock(File::LOCK_EX | File::LOCK_NB),

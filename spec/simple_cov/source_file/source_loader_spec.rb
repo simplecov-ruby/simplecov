@@ -71,7 +71,7 @@ RSpec.describe SimpleCov::SourceFile::SourceLoader do
     end
 
     it "does not run a filename that begins with a pipe" do
-      error = Gem.win_platform? ? Errno::EINVAL : Errno::ENOENT
+      error = (Gem.win_platform? && RUBY_ENGINE == "ruby") ? Errno::EINVAL : Errno::ENOENT
       expect { described_class.call("|echo not-a-file") }.to raise_error(error)
     end
   end

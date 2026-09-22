@@ -37,10 +37,18 @@ task :spec do
   require "parallel_tests"
   rm_rf "tmp/dogfood-partials"
   rm_rf RUNTIME_PARTIALS
-  sh "bundle exec parallel_rspec --serialize-stdout #{runtime_grouping}spec"
+  sh "bundle exec parallel_rspec #{serialize_stdout}#{runtime_grouping}spec"
   merge_runtime_log
 rescue LoadError
   Rake::Task[:"spec:serial"].invoke
+end
+
+# parallel_tests serializes output under an exclusive flock taken on a
+# read-only handle. JRuby on Windows implements flock with a Java FileChannel
+# lock, which refuses a read-only channel, so the workers' output interleaves
+# there instead.
+def serialize_stdout
+  (RUBY_ENGINE == "jruby" && Gem.win_platform?) ? "" : "--serialize-stdout "
 end
 
 # A log written against a different set of spec files groups everything it does

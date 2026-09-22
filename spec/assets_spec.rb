@@ -69,8 +69,10 @@ RSpec.describe "frontend asset compilation" do
     end
   end
 
+  # The program goes in on stdin: JRuby on Windows hands a double quote inside
+  # an argument to the child unescaped.
   def run_rakefile(snippet, env = {})
-    Open3.capture3(env, "bundle", "exec", "ruby", "-rrake", "-e", %(load "./Rakefile"; #{snippet}),
-      chdir: SimpleCov.root.to_s)
+    Open3.capture3(env, RbConfig.ruby, "-rbundler/setup", "-rrake",
+      stdin_data: %(load "./Rakefile"; #{snippet}), chdir: SimpleCov.root.to_s)
   end
 end # rubocop:enable RSpec/DescribeClass

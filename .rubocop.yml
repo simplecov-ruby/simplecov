@@ -57,6 +57,7 @@ RSpec/DescribeClass:
     - "spec/production_integration_spec.rb"
     - "spec/return_codes_spec.rb"
     - "spec/stderr_output_spec.rb"
+    - "spec/unloadable_prism_spec.rb"
 
 RSpec/SpecFilePathFormat:
   Exclude:

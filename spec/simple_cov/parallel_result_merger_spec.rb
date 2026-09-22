@@ -559,7 +559,7 @@ RSpec.describe SimpleCov::ParallelResultMerger do
   end
 
   describe ".succeeded?" do
-    it "is false for a pid that is not one of our children" do
+    it "is false for a pid that is not one of our children", if: FORK_SUPPORTED do
       expect(described_class.succeeded?(Process.pid)).to be false
     end
 

@@ -35,6 +35,13 @@ jobs:
             ruby-version: ruby
           - os: windows-latest
             ruby-version: ruby
+          # JRuby loads Prism through FFI, whose native library differs per
+          # OS: on Windows it cannot open libprism at all, which neither JRuby
+          # on Linux nor CRuby on Windows would catch.
+          - os: macos-latest
+            ruby-version: jruby-10.0
+          - os: windows-latest
+            ruby-version: jruby-10.0
 
     steps:
       - uses: actions/checkout@v7.0.1

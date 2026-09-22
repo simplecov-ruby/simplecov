@@ -2,6 +2,7 @@
 
 require "digest"
 require "fileutils"
+require "open3"
 require "tmpdir"
 
 module GitFixture
@@ -72,7 +73,10 @@ module GitFixture
       "commit", "-qm", message)
   end
 
+  # Open3 rather than `system(..., exception: true)`, whose options JRuby on
+  # Windows ignores with a warning.
   def git!(*argv)
-    system("git", *argv, exception: true)
+    output, status = Open3.capture2e("git", *argv)
+    raise "git #{argv.join(" ")} failed:\n#{output}" unless status.success?
   end
 end

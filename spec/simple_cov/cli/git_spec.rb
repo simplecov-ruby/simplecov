@@ -13,7 +13,7 @@ RSpec.describe SimpleCov::CLI::Git, mutant_expression: "SimpleCov::CLI::Git*" do
 
   def repo!(branch)
     GitFixture.init_repo(tmp, branch: branch)
-    system("git", "-C", tmp, "commit", "-q", "--allow-empty", "-m", "init", exception: true)
+    GitFixture.git!("-C", tmp, "commit", "-q", "--allow-empty", "-m", "init")
   end
 
   describe ".capture" do
@@ -76,9 +76,9 @@ RSpec.describe SimpleCov::CLI::Git, mutant_expression: "SimpleCov::CLI::Git*" do
   describe ".default_base" do
     it "resolves the branch origin's HEAD points at" do
       repo!("trunk")
-      system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
-      system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
-        "refs/remotes/origin/trunk", exception: true)
+      GitFixture.git!("-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD")
+      GitFixture.git!("-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/trunk")
 
       expect(Dir.chdir(tmp) { described_class.default_base }).to eq("trunk")
     end

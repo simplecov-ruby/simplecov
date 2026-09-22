@@ -45,7 +45,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
       expect(described_class.call(fixture)["methods"]).to be_a(Hash)
     end
 
-    context "with an unloaded source" do
+    context "with an unloaded source", :prism do
       let(:ternary_source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
       it "synthesizes branch entries" do
@@ -153,7 +153,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
     context "with synthesize: false" do
       let(:source) { "def f(x)\n  x > 0 ? :y : :n\nend\n" }
 
-      it "has branches to skip in the first place" do
+      it "has branches to skip in the first place", :prism do
         with_tmp_source(source) do |path|
           expect(described_class.call(path)["branches"]).not_to be_empty
         end
@@ -202,7 +202,7 @@ RSpec.describe SimpleCov::SimulateCoverage do
         end
       end
 
-      it "still synthesizes branches and methods" do
+      it "still synthesizes branches and methods", :prism do
         with_tmp_source("def f(x)\n  x > 0 ? :y : :n\nend\n") do |path|
           expect(described_class.call(path, lines: false)["branches"]).not_to be_empty
         end

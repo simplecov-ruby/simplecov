@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "prism"
-
 module SimpleCov
   # Static enumeration of the branches and methods Ruby's `Coverage` library
   # would have reported if a file had been loaded with `branches: true` /
@@ -14,14 +12,21 @@ module SimpleCov
   # Position info comes from Prism's reported source locations; it doesn't
   # always match `Coverage`'s byte-for-byte, but lines are reliable and
   # downstream consumers that key off line numbers see the data they expect.
+  #
+  # Prism loads on the first extraction rather than with SimpleCov, so a
+  # line-only run never needs it. Where it cannot load at all (JRuby on
+  # Windows, whose FFI backend fails to open libprism), extraction answers nil
+  # like any other failure.
   module StaticCoverageExtractor
     extend self
 
     # Parse `source` and return `{"branches" => {...}, "methods" => {...}}`
-    # matching the shape `Coverage.result[path]` produces. Returns nil on parse
-    # failure, which callers treat as "couldn't extract, fall back to empty
-    # hashes".
+    # matching the shape `Coverage.result[path]` produces. Returns nil when
+    # Prism cannot load or parsing fails, which callers treat as "couldn't
+    # extract, fall back to empty hashes".
     def call(source)
+      return nil unless prism_loaded?
+
       result = Prism.parse(source)
       return nil if result.failure?
 
@@ -49,8 +54,8 @@ module SimpleCov
     # Coincidental line-sharing between a real branch and an eval-generated one
     # keeps both, an acceptable false-negative for an opt-in filter.
     #
-    # Returns nil when parsing fails, signaling callers to keep every Coverage
-    # entry.
+    # Returns nil when Prism cannot load or parsing fails, signaling callers to
+    # keep every Coverage entry.
     def real_source_positions(source)
       extracted = call(source)
       return nil unless extracted
@@ -59,6 +64,14 @@ module SimpleCov
         branches: extracted.fetch("branches").keys.to_set { |tuple| branch_start_line(*tuple) },
         methods: extracted.fetch("methods").keys.to_set { |tuple| method_identity(*tuple) }
       }
+    end
+
+    # Memoized, because a failed load leaves nothing in $LOADED_FEATURES and
+    # would otherwise be retried for every file.
+    def prism_loaded?
+      return @prism_loaded if instance_variable_defined?(:@prism_loaded)
+
+      @prism_loaded = load_prism
     end
 
     # Both keys carry their start line third, after the parts that vary between
@@ -72,7 +85,14 @@ module SimpleCov
     def method_identity(_class_name, name, start_line, *)
       [name, start_line]
     end
+
+    private
+
+    def load_prism
+      require_relative "static_coverage_extractor/visitor"
+      true
+    rescue LoadError
+      false
+    end
   end
 end
-
-require_relative "static_coverage_extractor/visitor"

@@ -238,7 +238,7 @@ RSpec.describe SimpleCov::CLI do
     def repo!
       GitFixture.init_repo(tmp)
       2.times do |index|
-        system("git", "-C", tmp, "commit", "-q", "--allow-empty", "-m", "c#{index}", exception: true)
+        GitFixture.git!("-C", tmp, "commit", "-q", "--allow-empty", "-m", "c#{index}")
       end
     end
 
@@ -443,8 +443,8 @@ RSpec.describe SimpleCov::CLI do
     context "with a report several commits behind" do
       before do
         repo!
-        system("git", "-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
-          "commit", "-q", "--allow-empty", "-m", "c2", exception: true)
+        GitFixture.git!("-C", tmp, "-c", "user.email=spec@example.com", "-c", "user.name=spec",
+          "commit", "-q", "--allow-empty", "-m", "c2")
         write_report(commit: Dir.chdir(tmp) { `git rev-parse HEAD~2`.strip })
       end
 
@@ -1101,7 +1101,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "passes xmllint's validation" do
-      skip "xmllint is not installed here" unless system("xmllint", "--version", out: File::NULL, err: File::NULL)
+      skip "xmllint is not installed here" unless command_succeeds?("xmllint", "--version")
 
       expect(system("xmllint", "--noout", written_badge)).to be(true)
     end
@@ -1115,7 +1115,7 @@ RSpec.describe SimpleCov::CLI do
 
   describe "completions subcommand", mutant_expression: "SimpleCov::CLI::Completions*" do
     def shell_available?(shell)
-      system(shell, "-c", "true", out: File::NULL, err: File::NULL)
+      command_succeeds?(shell, "-c", "true")
     end
 
     def generate(shell)
@@ -2330,10 +2330,10 @@ RSpec.describe SimpleCov::CLI do
         require "coverage"
         puts Coverage.running?
       RUBY
-      cmd = ["ruby", "-I", File.expand_path("../../lib", __dir__), "-e", script]
+      cmd = [RbConfig.ruby, "-I", File.expand_path("../../lib", __dir__)]
       Dir.mktmpdir do |dir|
         Dir.chdir(dir) do
-          Open3.capture3({"RUBYOPT" => "-r#{described_class::Run::AUTOSTART}"}, *cmd).first
+          Open3.capture3(child_env("RUBYOPT" => "-r#{described_class::Run::AUTOSTART}"), *cmd, stdin_data: script).first
         end
       end
     end
@@ -9021,10 +9021,16 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "returns nil for something that is neither a file nor a directory" do
-        skip "no mkfifo on this platform" unless File.respond_to?(:mkfifo)
-        File.mkfifo(File.join(tmp, "pipe"))
+        mkfifo_or_skip(File.join(tmp, "pipe"))
 
         expect(handler.resolve("/pipe", tmp)).to be_nil
+      end
+
+      # JRuby defines File.mkfifo on Windows too, and raises from it.
+      def mkfifo_or_skip(path)
+        File.mkfifo(path)
+      rescue NotImplementedError
+        skip "no mkfifo on this platform"
       end
 
       it "returns nil for a file that vanishes mid-resolve" do

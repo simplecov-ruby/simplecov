@@ -61,7 +61,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     def git_in_repo(*argv)
-      system("git", "-C", tmp, *argv, exception: true)
+      GitFixture.git!("-C", tmp, *argv)
     end
 
     before { File.write(json_path, JSON.dump(payload)) }
@@ -176,10 +176,10 @@ RSpec.describe SimpleCov::CLI do
 
     context "with an origin HEAD pointing at another branch" do
       before do
-        system("git", "-C", tmp, "branch", "-m", "main", "trunk", exception: true)
-        system("git", "-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD", exception: true)
-        system("git", "-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
-          "refs/remotes/origin/trunk", exception: true)
+        GitFixture.git!("-C", tmp, "branch", "-m", "main", "trunk")
+        GitFixture.git!("-C", tmp, "update-ref", "refs/remotes/origin/trunk", "HEAD")
+        GitFixture.git!("-C", tmp, "symbolic-ref", "refs/remotes/origin/HEAD",
+          "refs/remotes/origin/trunk")
       end
 
       it "succeeds" do
@@ -243,11 +243,11 @@ RSpec.describe SimpleCov::CLI do
 
     context "with commits that landed on the base after the branch point" do
       before do
-        system("git", "-C", tmp, "switch", "-qc", "feature", exception: true)
-        system("git", "-C", tmp, "switch", "-q", "main", exception: true)
+        GitFixture.git!("-C", tmp, "switch", "-qc", "feature")
+        GitFixture.git!("-C", tmp, "switch", "-q", "main")
         file!("lib/quiet.rb", "# changed on main\n")
         commit!("change quiet on main")
-        system("git", "-C", tmp, "switch", "-q", "feature", exception: true)
+        GitFixture.git!("-C", tmp, "switch", "-q", "feature")
         file!("lib/result.rb", "# changed\n")
         run_in_repo("affected", "--input", json_path)
       end

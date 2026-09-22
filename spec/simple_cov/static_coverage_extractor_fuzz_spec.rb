@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 require "helper"
+
+# Prism's FFI backend cannot open libprism on JRuby on Windows, so there is
+# nothing here to exercise. spec/unloadable_prism_spec.rb covers the fallback.
+return unless SimpleCov::StaticCoverageExtractor.prism_loaded?
+
 require "support/branch_fuzzer"
 require "support/coverage_differential"
-require "simplecov/static_coverage_extractor"
 
 RSpec.describe SimpleCov::StaticCoverageExtractor, if: ENV.fetch("SIMPLECOV_FUZZ", nil), mutant: false do
   let(:programs) do

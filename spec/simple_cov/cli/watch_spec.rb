@@ -59,7 +59,7 @@ RSpec.describe SimpleCov::CLI do
 
     def stop_watch(thread)
       thread.raise(Interrupt) if thread.alive?
-      thread.join(5)
+      thread.join(wait_timeout)
     end
 
     def wait_timeout
@@ -705,7 +705,7 @@ RSpec.describe SimpleCov::CLI do
         thread = Thread.new { live.send(:stream, served) }
         wait_for { live.instance_variable_get(:@queues).size == 1 }
         header = +""
-        header << client.readline until header.end_with?("\r\n\r\n")
+        Timeout.timeout(wait_timeout) { header << client.readline until header.end_with?("\r\n\r\n") }
         live.broadcast
         live.broadcast("again")
         events = Timeout.timeout(10) { Array.new(4) { client.readline } }

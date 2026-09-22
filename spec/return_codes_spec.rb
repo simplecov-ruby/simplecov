@@ -12,7 +12,7 @@ RSpec.describe "return codes" do
       end
     end
 
-    let(:capture) { CapturedRuns.once([env, command]) { Open3.capture3(env, command) } }
+    let(:capture) { CapturedRuns.once([env, command]) { Open3.capture3(child_env(env), command) } }
     let(:env) { {} }
     let(:captured_stderr) { capture[1] }
     let(:status) { capture[2] }
