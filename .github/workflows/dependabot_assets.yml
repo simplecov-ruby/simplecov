@@ -42,7 +42,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: ruby/setup-ruby@v1.321.0
+      - uses: ruby/setup-ruby@v1.323.0
         with:
           ruby-version: ruby
           bundler-cache: true
