@@ -64,19 +64,28 @@ module SimpleCov
         segments.fetch(-2).to_sym
       end
 
-      # The single place ActionView is named. The handler lookup is the one the
-      # resolver performs, so a template language the project has registered a
-      # handler for compiles here the way it does when rendered. Nil when
-      # nothing is registered for the extension, which is how a default glob
-      # naming `.haml` behaves in a project that has no Haml: ActionView would
-      # hand back the raw handler and the template would report as static text.
+      # Nil when nothing is registered for the extension, which is how a default
+      # glob naming `.haml` behaves in a project that has no Haml.
+      # `handler_for_extension` is not that lookup: it falls back to the raw
+      # handler, and the template would report as static text.
       def build_template(path, source)
         extension = File.extname(path).delete_prefix(".")
-        handler = ActionView::Template.registered_template_handler(extension)
+        handler = handler_for(extension)
         return nil unless handler
 
         no_locals = [] #: Array[Symbol]
         ActionView::Template.new(source, path, handler, locals: no_locals, format: format_for(path))
+      end
+
+      # Rails main removed `Template.registered_template_handler` when the
+      # registry moved onto `Template::Handlers`. Read that hash directly so an
+      # unregistered extension stays nil. Older Rails still have the method.
+      def handler_for(extension)
+        if ActionView::Template.respond_to?(:registered_template_handler)
+          ActionView::Template.registered_template_handler(extension)
+        else
+          ActionView::Template::Handlers.template_handlers[extension.to_sym]
+        end
       end
     end
   end

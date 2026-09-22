@@ -10,6 +10,8 @@ module SimpleCov
       def self?.format_for: (String path) -> Symbol?
 
       def self?.build_template: (String path, String source) -> untyped
+
+      def self?.handler_for: (String extension) -> untyped
     end
   end
 end
