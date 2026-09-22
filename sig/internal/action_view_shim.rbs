@@ -4,5 +4,9 @@ module ActionView
                    locals: Array[Symbol], ?format: Symbol?) -> Template
 
     def self.registered_template_handler: (String extension) -> untyped
+
+    module Handlers
+      def self.template_handlers: () -> Hash[Symbol, untyped]
+    end
   end
 end

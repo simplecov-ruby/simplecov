@@ -60,6 +60,40 @@ RSpec.describe SimpleCov::ViewCoverage::TemplateCompiler do
 
       expect(built.last).to eq(source: "<p></p>", path: path, handler: handler, locals: [], format: :html)
     end
+
+    context "when ActionView exposes the handler registry instead" do
+      let(:action_view_template) { action_view_template_with_registry(handlers) }
+
+      it "looks the handler up without registered_template_handler" do
+        described_class.build_template(path, "<p></p>")
+
+        expect(built.last).to include(handler: handler, format: :html)
+      end
+    end
+
+    context "when the new registry has nothing for the extension" do
+      let(:action_view_template) { action_view_template_with_registry({}) }
+
+      it "builds nothing" do
+        expect(described_class.build_template(path, "<p></p>")).to be_nil
+      end
+    end
+  end
+
+  def action_view_template_with_registry(handlers)
+    handlers_map = handlers.transform_keys(&:to_sym)
+    recorded = built
+    made = template
+    registry = Module.new do
+      define_singleton_method(:template_handlers) { handlers_map }
+    end
+    Class.new do
+      const_set(:Handlers, registry)
+      define_singleton_method(:new) do |source, path, handler, locals:, format:|
+        recorded << {source: source, path: path, handler: handler, locals: locals, format: format}
+        made
+      end
+    end
   end
 
   describe ".format_for" do
