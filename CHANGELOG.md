@@ -1,5 +1,5 @@
-Unreleased
-==========
+1.3.1 (2026-09-24)
+==================
 
 ## Bugfixes
 * `cover_views` compiles templates on Rails main again. Rails removed `ActionView::Template.registered_template_handler`; the lookup reads `ActionView::Template::Handlers.template_handlers` and still skips an extension with no handler. See https://github.com/simplecov-ruby/simplecov/issues/1300.
