@@ -6,7 +6,7 @@
     "@types/bun": "^1.4.2",
     "esbuild": "^0.28.2",
     "highlight.js": "^11.12.0",
-    "oxlint": "^1.82.0",
+    "oxlint": "^1.83.0",
     "typescript": "^7.0.2"
   },
   "scripts": {
