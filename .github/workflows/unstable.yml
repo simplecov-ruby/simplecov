@@ -43,7 +43,7 @@ jobs:
         run: rm Gemfile.lock
         shell: bash
 
-      - uses: ruby/setup-ruby@v1.321.0
+      - uses: ruby/setup-ruby@v1.323.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
           # ruby-head ships the matching development Bundler. Installing the
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: ruby/setup-ruby@v1.321.0
+      - uses: ruby/setup-ruby@v1.323.0
         with:
           ruby-version: ruby-head
           bundler: default
