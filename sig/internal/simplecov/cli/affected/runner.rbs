@@ -1,0 +1,21 @@
+$CHILD_STATUS: Process::Status
+
+module SimpleCov
+  module CLI
+    module Affected
+      interface _Runner
+        def call: (Array[String] command, String root) -> Integer
+      end
+
+      module SpawnedRunner
+        def self?.call: (Array[String] command, String root) -> Integer
+      end
+
+      module SystemRunner
+        def self?.call: (Array[String] command, String root) -> Integer
+      end
+
+      RUNNER: _Runner
+    end
+  end
+end

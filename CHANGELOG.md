@@ -4,6 +4,8 @@ Unreleased
 ## Bugfixes
 * `cover_views` compiles templates on Rails main again. Rails removed `ActionView::Template.registered_template_handler`; the lookup reads `ActionView::Template::Handlers.template_handlers` and still skips an extension with no handler. See https://github.com/simplecov-ruby/simplecov/issues/1300.
 * `require "simplecov"` works again on JRuby on Windows, where 1.3.0 raised `LoadError: Could not open library '.../libprism.dll'`. Prism's FFI backend cannot open its native library there, and 1.3.0 required Prism as soon as SimpleCov loaded. Prism now loads only when branch or method coverage needs the static extractor, which a line-only run never does. Where it cannot load at all, the extractor falls back to empty branch and method tables for never-loaded files, as it did before 1.3.0. See https://github.com/simplecov-ruby/simplecov/issues/1299.
+* `simplecov affected --run` works on JRuby on Windows, where it crashed with `NoMethodError` because `Process.wait2` answers no status there. On that platform the runner starts through `Kernel#system` instead.
+* `simplecov serve` refuses a symlink that points outside the report on JRuby on Windows too. JRuby's `File.realpath` follows no symlinks there, so `serve` would have served the file the link pointed to, and `simplecov clean` and the `coverage.json` lookup compared paths that were never resolved. On JRuby the CLI now resolves paths through the JDK.
 
 1.3.0 (2026-09-12)
 ==================

@@ -6725,14 +6725,26 @@ RSpec.describe SimpleCov::CLI do
         end
       end
 
+      it "holds a key spelled through a symlink under the path the link resolves to" do
+        with_a_link do |real, linked|
+          expect(index(File.join(linked, "a.rb") => "V")[File.realdirpath(File.join(real, "a.rb"))]).to eq("V")
+        end
+      end
+
       def indexed_through_a_link
+        with_a_link do |real, linked|
+          yield(index(File.join(real, "a.rb") => "REAL", File.join(linked, "a.rb") => "VIA_LINK"), real, linked)
+        end
+      end
+
+      def with_a_link
         Dir.mktmpdir("simplecov-exact-index-link-") do |dir|
           real = File.join(dir, "real")
           linked = File.join(dir, "linked")
           FileUtils.mkdir_p(real)
           File.write(File.join(real, "a.rb"), "x")
           FileUtils.ln_s(real, linked)
-          yield(index(File.join(real, "a.rb") => "REAL", File.join(linked, "a.rb") => "VIA_LINK"), real, linked)
+          yield real, linked
         end
       end
     end
@@ -9035,8 +9047,8 @@ RSpec.describe SimpleCov::CLI do
 
       it "returns nil for a file that vanishes mid-resolve" do
         vanishing = File.join(File.realpath(tmp), "index.html")
-        allow(File).to receive(:realpath).and_call_original
-        allow(File).to receive(:realpath).with(vanishing).and_raise(Errno::ENOENT)
+        allow(SimpleCov::CLI::REAL_PATHS).to receive(:realpath).and_call_original
+        allow(SimpleCov::CLI::REAL_PATHS).to receive(:realpath).with(vanishing).and_raise(Errno::ENOENT)
 
         expect(handler.resolve("/index.html", tmp)).to be_nil
       end

@@ -5,6 +5,7 @@ require "optparse"
 require_relative "command_helpers"
 require_relative "tests"
 require_relative "affected/changed_files"
+require_relative "affected/runner"
 require_relative "affected/selection"
 
 module SimpleCov
@@ -133,12 +134,10 @@ module SimpleCov
         run_command(opts.fetch(:run) + selection.fetch(:tests), opts.fetch(:root), stderr)
       end
 
-      # The selection's paths are relative to the repository root, so the runner
-      # starts there. The command is named explicitly in the failure because not
-      # every engine's exception message carries it.
+      # The command is named explicitly in the failure because not every
+      # engine's exception message carries it.
       def run_command(command, root, stderr)
-        _, status = Process.wait2(spawn(*command, chdir: root))
-        status.exitstatus || 1
+        RUNNER.call(command, root)
       rescue SystemCallError => e
         stderr.puts("simplecov affected: cannot run #{command.first.inspect} (#{e})")
         127

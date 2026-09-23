@@ -50,6 +50,10 @@ RSpec.describe SimpleCov::CLI do
 
     def out_path = File.join(tmp, "out.txt")
 
+    # A single-quoted path: JRuby on Windows hands a double quote inside an
+    # argument to the child unescaped, which breaks the script it is part of.
+    def write_out(expression) = "File.write('#{out_path}', #{expression})"
+
     def file!(path, content = "# original\n")
       full = File.join(tmp, path)
       FileUtils.mkdir_p(File.dirname(full))
@@ -285,7 +289,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     context "with a runner" do
-      let(:script) { "File.write(#{out_path.inspect}, Dir.pwd)" }
+      let(:script) { write_out("Dir.pwd") }
 
       before { file!("lib/result.rb", "# changed\n") }
 
@@ -912,7 +916,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     context "with a selection under --run" do
-      let(:script) { "File.write(#{out_path.inspect}, ARGV.join(' '))" }
+      let(:script) { write_out("ARGV.join(' ')") }
 
       before do
         file!("lib/result.rb", "# changed\n")
@@ -933,7 +937,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     context "with a fallback under --run" do
-      let(:script) { "File.write(#{out_path.inspect}, ARGV.join(' ').inspect)" }
+      let(:script) { write_out("ARGV.join(' ').inspect") }
 
       before do
         file!("Gemfile.lock", "# changed\n")
@@ -954,7 +958,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     context "with a trigger firing alongside a selection under --run" do
-      let(:script) { "File.write(#{out_path.inspect}, ARGV.join(' ').inspect)" }
+      let(:script) { write_out("ARGV.join(' ').inspect") }
 
       before do
         file!("lib/result.rb", "# changed\n")
@@ -1016,7 +1020,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     context "when nothing is selected under --run" do
-      let(:script) { "File.write(#{out_path.inspect}, 'ran')" }
+      let(:script) { write_out("'ran'") }
 
       before do
         file!("lib/quiet.rb", "# changed\n")

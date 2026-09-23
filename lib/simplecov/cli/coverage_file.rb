@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../coverage_json"
+require_relative "real_path"
 
 module SimpleCov
   module CLI
@@ -55,7 +56,7 @@ module SimpleCov
 
       # A key whose file no longer exists keeps its literal spelling.
       def normalize(key)
-        File.realdirpath(key)
+        REAL_PATHS.realdirpath(key)
       rescue SystemCallError
         key
       end

@@ -3,6 +3,7 @@
 require "fileutils"
 require "optparse"
 require_relative "command_helpers"
+require_relative "real_path"
 
 module SimpleCov
   module CLI
@@ -68,7 +69,7 @@ module SimpleCov
       end
 
       def canonical_path(path)
-        File.realpath(path)
+        REAL_PATHS.realpath(path)
       rescue SystemCallError
         File.expand_path(path)
       end

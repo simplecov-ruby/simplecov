@@ -1,0 +1,17 @@
+module SimpleCov
+  module CLI
+    interface _RealPaths
+      def realpath: (String path) -> String
+
+      def realdirpath: (String path) -> String
+    end
+
+    module JDKRealPath
+      def self?.realpath: (String path) -> String
+
+      def self?.realdirpath: (String path) -> String
+    end
+
+    REAL_PATHS: _RealPaths
+  end
+end

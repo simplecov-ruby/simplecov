@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../real_path"
+
 module SimpleCov
   module CLI
     module Serve
@@ -93,7 +95,7 @@ module SimpleCov
         # added, it must happen BEFORE the `inside?` check.
         def resolve(request_path, root)
           path = request_path.split("?").first.to_s.delete_prefix("/")
-          absolute_root = File.realpath(root)
+          absolute_root = REAL_PATHS.realpath(root)
           candidate = File.expand_path(path, absolute_root)
           # Rejected before touching disk, so traversal and absolute-path attempts
           # are 403, not 404.
@@ -104,10 +106,10 @@ module SimpleCov
 
           # Symlinks are resolved last and re-checked: a file inside root could be
           # a symlink pointing outside.
-          real = File.realpath(candidate)
+          real = REAL_PATHS.realpath(candidate)
           inside?(real, absolute_root) ? real : :forbidden
         rescue Errno::ENOENT
-          # TOCTOU: candidate vanished between File.file? and File.realpath.
+          # TOCTOU: candidate vanished between File.file? and resolving it.
           nil
         end
 
