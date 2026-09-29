@@ -811,7 +811,8 @@ RSpec.describe SimpleCov::Production do
     "SimpleCov::Production.start"] do
     def inherit_measurement
       stub_coverage
-      start
+      start_without_flush_thread
+      allow(described_class).to receive(:spawn_flush_thread).and_call_original
       described_class.instance_variable_set(:@pid, Process.pid - 1)
       described_class.instance_variable_set(:@running, false)
       allow(Coverage).to receive(:running?).and_return(true)
