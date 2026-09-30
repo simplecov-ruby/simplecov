@@ -79,12 +79,12 @@ GEM
       logger
       prism (>= 1.6.0)
       tsort
-    rdoc (8.0.0)
+    rdoc (8.1.0)
       erb
       prism (>= 1.6.0)
       rbs (>= 4.0.0)
       tsort
-    regexp_parser (2.13.0)
+    regexp_parser (2.13.1)
     reline (0.7.0)
       io-console (~> 0.5)
     rspec (3.13.2)
@@ -142,7 +142,7 @@ GEM
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
     simpleidn (0.3.0)
-    sorbet-runtime (0.6.13506)
+    sorbet-runtime (0.6.13511)
     standard (1.56.0)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.0)
@@ -155,7 +155,7 @@ GEM
     standard-performance (1.9.0)
       lint_roller (~> 1.1)
       rubocop-performance (~> 1.26.0)
-    standard-rspec (0.5.0)
+    standard-rspec (0.5.1)
       lint_roller (>= 1.0)
       rubocop-capybara (~> 2.23)
       rubocop-factory_bot (~> 2.27)
