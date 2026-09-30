@@ -28,8 +28,10 @@ module SimpleCov
       return unless started_in_this_process?
 
       # Coverage is no longer running (someone stopped it manually, or a test
-      # consumed the result), so don't run exit tasks.
-      return unless Coverage.running?
+      # consumed the result), so don't run exit tasks. A `SimpleCov.result`
+      # collected early (Rails 8.1.4 runs `parallelize_teardown` hooks in the
+      # parent too) also stops Coverage, but still needs formatting.
+      return unless Coverage.running? || result?
 
       # Captured BEFORE the deferral probe: its freshness check rescues
       # filesystem errors, and completing any rescue inside an at_exit handler

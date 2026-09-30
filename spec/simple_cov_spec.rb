@@ -1310,12 +1310,22 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(described_class).to have_received(:run_exit_tasks!)
     end
 
-    it "skips exit tasks when Coverage has stopped" do
+    it "skips exit tasks when Coverage has stopped without a result being collected" do
       allow(Coverage).to receive(:running?).and_return(false)
+      allow(described_class).to receive_messages(result?: false, defer_to_existing_report?: false)
       allow(described_class).to receive(:run_exit_tasks!)
 
       described_class.at_exit_behavior
       expect(described_class).not_to have_received(:run_exit_tasks!)
+    end
+
+    it "runs exit tasks when Coverage has stopped because SimpleCov.result was already collected" do
+      allow(Coverage).to receive(:running?).and_return(false)
+      allow(described_class).to receive_messages(result?: true, defer_to_existing_report?: false)
+      allow(described_class).to receive(:run_exit_tasks!)
+
+      described_class.at_exit_behavior
+      expect(described_class).to have_received(:run_exit_tasks!)
     end
 
     it "defers to the existing on-disk report when our result is empty and the disk report is fresher" do

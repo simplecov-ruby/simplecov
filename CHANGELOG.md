@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Bugfixes
+* The HTML report is generated again on Rails 8.1.4 when a `parallelize_teardown` hook calls `SimpleCov.result`. Rails 8.1.4 runs those hooks in the parent process as well as in each worker, and collecting the result there stops `Coverage`, which the exit handler took as a sign that nothing was left to report. The exit handler now formats a result that was already collected. See https://github.com/simplecov-ruby/simplecov/issues/1308.
+
 1.3.1 (2026-09-24)
 ==================
 
