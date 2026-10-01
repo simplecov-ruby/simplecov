@@ -115,7 +115,7 @@ module SimpleCov
       end
 
       def oneshot_supported?
-        !Coverage.respond_to?(:supported?) || Coverage.supported?(:oneshot_lines)
+        Coverage.supported?(:oneshot_lines)
       end
 
       def configure(root, sink, flush_interval:, flush_jitter:, sample_rate:, max_buffered_lines:)

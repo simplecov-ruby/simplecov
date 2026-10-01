@@ -706,33 +706,6 @@ RSpec.describe SimpleCov::Configuration do
         expect(config.coverage_criterion_supported?(:branches)).to be supported
       end
     end
-
-    context "when the runtime cannot be asked" do
-      before do
-        allow(Coverage).to receive(:respond_to?).and_call_original
-        allow(Coverage).to receive(:respond_to?).with(:supported?).and_return(false)
-      end
-
-      %i[line branch].each do |criterion|
-        it "supports #{criterion} coverage" do
-          stub_const("RUBY_ENGINE", "ruby")
-
-          expect(config.coverage_criterion_supported?(criterion)).to be true
-        end
-      end
-
-      it "does not support eval" do
-        expect(config.coverage_criterion_supported?(:eval)).to be false
-      end
-
-      %i[line eval].each do |criterion|
-        it "supports no #{criterion} coverage on JRuby, which never emitted this data" do
-          stub_const("RUBY_ENGINE", "jruby")
-
-          expect(config.coverage_criterion_supported?(criterion)).to be false
-        end
-      end
-    end
   end
 
   describe "#project_name" do

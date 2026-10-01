@@ -749,7 +749,7 @@ That's equivalent to:
 SimpleCov.start do
   enable_coverage :branch
   enable_coverage :method
-  enable_coverage :eval if Coverage.respond_to?(:supported?) && Coverage.supported?(:eval)
+  enable_coverage :eval if Coverage.supported?(:eval)
   minimum_coverage line: 100, branch: 100, method: 100
 end
 ```

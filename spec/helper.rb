@@ -4,15 +4,7 @@ DOGFOOD_DISABLED = ENV["SIMPLECOV_NO_DOGFOOD"] || Gem.win_platform?
 
 unless DOGFOOD_DISABLED
   require "coverage"
-  start_args = {lines: true}
-  if Coverage.respond_to?(:supported?)
-    start_args[:branches] = true if Coverage.supported?(:branches)
-    start_args[:methods] = true if Coverage.supported?(:methods)
-  else
-    start_args[:branches] = true
-    start_args[:methods] = true
-  end
-  Coverage.start(start_args)
+  Coverage.start(lines: true, branches: Coverage.supported?(:branches), methods: Coverage.supported?(:methods))
 end
 
 SPEC_PARALLEL_WORKER = ENV.fetch("TEST_ENV_NUMBER", nil)

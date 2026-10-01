@@ -4,9 +4,7 @@ require "helper"
 require "simplecov/production"
 
 RSpec.describe "production coverage integration" do
-  oneshot_supported = !Coverage.respond_to?(:supported?) || Coverage.supported?(:oneshot_lines)
-
-  if oneshot_supported
+  if Coverage.supported?(:oneshot_lines)
     around do |test|
       Dir.chdir(File.join(File.dirname(__FILE__), "fixtures", "production_test")) do
         FileUtils.rm_rf("./tmp")

@@ -103,14 +103,6 @@ RSpec.describe SimpleCov::Production do
         expect(start).to be true
       end
 
-      it "assumes oneshot lines on a runtime that cannot be asked" do
-        allow(Coverage).to receive(:respond_to?).and_call_original
-        allow(Coverage).to receive(:respond_to?).with(:supported?).and_return(false)
-        allow(Coverage).to receive(:supported?).and_raise(NoMethodError)
-
-        expect(start).to be true
-      end
-
       it "declines a second start while running" do
         start
 

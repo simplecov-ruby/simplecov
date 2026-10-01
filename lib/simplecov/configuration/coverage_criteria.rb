@@ -84,14 +84,9 @@ module SimpleCov
       coverage_criterion_supported?(:methods)
     end
 
-    # Older Rubies don't expose `Coverage.supported?`, so fall back to the
-    # historical engine check that line/branch/method were unavailable on JRuby.
-    # `:eval` was added later, so its fallback is "always unsupported".
     def coverage_criterion_supported?(criterion)
       load_coverage
-      return Coverage.supported?(criterion) if Coverage.respond_to?(:supported?)
-
-      !criterion.eql?(:eval) && !RUBY_ENGINE.eql?("jruby")
+      Coverage.supported?(criterion)
     end
 
     # Loading `simplecov/configuration` on its own leaves Coverage undefined, and
