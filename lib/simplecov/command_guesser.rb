@@ -102,8 +102,7 @@ module SimpleCov
       DEFINED_CONSTANT_FRAMEWORKS = [
         ["RSpec", -> { defined?(::RSpec) }],
         ["Unit Tests", -> { defined?(Test::Unit) }],   # simplecov:disable
-        ["Minitest", -> { defined?(::Minitest) }],   # simplecov:disable
-        ["MiniTest", -> { defined?(MiniTest) }]      # simplecov:disable
+        ["Minitest", -> { defined?(::Minitest) }]    # simplecov:disable
       ].freeze
       private_constant :DEFINED_CONSTANT_FRAMEWORKS
 

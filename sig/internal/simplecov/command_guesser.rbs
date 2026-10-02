@@ -26,7 +26,7 @@ module SimpleCov
 
     def self.from_executable_name: () -> (nil | ::String)
 
-    DEFINED_CONSTANT_FRAMEWORKS: ::Array[::Array["RSpec" | untyped] | ::Array["Unit Tests" | untyped] | ::Array["Minitest" | untyped] | ::Array["MiniTest" | untyped]]
+    DEFINED_CONSTANT_FRAMEWORKS: ::Array[::Array["RSpec" | untyped] | ::Array["Unit Tests" | untyped] | ::Array["Minitest" | untyped]]
 
     def self.from_defined_constants: () -> (untyped | "Unknown Test Framework")
   end
