@@ -1,3 +1,9 @@
+Unreleased
+==========
+
+## Enhancements
+* SimpleCov no longer warns on JRuby that coverage may be inaccurate without `--debug` (full-trace mode). JRuby's coverage no longer depends on it: SimpleCov's own suite on JRuby 10.0.7 reports every line identically with and without `--debug`, so the warning only told JRuby users to slow their test runs down for nothing.
+
 1.3.2 (2026-09-30)
 ==================
 

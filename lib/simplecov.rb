@@ -94,7 +94,6 @@ module SimpleCov
 
     def start_tracking
       require "coverage"
-      warn_if_jruby_full_trace_disabled
       validate_coverage_criteria!
       require_relative "simplecov/process" if enabled_for_subprocesses? && Process.respond_to?(:_fork)
 
@@ -136,26 +135,6 @@ module SimpleCov
     def defer_to_minitest_after_run
       self.external_at_exit = true
       Minitest.after_run { at_exit_behavior }
-    end
-
-    # JRuby coverage data is unreliable unless full-trace mode is enabled.
-    # @see https://github.com/jruby/jruby/issues/1196
-    # @see https://github.com/simplecov-ruby/simplecov/issues/420
-    # @see https://github.com/simplecov-ruby/simplecov/issues/86
-    # mutant:disable — every line below the guard is JRuby-only, and no
-    # example running on the engine this suite runs on can reach one.
-    def warn_if_jruby_full_trace_disabled
-      return unless defined?(JRUBY_VERSION) && defined?(JRuby) # simplecov:disable — JRuby-only branch
-
-      # simplecov:disable — JRuby-only branches; unreachable from CRuby
-      # `org` is JRuby's Java-package entry point, absent on CRuby, so no RBS
-      # declaration can be truthful here.
-      return if org.jruby.RubyInstanceConfig.FULL_TRACE_ENABLED # steep:ignore NoMethod
-
-      warn 'Coverage may be inaccurate; set the "--debug" command line option, ' \
-           'or do JRUBY_OPTS="--debug" ' \
-           'or set the "debug.fullTrace=true" option in your .jrubyrc'
-      # simplecov:enable
     end
   end
 end

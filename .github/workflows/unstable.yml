@@ -11,7 +11,6 @@ jobs:
     timeout-minutes: 20
     env:
       BUNDLE_WITHOUT: "benchmark"
-      JRUBY_OPTS: "--debug"
     strategy:
       fail-fast: false
 

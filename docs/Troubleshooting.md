@@ -18,9 +18,6 @@ On JRuby, only **line coverage** is available — branch, method, oneshot-line, 
 CRuby's `Coverage` library that JRuby doesn't implement. SimpleCov detects this automatically: the bundled `strict`
 profile, for instance, enforces only line coverage at 100% on JRuby instead of failing to load.
 
-To get accurate line numbers in coverage results, JRuby needs its full backtrace enabled. Pass `JRUBY_OPTS="--debug"`,
-or create a `.jrubyrc` with `debug.fullTrace=true`.
-
 ### Notes on specific frameworks and test utilities
 
 Some frameworks and tools have quirks worth knowing about when using SimpleCov:

@@ -78,8 +78,6 @@ module SimpleCov
   def self.minitest_autorun_pending?: () -> bool
 
   def self.defer_to_minitest_after_run: () -> void
-
-  def self.warn_if_jruby_full_trace_disabled: () -> void
 end
 
 

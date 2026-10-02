@@ -474,13 +474,6 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.start_tracking
       expect(described_class).to have_received(:require).with("coverage")
     end
-
-    it "says so where JRuby cannot report full traces" do
-      allow(described_class).to receive(:warn_if_jruby_full_trace_disabled)
-
-      described_class.start_tracking
-      expect(described_class).to have_received(:warn_if_jruby_full_trace_disabled)
-    end
   end
 
   shared_context "with a coverage slice to process" do
