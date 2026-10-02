@@ -11,8 +11,6 @@ module SimpleCov
 
       def self?.run: (untyped args, stdout: untyped, stderr: untyped) -> (1 | 0)
 
-      def self?.parse: (untyped args) -> untyped
-
       def self?.load_data: (untyped input, untyped stderr) -> (untyped | nil)
 
       def self?.emit_text: (untyped stdout, untyped data, untyped color) -> untyped

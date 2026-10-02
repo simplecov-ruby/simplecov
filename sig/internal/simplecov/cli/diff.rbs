@@ -13,8 +13,6 @@ module SimpleCov
 
       def self?.parse_flags: (untyped args) -> untyped
 
-      def self?.option_parser: (untyped opts) -> untyped
-
       def self?.load_coverage: (untyped path, untyped stderr) -> (untyped | nil)
 
       def self?.normalize_keys: (untyped coverage) -> untyped

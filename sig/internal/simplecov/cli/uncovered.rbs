@@ -17,8 +17,6 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
-      def self?.build_parser: (untyped opts) -> untyped
-
       def self?.validate_top: (::Integer value) -> ::Integer
 
       def self?.emit_text: (untyped stdout, untyped files, untyped color) -> untyped
