@@ -12,8 +12,6 @@ module SimpleCov
 
       private
 
-      def constant_name: (untyped node) -> String
-
       def with_class: (String name) { () -> void } -> void
     end
   end

@@ -8,11 +8,11 @@ module SimpleCov
     # both as the constant.
     module MethodCollector
       def visit_class_node(node)
-        with_class(constant_name(node.constant_path)) { super }
+        with_class(node.constant_path.slice) { super }
       end
 
       def visit_module_node(node)
-        with_class(constant_name(node.constant_path)) { super }
+        with_class(node.constant_path.slice) { super }
       end
 
       # `def name(...)` and `def self.name(...)` both produce DefNode. The class
@@ -26,13 +26,6 @@ module SimpleCov
       end
 
       private
-
-      def constant_name(node)
-        return "<anonymous>" if node.nil?
-        return node.slice if node.respond_to?(:slice)
-
-        node.to_s
-      end
 
       def with_class(name)
         @class_stack.push(name)

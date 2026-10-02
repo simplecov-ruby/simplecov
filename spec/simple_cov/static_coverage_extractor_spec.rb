@@ -707,24 +707,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
     end
   end
 
-  describe "naming the class a method belongs to" do
-    let(:visitor) { SimpleCov::StaticCoverageExtractor::Visitor.new }
-
-    it "names a constant path by its source form" do
-      path = Prism.parse("class Foo::Bar; end\n").value.statements.body.first.constant_path
-
-      expect(visitor.send(:constant_name, path)).to eq("Foo::Bar")
-    end
-
-    it "names a class that has no constant path at all" do
-      expect(visitor.send(:constant_name, nil)).to eq("<anonymous>")
-    end
-
-    it "names anything else by itself" do
-      expect(visitor.send(:constant_name, Comparable)).to eq("Comparable")
-    end
-  end
-
   describe "one-line pattern matching" do
     it "descends into the expression a rightward pattern matches" do
       expect(described_class.call("(a ? 1 : 2) => Integer\n")["branches"].keys.map(&:first)).to eq([:if])
@@ -732,24 +714,6 @@ RSpec.describe SimpleCov::StaticCoverageExtractor do
 
     it "descends into the expression a boolean pattern matches" do
       expect(described_class.call("(a ? 1 : 2) in Integer\n")["branches"].keys.map(&:first)).to eq([:if])
-    end
-  end
-
-  describe "naming a constant path" do
-    def constant_name_of(path)
-      Object.new.extend(described_class::MethodCollector).send(:constant_name, path)
-    end
-
-    it "names an absent constant path" do
-      expect(constant_name_of(nil)).to eq("<anonymous>")
-    end
-
-    it "renders a constant path by the source it slices" do
-      expect(constant_name_of(Struct.new(:slice).new("Foo::Bar"))).to eq("Foo::Bar")
-    end
-
-    it "renders anything else by itself" do
-      expect(constant_name_of(Object.new)).to match(/\A#<Object/)
     end
   end
 end
