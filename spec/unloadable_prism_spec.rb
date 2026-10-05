@@ -3,6 +3,8 @@
 require "helper"
 
 RSpec.describe "A Ruby whose Prism cannot load" do
+  before { skip "TruffleRuby's Ripper is built on Prism" if RUBY_ENGINE == "truffleruby" }
+
   def run_fixture(*args)
     Dir.chdir(File.join(__dir__, "fixtures", "unloadable_prism")) do
       FileUtils.rm_rf("tmp")
