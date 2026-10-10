@@ -7,6 +7,9 @@ Unreleased
 ## Enhancements
 * SimpleCov no longer warns on JRuby that coverage may be inaccurate without `--debug` (full-trace mode). JRuby's coverage no longer depends on it: SimpleCov's own suite on JRuby 10.0.7 reports every line identically with and without `--debug`, so the warning only told JRuby users to slow their test runs down for nothing.
 
+## Bugfixes
+* A merge keeps the method and branch hits of a process that recorded no line hit for the file. A forked worker inherits the files its parent loaded with their counters cleared, and calling a method whose body shares its `def` line (a short endless method, for instance) then records a method hit and no line hit. The merge took that for a never-loaded file and dropped its hits in favor of the parent's zeroes, so methods the workers exercised were reported as uncovered. A file now counts as executed when any line, method, or branch arm was hit. See https://github.com/simplecov-ruby/simplecov/issues/1310.
+
 1.3.2 (2026-09-30)
 ==================
 

@@ -514,6 +514,16 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(file(never_executed).coverage_statistics[:branch]&.percent).to eq(0.0)
     end
 
+    context "when a file's only hit is a method call" do
+      let(:coverage) do
+        {never_executed => {"lines" => [0, 0, nil, 0], "methods" => {["Foo", :bar, 2, 2, 2, 9] => 1}}}
+      end
+
+      it "leaves it alone" do
+        expect(file(never_executed)).not_to be_not_loaded
+      end
+    end
+
     context "when the results carry no line data" do
       let(:coverage) do
         {

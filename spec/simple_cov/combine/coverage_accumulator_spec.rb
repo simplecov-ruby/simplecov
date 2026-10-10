@@ -65,6 +65,39 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
     end
   end
 
+  describe ".file_executed?" do
+    let(:unhit_branches) { {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 10] => 0}} }
+    let(:hit_branches) { {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 10] => 1}} }
+
+    it "is true when any line ran" do
+      expect(described_class.file_executed?({"lines" => [nil, 0, 2]})).to be(true)
+    end
+
+    it "is true when a method was called on a file with no line hit" do
+      coverage = {"lines" => [0, 0, nil], "methods" => {["Foo", :bar, 1, 2, 1, 9] => 0, ["Foo", :baz, 2, 2, 2, 9] => 1}}
+
+      expect(described_class.file_executed?(coverage)).to be(true)
+    end
+
+    it "is true when a branch arm ran on a file with no line hit" do
+      expect(described_class.file_executed?({"lines" => [0, 0, nil], "branches" => hit_branches})).to be(true)
+    end
+
+    it "is false when no line, method, or branch arm was hit" do
+      coverage = {"lines" => [0, 0, nil], "methods" => {["Foo", :bar, 1, 2, 1, 9] => 0}, "branches" => unhit_branches}
+
+      expect(described_class.file_executed?(coverage)).to be(false)
+    end
+
+    it "is false when the tables are empty" do
+      expect(described_class.file_executed?({"lines" => [0, 0, nil], "methods" => {}, "branches" => {}})).to be(false)
+    end
+
+    it "is false when the file carries no tables at all" do
+      expect(described_class.file_executed?({})).to be(false)
+    end
+  end
+
   describe "#result" do
     it "is nil when nothing was absorbed, so 'no results' is distinguishable" do
       expect(described_class.new.result).to be_nil
@@ -280,6 +313,37 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       expect(arms).to match([:then, 1, 3, 4, 3, 10] => 5, [:else, 2, 4, 4, 4, 10] => 5)
     end
 
+    context "when a side hit a branch arm and no line" do
+      let(:loaded) do
+        {
+          "lines" => [nil, 1, 0, 0, nil],
+          "branches" => {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 0, [:else, 2, 4, 4, 4, 10] => 0}}
+        }
+      end
+      let(:branch_hit) do
+        {
+          "lines" => [nil, 0, 0, 0, nil],
+          "branches" => {[:if, 0, 2, 2, 4, 10] => {[:then, 1, 3, 4, 3, 10] => 2, [:else, 2, 4, 4, 4, 10] => 0}}
+        }
+      end
+
+      it "keeps the hit when the side is absorbed second" do
+        expect(merge(loaded, branch_hit)["branches"]).to eq(branch_hit["branches"])
+      end
+
+      it "keeps the hit when the side is absorbed first" do
+        expect(merge(branch_hit, loaded)["branches"]).to eq(branch_hit["branches"])
+      end
+
+      it "drops a simulated file's branches absorbed after it" do
+        expect(merge(branch_hit, simulated_drifted)["branches"]).to eq(branch_hit["branches"])
+      end
+
+      it "drops a simulated file's branches absorbed before it" do
+        expect(merge(simulated_drifted, branch_hit)["branches"]).to eq(branch_hit["branches"])
+      end
+    end
+
     context "when one side carries no lines table" do
       def line_only = {"lines" => [nil, 1, 1]}
 
@@ -345,6 +409,43 @@ RSpec.describe SimpleCov::Combine::CoverageAccumulator do
       simulated_methods = {"lines" => [nil, 0, 0], "methods" => {["Foo", :bar, 2, 2, 3, 7] => 0}}
 
       expect(merge(executed_methods, simulated_methods)["methods"].keys).to eq([["Foo", :bar, 2, 2, 3, 5]])
+    end
+
+    context "when a forked worker called a method that records no line hit" do
+      let(:parent) { {"lines" => [1, 1, nil], "methods" => {["Victim", :value, 2, 2, 2, 24] => 0}} }
+      let(:worker) { {"lines" => [0, 0, nil], "methods" => {["Victim", :value, 2, 2, 2, 24] => 1}} }
+      let(:simulated) { {"lines" => [0, 0, nil], "methods" => {["Victim", :value, 2, 2, 2, 26] => 0}} }
+
+      it "keeps the hit when the worker is absorbed second" do
+        expect(merge(parent, worker)["methods"]).to eq(["Victim", :value, 2, 2, 2, 24] => 1)
+      end
+
+      it "keeps the hit when the worker is absorbed first" do
+        expect(merge(worker, parent)["methods"]).to eq(["Victim", :value, 2, 2, 2, 24] => 1)
+      end
+
+      it "keeps the hit when a later resultset has neither a line nor a method hit" do
+        expect(merge(parent, worker, parent)["methods"]).to eq(["Victim", :value, 2, 2, 2, 24] => 1)
+      end
+
+      it "keeps the hit when the worker is absorbed between a simulated file and the parent" do
+        expect(merge(simulated, worker, parent)["methods"]).to eq(["Victim", :value, 2, 2, 2, 24] => 1)
+      end
+
+      it "drops a simulated file's methods absorbed after the worker" do
+        expect(merge(worker, simulated)["methods"]).to eq(worker["methods"])
+      end
+
+      it "drops a simulated file's methods absorbed before the worker" do
+        expect(merge(simulated, worker)["methods"]).to eq(worker["methods"])
+      end
+
+      it "drops a simulated file's methods once a line-less resultset carried a hit" do
+        unhit = {"lines" => [0, 0, nil], "methods" => {["Victim", :value, 2, 2, 2, 24] => 0}}
+        merged = merge({"methods" => worker["methods"]}, unhit, simulated)
+
+        expect(merged["methods"]).to eq(["Victim", :value, 2, 2, 2, 24] => 1)
+      end
     end
 
     it "leaves a file with no method table without one" do

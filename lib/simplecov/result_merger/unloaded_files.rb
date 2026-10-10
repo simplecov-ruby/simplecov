@@ -87,7 +87,7 @@ module SimpleCov
           # truthy element is exactly a relevant line.
           next unless counts.any?
 
-          set << filename unless Combine::CoverageAccumulator.executed?(counts)
+          set << filename unless Combine::CoverageAccumulator.file_executed?(file_coverage)
         end
       end
     end

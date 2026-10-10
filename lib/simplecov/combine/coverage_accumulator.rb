@@ -13,15 +13,28 @@ module SimpleCov
     # rather than rebuilt once per resultset.
     #
     class CoverageAccumulator
-      # A file some process actually loaded has at least one executed line; a
-      # simulated (never-loaded) file's lines are all `nil` or `0`.
-      #
       # `Array()` plus the `Numeric` test rather than `any?(&:positive?)`
       # because this reads straight off a parsed resultset, which is external
       # input and can carry anything under "lines".
       def self.executed?(lines)
         counts = Array(lines) #: Array[untyped]
         counts.any? { |count| count.is_a?(Numeric) && count.positive? }
+      end
+
+      # A simulated (never-loaded) file hits nothing. A real one usually has an
+      # executed line, but not always: a fork inherits a file its parent
+      # loaded with the counters cleared, and calling a method whose body
+      # shares the `def` line then records a method hit and no line hit.
+      def self.file_executed?(coverage)
+        executed?(coverage["lines"]) || hit?(coverage["methods"]) || arm_hit?(coverage["branches"])
+      end
+
+      def self.hit?(counts)
+        counts&.each_value&.any?(&:positive?)
+      end
+
+      def self.arm_hit?(branches)
+        !!branches&.each_value&.any? { |arms| hit?(arms) }
       end
 
       def self.fold(pairs)
@@ -92,6 +105,7 @@ module SimpleCov
         def initialize(coverage, branches:, methods:)
           @branch_coverage = branches
           @method_coverage = methods
+          @executed = CoverageAccumulator.file_executed?(coverage)
           @lines = LinesCombiner.merge_into(nil, coverage["lines"])
           branches_table = coverage["branches"]
           @branches = BranchesCombiner.absorb(new_table, branches_table) if branches || branches_table
@@ -125,12 +139,12 @@ module SimpleCov
         # Lines are never dropped: a simulated file's line shape is correct and
         # carries the unloaded-file denominator (#1059).
         def reconcile_synthesized(coverage)
-          incoming_lines = coverage["lines"]
-          return absorb_tuples(coverage) unless lines_measured?(@lines) && lines_measured?(incoming_lines)
+          accumulated_executed = @executed
+          incoming_executed = CoverageAccumulator.file_executed?(coverage)
+          @executed ||= incoming_executed
+          return absorb_tuples(coverage) unless lines_measured?(@lines) && lines_measured?(coverage["lines"])
 
-          incoming_executed = executed?(incoming_lines)
-
-          if executed?(@lines).equal?(incoming_executed)
+          if accumulated_executed.equal?(incoming_executed)
             absorb_tuples(coverage)
           elsif incoming_executed
             replace_tuples(coverage)
@@ -164,10 +178,6 @@ module SimpleCov
         # method-only run omits them even for the files it loaded.
         def lines_measured?(lines)
           !Array(lines).empty?
-        end
-
-        def executed?(lines)
-          CoverageAccumulator.executed?(lines)
         end
       end
     end

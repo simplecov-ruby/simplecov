@@ -24,7 +24,13 @@ module MergeReference
   end
 
   def executed?(entry)
-    Array(entry["lines"]).any? { |count| count&.positive? }
+    Array(entry["lines"]).any? { |count| count&.positive? } ||
+      hit?(entry["methods"]) ||
+      (entry["branches"] || {}).each_value.any? { |arms| hit?(arms) }
+  end
+
+  def hit?(counts)
+    (counts || {}).each_value.any?(&:positive?)
   end
 
   def merge_lines(entries)

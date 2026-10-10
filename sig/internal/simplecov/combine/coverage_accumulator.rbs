@@ -5,6 +5,12 @@
 
       def self.executed?: (untyped lines) -> bool
 
+      def self.file_executed?: (untyped coverage) -> bool
+
+      def self.hit?: (untyped counts) -> bool?
+
+      def self.arm_hit?: (untyped branches) -> bool
+
       def self.fold: (untyped pairs) -> [Array[String], untyped]
 
       @branch_coverage: bool
@@ -21,6 +27,7 @@
       class MergedFile
         @branch_coverage: bool
         @method_coverage: bool
+        @executed: bool
         @lines: Array[Integer?]?
         @branches: Hash[untyped, untyped]?
         @methods: Hash[untyped, untyped]?
@@ -44,8 +51,6 @@
         private def drop_incoming_tuples: (untyped coverage) -> void
 
         private def lines_measured?: (Array[Integer?]? lines) -> bool
-
-        private def executed?: (Array[Integer?]? lines) -> bool
       end
     end
   end
