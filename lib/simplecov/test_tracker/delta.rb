@@ -6,6 +6,8 @@ module SimpleCov
     # between two coverage snapshots. This is the part a native
     # `Coverage.supported?(:contexts)` engine would replace outright.
     class Delta
+      ONE_BIT = "1".ord
+
       def initialize(root_regex:)
         @root_regex = root_regex
         @in_root = {} #: Hash[String, bool]
@@ -41,28 +43,40 @@ module SimpleCov
 
       # The equality check is the overwhelmingly common case, the test never
       # entering this file: an Array compare is fast C, the per-line loop is not.
-      #
-      # The bitmap is built as a binary string in one pass, so the
-      # arbitrary-precision math happens once per file rather than one bignum OR
-      # per executed line. The string reads lowest line first and the number wants
-      # it the other way round; the leading zero keeps the parse valid for an
-      # all-zero delta without changing any value.
       def line_delta(before_lines, after_lines)
         return 0 unless after_lines
-        return 0 if before_lines.eql?(after_lines)
+        return 0 if same_lines?(before_lines, after_lines)
 
-        bits = +""
-        after_lines.each_with_index do |count, index|
-          bits << (grew?(count, before_lines&.at(index)) ? "1" : "0")
-        end
-        Integer("0#{bits.reverse}", 2)
+        grown_bitmap(before_lines || [], after_lines)
       end
 
-      # `previous` is nil both for a non-executable line, whose count is nil too,
-      # and for a file the test itself loaded, where every executed line is the
-      # test's.
-      def grew?(count, previous)
-        !count.nil? && count > (previous || 0)
+      # mutant:disable -- coverage counts are Integers or nil, which answer ==
+      # and eql? alike. `==` is kept because it is the faster of the two.
+      def same_lines?(before_lines, after_lines)
+        before_lines == after_lines
+      end
+
+      # mutant:disable -- every index the loop reads from `after_lines` is in
+      # bounds, and `before_lines` past its end reads nil through `[]` and
+      # `at` alike, so `at` and `fetch` read the same counts. `[]` is kept
+      # because it compiles to a specialized instruction.
+      #
+      # Tuned, since it runs per line of every file a test touched. The bitmap
+      # is a binary string preallocated as zeros and filled from its far end,
+      # because the number reads highest line first, so the arbitrary-precision
+      # math happens once per file, with no per-line append, method call, or
+      # final reverse. A `before_lines` shorter than `after_lines`, empty for a
+      # file the test itself loaded, reads nil past its end, as never executed.
+      def grown_bitmap(before_lines, after_lines)
+        size = after_lines.size
+        bits = "0" * size
+        index = 0
+        while index < size
+          count = after_lines[index]
+          bits.setbyte(size - 1 - index, ONE_BIT) if count && count > (before_lines[index] || 0)
+          index += 1
+        end
+        bits.to_i(2)
       end
     end
   end

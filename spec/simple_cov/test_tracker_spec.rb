@@ -843,11 +843,29 @@ RSpec.describe SimpleCov::TestTracker do
     it "does not walk the lines of a file nothing touched" do
       before = {"/app/a.rb" => lines([1, 2, 3])}
       after = {"/app/a.rb" => lines([1, 2, 3])}
-      allow(walker).to receive(:grew?).and_call_original
+      allow(walker).to receive(:grown_bitmap).and_call_original
 
       walker.call(before, after)
 
-      expect(walker).not_to have_received(:grew?)
+      expect(walker).not_to have_received(:grown_bitmap)
+    end
+
+    it "walks the lines of a file a test touched" do
+      allow(walker).to receive(:grown_bitmap).and_call_original
+
+      walker.call({"/app/a.rb" => lines([0])}, {"/app/a.rb" => lines([1])})
+
+      expect(walker).to have_received(:grown_bitmap)
+    end
+
+    it "places a grown line past the 64th at its own bit" do
+      grown = Array.new(100, 0)
+      grown[99] = 1
+
+      before = {"/app/a.rb" => lines(Array.new(100, 0))}
+      after = {"/app/a.rb" => lines(grown)}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 1 << 99)
     end
 
     it "reads a bare line array as per-file coverage" do

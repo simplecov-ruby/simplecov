@@ -1,6 +1,8 @@
 module SimpleCov
   class TestTracker
     class Delta
+      ONE_BIT: Integer
+
       @root_regex: Regexp
       @in_root: Hash[String, bool]
 
@@ -14,7 +16,9 @@ module SimpleCov
 
       def line_delta: (Array[Integer?]? before_lines, Array[Integer?]? after_lines) -> Integer
 
-      def grew?: (Integer? count, Integer? previous) -> bool
+      def same_lines?: (Array[Integer?]? before_lines, Array[Integer?] after_lines) -> bool
+
+      def grown_bitmap: (Array[Integer?] before_lines, Array[Integer?] after_lines) -> Integer
     end
   end
 end

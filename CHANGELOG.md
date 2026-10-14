@@ -10,6 +10,9 @@ Unreleased
 ## Bugfixes
 * A merge keeps the method and branch hits of a process that recorded no line hit for the file. A forked worker inherits the files its parent loaded with their counters cleared, and calling a method whose body shares its `def` line (a short endless method, for instance) then records a method hit and no line hit. The merge took that for a never-loaded file and dropped its hits in favor of the parent's zeroes, so methods the workers exercised were reported as uncovered. A file now counts as executed when any line, method, or branch arm was hit. See https://github.com/simplecov-ruby/simplecov/issues/1310.
 
+## Performance
+* `track_tests` diffs coverage between tests about twice as fast, and up to 3.7x as fast under YJIT. Building a test's bitmap of grown lines appended a character and called a method per line of every file the test touched, then reversed the string. The bitmap is now preallocated and filled in place from its far end, and unchanged files are detected with `==`, which is faster than `eql?` for line counts. On SimpleCov's own suite under Ruby 4.1, with branch and method coverage, 5210 examples run in 44.9s instead of 50.2s with `track_tests` on, against 38.8s with it off.
+
 1.3.2 (2026-09-30)
 ==================
 
