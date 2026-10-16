@@ -1,20 +1,20 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: daily
     cooldown:
       default-days: 7
   - package-ecosystem: bundler
-    directory: "/"
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: daily
     cooldown:
       default-days: 7
   - package-ecosystem: bun
-    directory: "/html_frontend"
+    directory: /html_frontend
     schedule:
-      interval: "weekly"
+      interval: daily
     cooldown:
       default-days: 7
