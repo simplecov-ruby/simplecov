@@ -1,6 +1,6 @@
 
 import { $$, on } from './dom';
-import { navigateToHash, getDialogBody } from './dialog';
+import { navigateToHash, getSourceScroller } from './dialog';
 import { contextsForSourceLine } from './page';
 import { toggleTestsPeek, setupTestsPeekDismissal } from './tests_peek';
 
@@ -12,13 +12,13 @@ export function jumpToMissedLine(direction: 1 | -1): void {
   const lines = getMissedLines();
   if (!lines.length) return;
 
-  const dialogBody = getDialogBody();
-  const midpoint = dialogBody.scrollTop + dialogBody.clientHeight / 2;
+  const scroller = getSourceScroller();
+  const midpoint = scroller.scrollTop + scroller.clientHeight / 2;
   const target = direction === 1
     ? lines.find((li) => li.offsetTop > midpoint) || lines[0]
     : lines.findLast((li) => li.offsetTop < midpoint - 10) || lines[lines.length - 1];
 
-  dialogBody.scrollTop = target.offsetTop - dialogBody.clientHeight / 3;
+  scroller.scrollTop = target.offsetTop - scroller.clientHeight / 3;
 }
 
 export function setupEventDelegation(): void {
@@ -42,7 +42,7 @@ export function setupEventDelegation(): void {
   on(document, 'click', '.source-dialog .source_table li[data-linenumber]', function (e: Event) {
     if ((e.target as Element).closest('.hits--tests, .tests-peek')) return;
     e.preventDefault();
-    getDialogBody().scrollTop = (this as HTMLElement).offsetTop;
+    getSourceScroller().scrollTop = (this as HTMLElement).offsetTop;
     const linenumber = (this as HTMLElement).dataset.linenumber;
     const sourceFileId = window.location.hash.substring(1).replace(/-L.*/, '');
     window.location.replace(window.location.href.replace(/#.*/, '#' + sourceFileId + '-L' + linenumber));

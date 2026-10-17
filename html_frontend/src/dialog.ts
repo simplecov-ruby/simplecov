@@ -4,6 +4,7 @@ import { materializeSourceFile } from './page';
 import { setFocusedRow } from './navigation';
 import { invalidateFileRowCache } from './file_rows';
 import { scheduleEqualizeBarWidths } from './bar_width';
+import { syncGroupPicker } from './group_picker';
 
 let dialog: HTMLDialogElement;
 let dialogBody: HTMLElement;
@@ -17,6 +18,10 @@ export function dialogIsOpen(): boolean {
 
 export function getDialogBody(): HTMLElement {
   return dialogBody;
+}
+
+export function getSourceScroller(): HTMLElement {
+  return getComputedStyle(dialog).overflowY === 'auto' ? dialog : dialogBody;
 }
 
 function restoreActiveSource(): void {
@@ -48,10 +53,10 @@ function openSourceFile(sourceFileId: string, linenumber?: string): void {
 
   if (!dialog.open) dialog.showModal();
   document.documentElement.style.overflow = 'hidden';
-  dialogBody.focus();
+  dialogBody.focus({ preventScroll: true });
 
   const targetLine = dialogBody.querySelector(`li[data-linenumber="${linenumber}"]`) as HTMLElement | null;
-  if (targetLine) dialogBody.scrollTop = targetLine.offsetTop;
+  if (targetLine) getSourceScroller().scrollTop = targetLine.offsetTop;
 }
 
 function showFileList(tabId: string): void {
@@ -69,6 +74,7 @@ function showFileList(tabId: string): void {
     if (tab) {
       $$('.group_tabs li').forEach(li => li.classList.remove('active'));
       tab.parentElement!.classList.add('active');
+      syncGroupPicker(tabId);
       $$('.file_list_container').forEach(c => (c as HTMLElement).style.display = 'none');
       document.getElementById(tabId)!.style.display = '';
     }

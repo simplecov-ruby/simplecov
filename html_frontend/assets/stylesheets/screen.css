@@ -232,6 +232,8 @@ html {
      the --source-close-slot alignment exists to hold still. Reserving the gutter
      for good keeps the width constant either way. */
   scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -349,6 +351,10 @@ abbr.timeago {
     #000 calc(100% - var(--sp-6)),
     transparent
   );
+}
+
+.group_picker {
+  display: none;
 }
 
 .group_tabs li a {
@@ -1230,6 +1236,252 @@ table.file_list thead th.sorting_desc::after {
 table.file_list thead th.sorting::after        { content: "\2195"; }
 table.file_list thead th.sorting_asc::after     { content: "\2191"; }
 table.file_list thead th.sorting_desc::after    { content: "\2193"; }
+
+
+/* Every column is measured in ch of the code font so the font size alone
+   decides how many fit: 80 of code, a 4-digit line number, and a 3-digit hit
+   count. 0.61 is a monospace advance width rounded up so fonts that run a
+   little wide still fit. */
+@media screen and (max-width: 960px) {
+  :root {
+    --source-columns: 91;
+  }
+
+  .source-dialog__body {
+    container-type: inline-size;
+  }
+
+  .source_table pre {
+    font-size: min(16px, (100cqw - 5px) / (var(--source-columns) * 0.61));
+    line-height: 1.5;
+  }
+
+  .source_table pre li::before {
+    box-sizing: content-box;
+    width: auto;
+    min-width: 4ch;
+    padding: 0 0.5ch;
+  }
+
+  .source_table pre li code {
+    padding: 0 1ch;
+  }
+
+  .source_table pre .hits {
+    font-size: 1em;
+    line-height: inherit;
+    padding: 0 0.5ch;
+  }
+
+  .source_table pre li.tests-peek {
+    padding-left: 6ch;
+  }
+}
+
+@media screen and (max-width: 640px), screen and (max-height: 600px) {
+  dialog.source-dialog {
+    overflow-y: auto;
+  }
+
+  dialog.source-dialog[open] {
+    display: block;
+  }
+
+  .source-dialog__body {
+    overflow: visible;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  :root {
+    --source-close-size: 30px;
+    --source-close-gap: var(--sp-2);
+  }
+
+  body {
+    padding: var(--sp-3);
+    font-size: 16px;
+  }
+
+  .tab-bar {
+    gap: var(--sp-2);
+  }
+
+  .group_tabs {
+    min-width: 0;
+  }
+
+  .group_tabs li a {
+    padding: var(--sp-1) var(--sp-3);
+    font-size: 15px;
+  }
+
+  .group_picker {
+    display: block;
+    align-self: flex-end;
+    min-width: 0;
+    max-width: 100%;
+    padding: var(--sp-2) var(--sp-3);
+    font: 600 15px var(--font-sans);
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  .group_picker + .group_tabs {
+    display: none;
+  }
+
+  .toolbar,
+  .source-dialog__toggles {
+    gap: var(--source-close-gap);
+  }
+
+  .toolbar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--source-close-size);
+    height: var(--source-close-size);
+    padding: 0;
+  }
+
+  .toolbar-toggle,
+  .toolbar-toggle:hover,
+  .toolbar-toggle[aria-pressed="true"],
+  .source-dialog__close,
+  .source-dialog__close:hover {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .source-dialog__close::before,
+  .source-dialog__close::after {
+    width: 18px;
+  }
+
+  /* The crescent's weight sits right of its glyph box, so it reads off
+     center between the palette and the close cross without this nudge. */
+  .toolbar-toggle__icon--moon {
+    position: relative;
+    left: -0.18em;
+  }
+
+  .toolbar-toggle[aria-pressed="false"] {
+    filter: grayscale(1);
+    opacity: 0.6;
+  }
+
+  .toolbar-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  #content {
+    padding: var(--sp-3);
+  }
+
+  .file_list_container h2 {
+    font-size: 20px;
+  }
+
+  .summary-stats,
+  table.file_list,
+  .totals-row .t-file-count {
+    font-size: 15px;
+  }
+
+  table.file_list thead th {
+    font-size: 12px;
+  }
+
+  .th-with-filter {
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+
+  .col-filter--name {
+    min-width: 8em;
+  }
+
+  table.file_list td.t-file__name {
+    white-space: normal;
+  }
+
+  table.file_list a.src_link {
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  table.file_list .cell--numerator,
+  table.file_list .cell--denominator {
+    display: none;
+  }
+
+  .coverage-cell .bar-sizer {
+    display: none;
+  }
+
+  .source-dialog__header {
+    padding: var(--sp-3);
+    row-gap: var(--sp-1);
+  }
+
+  .source-dialog__title h2 {
+    font-size: 17px;
+    margin-bottom: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .source-dialog__title .t-line-summary,
+  .source-dialog__title .t-branch-summary,
+  .source-dialog__title .t-method-summary {
+    grid-column: 1 / -1;
+  }
+
+  .source-dialog__title .summary-stats {
+    font-size: 14px;
+  }
+
+  .source-dialog__title > .t-missed-method-list {
+    grid-row: 5;
+  }
+
+  .source-legend {
+    grid-column: 1 / -1;
+    grid-row: 6;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: var(--sp-3);
+    row-gap: var(--sp-1);
+    justify-content: flex-start;
+    margin-top: var(--sp-1);
+  }
+
+  .source-legend__item {
+    font-size: 12px;
+  }
+
+  .source-dialog__toggles {
+    margin-left: var(--sp-2);
+  }
+
+  #footer,
+  .source-dialog__footer {
+    font-size: 13px;
+  }
+
+  .source-dialog__footer {
+    padding: var(--sp-2) var(--sp-3);
+  }
+}
 
 
 @media print {

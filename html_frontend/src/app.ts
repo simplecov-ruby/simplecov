@@ -9,6 +9,7 @@ import { setupSourceDialog, navigateToHash } from './dialog';
 import { setupEventDelegation } from './events';
 import { initDarkMode, initColorblindMode, handleKeydown } from './controls';
 import { setupTabScrollFade } from './tab_scroll';
+import { setupGroupPicker } from './group_picker';
 
 export function scheduleTimeago(): void {
   let minDelay = Infinity;
@@ -72,6 +73,7 @@ async function init(): Promise<void> {
   setupSourceDialog();
   setupEventDelegation();
   setupTabs();
+  setupGroupPicker();
   setupTabScrollFade();
 
   window.addEventListener('resize', scheduleEqualizeBarWidths);

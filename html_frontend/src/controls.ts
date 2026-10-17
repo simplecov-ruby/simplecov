@@ -62,7 +62,9 @@ export function initDarkMode(): void {
   function updateLabels(): void {
     const dark = isDark();
     toggles.forEach((toggle) => {
-      toggle.textContent = dark ? '☀️ Light' : '🌙 Dark';
+      toggle.innerHTML = dark
+        ? '☀️ <span class="toolbar-toggle__label">Light</span>'
+        : '<span class="toolbar-toggle__icon--moon">🌙</span> <span class="toolbar-toggle__label">Dark</span>';
       toggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
     });
   }

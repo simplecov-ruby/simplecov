@@ -141,6 +141,8 @@ describe('initDarkMode', () => {
     expect(document.documentElement.classList.contains('dark-mode')).toBe(false);
     expect(localStorage.getItem('simplecov-dark-mode')).toBe('light');
     expect(toggles[0].textContent).toBe('🌙 Dark');
+    expect(toggles[0].querySelector('.toolbar-toggle__label')!.textContent).toBe('Dark');
+    expect(toggles[0].querySelector('.toolbar-toggle__icon--moon')!.textContent).toBe('🌙');
   });
 
   test('honors an explicit light theme over a dark system preference', async () => {

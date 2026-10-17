@@ -125,6 +125,20 @@ describe('source-line clicks', () => {
     expect(getDialogBody().scrollTop).toBe(55);
     expect(window.location.hash).toBe('#' + id + '-L2');
   });
+
+  test('scroll the dialog itself when the whole view scrolls', () => {
+    window.location.hash = '#' + fileId('lib/missed.rb');
+    navigateToHash();
+    const dialog = document.getElementById('source-dialog')!;
+    dialog.style.overflowY = 'auto';
+
+    const line = getDialogBody().querySelector('li[data-linenumber="2"]') as HTMLElement;
+    Object.defineProperty(line, 'offsetTop', {get: () => 55, configurable: true});
+    click(line);
+
+    expect(dialog.scrollTop).toBe(55);
+    expect(getDialogBody().scrollTop).toBe(0);
+  });
 });
 
 describe('hashchange', () => {
@@ -183,6 +197,19 @@ describe('jumpToMissedLine', () => {
     body.scrollTop = 60;
     jumpToMissedLine(-1);
     expect(body.scrollTop).toBe(0);
+  });
+
+  test('scrolls the dialog itself when the whole view scrolls', () => {
+    openMissedFile();
+    const dialog = document.getElementById('source-dialog')!;
+    dialog.style.overflowY = 'auto';
+    Object.defineProperty(dialog, 'clientHeight', {get: () => 300, configurable: true});
+
+    jumpToMissedLine(1);
+    expect(dialog.scrollTop).toBe(100);
+    jumpToMissedLine(1);
+    expect(dialog.scrollTop).toBe(0);
+    expect(getDialogBody().scrollTop).toBe(0);
   });
 
   test('does nothing without missed lines', () => {

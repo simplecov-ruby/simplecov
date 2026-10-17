@@ -7,6 +7,7 @@ import { getVisibleFileRows } from '../src/file_rows';
 import {
   setupSourceDialog, navigateToHash, navigateToActiveTab, dialogIsOpen, getDialogBody
 } from '../src/dialog';
+import { setupGroupPicker } from '../src/group_picker';
 
 function clearHash(): void {
   window.location.replace(window.location.href.replace(/#.*/, ''));
@@ -95,6 +96,15 @@ describe('navigateToHash with a tab hash', () => {
     expect(display('g-group-Libraries')).toBe('');
   });
 
+  test('keeps the group picker on the shown list', () => {
+    setupGroupPicker();
+    const select = document.querySelector('select.group_picker') as HTMLSelectElement;
+    open('#_g-group-Libraries');
+    expect(select.value).toBe('g-group-Libraries');
+    open('#_g-total');
+    expect(select.value).toBe('g-total');
+  });
+
   test('drops the focused row and the cached rows when a list is shown', () => {
     open('#_g-total');
     setFocusedRow(document.querySelector('#g-total tbody tr.t-file') as HTMLElement);
@@ -135,6 +145,12 @@ describe('navigateToHash with a source-file hash', () => {
     expect(document.activeElement === getDialogBody()).toBe(true);
   });
 
+  test('focuses the source without scrolling the header out of view', () => {
+    const focus = spyOn(getDialogBody(), 'focus');
+    open('#' + fileId('lib/missed.rb'));
+    expect(focus).toHaveBeenCalledWith({preventScroll: true});
+  });
+
   test('keeps the current tab active when a source file opens', () => {
     open('#_g-group-Libraries');
     open('#' + fileId('lib/covered.rb'));
@@ -152,6 +168,19 @@ describe('navigateToHash with a source-file hash', () => {
 
     open('#' + id + '-L999');
     expect(getDialogBody().scrollTop).toBe(77);
+  });
+
+  test('scrolls the dialog itself to the requested line when the whole view scrolls', () => {
+    const id = fileId('lib/missed.rb');
+    const el = materializeSourceFile(id)!;
+    const line = el.querySelector('li[data-linenumber="2"]') as HTMLElement;
+    Object.defineProperty(line, 'offsetTop', {get: () => 77, configurable: true});
+    const dialog = document.getElementById('source-dialog')!;
+    dialog.style.overflowY = 'auto';
+
+    open('#' + id + '-L2');
+    expect(dialog.scrollTop).toBe(77);
+    expect(getDialogBody().scrollTop).toBe(0);
   });
 
   test('swaps one open source for another without reopening the dialog', () => {
