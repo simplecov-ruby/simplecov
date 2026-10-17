@@ -698,11 +698,14 @@ RSpec.describe SimpleCov::CLI do
     end
 
     describe "#meta_facts" do
-      let(:generated) { Time.now - 12.6 }
+      let(:now) { Time.utc(2026, 10, 17, 1, 47, 0.6r) }
+      let(:generated) { now - 12.6 }
       let(:written_meta) do
         {"timestamp" => generated.iso8601(3), "simplecov_version" => "9.9.9",
          "command_name" => "RSpec", "commit" => "abc1234"}
       end
+
+      before { allow(Time).to receive(:now).and_return(now) }
 
       it "answers empty facts for meta that is not an object" do
         expect(facts.meta_facts("meta" => [])).to eq(
