@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { toggleTestsPeek, closeTestsPeek, setupTestsPeekDismissal } from '../src/tests_peek';
+import { toggleTestsPeek, closeTestsPeek, setupTestsPeekDismissal, type LineContexts } from '../src/tests_peek';
 
 function buildSourceTable(): { table: HTMLElement; badges: HTMLElement[] } {
   document.body.innerHTML = `
@@ -19,9 +19,9 @@ function buildSourceTable(): { table: HTMLElement; badges: HTMLElement[] } {
   return { table, badges: Array.from(table.querySelectorAll('button.hits--tests')) };
 }
 
-const resolver = (sourceFileId: string, line: number): string[] | null => {
+const resolver = (sourceFileId: string, line: number): LineContexts | null => {
   if (sourceFileId !== 'f-abc') return null;
-  return line === 1 ? ['spec/a_spec.rb:12', 'spec/b_spec.rb:9'] : [];
+  return line === 1 ? { tests: ['spec/a_spec.rb:12', 'spec/b_spec.rb:9'], loading: [] } : { tests: [], loading: [] };
 };
 
 describe('toggleTestsPeek', () => {
@@ -36,6 +36,7 @@ describe('toggleTestsPeek', () => {
     const peek = document.querySelector('li.tests-peek')!;
     expect(peek.previousElementSibling).toBe(badges[0].closest('li'));
     expect(peek.textContent).toContain('Covered by 2 tests');
+    expect(peek.textContent).toBe('Covered by 2 testsspec/a_spec.rb:12spec/b_spec.rb:9');
     const ids = Array.from(peek.querySelectorAll('code')).map((c) => c.textContent);
     expect(ids).toEqual(['spec/a_spec.rb:12', 'spec/b_spec.rb:9']);
     expect(badges[0].getAttribute('aria-expanded')).toBe('true');
@@ -48,6 +49,29 @@ describe('toggleTestsPeek', () => {
     const peek = document.querySelector('li.tests-peek')!;
     expect(peek.textContent).toContain('No recorded test covers this line');
     expect(peek.querySelector('code')).toBeNull();
+  });
+
+  test('lists a test file whose loading ran the line apart from the tests', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[0], () => ({ tests: ['spec/a_spec.rb:12'], loading: ['spec/a_spec.rb'] }));
+
+    const peek = document.querySelector('li.tests-peek')!;
+    expect(peek.textContent).toContain('Covered by 1 test');
+    expect(peek.querySelector('.tests-peek__note')!.textContent)
+      .toBe('It also ran while this test file loaded, before any of their tests:');
+    const ids = Array.from(peek.querySelectorAll('code')).map((c) => c.textContent);
+    expect(ids).toEqual(['spec/a_spec.rb:12', 'spec/a_spec.rb']);
+  });
+
+  test('names the test files whose loading alone ran the line', () => {
+    const { badges } = buildSourceTable();
+    toggleTestsPeek(badges[1], () => ({ tests: [], loading: ['spec/a_spec.rb', 'spec/b_spec.rb'] }));
+
+    const peek = document.querySelector('li.tests-peek')!;
+    expect(peek.querySelector('.tests-peek__title')!.textContent).toBe('No recorded test covers this line');
+    expect(peek.querySelector('.tests-peek__note')!.textContent)
+      .toBe('It ran while these test files loaded, before any of their tests:');
+    expect(Array.from(peek.querySelectorAll('code')).map((c) => c.textContent)).toEqual(['spec/a_spec.rb', 'spec/b_spec.rb']);
   });
 
   test('toggles closed from the same badge and keeps one peek at a time', () => {
@@ -71,7 +95,7 @@ describe('toggleTestsPeek', () => {
 
   test('titles a single test in the singular', () => {
     const { badges } = buildSourceTable();
-    toggleTestsPeek(badges[0], () => ['spec/only_spec.rb:3']);
+    toggleTestsPeek(badges[0], () => ({ tests: ['spec/only_spec.rb:3'], loading: [] }));
     expect(document.querySelector('li.tests-peek .tests-peek__title')!.textContent).toBe('Covered by 1 test');
   });
 
@@ -105,7 +129,7 @@ describe('toggleTestsPeek', () => {
   test('escapes the ids it renders', () => {
 
     const { badges } = buildSourceTable();
-    toggleTestsPeek(badges[0], () => ['<img src=x>']);
+    toggleTestsPeek(badges[0], () => ({ tests: ['<img src=x>'], loading: [] }));
     expect(document.querySelector('li.tests-peek img')).toBeNull();
     expect(document.querySelector('li.tests-peek code')!.textContent).toBe('<img src=x>');
   });

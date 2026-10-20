@@ -17,6 +17,7 @@ interface FileListArgs {
   methodCoverage: boolean;
   primaryCoverage: CoverageType;
   contextsEnabled?: boolean;
+  loadingContexts?: Set<number>;
   production?: ProductionData;
 }
 
@@ -114,12 +115,12 @@ function renderFileRow(args: FileRowArgs): string {
 }
 
 export function renderFileList(args: FileListArgs): string {
-  const { filenames, allCoverage, lineCoverage, branchCoverage, methodCoverage, contextsEnabled, production } = args;
+  const { filenames, allCoverage, lineCoverage, branchCoverage, methodCoverage, contextsEnabled, loadingContexts, production } = args;
 
   const outsideByFile = contextsEnabled && lineCoverage ? new Map(
     filenames.flatMap((fn) => {
       const f = allCoverage[fn];
-      return f ? [[fn, coveredOutsideCount(f.contexts, f.lines)] as const] : [];
+      return f ? [[fn, coveredOutsideCount(f.contexts, f.lines, loadingContexts)] as const] : [];
     })
   ) : undefined;
   const outsideTotal = outsideByFile

@@ -9,7 +9,8 @@ import { pctClass, fileId, toHtmlId } from './format';
 import { activeCoverageType, primaryCoverageStat } from './coverage';
 import { renderFileList } from './render_list';
 import { renderSourceFile } from './render_source';
-import { decodeFileContexts, contextIdsForLine } from './contexts';
+import { decodeFileContexts, contextIdsForLine, loadingContextIndices } from './contexts';
+import type { LineContexts } from './tests_peek';
 import type { CoverageData, FileCoverage, ProductionData } from './types';
 
 hljs.registerLanguage('ruby', ruby);
@@ -79,6 +80,7 @@ export function renderPage(data: CoverageData): void {
   if (branchCoverage) document.body.setAttribute('data-branch-coverage', 'true');
 
   const content = document.getElementById('content')!;
+  const loadingContexts = data.contexts ? loadingContextIndices(data.contexts) : undefined;
   const fileListSections = [
     renderFileList({
       containerId: 'g-total',
@@ -91,6 +93,7 @@ export function renderPage(data: CoverageData): void {
       methodCoverage,
       primaryCoverage,
       contextsEnabled: !!data.contexts,
+      loadingContexts,
       production: data.production
     }),
   ];
@@ -108,6 +111,7 @@ export function renderPage(data: CoverageData): void {
         methodCoverage,
         primaryCoverage,
         contextsEnabled: !!data.contexts,
+        loadingContexts,
         production: data.production
       })
     );
@@ -182,13 +186,16 @@ export function materializeSourceFile(sourceFileId: string): HTMLElement | null 
   return el;
 }
 
-export function contextsForSourceLine(sourceFileId: string, line: number): string[] | null {
+// The tests that ran a line, apart from the test files whose own loading ran
+// it, since a file's loading is not a test.
+export function contextsForSourceLine(sourceFileId: string, line: number): LineContexts | null {
   const { contexts, idToFilename, coverage } = state();
   if (!contexts) return null;
   const filename = idToFilename[sourceFileId];
   if (!filename) return null;
 
   const file = coverage[filename];
-  const index = decodeFileContexts(file.contexts, file.source.length);
-  return contextIdsForLine(index, contexts, line);
+  const ids = contextIdsForLine(decodeFileContexts(file.contexts, file.source.length), contexts, line);
+  const loading = new Set([...loadingContextIndices(contexts)].map((index) => contexts[index]));
+  return { tests: ids.filter((id) => !loading.has(id)), loading: ids.filter((id) => loading.has(id)) };
 }

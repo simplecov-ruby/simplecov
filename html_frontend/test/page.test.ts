@@ -344,10 +344,34 @@ describe('renderPage with recorded contexts', () => {
       .toEqual(['1', '4']);
   });
 
+  describe('with a test file\'s own loading recorded', () => {
+    function withLoading() {
+      const data = withContexts();
+      data.contexts = ['spec/covered_spec.rb:4', 'spec/covered_spec.rb'];
+      data.coverage['lib/covered.rb'].contexts = { '0': '2', '1': '1' }; // line 2 by the test, line 1 by loading
+      return data;
+    }
+
+    test('resolves the loading apart from the tests', async () => {
+      await boot(withLoading());
+      expect(contextsForSourceLine(fileId('lib/covered.rb'), 1)).toEqual({ tests: [], loading: ['spec/covered_spec.rb'] });
+    });
+
+    test('counts a line only loading ran as covered outside tests', async () => {
+      await boot(withLoading());
+      const el = materializeSourceFile(fileId('lib/covered.rb'))!;
+
+      expect(el.querySelector('button.hits--tests[data-tests-line="1"]')!.getAttribute('data-content')).toBe('0 tests');
+      expect(Array.from(el.querySelectorAll('li.outside-tests')).map((li) => li.getAttribute('data-linenumber')))
+        .toEqual(['1', '4']);
+      expect(document.querySelector('#g-total tr.t-file')!.getAttribute('data-covered-outside-lines')).toBe('2');
+    });
+  });
+
   test('resolves a line\'s covering ids for the peek, and null off the map', async () => {
     await boot(withContexts());
-    expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toEqual(['spec/covered_spec.rb:4']);
-    expect(contextsForSourceLine(fileId('lib/covered.rb'), 1)).toEqual([]);
+    expect(contextsForSourceLine(fileId('lib/covered.rb'), 2)).toEqual({ tests: ['spec/covered_spec.rb:4'], loading: [] });
+    expect(contextsForSourceLine(fileId('lib/covered.rb'), 1)).toEqual({ tests: [], loading: [] });
     expect(contextsForSourceLine('nope', 1)).toBeNull();
   });
 

@@ -14,14 +14,19 @@ export interface FileContextIndex {
 // least significant end, so hex digit p from the right carries lines p*4+1
 // through p*4+4. Integer-like keys enumerate in ascending order, so each line's
 // list comes out in context index order without sorting.
+//
+// `ignored` leaves contexts out of the index, which is how a test file's own
+// loading stays out of the counts of tests.
 export function decodeFileContexts(
   tables: Record<string, string> | undefined,
-  lineCount: number
+  lineCount: number,
+  ignored: Set<number> = new Set()
 ): FileContextIndex {
   const perLine: number[][] = Array.from({ length: lineCount }, () => []);
 
   for (const [key, hex] of Object.entries(tables || {})) {
     const contextIndex = Number(key);
+    if (ignored.has(contextIndex)) continue;
     Array.from(hex).reverse().forEach((digit, p) => {
       const nibble = parseInt(digit, 16);
       for (const bit of [0, 1, 2, 3]) {
@@ -41,13 +46,15 @@ export function decodeFileContexts(
 // decoded per-line index, since the file list pays this for every file on load.
 export function coveredOutsideCount(
   tables: Record<string, string> | undefined,
-  lines: (number | null | 'ignored')[] | undefined
+  lines: (number | null | 'ignored')[] | undefined,
+  ignored: Set<number> = new Set()
 ): number {
   if (!lines) return 0;
 
   // Stryker disable next-line ArrayDeclaration: a type error TypeScript 7 cannot report to Stryker, and a string ORs as 0
   const union: number[] = [];
-  for (const hex of Object.values(tables || {})) {
+  for (const [key, hex] of Object.entries(tables || {})) {
+    if (ignored.has(Number(key))) continue;
     Array.from(hex).reverse().forEach((digit, p) => {
       union[p] = (union[p] || 0) | parseInt(digit, 16);
     });
@@ -67,4 +74,17 @@ export function contextIdsForLine(index: FileContextIndex, contexts: string[], l
   const entries = index.perLine[line - 1];
   if (!entries) return [];
   return entries.map((i) => contexts[i]).sort();
+}
+
+// The indices of the ids naming a test file's own loading rather than a test:
+// under per-test tracking, a bare file id beside ids pointing into that file.
+// Recorded whole, at file granularity, a file has no such neighbors and its
+// bare id is a test. The same rule `simplecov tests --redundant` applies.
+export function loadingContextIndices(contexts: string[]): Set<number> {
+  const files = new Set<string>();
+  for (const id of contexts) {
+    const match = /(.+):\d+$/.exec(id);
+    if (match) files.add(match[1]);
+  }
+  return new Set(contexts.flatMap((id, index) => (files.has(id) ? [index] : [])));
 }

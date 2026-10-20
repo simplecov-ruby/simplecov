@@ -2,7 +2,7 @@
 import { escapeHTML } from './dom';
 import { fileId } from './format';
 import { renderCoverageSummary } from './render_cells';
-import { decodeFileContexts, type FileContextIndex } from './contexts';
+import { decodeFileContexts, loadingContextIndices, type FileContextIndex } from './contexts';
 import type { FileCoverage, BranchEntry, MethodEntry, ProductionFileEntry } from './types';
 
 interface LineStatusArgs {
@@ -142,7 +142,7 @@ export function renderSourceFile(
   const missedMethodLineSet = buildMissedMethodLines(data.methods);
   const language = languageFor(filename);
   const contextIndex: FileContextIndex | null =
-    contexts ? decodeFileContexts(data.contexts, data.source.length) : null;
+    contexts ? decodeFileContexts(data.contexts, data.source.length, loadingContextIndices(contexts)) : null;
   let outsideLines = 0;
   const productionLines = production === undefined ? null : new Set(production?.lines);
   let productionRanCount = 0;

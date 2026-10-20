@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { decodeFileContexts, contextIdsForLine, coveredOutsideCount } from '../src/contexts';
+import { decodeFileContexts, contextIdsForLine, coveredOutsideCount, loadingContextIndices } from '../src/contexts';
 
 describe('decodeFileContexts', () => {
   test('decodes a single-context hex bitmap into per-line context indices', () => {
@@ -77,5 +77,29 @@ describe('coveredOutsideCount bit placement', () => {
   test('reads multi-digit bitmaps from the least significant nibble', () => {
     expect(coveredOutsideCount({ '0': '10' }, [1, 0, 0, 0, null])).toBe(1);
     expect(coveredOutsideCount({ '0': '10' }, [null, 0, 0, 0, 1])).toBe(0);
+  });
+});
+
+describe('ignoring contexts', () => {
+  test('leaves ignored contexts out of the decoded index', () => {
+    expect(decodeFileContexts({ '0': '1', '1': '1' }, 1, new Set([1])).perLine).toEqual([[0]]);
+  });
+
+  test('counts a line only ignored contexts ran as covered outside them', () => {
+    expect(coveredOutsideCount({ '0': '1', '1': '2' }, [1, 1], new Set([1]))).toBe(1);
+  });
+});
+
+describe('loadingContextIndices', () => {
+  test('finds a bare file id beside ids pointing into that file', () => {
+    expect(loadingContextIndices(['spec/a_spec.rb:12', 'spec/a_spec.rb', 'spec/b_spec.rb:1'])).toEqual(new Set([1]));
+  });
+
+  test('takes bare file ids recorded alone, at file granularity, for tests', () => {
+    expect(loadingContextIndices(['spec/a_spec.rb', 'spec/b_spec.rb'])).toEqual(new Set());
+  });
+
+  test('reads only a trailing line number as a location', () => {
+    expect(loadingContextIndices(['spec/a_spec.rb:3x', 'spec/a_spec.rb', 'x:3', 'Klass#test_x:'])).toEqual(new Set());
   });
 });

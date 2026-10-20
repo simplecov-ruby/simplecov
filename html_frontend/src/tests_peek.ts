@@ -1,19 +1,38 @@
 
 import { escapeHTML } from './dom';
 
-export type PeekResolver = (sourceFileId: string, line: number) => string[] | null;
+export interface LineContexts {
+  tests: string[];
+  loading: string[];
+}
+
+export type PeekResolver = (sourceFileId: string, line: number) => LineContexts | null;
 
 let openPeek: HTMLElement | null = null;
 let openBadge: HTMLElement | null = null;
 
-function renderPeek(ids: string[]): string {
-  if (ids.length === 0) {
-    return '<div class="tests-peek__title">No recorded test covers this line</div>' +
-      '<div class="tests-peek__note">It ran outside any test: at load time, in suite setup, or from a helper.</div>';
+function renderIds(ids: string[]): string {
+  return `<ul class="tests-peek__list">${ids.map((id) => `<li><code>${escapeHTML(id)}</code></li>`).join('')}</ul>`;
+}
+
+// A test file's own loading is listed apart from the tests, since running
+// the file runs its tests, not just what it did while defining them.
+function renderLoading(loading: string[], also: boolean): string {
+  if (loading.length === 0) return '';
+  const lead = also ? 'It also ran while' : 'It ran while';
+  const files = loading.length === 1 ? 'this test file' : 'these test files';
+  return `<div class="tests-peek__note">${lead} ${files} loaded, before any of their tests:</div>${renderIds(loading)}`;
+}
+
+function renderPeek({ tests, loading }: LineContexts): string {
+  if (tests.length === 0) {
+    const note = loading.length === 0
+      ? '<div class="tests-peek__note">It ran outside any test: at load time, in suite setup, or from a helper.</div>'
+      : renderLoading(loading, false);
+    return `<div class="tests-peek__title">No recorded test covers this line</div>${note}`;
   }
-  const title = ids.length === 1 ? 'Covered by 1 test' : `Covered by ${ids.length} tests`;
-  return `<div class="tests-peek__title">${title}</div>` +
-    `<ul class="tests-peek__list">${ids.map((id) => `<li><code>${escapeHTML(id)}</code></li>`).join('')}</ul>`;
+  const title = tests.length === 1 ? 'Covered by 1 test' : `Covered by ${tests.length} tests`;
+  return `<div class="tests-peek__title">${title}</div>${renderIds(tests)}${renderLoading(loading, true)}`;
 }
 
 export function closeTestsPeek(): void {
@@ -33,12 +52,12 @@ export function toggleTestsPeek(badge: HTMLElement, resolve: PeekResolver): void
   if (reopening) return;
 
   const lineNumber = Number(badge.getAttribute('data-tests-line'));
-  const ids = resolve(table.id, lineNumber);
-  if (!ids) return;
+  const contexts = resolve(table.id, lineNumber);
+  if (!contexts) return;
 
   const peek = document.createElement('li');
   peek.className = 'tests-peek';
-  peek.innerHTML = renderPeek(ids);
+  peek.innerHTML = renderPeek(contexts);
   line.after(peek);
 
   badge.setAttribute('aria-expanded', 'true');
