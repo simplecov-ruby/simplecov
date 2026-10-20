@@ -9,7 +9,7 @@ describe "coverage.json schema" do
   let(:alias_doc) { JSON.parse(File.read(alias_path)) }
   let(:schemer) { JSONSchemer.schema(schema_doc) }
 
-  def schema_path = File.expand_path("../../schemas/coverage-v1.3.schema.json", __dir__)
+  def schema_path = File.expand_path("../../schemas/coverage-v1.4.schema.json", __dir__)
 
   def alias_path = File.expand_path("../../schemas/coverage.schema.json", __dir__)
 

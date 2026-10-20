@@ -14,7 +14,7 @@ module SimpleCov
         # bump the minor segment, removals or shape changes the major. The versioned
         # file at schemas/coverage-vX.Y.schema.json is the canonical artifact
         # consumers should pin to.
-        SCHEMA_VERSION = "1.3"
+        SCHEMA_VERSION = "1.4"
         SCHEMA_URL = "https://raw.githubusercontent.com/simplecov-ruby/simplecov/main/schemas/coverage-v#{SCHEMA_VERSION}.schema.json".freeze
         private_constant :SCHEMA_VERSION, :SCHEMA_URL
 
