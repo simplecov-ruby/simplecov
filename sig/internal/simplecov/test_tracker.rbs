@@ -10,8 +10,6 @@ module SimpleCov
 
     self.@rspec_hook_installed: bool?
 
-    TEST_FILE_NAME: Regexp
-
     class Segment < ::Struct[untyped]
       attr_accessor id: String?
       attr_accessor opening: Hash[String, untyped]

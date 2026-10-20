@@ -31,11 +31,6 @@ module SimpleCov
     Segment = Struct.new(:id, :opening, :loading)
     private_constant :Segment
 
-    # The files a runner loads to define its tests, by the naming conventions
-    # of RSpec and Minitest. `test_helper.rb` matches Minitest's prefix but
-    # defines no tests, and crediting it would select a file that runs none.
-    TEST_FILE_NAME = /\A(?:test_(?!helper\.rb\z).*|.*_(?:test|spec))\.rb\z/
-
     def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test)
       unless Configuration::TRACK_TESTS_GRANULARITIES.include?(granularity)
         raise ArgumentError, "unknown granularity #{granularity.inspect}, " \

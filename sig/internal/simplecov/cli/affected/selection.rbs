@@ -2,8 +2,6 @@ module SimpleCov
   module CLI
     module Affected
       module Selection
-        TEST_FILE_NAME: Regexp
-
         GLOB: Integer
 
         def self?.build: (Array[String] changed, untyped document, Array[String] contexts, untyped opts, untyped stderr, root: String) -> Hash[Symbol, untyped]?

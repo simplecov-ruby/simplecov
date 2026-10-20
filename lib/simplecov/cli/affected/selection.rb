@@ -4,8 +4,6 @@ module SimpleCov
   module CLI
     module Affected
       module Selection
-        TEST_FILE_NAME = /\A(?:test_.*|.*_(?:test|spec))\.rb\z/
-
         extend self
 
         def build(changed, document, contexts, opts, stderr, root:)

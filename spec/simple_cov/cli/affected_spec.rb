@@ -621,7 +621,7 @@ RSpec.describe SimpleCov::CLI do
 
     context "with a changed test file named like a test but placed like a helper" do
       before do
-        file!("spec/test_helper.rb", "# changed\n")
+        file!("spec/test_widget.rb", "# changed\n")
         run_in_repo("affected", "--input", json_path)
       end
 
@@ -630,11 +630,26 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "recognises it by its own name, not by its path" do
-        expect(stdout.string).to eq("spec/test_helper.rb\n")
+        expect(stdout.string).to eq("spec/test_widget.rb\n")
       end
 
       it "says nothing on stderr" do
         expect(stderr.string).to be_empty
+      end
+    end
+
+    context "with a changed test_helper.rb" do
+      before do
+        file!("spec/test_helper.rb", "# changed\n")
+        run_in_repo("affected", "--input", json_path)
+      end
+
+      it "selects nothing, since it defines no tests" do
+        expect(stdout.string).to be_empty
+      end
+
+      it "falls back to the full suite" do
+        expect(stderr.string).to include("spec/test_helper.rb changed but").and include("falling back to the full suite")
       end
     end
 

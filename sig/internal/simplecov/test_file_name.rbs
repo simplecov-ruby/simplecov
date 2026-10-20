@@ -1,0 +1,3 @@
+module SimpleCov
+  TEST_FILE_NAME: Regexp
+end

@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require_relative "command_helpers"
+require_relative "../test_file_name"
 require_relative "tests"
 require_relative "affected/changed_files"
 require_relative "affected/narrowing"
