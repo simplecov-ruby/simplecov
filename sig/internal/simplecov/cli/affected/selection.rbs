@@ -4,6 +4,8 @@ module SimpleCov
       module Selection
         TEST_FILE_NAME: Regexp
 
+        GLOB: Integer
+
         def self?.build: (Array[String] changed, untyped document, Array[String] contexts, untyped opts, untyped stderr, root: String) -> Hash[Symbol, untyped]?
 
         def self?.reasons: (Hash[Symbol, untyped] state) -> Hash[String, Hash[String, Array[String]]]

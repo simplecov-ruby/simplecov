@@ -286,6 +286,15 @@ back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner c
 the report has no data for at all. So does a changed file that ran only while no test was being recorded, such as
 code that runs as the suite loads, since no test claims it and it may shape every test. Changed or brand-new test
 files always run, whether the map knows them or not.
+Some covered files shape every test however few tests touch them, such as a constant read everywhere or a
+configuration file. Declare them with `--global PATTERN`, repeatable, and a change to a matching file falls back to
+the full suite. Patterns are globs relative to the repository root, with `**` crossing directories and braces
+listing alternatives:
+
+```sh
+$ simplecov affected --global "config/**/*" --global "db/schema.rb" --global "lib/{settings,constants}.rb"
+```
+
 The fallback is loud, with each trigger named on stderr, and on stdout it prints nothing, which composes with
 substitution (`bundle exec rspec $(simplecov affected)` runs everything when the selection cannot be trusted). With
 `--run` the command runs bare, which means the full suite for the usual runners. `--json` emits

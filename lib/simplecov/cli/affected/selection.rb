@@ -44,12 +44,18 @@ module SimpleCov
           } #: Hash[Symbol, untyped]
         end
 
-        # A recorded test file selects itself, a file the report covers selects the
+        # A file declared global runs everything. Otherwise a recorded test file
+        # selects itself, a file the report covers selects the
         # files of the tests touching it, a test-looking file the map has never seen
         # always runs, and anything else is a trigger. Changed paths are exact
         # root-relative names, so they resolve against the report exactly: a
         # lookalike entry elsewhere must not stand in for a file it doesn't carry.
+        GLOB = File::FNM_PATHNAME | File::FNM_EXTGLOB
+
         def classify(path, state)
+          global = state.fetch(:opts).fetch(:global).find { |pattern| File.fnmatch?(pattern, path, GLOB) }
+          return state.fetch(:triggers) << "#{path} changed and matches --global #{global}" if global
+
           entry = entry_for(path, state)
           if state.fetch(:known).include?(path)
             select_test_file(path, state)

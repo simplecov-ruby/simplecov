@@ -46,9 +46,10 @@ module SimpleCov
 
       def parse(args)
         head, runner = split_runner(args)
-        opts, rest = parse_common(head, base: nil, run: runner, explain: false) do |parser, into|
+        opts, rest = parse_common(head, base: nil, run: runner, explain: false, global: []) do |parser, into|
           parser.on("--base REF") { |v| into[:base] = v }
           parser.on("--explain") { into[:explain] = true }
+          parser.on("--global PATTERN") { |v| into.fetch(:global) << v }
         end
         opts[:rest] = rest
         opts

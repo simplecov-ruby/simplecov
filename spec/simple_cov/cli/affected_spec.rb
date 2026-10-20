@@ -442,7 +442,7 @@ RSpec.describe SimpleCov::CLI do
       it "starts with no base, no runner, and both compact forms off" do
         expect(SimpleCov::CLI::Affected.parse([]))
           .to eq(input: described_class.default_input, json: false, no_color: false,
-            base: nil, run: nil, explain: false, rest: [])
+            base: nil, run: nil, explain: false, global: [], rest: [])
       end
 
       it "splits the runner command off at --run" do
@@ -1010,6 +1010,58 @@ RSpec.describe SimpleCov::CLI do
       it "compares against no base it cannot name" do
         expect(described_class::Affected::Selection.base_source("lib/widget.rb", nil, tmp)).to be_nil
       end
+    end
+
+    context "with a changed file declared global" do
+      before do
+        file!("lib/result.rb", "# changed\n")
+        run_in_repo("affected", "--input", json_path, "--global", "config/**", "--global", "lib/{result,odd}.rb")
+      end
+
+      it "succeeds" do
+        expect(run_in_repo("affected", "--input", json_path, "--global", "lib/{result,odd}.rb")).to eq(0)
+      end
+
+      it "selects nothing" do
+        expect(stdout.string).to be_empty
+      end
+
+      it "names the file and the pattern it matched" do
+        expect(stderr.string).to include("simplecov affected: lib/result.rb changed and matches --global lib/{result,odd}.rb\n")
+      end
+
+      it "falls back to the full suite" do
+        expect(stderr.string).to include("falling back to the full suite")
+      end
+    end
+
+    it "needs no well-formed data for a file declared global" do
+      payload["coverage"][File.join(tmp, "lib/result.rb")]["contexts"] = {"99" => "1"}
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+
+      expect(run_in_repo("affected", "--input", json_path, "--global", "lib/result.rb")).to eq(0)
+    end
+
+    it "matches a global pattern across directories" do
+      file!("config/initializers/deep/setup.rb", "# new\n")
+      run_in_repo("affected", "--input", json_path, "--global", "config/**/*.rb")
+
+      expect(stderr.string).to include("config/initializers/deep/setup.rb changed and matches --global config/**/*.rb")
+    end
+
+    it "holds a test file to a global pattern too" do
+      file!("spec/result_spec.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path, "--global", "spec/*_spec.rb")
+
+      expect(stdout.string).to be_empty
+    end
+
+    it "leaves a file no global pattern matches to the selection" do
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path, "--global", "lib/*.yml")
+
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
     end
 
     context "with a changed spec helper" do
