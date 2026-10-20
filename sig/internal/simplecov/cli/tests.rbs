@@ -19,6 +19,8 @@ module SimpleCov
 
       def self?.context_table: (untyped entry, Array[String] contexts, untyped opts, untyped stderr) -> Hash[Integer, Integer]?
 
+      def self?.loading_contexts: (Array[String] contexts) -> Array[String]
+
       def self?.decode_table: (Hash[untyped, untyped] raw, Integer context_count) -> Hash[Integer, Integer]?
 
       def self?.ids_from: (Hash[Integer, Integer] table, Array[String] contexts, Integer? line) -> Array[String]

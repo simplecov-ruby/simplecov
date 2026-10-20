@@ -98,6 +98,17 @@ module SimpleCov
           "entry for #{opts.fetch(:path)} carries a malformed \"contexts\" table")
       end
 
+      # The ids naming a test file's loading rather than a test: under per-test
+      # tracking, a bare file id beside ids pointing into that file. Recorded
+      # whole, at file granularity, a file has no such neighbors and is a test.
+      #
+      # mutant:disable -- the Set is for lookup speed across thousands of ids,
+      # and the nil `map` would keep in it never matches a String id.
+      def loading_contexts(contexts)
+        files = contexts.filter_map { |id| id[/\A(.+):\d+\z/, 1] }.to_set
+        contexts.select { |id| files.include?(id) }
+      end
+
       # An absent key is an untouched file; anything malformed, a foreign index or
       # a non-hex bitmap, poisons the whole answer, matching the all-or-nothing
       # tolerance the resultset reader applies.

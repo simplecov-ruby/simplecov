@@ -42,6 +42,8 @@ spec/orders/refund_spec.rb:41
 A test is listed when no line anywhere in your code is covered by that test alone. Every line it executes has at
 least one other witness, so deleting it cannot change line coverage. `simplecov tests --redundant lib/foo.rb`
 narrows the sweep to the tests touching one file, which is a good way to work through a large list area by area.
+A spec file's own loading (recorded under its bare path, like `spec/user_spec.rb`) witnesses the lines it ran like
+any test does, but it is never listed, since it is not a test you could delete.
 
 ## Read the list as candidates, not a verdict
 

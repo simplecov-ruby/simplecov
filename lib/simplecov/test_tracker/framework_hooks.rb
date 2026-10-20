@@ -9,6 +9,22 @@ module SimpleCov
       def install_framework_hooks
         install_rspec_hook
         install_minitest_hook_when_loaded
+        watch_test_file_loads
+      end
+
+      # Reports every file the process loads from here on to the live tracker's
+      # `test_file_loading`, which is how a spec file's loading is told apart
+      # from the suite's. nil on a Ruby that cannot report a file's compilation
+      # (JRuby), where loading stays with no test.
+      def watch_test_file_loads
+        TracePoint.new(:script_compiled) do |trace|
+          # simplecov:disable — Coverage does not count code run inside a TracePoint callback
+          path = trace.instruction_sequence.absolute_path
+          SimpleCov.test_tracker&.test_file_loading(path) if path
+          # simplecov:enable
+        end.tap(&:enable)
+      rescue ArgumentError
+        nil
       end
 
       # Wraps every RSpec example in a `track_test` call. Called from
@@ -26,6 +42,7 @@ module SimpleCov
           config.around do |example|
             SimpleCov.track_test(TestTracker.rspec_example_id(example)) { example.run }
           end
+          config.prepend_before(:suite) { SimpleCov.test_tracker&.suite_starting }
         end
       end
 

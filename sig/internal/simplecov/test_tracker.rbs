@@ -10,11 +10,14 @@ module SimpleCov
 
     self.@rspec_hook_installed: bool?
 
-    class Segment < ::Struct[untyped]
-      attr_accessor id: String
-      attr_accessor opening: Hash[String, untyped]
+    TEST_FILE_NAME: Regexp
 
-      def self.new: (String id, Hash[String, untyped] opening) -> Segment
+    class Segment < ::Struct[untyped]
+      attr_accessor id: String?
+      attr_accessor opening: Hash[String, untyped]
+      attr_accessor loading: bool
+
+      def self.new: (String? id, Hash[String, untyped] opening, bool loading) -> Segment
     end
 
     attr_reader map: ContextMap
@@ -23,11 +26,17 @@ module SimpleCov
 
     def track: [T] (String test_id) { () -> T } -> T
 
+    def test_file_loading: (String path) -> void
+
+    def suite_starting: () -> void
+
     def poisoned?: () -> bool
 
     def recorded_map: (?closing: Hash[String, untyped]?) -> ContextMap?
 
     def self.install_framework_hooks: () -> void
+
+    def self.watch_test_file_loads: () -> TracePoint?
 
     def self.install_rspec_hook: (?untyped rspec) -> void
 
@@ -71,7 +80,11 @@ module SimpleCov
 
     def settle: (String id, Hash[String, untyped]? entry) -> void
 
-    def open_segment: (String id) -> void
+    def open_segment: (String? id, ?loading: bool) -> void
+
+    def same_segment?: (String? id, bool loading) -> bool
+
+    def open_outside_tests: (String? id) -> void
 
     def close_segment: (Hash[String, untyped] closing) -> void
 

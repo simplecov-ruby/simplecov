@@ -17,13 +17,14 @@ module SimpleCov
       # Files outside the root are skipped. A file absent from `before` was loaded
       # by the test itself, which keeps only the method body lines it ran: the
       # rest ran as the file loaded and serves every later test as much as this
-      # one. The root match is memoized, so the regex runs once per file the
+      # one. A test file `loading` keeps nothing of such a file. The root match is memoized, so the regex runs once per file the
       # process ever loads rather than once per file per test.
-      def call(before, after)
+      def call(before, after, loading: false)
         changed = {} #: Hash[String, Integer]
         after.each do |path, file_coverage|
           in_root = @in_root.fetch(path) { @in_root[path] = @root_regex.match?(path) }
           next unless in_root
+          next if loading && !before.key?(path)
 
           bitmap = line_delta(lines_in(before[path]), lines_in(file_coverage))
           bitmap &= method_bodies(path) unless before.key?(path)

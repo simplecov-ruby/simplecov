@@ -10,9 +10,13 @@ module SimpleCov
           contexts = document["contexts"]
           meta_facts(document).merge(
             totals: totals(document["total"]),
-            contexts: (contexts.size if contexts.instance_of?(Array)),
+            contexts: (tests_recorded(contexts) if contexts.instance_of?(Array)),
             resultset_path: resultset_path, resultset: readable_resultset(resultset_path)
           )
+        end
+
+        def tests_recorded(contexts)
+          contexts.size - Tests.loading_contexts(contexts.grep(String)).size
         end
 
         def meta_facts(document)

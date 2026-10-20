@@ -2,6 +2,8 @@ module SimpleCov
   module CLI
     module Status
       module Facts
+        def self?.tests_recorded: (Array[untyped] contexts) -> Integer
+
         def self?.gather: (Hash[String, untyped] document, String resultset_path) -> Hash[Symbol, untyped]
 
         def self?.meta_facts: (Hash[String, untyped] document) -> Hash[Symbol, untyped]

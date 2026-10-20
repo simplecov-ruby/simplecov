@@ -9,7 +9,7 @@ module SimpleCov
 
       def initialize: (root_regex: Regexp) -> void
 
-      def call: (Hash[String, untyped] before, Hash[String, untyped] after) -> Hash[String, Integer]
+      def call: (Hash[String, untyped] before, Hash[String, untyped] after, ?loading: bool) -> Hash[String, Integer]
 
       private
 

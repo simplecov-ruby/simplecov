@@ -16,7 +16,8 @@ module SimpleCov
           return unless tables
 
           unique = unique_owners(tables, contexts.size)
-          contexts.each_index.reject { |index| unique.fetch(index) }.map { |index| contexts.fetch(index) }.sort
+          redundant = contexts.each_index.reject { |index| unique.fetch(index) }.map { |index| contexts.fetch(index) }
+          (redundant - Tests.loading_contexts(contexts)).sort
         end
 
         def unique_owners(tables, context_count)

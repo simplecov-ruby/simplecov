@@ -25,10 +25,16 @@ module SimpleCov
   class TestTracker
     attr_reader :map
 
-    # The context id everything since the last boundary belongs to, and the
-    # peek that boundary took.
-    Segment = Struct.new(:id, :opening)
+    # The context id everything since the last boundary belongs to (nil for
+    # code no test owns), the peek that boundary took, and whether it records
+    # a test file loading rather than a test running.
+    Segment = Struct.new(:id, :opening, :loading)
     private_constant :Segment
+
+    # The files a runner loads to define its tests, by the naming conventions
+    # of RSpec and Minitest. `test_helper.rb` matches Minitest's prefix but
+    # defines no tests, and crediting it would select a file that runs none.
+    TEST_FILE_NAME = /\A(?:test_(?!helper\.rb\z).*|.*_(?:test|spec))\.rb\z/
 
     def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test)
       unless Configuration::TRACK_TESTS_GRANULARITIES.include?(granularity)
@@ -59,6 +65,26 @@ module SimpleCov
       ensure
         settle(id, nested_opening)
       end
+    end
+
+    # Credits the test file that starts loading at `path` with what its
+    # loading runs (`describe` bodies, shared examples, helpers called at
+    # definition time) until the next boundary. Loading is not a test, so it is
+    # ignored while one runs, and files it loads for the first time are left to
+    # no test: when a spec file's `require "rails_helper"` boots the app, that
+    # boot belongs to every test, not to the spec file that happened to come
+    # first.
+    def test_file_loading(path)
+      return unless TEST_FILE_NAME.match?(File.basename(path))
+
+      prefix = File.join(SimpleCov.root, "")
+      open_outside_tests(path.delete_prefix(prefix)) if path.start_with?(prefix)
+    end
+
+    # Marks the end of loading, so suite-level setup (RSpec's `before(:suite)`)
+    # is left to no test instead of the last test file loaded.
+    def suite_starting
+      open_outside_tests(nil)
     end
 
     def poisoned?
@@ -121,17 +147,34 @@ module SimpleCov
     # at segment boundaries: consecutive tracks with one context id share one
     # open segment and pay nothing in between. In-root code that runs between
     # two segments is attributed to the later one, the documented price.
-    def open_segment(id)
-      return if @segment&.id.eql?(id)
+    def open_segment(id, loading: false)
+      return if same_segment?(id, loading)
 
       boundary = Coverage.peek_result
       close_segment(boundary)
-      @segment = Segment.new(id, boundary)
+      @segment = Segment.new(id, boundary, loading)
+    end
+
+    # With no segment open, everything so far already belongs to no test.
+    def same_segment?(id, loading)
+      segment = @segment
+      return id.nil? unless segment
+
+      segment.id.eql?(id) && segment.loading.equal?(loading)
+    end
+
+    # A nil id is code no test owns, whose segment records nothing, so only a
+    # named one's `loading` matters.
+    def open_outside_tests(id)
+      open_segment(id, loading: true) if @depth.zero? && !@poisoned
     end
 
     def close_segment(closing)
       segment = @segment
-      @map.record(segment.id, @delta.call(segment.opening, closing)) if segment
+      return unless segment
+
+      id = segment.id
+      @map.record(id, @delta.call(segment.opening, closing, loading: segment.loading)) if id
     end
 
     def flush_segment(closing)

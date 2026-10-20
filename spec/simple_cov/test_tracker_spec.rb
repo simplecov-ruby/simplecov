@@ -378,6 +378,170 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  describe "test files loading" do
+    subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+    let(:root) { File.realpath(Dir.mktmpdir) }
+    let(:helper) { File.join(root, "lib/helper_methods.rb") }
+    let(:fresh) { File.join(root, "lib/fresh.rb") }
+
+    before { allow(SimpleCov).to receive(:root).and_return(root) }
+
+    after { FileUtils.rm_rf(root) }
+
+    def path(relative) = File.join(root, relative)
+
+    context "with a spec file loading while no test runs" do
+      before do
+        stub_peeks({helper => {lines: [0]}}, {fresh => {lines: [1]}, helper => {lines: [1]}})
+        tracker.test_file_loading(path("spec/a_spec.rb"))
+      end
+
+      it "credits the spec file with what it ran in files already loaded" do
+        expect(tracker.recorded_map.covering(helper, 1)).to eq(["spec/a_spec.rb"])
+      end
+
+      it "credits it with nothing in a file it loaded itself" do
+        expect(tracker.recorded_map.covering(fresh, 1)).to eq([])
+      end
+    end
+
+    %w[lib/helper_methods.rb test/test_helper.rb spec/a_spec.rb.erb].each do |relative|
+      it "opens no segment for #{relative}, which is no test file" do
+        allow(Coverage).to receive(:peek_result).and_return({})
+        tracker.test_file_loading(path(relative))
+
+        expect(Coverage).not_to have_received(:peek_result)
+      end
+    end
+
+    it "opens no segment for a test file outside the root" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+      tracker.test_file_loading(File.expand_path("/elsewhere/spec/a_spec.rb"))
+
+      expect(Coverage).not_to have_received(:peek_result)
+    end
+
+    it "leaves a test file loaded inside a test to that test" do
+      stub_peeks({helper => {lines: [0]}}, {helper => {lines: [1]}})
+      tracker.track("spec/b_spec.rb:3") { tracker.test_file_loading(path("spec/a_spec.rb")) }
+
+      expect(tracker.recorded_map.contexts).to eq(["spec/b_spec.rb:3"])
+    end
+
+    it "credits a Minitest file named by its prefix" do
+      stub_peeks({helper => {lines: [0]}}, {helper => {lines: [1]}})
+      tracker.test_file_loading(path("test/test_widget.rb"))
+
+      expect(tracker.recorded_map.covering(helper, 1)).to eq(["test/test_widget.rb"])
+    end
+
+    it "opens no segment once poisoned" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+      capture_stderr { tracker.track("spec/a_spec.rb:1") { Thread.new { tracker.track("spec/b_spec.rb:2") {} }.value } }
+      tracker.test_file_loading(path("spec/c_spec.rb"))
+
+      expect(Coverage).to have_received(:peek_result).once
+    end
+
+    context "when the suite starts after the spec files loaded" do
+      before do
+        allow(Coverage).to receive(:peek_result).and_return(
+          {helper => {lines: [0, 0]}}, {helper => {lines: [1, 0]}}, {helper => {lines: [1, 1]}}
+        )
+        tracker.test_file_loading(path("spec/a_spec.rb"))
+        tracker.suite_starting
+      end
+
+      it "credits the spec file with what ran before" do
+        expect(tracker.recorded_map.covering(helper, 1)).to eq(["spec/a_spec.rb"])
+      end
+
+      it "leaves suite setup to no test" do
+        expect(tracker.recorded_map.covering(helper, 2)).to eq([])
+      end
+
+      it "records no context for it" do
+        expect(tracker.recorded_map.contexts).to eq(["spec/a_spec.rb"])
+      end
+    end
+
+    it "takes no peek for a suite starting before any segment opened" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+      tracker.suite_starting
+
+      expect(Coverage).not_to have_received(:peek_result)
+    end
+
+    it "takes no peek for a suite starting twice" do
+      allow(Coverage).to receive(:peek_result).and_return({})
+      tracker.test_file_loading(path("spec/a_spec.rb"))
+      2.times { tracker.suite_starting }
+
+      expect(Coverage).to have_received(:peek_result).twice
+    end
+
+    context "with a file's first test following its loading at file granularity" do
+      subject(:tracker) do
+        described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/, granularity: :file)
+      end
+
+      before do
+        allow(Coverage).to receive(:peek_result)
+          .and_return({helper => {lines: [0]}}, {helper => {lines: [0]}}, {helper => {lines: [0]}, fresh => {lines: [1]}})
+        tracker.test_file_loading(path("spec/a_spec.rb"))
+        tracker.track("spec/a_spec.rb:3") { :ran }
+      end
+
+      it "opens a fresh segment for the test, which keeps what it ran" do
+        expect(tracker.recorded_map.covering(fresh, 1)).to eq(["spec/a_spec.rb"])
+      end
+    end
+
+    context "with the process watched as it loads a test file", if: RUBY_ENGINE == "ruby" do
+      before do
+        FileUtils.mkdir_p(path("spec"))
+        File.write(path("spec/watched_spec.rb"), "nil\n")
+        allow(Coverage).to receive(:peek_result).and_return({helper => {lines: [0]}}, {helper => {lines: [1]}})
+        allow(SimpleCov).to receive(:test_tracker).and_return(tracker)
+        watch = described_class.watch_test_file_loads
+        load path("spec/watched_spec.rb")
+        eval("nil", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+      ensure
+        watch&.disable
+      end
+
+      it "reports the load to the live tracker, and no eval" do
+        expect(tracker.recorded_map.contexts).to eq(["spec/watched_spec.rb"])
+      end
+    end
+
+    context "with the process watched while no tracker is live", if: RUBY_ENGINE == "ruby" do
+      around do |example|
+        watch = described_class.watch_test_file_loads
+        example.run
+      ensure
+        watch&.disable
+      end
+
+      before do
+        FileUtils.mkdir_p(path("spec"))
+        File.write(path("spec/unwatched_spec.rb"), "nil\n")
+        allow(SimpleCov).to receive(:test_tracker).and_return(nil)
+      end
+
+      it "loads test files undisturbed" do
+        expect { load path("spec/unwatched_spec.rb") }.not_to raise_error
+      end
+    end
+
+    it "watches nothing where Ruby cannot report a file's compilation" do
+      allow(TracePoint).to receive(:new).and_raise(ArgumentError, "unknown event: script_compiled")
+
+      expect(described_class.watch_test_file_loads).to be_nil
+    end
+  end
+
   describe "file granularity", mutant_expression: ["SimpleCov::TestTracker*",
     "SimpleCov::TestTracker#track"] do
     subject(:tracker) do
@@ -609,9 +773,11 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     let(:around_blocks) { [] }
+    let(:suite_blocks) { [] }
     let(:fake_config) do
       config = instance_double(RSpec::Core::Configuration)
       allow(config).to receive(:around) { |&block| around_blocks << block }
+      allow(config).to receive(:prepend_before).with(:suite) { |&block| suite_blocks << block }
       config
     end
     let(:fake_rspec) do
@@ -638,6 +804,22 @@ RSpec.describe SimpleCov::TestTracker do
       it "runs it" do
         expect(procsy).to have_received(:run)
       end
+    end
+
+    it "marks the suite's start for the live tracker before any suite hook" do
+      live_tracker = instance_double(described_class, suite_starting: nil)
+      allow(SimpleCov).to receive(:test_tracker).and_return(live_tracker)
+      described_class.install_rspec_hook(fake_rspec)
+      suite_blocks.first.call
+
+      expect(live_tracker).to have_received(:suite_starting)
+    end
+
+    it "marks nothing when no tracker is live" do
+      described_class.install_rspec_hook(fake_rspec)
+      allow(SimpleCov).to receive(:test_tracker).and_return(nil)
+
+      expect { suite_blocks.first.call }.not_to raise_error
     end
 
     context "when installed twice in one process" do
@@ -739,6 +921,7 @@ RSpec.describe SimpleCov::TestTracker do
     before do
       allow(described_class).to receive(:install_rspec_hook)
       allow(described_class).to receive(:install_minitest_hook_when_loaded)
+      allow(described_class).to receive(:watch_test_file_loads)
 
       described_class.install_framework_hooks
     end
@@ -749,6 +932,10 @@ RSpec.describe SimpleCov::TestTracker do
 
     it "wires up the Minitest integration" do
       expect(described_class).to have_received(:install_minitest_hook_when_loaded)
+    end
+
+    it "watches test files load" do
+      expect(described_class).to have_received(:watch_test_file_loads)
     end
   end
 

@@ -752,6 +752,12 @@ RSpec.describe SimpleCov::CLI do
         end
       end
 
+      it "counts no spec file's own loading as a test" do
+        contexts = ["spec/a_spec.rb:1", "spec/a_spec.rb", "spec/b_spec.rb:2", 7]
+
+        expect(facts.gather({"contexts" => contexts}, "/nonexistent/.resultset.json")[:contexts]).to eq(3)
+      end
+
       it "answers no count for a report that recorded no contexts at all" do
         expect(facts.gather({}, "/nonexistent/.resultset.json")[:contexts]).to be_nil
       end
@@ -3086,6 +3092,24 @@ RSpec.describe SimpleCov::CLI do
       run("tests", "--input", json_path, "--redundant")
 
       expect(stdout.string).to eq("spec/a_spec.rb:10\nspec/b_spec.rb:20\nspec/d_spec.rb:40\n")
+    end
+
+    it "lists no spec file's own loading among them" do
+      payload["contexts"] << "spec/c_spec.rb"
+      payload["coverage"][other_file]["contexts"]["4"] = "1"
+      File.write(json_path, JSON.dump(payload))
+      run("tests", "--input", json_path, "--redundant")
+
+      expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/c_spec.rb:30\nspec/d_spec.rb:40\n")
+    end
+
+    it "lists test files recorded whole, the file granularity's contexts" do
+      payload["contexts"] = ["spec/a_spec.rb", "spec/c_spec.rb"]
+      payload["coverage"] = {result_file => {"lines" => [1], "contexts" => {"0" => "1", "1" => "1"}}}
+      File.write(json_path, JSON.dump(payload))
+      run("tests", "--input", json_path, "--redundant")
+
+      expect(stdout.string).to eq("spec/a_spec.rb\nspec/c_spec.rb\n")
     end
 
     context "when every recorded test covers something uniquely" do

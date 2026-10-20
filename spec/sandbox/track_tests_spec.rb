@@ -32,6 +32,13 @@ RSpec.describe "track_tests", :sandbox do
           end
         end
       RUBY
+      write_file("spec/zz_defining_spec.rb", <<~RUBY)
+        require "spec_helper"
+
+        RSpec.describe "Defining" do
+          it("defines an example from \#{FakedProject.foo}") { expect(1).to eq(1) }
+        end
+      RUBY
       write_file("spec/lazy_spec.rb", <<~RUBY)
         require "spec_helper"
 
@@ -65,6 +72,11 @@ RSpec.describe "track_tests", :sandbox do
     it "credits a test with the method body it ran in a file it loaded" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 3))
         .to eq(["spec/lazy_spec.rb:4"])
+    end
+
+    it "credits a spec file with what it ran while it loaded" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/faked_project.rb"), 5))
+        .to include("spec/zz_defining_spec.rb")
     end
 
     it "leaves the lines a file ran as it loaded to no test" do

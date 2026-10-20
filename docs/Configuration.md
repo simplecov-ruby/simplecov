@@ -408,9 +408,16 @@ The map also flows into `coverage.json`, the JSON formatter's schema'd public ar
 downstream tools should build on (the resultset is an internal cache). See
 [the coverage.json schema](Formatters.md#json-schema-for-coveragejson), version 1.1.
 
-Code that runs while no test is being recorded, such as loading the suite or suite-level setup, belongs to no test.
-The same goes for a file a test loads for the first time: its class bodies, constants, and `def` lines run once on
-behalf of every later test, so the loading test is credited only with the method body lines it ran. Telling them
+Code that runs while no test is being recorded, such as booting the app or suite-level setup (RSpec's
+`before(:suite)`), belongs to no test. What a test file runs while it loads, before any of its tests (its `describe`
+bodies, shared examples, helpers called to define examples), is credited to the file itself, under its path with no
+line number, as in `spec/user_spec.rb`. Files first loaded during that time are left to no test, so the app boot a
+spec file triggers with `require "rails_helper"` belongs to every test rather than the spec file that came first.
+Test files are recognized by name (`*_spec.rb`, `*_test.rb`, and `test_*.rb` other than `test_helper.rb`). JRuby
+cannot report a file as it loads, so there a test file's loading belongs to no test.
+
+A file a test loads for the first time is treated the same way: its class bodies, constants, and `def` lines run once
+on behalf of every later test, so the loading test is credited only with the method body lines it ran. Telling them
 apart takes Prism, so a Ruby that cannot load it, and any file that is not Ruby source (a template, say), credits the
 loading test with every line it ran.
 
