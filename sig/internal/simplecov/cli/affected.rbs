@@ -21,6 +21,8 @@ module SimpleCov
 
       def self?.emit_json: (untyped selection, bool full, untyped stdout) -> Integer
 
+      def self?.explain: (Hash[String, Hash[String, Array[String]]] reasons, untyped stderr) -> void
+
       def self?.emit_text: (untyped selection, bool full, untyped stdout, untyped stderr) -> Integer
 
       def self?.note_untouched: (untyped stderr) -> Integer

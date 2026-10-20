@@ -281,7 +281,19 @@ files always run, whether the map knows them or not.
 The fallback is loud, with each trigger named on stderr, and on stdout it prints nothing, which composes with
 substitution (`bundle exec rspec $(simplecov affected)` runs everything when the selection cannot be trusted). With
 `--run` the command runs bare, which means the full suite for the usual runners. `--json` emits
-`{"full_suite": ..., "triggers": [...], "tests": [...]}` for tooling.
+`{"full_suite": ..., "triggers": [...], "tests": [...], "reasons": {...}}` for tooling, where `reasons` maps each
+selected test file to the changed files that pulled it in and, for each, the recorded tests that tie them.
+
+`--explain` writes the same reasons to stderr, one line per selected test file and changed file, so stdout stays a
+list a runner can take:
+
+```sh
+$ simplecov affected --base main --explain
+spec/result_spec.rb
+spec/source_file_spec.rb
+simplecov affected: spec/result_spec.rb runs for lib/simplecov/result.rb (spec/result_spec.rb:42, spec/result_spec.rb:57)
+simplecov affected: spec/source_file_spec.rb runs because it changed
+```
 
 Like `patch`, the diff is anchored at the repository root, so a run from a subdirectory selects over the whole change
 (with `--run` starting the runner at that root), and changed files resolve against the report by exact path, so a

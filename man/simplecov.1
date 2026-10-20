@@ -203,8 +203,12 @@ main)
 Run <command> (all args after \-\-run) with the selection appended, or bare on
 a full\-suite fallback, exiting with the command's status
 .TP
+.B \-\-explain
+Name on stderr the changed file and recorded tests behind each selected test
+file
+.TP
 .B \-\-json
-Emit {full_suite, triggers, tests} as a JSON object
+Emit {full_suite, triggers, tests, reasons} as a JSON object
 .SS merge
 .TP
 .B \-\-output PATH

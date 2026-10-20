@@ -4,7 +4,13 @@ module SimpleCov
       module Selection
         TEST_FILE_NAME: Regexp
 
-        def self?.build: (Array[String] changed, untyped document, Array[String] contexts, untyped opts, untyped stderr, root: String) -> Hash[Symbol, Array[String]]?
+        def self?.build: (Array[String] changed, untyped document, Array[String] contexts, untyped opts, untyped stderr, root: String) -> Hash[Symbol, untyped]?
+
+        def self?.reasons: (Hash[Symbol, untyped] state) -> Hash[String, Hash[String, Array[String]]]
+
+        def self?.line_order: (String id) -> Integer
+
+        def self?.select: (String file, String changed, String? id, Hash[Symbol, untyped] state) -> void
 
         def self?.initial_state: (Array[String] changed, Array[String] contexts, Hash[String, untyped] coverage, untyped opts, untyped stderr, root: String) -> Hash[Symbol, untyped]
 

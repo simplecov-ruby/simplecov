@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `simplecov affected --explain` names, on stderr, the changed file and the recorded tests behind each selected test file, and `--json` carries the same as a `reasons` object, so a selection can be checked instead of trusted. See [#1316].
+
 ### Changed
 
 - `track_tests` credits a test file with what it runs while it loads, before any of its tests run, under the file's path with no line number (`spec/user_spec.rb`). Code a spec file runs to define its examples, like shared examples or helpers called in `describe` bodies, belonged to no test, so `simplecov affected` fell back to the full suite for a change to it. Files first loaded while a test file loads still belong to no test, and RSpec's `before(:suite)` hooks belong to no test either. `simplecov tests --redundant` never lists a test file's loading as a redundant test, and `simplecov status` does not count it as a recorded test. See [#1316].

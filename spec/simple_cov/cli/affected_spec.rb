@@ -46,7 +46,8 @@ RSpec.describe SimpleCov::CLI do
           File.join(tmp, "lib/stale.rb") => {"lines" => [1], "contexts" => {"3" => "1"}},
           File.join(tmp, "lib/plain.rb") => {"lines" => [1], "contexts" => {"4" => "1"}},
           File.join(tmp, "lib/suffixless.rb") => {"lines" => [1], "contexts" => {"5" => "1"}},
-          File.join(tmp, "lib/plain2.rb") => {"lines" => [1], "contexts" => {"4" => "1"}}
+          File.join(tmp, "lib/plain2.rb") => {"lines" => [1], "contexts" => {"4" => "1"}},
+          File.join(tmp, "lib/aaa.rb") => {"lines" => [1], "contexts" => {"4" => "1"}}
         }
       }
     end
@@ -209,7 +210,7 @@ RSpec.describe SimpleCov::CLI do
     it "still emits a JSON object when nothing differs from the base" do
       run_in_repo("affected", "--input", json_path, "--json")
 
-      expect(JSON.parse(stdout.string)).to eq("full_suite" => false, "triggers" => [], "tests" => [])
+      expect(JSON.parse(stdout.string)).to eq("full_suite" => false, "triggers" => [], "tests" => [], "reasons" => {})
     end
 
     context "with a deleted test file the map never knew" do
@@ -441,7 +442,7 @@ RSpec.describe SimpleCov::CLI do
       it "starts with no base, no runner, and both compact forms off" do
         expect(SimpleCov::CLI::Affected.parse([]))
           .to eq(input: described_class.default_input, json: false, no_color: false,
-            base: nil, run: nil, rest: [])
+            base: nil, run: nil, explain: false, rest: [])
       end
 
       it "splits the runner command off at --run" do
@@ -933,6 +934,11 @@ RSpec.describe SimpleCov::CLI do
     context "with a selection under --json" do
       before { file!("lib/result.rb", "# changed\n") }
 
+      let(:reasons) do
+        {"spec/result_spec.rb" => {"lib/result.rb" => ["spec/result_spec.rb:42"]},
+         "spec/source_file_spec.rb" => {"lib/result.rb" => ["spec/source_file_spec.rb:12"]}}
+      end
+
       it "succeeds" do
         expect(run_in_repo("affected", "--input", json_path, "--json")).to eq(0)
       end
@@ -940,9 +946,92 @@ RSpec.describe SimpleCov::CLI do
       it "emits it as a JSON object" do
         run_in_repo("affected", "--input", json_path, "--json")
 
-        expect(JSON.parse(stdout.string)).to eq(
-          "full_suite" => false, "triggers" => [], "tests" => ["spec/result_spec.rb", "spec/source_file_spec.rb"]
+        expect(JSON.parse(stdout.string)).to eq("full_suite" => false, "triggers" => [],
+          "tests" => ["spec/result_spec.rb", "spec/source_file_spec.rb"], "reasons" => reasons)
+      end
+    end
+
+    context "with --explain" do
+      before do
+        file!("lib/result.rb", "# changed\n")
+        file!("lib/plain2.rb", "# changed\n")
+        file!("lib/aaa.rb", "# new\n")
+        file!("spec/brand_new_spec.rb")
+        run_in_repo("affected", "--input", json_path, "--explain")
+      end
+
+      it "succeeds" do
+        expect(run_in_repo("affected", "--input", json_path, "--explain")).to eq(0)
+      end
+
+      it "still lists only the selection on stdout" do
+        expect(stdout.string).to eq("spec/brand_new_spec.rb\nspec/result_spec.rb\nspec/source_file_spec.rb\ntoplevel_test.rb\n")
+      end
+
+      it "names the changed file and the recorded tests behind each selected file" do
+        expect(stderr.string).to include(
+          "simplecov affected: spec/result_spec.rb runs for lib/result.rb (spec/result_spec.rb:42)\n"
         )
+      end
+
+      it "names a changed test file as its own reason" do
+        expect(stderr.string).to include("simplecov affected: spec/brand_new_spec.rb runs because it changed\n")
+      end
+
+      it "explains each selected file once per changed file, in order" do
+        expect(stderr.string.lines.map { |line| line[/runs.*/] }).to eq([
+          "runs because it changed", "runs for lib/result.rb (spec/result_spec.rb:42)",
+          "runs for lib/result.rb (spec/source_file_spec.rb:12)", "runs for lib/aaa.rb (toplevel_test.rb:99)",
+          "runs for lib/plain2.rb (toplevel_test.rb:99)"
+        ])
+      end
+    end
+
+    it "explains nothing on a fallback, even with files it would have selected" do
+      file!("Gemfile.lock", "# changed\n")
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path, "--explain")
+
+      expect(stderr.string).not_to include(" runs ")
+    end
+
+    it "carries no reasons on a fallback under --json" do
+      file!("Gemfile.lock", "# changed\n")
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path, "--json")
+
+      expect(JSON.parse(stdout.string).fetch("reasons")).to eq({})
+    end
+
+    it "gives a changed test file itself as its reason under --json" do
+      file!("spec/result_spec.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path, "--json")
+
+      expect(JSON.parse(stdout.string).fetch("reasons")).to eq("spec/result_spec.rb" => {"spec/result_spec.rb" => []})
+    end
+
+    it "resolves a report key spelled with a parent step" do
+      payload["coverage"][File.join(tmp, "lib", "..", "lib", "result.rb")] = payload["coverage"].delete(File.join(tmp, "lib/result.rb"))
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path)
+
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+    end
+
+    context "with several recorded tests in one selected file" do
+      before do
+        payload["coverage"][File.join(tmp, "lib/result.rb")]["contexts"] = {"4" => "2", "0" => "6", "5" => "2", "1" => "4"}
+        payload["contexts"][4] = "spec/result_spec.rb:7"
+        payload["contexts"][5] = "spec/result_spec.rb"
+        File.write(json_path, JSON.dump(payload))
+        file!("lib/result.rb", "# changed\n")
+        run_in_repo("affected", "--input", json_path, "--explain")
+      end
+
+      it "lists each in line order, the file's own loading first" do
+        expect(stderr.string).to include("spec/result_spec.rb runs for lib/result.rb " \
+                                         "(spec/result_spec.rb, spec/result_spec.rb:7, spec/result_spec.rb:42)\n")
       end
     end
 

@@ -45,8 +45,9 @@ module SimpleCov
 
       def parse(args)
         head, runner = split_runner(args)
-        opts, rest = parse_common(head, base: nil, run: runner) do |parser, into|
+        opts, rest = parse_common(head, base: nil, run: runner, explain: false) do |parser, into|
           parser.on("--base REF") { |v| into[:base] = v }
+          parser.on("--explain") { into[:explain] = true }
         end
         opts[:rest] = rest
         opts
@@ -83,7 +84,7 @@ module SimpleCov
 
       def no_changes(opts, stdout, stderr)
         stderr.puts("simplecov affected: no changes against #{opts.fetch(:base)}")
-        empty = {tests: [], triggers: []} #: Hash[Symbol, Array[String]]
+        empty = {tests: [], triggers: [], reasons: {}} #: Hash[Symbol, untyped]
         emit_json(empty, false, stdout) if opts.fetch(:json)
         0
       end
@@ -92,6 +93,7 @@ module SimpleCov
         full = !selection.fetch(:triggers).empty?
         selection.fetch(:triggers).each { |trigger| stderr.puts("simplecov affected: #{trigger}") }
         stderr.puts("simplecov affected: falling back to the full suite") if full
+        explain(selection.fetch(:reasons), stderr) if opts.fetch(:explain) && !full
         return emit_json(selection, full, stdout) if opts.fetch(:json)
         return execute(selection, full, opts, stderr) if opts.fetch(:run)
 
@@ -100,9 +102,21 @@ module SimpleCov
 
       def emit_json(selection, full, stdout)
         none = [] #: Array[String]
+        nothing = {} #: Hash[String, untyped]
         stdout.puts(JSON.pretty_generate("full_suite" => full, "triggers" => selection.fetch(:triggers),
-          "tests" => full ? none : selection.fetch(:tests)))
+          "tests" => full ? none : selection.fetch(:tests), "reasons" => full ? nothing : selection.fetch(:reasons)))
         0
+      end
+
+      # One line per selected file and changed file, on stderr so stdout stays a
+      # list a runner can take.
+      def explain(reasons, stderr)
+        reasons.each do |file, by_change|
+          by_change.each do |changed, ids|
+            why = ids.empty? ? "because it changed" : "for #{changed} (#{ids.join(", ")})"
+            stderr.puts("simplecov affected: #{file} runs #{why}")
+          end
+        end
       end
 
       # Stdout carries the selected files and nothing else, so the list can feed a
