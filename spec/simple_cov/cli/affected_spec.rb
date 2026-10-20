@@ -835,6 +835,183 @@ RSpec.describe SimpleCov::CLI do
       expect(stderr.string).to include("lib/garbled.rb changed but #{json_path} has no data for it")
     end
 
+    describe "narrowing a change to the methods it touched", :prism do
+      let(:fixture_files) do
+        super().merge("lib/widget.rb" => widget, "spec/small_spec.rb" => "# small\n", "spec/large_spec.rb" => "# large\n")
+      end
+
+      def widget
+        <<~RUBY
+          class Widget
+            LIMIT = 3
+
+            def small
+              :small
+            end
+
+            def large
+              :large
+            end
+          end
+        RUBY
+      end
+
+      def record_widget(source: widget, lines: [1, 1, nil, 1, 1, nil, nil, 1, 1, nil, nil], tables: {"6" => "10", "7" => "100"})
+        payload["contexts"] += ["spec/small_spec.rb:1", "spec/large_spec.rb:1"]
+        entry = {"source" => source&.lines&.map(&:chomp), "lines" => lines, "contexts" => tables}.compact
+        payload["coverage"][File.join(tmp, "lib/widget.rb")] = entry
+        File.write(json_path, JSON.dump(payload))
+      end
+
+      def change_widget(from, to, **recorded)
+        rewrite_widget(widget.sub(from, to), **recorded)
+      end
+
+      def rewrite_widget(content, **recorded)
+        record_widget(**recorded)
+        file!("lib/widget.rb", content)
+        run_in_repo("affected", "--input", json_path)
+      end
+
+      it "selects only the tests that ran a changed method" do
+        change_widget(":large\n", ":larger\n")
+
+        expect(stdout.string).to eq("spec/large_spec.rb\n")
+      end
+
+      it "selects for a change to a method's signature" do
+        change_widget("def small", "def small(size = 1)")
+
+        expect(stdout.string).to eq("spec/small_spec.rb\n")
+      end
+
+      it "selects every test touching the file for a change outside any method" do
+        change_widget("LIMIT = 3", "LIMIT = 4")
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "selects every test touching the file for a method added between two" do
+        change_widget("  def large", "  def medium\n    :medium\n  end\n\n  def large")
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "narrows each of two changed methods" do
+        rewrite_widget(widget.sub(":small\n", ":smaller\n").sub(":large\n", ":larger\n"), tables: {"6" => "10", "7" => "100", "4" => "2"})
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "narrows a change the recording already carries" do
+        change_widget(":large\n", ":larger\n", source: widget.sub(":large\n", ":larger\n"))
+
+        expect(stdout.string).to eq("spec/large_spec.rb\n")
+      end
+
+      it "falls back to the full suite for a changed method that ran only outside recorded tests" do
+        change_widget(":small\n", ":smaller\n", tables: {"7" => "100"})
+
+        expect(stderr.string).to include("lib/widget.rb changed but ran only outside recorded tests")
+      end
+
+      it "selects nothing for a changed method that never ran" do
+        change_widget(":small\n", ":smaller\n", lines: [1, 1, nil, 1, 0, nil, nil, 1, 1, nil, nil], tables: {"7" => "100"})
+
+        expect([stdout.string, stderr.string]).to eq(["", "simplecov affected: no recorded test touches the changed code\n"])
+      end
+
+      it "selects every test touching the file without the recorded source" do
+        change_widget(":large\n", ":larger\n", source: nil)
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "selects every test touching a deleted file" do
+        record_widget
+        FileUtils.rm(File.join(tmp, "lib/widget.rb"))
+        run_in_repo("affected", "--input", json_path)
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "selects every test touching a file added since the base" do
+        git_in_repo("rm", "--cached", "-q", "lib/widget.rb")
+        git_in_repo("-c", "user.email=spec@example.com", "-c", "user.name=spec", "commit", "-qm", "drop widget")
+        change_widget(":large\n", ":larger\n")
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+      end
+
+      it "narrows from a subdirectory" do
+        record_widget
+        file!("lib/widget.rb", widget.sub(":large\n", ":larger\n"))
+        run_in_spec_dir("affected", "--input", json_path)
+
+        expect(stdout.string).to eq("spec/large_spec.rb\n")
+      end
+
+      def narrowed(path, recorded, opts = {})
+        described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: opts})
+      end
+
+      it "narrows against the recording alone when there is no base to compare" do
+        file!("lib/widget.rb", widget.sub(":large\n", ":larger\n"))
+
+        expect(narrowed("lib/widget.rb", widget.lines.map(&:chomp))).to eq(0b11 << 8)
+      end
+
+      it "narrows nothing against a base it cannot name" do
+        file!("lib/widget.rb", widget.sub(":large\n", ":larger\n"))
+
+        expect(narrowed("lib/widget.rb", widget.lines.map(&:chomp), {merge_base: nil})).to be_nil
+      end
+
+      it "narrows no file that is not Ruby" do
+        file!("lib/widget.erb", widget.sub(":large\n", ":larger\n"))
+
+        expect(narrowed("lib/widget.erb", widget.lines.map(&:chomp))).to be_nil
+      end
+
+      it "narrows nothing from recorded source that is not a list" do
+        expect(narrowed("lib/widget.rb", "class Widget")).to be_nil
+      end
+
+      it "narrows nothing from recorded source with a line that is not a string" do
+        file!("lib/solo.rb", "def solo\n  :solo\nend\n")
+
+        expect(narrowed("lib/solo.rb", ["def solo", 7, "end"])).to be_nil
+      end
+
+      it "narrows nothing for a deleted file" do
+        FileUtils.rm(File.join(tmp, "lib/widget.rb"))
+
+        expect(narrowed("lib/widget.rb", ["def solo", "  :solo", "end"])).to be_nil
+      end
+
+      it "reads the base source from the merge base, not the index" do
+        file!("lib/widget.rb", widget.sub(":large\n", ":larger\n"))
+        git_in_repo("add", "lib/widget.rb")
+        head = Open3.capture2("git", "-C", tmp, "rev-parse", "HEAD").first.strip
+
+        expect(described_class::Affected::Selection.base_source("lib/widget.rb", head, tmp)).to eq(widget)
+      end
+
+      it "finds no base source for a file the base lacks" do
+        head = Open3.capture2("git", "-C", tmp, "rev-parse", "HEAD").first.strip
+
+        expect(described_class::Affected::Selection.base_source("lib/missing.rb", head, tmp)).to be_nil
+      end
+
+      it "names no merge base for a ref git cannot resolve" do
+        expect(described_class::Affected::ChangedFiles.merge_base(tmp, "no-such-ref")).to be_nil
+      end
+
+      it "compares against no base it cannot name" do
+        expect(described_class::Affected::Selection.base_source("lib/widget.rb", nil, tmp)).to be_nil
+      end
+    end
+
     context "with a changed spec helper" do
       before do
         file!("spec/helper.rb", "# changed\n")

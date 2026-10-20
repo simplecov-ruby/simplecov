@@ -5,6 +5,7 @@ require "optparse"
 require_relative "command_helpers"
 require_relative "tests"
 require_relative "affected/changed_files"
+require_relative "affected/narrowing"
 require_relative "affected/runner"
 require_relative "affected/selection"
 
@@ -74,6 +75,7 @@ module SimpleCov
 
       def respond(diffed, document, contexts, opts, stdout:, stderr:)
         opts[:root] = diffed.fetch(:root)
+        opts[:merge_base] = diffed.fetch(:merge_base)
         return no_changes(opts, stdout, stderr) if diffed.fetch(:changed).empty?
 
         selection = Selection.build(diffed.fetch(:changed), document, contexts, opts, stderr, root: diffed.fetch(:root))

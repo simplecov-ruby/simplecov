@@ -1,0 +1,29 @@
+module SimpleCov
+  module CLI
+    module Affected
+      module Narrowing
+        HUNK: Regexp
+
+        @prism: bool
+
+        def self?.mask: (String recorded, String? base, String current) -> Integer?
+
+        def self?.changed_spots: (String? old_source, String new_source) -> Array[[[Integer, Integer], [Integer, Integer]]]
+
+        def self?.spot: (untyped start, untyped count) -> [Integer, Integer]
+
+        def self?.innermost: (Array[[Integer, Integer]] methods, [Integer, Integer] spot) -> [Integer, Integer]?
+
+        def self?.body_mask: (Integer first, Integer last) -> Integer
+
+        def self?.method_spans: (String source) -> Array[[Integer, Integer]]
+
+        def self?.collect_spans: (Prism::node node, Array[[Integer, Integer]] spans) -> void
+
+        def self?.diff: (String old_source, String new_source) -> String
+
+        def self?.prism?: () -> bool
+      end
+    end
+  end
+end

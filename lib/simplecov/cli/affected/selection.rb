@@ -96,24 +96,63 @@ module SimpleCov
           state.fetch(:index)[File.expand_path(path, state.fetch(:root))] || state.fetch(:index)[path]
         end
 
+        # Only the tests that ran the changed lines' methods, when the change can
+        # be narrowed to methods, and every test touching the file otherwise.
         def select_covering(path, entry, state)
           table = covering_table(path, entry, state)
           return unless table
-          return table.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) } unless table.empty?
 
-          select_unclaimed(path, entry, table, state)
+          mask = narrowed(path, entry, state) || -1
+          claimed = table.select { |_index, bitmap| bitmap.anybits?(mask) }
+          return claimed.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) } unless claimed.empty?
+
+          select_unclaimed(path, entry, mask, table, state)
         end
 
-        # A file that ran while no test was being recorded (loading before the
+        # Code that ran while no test was being recorded (loading before the
         # first test, suite-level setup) can shape every test, so when no test
-        # claims it there is nothing to narrow the run to. Without line counts
-        # there is no telling whether it ran at all.
-        def select_unclaimed(path, entry, table, state)
+        # claims what changed there is nothing to narrow the run to. Without line
+        # counts there is no telling whether it ran at all.
+        def select_unclaimed(path, entry, mask, table, state)
           lines = entry["lines"]
           return note_untracked(path, state) unless lines.instance_of?(Array)
-          return table unless lines.any? { |count| count.instance_of?(Integer) && count.positive? }
+
+          ran = lines.each_with_index.any? { |count, index| count.instance_of?(Integer) && count.positive? && mask[index].equal?(1) }
+          return table unless ran
 
           state.fetch(:triggers) << "#{path} changed but ran only outside recorded tests"
+        end
+
+        # `affected` compares against the merge base, and a file it cannot find
+        # there is not narrowed. `watch` has no base and compares only against
+        # the recording.
+        def narrowed(path, entry, state)
+          recorded = entry["source"]
+          return unless path.end_with?(".rb") && recorded.instance_of?(Array) && recorded.all?(String)
+
+          root = state.fetch(:root)
+          current = read(File.expand_path(path, root))
+          return unless current
+
+          opts = state.fetch(:opts)
+          if opts.key?(:merge_base)
+            base = base_source(path, opts.fetch(:merge_base), root)
+            return unless base
+          end
+          Narrowing.mask(recorded.map { |line| "#{line}\n" }.join, base, current)
+        end
+
+        def read(path)
+          File.read(path)
+        rescue SystemCallError
+          nil
+        end
+
+        def base_source(path, merge_base, root)
+          return unless merge_base
+
+          stdout, _detail, success = Git.capture("-C", root, "show", "#{merge_base}:#{path}")
+          stdout if success
         end
 
         def covering_table(path, entry, state)

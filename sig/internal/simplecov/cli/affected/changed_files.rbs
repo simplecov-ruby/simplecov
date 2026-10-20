@@ -6,6 +6,8 @@ module SimpleCov
 
         def self?.repository_toplevel: (untyped stderr) -> String?
 
+        def self?.merge_base: (String root, String base) -> String?
+
         def self?.list: (String command, Array[String] argv, untyped stderr) -> Array[String]?
 
         def self?.report: (untyped stderr, String message) -> nil

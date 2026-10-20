@@ -25,7 +25,14 @@ module SimpleCov
           return nil unless diff
 
           untracked = list("ls-files", ["-C", root, "ls-files", "--others", "--exclude-standard", "-z"], stderr)
-          untracked && {root: root, changed: (diff + untracked).uniq}
+          untracked && {root: root, changed: (diff + untracked).uniq, merge_base: merge_base(root, base)}
+        end
+
+        # The commit the diff starts from, whose sources narrowing compares
+        # against, or nil when git cannot name it.
+        def merge_base(root, base)
+          stdout, _detail, success = Git.capture("-C", root, "merge-base", base, "HEAD")
+          (_ = stdout).chomp if success
         end
 
         # nil stdout from `Git.capture` means git never ran; a run that failed

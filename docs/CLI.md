@@ -272,6 +272,14 @@ $ simplecov affected --base main --run bundle exec rspec
 Everything after `--run` is the command, the selected files are appended to it, and the exit status is the
 command's own.
 
+A changed Ruby file narrows to the methods the change touched: only the tests that ran a changed method's body are
+selected, rather than every test that touched the file. A change outside any method (a constant, a macro, a method
+added between two) still selects every test touching the file, and a changed method that ran only while no test was
+being recorded falls back to the full suite. Narrowing reads the source recorded in the report (so it needs the
+default `source_in_json`), compares it against both the merge base and the working tree, so a recording made before
+or after the change narrows alike, and finds methods with Prism. A file it cannot narrow, such as a template, a file
+added since the base, or one the report recorded no source for, is selected whole.
+
 The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
 stale the moment something changes that no test mentions by name. Any changed file outside the tracked set falls
 back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner configuration, and any changed file

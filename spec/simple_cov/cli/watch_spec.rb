@@ -585,6 +585,21 @@ RSpec.describe SimpleCov::CLI do
         described_class.build(changed, document, root: "/proj", input: "coverage.json", stderr: stderr)
       end
 
+      def narrowed_plan(root)
+        source = "class W\n  def a\n    :a\n  end\n\n  def b\n    :b\n  end\nend\n"
+        FileUtils.mkdir_p([File.join(root, "lib"), File.join(root, "spec")])
+        File.write(File.join(root, "lib/w.rb"), source.sub(":b\n", ":bee\n"))
+        %w[a b].each { |name| File.write(File.join(root, "spec/#{name}_spec.rb"), "") }
+        entry = {"source" => source.lines.map(&:chomp), "lines" => [1, 1, 1, nil, nil, 1, 1, nil, nil],
+                 "contexts" => {"0" => "4", "1" => "40"}}
+        document = {"contexts" => ["spec/a_spec.rb:1", "spec/b_spec.rb:1"], "coverage" => {File.join(root, "lib/w.rb") => entry}}
+        described_class.build(["lib/w.rb"], document, root: root, input: "c.json", stderr: stderr)
+      end
+
+      it "narrows a changed method against the recording alone", :prism do
+        expect(Dir.mktmpdir("simplecov-plan-") { |root| narrowed_plan(root) }).to eq(run: true, tests: ["spec/b_spec.rb"])
+      end
+
       [["spec/a_spec.rb:1", 42], "junk"].each do |contexts|
         it "runs everything for #{contexts.inspect} in place of a context list" do
           expect(plan("contexts" => contexts)).to eq(run: true, tests: nil)
