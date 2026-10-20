@@ -8,6 +8,12 @@ module SimpleCov
 
         def self?.mask: (String recorded, String? base, String current) -> Integer?
 
+        def self?.rewritten_lines: (String recorded, String? base, String current) -> Array[Integer]?
+
+        def self?.hunk_lines: (String? old_source, String new_source) -> Array[[Array[Integer], Array[Integer]]]
+
+        def self?.line_numbers: (untyped start, untyped count) -> Array[Integer]
+
         def self?.changed_spots: (String? old_source, String new_source) -> Array[[[Integer, Integer], [Integer, Integer]]]
 
         def self?.spot: (untyped start, untyped count) -> [Integer, Integer]

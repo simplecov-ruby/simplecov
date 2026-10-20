@@ -906,10 +906,10 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to eq("spec/small_spec.rb\n")
       end
 
-      it "selects every test touching the file for a change outside any method" do
+      it "falls back to the full suite for a changed line no recorded test ran" do
         change_widget("LIMIT = 3", "LIMIT = 4")
 
-        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
+        expect(stderr.string).to include("lib/widget.rb changed but ran only outside recorded tests")
       end
 
       it "selects every test touching the file for a method added between two" do
@@ -948,6 +948,12 @@ RSpec.describe SimpleCov::CLI do
         expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
       end
 
+      it "falls back to the full suite for a changed line the recording already carries" do
+        change_widget("LIMIT = 3", "LIMIT = 4", source: widget.sub("LIMIT = 3", "LIMIT = 4"))
+
+        expect(stderr.string).to include("lib/widget.rb changed but ran only outside recorded tests")
+      end
+
       it "selects every test touching a deleted file" do
         record_widget
         FileUtils.rm(File.join(tmp, "lib/widget.rb"))
@@ -973,7 +979,19 @@ RSpec.describe SimpleCov::CLI do
       end
 
       def narrowed(path, recorded, opts = {})
-        described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: {by_file: false, **opts}})
+        described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: {by_file: false, **opts}})&.first
+      end
+
+      it "masks the first counted line of each rewritten statement" do
+        mask = described_class::Affected::Selection.rewritten_mask({"lines" => [nil, 1, nil, 1]}, [1, 2, 3, 4])
+
+        expect(mask).to eq(0b1010)
+      end
+
+      it "masks nothing without line counts" do
+        masks = [{}, {"lines" => "1"}].map { |entry| described_class::Affected::Selection.rewritten_mask(entry, [1]) }
+
+        expect(masks).to eq([nil, nil])
       end
 
       it "narrows against the recording alone when there is no base to compare" do

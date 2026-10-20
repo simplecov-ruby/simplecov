@@ -79,6 +79,30 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
     end
   end
 
+  describe ".rewritten_lines" do
+    it "reads the lines a change rewrote, in the recording's lines" do
+      recorded = source.sub("class Widget\n", "class Widget\n  A = 1\n")
+
+      expect(described_class.rewritten_lines(recorded, source, recorded.sub(":large\n", ":larger\n  :again\n"))).to eq([2, 9])
+    end
+
+    it "leaves out a changed def line" do
+      expect(described_class.rewritten_lines(source, nil, source.sub("def large", "def large(size = 1)"))).to eq([])
+    end
+
+    it "gives up without Prism" do
+      allow(described_class).to receive(:prism?).and_return(false)
+
+      expect(described_class.rewritten_lines(source, nil, source.sub(":large\n", ":larger\n"))).to be_nil
+    end
+  end
+
+  describe ".hunk_lines" do
+    it "reads the lines each hunk covers on both sides" do
+      expect(described_class.hunk_lines("a\nb\nc\n", "a\nx\ny\nb\nd\n")).to eq([[[], [2, 3]], [[3], [5]]])
+    end
+  end
+
   describe ".changed_spots" do
     it "reads a replaced line on both sides" do
       expect(described_class.changed_spots(source, source.sub(":large\n", ":larger\n"))).to eq([[[8, 8], [8, 8]]])
