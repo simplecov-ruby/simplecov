@@ -95,6 +95,115 @@ RSpec.describe SimpleCov::TestTracker do
       end
     end
 
+    context "with a Ruby file the test itself loaded", :prism do
+      subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+      let(:root) { File.realpath(Dir.mktmpdir) }
+      let(:loaded) { File.join(root, "loaded.rb") }
+      let(:ran) { [1, 1, nil, 1, 1, 1, 1, nil, 1, nil, 1, nil, 1, 1, nil, 1, 1, 1, 1, 1, nil] }
+
+      before do
+        File.write(loaded, <<~RUBY)
+          class Loaded
+            LIMIT = 3
+
+            def call
+              total = LIMIT
+              total + 1
+            end
+
+            def self.build = new
+
+            def self.pair; [new, new]; end
+
+            def noop
+            end
+
+            def outer
+              def inner
+                :inner
+              end
+            end
+          end
+        RUBY
+        allow(Prism).to receive(:parse_file).and_call_original
+        stub_peeks({}, {loaded => {lines: ran}})
+
+        tracker.track("spec/loaded_spec.rb:1") { :ran }
+      end
+
+      after { FileUtils.rm_rf(root) }
+
+      [5, 6, 17, 18, 19].each do |line|
+        it "attributes method body line #{line} to the test" do
+          expect(tracker.recorded_map.covering(loaded, line)).to eq(["spec/loaded_spec.rb:1"])
+        end
+      end
+
+      [1, 2, 4, 7, 9, 11, 13, 14, 16, 20].each do |line|
+        it "leaves line #{line}, which ran as the file loaded, to no test" do
+          expect(tracker.recorded_map.covering(loaded, line)).to eq([])
+        end
+      end
+
+      it "parses the file once however often it reappears" do
+        tracker.recorded_map
+        stub_peeks({}, {loaded => {lines: ran}})
+        tracker.track("spec/loaded_spec.rb:9") { :ran }
+        tracker.recorded_map
+
+        expect(Prism).to have_received(:parse_file).once
+      end
+    end
+
+    context "with a Ruby file loaded before the test began" do
+      subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+      let(:root) { File.realpath(Dir.mktmpdir) }
+      let(:loaded) { File.join(root, "loaded.rb") }
+
+      before do
+        File.write(loaded, "LIMIT = 3\n")
+        stub_peeks({loaded => {lines: [1]}}, {loaded => {lines: [2]}})
+        tracker.track("spec/loaded_spec.rb:1") { :ran }
+      end
+
+      after { FileUtils.rm_rf(root) }
+
+      it "attributes every grown line to the test, method body or not" do
+        expect(tracker.recorded_map.covering(loaded, 1)).to eq(["spec/loaded_spec.rb:1"])
+      end
+    end
+
+    context "with a file the test itself loaded that it cannot read as Ruby" do
+      subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+      let(:root) { File.realpath(Dir.mktmpdir) }
+
+      after { FileUtils.rm_rf(root) }
+
+      def track_loading(name, source)
+        path = File.join(root, name)
+        File.write(path, source)
+        stub_peeks({}, {path => {lines: [1, 1]}})
+        tracker.track("spec/loaded_spec.rb:1") { :ran }
+        path
+      end
+
+      it "attributes every executed line of a template to the test" do
+        template = track_loading("card.html.erb", "<% if true %>\n<%= 1 %>\n")
+
+        expect(tracker.recorded_map.covering(template, 1)).to eq(["spec/loaded_spec.rb:1"])
+      end
+
+      it "attributes every executed line to the test without Prism" do
+        allow(SimpleCov::StaticCoverageExtractor).to receive(:prism_loaded?).and_return(false)
+        ruby = track_loading("loaded.rb", "LIMIT = 3\nOTHER = 4\n")
+
+        expect(tracker.recorded_map.covering(ruby, 1)).to eq(["spec/loaded_spec.rb:1"])
+      end
+    end
+
     context "with bare line arrays, the shape a foreign lines-only Coverage.start produces" do
       before do
         stub_peeks({lib_file => [0, 1]}, {lib_file => [1, 1]})

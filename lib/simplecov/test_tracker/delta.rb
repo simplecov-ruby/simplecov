@@ -11,12 +11,14 @@ module SimpleCov
       def initialize(root_regex:)
         @root_regex = root_regex
         @in_root = {} #: Hash[String, bool]
+        @method_bodies = {} #: Hash[String, Integer]
       end
 
-      # Files outside the root are skipped; a file absent from `before` was loaded
-      # by the test itself, so everything it executed is the test's. The root match
-      # is memoized, so the regex runs once per file the process ever loads rather
-      # than once per file per test.
+      # Files outside the root are skipped. A file absent from `before` was loaded
+      # by the test itself, which keeps only the method body lines it ran: the
+      # rest ran as the file loaded and serves every later test as much as this
+      # one. The root match is memoized, so the regex runs once per file the
+      # process ever loads rather than once per file per test.
       def call(before, after)
         changed = {} #: Hash[String, Integer]
         after.each do |path, file_coverage|
@@ -24,12 +26,17 @@ module SimpleCov
           next unless in_root
 
           bitmap = line_delta(lines_in(before[path]), lines_in(file_coverage))
+          bitmap &= method_bodies(path) unless before.key?(path)
           changed[path] = bitmap unless bitmap.zero?
         end
         changed
       end
 
       private
+
+      def method_bodies(path)
+        @method_bodies.fetch(path) { @method_bodies[path] = MethodBodies.mask(path) }
+      end
 
       # A peek's per-file data is a criteria Hash when Coverage was started with a
       # criteria hash, and a bare Array under the older lines-only form. No lines

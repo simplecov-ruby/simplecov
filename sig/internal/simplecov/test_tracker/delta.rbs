@@ -5,12 +5,15 @@ module SimpleCov
 
       @root_regex: Regexp
       @in_root: Hash[String, bool]
+      @method_bodies: Hash[String, Integer]
 
       def initialize: (root_regex: Regexp) -> void
 
       def call: (Hash[String, untyped] before, Hash[String, untyped] after) -> Hash[String, Integer]
 
       private
+
+      def method_bodies: (String path) -> Integer
 
       def lines_in: (untyped file_coverage) -> Array[Integer?]?
 

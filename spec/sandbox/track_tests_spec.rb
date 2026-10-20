@@ -24,6 +24,26 @@ RSpec.describe "track_tests", :sandbox do
   end
 
   describe "an RSpec suite" do
+    before do
+      write_file("lib/lazy.rb", <<~RUBY)
+        class Lazy
+          def call
+            :called
+          end
+        end
+      RUBY
+      write_file("spec/lazy_spec.rb", <<~RUBY)
+        require "spec_helper"
+
+        RSpec.describe "Lazy" do
+          it "loads it and calls it" do
+            require_relative "../lib/lazy"
+            expect(Lazy.new.call).to eq(:called)
+          end
+        end
+      RUBY
+    end
+
     let!(:result) do
       configure_simplecov(:rspec, tracking_config)
       run_command_and_expect_success(sorted_rspec_command)
@@ -40,6 +60,17 @@ RSpec.describe "track_tests", :sandbox do
 
     it "records each example against the lines it covered" do
       expect(stored_contexts.covering(some_class, 12)).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+    end
+
+    it "credits a test with the method body it ran in a file it loaded" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 3))
+        .to eq(["spec/lazy_spec.rb:4"])
+    end
+
+    it "leaves the lines a file ran as it loaded to no test" do
+      skip "Prism is not a default gem on this Ruby" unless Gem::Specification.default_stubs.any? { |s| s.name == "prism" }
+
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 1)).to eq([])
     end
   end
 

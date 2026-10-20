@@ -1,0 +1,17 @@
+module SimpleCov
+  class TestTracker
+    module MethodBodies
+      EVERY_LINE: Integer
+
+      extend MethodBodies
+
+      def mask: (String path) -> Integer
+
+      private
+
+      def body_lines: (Prism::node node, Integer mask) -> Integer
+
+      def span: (Integer first, Integer? last) -> Integer
+    end
+  end
+end

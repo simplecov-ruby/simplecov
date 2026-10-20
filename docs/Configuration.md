@@ -408,6 +408,12 @@ The map also flows into `coverage.json`, the JSON formatter's schema'd public ar
 downstream tools should build on (the resultset is an internal cache). See
 [the coverage.json schema](Formatters.md#json-schema-for-coveragejson), version 1.1.
 
+Code that runs while no test is being recorded, such as loading the suite or suite-level setup, belongs to no test.
+The same goes for a file a test loads for the first time: its class bodies, constants, and `def` lines run once on
+behalf of every later test, so the loading test is credited only with the method body lines it ran. Telling them
+apart takes Prism, so a Ruby that cannot load it, and any file that is not Ruby source (a template, say), credits the
+loading test with every line it ran.
+
 The HTML report renders the recording in the source view. A covered line no recorded test executed drains from
 green to a slate tint ("Covered outside tests" in the legend), which is how coverage that only load time, suite
 setup, or a helper produced stops passing for tested code at a glance. Every executed line carries a tests badge
