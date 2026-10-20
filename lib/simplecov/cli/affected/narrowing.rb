@@ -40,6 +40,27 @@ module SimpleCov
           end
         end
 
+        def rewritten_lines(recorded, base, current)
+          return unless prism?
+
+          lines = hunk_lines(base, recorded).flat_map(&:last) + hunk_lines(recorded, current).flat_map(&:first)
+          def_lines = method_spans(recorded).map(&:first)
+          lines - def_lines
+        end
+
+        def hunk_lines(old_source, new_source)
+          return [] unless old_source
+
+          diff(old_source, new_source).scan(HUNK).map do |old_start, old_count, new_start, new_count|
+            [line_numbers(old_start, old_count), line_numbers(new_start, new_count)]
+          end
+        end
+
+        def line_numbers(start, count)
+          first = Integer(start)
+          (first...(first + (count ? Integer(count) : 1))).to_a
+        end
+
         # Each hunk as [old spot, new spot], a spot being the [first, last] lines
         # it covers on that side. A pure insertion after line k touches the two
         # lines around it, [k, k + 1], which sit in a method exactly when the

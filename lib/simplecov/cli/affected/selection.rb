@@ -106,11 +106,25 @@ module SimpleCov
           table = covering_table(path, entry, state)
           return unless table
 
-          mask = narrowed(path, entry, state) || -1
+          mask, rewritten_lines = narrowed(path, entry, state)
+          mask ||= -1
           claimed = table.select { |_index, bitmap| bitmap.anybits?(mask) }
-          return claimed.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) } unless claimed.empty?
+          return select_unclaimed(path, entry, mask, table, state) if claimed.empty?
 
-          select_unclaimed(path, entry, mask, table, state)
+          claimed.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) }
+          rewritten = rewritten_mask(entry, rewritten_lines)
+          return table unless rewritten
+
+          claimed_lines = claimed.each_value.reduce(:|)
+          select_unclaimed(path, entry, rewritten & ~claimed_lines, table, state)
+        end
+
+        def rewritten_mask(entry, lines)
+          counts = entry["lines"]
+          return unless lines && counts.instance_of?(Array)
+
+          statement_starts = lines.filter_map { |line| counts.first(line).rindex(&:itself) }
+          statement_starts.reduce(0) { |mask, index| mask | (1 << index) }
         end
 
         # Code that ran while no test was being recorded (loading before the
@@ -145,7 +159,8 @@ module SimpleCov
             base = base_source(path, opts.fetch(:merge_base), root)
             return unless base
           end
-          Narrowing.mask(recorded.map { |line| "#{line}\n" }.join, base, current)
+          source = recorded.map { |line| "#{line}\n" }.join
+          [Narrowing.mask(source, base, current), Narrowing.rewritten_lines(source, base, current)]
         end
 
         def read(path)
