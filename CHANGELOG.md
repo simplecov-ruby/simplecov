@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `simplecov affected` falls back to the full suite when a changed file ran only while no test was being recorded, such as code that runs as the suite loads or in suite-level setup. No recorded test claims such a file, so `affected` selected nothing for it and reported that no test touched the change, even though the code may shape every test. See [#1316].
 - A merge keeps the method and branch hits of a process that recorded no line hit for the file. A forked worker inherits the files its parent loaded with their counters cleared, and calling a method whose body shares its `def` line (a short endless method, for instance) then records a method hit and no line hit. The merge took that for a never-loaded file and dropped its hits in favor of the parent's zeroes, so methods the workers exercised were reported as uncovered. A file now counts as executed when any line, method, or branch arm was hit. See [#1310].
 
 ## [1.3.2] - 2026-09-30
@@ -668,6 +669,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1308]: https://github.com/simplecov-ruby/simplecov/issues/1308
 [#1310]: https://github.com/simplecov-ruby/simplecov/issues/1310
 [#1312]: https://github.com/simplecov-ruby/simplecov/issues/1312
+[#1316]: https://github.com/simplecov-ruby/simplecov/issues/1316
 
 [@adam12]: https://github.com/adam12
 [@alexdeng-mp]: https://github.com/alexdeng-mp

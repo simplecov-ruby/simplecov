@@ -18,6 +18,8 @@ RSpec.describe SimpleCov::CLI do
         "lib/plain.rb" => "# original\n", "toplevel_test.rb" => "# original\n",
         "lib/suffixless.rb" => "# original\n", "spec/no_suffix" => "# original\n",
         "lib/plain2.rb" => "# original\n", "spec/test_helper.rb" => "# original\n",
+        "lib/boot.rb" => "# original\n", "lib/lineless.rb" => "# original\n",
+        "lib/garbled.rb" => "# original\n",
         "spec/result_spec.rb" => "# original\n", "spec/source_file_spec.rb" => "# original\n",
         "spec/helper.rb" => "# original\n", "Gemfile.lock" => "# original\n",
         ".gitignore" => "coverage.json\nout.txt\n"
@@ -36,7 +38,10 @@ RSpec.describe SimpleCov::CLI do
         ],
         "coverage" => {
           File.join(tmp, "lib/result.rb") => {"lines" => [nil, 1, 2, 0], "contexts" => {"0" => "6", "1" => "4"}},
-          File.join(tmp, "lib/quiet.rb") => {"lines" => [1, nil]},
+          File.join(tmp, "lib/quiet.rb") => {"lines" => [0, "ignored"]},
+          File.join(tmp, "lib/lineless.rb") => {"contexts" => {}},
+          File.join(tmp, "lib/garbled.rb") => {"lines" => "1"},
+          File.join(tmp, "lib/boot.rb") => {"lines" => [nil, 1, 0]},
           File.join(tmp, "lib/odd.rb") => {"lines" => [1], "contexts" => {"2" => "1"}},
           File.join(tmp, "lib/stale.rb") => {"lines" => [1], "contexts" => {"3" => "1"}},
           File.join(tmp, "lib/plain.rb") => {"lines" => [1], "contexts" => {"4" => "1"}},
@@ -776,6 +781,57 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite" do
         expect(stderr.string).to include("falling back to the full suite")
       end
+    end
+
+    context "with a changed file that ran only outside recorded tests" do
+      before do
+        file!("lib/boot.rb", "# changed\n")
+        run_in_repo("affected", "--input", json_path)
+      end
+
+      it "succeeds" do
+        expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      end
+
+      it "selects nothing" do
+        expect(stdout.string).to be_empty
+      end
+
+      it "names the file" do
+        expect(stderr.string).to include(
+          "simplecov affected: lib/boot.rb changed but ran only outside recorded tests"
+        )
+      end
+
+      it "falls back to the full suite" do
+        expect(stderr.string).to include("falling back to the full suite")
+      end
+    end
+
+    context "with a changed file the report carries no line counts for" do
+      before do
+        file!("lib/lineless.rb", "# changed\n")
+        run_in_repo("affected", "--input", json_path)
+      end
+
+      it "succeeds" do
+        expect(run_in_repo("affected", "--input", json_path)).to eq(0)
+      end
+
+      it "names the file" do
+        expect(stderr.string).to include("lib/lineless.rb changed but #{json_path} has no data for it")
+      end
+
+      it "falls back to the full suite" do
+        expect(stderr.string).to include("falling back to the full suite")
+      end
+    end
+
+    it "treats line counts that are not a list as no data" do
+      file!("lib/garbled.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path)
+
+      expect(stderr.string).to include("lib/garbled.rb changed but #{json_path} has no data for it")
     end
 
     context "with a changed spec helper" do

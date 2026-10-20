@@ -74,7 +74,22 @@ module SimpleCov
 
         def select_covering(path, entry, state)
           table = covering_table(path, entry, state)
-          table&.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) }
+          return unless table
+          return table.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) } unless table.empty?
+
+          select_unclaimed(path, entry, table, state)
+        end
+
+        # A file that ran while no test was being recorded (loading before the
+        # first test, suite-level setup) can shape every test, so when no test
+        # claims it there is nothing to narrow the run to. Without line counts
+        # there is no telling whether it ran at all.
+        def select_unclaimed(path, entry, table, state)
+          lines = entry["lines"]
+          return note_untracked(path, state) unless lines.instance_of?(Array)
+          return table unless lines.any? { |count| count.instance_of?(Integer) && count.positive? }
+
+          state.fetch(:triggers) << "#{path} changed but ran only outside recorded tests"
         end
 
         def covering_table(path, entry, state)

@@ -20,7 +20,9 @@ module SimpleCov
 
         def self?.select_test_file: (String path, untyped state, ?note_deleted: bool) -> String
 
-        def self?.select_covering: (String path, untyped entry, untyped state) -> String?
+        def self?.select_covering: (String path, untyped entry, untyped state) -> untyped
+
+        def self?.select_unclaimed: (String path, Hash[String, untyped] entry, Hash[Integer, Integer] table, Hash[Symbol, untyped] state) -> untyped
 
         def self?.covering_table: (String path, untyped entry, untyped state) -> untyped
 

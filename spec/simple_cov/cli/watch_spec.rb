@@ -24,9 +24,9 @@ RSpec.describe SimpleCov::CLI do
 
     after { FileUtils.rm_rf(tmp) }
 
-    def write_report(percent: 90.0, contexts: ["spec/code_spec.rb:1"], tables: {"0" => "1"})
+    def write_report(percent: 90.0, contexts: ["spec/code_spec.rb:1"], tables: {"0" => "1"}, lines: [1])
       FileUtils.mkdir_p(coverage_dir)
-      document = {"coverage" => {code_path => {"lines" => [1], "contexts" => tables}}}
+      document = {"coverage" => {code_path => {"lines" => lines, "contexts" => tables}}}
       document["total"] = {"lines" => {"percent" => percent}} if percent
       document["contexts"] = contexts if contexts
       File.write(json_path, JSON.dump(document))
@@ -156,7 +156,7 @@ RSpec.describe SimpleCov::CLI do
     end
 
     it "notes a change no recorded test touches without running anything" do
-      write_report(tables: {})
+      write_report(tables: {}, lines: [0])
       watch_through_a_change { stdout.string.include?("no recorded test touches it") }
 
       expect(File.exist?(log_path)).to be(false)
@@ -597,7 +597,7 @@ RSpec.describe SimpleCov::CLI do
 
       it "runs nothing when no recorded test touches the change" do
         document = {"contexts" => ["spec/a_spec.rb:1"],
-                    "coverage" => {File.expand_path("/proj/lib/b.rb") => {"lines" => [1]}}}
+                    "coverage" => {File.expand_path("/proj/lib/b.rb") => {"lines" => [0]}}}
         expect(plan(document, ["lib/b.rb"])).to eq(run: false, tests: [])
       end
 

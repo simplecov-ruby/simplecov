@@ -275,7 +275,9 @@ command's own.
 The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
 stale the moment something changes that no test mentions by name. Any changed file outside the tracked set falls
 back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner configuration, and any changed file
-the report has no data for at all. Changed or brand-new test files always run, whether the map knows them or not.
+the report has no data for at all. So does a changed file that ran only while no test was being recorded, such as
+code that runs as the suite loads, since no test claims it and it may shape every test. Changed or brand-new test
+files always run, whether the map knows them or not.
 The fallback is loud, with each trigger named on stderr, and on stdout it prints nothing, which composes with
 substitution (`bundle exec rspec $(simplecov affected)` runs everything when the selection cannot be trusted). With
 `--run` the command runs bare, which means the full suite for the usual runners. `--json` emits
