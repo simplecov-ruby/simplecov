@@ -22,4 +22,11 @@ RSpec.describe "gemspec sanity" do
   it "succeeds" do
     expect(build[2]).to be_success
   end
+
+  it "depends on Prism, which Ruby 4.1 stopped shipping as a default gem" do
+    spec = Gem::Specification.load(File.expand_path("../simplecov.gemspec", __dir__))
+
+    expect(spec.runtime_dependencies.map { |dependency| [dependency.name, dependency.requirement.to_s] })
+      .to eq([["prism", "~> 1.5"]])
+  end
 end

@@ -2,6 +2,7 @@ PATH
   remote: ../../..
   specs:
     simplecov (1.3.2)
+      prism (~> 1.5)
 
 GEM
   remote: https://rubygems.org/

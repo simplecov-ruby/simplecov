@@ -52,6 +52,13 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = ">= 3.4"
 
+  # Prism is a default gem on Ruby 3.4 and 4.0, so this adds nothing to
+  # install there. Ruby 4.1 ships it as a bundled gem instead, which a bundle
+  # can load only when something in it depends on Prism. It still loads lazily,
+  # so a Ruby that cannot load it (JRuby on Windows) only loses the features
+  # that need it.
+  gem.add_dependency "prism", "~> 1.5"
+
   # The changelog is intentionally not packaged — it grows every release and is
   # the gem's largest avoidable payload. The `changelog_uri` metadata above
   # points readers at the GitHub copy instead.

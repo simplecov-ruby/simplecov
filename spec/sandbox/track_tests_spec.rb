@@ -80,8 +80,6 @@ RSpec.describe "track_tests", :sandbox do
     end
 
     it "leaves the lines a file ran as it loaded to no test" do
-      skip "Prism is not a default gem on this Ruby" unless Gem::Specification.default_stubs.any? { |s| s.name == "prism" }
-
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 1)).to eq([])
     end
   end

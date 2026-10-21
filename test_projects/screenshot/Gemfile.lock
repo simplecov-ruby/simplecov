@@ -2,11 +2,13 @@ PATH
   remote: ../..
   specs:
     simplecov (1.3.2)
+      prism (~> 1.5)
 
 GEM
   remote: https://rubygems.org/
   specs:
     diff-lcs (1.6.2)
+    prism (1.9.0)
     rake (13.4.2)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
@@ -34,6 +36,7 @@ DEPENDENCIES
 CHECKSUMS
   bundler (4.0.19) sha256=b48056e4c77fb3853cc47775b5447ede44aaa4f53c32f168014ab4fe86587d47
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
+  prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
   rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
