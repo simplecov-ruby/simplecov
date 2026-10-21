@@ -278,7 +278,8 @@ added between two) still selects every test touching the file, and a changed met
 being recorded falls back to the full suite. Narrowing reads the source recorded in the report (so it needs the
 default `source_in_json`), compares it against both the merge base and the working tree, so a recording made before
 or after the change narrows alike, and finds methods with Prism. A file it cannot narrow, such as a template, a file
-added since the base, or one the report recorded no source for, is selected whole.
+added since the base, or one the report recorded no source for, is selected whole. `--by-file` turns narrowing off
+and selects every test touching each changed file, the way to check a narrowed selection that looks too small.
 
 The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
 stale the moment something changes that no test mentions by name. Any changed file outside the tracked set falls

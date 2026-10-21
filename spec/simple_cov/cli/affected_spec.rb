@@ -442,7 +442,7 @@ RSpec.describe SimpleCov::CLI do
       it "starts with no base, no runner, and both compact forms off" do
         expect(SimpleCov::CLI::Affected.parse([]))
           .to eq(input: described_class.default_input, json: false, no_color: false,
-            base: nil, run: nil, explain: false, global: [], rest: [])
+            base: nil, run: nil, explain: false, global: [], by_file: false, rest: [])
       end
 
       it "splits the runner command off at --run" do
@@ -878,20 +878,26 @@ RSpec.describe SimpleCov::CLI do
         File.write(json_path, JSON.dump(payload))
       end
 
-      def change_widget(from, to, **recorded)
-        rewrite_widget(widget.sub(from, to), **recorded)
+      def change_widget(from, to, *flags, **recorded)
+        rewrite_widget(widget.sub(from, to), *flags, **recorded)
       end
 
-      def rewrite_widget(content, **recorded)
+      def rewrite_widget(content, *flags, **recorded)
         record_widget(**recorded)
         file!("lib/widget.rb", content)
-        run_in_repo("affected", "--input", json_path)
+        run_in_repo("affected", "--input", json_path, *flags)
       end
 
       it "selects only the tests that ran a changed method" do
         change_widget(":large\n", ":larger\n")
 
         expect(stdout.string).to eq("spec/large_spec.rb\n")
+      end
+
+      it "selects every test touching the file under --by-file" do
+        change_widget(":large\n", ":larger\n", "--by-file")
+
+        expect(stdout.string).to eq("spec/large_spec.rb\nspec/small_spec.rb\n")
       end
 
       it "selects for a change to a method's signature" do
@@ -967,7 +973,7 @@ RSpec.describe SimpleCov::CLI do
       end
 
       def narrowed(path, recorded, opts = {})
-        described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: opts})
+        described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: {by_file: false, **opts}})
       end
 
       it "narrows against the recording alone when there is no base to compare" do

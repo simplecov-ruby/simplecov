@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `simplecov affected --global PATTERN` declares files whose change runs the full suite, such as configuration or a file of constants every test reads. The option repeats, and patterns are globs relative to the repository root. See [#1316].
-- `simplecov affected` and `simplecov watch` narrow a changed Ruby file to the methods the change touched, selecting only the tests that ran those methods instead of every test that touched the file. A change outside any method still selects every test touching the file. Narrowing compares the source recorded in `coverage.json` with both the merge base and the working tree, so it works whether the recording was made before or after the change. See [#1316].
+- `simplecov affected` and `simplecov watch` narrow a changed Ruby file to the methods the change touched, selecting only the tests that ran those methods instead of every test that touched the file. A change outside any method still selects every test touching the file. Narrowing compares the source recorded in `coverage.json` with both the merge base and the working tree, so it works whether the recording was made before or after the change. `simplecov affected --by-file` turns narrowing off. See [#1316].
 - `simplecov affected --explain` names, on stderr, the changed file and the recorded tests behind each selected test file, and `--json` carries the same as a `reasons` object, so a selection can be checked instead of trusted. See [#1316].
 
 ### Changed

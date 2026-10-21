@@ -131,6 +131,9 @@ module SimpleCov
         # there is not narrowed. `watch` has no base and compares only against
         # the recording.
         def narrowed(path, entry, state)
+          opts = state.fetch(:opts)
+          return if opts.fetch(:by_file)
+
           recorded = entry["source"]
           return unless path.end_with?(".rb") && recorded.instance_of?(Array) && recorded.all?(String)
 
@@ -138,7 +141,6 @@ module SimpleCov
           current = read(File.expand_path(path, root))
           return unless current
 
-          opts = state.fetch(:opts)
           if opts.key?(:merge_base)
             base = base_source(path, opts.fetch(:merge_base), root)
             return unless base

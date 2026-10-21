@@ -14,7 +14,7 @@ module SimpleCov
           return {run: true, tests: nil} unless contexts.instance_of?(Array) && contexts.all?(String)
 
           global = [] #: Array[String]
-          selection = Affected::Selection.build(changed, document, contexts, {input: input, global: global}, stderr, root: root)
+          selection = Affected::Selection.build(changed, document, contexts, {input: input, global: global, by_file: false}, stderr, root: root)
           return {run: true, tests: nil} if selection.nil? || !selection.fetch(:triggers).empty?
           return {run: false, tests: []} if selection.fetch(:tests).empty?
 
