@@ -744,9 +744,12 @@ RSpec.describe SimpleCov::CLI do
       end
 
       def gathered_beside_a_resultset
+        now = 1_790_000_000.0
+        allow(Process).to receive(:clock_gettime).and_call_original
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_REALTIME).and_return(now)
         Dir.mktmpdir("simplecov-gather-spec-") do |dir|
           path = File.join(dir, ".resultset.json")
-          File.write(path, JSON.dump("RSpec" => {"timestamp" => (Time.now - 60).to_i}))
+          File.write(path, JSON.dump("RSpec" => {"timestamp" => (now - 60).to_i}))
           facts.gather({"total" => {"lines" => {"percent" => 92.5}}}, path)
             .merge(resultset_path: path)
         end
