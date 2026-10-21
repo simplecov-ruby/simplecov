@@ -4,19 +4,27 @@ module SimpleCov
       module Narrowing
         type side = [Integer, Integer, String]
 
-        type edit = [side, side]
+        type edit = [side, side, side]
+
+        type load_time = [Integer, Integer]
 
         HUNK: Regexp
 
+        CODE: Regexp
+
         @prism: bool
 
-        def self?.changes: (String recorded, String? base, String current) -> [Integer?, Array[Integer]]
+        def self?.changes: (String recorded, String? base, String current) -> [Integer?, Array[load_time]]
 
         def self?.mask: (Array[edit] edits, Array[[Integer, Integer]] methods) -> Integer?
 
-        def self?.load_time_lines: (edit edit, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements, Array[Integer] silent) -> Array[Integer]
+        def self?.load_time_lines: (edit edit, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements, Array[Integer] silent, Array[Integer] enclosed) -> Array[load_time]
 
         def self?.statement_start: (Integer line, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements) -> Integer?
+
+        def self?.counterpart: (edit edit, Integer line) -> Integer
+
+        def self?.first_code_line: (side side) -> Integer
 
         def self?.rewritten: (side side) -> Array[Integer]
 
@@ -24,9 +32,11 @@ module SimpleCov
 
         def self?.silent_lines: (String source, Array[Prism::Comment] comments) -> Array[Integer]
 
+        def self?.enclosed_lines: (Array[Prism::Comment] comments) -> Array[Integer]
+
         def self?.hunks: (String? old_source, String new_source) -> Array[edit]
 
-        def self?.side: (String source, untyped start, untyped count) -> side
+        def self?.side: (Array[String] lines, untyped start, untyped count) -> side
 
         def self?.spot: (side side) -> [Integer, Integer]
 

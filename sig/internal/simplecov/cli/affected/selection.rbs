@@ -28,13 +28,13 @@ module SimpleCov
 
         def self?.select_covering: (String path, untyped entry, untyped state) -> untyped
 
-        def self?.load_time_mask: (Hash[String, untyped] entry, Array[Integer]? lines) -> Integer?
+        def self?.ran_outside_tests: (Hash[String, untyped] entry, Array[SimpleCov::CLI::Affected::Narrowing::load_time]? load_time, Integer claimed) -> Integer?
 
         def self?.select_unclaimed: (String path, Hash[String, untyped] entry, Integer mask, Hash[Integer, Integer] table, Hash[Symbol, untyped] state) -> untyped
 
         def self?.first_ran: (Array[untyped] counts, Integer mask) -> Integer?
 
-        def self?.narrowed: (String path, Hash[String, untyped] entry, Hash[Symbol, untyped] state) -> [Integer?, Array[Integer]]?
+        def self?.narrowed: (String path, Hash[String, untyped] entry, Hash[Symbol, untyped] state) -> [Integer?, Array[SimpleCov::CLI::Affected::Narrowing::load_time]]?
 
         def self?.read: (String path) -> String?
 

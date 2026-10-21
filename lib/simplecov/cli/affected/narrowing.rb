@@ -12,10 +12,11 @@ module SimpleCov
       # methods it touched. nil means the file cannot be narrowed and every
       # test touching it stays selected: the change reaches outside any method
       # (a constant, a macro, a method added between two), or the recorded
-      # source, its base version, or Prism is missing. The load-time lines are
-      # the first lines of the statements outside every method that the change
-      # rewrote or added to. Those run as the file loads, so a change to them
-      # can shape tests that never ran them.
+      # source, its base version, or Prism is missing. The load-time changes
+      # pair the first line of each statement outside every method that the
+      # change rewrote or added to with the line to name for it. Those
+      # statements run as the file loads, so a change to them can shape tests
+      # that never ran them.
       #
       # The recording's line numbers are the ones that matter, and the
       # recording may predate the change, follow it, or sit anywhere between.
@@ -25,24 +26,28 @@ module SimpleCov
       # recording's coordinates.
       module Narrowing
         HUNK = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/
+        CODE = /\A\s*[^\s#]/
 
         extend self
 
         # `base` is the file's source at the merge base, or nil when there is no
         # base to compare (`watch` compares only against the recording). Each
-        # edit pairs its side in the recording with its side in the other
-        # version. Without Prism every rewritten line counts as load-time.
+        # edit holds its side in the recording, its side in the other version,
+        # and the newer of the two, whose lines name the change: the working
+        # tree's, or the recording's when it follows the base. Without Prism
+        # every rewritten line counts as load-time.
         def changes(recorded, base, current)
-          edits = hunks(base, recorded).map { |old, new| [new, old] } + hunks(recorded, current) #: Array[edit]
-          return [nil, edits.flat_map { |edit| rewritten(edit.first) }] unless prism?
+          edits = hunks(base, recorded).map { |old, new| [new, old, new] } + hunks(recorded, current).map { |old, new| [old, new, new] } #: Array[edit]
+          return [nil, edits.flat_map { |edit| rewritten(edit.first).map { |line| [line, counterpart(edit, line)] } }] unless prism?
 
           result = Prism.parse(recorded)
           methods = [] #: Array[[Integer, Integer]]
           statements = [] #: Array[[Integer, Integer]]
           collect_spans(result.value, methods, statements)
-          silent = silent_lines(recorded, result.comments)
-          load_time = edits.flat_map { |edit| load_time_lines(edit, methods, statements, silent) }
-          [mask(edits, methods), load_time.uniq]
+          enclosed = enclosed_lines(result.comments)
+          silent = silent_lines(recorded, result.comments) | enclosed
+          load_time = edits.flat_map { |edit| load_time_lines(edit, methods, statements, silent, enclosed) }
+          [mask(edits, methods), load_time.uniq(&:first)]
         end
 
         def mask(edits, methods)
@@ -59,15 +64,42 @@ module SimpleCov
         # unless it is a method's `def` line, whose change the mask covers. An
         # edit that rewrites only blank or comment lines, or none, counts
         # through the statement around it (the file's first when it sits
-        # between two at the top), unless it sits in a method or what it brings
-        # is nothing that runs or starts with a method.
-        def load_time_lines(edit, methods, statements, silent)
-          side, other = edit
-          lines = rewritten(side) - silent
-          return lines.filter_map { |line| statement_start(line, methods, statements) } unless lines.empty?
+        # between two at the top), unless it sits in a method or brings nothing
+        # but methods. An edit wholly inside a `=begin` block leaves both its
+        # ends in place, so it stays a comment on both sides.
+        def load_time_lines(edit, methods, statements, silent, enclosed)
+          side, other, = edit
+          rewrote = rewritten(side)
+          return [] if rewrote.any? && (rewrote - enclosed).empty?
+
+          lines = rewrote - silent
+          unless lines.empty?
+            return lines.filter_map do |line|
+              start = statement_start(line, methods, statements)
+              [start, counterpart(edit, line)] if start
+            end
+          end
           return [] if innermost(methods, spot(side)) || !runs_at_load?(other.last)
 
-          [innermost(statements, spot(side)) || statements.first].compact.map(&:first)
+          statement = innermost(statements, spot(side)) || statements.first
+          statement ? [[statement.first, first_code_line(edit.last)]] : []
+        end
+
+        # A rewritten line's counterpart in the newer side: the line as far into
+        # it, held to its last, or the line after a deletion.
+        def counterpart(edit, line)
+          side, _other, newer = edit
+          first, count, = newer
+          return first + 1 if count.zero?
+
+          first + [line - side.first, count - 1].min
+        end
+
+        def first_code_line(side)
+          first, count, text = side
+          return first + 1 if count.zero?
+
+          first + (text.lines.index { |line| CODE.match?(line) } || 0)
         end
 
         def statement_start(line, methods, statements)
@@ -82,8 +114,7 @@ module SimpleCov
         end
 
         def runs_at_load?(text)
-          statement = Prism.parse(text).value.statements.body.first
-          !statement.nil? && !statement.instance_of?(Prism::DefNode)
+          Prism.parse(text).value.statements.body.any? { |statement| !statement.instance_of?(Prism::DefNode) }
         end
 
         # Blank lines, and lines holding nothing but a comment.
@@ -97,22 +128,31 @@ module SimpleCov
           end
         end
 
+        # The lines between a `=begin` and its `=end`. A block's location ends
+        # at the start of the line after its `=end`, which the recorded source
+        # always has.
+        def enclosed_lines(comments)
+          comments.flat_map { |comment| (comment.location.start_line + 1...comment.location.end_line - 1).to_a }
+        end
+
         # Each hunk as [old side, new side], a side being the first line it
         # covers, how many it covers, and their text.
         def hunks(old_source, new_source)
           return [] unless old_source
 
+          old_lines = old_source.lines
+          new_lines = new_source.lines
           diff(old_source, new_source).scan(HUNK).map do |old_start, old_count, new_start, new_count|
-            [side(old_source, old_start, old_count), side(new_source, new_start, new_count)]
+            [side(old_lines, old_start, old_count), side(new_lines, new_start, new_count)]
           end
         end
 
         # A hunk of one line omits its count, and one of no lines names the line
         # it follows.
-        def side(source, start, count)
+        def side(lines, start, count)
           first = Integer(start)
-          lines = count ? Integer(count) : 1
-          [first, lines, source.lines.slice(first - 1, lines).to_a.join]
+          size = count ? Integer(count) : 1
+          [first, size, lines.slice(first - 1, size).to_a.join]
         end
 
         # The lines a side touches. A pure insertion after line k touches the

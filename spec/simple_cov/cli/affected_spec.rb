@@ -909,13 +909,13 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite for a changed line no recorded test ran" do
         change_widget("LIMIT = 3", "LIMIT = 4")
 
-        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed at line 2, in code that ran only outside recorded tests")
       end
 
       it "falls back to the full suite for a changed line no recorded test ran under --by-file" do
         change_widget("LIMIT = 3", "LIMIT = 4", "--by-file")
 
-        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed at line 2, in code that ran only outside recorded tests")
       end
 
       it "selects every test touching the file for a changed line a recorded test ran" do
@@ -927,7 +927,7 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite for a constant added between two methods" do
         change_widget("  def large", "  OTHER = 5\n\n  def large")
 
-        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 1, which ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed at line 8, in code that ran only outside recorded tests")
       end
 
       it "selects every test touching the file for a method added between two" do
@@ -969,7 +969,7 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite for a changed line the recording already carries" do
         change_widget("LIMIT = 3", "LIMIT = 4", source: widget.sub("LIMIT = 3", "LIMIT = 4"))
 
-        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed at line 2, in code that ran only outside recorded tests")
       end
 
       def change_comment(from, to)
@@ -1017,16 +1017,28 @@ RSpec.describe SimpleCov::CLI do
         described_class::Affected::Selection.narrowed(path, {"source" => recorded}, {root: tmp, opts: {by_file: false, **opts}})&.first
       end
 
-      it "masks the first counted line of each rewritten statement" do
-        mask = described_class::Affected::Selection.load_time_mask({"lines" => [nil, 1, nil, 1]}, [1, 2, 3, 4])
-
-        expect(mask).to eq(0b1010)
+      def ran_outside_tests(lines, load_time, claimed = 0)
+        described_class::Affected::Selection.ran_outside_tests({"lines" => lines}, load_time, claimed)
       end
 
-      it "masks nothing without line counts" do
-        masks = [{}, {"lines" => "1"}].map { |entry| described_class::Affected::Selection.load_time_mask(entry, [1]) }
+      it "names the first changed line whose statement ran outside the claimed tests" do
+        expect(ran_outside_tests([1, 1, 1, 1], [[3, 9], [2, 7], [4, 8], [1, 6]], 0b1)).to eq(7)
+      end
 
-        expect(masks).to eq([nil, nil])
+      it "reads a statement whose first line is uncounted through the counted line before it" do
+        expect([[1, nil, 1], [0, nil, 1]].map { |lines| ran_outside_tests(lines, [[2, 5]]) }).to eq([5, nil])
+      end
+
+      it "names nothing for a statement no counted line precedes" do
+        expect(ran_outside_tests([nil, 1], [[1, 5]])).to be_nil
+      end
+
+      it "names nothing without line counts or load-time changes" do
+        expect([ran_outside_tests("1", [[1, 5]]), ran_outside_tests([1], nil)]).to eq([nil, nil])
+      end
+
+      it "names nothing for an entry that records no line counts" do
+        expect(described_class::Affected::Selection.ran_outside_tests({}, [[1, 5]], 0)).to be_nil
       end
 
       it "narrows against the recording alone when there is no base to compare" do

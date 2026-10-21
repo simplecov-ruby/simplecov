@@ -21,7 +21,9 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
 
   def mask(...) = described_class.changes(...).first
 
-  def load_time(...) = described_class.changes(...).last
+  def load_time(...) = described_class.changes(...).last.map(&:first)
+
+  def named(...) = described_class.changes(...).last.map(&:last)
 
   describe ".changes" do
     it "masks the body of the method a change touched" do
@@ -112,6 +114,68 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
       expect(load_time(block_comment, nil, block_comment.sub("A note.", "A longer note."))).to eq([])
     end
 
+    it "leaves out a rewritten line inside a block comment between statements" do
+      block_comment = source.sub("\n\n", "\n=begin\nA note.\n=end\n\n")
+
+      expect(load_time(block_comment, nil, block_comment.sub("A note.", "A longer note."))).to eq([])
+    end
+
+    it "leaves out a block comment rewritten along with its =begin line" do
+      block_comment = source.sub("\n\n", "\n=begin\nA note.\n=end\n\n")
+
+      expect(load_time(block_comment, nil, block_comment.sub("=begin\nA note.", "=begin notes\nA longer note."))).to eq([])
+    end
+
+    it "names a rewritten line by its own line in the working tree" do
+      expect(named(constant, nil, constant.sub("1, #", "2, #"))).to eq([3])
+    end
+
+    it "names an addition by its first line of code in the working tree" do
+      expect(named(source, nil, source.sub("\n\n", "\n  # Other.\n  OTHER = 5\n\n"))).to eq([4])
+    end
+
+    it "names a change between the base and the recording in the recording's lines" do
+      expect(named(source, source.sub("class Widget", "class Gadget"), source)).to eq([1])
+    end
+
+    it "names each statement a hunk rewrote by its own line" do
+      pair = source.sub("class Widget\n", "class Widget\n  A = 1\n  B = 2\n")
+
+      expect(named(pair, nil, pair.sub("A = 1\n  B = 2", "A = 3\n  B = 4"))).to eq([2, 3])
+    end
+
+    it "names a statement past the end of a shorter hunk by the hunk's last line" do
+      pair = source.sub("class Widget\n", "class Widget\n  A = 1\n  B = 2\n")
+
+      expect(named(pair, nil, pair.sub("  A = 1\n  B = 2\n", "  A = 3\n"))).to eq([2, 2])
+    end
+
+    it "names a deleted statement by the line after it" do
+      constant = source.sub("class Widget\n", "class Widget\n  OTHER = 5\n")
+
+      expect(named(constant, nil, source)).to eq([2])
+    end
+
+    it "names a deletion between the base and the recording by the line after it" do
+      expect(named(source, source.sub("\n\n", "\n  OTHER = 5\n\n"), source)).to eq([3])
+    end
+
+    it "names a statement the recording blanked by the blank line" do
+      blanked = source.sub("\n\n", "\n\n\n")
+
+      expect(named(blanked, blanked.sub("\n\n\n", "\n  OTHER = 5\n\n"), blanked)).to eq([3])
+    end
+
+    it "leaves out a rewritten line after __END__" do
+      data = "#{source}__END__\nsome data\n"
+
+      expect(load_time(data, nil, data.sub("some data", "other data"))).to eq([])
+    end
+
+    it "names a statement once, by its first changed line" do
+      expect(named(constant, nil, constant.sub("[\n    1,", "[\n    2,").sub("].freeze", "]"))).to eq([3])
+    end
+
     it "reads a statement turned into a comment" do
       constant = source.sub("class Widget\n", "class Widget\n  OTHER = 5\n")
 
@@ -169,8 +233,8 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
       expect(load_time(source, nil, source.sub("\n\n", "\n\n  def medium = 1\n\n"))).to eq([])
     end
 
-    it "leaves out an addition that starts with a method" do
-      expect(load_time(source, nil, source.sub("\n\n", "\n\n  def medium = 1\n  OTHER = 5\n\n"))).to eq([])
+    it "reads an addition with a statement after a method" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n\n  def medium = 1\n  OTHER = 5\n\n"))).to eq([1])
     end
 
     it "leaves out a blank line rewritten into a method" do
@@ -192,7 +256,15 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
     it "reads every rewritten line without Prism" do
       allow(described_class).to receive(:prism?).and_return(false)
 
-      expect(described_class.changes(source, nil, source.sub(":large\n", ":larger\n  :again\n"))).to eq([nil, [8]])
+      expect(described_class.changes(source, nil, source.sub(":large\n", ":larger\n  :again\n"))).to eq([nil, [[8, 8]]])
+    end
+  end
+
+  describe ".enclosed_lines" do
+    it "finds the lines between a =begin and its =end" do
+      comments = Prism.parse("A = 1 # one\n=begin\nx\ny\n=end\nB = 2\n").comments
+
+      expect(described_class.enclosed_lines(comments)).to eq([3, 4])
     end
   end
 

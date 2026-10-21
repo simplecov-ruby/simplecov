@@ -109,29 +109,29 @@ module SimpleCov
           table = covering_table(path, entry, state)
           return unless table
 
-          mask, load_time_lines = narrowed(path, entry, state)
+          mask, load_time = narrowed(path, entry, state)
           mask ||= -1
           claimed = table.select { |_index, bitmap| bitmap.anybits?(mask) }
           return select_unclaimed(path, entry, mask, table, state) if claimed.empty?
 
           claimed.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) }
-          load_time = load_time_mask(entry, load_time_lines)
-          return table unless load_time
+          line = ran_outside_tests(entry, load_time, claimed.each_value.reduce(:|))
+          return table unless line
 
-          index = first_ran(entry.fetch("lines"), load_time & ~claimed.each_value.reduce(:|))
-          return table unless index
-
-          state.fetch(:triggers) << "#{path} changed in the statement at line #{index + 1}, which ran only outside recorded tests"
+          state.fetch(:triggers) << "#{path} changed at line #{line}, in code that ran only outside recorded tests"
         end
 
-        # A statement whose first line coverage leaves uncounted counts through
-        # the nearest counted line before it.
-        def load_time_mask(entry, lines)
+        # The first changed line whose statement ran only outside the claimed
+        # tests. A statement whose first line coverage leaves uncounted counts
+        # through the nearest counted line before it.
+        def ran_outside_tests(entry, load_time, claimed)
           counts = entry["lines"]
-          return unless lines && counts.instance_of?(Array)
+          return unless load_time && counts.instance_of?(Array)
 
-          counted = lines.filter_map { |line| counts.first(line).rindex(&:itself) }
-          counted.reduce(0) { |mask, index| mask | (1 << index) }
+          load_time.filter_map { |statement, line|
+            index = counts.first(statement).rindex(&:itself)
+            line if index && first_ran(counts, (1 << index) & ~claimed)
+          }.min
         end
 
         # Code that ran while no test was being recorded (loading before the
@@ -167,8 +167,8 @@ module SimpleCov
             base = base_source(path, opts.fetch(:merge_base), root)
             return unless base
           end
-          mask, load_time_lines = Narrowing.changes(recorded.map { |line| "#{line}\n" }.join, base, current)
-          [(mask unless opts.fetch(:by_file)), load_time_lines]
+          mask, load_time = Narrowing.changes(recorded.map { |line| "#{line}\n" }.join, base, current)
+          [(mask unless opts.fetch(:by_file)), load_time]
         end
 
         def read(path)
