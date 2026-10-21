@@ -273,13 +273,16 @@ Everything after `--run` is the command, the selected files are appended to it, 
 command's own.
 
 A changed Ruby file narrows to the methods the change touched: only the tests that ran a changed method's body are
-selected, rather than every test that touched the file. A change outside any method (a constant, a macro, a method
-added between two) still selects every test touching the file, and a changed method that ran only while no test was
+selected, rather than every test that touched the file. A change outside any method (a comment, a method added
+between two) still selects every test touching the file. A change to code that runs as the file loads, such as a
+constant or a macro, falls back to the full suite when that code ran outside every recorded test, since tests that
+never ran it can still read what it set. A changed method that ran only while no test was
 being recorded falls back to the full suite. Narrowing reads the source recorded in the report (so it needs the
 default `source_in_json`), compares it against both the merge base and the working tree, so a recording made before
 or after the change narrows alike, and finds methods with Prism. A file it cannot narrow, such as a template, a file
 added since the base, or one the report recorded no source for, is selected whole. `--by-file` turns narrowing off
-and selects every test touching each changed file, the way to check a narrowed selection that looks too small.
+and selects every test touching each changed file, the way to check a narrowed selection that looks too small,
+though a changed load-time line still falls back to the full suite.
 
 The recording has one blind spot. A method that runs both while the suite loads (or in suite-level setup) and inside
 a test is credited to that test alone, because coverage counts cannot tell the two runs apart. A change to such a

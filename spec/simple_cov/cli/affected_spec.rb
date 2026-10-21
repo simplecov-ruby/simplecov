@@ -909,7 +909,25 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite for a changed line no recorded test ran" do
         change_widget("LIMIT = 3", "LIMIT = 4")
 
-        expect(stderr.string).to include("lib/widget.rb changed but ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+      end
+
+      it "falls back to the full suite for a changed line no recorded test ran under --by-file" do
+        change_widget("LIMIT = 3", "LIMIT = 4", "--by-file")
+
+        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+      end
+
+      it "selects every test touching the file for a changed line a recorded test ran" do
+        change_widget("LIMIT = 3", "LIMIT = 4", tables: {"6" => "12", "7" => "100"})
+
+        expect([stdout.string, stderr.string]).to eq(["spec/large_spec.rb\nspec/small_spec.rb\n", ""])
+      end
+
+      it "falls back to the full suite for a constant added between two methods" do
+        change_widget("  def large", "  OTHER = 5\n\n  def large")
+
+        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 1, which ran only outside recorded tests")
       end
 
       it "selects every test touching the file for a method added between two" do
@@ -951,7 +969,24 @@ RSpec.describe SimpleCov::CLI do
       it "falls back to the full suite for a changed line the recording already carries" do
         change_widget("LIMIT = 3", "LIMIT = 4", source: widget.sub("LIMIT = 3", "LIMIT = 4"))
 
-        expect(stderr.string).to include("lib/widget.rb changed but ran only outside recorded tests")
+        expect(stderr.string).to include("lib/widget.rb changed in the statement at line 2, which ran only outside recorded tests")
+      end
+
+      def change_comment(from, to)
+        commented = widget.sub("  LIMIT", "  # The most widgets.\n  LIMIT").sub("    :large", "    # The large one.\n    :large")
+        file!("lib/widget.rb", commented)
+        git_in_repo("-c", "user.email=spec@example.com", "-c", "user.name=spec", "commit", "-qam", "comment widget")
+        rewrite_widget(commented.sub(from, to), source: commented,
+          lines: [1, nil, 1, nil, 1, 1, nil, nil, 1, nil, 1, nil, nil], tables: {"6" => "20", "7" => "400"})
+        [stdout.string, stderr.string]
+      end
+
+      it "selects every test touching the file for an edited comment in the class body" do
+        expect(change_comment("most", "fewest")).to eq(["spec/large_spec.rb\nspec/small_spec.rb\n", ""])
+      end
+
+      it "selects only the tests that ran a method for an edited comment at its top" do
+        expect(change_comment("large one", "big one")).to eq(["spec/large_spec.rb\n", ""])
       end
 
       it "selects every test touching a deleted file" do
@@ -983,13 +1018,13 @@ RSpec.describe SimpleCov::CLI do
       end
 
       it "masks the first counted line of each rewritten statement" do
-        mask = described_class::Affected::Selection.rewritten_mask({"lines" => [nil, 1, nil, 1]}, [1, 2, 3, 4])
+        mask = described_class::Affected::Selection.load_time_mask({"lines" => [nil, 1, nil, 1]}, [1, 2, 3, 4])
 
         expect(mask).to eq(0b1010)
       end
 
       it "masks nothing without line counts" do
-        masks = [{}, {"lines" => "1"}].map { |entry| described_class::Affected::Selection.rewritten_mask(entry, [1]) }
+        masks = [{}, {"lines" => "1"}].map { |entry| described_class::Affected::Selection.load_time_mask(entry, [1]) }
 
         expect(masks).to eq([nil, nil])
       end

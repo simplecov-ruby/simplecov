@@ -2,29 +2,39 @@ module SimpleCov
   module CLI
     module Affected
       module Narrowing
+        type side = [Integer, Integer, String]
+
+        type edit = [side, side]
+
         HUNK: Regexp
 
         @prism: bool
 
-        def self?.mask: (String recorded, String? base, String current) -> Integer?
+        def self?.changes: (String recorded, String? base, String current) -> [Integer?, Array[Integer]]
 
-        def self?.rewritten_lines: (String recorded, String? base, String current) -> Array[Integer]?
+        def self?.mask: (Array[edit] edits, Array[[Integer, Integer]] methods) -> Integer?
 
-        def self?.hunk_lines: (String? old_source, String new_source) -> Array[[Array[Integer], Array[Integer]]]
+        def self?.load_time_lines: (edit edit, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements, Array[Integer] silent) -> Array[Integer]
 
-        def self?.line_numbers: (untyped start, untyped count) -> Array[Integer]
+        def self?.statement_start: (Integer line, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements) -> Integer?
 
-        def self?.changed_spots: (String? old_source, String new_source) -> Array[[[Integer, Integer], [Integer, Integer]]]
+        def self?.rewritten: (side side) -> Array[Integer]
 
-        def self?.spot: (untyped start, untyped count) -> [Integer, Integer]
+        def self?.runs_at_load?: (String text) -> bool
 
-        def self?.innermost: (Array[[Integer, Integer]] methods, [Integer, Integer] spot) -> [Integer, Integer]?
+        def self?.silent_lines: (String source, Array[Prism::Comment] comments) -> Array[Integer]
+
+        def self?.hunks: (String? old_source, String new_source) -> Array[edit]
+
+        def self?.side: (String source, untyped start, untyped count) -> side
+
+        def self?.spot: (side side) -> [Integer, Integer]
+
+        def self?.innermost: (Array[[Integer, Integer]] spans, [Integer, Integer] spot) -> [Integer, Integer]?
 
         def self?.body_mask: (Integer first, Integer last) -> Integer
 
-        def self?.method_spans: (String source) -> Array[[Integer, Integer]]
-
-        def self?.collect_spans: (Prism::node node, Array[[Integer, Integer]] spans) -> void
+        def self?.collect_spans: (Prism::node node, Array[[Integer, Integer]] methods, Array[[Integer, Integer]] statements) -> void
 
         def self?.diff: (String old_source, String new_source) -> String
 
