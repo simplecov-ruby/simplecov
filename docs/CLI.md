@@ -281,6 +281,12 @@ or after the change narrows alike, and finds methods with Prism. A file it canno
 added since the base, or one the report recorded no source for, is selected whole. `--by-file` turns narrowing off
 and selects every test touching each changed file, the way to check a narrowed selection that looks too small.
 
+The recording has one blind spot. A method that runs both while the suite loads (or in suite-level setup) and inside
+a test is credited to that test alone, because coverage counts cannot tell the two runs apart. A change to such a
+method selects only the tests that called it, even though its run at load time may shape every test. Code like that
+is usually configuration or bootstrapping, so declare its file with `--global` to make a change to it run the full
+suite.
+
 The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
 stale the moment something changes that no test mentions by name. Any changed file outside the tracked set falls
 back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner configuration, and any changed file
