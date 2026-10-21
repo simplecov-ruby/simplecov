@@ -756,7 +756,7 @@ enables line, branch, and method coverage and pins each minimum threshold at 100
 SimpleCov.start 'strict'
 ```
 
-That's equivalent to:
+On CRuby, that's equivalent to:
 
 ```ruby
 SimpleCov.start do

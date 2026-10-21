@@ -111,16 +111,46 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       SimpleCov.instance_variable_set(:@coverage_for_eval_enabled, prev_eval)
     end
 
-    it "enables every criterion" do
-      SimpleCov.load_profile "strict"
+    context "when the runtime measures every criterion" do
+      before do
+        allow(Coverage).to receive(:supported?).and_call_original
+        allow(Coverage).to receive(:supported?).with(:branches).and_return(true)
+        allow(Coverage).to receive(:supported?).with(:methods).and_return(true)
+      end
 
-      expect(SimpleCov.coverage_criteria).to include(:line, :branch, :method)
+      it "enables every criterion" do
+        SimpleCov.load_profile "strict"
+
+        expect(SimpleCov.coverage_criteria).to include(:line, :branch, :method)
+      end
+
+      it "pins every criterion to 100%" do
+        SimpleCov.load_profile "strict"
+
+        expect(SimpleCov.minimum_coverage).to eq(line: 100, branch: 100, method: 100)
+      end
     end
 
-    it "pins every criterion to 100%" do
-      SimpleCov.load_profile "strict"
+    context "when the runtime measures neither branches nor methods, like JRuby" do
+      before do
+        allow(Coverage).to receive(:supported?).and_call_original
+        allow(Coverage).to receive(:supported?).with(:branches).and_return(false)
+        allow(Coverage).to receive(:supported?).with(:methods).and_return(false)
+        SimpleCov.clear_coverage_criteria
+        SimpleCov.minimum_coverage({})
+      end
 
-      expect(SimpleCov.minimum_coverage).to eq(line: 100, branch: 100, method: 100)
+      it "enables only line coverage, so Coverage.start is not asked for the rest" do
+        SimpleCov.load_profile "strict"
+
+        expect(SimpleCov.coverage_criteria).to eq(Set[:line])
+      end
+
+      it "pins only line coverage to 100%" do
+        SimpleCov.load_profile "strict"
+
+        expect(SimpleCov.minimum_coverage).to eq(line: 100)
+      end
     end
 
     it "enables :eval when the runtime supports it" do
