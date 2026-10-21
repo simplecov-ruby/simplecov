@@ -34,7 +34,7 @@ module SimpleCov
 
         def self?.enclosed_lines: (Array[Prism::Comment] comments) -> Array[Integer]
 
-        def self?.hunks: (String? old_source, String new_source) -> Array[edit]
+        def self?.hunks: (String? old_source, String new_source) -> Array[[side, side]]
 
         def self?.side: (Array[String] lines, untyped start, untyped count) -> side
 
