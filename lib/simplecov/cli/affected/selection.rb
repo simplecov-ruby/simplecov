@@ -101,30 +101,37 @@ module SimpleCov
         end
 
         # Only the tests that ran the changed lines' methods, when the change can
-        # be narrowed to methods, and every test touching the file otherwise.
+        # be narrowed to methods, and every test touching the file otherwise. A
+        # changed statement that ran only outside recorded tests, such as a
+        # constant set as the file loads, falls back to the full suite, since
+        # tests that never ran it can still read what it set.
         def select_covering(path, entry, state)
           table = covering_table(path, entry, state)
           return unless table
 
-          mask, rewritten_lines = narrowed(path, entry, state)
+          mask, load_time_lines = narrowed(path, entry, state)
           mask ||= -1
           claimed = table.select { |_index, bitmap| bitmap.anybits?(mask) }
           return select_unclaimed(path, entry, mask, table, state) if claimed.empty?
 
           claimed.each_key { |index| select_context(state.fetch(:contexts).fetch(index), path, state) }
-          rewritten = rewritten_mask(entry, rewritten_lines)
-          return table unless rewritten
+          load_time = load_time_mask(entry, load_time_lines)
+          return table unless load_time
 
-          claimed_lines = claimed.each_value.reduce(:|)
-          select_unclaimed(path, entry, rewritten & ~claimed_lines, table, state)
+          index = first_ran(entry.fetch("lines"), load_time & ~claimed.each_value.reduce(:|))
+          return table unless index
+
+          state.fetch(:triggers) << "#{path} changed in the statement at line #{index + 1}, which ran only outside recorded tests"
         end
 
-        def rewritten_mask(entry, lines)
+        # A statement whose first line coverage leaves uncounted counts through
+        # the nearest counted line before it.
+        def load_time_mask(entry, lines)
           counts = entry["lines"]
           return unless lines && counts.instance_of?(Array)
 
-          statement_starts = lines.filter_map { |line| counts.first(line).rindex(&:itself) }
-          statement_starts.reduce(0) { |mask, index| mask | (1 << index) }
+          counted = lines.filter_map { |line| counts.first(line).rindex(&:itself) }
+          counted.reduce(0) { |mask, index| mask | (1 << index) }
         end
 
         # Code that ran while no test was being recorded (loading before the
@@ -135,10 +142,13 @@ module SimpleCov
           lines = entry["lines"]
           return note_untracked(path, state) unless lines.instance_of?(Array)
 
-          ran = lines.each_with_index.any? { |count, index| count.instance_of?(Integer) && count.positive? && mask[index].equal?(1) }
-          return table unless ran
+          return table unless first_ran(lines, mask)
 
           state.fetch(:triggers) << "#{path} changed but ran only outside recorded tests"
+        end
+
+        def first_ran(counts, mask)
+          counts.each_with_index.find { |count, index| count.instance_of?(Integer) && count.positive? && mask[index].equal?(1) }&.last
         end
 
         # `affected` compares against the merge base, and a file it cannot find
@@ -146,8 +156,6 @@ module SimpleCov
         # the recording.
         def narrowed(path, entry, state)
           opts = state.fetch(:opts)
-          return if opts.fetch(:by_file)
-
           recorded = entry["source"]
           return unless path.end_with?(".rb") && recorded.instance_of?(Array) && recorded.all?(String)
 
@@ -159,8 +167,8 @@ module SimpleCov
             base = base_source(path, opts.fetch(:merge_base), root)
             return unless base
           end
-          source = recorded.map { |line| "#{line}\n" }.join
-          [Narrowing.mask(source, base, current), Narrowing.rewritten_lines(source, base, current)]
+          mask, load_time_lines = Narrowing.changes(recorded.map { |line| "#{line}\n" }.join, base, current)
+          [(mask unless opts.fetch(:by_file)), load_time_lines]
         end
 
         def read(path)

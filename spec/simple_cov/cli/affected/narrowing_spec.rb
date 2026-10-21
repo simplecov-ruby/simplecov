@@ -19,107 +19,201 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
     RUBY
   end
 
-  describe ".mask" do
+  def mask(...) = described_class.changes(...).first
+
+  def load_time(...) = described_class.changes(...).last
+
+  describe ".changes" do
     it "masks the body of the method a change touched" do
-      expect(described_class.mask(source, nil, source.sub(":large\n", ":larger\n"))).to eq(0b11111 << 4)
+      expect(mask(source, nil, source.sub(":large\n", ":larger\n"))).to eq(0b11111 << 4)
     end
 
     it "masks a method written on one line by its own line" do
-      expect(described_class.mask(source, nil, source.sub("= :small", "= :smaller"))).to eq(0b10)
+      expect(mask(source, nil, source.sub("= :small", "= :smaller"))).to eq(0b10)
     end
 
     it "masks the innermost method a change touched" do
-      expect(described_class.mask(source, nil, source.sub(":inner", ":innermost"))).to eq(0b11 << 5)
+      expect(mask(source, nil, source.sub(":inner", ":innermost"))).to eq(0b11 << 5)
     end
 
     it "masks a method changed in two places once" do
       changed = source.sub("def large", "def large(size = 1)").sub(":large\n", ":larger\n")
 
-      expect(described_class.mask(source, nil, changed)).to eq(0b11111 << 4)
+      expect(mask(source, nil, changed)).to eq(0b11111 << 4)
     end
 
     it "masks the inner of two methods ending on one line" do
       nested = "class Widget\n  def outer\n    def inner\n      :inner\n    end end\nend\n"
 
-      expect(described_class.mask(nested, nil, nested.sub(":inner", ":innermost"))).to eq(0b11 << 3)
+      expect(mask(nested, nil, nested.sub(":inner", ":innermost"))).to eq(0b11 << 3)
     end
 
     it "combines the methods of every change" do
       changed = source.sub("= :small", "= :smaller").sub(":inner", ":innermost")
 
-      expect(described_class.mask(source, nil, changed)).to eq(0b1100010)
+      expect(mask(source, nil, changed)).to eq(0b1100010)
     end
 
     it "masks the changes between the base and the recording too" do
-      expect(described_class.mask(source, source.sub(":large\n", ":larger\n"), source)).to eq(0b11111 << 4)
+      expect(mask(source, source.sub(":large\n", ":larger\n"), source)).to eq(0b11111 << 4)
     end
 
     it "reads the changes between the base and the recording in the recording's lines" do
       base = source.sub("    :large\n", "    :large\n#{"    :gone\n" * 6}")
 
-      expect(described_class.mask(source, base, source)).to eq(0b11111 << 4)
+      expect(mask(source, base, source)).to eq(0b11111 << 4)
     end
 
     it "masks nothing for no change at all" do
-      expect(described_class.mask(source, source, source)).to eq(0)
+      expect(mask(source, source, source)).to eq(0)
     end
 
     it "gives up on a change outside every method" do
-      expect(described_class.mask(source, nil, source.sub("class Widget", "class Gadget"))).to be_nil
+      expect(mask(source, nil, source.sub("class Widget", "class Gadget"))).to be_nil
     end
 
     it "gives up on a method added between two" do
-      expect(described_class.mask(source, nil, source.sub("\n  def large", "\n  def medium = 1\n\n  def large"))).to be_nil
+      expect(mask(source, nil, source.sub("\n  def large", "\n  def medium = 1\n\n  def large"))).to be_nil
     end
 
     it "gives up without Prism" do
       allow(described_class).to receive(:prism?).and_return(false)
 
-      expect(described_class.mask(source, nil, source.sub(":large\n", ":larger\n"))).to be_nil
+      expect(mask(source, nil, source.sub(":large\n", ":larger\n"))).to be_nil
     end
   end
 
-  describe ".rewritten_lines" do
-    it "reads the lines a change rewrote, in the recording's lines" do
-      recorded = source.sub("class Widget\n", "class Widget\n  A = 1\n")
+  describe "load-time lines" do
+    let(:constant) { source.sub("class Widget\n", "class Widget\n  LIMIT = [\n    1, # one\n  ].freeze\n  # The sizes.\n") }
 
-      expect(described_class.rewritten_lines(recorded, source, recorded.sub(":large\n", ":larger\n  :again\n"))).to eq([2, 9])
+    it "reads a rewritten statement outside every method by its first line" do
+      expect(load_time(constant, nil, constant.sub("1, #", "2, #"))).to eq([2])
     end
 
-    it "leaves out a changed def line" do
-      expect(described_class.rewritten_lines(source, nil, source.sub("def large", "def large(size = 1)"))).to eq([])
+    it "reads a statement once however many of its lines changed" do
+      expect(load_time(constant, nil, constant.sub("[\n    1,", "[\n    2,").sub("].freeze", "]"))).to eq([2])
     end
 
-    it "gives up without Prism" do
+    it "reads the statement around an inner one" do
+      expect(load_time(source, nil, source.sub("class Widget", "class Gadget"))).to eq([1])
+    end
+
+    it "reads a code line whose comment changed" do
+      expect(load_time(constant, nil, constant.sub("# one", "# uno"))).to eq([2])
+    end
+
+    it "leaves out a rewritten comment line" do
+      expect(load_time(constant, nil, constant.sub("# The sizes.", "# The widths."))).to eq([])
+    end
+
+    it "leaves out a line no statement holds" do
+      block_comment = "=begin\nA note.\n=end\n#{source}"
+
+      expect(load_time(block_comment, nil, block_comment.sub("A note.", "A longer note."))).to eq([])
+    end
+
+    it "reads a statement turned into a comment" do
+      constant = source.sub("class Widget\n", "class Widget\n  OTHER = 5\n")
+
+      expect(load_time(constant, nil, constant.sub("OTHER", "# OTHER"))).to eq([2])
+    end
+
+    it "reads comments on the first and last lines rewritten into statements like additions" do
+      framed = "# A widget.\n#{source}# The end.\n"
+      changes = [framed.sub("# A widget.", "FIRST = 5"), framed.sub("# The end.", "LAST = 5")]
+
+      expect(changes.map { |changed| load_time(framed, nil, changed) }).to eq([[2], [2]])
+    end
+
+    it "leaves out a changed def line, which the mask covers" do
+      expect(load_time(source, nil, source.sub("def large", "def large(size = 1)"))).to eq([])
+    end
+
+    it "leaves out a changed method written on one line" do
+      expect(load_time(source, nil, source.sub("= :small", "= :smaller"))).to eq([])
+    end
+
+    it "leaves out a changed def line inside another statement" do
+      prefixed = source.sub("  def large", "  private \\\n  def large")
+
+      expect(load_time(prefixed, nil, prefixed.sub("def large", "def large(size = 1)"))).to eq([])
+    end
+
+    it "reads a changed line in a method body by its statement" do
+      expect(load_time(source, nil, source.sub(":inner", ":innermost"))).to eq([6])
+    end
+
+    it "reads an addition outside every method by the statement around it" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n  OTHER = 5\n\n"))).to eq([1])
+    end
+
+    it "reads an addition by the statement around it, not the file's first" do
+      required = "require \"set\"\n#{source}"
+
+      expect(load_time(required, nil, required.sub("\n\n", "\n  OTHER = 5\n\n"))).to eq([2])
+    end
+
+    it "reads a blank line rewritten into a statement like an addition" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n  OTHER = 5\n"))).to eq([1])
+    end
+
+    it "reads an addition at the top of the file by its first statement" do
+      expect(load_time(source, nil, "OTHER = 5\n#{source}")).to eq([1])
+    end
+
+    it "reads a deletion between the base and the recording in the recording's lines" do
+      expect(load_time(source, source.sub("\n\n", "\n  OTHER = 5\n\n"), source)).to eq([1])
+    end
+
+    it "leaves out an added method" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n\n  def medium = 1\n\n"))).to eq([])
+    end
+
+    it "leaves out an addition that starts with a method" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n\n  def medium = 1\n  OTHER = 5\n\n"))).to eq([])
+    end
+
+    it "leaves out a blank line rewritten into a method" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n  def medium = 1\n"))).to eq([])
+    end
+
+    it "leaves out an added comment" do
+      expect(load_time(source, nil, source.sub("\n\n", "\n  # Sizes.\n\n"))).to eq([])
+    end
+
+    it "leaves out an addition inside a method" do
+      expect(load_time(source, nil, source.sub("    :large\n", "    :large\n    OTHER = 5\n"))).to eq([])
+    end
+
+    it "reads nothing from an addition to an empty file" do
+      expect(load_time("", nil, "OTHER = 5\n")).to eq([])
+    end
+
+    it "reads every rewritten line without Prism" do
       allow(described_class).to receive(:prism?).and_return(false)
 
-      expect(described_class.rewritten_lines(source, nil, source.sub(":large\n", ":larger\n"))).to be_nil
+      expect(described_class.changes(source, nil, source.sub(":large\n", ":larger\n  :again\n"))).to eq([nil, [8]])
     end
   end
 
-  describe ".hunk_lines" do
-    it "reads the lines each hunk covers on both sides" do
-      expect(described_class.hunk_lines("a\nb\nc\n", "a\nx\ny\nb\nd\n")).to eq([[[], [2, 3]], [[3], [5]]])
-    end
-  end
-
-  describe ".changed_spots" do
-    it "reads a replaced line on both sides" do
-      expect(described_class.changed_spots(source, source.sub(":large\n", ":larger\n"))).to eq([[[8, 8], [8, 8]]])
-    end
-
-    it "reads an insertion as the lines around it, on the side it leaves untouched" do
-      expect(described_class.changed_spots(source, source.sub("    :large\n", "    :large\n    :again\n")))
-        .to eq([[[8, 9], [9, 9]]])
-    end
-
-    it "reads several lines" do
-      expect(described_class.changed_spots(source, source.sub("class Widget\n", "class Widget\n  A = 1\n  B = 2\n")))
-        .to eq([[[1, 2], [2, 3]]])
+  describe ".hunks" do
+    it "reads each hunk's first line, line count, and text on both sides" do
+      expect(described_class.hunks("a\nb\nc\n", "a\nx\ny\nb\nd\n"))
+        .to eq([[[1, 0, ""], [2, 2, "x\ny\n"]], [[3, 1, "c\n"], [5, 1, "d\n"]]])
     end
 
     it "finds nothing without an old side" do
-      expect(described_class.changed_spots(nil, source)).to eq([])
+      expect(described_class.hunks(nil, source)).to eq([])
+    end
+  end
+
+  describe ".spot" do
+    it "covers the lines a side rewrote" do
+      expect([[8, 1, ""], [1, 2, ""]].map { |side| described_class.spot(side) }).to eq([[8, 8], [1, 2]])
+    end
+
+    it "covers the two lines around an insertion" do
+      expect(described_class.spot([8, 0, ""])).to eq([8, 9])
     end
   end
 
