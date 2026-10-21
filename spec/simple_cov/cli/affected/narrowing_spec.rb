@@ -166,6 +166,44 @@ RSpec.describe SimpleCov::CLI::Affected::Narrowing, :prism do
       expect(named(blanked, blanked.sub("\n\n\n", "\n  OTHER = 5\n\n"), blanked)).to eq([3])
     end
 
+    it "reads a rewritten heredoc body at the top of the file by the statement that opens it" do
+      text = "TEXT = <<~T\n  hello\nT\n#{source}"
+
+      expect(load_time(text, nil, text.sub("hello", "goodbye"))).to eq([1])
+    end
+
+    it "reads a rewritten heredoc body in a class by the statement that opens it, not the class" do
+      text = source.sub("class Widget\n", "class Widget\n  TEXT = <<~T\n    hello\n  T\n")
+
+      expect(load_time(text, nil, text.sub("hello", "goodbye"))).to eq([2])
+    end
+
+    it "reads a statement through the last of the heredocs it opens" do
+      text = "PAIR = [<<~A, <<~B]\n  a\nA\n  b\nB\n#{source}"
+
+      expect(load_time(text, nil, text.sub("  b\n", "  c\n"))).to eq([1])
+    end
+
+    it "reads interpolated and command heredocs by the statements that open them" do
+      text = "A = <<~T\n  \#{1}\n  apple\nT\nB = <<~`T`\n  echo banana\nT\nC = <<~`T`\n  echo \#{2}\n  cherry\nT\n#{source}"
+      changed = text.sub("apple", "apricot").sub("banana", "blueberry").sub("cherry", "currant")
+
+      expect(load_time(text, nil, changed)).to eq([1, 5, 8])
+    end
+
+    it "reads a rewritten interpolated heredoc terminator by the statement that opens it" do
+      text = "A = <<~ATEXT\n  \#{1}\n  ATEXT\nC = <<~`CTEXT`\n  echo \#{2}\n  CTEXT\n#{source}"
+      changed = text.sub("  ATEXT\n", "ATEXT\n").sub("  CTEXT\n", "CTEXT\n")
+
+      expect(load_time(text, nil, changed)).to eq([1, 4])
+    end
+
+    it "reads a statement whose strings have no terminator" do
+      text = "CHAR = ?a\nPAIR = \"a\" \"b\"\n#{source}"
+
+      expect(load_time(text, nil, text.sub("?a", "?b").sub('"b"', '"c"'))).to eq([1, 2])
+    end
+
     it "leaves out a rewritten line after __END__" do
       data = "#{source}__END__\nsome data\n"
 

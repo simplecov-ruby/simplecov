@@ -180,8 +180,27 @@ module SimpleCov
         # Methods and statements, each collected before the ones nested in it.
         def collect_spans(node, methods, statements)
           methods << [node.start_line, node.end_line] if node.instance_of?(Prism::DefNode)
-          statements.concat(node.body.map { |child| [child.start_line, child.end_line] }) if node.instance_of?(Prism::StatementsNode)
+          statements.concat(node.body.map { |child| [child.start_line, reach(child)] }) if node.instance_of?(Prism::StatementsNode)
           node.compact_child_nodes.each { |child| collect_spans(child, methods, statements) }
+        end
+
+        # The last line a node runs through, which for a statement that opens a
+        # heredoc is past its own location.
+        def reach(node)
+          node.compact_child_nodes.reduce(last_line(node)) { |line, child| [line, reach(child)].max }
+        end
+
+        # A heredoc's location covers only its opener, so a string ends where
+        # its terminator starts. Any other string's terminator is on its last
+        # line, and a character literal has none. An interpolated heredoc needs
+        # no help, since its parts run through to the terminator.
+        def last_line(node)
+          case node
+          when Prism::StringNode, Prism::XStringNode
+            node.closing_loc&.start_line || node.end_line
+          else
+            node.end_line
+          end
         end
 
         # `git diff --no-index` exits 1 for files that differ, so its status
