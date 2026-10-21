@@ -26,6 +26,7 @@ jobs:
         # starting the long pole first keeps it off the critical path.
         ruby-version:
           - jruby-10.0
+          - jruby-10.1
           - '3.4'
           - '4.0'
         include:
@@ -40,6 +41,10 @@ jobs:
             ruby-version: jruby-10.0
           - os: windows-latest
             ruby-version: jruby-10.0
+          - os: macos-latest
+            ruby-version: jruby-10.1
+          - os: windows-latest
+            ruby-version: jruby-10.1
 
     steps:
       - uses: actions/checkout@v7.0.1
