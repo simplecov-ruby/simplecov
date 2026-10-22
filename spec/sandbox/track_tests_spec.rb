@@ -120,6 +120,43 @@ RSpec.describe "track_tests", :sandbox do
     end
   end
 
+  describe "a Minitest suite whose parallel executor sets up workers before any test" do
+    before do
+      self.bundle_with = "minitest"
+      install_dependencies
+      write_file("lib/worker_setup.rb", <<~RUBY)
+        module WorkerSetup
+          def self.prepare
+            :prepared
+          end
+        end
+      RUBY
+      write_file("minitest/aa_setup_test.rb", <<~RUBY)
+        require "test_helper"
+        require "delegate"
+        require_relative "../lib/worker_setup"
+
+        class PreparingExecutor < SimpleDelegator
+          def start
+            WorkerSetup.prepare
+            super if __getobj__.respond_to?(:start)
+          end
+        end
+        Minitest.parallel_executor = PreparingExecutor.new(Minitest.parallel_executor)
+
+        class AaSetupTest < Minitest::Test
+          def test_nothing = assert(true)
+        end
+      RUBY
+      configure_simplecov(:minitest, tracking_config)
+      run_command_and_expect_success("bundle exec rake minitest")
+    end
+
+    it "leaves the setup to no test, like RSpec's before(:suite)" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/worker_setup.rb"), 3)).to eq([])
+    end
+  end
+
   describe "a Minitest suite whose tests run concurrently in threads" do
     before do
       self.bundle_with = "minitest"

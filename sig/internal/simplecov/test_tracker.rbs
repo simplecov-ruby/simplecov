@@ -44,7 +44,7 @@ module SimpleCov
 
     def self.reset_rspec_hook!: () -> void
 
-    def self.install_minitest_hook: (?untyped test_case) -> void
+    def self.install_minitest_hook: (?untyped test_case, ?untyped minitest) -> void
 
     def self.install_minitest_hook_when_loaded: (?Module root) -> void
 
@@ -60,6 +60,14 @@ module SimpleCov
 
     module MinitestRun : ::Minitest::Test
       def run: () -> untyped
+    end
+
+    interface _SuiteRunner
+      def run: (*untyped) -> untyped
+    end
+
+    module MinitestSuite : _SuiteRunner
+      def run: (*untyped) -> untyped
     end
 
     module Accessors : Configuration

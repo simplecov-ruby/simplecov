@@ -941,6 +941,11 @@ RSpec.describe SimpleCov::TestTracker do
   end
 
   describe ".install_minitest_hook" do
+    let(:fake_minitest) do
+      Module.new do
+        def self.run(args = []) = [:suite_ran, args]
+      end
+    end
     let(:fake_test_case) do
       Class.new do
         def name
@@ -958,7 +963,7 @@ RSpec.describe SimpleCov::TestTracker do
 
     context "with the wrapper prepended" do
       before do
-        described_class.install_minitest_hook(fake_test_case)
+        described_class.install_minitest_hook(fake_test_case, fake_minitest)
         allow(SimpleCov).to receive(:track_test).and_yield
       end
 
@@ -975,10 +980,35 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     it "installs only once per test case" do
-      described_class.install_minitest_hook(fake_test_case)
-      described_class.install_minitest_hook(fake_test_case)
+      described_class.install_minitest_hook(fake_test_case, fake_minitest)
+      described_class.install_minitest_hook(fake_test_case, fake_minitest)
 
       expect(fake_test_case.ancestors.count(SimpleCov::TestTracker::MinitestRun)).to eq(1)
+    end
+
+    context "with the suite wrapper prepended" do
+      let(:tracker) { instance_double(described_class, suite_starting: nil) }
+
+      before do
+        described_class.install_minitest_hook(fake_test_case, fake_minitest)
+        allow(SimpleCov).to receive(:test_tracker).and_return(tracker)
+      end
+
+      it "keeps the base suite run's answer" do
+        expect(fake_minitest.run(%w[--seed 1])).to eq([:suite_ran, %w[--seed 1]])
+      end
+
+      it "tells the tracker the suite is starting, so setup before the first test belongs to no test" do
+        fake_minitest.run
+
+        expect(tracker).to have_received(:suite_starting)
+      end
+
+      it "runs the suite with no tracker live" do
+        allow(SimpleCov).to receive(:test_tracker).and_return(nil)
+
+        expect(fake_minitest.run).to eq([:suite_ran, []])
+      end
     end
 
     it "does nothing when Minitest::Test is not loaded" do
@@ -991,6 +1021,15 @@ RSpec.describe SimpleCov::TestTracker do
       described_class.install_minitest_hook
 
       expect(fake_test_case.ancestors).to include(SimpleCov::TestTracker::MinitestRun)
+    end
+
+    it "finds Minitest itself when it is loaded" do
+      stub_const("Minitest", fake_minitest)
+      stub_const("Minitest::Test", fake_test_case)
+
+      described_class.install_minitest_hook
+
+      expect(fake_minitest.singleton_class.ancestors).to include(SimpleCov::TestTracker::MinitestSuite)
     end
   end
 
@@ -1024,6 +1063,10 @@ RSpec.describe SimpleCov::TestTracker do
       klass.ancestors.include?(SimpleCov::TestTracker::MinitestRun)
     end
 
+    def suite_wrapped?(minitest)
+      minitest.singleton_class.ancestors.include?(SimpleCov::TestTracker::MinitestSuite)
+    end
+
     def load_minitest_test(host, klass)
       minitest = Module.new
       minitest.const_set(:Test, klass)
@@ -1035,7 +1078,7 @@ RSpec.describe SimpleCov::TestTracker do
 
       described_class.install_minitest_hook_when_loaded(root)
 
-      expect(wrapped?(test_case)).to be true
+      expect([wrapped?(test_case), suite_wrapped?(root.const_get(:Minitest))]).to eq([true, true])
     end
 
     context "when only Minitest is loaded" do
@@ -1051,11 +1094,11 @@ RSpec.describe SimpleCov::TestTracker do
         expect(wrapped?(test_case)).to be false
       end
 
-      it "wraps Minitest::Test once it arrives, past another constant" do
+      it "wraps Minitest::Test and Minitest's suite run once Minitest::Test arrives, past another constant" do
         minitest.const_set(:Other, Class.new)
         minitest.const_set(:Test, test_case)
 
-        expect(wrapped?(test_case)).to be true
+        expect([wrapped?(test_case), suite_wrapped?(minitest)]).to eq([true, true])
       end
     end
 
@@ -1073,10 +1116,10 @@ RSpec.describe SimpleCov::TestTracker do
         expect(wrapped?(test_case)).to be false
       end
 
-      it "wraps Minitest::Test once it arrives" do
+      it "wraps Minitest::Test and Minitest's suite run once Minitest::Test arrives" do
         minitest.const_set(:Test, test_case)
 
-        expect(wrapped?(test_case)).to be true
+        expect([wrapped?(test_case), suite_wrapped?(minitest)]).to eq([true, true])
       end
     end
 

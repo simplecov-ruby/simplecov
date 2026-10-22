@@ -66,10 +66,11 @@ module SimpleCov
       # watch below under minitest 6, whose autorun no longer discovers
       # plugins. Prepending a module already in the chain is a no-op, which is
       # the whole of the idempotence.
-      def install_minitest_hook(test_case = (Minitest::Test if defined?(Minitest::Test)))
+      def install_minitest_hook(test_case = (Minitest::Test if defined?(Minitest::Test)), minitest = (Minitest if test_case))
         return if test_case.nil?
 
         test_case.prepend(MinitestRun)
+        minitest.singleton_class.prepend(MinitestSuite)
       end
 
       # Installs the Minitest wrapper now when Minitest is already loaded, and
@@ -80,7 +81,7 @@ module SimpleCov
       def install_minitest_hook_when_loaded(root = Object)
         minitest = loaded_const(root, :Minitest)
         test_case = minitest && loaded_const(minitest, :Test)
-        return install_minitest_hook(test_case) if test_case
+        return install_minitest_hook(test_case, minitest) if test_case
         return watch_for_minitest_test(minitest) if minitest
 
         ConstantWatch.new(:Minitest) do
@@ -102,7 +103,7 @@ module SimpleCov
       def watch_for_minitest_test(minitest)
         return unless minitest
 
-        ConstantWatch.new(:Test) { install_minitest_hook(loaded_const(minitest, :Test)) }.attach(minitest)
+        ConstantWatch.new(:Test) { install_minitest_hook(loaded_const(minitest, :Test), minitest) }.attach(minitest)
       end
 
       # The constant when it is genuinely loaded, nil when absent or merely
@@ -132,6 +133,18 @@ module SimpleCov
         test.method(test.name).source_location
       rescue NameError
         nil
+      end
+    end
+
+    # Prepended to Minitest's singleton class by `install_minitest_hook`. The
+    # suite starts running once every test file has loaded, so what runs
+    # before the first test (a parallel executor setting up its workers, as
+    # Rails' `parallelize_setup` does) belongs to no test, like RSpec's
+    # `before(:suite)` hooks, rather than to the last test file loaded.
+    module MinitestSuite
+      def run(*)
+        SimpleCov.test_tracker&.suite_starting
+        super
       end
     end
 
