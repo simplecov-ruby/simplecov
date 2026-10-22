@@ -86,6 +86,12 @@ module SimpleCov
       @poisoned
     end
 
+    # Why this process recorded no map, for the report to say in place of
+    # suggesting `track_tests`, which is already on.
+    def dropped_reason
+      "tests ran concurrently in threads, which per-test coverage cannot tell apart" if poisoned?
+    end
+
     # nil once poisoned: a poisoned recording must vanish like one that never
     # happened, so the merge's all-or-nothing rule drops the run's map instead
     # of keeping a wrong one. Flushes the open segment, so the answer carries

@@ -31,7 +31,8 @@ module SimpleCov
       return ResultMerger.merge_results(*file_paths, ignore_timeout: ignore_timeout) unless pair
 
       command_names, coverage = pair
-      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
+      ResultMerger.create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map,
+        contexts_dropped: context_maps.dropped)
     end
 
     # Answers nil when the work could not be fanned out and the caller should

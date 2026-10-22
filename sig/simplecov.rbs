@@ -645,6 +645,8 @@ module SimpleCov
     attr_reader files: FileList
     alias source_files files
     attr_reader contexts: ContextMap?
+
+    attr_reader contexts_dropped: String?
     attr_writer created_at (): Time
     attr_writer command_name (): String
     attr_writer command_names (): Array[String]
@@ -663,7 +665,7 @@ module SimpleCov
       def initialize: (?filters: Array[Filter[untyped]], ?cover_filters: Array[Filter[untyped]], ?groups: Hash[String, Filter[untyped]]) -> void
     end
 
-    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String]?, ?run_id: String?, ?worker_id: String?, ?contexts: ContextMap?, ?report: bool, ?filter_config: FilterConfig) -> void
+    def initialize: (Hash[String, untyped] original_result, ?command_name: String?, ?created_at: Time?, ?not_loaded_files: Set[String], ?tracked_files: _ToA[String]?, ?run_id: String?, ?worker_id: String?, ?contexts: ContextMap?, ?contexts_dropped: String?, ?report: bool, ?filter_config: FilterConfig) -> void
 
     def filenames: () -> Array[String]
     def source_file_for: (String path) -> SourceFile?
@@ -716,6 +718,8 @@ module SimpleCov
       def tracked_files: () -> Array[String]
 
       def contexts: () -> ContextMap?
+
+      def contexts_dropped: () -> String?
 
       def filenames: () -> Array[String]
     end

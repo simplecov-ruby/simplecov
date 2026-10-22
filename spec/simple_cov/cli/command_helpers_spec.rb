@@ -160,6 +160,28 @@ RSpec.describe SimpleCov::CLI::CommandHelpers, mutant_expression: "SimpleCov::CL
       end
     end
 
+    context "when the run dropped its map" do
+      let(:document) { {"contexts_dropped" => "tests ran concurrently in threads"} }
+
+      it "answers nothing" do
+        expect(host.recorded_contexts(document, {input: "cov.json"}, stderr)).to be_nil
+      end
+
+      it "says why, instead of pointing at a switch that is already on" do
+        host.recorded_contexts(document, {input: "cov.json"}, stderr)
+
+        expect(stderr.string).to end_with(
+          "no test contexts recorded in cov.json: the run dropped them because tests ran concurrently in threads\n"
+        )
+      end
+    end
+
+    it "points at the switch when the reason for dropping them is not a string" do
+      host.recorded_contexts({"contexts_dropped" => 1}, {input: "cov.json"}, stderr)
+
+      expect(stderr.string).to include("Enable `track_tests`")
+    end
+
     context "with a context list that is not strings" do
       it "answers nothing" do
         expect(host.recorded_contexts({"contexts" => [1, 2]}, {input: "cov.json"}, stderr)).to be_nil

@@ -424,6 +424,19 @@ RSpec.describe SimpleCov::ResultMerger do
       expect(contexts.carry(incoming, {}, incoming)).to eq({})
     end
 
+    it "keeps the reason the existing entry dropped its map for" do
+      incoming = recorded("spec/a_spec.rb:1", 0b1).merge("coverage" => {})
+
+      expect(contexts.carry(incoming, {"contexts_dropped" => "threads"}, incoming))
+        .to eq("contexts_dropped" => "threads", "coverage" => {})
+    end
+
+    it "keeps the reason the incoming entry dropped its map for" do
+      incoming = {"contexts_dropped" => "threads"}
+
+      expect(contexts.carry(incoming, recorded("spec/a_spec.rb:1", 0b1), incoming)).to eq(incoming)
+    end
+
     it "drops the map when only the existing entry carries one" do
       existing = recorded("spec/a_spec.rb:1", 0b1)
 
@@ -539,6 +552,34 @@ RSpec.describe SimpleCov::ResultMerger do
 
     it "answers nothing for a run that stored nothing" do
       expect(contexts.carry_forward(nil, existing)).to be_nil
+    end
+  end
+
+  describe ".merged_result" do
+    let(:sample) { source_fixture("sample.rb") }
+
+    def store(**metadata)
+      described_class.store_result(SimpleCov::Result.new({sample => {"lines" => [nil, 1]}}, command_name: "Minitest",
+        **metadata))
+    end
+
+    it "carries the per-test map the stored result recorded" do
+      store(contexts: SimpleCov::ContextMap.new.record("spec/a_spec.rb:1", sample => 0b10))
+
+      expect(described_class.merged_result.contexts.covering(sample, 2)).to eq(["spec/a_spec.rb:1"])
+    end
+
+    it "carries the files the stored result tracked" do
+      never_loaded = source_fixture("resultset1.rb")
+      store(tracked_files: [never_loaded])
+
+      expect(described_class.merged_result.tracked_files).to eq([never_loaded])
+    end
+
+    it "carries the reason the stored result dropped its per-test map" do
+      store(contexts_dropped: "threads")
+
+      expect(described_class.merged_result.contexts_dropped).to eq("threads")
     end
   end
 
@@ -1371,6 +1412,14 @@ RSpec.describe SimpleCov::ResultMerger do
       it "carries the tracked path" do
         expect(merged.tracked_files).to eq([never_loaded])
       end
+    end
+
+    it "carries the reason the merged resultset dropped its per-test map" do
+      dropped = SimpleCov::Result.new({source_fixture("sample.rb") => {"lines" => [nil, 1, 1]}},
+        command_name: "result1", contexts_dropped: "threads")
+      store_result(dropped, path: single_path)
+
+      expect(described_class.merge_results(single_path).contexts_dropped).to eq("threads")
     end
 
     it "carries the per-test map the merged resultset recorded" do

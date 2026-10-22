@@ -181,7 +181,8 @@ module SimpleCov
     def build_result(raw, coverage, not_loaded:, tracked:, report:)
       Result.new(
         coverage, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
-        worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw), report: report
+        worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw),
+        contexts_dropped: test_tracker&.dropped_reason, report: report
       )
     end
   end

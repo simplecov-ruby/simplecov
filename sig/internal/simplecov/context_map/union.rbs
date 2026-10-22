@@ -3,6 +3,7 @@ module SimpleCov
     class Union
       @map: ContextMap
       @complete: bool
+      @reason: String?
 
       attr_reader carrying: Integer
       attr_reader entries: Integer
@@ -19,7 +20,15 @@ module SimpleCov
 
       def map: () -> ContextMap?
 
+      def dropped: () -> String?
+
       def partial_map: () -> ContextMap
+
+      attr_reader reason: String?
+
+      def drop_entry: (untyped reason) -> bool
+
+      def partial_reason: () -> String
 
       def warn_about_partial_maps: () -> nil
     end

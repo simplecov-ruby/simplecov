@@ -119,4 +119,29 @@ RSpec.describe "track_tests", :sandbox do
       expect(stored_contexts.contexts).to include(match(%r{\Aminitest/some_test\.rb:\d+\z}))
     end
   end
+
+  describe "a Minitest suite whose tests run concurrently in threads" do
+    before do
+      self.bundle_with = "minitest"
+      install_dependencies
+      write_file("minitest/threaded_test.rb", <<~RUBY)
+        require "test_helper"
+
+        class ThreadedTest < Minitest::Test
+          parallelize_me!
+
+          def test_one = sleep(0.2)
+          def test_two = sleep(0.2)
+        end
+      RUBY
+      configure_simplecov(:minitest, tracking_config)
+      run_command_and_expect_success("bundle exec rake minitest")
+    end
+
+    it "says why the report carries no test map" do
+      status = run_command_and_expect_success("bundle exec simplecov status --input coverage/coverage.json")
+
+      expect(status.output).to include("tests recorded: none (dropped because tests ran concurrently in threads")
+    end
+  end
 end

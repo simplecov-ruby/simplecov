@@ -35,13 +35,18 @@ module SimpleCov
 
       def recorded_contexts(document, opts, stderr)
         contexts = document["contexts"]
-        if contexts.nil?
-          return error_nil(stderr, "no test contexts recorded in #{opts.fetch(:input)}. Enable `track_tests` in " \
-                                   "your `SimpleCov.start` block and rerun the suite to record them")
-        end
+        return error_nil(stderr, unrecorded_contexts(document, opts.fetch(:input))) if contexts.nil?
         return contexts if contexts.instance_of?(Array) && contexts.all?(String)
 
         CoverageFile.report_invalid(stderr, command_name, opts.fetch(:input), '"contexts" must be an array of strings')
+      end
+
+      def unrecorded_contexts(document, input)
+        dropped = document["contexts_dropped"]
+        return "no test contexts recorded in #{input}: the run dropped them because #{dropped}" if dropped.instance_of?(String)
+
+        "no test contexts recorded in #{input}. Enable `track_tests` in your `SimpleCov.start` block and rerun " \
+          "the suite to record them"
       end
 
       def common_options(parser, opts)

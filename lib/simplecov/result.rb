@@ -29,6 +29,8 @@ module SimpleCov
     # carries none: tracking was off, or a merge dropped the map because not
     # every merged result recorded one.
     attr_reader :contexts
+    # Why no map was recorded although `track_tests` was on, or nil.
+    attr_reader :contexts_dropped
 
     # The distinct run names behind this result, set by a merge so presentation
     # can say "A and N other runs" instead of reading the joined
@@ -50,12 +52,13 @@ module SimpleCov
     # `tracked_files` accepts any collection that answers `to_a` (the merge
     # passes a Set), and nil for a run that tracked nothing.
     def initialize(original_result, command_name: nil, created_at: nil, not_loaded_files: Set.new,
-      tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, report: false,
+      tracked_files: nil, run_id: nil, worker_id: nil, contexts: nil, contexts_dropped: nil, report: false,
       filter_config: FilterConfig.new)
       @original_result = original_result.freeze
       @command_name = command_name
       @created_at = created_at
       initialize_resultset_metadata(tracked_files, run_id, worker_id, contexts)
+      @contexts_dropped = contexts_dropped
       @groups_config = filter_config.groups
       builder = SourceFileBuilder.new(original_result, not_loaded_files: not_loaded_files)
       @files = builder.call
@@ -122,7 +125,8 @@ module SimpleCov
       hash.map do |command_name, data|
         new(data.fetch("coverage"), command_name: command_name, created_at: Time.at(data.fetch("timestamp")),
           tracked_files: data["tracked_files"], run_id: data["run_id"],
-          worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]))
+          worker_id: data["worker_id"], contexts: ContextMap.from_hash(data["contexts"]),
+          contexts_dropped: data["contexts_dropped"])
       end
     end
 

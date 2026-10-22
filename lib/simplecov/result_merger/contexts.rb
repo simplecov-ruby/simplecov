@@ -13,7 +13,7 @@ module SimpleCov
       def carry(entry, existing, incoming)
         ours = ContextMap.from_hash(existing["contexts"])
         theirs = ContextMap.from_hash(incoming["contexts"])
-        return entry.except("contexts") unless ours && theirs
+        return dropped(entry, existing) unless ours && theirs
 
         entry.merge("contexts" => superseded(ours, theirs).to_h)
       end
@@ -34,6 +34,14 @@ module SimpleCov
       end
 
       private
+
+      # Without the map, but with the reason either side gave for dropping its
+      # own, the incoming side's first.
+      def dropped(entry, existing)
+        reason = existing["contexts_dropped"]
+        without = entry.except("contexts")
+        reason ? {"contexts_dropped" => reason}.merge(without) : without
+      end
 
       # A test recorded again replaces its earlier lines rather than adding to
       # them. Replaced by test, not by file, since rerunning one example or only

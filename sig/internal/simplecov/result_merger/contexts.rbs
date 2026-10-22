@@ -5,6 +5,8 @@ module SimpleCov
 
       def self?.carry_forward: (untyped incoming, Hash[String, untyped]? existing) -> untyped
 
+      def self?.dropped: (Hash[String, untyped] entry, Hash[String, untyped] existing) -> Hash[String, untyped]
+
       def self?.superseded: (ContextMap ours, ContextMap theirs) -> ContextMap
 
       def self?.still_valid: (ContextMap map, Numeric recorded_at) -> ContextMap

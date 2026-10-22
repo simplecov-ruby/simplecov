@@ -8,9 +8,11 @@ module SimpleCov
 
         def gather(document, resultset_path)
           contexts = document["contexts"]
+          dropped = document["contexts_dropped"]
           meta_facts(document).merge(
             totals: totals(document["total"]),
             contexts: (tests_recorded(contexts) if contexts.instance_of?(Array)),
+            contexts_dropped: (dropped if dropped.instance_of?(String)),
             resultset_path: resultset_path, resultset: readable_resultset(resultset_path)
           )
         end

@@ -33,7 +33,8 @@ module SimpleCov
         context_maps = ContextMap::Union.new
         command_names, coverage = absorb_results(file_paths, ignore_timeout: ignore_timeout,
           &entry_collector(tracked_files, context_maps))
-        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
+        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map,
+          contexts_dropped: context_maps.dropped)
       end
 
       # One block over the entries each resultset contributes to the merge,
@@ -114,7 +115,7 @@ module SimpleCov
       # contributing processes were told to track, and quietly reading an
       # omission as "nothing was tracked" would drop every never-loaded
       # file from the merged report.
-      def create_result(command_names, coverage, tracked_files:, contexts: nil)
+      def create_result(command_names, coverage, tracked_files:, contexts: nil, contexts_dropped: nil)
         return nil unless coverage
 
         # Deduped: a CI matrix collates one resultset per worker, and joining
@@ -128,7 +129,7 @@ module SimpleCov
         # warning per worker.
         Result.new(
           coverage,
-          command_name: distinct_names.join(", "), contexts: contexts, report: true,
+          command_name: distinct_names.join(", "), contexts: contexts, contexts_dropped: contexts_dropped, report: true,
           not_loaded_files: UnloadedFiles.never_executed(coverage) | injected,
           tracked_files: tracked_files
         ).tap { |result| result.command_names = distinct_names }
@@ -147,7 +148,8 @@ module SimpleCov
         tracked_files = Set.new
         context_maps = ContextMap::Union.new
         command_names, coverage = merge_valid_results(read_resultset, &entry_collector(tracked_files, context_maps))
-        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map)
+        create_result(command_names, coverage, tracked_files: tracked_files, contexts: context_maps.map,
+          contexts_dropped: context_maps.dropped)
       end
 
       def read_resultset

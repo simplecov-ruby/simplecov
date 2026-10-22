@@ -49,6 +49,14 @@ RSpec.describe SimpleCov::ParallelResultMerger do
         .to eq(SimpleCov::ResultMerger.merge_results(*paths, ignore_timeout: true).original_result)
     end
 
+    it "carries the reason a merged result dropped its per-test map" do
+      dropped = write_resultset("dropped", {source_fixture("sample.rb") => {"lines" => [nil, 1, 1, nil]}},
+        contexts_dropped: "threads")
+
+      expect(described_class.merge_and_store(*paths, dropped, processes: 3, ignore_timeout: true).contexts_dropped)
+        .to eq("threads")
+    end
+
     it "has the result stored" do
       described_class.merge_and_store(*paths, processes: 3, ignore_timeout: true)
 
@@ -688,12 +696,13 @@ RSpec.describe SimpleCov::ParallelResultMerger do
       context_maps: SimpleCov::ContextMap::Union.new)
   end
 
-  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil, contexts: nil)
+  def write_resultset(command_name, coverage, outdated: false, tracked_files: nil, contexts: nil, contexts_dropped: nil)
     timestamp = Time.now.to_i - (outdated ? SimpleCov.merge_timeout * 2 : 0)
     path = File.join(resultset_dir, ".resultset-#{command_name}.json")
     entry = {"coverage" => coverage, "timestamp" => timestamp}
     entry["tracked_files"] = tracked_files if tracked_files
     entry["contexts"] = contexts if contexts
+    entry["contexts_dropped"] = contexts_dropped if contexts_dropped
     File.write(path, JSON.generate(command_name => entry))
     path
   end

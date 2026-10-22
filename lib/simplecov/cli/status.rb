@@ -36,7 +36,7 @@ module SimpleCov
           provenance_words(facts),
           "commit #{commit_words(facts)}",
           (totals_words(facts.fetch(:totals)) unless facts.fetch(:totals).empty?),
-          "tests recorded: #{contexts_words(facts.fetch(:contexts))}"
+          "tests recorded: #{contexts_words(facts.fetch(:contexts), facts.fetch(:contexts_dropped))}"
         ].compact
       end
 
@@ -62,8 +62,11 @@ module SimpleCov
         totals.map { |name, percent| "#{name} #{format("%.2f%%", percent)}" }.join(", ")
       end
 
-      def contexts_words(count)
-        count ? "#{count} (track_tests)" : "none (enable track_tests to select and re-run by test)"
+      def contexts_words(count, dropped)
+        return "#{count} (track_tests)" if count
+        return "none (dropped because #{dropped})" if dropped
+
+        "none (enable track_tests to select and re-run by test)"
       end
 
       def print_resultset(facts, stdout)

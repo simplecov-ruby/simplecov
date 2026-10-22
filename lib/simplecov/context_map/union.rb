@@ -29,7 +29,7 @@ module SimpleCov
       def absorb_entry(data)
         @entries += 1
         map = ContextMap.from_hash(data["contexts"])
-        return @complete = false unless map
+        return drop_entry(data["contexts_dropped"]) unless map
 
         @carrying += 1
         @map.absorb(map)
@@ -41,6 +41,7 @@ module SimpleCov
         @entries += other.entries
         @carrying += other.carrying
         @complete &&= other.complete?
+        @reason ||= other.reason
         @map.absorb(other.partial_map)
         self
       end
@@ -59,14 +60,35 @@ module SimpleCov
         warn_about_partial_maps
       end
 
+      # Why the merged result carries no map, for the report to say: the
+      # first reason a merged result gave, or the merge's own when only some
+      # merged results recorded one. nil when nothing was dropped.
+      def dropped
+        return if @complete
+
+        @reason || (partial_reason if @carrying.positive?)
+      end
+
       protected
 
-      # Protected: only another union folding this one in may read it.
+      # Protected: only another union folding this one in may read these.
       def partial_map
         @map
       end
 
+      attr_reader :reason
+
       private
+
+      def drop_entry(reason)
+        @reason ||= reason if reason.instance_of?(String)
+        @complete = false
+      end
+
+      def partial_reason
+        "only #{@carrying} of #{@entries} merged results recorded one, so enable `track_tests` in every suite " \
+          "that should contribute"
+      end
 
       def warn_about_partial_maps
         return unless @carrying.positive? && SimpleCov.print_errors

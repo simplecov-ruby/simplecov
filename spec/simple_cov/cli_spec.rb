@@ -287,7 +287,7 @@ RSpec.describe SimpleCov::CLI do
     describe "#report_lines" do
       let(:facts) do
         {generated_at: nil, age: nil, version: "9.9.9", command_name: "RSpec",
-         commit: nil, behind: nil, totals: {}, contexts: nil}
+         commit: nil, behind: nil, totals: {}, contexts: nil, contexts_dropped: nil}
       end
 
       it "omits the totals line when nothing was measured" do
@@ -295,6 +295,11 @@ RSpec.describe SimpleCov::CLI do
           ["by simplecov 9.9.9 running RSpec", "commit not recorded",
             "tests recorded: none (enable track_tests to select and re-run by test)"]
         )
+      end
+
+      it "says why no tests were recorded when the run dropped them" do
+        expect(described_class::Status.report_lines(facts.merge(contexts_dropped: "threads")).last)
+          .to eq("tests recorded: none (dropped because threads)")
       end
 
       it "prints the totals line when something was" do
@@ -727,7 +732,7 @@ RSpec.describe SimpleCov::CLI do
       let(:gathered_from_three_contexts) do
         {
           generated_at: nil, age: nil, version: nil, command_name: nil, commit: nil, behind: nil,
-          totals: {}, contexts: 3,
+          totals: {}, contexts: 3, contexts_dropped: nil,
           resultset_path: "/nonexistent/.resultset.json", resultset: nil
         }
       end
@@ -735,6 +740,15 @@ RSpec.describe SimpleCov::CLI do
       it "counts the recorded contexts, and says where the resultset was sought" do
         expect(facts.gather({"contexts" => %w[a b c]}, "/nonexistent/.resultset.json"))
           .to eq(gathered_from_three_contexts)
+      end
+
+      it "gathers why the run dropped its contexts" do
+        expect(facts.gather({"contexts_dropped" => "threads"}, "/nonexistent/.resultset.json"))
+          .to include(contexts: nil, contexts_dropped: "threads")
+      end
+
+      it "ignores a dropped reason that is not a string" do
+        expect(facts.gather({"contexts_dropped" => 1}, "/nonexistent/.resultset.json")).to include(contexts_dropped: nil)
       end
 
       it "gathers the totals and the resultset together" do

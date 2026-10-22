@@ -255,6 +255,21 @@ describe "coverage.json schema" do
       end
     end
 
+    context "with a dropped context map" do
+      let(:document) do
+        emit(SimpleCov::Result.new({source_fixture("json/sample.rb") => {"lines" => [1, 0, nil]}},
+          contexts_dropped: "tests ran concurrently in threads, which per-test coverage cannot tell apart"))
+      end
+
+      it "says why at document level" do
+        expect(document.fetch("contexts_dropped")).to start_with("tests ran concurrently")
+      end
+
+      it "validates" do
+        expect_schema_valid(document)
+      end
+    end
+
     context "without a recorded past" do
       before { allow(SimpleCov::History).to receive(:read).and_return([]) }
 

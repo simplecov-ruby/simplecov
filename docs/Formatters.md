@@ -171,8 +171,10 @@ complete context map. 1.2 added the optional `history` array (the recorded run h
 added the optional `production` section: the window and per-file lines a
 [production coverage store](Production.md) accumulated, present exactly when
 [`production_coverage`](Production.md#seeing-the-cross-in-the-html-and-json-reports) names a readable store at report
-time. 1.4 changed no shape: it documents that a bare test file path in `contexts`, beside ids pointing into the
-same file, is that file's own loading rather than a test. Top-level structure:
+time. 1.4 added the optional `contexts_dropped` string, saying why a run that tracked tests carries no `contexts`
+(tests that ran concurrently in threads, or a merge that mixed results with and without a map), and documents that
+a bare test file path in `contexts`, beside ids pointing into the same file, is that file's own loading rather than
+a test. Top-level structure:
 
 ```jsonc
 {
@@ -181,6 +183,7 @@ same file, is that file's own loading rather than a test. Top-level structure:
   "total":    { /* aggregate stats for lines (and branches / methods when enabled) */ },
   "coverage": { "<project-relative path>": { /* per-file lines, source, branches, methods, contexts, etc. */ } },
   "contexts": [ /* recorded context ids (with track_tests: test definition locations); present only when recorded */ ],
+  "contexts_dropped": "/* why a tracked run carries no contexts; present only when a map was dropped */",
   "history":  [ /* recorded runs, oldest first, this run last; present only when past runs are recorded */ ],
   "production": { /* window + per-file lines and last_seen stamps from a production store; present only when configured */ },
   "groups":   { "<group name>": { /* per-group stats + files */ } },

@@ -179,6 +179,16 @@ RSpec.describe SimpleCov::Result do
         expect(result.to_hash.values.first).not_to have_key("contexts")
       end
 
+      it "round-trips why the per-test map was dropped" do
+        dropped = described_class.new(original_result, command_name: "t", contexts_dropped: "threads")
+
+        expect(described_class.from_hash(dropped.to_hash).first.contexts_dropped).to eq("threads")
+      end
+
+      it "omits a reason when no map was dropped" do
+        expect(result.to_hash.values.first).not_to have_key("contexts_dropped")
+      end
+
       it "reads back a nil map when no per-test map was recorded" do
         expect(described_class.from_hash(result.to_hash).first.contexts).to be_nil
       end
@@ -463,8 +473,15 @@ RSpec.describe SimpleCov::Result do
 
   describe ".from_hash" do
     let(:created_at) { Time.now.to_i }
+
     let(:two_command_results) { described_class.from_hash(two_command_input).sort_by(&:command_name) }
     let(:restored_identified) { described_class.from_hash(identified_input).first }
+
+    it "reads why the entry dropped its per-test map" do
+      input = {"rspec" => {"coverage" => original_result, "timestamp" => created_at, "contexts_dropped" => "threads"}}
+
+      expect(described_class.from_hash(input).first.contexts_dropped).to eq("threads")
+    end
 
     def other_result
       {

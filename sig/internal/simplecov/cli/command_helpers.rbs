@@ -24,6 +24,8 @@ module SimpleCov
 
       def recorded_contexts: (untyped document, untyped opts, untyped stderr) -> Array[String]?
 
+      def unrecorded_contexts: (untyped document, String input) -> String
+
       def common_options: (untyped parser, untyped opts) -> untyped
 
       def parse_common: (untyped args, ?::Hash[Symbol, untyped] defaults) ?{ (untyped, untyped) -> untyped } -> [untyped, untyped]

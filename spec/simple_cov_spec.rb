@@ -501,7 +501,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe "the tracked paths recorded on a result", mutant_expression: "SimpleCov.process_coverage_result" do
+  describe "the tracked paths recorded on a result",
+    mutant_expression: ["SimpleCov.process_coverage_result", "SimpleCov.build_result"] do
     include_context "with a coverage slice to process"
 
     it "excludes files this process loaded" do
@@ -552,7 +553,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
     context "when a tracker holds a live per-test map" do
       let(:map) { SimpleCov::ContextMap.new }
-      let(:tracker) { instance_double(SimpleCov::TestTracker) }
+      let(:tracker) { instance_double(SimpleCov::TestTracker, dropped_reason: nil) }
 
       after { described_class.remove_instance_variable(:@test_tracker) }
 
@@ -567,7 +568,8 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
   end
 
-  describe "what it does with the coverage it collected", mutant_expression: "SimpleCov.process_coverage_result" do
+  describe "what it does with the coverage it collected",
+    mutant_expression: ["SimpleCov.process_coverage_result", "SimpleCov.build_result"] do
     include_context "with a coverage slice to process"
 
     let(:raw) { {sample => {"lines" => [1, 1]}} }
@@ -675,7 +677,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
     end
 
     context "when something was tracking tests" do
-      let(:tracker) { instance_double(SimpleCov::TestTracker, recorded_map: :the_map) }
+      let(:tracker) { instance_double(SimpleCov::TestTracker, recorded_map: :the_map, dropped_reason: "threads") }
 
       before do
         allow(described_class).to receive(:test_tracker).and_return(tracker)
@@ -689,6 +691,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "records the map it was handed back" do
         expect(described_class.result.contexts).to be(:the_map)
+      end
+
+      it "records why the tracker dropped its map" do
+        expect(described_class.result.contexts_dropped).to eq("threads")
       end
     end
 

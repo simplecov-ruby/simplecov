@@ -30,6 +30,8 @@ module SimpleCov
 
     def poisoned?: () -> bool
 
+    def dropped_reason: () -> String?
+
     def recorded_map: (?closing: Hash[String, untyped]?) -> ContextMap?
 
     def self.install_framework_hooks: () -> void

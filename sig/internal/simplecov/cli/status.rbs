@@ -19,7 +19,7 @@ module SimpleCov
 
       def self?.totals_words: (Hash[String, untyped] totals) -> String
 
-      def self?.contexts_words: (Integer? count) -> String
+      def self?.contexts_words: (Integer? count, String? dropped) -> String
 
       def self?.print_resultset: (Hash[Symbol, untyped] facts, untyped stdout) -> untyped
 

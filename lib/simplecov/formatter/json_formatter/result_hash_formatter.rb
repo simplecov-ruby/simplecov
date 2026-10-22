@@ -40,6 +40,7 @@ module SimpleCov
           # and production coverage only when a store is configured and readable.
           def add_optional_sections(document, result)
             document[:contexts] = result.contexts.contexts if result.contexts
+            document[:contexts_dropped] = result.contexts_dropped if result.contexts_dropped
             history = History.entries_with(result)
             document[:history] = history if history.length > 1
             production = ProductionSectionFormatter.call

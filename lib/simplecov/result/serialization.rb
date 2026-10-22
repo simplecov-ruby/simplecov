@@ -9,6 +9,7 @@ module SimpleCov
         data["worker_id"] = worker_id if worker_id
         data["tracked_files"] = tracked_files unless tracked_files.empty?
         append_contexts(data)
+        data["contexts_dropped"] = contexts_dropped if contexts_dropped
         {command_name => data}
       end
 

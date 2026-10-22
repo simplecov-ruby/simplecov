@@ -94,6 +94,45 @@ RSpec.describe SimpleCov::ContextMap::Union do
     end
   end
 
+  describe "#dropped" do
+    it "is nothing when every entry carries a map" do
+      union.absorb_resultset("RSpec" => map_entry("spec/a_spec.rb:1", 0b1))
+
+      expect(union.dropped).to be_nil
+    end
+
+    it "is nothing when no entry recorded a map or dropped one" do
+      union.absorb_resultset("RSpec" => {})
+
+      expect(union.dropped).to be_nil
+    end
+
+    it "names the reason an entry dropped its map" do
+      union.absorb_resultset("RSpec" => map_entry("spec/a_spec.rb:1", 0b1), "Minitest" => {"contexts_dropped" => "threads"})
+
+      expect(union.dropped).to eq("threads")
+    end
+
+    it "keeps the first reason given" do
+      union.absorb_resultset("A" => {"contexts_dropped" => "first"}, "B" => {"contexts_dropped" => "second"})
+
+      expect(union.dropped).to eq("first")
+    end
+
+    it "ignores a reason that is not a string" do
+      union.absorb_resultset("A" => {"contexts_dropped" => 1})
+
+      expect(union.dropped).to be_nil
+    end
+
+    it "names the merge itself when only some entries carry a map" do
+      union.absorb_resultset("RSpec" => map_entry("spec/a_spec.rb:1", 0b1), "Cucumber" => {})
+
+      expect(union.dropped).to eq("only 1 of 2 merged results recorded one, so enable `track_tests` in every " \
+                                  "suite that should contribute")
+    end
+  end
+
   describe "#collector" do
     it "absorbs each resultset handed to the merge" do
       union.collector.call("RSpec" => map_entry("spec/a_spec.rb:1", 0b1))
@@ -104,6 +143,19 @@ RSpec.describe SimpleCov::ContextMap::Union do
 
   describe "#absorb_union" do
     let(:other) { described_class.new }
+
+    it "takes the reason the other union dropped its map for" do
+      other.absorb_resultset("A" => {"contexts_dropped" => "threads"})
+
+      expect(union.absorb_union(other).dropped).to eq("threads")
+    end
+
+    it "keeps its own reason over the other union's" do
+      union.absorb_resultset("A" => {"contexts_dropped" => "first"})
+      other.absorb_resultset("B" => {"contexts_dropped" => "second"})
+
+      expect(union.absorb_union(other).dropped).to eq("first")
+    end
 
     context "when both unions carry a map" do
       before do

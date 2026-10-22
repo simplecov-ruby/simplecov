@@ -706,6 +706,16 @@ RSpec.describe SimpleCov::TestTracker do
       expect(tracker).to be_poisoned
     end
 
+    it "says why it dropped the map" do
+      capture_stderr { overlap }
+
+      expect(tracker.dropped_reason).to eq("tests ran concurrently in threads, which per-test coverage cannot tell apart")
+    end
+
+    it "has no reason to give before tests overlap" do
+      expect(tracker.dropped_reason).to be_nil
+    end
+
     it "warns once, however many tracks overlap" do
       expect(overlapping_twice.scan("cannot be attributed").size).to eq(1)
     end

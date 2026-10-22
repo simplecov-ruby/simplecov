@@ -139,7 +139,7 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
   end
 
   it "omits contexts, history and production when the run carries none" do
-    expect(document.keys).not_to include(:contexts, :history, :production)
+    expect(document.keys).not_to include(:contexts, :contexts_dropped, :history, :production)
   end
 
   it "carries the recorded context list" do
@@ -148,6 +148,12 @@ RSpec.describe SimpleCov::Formatter::JSONFormatter::ResultHashFormatter,
 
   it "carries each file's bitmaps" do
     expect(contextual_document.fetch(:coverage).fetch(project_filename)).to include(contexts: {"0" => "6"})
+  end
+
+  it "carries the reason a run dropped its context map" do
+    dropped = SimpleCov::Result.new(coverage_data, contexts_dropped: "threads")
+
+    expect(described_class.format(dropped).fetch(:contexts_dropped)).to eq("threads")
   end
 
   it "carries an empty context list for a run that recorded nothing" do
