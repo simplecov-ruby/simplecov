@@ -5,11 +5,13 @@ module SimpleCov
 
       extend MethodBodies
 
-      def mask: (String path) -> Integer
+      def masks: (String path) -> [Integer, Integer]
 
       private
 
-      def body_lines: (Prism::node node, Integer mask) -> Integer
+      def collect: (Prism::node node, [Integer, Integer] masks) -> [Integer, Integer]
+
+      def add_method: (Prism::DefNode node, [Integer, Integer] masks) -> [Integer, Integer]
 
       def span: (Integer first, Integer? last) -> Integer
     end

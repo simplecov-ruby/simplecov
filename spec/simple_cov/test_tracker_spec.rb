@@ -51,6 +51,14 @@ RSpec.describe SimpleCov::TestTracker do
       end
     end
 
+    it "attributes the lines of a file that follows one with no line data" do
+      branch_only = File.join(project_root, "lib/branchy.rb")
+      stub_peeks({lib_file => {lines: [1]}}, {branch_only => {branches: {}}, lib_file => {lines: [2]}})
+      tracker.track("spec/thing_spec.rb:1") { :ran }
+
+      expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/thing_spec.rb:1"])
+    end
+
     it "returns the block's value" do
       stub_peeks({}, {})
 
@@ -95,12 +103,11 @@ RSpec.describe SimpleCov::TestTracker do
       end
     end
 
-    context "with a Ruby file the test itself loaded", :prism do
+    shared_context "with a Ruby file the test itself loaded" do
       subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
 
       let(:root) { File.realpath(Dir.mktmpdir) }
       let(:loaded) { File.join(root, "loaded.rb") }
-      let(:ran) { [1, 1, nil, 1, 1, 1, 1, nil, 1, nil, 1, nil, 1, 1, nil, 1, 1, 1, 1, 1, nil] }
 
       before do
         File.write(loaded, <<~RUBY)
@@ -133,6 +140,12 @@ RSpec.describe SimpleCov::TestTracker do
       end
 
       after { FileUtils.rm_rf(root) }
+    end
+
+    context "with a Ruby file the test itself loaded", :prism do
+      include_context "with a Ruby file the test itself loaded"
+
+      let(:ran) { [1, 1, nil, 1, 1, 1, 1, nil, 1, nil, 1, nil, 1, 1, nil, 1, 1, 1, 1, 1, nil] }
 
       [5, 6, 17, 18, 19].each do |line|
         it "attributes method body line #{line} to the test" do
@@ -153,6 +166,60 @@ RSpec.describe SimpleCov::TestTracker do
         tracker.recorded_map
 
         expect(Prism).to have_received(:parse_file).once
+      end
+    end
+
+    context "with a Ruby file the test itself loaded and whose one-line methods it called", :prism do
+      include_context "with a Ruby file the test itself loaded"
+
+      let(:ran) { [1, 2, nil, 1, 1, 1, 1, nil, 2, nil, 3, nil, 1, 1, nil, 1, 1, 1, 1, 1, nil] }
+
+      [9, 11].each do |line|
+        it "attributes one-line method #{line}, which ran again after the file loaded, to the test" do
+          expect(tracker.recorded_map.covering(loaded, line)).to eq(["spec/loaded_spec.rb:1"])
+        end
+      end
+
+      it "still leaves a line that ran more than once as the file loaded to no test" do
+        expect(tracker.recorded_map.covering(loaded, 2)).to eq([])
+      end
+    end
+
+    context "with a Ruby file the test itself loaded that has grown on disk since", :prism do
+      subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+      let(:root) { File.realpath(Dir.mktmpdir) }
+      let(:loaded) { File.join(root, "loaded.rb") }
+
+      before do
+        File.write(loaded, "def first = (a || b)\nx = 1\ndef later = (c || d)\n")
+        stub_peeks({}, {loaded => {lines: [2, 1]}})
+        tracker.track("spec/loaded_spec.rb:1") { :ran }
+      end
+
+      after { FileUtils.rm_rf(root) }
+
+      it "attributes the one-line method on the first line, past the lines it ran" do
+        expect(tracker.recorded_map.covering(loaded, 1)).to eq(["spec/loaded_spec.rb:1"])
+      end
+    end
+
+    context "with a one-line method inside a method body of a file the test itself loaded", :prism do
+      subject(:tracker) { described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/) }
+
+      let(:root) { File.realpath(Dir.mktmpdir) }
+      let(:loaded) { File.join(root, "loaded.rb") }
+
+      before do
+        File.write(loaded, "def outer\n  def inner = (a || b)\nend\n")
+        stub_peeks({}, {loaded => {lines: [1, 2, nil]}})
+        tracker.track("spec/loaded_spec.rb:1") { :ran }
+      end
+
+      after { FileUtils.rm_rf(root) }
+
+      it "attributes its line to the test" do
+        expect(tracker.recorded_map.covering(loaded, 2)).to eq(["spec/loaded_spec.rb:1"])
       end
     end
 

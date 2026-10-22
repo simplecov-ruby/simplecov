@@ -30,6 +30,8 @@ RSpec.describe "track_tests", :sandbox do
           def call
             :called
           end
+
+          def short?(flag) = (flag || call) && true
         end
       RUBY
       write_file("spec/zz_defining_spec.rb", <<~RUBY)
@@ -45,7 +47,7 @@ RSpec.describe "track_tests", :sandbox do
         RSpec.describe "Lazy" do
           it "loads it and calls it" do
             require_relative "../lib/lazy"
-            expect(Lazy.new.call).to eq(:called)
+            expect(Lazy.new.short?(false)).to be(true)
           end
         end
       RUBY
@@ -71,6 +73,11 @@ RSpec.describe "track_tests", :sandbox do
 
     it "credits a test with the method body it ran in a file it loaded" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 3))
+        .to eq(["spec/lazy_spec.rb:4"])
+    end
+
+    it "credits a test with a one-line method it ran in a file it loaded" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 6))
         .to eq(["spec/lazy_spec.rb:4"])
     end
 

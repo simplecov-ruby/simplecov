@@ -5,7 +5,7 @@ module SimpleCov
 
       @root_regex: Regexp
       @in_root: Hash[String, bool]
-      @method_bodies: Hash[String, Integer]
+      @method_masks: Hash[String, [Integer, Integer]]
 
       def initialize: (root_regex: Regexp) -> void
 
@@ -13,11 +13,15 @@ module SimpleCov
 
       private
 
-      def method_bodies: (String path) -> Integer
+      def own_lines: (String path, Integer bitmap, Array[Integer?] lines) -> Integer
+
+      def method_masks: (String path) -> [Integer, Integer]
+
+      def called: (Integer mask, Array[Integer?] lines) -> Integer
 
       def lines_in: (untyped file_coverage) -> Array[Integer?]?
 
-      def line_delta: (Array[Integer?]? before_lines, Array[Integer?]? after_lines) -> Integer
+      def line_delta: (Array[Integer?]? before_lines, Array[Integer?] after_lines) -> Integer
 
       def same_lines?: (Array[Integer?]? before_lines, Array[Integer?] after_lines) -> bool
 

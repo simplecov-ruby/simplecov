@@ -11,14 +11,15 @@ module SimpleCov
       def initialize(root_regex:)
         @root_regex = root_regex
         @in_root = {} #: Hash[String, bool]
-        @method_bodies = {} #: Hash[String, Integer]
+        @method_masks = {} #: Hash[String, [Integer, Integer]]
       end
 
       # Files outside the root are skipped. A file absent from `before` was loaded
-      # by the test itself, which keeps only the method body lines it ran: the
-      # rest ran as the file loaded and serves every later test as much as this
-      # one. A test file `loading` keeps nothing of such a file. The root match is memoized, so the regex runs once per file the
-      # process ever loads rather than once per file per test.
+      # by the test itself, which keeps only the method bodies it ran: the rest
+      # ran as the file loaded and serves every later test as much as this one.
+      # A test file `loading` keeps nothing of such a file. The root match is
+      # memoized, so the regex runs once per file the process ever loads rather
+      # than once per file per test.
       def call(before, after, loading: false)
         changed = {} #: Hash[String, Integer]
         after.each do |path, file_coverage|
@@ -26,8 +27,11 @@ module SimpleCov
           next unless in_root
           next if loading && !before.key?(path)
 
-          bitmap = line_delta(lines_in(before[path]), lines_in(file_coverage))
-          bitmap &= method_bodies(path) unless before.key?(path)
+          lines = lines_in(file_coverage)
+          next unless lines
+
+          bitmap = line_delta(lines_in(before[path]), lines)
+          bitmap = own_lines(path, bitmap, lines) unless before.key?(path)
           changed[path] = bitmap unless bitmap.zero?
         end
         changed
@@ -35,8 +39,24 @@ module SimpleCov
 
       private
 
-      def method_bodies(path)
-        @method_bodies.fetch(path) { @method_bodies[path] = MethodBodies.mask(path) }
+      # The lines of a file the test itself loaded that are the test's own: the
+      # method bodies it ran, and the one-line methods it called, whose line
+      # ran once more than loading the file accounts for.
+      def own_lines(path, bitmap, lines)
+        bodies, one_liners = method_masks(path)
+        (bitmap & bodies) | called(bitmap & one_liners, lines)
+      end
+
+      def method_masks(path)
+        @method_masks.fetch(path) { @method_masks[path] = MethodBodies.masks(path) }
+      end
+
+      # Every line in `mask` grew, so its count is an Integer.
+      def called(mask, lines)
+        (0...mask.bit_length).sum do |index|
+          count = lines.fetch(index) #: Integer
+          (mask[index].equal?(1) && count > 1) ? 1 << index : 0
+        end
       end
 
       # A peek's per-file data is a criteria Hash when Coverage was started with a
@@ -52,7 +72,6 @@ module SimpleCov
       # The equality check is the overwhelmingly common case, the test never
       # entering this file: an Array compare is fast C, the per-line loop is not.
       def line_delta(before_lines, after_lines)
-        return 0 unless after_lines
         return 0 if same_lines?(before_lines, after_lines)
 
         grown_bitmap(before_lines || [], after_lines)
