@@ -82,6 +82,18 @@ RSpec.describe "track_tests", :sandbox do
     it "leaves the lines a file ran as it loaded to no test" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 1)).to eq([])
     end
+
+    context "when a later run reruns one spec file" do
+      before { run_command_and_expect_success("bundle exec rspec spec/lazy_spec.rb") }
+
+      it "keeps the tests of the spec files it did not rerun" do
+        expect(stored_contexts.covering(some_class, 12)).to include(match(%r{\Aspec/some_class_spec\.rb:\d+\z}))
+      end
+
+      it "keeps the tests of the spec file it reran" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 3)).to eq(["spec/lazy_spec.rb:4"])
+      end
+    end
   end
 
   describe "a Minitest suite" do

@@ -196,6 +196,72 @@ RSpec.describe SimpleCov::ContextMap do
     end
   end
 
+  describe "#without" do
+    subject(:kept) { map.without { |id| id.start_with?("spec/a_spec.rb") } }
+
+    before do
+      map.record("spec/a_spec.rb:1", lib_file => 0b1)
+      map.record("spec/b_spec.rb:2", lib_file => 0b10, other_file => 0b1)
+      map.record("spec/c_spec.rb:3", {})
+    end
+
+    it "drops the lines of the rejected tests" do
+      expect(kept.covering(lib_file, 1)).to eq([])
+    end
+
+    it "keeps the lines of every other test" do
+      expect([kept.covering(lib_file, 2), kept.covering(other_file, 1)]).to eq([["spec/b_spec.rb:2"]] * 2)
+    end
+
+    it "keeps every other test, including one that covered nothing" do
+      expect(kept.contexts).to eq(["spec/b_spec.rb:2", "spec/c_spec.rb:3"])
+    end
+
+    it "leaves the map itself alone" do
+      kept
+
+      expect(map.covering(lib_file, 1)).to eq(["spec/a_spec.rb:1"])
+    end
+  end
+
+  describe "#include?" do
+    it "answers whether a test was recorded, even one that covered nothing" do
+      map.record("spec/a_spec.rb:1", {})
+
+      expect([map.include?("spec/a_spec.rb:1"), map.include?("spec/b_spec.rb:2")]).to eq([true, false])
+    end
+  end
+
+  describe "#widen" do
+    before do
+      map.record("spec/a_spec.rb:1", lib_file => 0b11)
+      map.record("spec/b_spec.rb:2", other_file => 0b1)
+      map.widen(lib_file, 0b110)
+    end
+
+    it "adds the lines to every test touching the file" do
+      expect(map.covering(lib_file, 3)).to eq(["spec/a_spec.rb:1"])
+    end
+
+    it "keeps the lines those tests already had, inside the added lines or not" do
+      expect([map.covering(lib_file, 1), map.covering(lib_file, 2)]).to eq([["spec/a_spec.rb:1"]] * 2)
+    end
+
+    it "leaves the tests of other files alone" do
+      expect(map.covering(other_file, 2)).to eq([])
+    end
+
+    it "answers itself" do
+      expect(map.widen(other_file, 0b1)).to be(map)
+    end
+
+    it "ignores a file no test touched" do
+      map.widen(File.join(SimpleCov.root, "lib/untouched.rb"), 0b1)
+
+      expect(map.paths).to eq([lib_file, other_file])
+    end
+  end
+
   describe "#serialized_bitmaps_for" do
     it "serializes one file's table in the wire encoding, index-sorted" do
       map.record("spec/b_spec.rb:2", {})

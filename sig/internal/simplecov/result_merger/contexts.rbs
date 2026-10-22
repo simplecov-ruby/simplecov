@@ -2,6 +2,16 @@ module SimpleCov
   module ResultMerger
     module Contexts
       def self?.carry: (Hash[String, untyped] entry, Hash[String, untyped] existing, Hash[String, untyped] incoming) -> Hash[String, untyped]
+
+      def self?.carry_forward: (untyped incoming, Hash[String, untyped]? existing) -> untyped
+
+      def self?.superseded: (ContextMap ours, ContextMap theirs) -> ContextMap
+
+      def self?.still_valid: (ContextMap map, Numeric recorded_at) -> ContextMap
+
+      def self?.deleted_test?: (String context_id) -> bool
+
+      def self?.changed_lines: (String path, Numeric recorded_at) -> Integer?
     end
   end
 end

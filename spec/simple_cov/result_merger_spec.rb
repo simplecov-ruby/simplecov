@@ -411,6 +411,13 @@ RSpec.describe SimpleCov::ResultMerger do
       end
     end
 
+    it "replaces what the existing entry recorded for a test the incoming entry recorded again" do
+      incoming = recorded("spec/a_spec.rb:1", 0b10)
+      carried = contexts.carry(incoming, recorded("spec/a_spec.rb:1", 0b1), incoming)
+
+      expect(SimpleCov::ContextMap.from_hash(carried.fetch("contexts")).covering(path, 1)).to eq([])
+    end
+
     it "drops the map when only the incoming entry carries one" do
       incoming = recorded("spec/a_spec.rb:1", 0b1)
 
@@ -421,6 +428,135 @@ RSpec.describe SimpleCov::ResultMerger do
       existing = recorded("spec/a_spec.rb:1", 0b1)
 
       expect(contexts.carry({"coverage" => {}}, existing, {})).to eq("coverage" => {})
+    end
+  end
+
+  describe "carrying an earlier run's context map forward" do
+    subject(:map) do
+      SimpleCov::ContextMap.from_hash(contexts.carry_forward(incoming, existing).fetch("contexts"))
+    end
+
+    let(:dir) { Dir.mktmpdir }
+    let(:recorded_at) { Time.now.to_i + 0.3 }
+    let(:incoming) { recorded({"spec/b_spec.rb:2" => 0b100}) }
+    let(:existing) { recorded({"spec/a_spec.rb:10" => 0b10}, timestamp: recorded_at) }
+
+    def contexts = SimpleCov::ResultMerger::Contexts
+
+    def source = File.join(dir, "lib/thing.rb")
+
+    def recorded(tests, timestamp: Time.now.to_f)
+      map = tests.reduce(SimpleCov::ContextMap.new) { |built, (id, bitmap)| built.record(id, source => bitmap) }
+      {"timestamp" => timestamp, "contexts" => map.to_h}
+    end
+
+    def touch(path, at) = File.utime(at, at, path)
+
+    before do
+      FileUtils.mkdir_p([File.join(dir, "lib"), File.join(dir, "spec")])
+      File.write(source, "one\ntwo\nthree\n")
+      touch(source, recorded_at - 60)
+      File.write(File.join(dir, "spec/a_spec.rb"), "")
+      allow(SimpleCov).to receive(:root).and_return(dir)
+    end
+
+    after { FileUtils.rm_rf(dir) }
+
+    it "keeps the earlier run's tests that this run did not run" do
+      expect(map.covering(source, 2)).to eq(["spec/a_spec.rb:10"])
+    end
+
+    it "keeps this run's tests" do
+      expect(map.covering(source, 3)).to eq(["spec/b_spec.rb:2"])
+    end
+
+    context "when this run reran a test" do
+      let(:incoming) { recorded({"spec/a_spec.rb:10" => 0b100}) }
+
+      it "replaces the lines the earlier run recorded for it" do
+        expect([map.covering(source, 2), map.covering(source, 3)]).to eq([[], ["spec/a_spec.rb:10"]])
+      end
+    end
+
+    context "when test files were deleted since" do
+      let(:existing) do
+        recorded({"spec/gone_spec.rb:1" => 0b1, "gone_test.rb:2" => 0b1, "features/gone.feature:3" => 0b1,
+                  "Thing#test_x" => 0b1}, timestamp: recorded_at)
+      end
+
+      it "drops their tests" do
+        expect(map.contexts).to eq(["Thing#test_x", "spec/b_spec.rb:2"])
+      end
+
+      it "keeps a test with no file location" do
+        expect(map.covering(source, 1)).to eq(["Thing#test_x"])
+      end
+    end
+
+    context "when a source file changed after the earlier run" do
+      before { touch(source, recorded_at + 0.3) }
+
+      it "credits the earlier run's tests with every line of it, since their line numbers no longer hold" do
+        expect(map.serialized_bitmaps_for(source)).to eq("0" => "7", "1" => "4")
+      end
+    end
+
+    context "when a source file changed before the earlier run finished" do
+      before { touch(source, recorded_at - 0.1) }
+
+      it "keeps the earlier run's tests of it as recorded" do
+        expect(map.covering(source, 1)).to eq([])
+      end
+    end
+
+    context "when a source file the earlier run touched is gone" do
+      before { FileUtils.rm_f(source) }
+
+      it "keeps its tests as recorded" do
+        expect(map.covering(source, 2)).to eq(["spec/a_spec.rb:10"])
+      end
+    end
+
+    it "keeps only this run's map when the earlier entry has none" do
+      expect(contexts.carry_forward(incoming, existing.except("contexts"))).to eq(incoming)
+    end
+
+    it "keeps only this run's map when there was no earlier entry" do
+      expect(contexts.carry_forward(incoming, nil)).to eq(incoming)
+    end
+
+    it "keeps only this run's map when the earlier entry has no timestamp" do
+      expect(contexts.carry_forward(incoming, existing.except("timestamp"))).to eq(incoming)
+    end
+
+    it "keeps only this run's map when the earlier entry's timestamp is not a number" do
+      expect(contexts.carry_forward(incoming, existing.merge("timestamp" => recorded_at.to_s))).to eq(incoming)
+    end
+
+    it "carries nothing into a run that recorded no map" do
+      expect(contexts.carry_forward({"coverage" => {}}, existing)).to eq("coverage" => {})
+    end
+
+    it "answers nothing for a run that stored nothing" do
+      expect(contexts.carry_forward(nil, existing)).to be_nil
+    end
+  end
+
+  describe "storing a later run's result under the same command name" do
+    let(:sample) { source_fixture("sample.rb") }
+
+    def stored_with(test_id, bitmap)
+      SimpleCov::Result.new({sample => {"lines" => [nil, 1, 0, 1, nil, nil, 1, 1, nil, nil]}},
+        command_name: "RSpec", contexts: SimpleCov::ContextMap.new.record(test_id, sample => bitmap))
+    end
+
+    it "keeps the earlier run's tests in the stored map" do
+      described_class.store_result(stored_with("Earlier#test_a", 0b10))
+      allow(SimpleCov).to receive(:process_start_time).and_return(Time.now + 60)
+      described_class.store_result(stored_with("Later#test_b", 0b1000))
+
+      map = SimpleCov::ContextMap.from_hash(described_class.read_resultset.dig("RSpec", "contexts"))
+      expect(map.covering(sample, 2)).to eq(["Earlier#test_a"])
     end
   end
 

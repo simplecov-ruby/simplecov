@@ -14,7 +14,15 @@ module SimpleCov
 
     def empty?: () -> bool
 
+    def include?: (String context_id) -> bool
+
     def absorb: (ContextMap other) -> self
+
+    def without: () { (String context_id) -> boolish } -> ContextMap
+
+    def widen: (String path, Integer bitmap) -> self
+
+    def paths: () -> Array[String]
 
     def to_h: (?only: Set[String]?) -> Hash[String, untyped]
 

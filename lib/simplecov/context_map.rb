@@ -69,6 +69,10 @@ module SimpleCov
       @contexts.empty?
     end
 
+    def include?(context_id)
+      @indices.key?(context_id)
+    end
+
     # Other's contexts are re-interned, so maps recorded by different processes
     # merge by id, and a context both sides saw contributes one entry.
     def absorb(other)
@@ -81,6 +85,30 @@ module SimpleCov
         end
       end
       self
+    end
+
+    # A copy without the contexts the block rejects. A kept context that
+    # covered nothing stays, as it would through a serialization round trip.
+    def without(&reject)
+      copy = ContextMap.new
+      kept = @contexts.map { |context_id| copy.intern(context_id) unless reject.call(context_id) }
+      @files.each do |path, table|
+        table.each do |index, bitmap|
+          context_id = @contexts.fetch(index)
+          copy.record(context_id, path => bitmap) if kept.fetch(index)
+        end
+      end
+      copy
+    end
+
+    # Adds the lines in `bitmap` to every context that touched `path`.
+    def widen(path, bitmap)
+      @files[path]&.transform_values! { |lines| lines | bitmap }
+      self
+    end
+
+    def paths
+      @files.keys
     end
 
     # `only:` restricts the files to a given set of paths, so the map follows

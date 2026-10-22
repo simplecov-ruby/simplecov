@@ -171,9 +171,10 @@ module SimpleCov
       # If an entry with the same command_name was written AFTER our process
       # started, a sibling test runner wrote it. Combine coverage data rather
       # than overwriting, so an empty parent-process result doesn't clobber the
-      # subprocess's real data (#581).
+      # subprocess's real data (#581). An earlier run's entry is replaced, all
+      # but its test map.
       def merged_entry(existing, incoming)
-        return incoming unless concurrent_runner_entry?(existing, incoming)
+        return Contexts.carry_forward(incoming, existing) unless concurrent_runner_entry?(existing, incoming)
 
         merged = incoming.merge(
           "coverage" => Combine::ResultsCombiner.combine(existing.fetch("coverage"), incoming.fetch("coverage"))
