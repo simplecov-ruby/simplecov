@@ -417,6 +417,8 @@ spec file triggers with `require "rails_helper"` belongs to every test rather th
 Test files are recognized by name (`*_spec.rb`, `*_test.rb`, and `test_*.rb` other than `test_helper.rb`). JRuby
 cannot report a file as it loads, so there a test file's loading belongs to no test.
 
+What an RSpec group's `before(:all)` hooks run, in a nested group as well, is credited to the group's spec file.
+
 A file a test loads for the first time is treated the same way: its class bodies, constants, and `def` lines run once
 on behalf of every later test, so the loading test is credited only with the method body lines it ran. Telling them
 apart takes Prism, so a Ruby that cannot load it, and any file that is not Ruby source (a template, say), credits the

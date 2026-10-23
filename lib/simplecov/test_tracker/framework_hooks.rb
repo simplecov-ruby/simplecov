@@ -42,8 +42,22 @@ module SimpleCov
           config.around do |example|
             SimpleCov.track_test(TestTracker.rspec_example_id(example)) { example.run }
           end
-          config.prepend_before(:suite) { SimpleCov.test_tracker&.suite_starting }
+          config.prepend_before(:suite) do
+            SimpleCov.test_tracker&.suite_starting
+            # RSpec reports a group starting ahead of all its before(:all)
+            # hooks, whatever order they were added in. Registered here
+            # because asking for the reporter any earlier sets up the default
+            # formatter before the suite has chosen its own.
+            config.reporter.register_listener(TestTracker, :example_group_started)
+          end
         end
+      end
+
+      # Called by RSpec's reporter as each group starts, nested ones too, so
+      # their before(:all) hooks go to their spec file rather than to the test
+      # before them.
+      def example_group_started(notification)
+        SimpleCov.test_tracker&.test_file_starting(rspec_path(notification.group.metadata.fetch(:rerun_file_path)))
       end
 
       # The RSpec this process has, if it has one. A Minitest-only suite has
@@ -97,8 +111,13 @@ module SimpleCov
       # (`spec/a_spec.rb[1:2:1]`), which is its own and reruns it.
       def rspec_example_id(example)
         metadata = example.metadata
-        id = metadata.fetch(:shared_group_inclusion_backtrace).empty? ? metadata.fetch(:location) : example.id
-        id.delete_prefix("./")
+        rspec_path(metadata.fetch(:shared_group_inclusion_backtrace).empty? ? metadata.fetch(:location) : example.id)
+      end
+
+      # Relative the way RSpec prints it (`./spec/a_spec.rb` becomes
+      # `spec/a_spec.rb`).
+      def rspec_path(path)
+        path.delete_prefix("./")
       end
 
       # An autoload declaration fires `const_added` without the module existing
