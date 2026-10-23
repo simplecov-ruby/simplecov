@@ -28,6 +28,8 @@ module SimpleCov
 
     def suite_starting: () -> void
 
+    def test_file_starting: (String path) -> void
+
     def poisoned?: () -> bool
 
     def dropped_reason: () -> String?
@@ -53,6 +55,10 @@ module SimpleCov
     def self.loaded_const: (Module mod, Symbol name) -> untyped
 
     def self.rspec_example_id: (untyped example) -> String
+
+    def self.example_group_started: (untyped notification) -> void
+
+    def self.rspec_path: (String path) -> String
 
     def self.minitest_test_id: (untyped test) -> String
 
@@ -92,7 +98,7 @@ module SimpleCov
 
     def same_segment?: (String? id, bool loading) -> bool
 
-    def open_outside_tests: (String? id) -> void
+    def open_outside_tests: (String? id, ?loading: bool) -> void
 
     def close_segment: (Hash[String, untyped] closing) -> void
 

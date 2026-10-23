@@ -82,6 +82,12 @@ module SimpleCov
       open_outside_tests(nil)
     end
 
+    # Credits the test file at `path` with its `before(:all)` hooks, which RSpec
+    # runs outside any test, instead of the test that ran before them.
+    def test_file_starting(path)
+      open_outside_tests(path, loading: false)
+    end
+
     def poisoned?
       @poisoned
     end
@@ -147,7 +153,8 @@ module SimpleCov
     # process loaded, branch and method tables included), so recording settles
     # at segment boundaries: consecutive tracks with one context id share one
     # open segment and pay nothing in between. In-root code that runs between
-    # two segments is attributed to the later one, the documented price.
+    # two tracks goes to the earlier one, unless a framework hook marks a
+    # boundary first.
     def open_segment(id, loading: false)
       return if same_segment?(id, loading)
 
@@ -166,8 +173,8 @@ module SimpleCov
 
     # A nil id is code no test owns, whose segment records nothing, so only a
     # named one's `loading` matters.
-    def open_outside_tests(id)
-      open_segment(id, loading: true) if @depth.zero? && !@poisoned
+    def open_outside_tests(id, loading: true)
+      open_segment(id, loading: loading) if @depth.zero? && !@poisoned
     end
 
     def close_segment(closing)

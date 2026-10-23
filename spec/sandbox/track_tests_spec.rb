@@ -81,6 +81,50 @@ RSpec.describe "track_tests", :sandbox do
           include_examples "a four-sided shape"
         end
       RUBY
+      write_file("lib/setup_once.rb", <<~RUBY)
+        module SetupOnce
+          def self.call
+            :set_up
+          end
+        end
+      RUBY
+      write_file("spec/setting_up_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/setup_once"
+
+        RSpec.describe "SettingUp" do
+          before(:all) { SetupOnce.call }
+
+          it("runs after its group's setup") { expect(1).to eq(1) }
+        end
+      RUBY
+      write_file("lib/setup_inside.rb", <<~RUBY)
+        module SetupInside
+          def self.first
+            :set_up
+          end
+
+          def self.nested
+            :set_up
+          end
+        end
+      RUBY
+      write_file("spec/setting_up_inside_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/setup_inside"
+
+        RSpec.describe "SettingUpInside" do
+          prepend_before(:all) { SetupInside.first }
+
+          it("runs after the group's setup") { expect(1).to eq(1) }
+
+          describe "a nested group" do
+            before(:all) { SetupInside.nested }
+
+            it("runs after the nested group's setup") { expect(1).to eq(1) }
+          end
+        end
+      RUBY
     end
 
     let!(:result) do
@@ -115,6 +159,18 @@ RSpec.describe "track_tests", :sandbox do
       square = File.join(sandbox_dir, "lib/square.rb")
       expect([stored_contexts.covering(square, 3), stored_contexts.covering(square, 7)])
         .to eq([%w[spec/square_spec.rb[1:1:1] spec/square_spec.rb[2:1]], %w[spec/square_spec.rb[1:1:2] spec/square_spec.rb[2:2]]])
+    end
+
+    it "credits a spec file with what its before(:all) hooks ran, not the spec file before it" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/setup_once.rb"), 3))
+        .to eq(["spec/setting_up_spec.rb"])
+    end
+
+    it "credits a spec file with what its prepended and nested before(:all) hooks ran" do
+      setup_inside = File.join(sandbox_dir, "lib/setup_inside.rb")
+
+      expect([3, 7].map { |line| stored_contexts.covering(setup_inside, line) })
+        .to eq([["spec/setting_up_inside_spec.rb"]] * 2)
     end
 
     it "credits a spec file with what it ran while it loaded" do

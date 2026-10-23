@@ -617,6 +617,82 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  describe "test files starting" do
+    context "with a test file's group setup running after another file's test" do
+      before do
+        allow(Coverage).to receive(:peek_result).and_return(
+          {lib_file => {lines: [0, 0]}},
+          {lib_file => {lines: [1, 0]}},
+          {lib_file => {lines: [1, 1]}},
+          {lib_file => {lines: [1, 1]}}
+        )
+
+        tracker.track("spec/a_spec.rb:3") { :ran }
+        tracker.test_file_starting("spec/b_spec.rb")
+        tracker.track("spec/b_spec.rb:5") { :ran }
+      end
+
+      it "credits the setup to the test file that starts" do
+        expect(tracker.recorded_map.covering(lib_file, 2)).to eq(["spec/b_spec.rb"])
+      end
+
+      it "leaves the earlier test with what it ran" do
+        expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/a_spec.rb:3"])
+      end
+    end
+
+    it "leaves a test file starting inside a test to that test" do
+      stub_peeks({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+      tracker.track("spec/a_spec.rb:3") { tracker.test_file_starting("spec/b_spec.rb") }
+
+      expect(tracker.recorded_map.contexts).to eq(["spec/a_spec.rb:3"])
+    end
+
+    context "with file granularity" do
+      subject(:tracker) do
+        described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i, granularity: :file)
+      end
+
+      before do
+        allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+        tracker.test_file_starting("spec/b_spec.rb")
+        tracker.track("spec/b_spec.rb:5") { :ran }
+      end
+
+      it "keeps the file's tests in the segment its setup opened" do
+        tracker.recorded_map
+
+        expect(Coverage).to have_received(:peek_result).twice
+      end
+
+      it "credits setup and tests to the file" do
+        expect(tracker.recorded_map.covering(lib_file, 1)).to eq(["spec/b_spec.rb"])
+      end
+    end
+  end
+
+  describe ".example_group_started" do
+    let(:live_tracker) { instance_double(described_class, test_file_starting: nil) }
+    let(:notification) do
+      group = class_double(RSpec::Core::ExampleGroup, metadata: {rerun_file_path: "./spec/b_spec.rb"})
+      RSpec::Core::Notifications::GroupNotification.new(group)
+    end
+
+    before { allow(SimpleCov).to receive(:test_tracker).and_return(live_tracker) }
+
+    it "starts the group's spec file on the live tracker" do
+      described_class.example_group_started(notification)
+
+      expect(live_tracker).to have_received(:test_file_starting).with("spec/b_spec.rb")
+    end
+
+    it "starts nothing when no tracker is live" do
+      allow(SimpleCov).to receive(:test_tracker).and_return(nil)
+
+      expect { described_class.example_group_started(notification) }.not_to raise_error
+    end
+  end
+
   describe "file granularity", mutant_expression: ["SimpleCov::TestTracker*",
     "SimpleCov::TestTracker#track"] do
     subject(:tracker) do
@@ -858,11 +934,12 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     let(:around_blocks) { [] }
-    let(:suite_blocks) { [] }
+    let(:prepended_blocks) { Hash.new { |blocks, scope| blocks[scope] = [] } }
     let(:fake_config) do
-      config = instance_double(RSpec::Core::Configuration)
+      reporter = instance_double(RSpec::Core::Reporter, register_listener: true)
+      config = instance_double(RSpec::Core::Configuration, reporter: reporter)
       allow(config).to receive(:around) { |&block| around_blocks << block }
-      allow(config).to receive(:prepend_before).with(:suite) { |&block| suite_blocks << block }
+      allow(config).to receive(:prepend_before) { |scope, &block| prepended_blocks[scope] << block }
       config
     end
     let(:fake_rspec) do
@@ -916,7 +993,7 @@ RSpec.describe SimpleCov::TestTracker do
       live_tracker = instance_double(described_class, suite_starting: nil)
       allow(SimpleCov).to receive(:test_tracker).and_return(live_tracker)
       described_class.install_rspec_hook(fake_rspec)
-      suite_blocks.first.call
+      prepended_blocks[:suite].first.call
 
       expect(live_tracker).to have_received(:suite_starting)
     end
@@ -925,7 +1002,14 @@ RSpec.describe SimpleCov::TestTracker do
       described_class.install_rspec_hook(fake_rspec)
       allow(SimpleCov).to receive(:test_tracker).and_return(nil)
 
-      expect { suite_blocks.first.call }.not_to raise_error
+      expect { prepended_blocks[:suite].first.call }.not_to raise_error
+    end
+
+    it "listens for each group starting once the suite starts" do
+      described_class.install_rspec_hook(fake_rspec)
+      prepended_blocks[:suite].first.call
+
+      expect(fake_config.reporter).to have_received(:register_listener).with(described_class, :example_group_started)
     end
 
     context "when installed twice in one process" do
