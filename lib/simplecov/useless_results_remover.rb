@@ -11,12 +11,18 @@ module SimpleCov
 
     # The `/i` flag covers case-insensitive matches on Windows and macOS-HFS+,
     # where the on-disk path's case can differ from `SimpleCov.root`'s.
+    #
+    # The root and its pattern are cached as one pair, set in one assignment,
+    # so a thread that calls in while another builds the pattern never sees
+    # the new root beside the old pattern.
     def self.root_regex
       root = SimpleCov.root
-      return @root_regex if root.eql?(@root_regex_root)
+      cached_root, regex = @root_regex_cache
+      return regex if root.eql?(cached_root)
 
-      @root_regex_root = root
-      @root_regex = /\A#{Regexp.escape(root.chomp(File::SEPARATOR) + File::SEPARATOR)}/i
+      regex = /\A#{Regexp.escape(root.chomp(File::SEPARATOR) + File::SEPARATOR)}/i
+      @root_regex_cache = [root, regex]
+      regex
     end
 
     def self.root_regx

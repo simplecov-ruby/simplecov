@@ -1,8 +1,6 @@
 module SimpleCov
   module UselessResultsRemover
-    self.@root_regex_root: untyped
-
-    self.@root_regex: untyped
+    self.@root_regex_cache: [String, Regexp]?
 
     def self.call: (untyped coverage_result) -> untyped
 

@@ -120,7 +120,7 @@ RSpec.describe SimpleCov::UselessResultsRemover do
     end
 
     it "answers the same pattern while the root stands still" do
-      described_class.instance_variable_set(:@root_regex_root, nil)
+      described_class.instance_variable_set(:@root_regex_cache, nil)
       allow(SimpleCov).to receive(:root) { +"/one" }
 
       first = described_class.root_regex
@@ -129,7 +129,7 @@ RSpec.describe SimpleCov::UselessResultsRemover do
 
     context "with a root that looks like a pattern" do
       before do
-        described_class.instance_variable_set(:@root_regex_root, nil)
+        described_class.instance_variable_set(:@root_regex_cache, nil)
         allow(SimpleCov).to receive(:root).and_return("/one+two")
       end
 
@@ -147,8 +147,28 @@ RSpec.describe SimpleCov::UselessResultsRemover do
       expect(described_class.root_regex.match?("/oneother/lib/a.rb")).to be(false)
     end
 
+    context "with a caller arriving while the pattern for a new root is built" do
+      let(:arriving) { [:caller] }
+      let(:answered) { [] }
+
+      before do
+        SimpleCov.root File.expand_path("/old")
+        described_class.root_regex
+        allow(SimpleCov).to receive(:root).and_return("/one/")
+        allow(Regexp).to receive(:escape).and_wrap_original do |escape, source|
+          answered << described_class.root_regex if arriving.shift
+          escape.call(source)
+        end
+        described_class.root_regex
+      end
+
+      it "answers it with the new root's pattern" do
+        expect(answered.first.match?("/one/lib/a.rb")).to be(true)
+      end
+    end
+
     it "reads a root that already ends in a separator" do
-      described_class.instance_variable_set(:@root_regex_root, nil)
+      described_class.instance_variable_set(:@root_regex_cache, nil)
       allow(SimpleCov).to receive(:root).and_return("/one/")
 
       expect(described_class.root_regex.match?("/one/lib/a.rb")).to be(true)
