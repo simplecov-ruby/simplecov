@@ -140,7 +140,7 @@ RSpec.describe SimpleCov::Formatter::CoverageJSONWriter do
     allow(JSON).to receive(:parse).and_return(Class.new(Hash).new.merge!(meta: {timestamp: timestamp}))
     File.write(path, "{}")
 
-    expect(described_class.existing_meta(path)[:timestamp]).to be_within(1).of(Time.now)
+    expect(described_class.existing_meta(path)[:timestamp]).to eq(Time.iso8601(timestamp))
   end
 
   it "reads a document that parses to something other than a Hash as carrying none" do
