@@ -83,7 +83,7 @@ export function contextIdsForLine(index: FileContextIndex, contexts: string[], l
 export function loadingContextIndices(contexts: string[]): Set<number> {
   const files = new Set<string>();
   for (const id of contexts) {
-    const match = /(.+):\d+$/.exec(id);
+    const match = /(.+)(?::\d+|\[\d+(?::\d+)*\])$/.exec(id);
     if (match) files.add(match[1]);
   }
   return new Set(contexts.flatMap((id, index) => (files.has(id) ? [index] : [])));

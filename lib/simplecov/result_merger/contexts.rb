@@ -64,7 +64,7 @@ module SimpleCov
       end
 
       def deleted_test?(context_id)
-        file = context_id.sub(/:\d+\z/, "")
+        file = context_id.sub(TEST_ID_TAIL, "")
         located = file.include?("/") || file.end_with?(".rb")
         located && !File.exist?(File.expand_path(file, SimpleCov.root))
       end

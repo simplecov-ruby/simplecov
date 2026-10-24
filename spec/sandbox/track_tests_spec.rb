@@ -51,6 +51,36 @@ RSpec.describe "track_tests", :sandbox do
           end
         end
       RUBY
+      write_file("lib/square.rb", <<~RUBY)
+        class Square
+          def sides
+            4
+          end
+
+          def angle
+            90
+          end
+        end
+      RUBY
+      write_file("spec/shared/four_sided.rb", <<~RUBY)
+        RSpec.shared_examples "a four-sided shape" do
+          it("has four sides") { expect(Square.new.sides).to eq(4) }
+          it("has right angles") { expect(Square.new.angle).to eq(90) }
+        end
+      RUBY
+      write_file("spec/square_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/square"
+        require_relative "shared/four_sided"
+
+        RSpec.describe "Square" do
+          it_behaves_like "a four-sided shape"
+        end
+
+        RSpec.describe "Square, included" do
+          include_examples "a four-sided shape"
+        end
+      RUBY
     end
 
     let!(:result) do
@@ -81,6 +111,12 @@ RSpec.describe "track_tests", :sandbox do
         .to eq(["spec/lazy_spec.rb:4"])
     end
 
+    it "credits each shared example to the spec file that includes it, under an id rspec can rerun it by" do
+      square = File.join(sandbox_dir, "lib/square.rb")
+      expect([stored_contexts.covering(square, 3), stored_contexts.covering(square, 7)])
+        .to eq([%w[spec/square_spec.rb[1:1:1] spec/square_spec.rb[2:1]], %w[spec/square_spec.rb[1:1:2] spec/square_spec.rb[2:2]]])
+    end
+
     it "credits a spec file with what it ran while it loaded" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/faked_project.rb"), 5))
         .to include("spec/zz_defining_spec.rb")
@@ -99,6 +135,15 @@ RSpec.describe "track_tests", :sandbox do
 
       it "keeps the tests of the spec file it reran" do
         expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 3)).to eq(["spec/lazy_spec.rb:4"])
+      end
+    end
+
+    context "when a later run reruns one example of a shared group" do
+      before { run_command_and_expect_success("bundle exec rspec spec/square_spec.rb[1:1:2]") }
+
+      it "keeps the lines of the group's other examples" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/square.rb"), 3))
+          .to eq(%w[spec/square_spec.rb[1:1:1] spec/square_spec.rb[2:1]])
       end
     end
   end

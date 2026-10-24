@@ -92,9 +92,13 @@ module SimpleCov
       end
 
       # Relative the way RSpec prints it (`./spec/a_spec.rb:12` becomes
-      # `spec/a_spec.rb:12`).
+      # `spec/a_spec.rb:12`). A shared example's location is in the shared
+      # group's file, so it takes RSpec's id in the spec file that includes it
+      # (`spec/a_spec.rb[1:2:1]`), which is its own and reruns it.
       def rspec_example_id(example)
-        example.metadata.fetch(:location).delete_prefix("./")
+        metadata = example.metadata
+        id = metadata.fetch(:shared_group_inclusion_backtrace).empty? ? metadata.fetch(:location) : example.id
+        id.delete_prefix("./")
       end
 
       # An autoload declaration fires `const_added` without the module existing

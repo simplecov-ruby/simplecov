@@ -212,10 +212,11 @@ module SimpleCov
           end
         end
 
-        # "spec/a_spec.rb:12" and the :file granularity's bare "spec/a_spec.rb" both
-        # name a file, while a locationless fallback id names none.
+        # "spec/a_spec.rb:12", "spec/a_spec.rb[1:2:1]", and the :file
+        # granularity's bare "spec/a_spec.rb" all name a file, while a
+        # locationless fallback id names none.
         def test_file_of(id)
-          base = id.sub(/:\d+\z/, "")
+          base = id.sub(TEST_ID_TAIL, "")
           base if base.include?("/") || base.end_with?(".rb")
         end
       end
