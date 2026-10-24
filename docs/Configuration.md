@@ -381,8 +381,8 @@ RSpec examples and Minitest tests are wrapped automatically, in any load order. 
 plugin installs the wrapper, and under minitest 6 (whose autorun no longer discovers plugins) SimpleCov installs it
 the moment `Minitest::Test` is defined. Each test is identified by the location of its definition, such as
 `spec/user_spec.rb:42` or `test/user_test.rb:17`, relative to `SimpleCov.root`. An RSpec shared example is identified
-by RSpec's own id in the spec file that includes it, such as `spec/user_spec.rb[1:2:1]`. Any other runner can wrap its own
-units of work with the same primitive the built-in integrations use:
+by RSpec's own id in the spec file that includes it, such as `spec/user_spec.rb[1:2:1]`. Any other runner can wrap
+its own units of work with the same primitive the built-in integrations use:
 
 ```ruby
 SimpleCov.track_test("test/legacy_suite.rb:12") do
