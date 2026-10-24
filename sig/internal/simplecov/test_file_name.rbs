@@ -1,3 +1,5 @@
 module SimpleCov
   TEST_FILE_NAME: Regexp
+
+  TEST_ID_TAIL: Regexp
 end

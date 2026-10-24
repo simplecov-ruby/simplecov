@@ -185,12 +185,9 @@ module SimpleCov
       @segment = nil
     end
 
-    # An id with no `:line` tail (an exotic runner's fallback) stays whole.
+    # An id with no tail (an exotic runner's fallback) stays whole.
     def context_id(test_id)
-      return test_id unless @granularity.equal?(:file)
-
-      path, sep, tail = test_id.rpartition(":")
-      (sep.empty? || !tail.match?(/\A\d+\z/)) ? test_id : path
+      @granularity.equal?(:file) ? test_id.sub(TEST_ID_TAIL, "") : test_id
     end
 
     def poison

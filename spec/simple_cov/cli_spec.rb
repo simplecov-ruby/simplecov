@@ -3120,6 +3120,15 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/c_spec.rb:30\nspec/d_spec.rb:40\n")
     end
 
+    it "lists no spec file's own loading beside its shared examples" do
+      payload["contexts"] = [*payload["contexts"][0, 3], "spec/c_spec.rb[1:1]", "spec/c_spec.rb"]
+      payload["coverage"][other_file]["contexts"]["4"] = "1"
+      File.write(json_path, JSON.dump(payload))
+      run("tests", "--input", json_path, "--redundant")
+
+      expect(stdout.string).to eq("spec/b_spec.rb:20\nspec/c_spec.rb[1:1]\nspec/d_spec.rb:40\n")
+    end
+
     it "lists test files recorded whole, the file granularity's contexts" do
       payload["contexts"] = ["spec/a_spec.rb", "spec/c_spec.rb"]
       payload["coverage"] = {result_file => {"lines" => [1], "contexts" => {"0" => "1", "1" => "1"}}}

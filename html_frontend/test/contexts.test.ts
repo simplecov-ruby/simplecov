@@ -95,6 +95,10 @@ describe('loadingContextIndices', () => {
     expect(loadingContextIndices(['spec/a_spec.rb:12', 'spec/a_spec.rb', 'spec/b_spec.rb:1'])).toEqual(new Set([1]));
   });
 
+  test('finds one beside an rspec shared example id pointing into that file', () => {
+    expect(loadingContextIndices(['spec/a_spec.rb[10:2:11]', 'spec/a_spec.rb'])).toEqual(new Set([1]));
+  });
+
   test('takes bare file ids recorded alone, at file granularity, for tests', () => {
     expect(loadingContextIndices(['spec/a_spec.rb', 'spec/b_spec.rb'])).toEqual(new Set());
   });

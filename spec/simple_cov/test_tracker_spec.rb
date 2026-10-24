@@ -565,6 +565,14 @@ RSpec.describe SimpleCov::TestTracker do
       end
     end
 
+    it "records an rspec shared example under its spec file at file granularity" do
+      tracker = described_class.new(root_regex: /\A#{Regexp.escape(root + File::SEPARATOR)}/, granularity: :file)
+      allow(Coverage).to receive(:peek_result).and_return({helper => {lines: [0]}}, {helper => {lines: [1]}})
+      tracker.track("spec/a_spec.rb[1:2:1]") { :ran }
+
+      expect(tracker.recorded_map.contexts).to eq(["spec/a_spec.rb"])
+    end
+
     context "with the process watched as it loads a test file", if: RUBY_ENGINE == "ruby" do
       before do
         FileUtils.mkdir_p(path("spec"))
@@ -864,7 +872,10 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     context "with one example run through the installed hook" do
-      let(:procsy) { instance_double(RSpec::Core::Example::Procsy, metadata: {location: "./spec/a_spec.rb:12"}) }
+      let(:procsy) do
+        instance_double(RSpec::Core::Example::Procsy,
+          metadata: {location: "./spec/a_spec.rb:12", shared_group_inclusion_backtrace: []})
+      end
 
       before do
         described_class.install_rspec_hook(fake_rspec)
@@ -880,6 +891,24 @@ RSpec.describe SimpleCov::TestTracker do
 
       it "runs it" do
         expect(procsy).to have_received(:run)
+      end
+    end
+
+    context "with a shared example run through the installed hook" do
+      let(:procsy) do
+        instance_double(RSpec::Core::Example::Procsy, run: nil, id: "./spec/a_spec.rb[1:2:1]",
+          metadata: {location: "./spec/support/shared.rb:2", shared_group_inclusion_backtrace: [:included]})
+      end
+
+      before do
+        described_class.install_rspec_hook(fake_rspec)
+        allow(SimpleCov).to receive(:track_test).and_yield
+
+        Object.new.instance_exec(procsy, &around_blocks.first)
+      end
+
+      it "names it by rspec's id in the spec file that includes it" do
+        expect(SimpleCov).to have_received(:track_test).with("spec/a_spec.rb[1:2:1]")
       end
     end
 

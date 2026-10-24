@@ -3,6 +3,7 @@
 require "json"
 require "optparse"
 require_relative "command_helpers"
+require_relative "../test_file_name"
 require_relative "tests/redundancy"
 
 module SimpleCov
@@ -105,7 +106,7 @@ module SimpleCov
       # mutant:disable -- the Set is for lookup speed across thousands of ids,
       # and the nil `map` would keep in it never matches a String id.
       def loading_contexts(contexts)
-        files = contexts.filter_map { |id| id[/\A(.+):\d+\z/, 1] }.to_set
+        files = contexts.filter_map { |id| id[/\A(.+)#{TEST_ID_TAIL}/o, 1] }.to_set
         contexts.select { |id| files.include?(id) }
       end
 

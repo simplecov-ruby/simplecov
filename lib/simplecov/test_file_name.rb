@@ -5,4 +5,9 @@ module SimpleCov
   # RSpec and Minitest. `test_helper.rb` matches Minitest's prefix but defines
   # no tests, so a selection of it alone would run nothing.
   TEST_FILE_NAME = /\A(?:test_(?!helper\.rb\z).*|.*_(?:test|spec))\.rb\z/
+
+  # Where in its file a test id points: a line (`spec/a_spec.rb:12`), or
+  # RSpec's own id for a shared example (`spec/a_spec.rb[1:2:1]`). An id
+  # without it is a whole file.
+  TEST_ID_TAIL = /(?::\d+|\[\d+(?::\d+)*\])\z/
 end
