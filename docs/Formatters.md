@@ -173,8 +173,8 @@ added the optional `production` section: the window and per-file lines a
 [`production_coverage`](Production.md#seeing-the-cross-in-the-html-and-json-reports) names a readable store at report
 time. 1.4 added the optional `contexts_dropped` string, saying why a run that tracked tests carries no `contexts`
 (tests that ran concurrently in threads, or a merge that mixed results with and without a map), and documents that
-a bare test file path in `contexts`, beside ids pointing into the same file, is that file's own loading rather than
-a test. Top-level structure:
+a bare test file path in `contexts`, beside ids pointing into the same file, is what that file ran outside its tests
+(its loading, and under RSpec its groups' `before(:all)` hooks) rather than a test. Top-level structure:
 
 ```jsonc
 {
