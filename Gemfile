@@ -43,6 +43,14 @@ group :development do
   gem "standard", ">= 1.35.1"
   gem "standard-performance"
   gem "standard-rspec"
+
+  # Performance regression guards (rake duel): the benchmarks in duel/ run
+  # on the main branch and the candidate side by side, and a slowdown fails.
+  # StackProf profiles a regression, and duel-retained fails a benchmark
+  # that leaves objects alive, such as a parse cache that keeps growing.
+  gem "duel"
+  gem "duel-retained"
+  gem "stackprof", platforms: :mri
 end
 
 group :benchmark do

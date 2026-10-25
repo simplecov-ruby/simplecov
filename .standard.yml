@@ -12,7 +12,9 @@ ruby_version: 3.4
 ignore:
   # Fixtures are byte-stable test inputs: their line numbers, layout, and
   # sometimes their encodings are what the specs assert against, so they are
-  # not subject to style.
+  # not subject to style. Duel's are copies of lib/ files that its benchmarks
+  # parse, one of them several files run together.
+  - "duel/fixtures/**/*"
   - "spec/fixtures/**/*"
   - "test_projects/**/*"
   - "tmp/**/*"
