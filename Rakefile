@@ -369,3 +369,6 @@ namespace :assets do
     Dir.chdir(__dir__) { sh "git", "diff", "--exit-code", "--", template }
   end
 end
+
+require "duel/rake_task"
+Duel::RakeTask.new
