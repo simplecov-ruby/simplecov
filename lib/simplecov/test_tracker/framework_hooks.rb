@@ -5,6 +5,11 @@ module SimpleCov
   # installed into RSpec and Minitest, and how each framework's tests are
   # identified. The recording itself lives in test_tracker.rb.
   class TestTracker
+    # Which test locations more than one test shares, noted as each suite
+    # starts. None until then.
+    @shared_rspec_locations = {} #: Hash[String, Integer]
+    @shared_minitest_sites = {} #: Hash[String?, Integer]
+
     class << self
       def install_framework_hooks
         install_rspec_hook
@@ -170,7 +175,7 @@ module SimpleCov
       def rspec_example_id(example)
         metadata = example.metadata
         location = metadata.fetch(:location)
-        shared = !metadata.fetch(:shared_group_inclusion_backtrace).empty? || @shared_rspec_locations&.key?(location)
+        shared = !metadata.fetch(:shared_group_inclusion_backtrace).empty? || @shared_rspec_locations.key?(location)
         rspec_path(shared ? example.id : location, metadata)
       end
 
@@ -214,7 +219,7 @@ module SimpleCov
       def minitest_id(test_case, name)
         site = minitest_site(test_case, name)
         return minitest_name(test_case, name) unless site
-        return site unless @shared_minitest_sites&.key?(site)
+        return site unless @shared_minitest_sites.key?(site)
 
         "#{site}[#{minitest_name(test_case, name)}]"
       end

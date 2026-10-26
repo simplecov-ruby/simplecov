@@ -11,8 +11,8 @@ module SimpleCov
     @poisoned: bool
 
     self.@rspec_hook_installed: bool?
-    self.@shared_rspec_locations: Hash[String, Integer]?
-    self.@shared_minitest_sites: Hash[String?, Integer]?
+    self.@shared_rspec_locations: Hash[String, Integer]
+    self.@shared_minitest_sites: Hash[String?, Integer]
 
     class Segment < ::Struct[untyped]
       attr_accessor id: String?
