@@ -48,7 +48,7 @@ group :development do
   # on the main branch and the candidate side by side, and a slowdown fails.
   # StackProf profiles a regression, and duel-retained fails a benchmark
   # that leaves objects alive, such as a parse cache that keeps growing.
-  gem "duel"
+  gem "duel", ">= 0.1.1"
   gem "duel-retained"
   gem "stackprof", platforms: :mri
 end
