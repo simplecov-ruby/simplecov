@@ -58,7 +58,8 @@ module SimpleCov
       # their before(:all) hooks go to their spec file rather than to the test
       # before them.
       def example_group_started(notification)
-        SimpleCov.test_tracker&.test_file_starting(rspec_path(notification.group.metadata.fetch(:rerun_file_path)))
+        metadata = notification.group.metadata
+        SimpleCov.test_tracker&.test_file_starting(rspec_path(metadata.fetch(:rerun_file_path), metadata))
       end
 
       # Called by RSpec's reporter as each example starts, skipped ones too,
@@ -170,13 +171,17 @@ module SimpleCov
         metadata = example.metadata
         location = metadata.fetch(:location)
         shared = !metadata.fetch(:shared_group_inclusion_backtrace).empty? || @shared_rspec_locations&.key?(location)
-        rspec_path(shared ? example.id : location)
+        rspec_path(shared ? example.id : location, metadata)
       end
 
-      # Relative the way RSpec prints it (`./spec/a_spec.rb` becomes
-      # `spec/a_spec.rb`).
-      def rspec_path(path)
-        path.delete_prefix("./")
+      # RSpec writes a path relative to the directory it runs from
+      # (`./spec/a_spec.rb`), or absolute for a file outside it. The same
+      # metadata's absolute path for its own file says which directory that
+      # is, so the path can be made relative to `SimpleCov.root` like every
+      # other test id, whichever directory `rspec` ran from.
+      def rspec_path(path, metadata)
+        base = metadata.fetch(:absolute_file_path).delete_suffix(metadata.fetch(:file_path).delete_prefix("."))
+        File.expand_path(path, base).delete_prefix(File.join(SimpleCov.root, ""))
       end
 
       # An autoload declaration fires `const_added` without the module existing

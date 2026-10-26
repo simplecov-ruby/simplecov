@@ -80,7 +80,7 @@ module SimpleCov
 
     def self.minitest_tests: (Module root) -> Array[[untyped, Symbol]]
 
-    def self.rspec_path: (String path) -> String
+    def self.rspec_path: (String path, Hash[Symbol, untyped] metadata) -> String
 
     def self.minitest_test_id: (untyped test) -> String
 

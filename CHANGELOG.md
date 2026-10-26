@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `track_tests` credits what a spec file's `before(:all)` hooks run to that spec file (`spec/user_spec.rb`), in a nested group too, whatever order the hooks were added in. RSpec runs those hooks once, before the group's first example starts, so their lines went to the spec file that ran before it, or to no test. `simplecov affected` then picked that earlier spec file and skipped the one that needs the hook. See [#1320].
 - A rerun that runs only part of what one test id stands for keeps the lines the rest ran. A spec file's own id holds every group's `before(:all)` hooks, so rerunning one example with `rspec spec/user_spec.rb:12` replaced the id's lines with what its own group's hooks ran, and at `granularity: :file` rerunning one test did the same to its file's id. `simplecov affected` then selected nothing for a change only the rest covered, and exited 0. Such a rerun now adds its lines to the earlier ones, and the next run of the whole file replaces them. See [#1321].
 - `track_tests` tells apart tests defined at one location. RSpec examples defined in a loop take RSpec's id for each, such as `spec/user_spec.rb[1:2]`, which `rspec` takes to run the example again. Minitest tests defined with `define_method` in a loop, or in a module two test cases include, add their name, as in `test/user_test.rb:17[UserTest#test_admin]`, which Minitest's `--name` option matches. They were recorded as one test, so `simplecov tests`, `simplecov tests --redundant`, and the HTML report saw one test where there were several. Every other test keeps its `path:line` id. A map recorded earlier keeps the old shared id until `coverage/` is cleared. See [#1328].
+- `track_tests` records RSpec test ids relative to `SimpleCov.root`, like Minitest test ids and a test file's loading, whichever directory `rspec` runs from. They were relative to the working directory, so running `rspec` from `engines/foo` recorded an example as `spec/b_spec.rb:5` and its spec file's `before(:all)` hooks as `spec/b_spec.rb`, beside the file's loading as `engines/foo/spec/b_spec.rb`. A later merge then dropped the example as a deleted test, since no `spec/b_spec.rb` exists under the root, and `simplecov affected` took its file for one that no longer exists and fell back to the full suite. See [#1322].
 
 ## [1.3.2] - 2026-09-30
 
@@ -695,6 +696,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1319]: https://github.com/simplecov-ruby/simplecov/issues/1319
 [#1320]: https://github.com/simplecov-ruby/simplecov/issues/1320
 [#1321]: https://github.com/simplecov-ruby/simplecov/issues/1321
+[#1322]: https://github.com/simplecov-ruby/simplecov/issues/1322
 [#1328]: https://github.com/simplecov-ruby/simplecov/issues/1328
 
 [@adam12]: https://github.com/adam12

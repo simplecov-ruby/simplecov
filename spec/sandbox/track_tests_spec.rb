@@ -271,6 +271,50 @@ RSpec.describe "track_tests", :sandbox do
     end
   end
 
+  describe "an RSpec suite run from below SimpleCov.root" do
+    before do
+      write_file("lib/engine_thing.rb", <<~RUBY)
+        module EngineThing
+          def self.setup
+            :set_up
+          end
+
+          def self.call
+            :called
+          end
+        end
+      RUBY
+      write_file("engines/foo/spec/engine_spec.rb", <<~RUBY)
+        require_relative "../../../spec/spec_helper"
+        require_relative "../../../lib/engine_thing"
+
+        RSpec.describe "Engine" do
+          before(:all) { EngineThing.setup }
+
+          it("calls the engine") { expect(EngineThing.call).to eq(:called) }
+        end
+      RUBY
+      configure_simplecov(:rspec, <<~RUBY)
+        require 'simplecov'
+        SimpleCov.start do
+          root File.expand_path("..", __dir__)
+          track_tests
+        end
+      RUBY
+      run_command_and_expect_success("cd engines/foo && bundle exec rspec -I ../../lib spec/engine_spec.rb")
+    end
+
+    let(:engine_thing) { File.join(sandbox_dir, "lib/engine_thing.rb") }
+
+    it "records each example relative to the root" do
+      expect(stored_contexts.covering(engine_thing, 7)).to eq(["engines/foo/spec/engine_spec.rb:7"])
+    end
+
+    it "credits the spec file's before(:all) hooks to it relative to the root" do
+      expect(stored_contexts.covering(engine_thing, 3)).to eq(["engines/foo/spec/engine_spec.rb"])
+    end
+  end
+
   describe "a Minitest suite" do
     let!(:result) do
       self.bundle_with = "minitest"

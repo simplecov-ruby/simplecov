@@ -12,6 +12,14 @@ RSpec.describe SimpleCov::TestTracker do
 
   def gem_file = File.expand_path("/gems/rspec/lib/rspec.rb")
 
+  # Metadata as RSpec builds it for an example at `location`, run from the
+  # project root.
+  def rspec_metadata(location, **more)
+    file_path = location.sub(/:\d+\z/, "")
+    {location: location, file_path: file_path, absolute_file_path: File.expand_path(file_path, SimpleCov.root),
+     shared_group_inclusion_backtrace: [], **more}
+  end
+
   def stub_peeks(before, after)
     allow(Coverage).to receive(:peek_result).and_return(before, after)
   end
@@ -674,7 +682,7 @@ RSpec.describe SimpleCov::TestTracker do
   describe ".example_group_started" do
     let(:live_tracker) { instance_double(described_class, test_file_starting: nil) }
     let(:notification) do
-      group = class_double(RSpec::Core::ExampleGroup, metadata: {rerun_file_path: "./spec/b_spec.rb"})
+      group = class_double(RSpec::Core::ExampleGroup, metadata: rspec_metadata("./spec/b_spec.rb:1", rerun_file_path: "./spec/b_spec.rb"))
       RSpec::Core::Notifications::GroupNotification.new(group)
     end
 
@@ -693,11 +701,35 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  describe ".rspec_path" do
+    def engine_metadata = {file_path: "./spec/b_spec.rb",
+                           absolute_file_path: File.join(SimpleCov.root, "engines/foo/spec/b_spec.rb")}
+
+    it "reads a location RSpec wrote relative to the root" do
+      expect(described_class.rspec_path("./spec/a_spec.rb:3", rspec_metadata("./spec/a_spec.rb:3"))).to eq("spec/a_spec.rb:3")
+    end
+
+    it "reads a location RSpec wrote relative to a directory below the root as relative to the root" do
+      expect(described_class.rspec_path("./spec/b_spec.rb:5", engine_metadata)).to eq("engines/foo/spec/b_spec.rb:5")
+    end
+
+    it "reads RSpec's id, written relative to the same directory, as relative to the root" do
+      expect(described_class.rspec_path("./spec/a_spec.rb[1:2]", engine_metadata)).to eq("engines/foo/spec/a_spec.rb[1:2]")
+    end
+
+    it "keeps the absolute path RSpec wrote for a spec file outside the directory it ran from" do
+      outside = File.expand_path("/outside/c_spec.rb")
+      metadata = {file_path: outside, absolute_file_path: outside}
+
+      expect(described_class.rspec_path("#{outside}:3", metadata)).to eq("#{outside}:3")
+    end
+  end
+
   describe ".example_started" do
     let(:live_tracker) { instance_double(described_class, test_started: nil) }
     let(:notification) do
       example = instance_double(RSpec::Core::Example, id: "./spec/b_spec.rb[1:2]",
-        metadata: {location: "./spec/b_spec.rb:7", shared_group_inclusion_backtrace: []})
+        metadata: rspec_metadata("./spec/b_spec.rb:7"))
       instance_double(RSpec::Core::Notifications::ExampleNotification, example: example)
     end
 
@@ -737,7 +769,7 @@ RSpec.describe SimpleCov::TestTracker do
     after { described_class.note_rspec_examples([]) }
 
     def rspec_example(id, location)
-      instance_double(RSpec::Core::Example, id: id, metadata: {location: location, shared_group_inclusion_backtrace: []})
+      instance_double(RSpec::Core::Example, id: id, metadata: rspec_metadata(location))
     end
 
     it "names an example whose location another example shares by rspec's id for it" do
@@ -753,9 +785,9 @@ RSpec.describe SimpleCov::TestTracker do
     let(:examples) do
       [
         instance_double(RSpec::Core::Example, id: "./spec/a_spec.rb[1:1]",
-          metadata: {location: "./spec/a_spec.rb:3", shared_group_inclusion_backtrace: []}),
+          metadata: rspec_metadata("./spec/a_spec.rb:3")),
         instance_double(RSpec::Core::Example, id: "./spec/a_spec.rb[1:2]",
-          metadata: {location: "./spec/a_spec.rb:3", shared_group_inclusion_backtrace: []})
+          metadata: rspec_metadata("./spec/a_spec.rb:3"))
       ]
     end
 
@@ -1187,7 +1219,7 @@ RSpec.describe SimpleCov::TestTracker do
     context "with one example run through the installed hook" do
       let(:procsy) do
         instance_double(RSpec::Core::Example::Procsy,
-          metadata: {location: "./spec/a_spec.rb:12", shared_group_inclusion_backtrace: []})
+          metadata: rspec_metadata("./spec/a_spec.rb:12"))
       end
 
       before do
@@ -1210,7 +1242,7 @@ RSpec.describe SimpleCov::TestTracker do
     context "with a shared example run through the installed hook" do
       let(:procsy) do
         instance_double(RSpec::Core::Example::Procsy, run: nil, id: "./spec/a_spec.rb[1:2:1]",
-          metadata: {location: "./spec/support/shared.rb:2", shared_group_inclusion_backtrace: [:included]})
+          metadata: rspec_metadata("./spec/support/shared.rb:2", shared_group_inclusion_backtrace: [:included]))
       end
 
       before do
