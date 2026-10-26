@@ -13,4 +13,8 @@ Duel.configure do |c|
   # bounded by the project's size, so a benchmark that leaves more alive
   # with every call has a leak.
   c.use :retained
+
+  # Compare a change to the benchmarks, this file or the Perf workflow
+  # too, not only to lib/ and ext/.
+  c.watch += %w[duel .duel.rb .github/workflows/perf.yml]
 end
