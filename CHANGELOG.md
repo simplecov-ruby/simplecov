@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `simplecov affected --global PATTERN` declares files whose change runs the full suite, such as configuration or a file of constants every test reads. The option repeats, and patterns are globs relative to the repository root. See [#1316].
+- `global_files` declares, in `.simplecov` or a profile, files whose change makes `simplecov affected` and `simplecov watch` run the full suite, such as `global_files "config/**/*", "db/schema.rb"`. Each call adds patterns, and `SimpleCov.global_files = [...]` replaces them. The `rails` profile declares `config/**/*`, `db/schema.rb`, `db/structure.sql`, `Gemfile.lock`, `test/test_helper.rb`, `test/fixtures/**/*`, `spec/spec_helper.rb`, `spec/rails_helper.rb`, and `spec/support/**/*`. `--global` adds to the declared patterns, and `--no-global` ignores them for one run. `simplecov watch` takes both flags too, and watches the files the patterns match, which it never noticed before since a report mostly leaves them out. See [#1318].
 - `simplecov affected` and `simplecov watch` narrow a changed Ruby file to the methods the change touched, selecting only the tests that ran those methods instead of every test that touched the file. A change outside any method still selects every test touching the file, but a change to code that runs as the file loads, such as a constant or a macro, falls back to the full suite when that code ran outside every recorded test. Narrowing compares the source recorded in `coverage.json` with both the merge base and the working tree, so it works whether the recording was made before or after the change. `simplecov affected --by-file` turns narrowing off. See [#1316].
 - `simplecov affected --explain` names, on stderr, the changed file and the recorded tests behind each selected test file, and `--json` carries the same as a `reasons` object, so a selection can be checked instead of trusted. See [#1316].
 
@@ -693,6 +694,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1310]: https://github.com/simplecov-ruby/simplecov/issues/1310
 [#1312]: https://github.com/simplecov-ruby/simplecov/issues/1312
 [#1316]: https://github.com/simplecov-ruby/simplecov/issues/1316
+[#1318]: https://github.com/simplecov-ruby/simplecov/issues/1318
 [#1319]: https://github.com/simplecov-ruby/simplecov/issues/1319
 [#1320]: https://github.com/simplecov-ruby/simplecov/issues/1320
 [#1321]: https://github.com/simplecov-ruby/simplecov/issues/1321

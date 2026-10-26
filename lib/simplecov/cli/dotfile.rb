@@ -50,6 +50,29 @@ module SimpleCov
         warn "simplecov: failed to read production_coverage from #{dotfile}: #{e.class}: #{e}"
       end
 
+      # The dotfile's own patterns, a profile's included, and none of a host
+      # process's: they are cleared before the load, since each declaration
+      # adds to the list.
+      def global_files
+        dotfile = find
+        return [] unless dotfile
+
+        with_simplecov_loaded { read_global_files_from(dotfile) }
+      rescue ScriptError, StandardError => e
+        warn "simplecov: failed to read global_files from #{dotfile}: #{e.class}: #{e}"
+        []
+      end
+
+      def read_global_files_from(dotfile)
+        snapshot = SimpleCov.instance_variable_get(:@global_files) #: Array[String]?
+        SimpleCov.instance_variable_set(:@global_files, nil)
+        load_with_start_neutered(dotfile)
+        SimpleCov.global_files
+      ensure
+        # @type var snapshot: Array[String]?
+        SimpleCov.instance_variable_set(:@global_files, snapshot)
+      end
+
       def read_production_coverage_from(dotfile)
         snapshot = SimpleCov.instance_variable_get(:@production_coverage) #: String?
         load_with_start_neutered(dotfile)

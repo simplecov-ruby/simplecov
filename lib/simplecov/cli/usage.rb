@@ -99,7 +99,8 @@ module SimpleCov
           affected options:
             --base REF                Diff against the merge base of REF and HEAD (default: origin's HEAD, else main)
             --run <command...>        Run <command> (all args after --run) with the selection appended, or bare on a full-suite fallback, exiting with the command's status
-            --global PATTERN          Fall back to the full suite when a changed file matches PATTERN (repeatable)
+            --global PATTERN          Fall back to the full suite when a changed file matches PATTERN, as for the global_files .simplecov declares (repeatable)
+            --no-global               Ignore the global_files .simplecov declares
             --by-file                 Select every test touching a changed file, without narrowing to the changed methods
             --explain                 Name on stderr the changed file and recorded tests behind each selected test file
             --json                    Emit {full_suite, triggers, tests, reasons} as a JSON object
@@ -145,6 +146,8 @@ module SimpleCov
             --host HOST               Bind to HOST (default: 127.0.0.1)
             --interval SECONDS        Poll the tracked files this often (default: 0.5)
             --open                    Open the served report in the default browser
+            --global PATTERN          Run the full command when a changed file matches PATTERN, and watch the files it matches, as for the global_files .simplecov declares (repeatable)
+            --no-global               Ignore the global_files .simplecov declares
 
           clean options:
             --dry-run                 Print what would be removed without deleting

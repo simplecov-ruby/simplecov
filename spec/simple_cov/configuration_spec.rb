@@ -4511,6 +4511,40 @@ RSpec.describe SimpleCov::Configuration do
     end
   end
 
+  describe "#global_files" do
+    it "starts with no patterns" do
+      expect(config.global_files).to eq([])
+    end
+
+    it "adds the patterns it is given to those declared before" do
+      config.global_files "config/**/*"
+      config.global_files "db/schema.rb", "Gemfile.lock"
+
+      expect(config.global_files).to eq(["config/**/*", "db/schema.rb", "Gemfile.lock"])
+    end
+
+    it "takes the patterns as a list too" do
+      config.global_files %w[config/**/* db/schema.rb]
+
+      expect(config.global_files).to eq(["config/**/*", "db/schema.rb"])
+    end
+
+    it "replaces every pattern declared before when assigned" do
+      config.global_files "config/**/*"
+      config.global_files = ["db/schema.rb"]
+
+      expect(config.global_files).to eq(["db/schema.rb"])
+    end
+
+    it "keeps no hold on the list it was assigned" do
+      patterns = ["db/schema.rb"]
+      config.global_files = patterns
+      config.global_files "Gemfile.lock"
+
+      expect(patterns).to eq(["db/schema.rb"])
+    end
+  end
+
   describe "#track_tests" do
     after { config.clear_coverage_criteria }
 

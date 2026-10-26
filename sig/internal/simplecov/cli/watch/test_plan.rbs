@@ -2,9 +2,11 @@ module SimpleCov
   module CLI
     module Watch
       module TestPlan
-        def self?.build: (Array[String] changed, untyped document, root: String, input: String, stderr: untyped) -> Hash[Symbol, untyped]
+        def self?.no_global: () -> Hash[Symbol, Array[String]]
 
-        def self?.watched_paths: (untyped document, String root) -> Array[String]
+        def self?.build: (Array[String] changed, untyped document, root: String, input: String, stderr: untyped, ?global: Hash[Symbol, Array[String]]) -> Hash[Symbol, untyped]
+
+        def self?.watched_paths: (untyped document, String root, ?Hash[Symbol, Array[String]] global) -> Array[String]
 
 
 

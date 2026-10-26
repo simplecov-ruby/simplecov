@@ -483,6 +483,7 @@ module SimpleCov
   module Configuration
     @track_tests: bool
     @track_tests_granularity: Symbol?
+    @global_files: Array[String]?
 
     TRACK_TESTS_GRANULARITIES: Array[Symbol]
 
@@ -491,6 +492,10 @@ module SimpleCov
     def track_tests_granularity: () -> Symbol
 
     def track_tests?: () -> bool
+
+    def global_files: (*String | Array[String] patterns) -> Array[String]
+
+    def global_files=: (Array[String] patterns) -> Array[String]
 
     def validate_test_tracking!: () -> void
   end

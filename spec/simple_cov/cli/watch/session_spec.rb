@@ -21,6 +21,12 @@ RSpec.describe SimpleCov::CLI::Watch::Session, mutant_expression: "SimpleCov::CL
   before { session.instance_variable_set(:@poller, poller) }
   after { FileUtils.rm_rf(tmp) }
 
+  it "holds the change to no global pattern unless given some" do
+    fresh = described_class.new(command: %w[true], dir: tmp, interval: 0, stdout: stdout, stderr: stderr)
+
+    expect(fresh.instance_variable_get(:@global)).to eq(global: [], global_files: [])
+  end
+
   it "polls with a poller of its own" do
     fresh = described_class.new(command: %w[true], dir: tmp, interval: 0, stdout: stdout, stderr: stderr)
 
@@ -237,6 +243,15 @@ RSpec.describe SimpleCov::CLI::Watch::Session, mutant_expression: "SimpleCov::CL
 
         expect(poller).to have_received(:watch).with(["/x/a.rb", File.expand_path("/proj/spec/a_spec.rb")])
       end
+
+      it "watches the files its global patterns match too" do
+        allow(SimpleCov::CLI::Watch::TestPlan).to receive(:watched_paths).and_return([])
+        session.instance_variable_set(:@global, {global: ["Gemfile.lock"], global_files: []})
+        refreshed
+
+        expect(SimpleCov::CLI::Watch::TestPlan).to have_received(:watched_paths)
+          .with(document, File.expand_path("/proj"), {global: ["Gemfile.lock"], global_files: []})
+      end
     end
 
     it "answers false for a report it cannot read" do
@@ -294,10 +309,12 @@ RSpec.describe SimpleCov::CLI::Watch::Session, mutant_expression: "SimpleCov::CL
 
   describe "#plan_for" do
     context "when it asks for a plan" do
+      let(:global) { {global: ["Gemfile.lock"], global_files: []} }
       let(:plan) do
         allow(SimpleCov::CLI::Watch::TestPlan).to receive(:build).and_return(run: true, tests: nil)
         session.instance_variable_set(:@root, "/proj")
         session.instance_variable_set(:@document, {"contexts" => []})
+        session.instance_variable_set(:@global, global)
         session.send(:plan_for, ["/proj/lib/a.rb", "/elsewhere/b.rb"])
       end
 
@@ -310,7 +327,7 @@ RSpec.describe SimpleCov::CLI::Watch::Session, mutant_expression: "SimpleCov::CL
 
         expect(SimpleCov::CLI::Watch::TestPlan).to have_received(:build).with(
           ["lib/a.rb", "/elsewhere/b.rb"], {"contexts" => []},
-          root: "/proj", input: File.join(tmp, "coverage.json"), stderr: stderr
+          root: "/proj", input: File.join(tmp, "coverage.json"), stderr: stderr, global: global
         )
       end
     end

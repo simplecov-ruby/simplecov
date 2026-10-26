@@ -287,7 +287,7 @@ though a changed load-time line still falls back to the full suite.
 The recording has one blind spot. A method that runs both while the suite loads (or in suite-level setup) and inside
 a test is credited to that test alone, because coverage counts cannot tell the two runs apart. A change to such a
 method selects only the tests that called it, even though its run at load time may shape every test. Code like that
-is usually configuration or bootstrapping, so declare its file with `--global` to make a change to it run the full
+is usually configuration or bootstrapping, so declare its file global (below) to make a change to it run the full
 suite.
 
 The set intersection is the easy half. The hard half is knowing when to distrust the map, because a test map is
@@ -296,13 +296,27 @@ back to the full suite: `Gemfile.lock`, `.simplecov`, spec helpers, the runner c
 the report has no data for at all. So does a changed file that ran only while no test was being recorded, such as
 code that runs as the suite loads, since no test claims it and it may shape every test. Changed or brand-new test
 files always run, whether the map knows them or not.
-Some covered files shape every test however few tests touch them, such as a constant read everywhere or a
-configuration file. Declare them with `--global PATTERN`, repeatable, and a change to a matching file falls back to
-the full suite. Patterns are globs relative to the repository root, with `**` crossing directories and braces
-listing alternatives:
+Some files shape every test however few tests touch them, such as a constant read everywhere or a configuration file.
+Declare them in `.simplecov` with `global_files`, and a change to a matching file falls back to the full suite. Patterns
+are globs relative to the repository root, with `**` crossing directories and braces listing alternatives:
+
+```ruby
+SimpleCov.start do
+  global_files "config/**/*", "db/schema.rb", "lib/{settings,constants}.rb"
+end
+```
+
+Each `global_files` call adds to the patterns declared before. The `rails` profile declares the files every test of a
+Rails app reads: `config/**/*`, `db/schema.rb`, `db/structure.sql`, `Gemfile.lock`, `test/test_helper.rb`,
+`test/fixtures/**/*`, `spec/spec_helper.rb`, `spec/rails_helper.rb`, and `spec/support/**/*`. Assigning
+`SimpleCov.global_files = [...]` replaces every pattern, the profile's included. On the command line, `--global
+PATTERN`, repeatable, adds a pattern for one run, and `--no-global` ignores the patterns `.simplecov` declares. The
+trigger names where the match came from:
 
 ```sh
-$ simplecov affected --global "config/**/*" --global "db/schema.rb" --global "lib/{settings,constants}.rb"
+$ simplecov affected
+simplecov affected: config/routes.rb changed and matches global_files pattern config/**/*
+simplecov affected: falling back to the full suite
 ```
 
 The fallback is loud, with each trigger named on stderr, and on stdout it prints nothing, which composes with
@@ -535,6 +549,9 @@ only the tests that touch the changed files, by the same selection walk `simplec
 fail-open rule: any change the map cannot be trusted for runs the full command. Without a recording, every save runs
 the full command. The watched set is the report's own (its tracked files plus the recorded tests' files), polled by
 mtime with no filesystem-event dependency, which also keeps writes to the coverage directory from triggering runs.
+Files matching the [global patterns](#affected--select-the-tests-that-touch-changed-code) are watched too, since a
+report mostly leaves them out, and a change to one runs the full command. `--global PATTERN` and `--no-global` work as
+they do for `affected`.
 
 The command is the project's own test invocation and must generate the report, so a project with no
 `SimpleCov.start` hook composes `simplecov watch simplecov run bundle exec rake test`. Child runs get a day-long

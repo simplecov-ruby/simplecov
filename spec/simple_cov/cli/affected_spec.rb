@@ -442,7 +442,7 @@ RSpec.describe SimpleCov::CLI do
       it "starts with no base, no runner, and both compact forms off" do
         expect(SimpleCov::CLI::Affected.parse([]))
           .to eq(input: described_class.default_input, json: false, no_color: false,
-            base: nil, run: nil, explain: false, global: [], by_file: false, rest: [])
+            base: nil, run: nil, explain: false, global: [], configured_global: true, by_file: false, rest: [])
       end
 
       it "splits the runner command off at --run" do
@@ -1127,6 +1127,54 @@ RSpec.describe SimpleCov::CLI do
       file!("lib/result.rb", "# changed\n")
 
       expect(run_in_repo("affected", "--input", json_path, "--global", "lib/result.rb")).to eq(0)
+    end
+
+    context "with a changed file matching a pattern .simplecov declares global" do
+      before do
+        allow(SimpleCov::CLI::Dotfile).to receive(:global_files).and_return(["lib/*.yml", "lib/{result,odd}.rb"])
+        file!("lib/result.rb", "# changed\n")
+      end
+
+      it "falls back to the full suite, naming the pattern and where it came from" do
+        run_in_repo("affected", "--input", json_path)
+
+        expect(stderr.string).to include("simplecov affected: lib/result.rb changed and matches global_files pattern " \
+                                          "lib/{result,odd}.rb\n")
+      end
+
+      it "selects as though nothing were declared global with --no-global" do
+        run_in_repo("affected", "--input", json_path, "--no-global")
+
+        expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+      end
+
+      it "reads no patterns from .simplecov with --no-global" do
+        run_in_repo("affected", "--input", json_path, "--no-global")
+
+        expect(SimpleCov::CLI::Dotfile).not_to have_received(:global_files)
+      end
+
+      it "still holds the change to --global patterns with --no-global" do
+        run_in_repo("affected", "--input", json_path, "--no-global", "--global", "lib/*.rb")
+
+        expect(stderr.string).to include("simplecov affected: lib/result.rb changed and matches --global lib/*.rb\n")
+      end
+    end
+
+    it "selects as usual when no pattern .simplecov declares global matches" do
+      allow(SimpleCov::CLI::Dotfile).to receive(:global_files).and_return(["lib/*.yml"])
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path)
+
+      expect(stdout.string).to eq("spec/result_spec.rb\nspec/source_file_spec.rb\n")
+    end
+
+    it "reads the patterns the project's .simplecov declares global" do
+      file!(".simplecov", "SimpleCov.global_files 'lib/result.rb'\n")
+      file!("lib/result.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path)
+
+      expect(stderr.string).to include("lib/result.rb changed and matches global_files pattern lib/result.rb\n")
     end
 
     it "matches a global pattern across directories" do

@@ -116,6 +116,66 @@ RSpec.describe SimpleCov::CLI::Dotfile, mutant_expression: "SimpleCov::CLI::Dotf
     end
   end
 
+  describe ".global_files" do
+    it "reads the dotfile's declared patterns" do
+      in_project(%(SimpleCov.global_files "config/**/*", "db/schema.rb"\n)) do
+        expect(described_class.global_files).to eq(["config/**/*", "db/schema.rb"])
+      end
+    end
+
+    context "with a profile that declares some" do
+      before { SimpleCov.profiles.define("dotfile_spec_globals") { global_files "config/**/*" } }
+
+      after { SimpleCov.profiles.delete(:dotfile_spec_globals) }
+
+      it "reads them beside those its start block declares" do
+        in_project(%(SimpleCov.start("dotfile_spec_globals") { global_files "lib/settings.rb" }\n)) do
+          expect(described_class.global_files).to eq(["config/**/*", "lib/settings.rb"])
+        end
+      end
+    end
+
+    it "answers none with no dotfile at all" do
+      in_project { expect(described_class.global_files).to eq([]) }
+    end
+
+    it "stays quiet with no dotfile at all" do
+      in_project { expect { described_class.global_files }.not_to output.to_stderr }
+    end
+
+    it "loads the dotfile the way every CLI read does, telling it the CLI is reading" do
+      in_project(%(SimpleCov.global_files "cli/**/*" if ENV["SIMPLECOV_CLI"]\n)) do
+        expect(described_class.global_files).to eq(["cli/**/*"])
+      end
+    end
+
+    it "answers none when the dotfile raises" do
+      in_project(%(raise "boom"\n)) do
+        expect(without_stderr { described_class.global_files }).to eq([])
+      end
+    end
+
+    it "warns when the dotfile raises" do
+      in_project(%(raise "boom"\n)) do
+        expect { described_class.global_files }
+          .to output(%r{simplecov: failed to read global_files from .*/\.simplecov: RuntimeError: boom}).to_stderr
+      end
+    end
+
+    it "leaves out the host process's own patterns" do
+      with_configured(:global_files, ["host/**/*"]) do
+        in_project(%(SimpleCov.global_files "db/schema.rb"\n)) { expect(described_class.global_files).to eq(["db/schema.rb"]) }
+      end
+    end
+
+    it "restores the host process's own patterns, whatever the dotfile did to them" do
+      with_configured(:global_files, ["host/**/*"]) do
+        in_project(%(SimpleCov.global_files "db/schema.rb"\n)) { described_class.global_files }
+        expect(configured(:global_files)).to eq(["host/**/*"])
+      end
+    end
+  end
+
   describe ".production_coverage" do
     it "reads the dotfile's configured store" do
       in_project(%(SimpleCov.production_coverage "/var/data/prod.json"\n)) do

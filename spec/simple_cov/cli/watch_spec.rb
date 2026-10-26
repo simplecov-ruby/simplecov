@@ -256,13 +256,14 @@ RSpec.describe SimpleCov::CLI do
     describe ".parse" do
       it "asks for an ephemeral port on the loopback address by default" do
         opts, = described_class::Watch.parse(%w[rake])
-        expect(opts).to eq(port: 0, host: "127.0.0.1", interval: 0.5, open: false)
+        expect(opts).to eq(port: 0, host: "127.0.0.1", interval: 0.5, open: false, global: [], configured_global: true)
       end
 
       it "takes each flag when it is given" do
-        opts, = described_class::Watch.parse(%w[--port 9 --host ::1 --interval 2.5 --open rake test])
+        opts, = described_class::Watch.parse(%w[--port 9 --host ::1 --interval 2.5 --open --global a.rb --global b.rb
+          --no-global rake test])
 
-        expect(opts).to eq(port: 9, host: "::1", interval: 2.5, open: true)
+        expect(opts).to eq(port: 9, host: "::1", interval: 2.5, open: true, global: %w[a.rb b.rb], configured_global: false)
       end
 
       it "leaves the command it is to run behind them" do
@@ -400,6 +401,29 @@ RSpec.describe SimpleCov::CLI do
       it "degrades to a note naming the URL" do
         expect(stderr.string).to eq("simplecov watch: no known browser opener for this platform, " \
                                     "open it yourself: http://127.0.0.1:53422/\n")
+      end
+    end
+
+    describe ".session_for" do
+      before { allow(SimpleCov::CLI::Dotfile).to receive(:global_files).and_return(["config/**/*"]) }
+
+      def global_of(args)
+        opts, command = described_class::Watch.parse(args)
+        described_class::Watch.session_for(command, opts, stdout, stderr).instance_variable_get(:@global)
+      end
+
+      it "hands the session the patterns .simplecov declares beside --global's" do
+        expect(global_of(%w[--global db/schema.rb rake])).to eq(global: ["db/schema.rb"], global_files: ["config/**/*"])
+      end
+
+      it "hands it none of .simplecov's with --no-global" do
+        expect(global_of(%w[--no-global --global db/schema.rb rake])).to eq(global: ["db/schema.rb"], global_files: [])
+      end
+
+      it "reads no patterns from .simplecov with --no-global" do
+        global_of(%w[--no-global rake])
+
+        expect(SimpleCov::CLI::Dotfile).not_to have_received(:global_files)
       end
     end
 
@@ -634,6 +658,33 @@ RSpec.describe SimpleCov::CLI do
         Dir.chdir(tmp) do
           described_class.build(["lib/code.rb"], document, root: tmp, input: "coverage.json", stderr: stderr)
         end
+      end
+
+      it "runs everything for a change matching a global pattern" do
+        document = {"contexts" => ["spec/code_spec.rb:1"],
+                    "coverage" => {File.join(tmp, "lib/code.rb") => {"lines" => [1], "contexts" => {"0" => "1"}}}}
+        built = described_class.build(["lib/code.rb"], document, root: tmp, input: "coverage.json", stderr: stderr,
+          global: {global: [], global_files: ["lib/*.rb"]})
+
+        expect(built).to eq(run: true, tests: nil)
+      end
+
+      def in_tmp(*paths) = paths.map { |path| File.join(tmp, path) }
+
+      it "watches the files global patterns match too" do
+        FileUtils.mkdir_p(File.join(tmp, "config/initializers"))
+        FileUtils.touch(in_tmp("config/initializers/a.rb", "Gemfile.lock"))
+        global = {global: ["Gemfile.lock"], global_files: ["config/**/*.rb"]}
+
+        expect(described_class.watched_paths({"contexts" => ["spec/a_spec.rb:1"]}, tmp, global))
+          .to match_array(in_tmp("spec/a_spec.rb", "Gemfile.lock", "config/initializers/a.rb"))
+      end
+
+      it "watches no directory a global pattern matches" do
+        FileUtils.mkdir_p(File.join(tmp, "config/initializers"))
+        paths = described_class.watched_paths({}, tmp, {global: [], global_files: ["config/**/*"]})
+
+        expect(paths).to eq([])
       end
 
       it "derives the watch set without a coverage section" do

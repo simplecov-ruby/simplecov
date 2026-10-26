@@ -17,5 +17,8 @@ SimpleCov.profiles.define "rails" do
 
   @tracked_files = "{app,lib}/**/*.rb"
 
+  global_files "config/**/*", "db/schema.rb", "db/structure.sql", "Gemfile.lock",
+    "test/test_helper.rb", "test/fixtures/**/*", "spec/spec_helper.rb", "spec/rails_helper.rb", "spec/support/**/*"
+
   merge_subprocesses true
 end

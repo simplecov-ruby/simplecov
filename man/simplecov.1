@@ -204,7 +204,11 @@ Run <command> (all args after \-\-run) with the selection appended, or bare on
 a full\-suite fallback, exiting with the command's status
 .TP
 .B \-\-global PATTERN
-Fall back to the full suite when a changed file matches PATTERN (repeatable)
+Fall back to the full suite when a changed file matches PATTERN, as for the
+global_files .simplecov declares (repeatable)
+.TP
+.B \-\-no\-global
+Ignore the global_files .simplecov declares
 .TP
 .B \-\-by\-file
 Select every test touching a changed file, without narrowing to the changed
@@ -332,6 +336,13 @@ Poll the tracked files this often (default: 0.5)
 .TP
 .B \-\-open
 Open the served report in the default browser
+.TP
+.B \-\-global PATTERN
+Run the full command when a changed file matches PATTERN, and watch the files
+it matches, as for the global_files .simplecov declares (repeatable)
+.TP
+.B \-\-no\-global
+Ignore the global_files .simplecov declares
 .SS clean
 .TP
 .B \-\-dry\-run

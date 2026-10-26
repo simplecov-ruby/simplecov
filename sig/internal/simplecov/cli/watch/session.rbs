@@ -7,6 +7,7 @@ module SimpleCov
         TOTALS_KEYS: Hash[String, String]
 
         @command: Array[String]
+        @global: Hash[Symbol, Array[String]]
         @dir: String
         @interval: Float
         @stderr: untyped
@@ -16,7 +17,7 @@ module SimpleCov
         @poller: Poller
         @document: Hash[String, untyped]
 
-        def initialize: (command: Array[String], dir: String, interval: Float, stdout: untyped, stderr: untyped) -> void
+        def initialize: (command: Array[String], dir: String, interval: Float, stdout: untyped, stderr: untyped, ?global: Hash[Symbol, Array[String]]) -> void
 
         def run: (untyped server) -> Integer
 

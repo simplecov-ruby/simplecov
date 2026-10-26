@@ -29,6 +29,21 @@ module SimpleCov
       !!@track_tests
     end
 
+    # Globs, relative to the project root, naming files whose change
+    # `simplecov affected` and `simplecov watch` answer with the full suite:
+    # configuration or data every test reads, however few recorded tests
+    # touch it. Each call adds to the patterns declared before, a profile's
+    # included. With no patterns, answers the list.
+    def global_files(*patterns)
+      none = [] #: Array[String]
+      (@global_files ||= none).concat(patterns.flatten)
+    end
+
+    # Replaces every pattern declared before, a profile's included.
+    def global_files=(patterns)
+      @global_files = patterns.dup
+    end
+
     def track_tests_granularity
       @track_tests_granularity || :test
     end

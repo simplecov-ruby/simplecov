@@ -9,6 +9,8 @@ module SimpleCov
 
       def self?.parse: (untyped args) -> untyped
 
+      def self?.configured_global_files: (Hash[Symbol, untyped] opts) -> Array[String]
+
       def self?.split_runner: (Array[String] args) -> [Array[String], Array[String]?]
 
       def self?.precheck: (untyped opts) -> String?

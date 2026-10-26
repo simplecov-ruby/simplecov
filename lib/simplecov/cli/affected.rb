@@ -47,14 +47,23 @@ module SimpleCov
 
       def parse(args)
         head, runner = split_runner(args)
-        opts, rest = parse_common(head, base: nil, run: runner, explain: false, global: [], by_file: false) do |parser, into|
+        defaults = {base: nil, run: runner, explain: false, global: [], configured_global: true, by_file: false} #: Hash[Symbol, untyped]
+        opts, rest = parse_common(head, defaults) do |parser, into|
           parser.on("--base REF") { |v| into[:base] = v }
           parser.on("--explain") { into[:explain] = true }
           parser.on("--global PATTERN") { |v| into.fetch(:global) << v }
+          parser.on("--no-global") { into[:configured_global] = false }
           parser.on("--by-file") { into[:by_file] = true }
         end
         opts[:rest] = rest
         opts
+      end
+
+      # The patterns `.simplecov` declares global, unless `--no-global` set them
+      # aside for this run.
+      def configured_global_files(opts)
+        none = [] #: Array[String]
+        opts.fetch(:configured_global) ? Dotfile.global_files : none
       end
 
       # Everything after `--run` is the runner command, verbatim, so the command's
@@ -81,6 +90,7 @@ module SimpleCov
         opts[:merge_base] = diffed.fetch(:merge_base)
         return no_changes(opts, stdout, stderr) if diffed.fetch(:changed).empty?
 
+        opts[:global_files] = configured_global_files(opts)
         selection = Selection.build(diffed.fetch(:changed), document, contexts, opts, stderr, root: diffed.fetch(:root))
         return 1 unless selection
 

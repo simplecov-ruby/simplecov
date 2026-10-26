@@ -59,13 +59,15 @@ module SimpleCov
       # command keeps its own flags: `simplecov watch bundle exec rspec --seed 1`
       # passes --seed through untouched.
       def parse(args)
-        opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false} #: Hash[Symbol, untyped]
+        opts = {port: 0, host: "127.0.0.1", interval: 0.5, open: false, global: [], configured_global: true} #: Hash[Symbol, untyped]
         rest =
           build_parser do |parser|
             parser.on("--port N", Integer) { |v| opts[:port] = v }
             parser.on("--host HOST") { |v| opts[:host] = v }
             parser.on("--interval SECONDS", Float) { |v| opts[:interval] = v }
             parser.on("--open") { opts[:open] = true }
+            parser.on("--global PATTERN") { |v| opts.fetch(:global) << v }
+            parser.on("--no-global") { opts[:configured_global] = false }
           end.order(args)
         [opts, rest]
       end
@@ -77,8 +79,9 @@ module SimpleCov
       end
 
       def session_for(command, opts, stdout, stderr)
+        global = {global: opts.fetch(:global), global_files: Affected.configured_global_files(opts)}
         Session.new(command: command, dir: CLI.coverage_dir,
-          interval: opts.fetch(:interval), stdout: stdout, stderr: stderr)
+          interval: opts.fetch(:interval), stdout: stdout, stderr: stderr, global: global)
       end
     end
   end

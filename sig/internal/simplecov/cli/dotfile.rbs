@@ -11,6 +11,10 @@ module SimpleCov
 
       def self?.read_production_coverage_from: (untyped dotfile) -> String?
 
+      def self?.global_files: () -> Array[String]
+
+      def self?.read_global_files_from: (untyped dotfile) -> Array[String]
+
       def self?.read_from: (untyped dotfile) -> untyped
 
       def self?.find: () -> (untyped | nil)

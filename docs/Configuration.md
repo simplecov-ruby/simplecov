@@ -454,6 +454,10 @@ tests adds what their `before(:all)` hooks ran to the id's earlier lines instead
 replaces those lines. At `granularity: :file`, where every test in a file shares the file's id, a rerun of some of them
 adds to it the same way.
 
+`global_files` declares files whose change makes `simplecov affected` and `simplecov watch` run the full suite, such as
+configuration every test reads however few recorded tests touch it. See
+[`affected`](CLI.md#affected--select-the-tests-that-touch-changed-code).
+
 Recording costs one coverage snapshot per context boundary. The snapshot copies every criterion the run measures
 for every file the process loaded, so its price scales with what you enable: with line coverage alone it is a
 millisecond or two even in a large app, while branch and method coverage make each snapshot an order of magnitude

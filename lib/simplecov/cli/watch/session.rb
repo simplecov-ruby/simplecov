@@ -15,8 +15,11 @@ module SimpleCov
 
         TOTALS_KEYS = {"line" => "lines", "branch" => "branches", "method" => "methods"}.freeze
 
-        def initialize(command:, dir:, interval:, stdout:, stderr:)
+        # `global` holds the `--global` patterns and the `global_files` ones
+        # apart, so a change matching either runs the full command.
+        def initialize(command:, dir:, interval:, stdout:, stderr:, global: TestPlan.no_global)
           @command = command
+          @global = global
           @dir = dir
           @interval = interval
           @stderr = stderr
@@ -78,7 +81,7 @@ module SimpleCov
 
         def plan_for(changed)
           relative = changed.map { |path| path.delete_prefix("#{@root}/") }
-          TestPlan.build(relative, @document, root: @root, input: json_path, stderr: @stderr)
+          TestPlan.build(relative, @document, root: @root, input: json_path, stderr: @stderr, global: @global)
         end
 
         # The command is the project's own test invocation and must produce the
@@ -97,7 +100,7 @@ module SimpleCov
           return false unless document
 
           @document = document
-          @poller.watch(TestPlan.watched_paths(document, @root))
+          @poller.watch(TestPlan.watched_paths(document, @root, @global))
           document
         end
 

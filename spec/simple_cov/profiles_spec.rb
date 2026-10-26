@@ -218,6 +218,15 @@ RSpec.describe SimpleCov::Profiles, mutant_expression: ["SimpleCov::Profiles*", 
       expect(filtered?(config, "config/environment.rb")).to be_truthy
     end
 
+    it "declares the files every test of a Rails app reads as global in the rails profile" do
+      config.load_profile(:rails)
+
+      expect(config.global_files).to eq(
+        %w[config/**/* db/schema.rb db/structure.sql Gemfile.lock test/test_helper.rb test/fixtures/**/*
+          spec/spec_helper.rb spec/rails_helper.rb spec/support/**/*]
+      )
+    end
+
     it "alphabetizes the rails profile's groups by name" do
       config.load_profile(:rails)
 

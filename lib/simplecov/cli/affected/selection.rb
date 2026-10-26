@@ -51,8 +51,8 @@ module SimpleCov
         GLOB = File::FNM_PATHNAME | File::FNM_EXTGLOB
 
         def classify(path, state)
-          global = state.fetch(:opts).fetch(:global).find { |pattern| File.fnmatch?(pattern, path, GLOB) }
-          return state.fetch(:triggers) << "#{path} changed and matches --global #{global}" if global
+          global = global_match(path, state.fetch(:opts))
+          return state.fetch(:triggers) << "#{path} changed and matches #{global}" if global
 
           entry = entry_for(path, state)
           if state.fetch(:known).include?(path)
@@ -64,6 +64,16 @@ module SimpleCov
           else
             note_untracked(path, state)
           end
+        end
+
+        # The pattern a changed file matches, named by where it came from: a
+        # `--global` flag or the `global_files` that `.simplecov` declares.
+        def global_match(path, opts)
+          flag = opts.fetch(:global).find { |pattern| File.fnmatch?(pattern, path, GLOB) }
+          return "--global #{flag}" if flag
+
+          configured = opts.fetch(:global_files).find { |pattern| File.fnmatch?(pattern, path, GLOB) }
+          "global_files pattern #{configured}" if configured
         end
 
         def note_untracked(path, state)
