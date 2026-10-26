@@ -378,11 +378,14 @@ end
 ```
 
 RSpec examples and Minitest tests are wrapped automatically, in any load order. Under minitest 5 the bundled minitest
-plugin installs the wrapper, and under minitest 6 (whose autorun no longer discovers plugins) SimpleCov installs it
-the moment `Minitest::Test` is defined. Each test is identified by the location of its definition, such as
-`spec/user_spec.rb:42` or `test/user_test.rb:17`, relative to `SimpleCov.root`. An RSpec shared example is identified
-by RSpec's own id in the spec file that includes it, such as `spec/user_spec.rb[1:2:1]`. Any other runner can wrap
-its own units of work with the same primitive the built-in integrations use:
+plugin installs the wrapper, and under minitest 6 (whose autorun no longer discovers plugins) SimpleCov installs it the
+moment `Minitest::Test` is defined. Each test is identified by the location of its definition, such as
+`spec/user_spec.rb:42` or `test/user_test.rb:17`, relative to `SimpleCov.root`. Tests that share a location, such as
+examples defined in a loop, are told apart. An RSpec example then takes RSpec's own id for it in its spec file, such as
+`spec/user_spec.rb[1:2]`, which `rspec` takes to run it again. An RSpec shared example always does, under its id in the
+spec file that includes it. A Minitest test adds its name, as in `test/user_test.rb:17[UserTest#test_admin]`, which
+Minitest's `--name` option matches. Any other runner can wrap its own units of work with the same primitive the built-in
+integrations use:
 
 ```ruby
 SimpleCov.track_test("test/legacy_suite.rb:12") do
@@ -446,10 +449,10 @@ results drops the map and says so on stderr. `Result#contexts` is nil in that ca
 
 A later run under the same command name keeps what an earlier run recorded for the tests it did not run, so rerunning
 one spec file, or running `simplecov affected --run`, leaves the rest of the map in place. A test recorded again
-replaces its earlier lines. A rerun that runs only some of the tests sharing one id adds what they ran to the earlier
-lines instead, and the next run of all of them replaces those lines. Examples defined in a loop share their `path:line`
-like that, and so do Minitest tests defined with `define_method` in a loop. A spec file's own id is shared by all its
-groups' `before(:all)` hooks, and at `granularity: :file` every test in the file shares its id.
+replaces its earlier lines. A spec file's own id holds the setup of all its groups, so a rerun of some of its groups'
+tests adds what their `before(:all)` hooks ran to the id's earlier lines instead, and the next run of the whole file
+replaces those lines. At `granularity: :file`, where every test in a file shares the file's id, a rerun of some of them
+adds to it the same way.
 
 Recording costs one coverage snapshot per context boundary. The snapshot copies every criterion the run measures
 for every file the process loaded, so its price scales with what you enable: with line coverage alone it is a

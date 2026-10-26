@@ -1173,6 +1173,15 @@ RSpec.describe SimpleCov::CLI do
       end
     end
 
+    it "selects the test file of a test named after its location and its name" do
+      payload["contexts"][4] = "toplevel_test.rb:99[TopTest#test_b]"
+      File.write(json_path, JSON.dump(payload))
+      file!("lib/plain.rb", "# changed\n")
+      run_in_repo("affected", "--input", json_path)
+
+      expect(stdout.string).to eq("toplevel_test.rb\n")
+    end
+
     context "with a recorded test that has no file location" do
       before do
         file!("lib/odd.rb", "# changed\n")

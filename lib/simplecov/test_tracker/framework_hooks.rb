@@ -44,6 +44,7 @@ module SimpleCov
           end
           config.prepend_before(:suite) do
             SimpleCov.test_tracker&.suite_starting
+            TestTracker.note_rspec_examples(rspec.world.all_examples)
             # RSpec reports a group starting ahead of all its before(:all)
             # hooks, whatever order they were added in. Registered here
             # because asking for the reporter any earlier sets up the default
@@ -80,12 +81,38 @@ module SimpleCov
       end
 
       def minitest_defined_tests(root = Object)
+        minitest_tests(root).map { |test_case, name| [minitest_id(test_case, name), minitest_name(test_case, name)] }
+      end
+
+      # Examples defined at one location, in a loop say, are told apart by
+      # RSpec's id for each. Called as the suite starts, once every spec file
+      # has loaded: a rerun loads whole files too, so it finds the same ones.
+      def note_rspec_examples(examples)
+        @shared_rspec_locations = repeated(examples.map { |example| example.metadata.fetch(:location) })
+      end
+
+      # Tests defined at one site, in a loop or in a module two test cases
+      # include, are told apart by their names. Called as the suite starts, once
+      # every test file has loaded, ahead of any worker a parallel executor forks.
+      def note_minitest_tests(root = Object)
+        @shared_minitest_sites = repeated(minitest_tests(root).map { |test_case, name| minitest_site(test_case, name) })
+      end
+
+      def repeated(values)
+        values.tally.select { |_value, count| count > 1 }
+      end
+
+      # Each test method of each test case: its public `test_` methods, its
+      # ancestors' included, as `Minitest::Test.runnable_methods` finds them.
+      # That method itself shuffles them by `Minitest.seed`, which before the
+      # suite starts is not set yet.
+      def minitest_tests(root)
         minitest = loaded_const(root, :Minitest)
         test_case = minitest && loaded_const(minitest, :Test)
         return [] unless test_case
 
         minitest::Runnable.runnables.select { |runnable| runnable <= test_case }.flat_map do |runnable|
-          runnable.runnable_methods.map { |name| [minitest_id(runnable, name), minitest_name(runnable, name)] }
+          runnable.public_instance_methods.grep(/\Atest_/) { |name| [runnable, name] }
         end
       end
 
@@ -136,11 +163,14 @@ module SimpleCov
 
       # Relative the way RSpec prints it (`./spec/a_spec.rb:12` becomes
       # `spec/a_spec.rb:12`). A shared example's location is in the shared
-      # group's file, so it takes RSpec's id in the spec file that includes it
+      # group's file, and an example another example shares its location with
+      # cannot be told apart by it, so either takes RSpec's id in its spec file
       # (`spec/a_spec.rb[1:2:1]`), which is its own and reruns it.
       def rspec_example_id(example)
         metadata = example.metadata
-        rspec_path(metadata.fetch(:shared_group_inclusion_backtrace).empty? ? metadata.fetch(:location) : example.id)
+        location = metadata.fetch(:location)
+        shared = !metadata.fetch(:shared_group_inclusion_backtrace).empty? || @shared_rspec_locations&.key?(location)
+        rspec_path(shared ? example.id : location)
       end
 
       # Relative the way RSpec prints it (`./spec/a_spec.rb` becomes
@@ -169,17 +199,24 @@ module SimpleCov
       end
 
       # A Minitest test's identity: the `path:line` where the test method is
-      # defined, relative to `SimpleCov.root`. Falls back to
-      # `ClassName#method_name` when the method has no source location.
+      # defined, relative to `SimpleCov.root`, with its name after it
+      # (`test/a_test.rb:12[ATest#test_b]`) where tests share the site. Falls
+      # back to `ClassName#method_name` when the method has no source location.
       def minitest_test_id(test)
         minitest_id(test.class, test.name)
       end
 
       def minitest_id(test_case, name)
-        path, line = definition_site(test_case, name)
-        return minitest_name(test_case, name) unless path
+        site = minitest_site(test_case, name)
+        return minitest_name(test_case, name) unless site
+        return site unless @shared_minitest_sites&.key?(site)
 
-        "#{path.delete_prefix(File.join(SimpleCov.root, ""))}:#{line}"
+        "#{site}[#{minitest_name(test_case, name)}]"
+      end
+
+      def minitest_site(test_case, name)
+        path, line = definition_site(test_case, name)
+        "#{path.delete_prefix(File.join(SimpleCov.root, ""))}:#{line}" if path
       end
 
       def minitest_name(test_case, name)
@@ -204,6 +241,7 @@ module SimpleCov
     module MinitestSuite
       def run(*)
         SimpleCov.test_tracker&.suite_starting
+        TestTracker.note_minitest_tests
         super
       end
     end

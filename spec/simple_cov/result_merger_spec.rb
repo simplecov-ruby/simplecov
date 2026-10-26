@@ -503,6 +503,7 @@ RSpec.describe SimpleCov::ResultMerger do
     context "when test files were deleted since" do
       let(:existing) do
         recorded({"spec/gone_spec.rb:1" => 0b1, "gone_test.rb:2" => 0b1, "features/gone.feature:3" => 0b1,
+                  "test/gone_test.rb:4[GoneTest#test_y]" => 0b1,
                   "Thing#test_x" => 0b1}, timestamp: recorded_at)
       end
 

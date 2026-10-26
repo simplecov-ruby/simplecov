@@ -725,6 +725,30 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  describe ".note_rspec_examples" do
+    let(:examples) do
+      [rspec_example("./spec/a_spec.rb[1:1]", "./spec/a_spec.rb:3"),
+        rspec_example("./spec/a_spec.rb[1:2]", "./spec/a_spec.rb:3"),
+        rspec_example("./spec/a_spec.rb[1:3]", "./spec/a_spec.rb:9")]
+    end
+
+    before { described_class.note_rspec_examples(examples) }
+
+    after { described_class.note_rspec_examples([]) }
+
+    def rspec_example(id, location)
+      instance_double(RSpec::Core::Example, id: id, metadata: {location: location, shared_group_inclusion_backtrace: []})
+    end
+
+    it "names an example whose location another example shares by rspec's id for it" do
+      expect(described_class.rspec_example_id(examples[1])).to eq("spec/a_spec.rb[1:2]")
+    end
+
+    it "names an example with a location of its own by that location" do
+      expect(described_class.rspec_example_id(examples[2])).to eq("spec/a_spec.rb:9")
+    end
+  end
+
   describe ".rspec_defined_tests" do
     let(:examples) do
       [
@@ -757,22 +781,30 @@ RSpec.describe SimpleCov::TestTracker do
     let(:root) { Module.new }
     let(:test_case) do
       Class.new do
-        def self.runnable_methods = ["test_base"]
-
         def test_base
+        end
+
+        def helper_test_
+        end
+
+        private
+
+        def test_hidden
         end
       end
     end
     let(:looped_test) do
       Class.new(test_case) do
-        def self.runnable_methods = %w[test_a test_b]
-
         %w[a b].each { |name| define_method("test_#{name}") { nil } }
+
+        def test_own
+        end
       end
     end
     let(:other_runnable) do
       Class.new do
-        def self.runnable_methods = ["bench_x"]
+        def test_other
+        end
       end
     end
 
@@ -788,12 +820,30 @@ RSpec.describe SimpleCov::TestTracker do
 
     def site_of(test_case, name) = "spec/simple_cov/test_tracker_spec.rb:#{test_case.instance_method(name).source_location.last}"
 
-    it "answers every test method of every test case, the base one's too, with its id and its name" do
-      looped = site_of(looped_test, :test_a)
-      expect(described_class.minitest_defined_tests(root)).to eq(
-        [[site_of(test_case, :test_base), "FakeTestCase#test_base"],
-          [looped, "FakeLoopedTest#test_a"], [looped, "FakeLoopedTest#test_b"]]
+    def base = site_of(test_case, :test_base)
+
+    def looped = site_of(looped_test, :test_a)
+
+    def own = site_of(looped_test, :test_own)
+
+    it "answers every public test method of every test case, inherited ones too, with its id and its name" do
+      expect(described_class.minitest_defined_tests(root)).to contain_exactly(
+        [base, "FakeTestCase#test_base"], [looped, "FakeLoopedTest#test_a"], [looped, "FakeLoopedTest#test_b"],
+        [own, "FakeLoopedTest#test_own"], [base, "FakeLoopedTest#test_base"]
       )
+    end
+
+    context "when the tests sharing a site are noted" do
+      before { described_class.note_minitest_tests(root) }
+
+      after { described_class.note_minitest_tests(Module.new) }
+
+      it "names each test that shares its site after its test case and method too" do
+        expect(described_class.minitest_defined_tests(root).map(&:first)).to contain_exactly(
+          "#{base}[FakeTestCase#test_base]", "#{looped}[FakeLoopedTest#test_a]",
+          "#{looped}[FakeLoopedTest#test_b]", own, "#{base}[FakeLoopedTest#test_base]"
+        )
+      end
     end
 
     it "answers none when Minitest::Test is not loaded" do
@@ -1129,7 +1179,7 @@ RSpec.describe SimpleCov::TestTracker do
       config
     end
     let(:fake_rspec) do
-      rspec = class_double(RSpec)
+      rspec = class_double(RSpec, world: instance_double(RSpec::Core::World, all_examples: []))
       allow(rspec).to receive(:configure).and_yield(fake_config)
       rspec
     end
@@ -1182,6 +1232,14 @@ RSpec.describe SimpleCov::TestTracker do
       prepended_blocks[:suite].first.call
 
       expect(live_tracker).to have_received(:suite_starting)
+    end
+
+    it "notes which examples share a location once the suite starts" do
+      allow(described_class).to receive(:note_rspec_examples)
+      described_class.install_rspec_hook(fake_rspec)
+      Object.new.instance_exec(&prepended_blocks[:suite].first)
+
+      expect(described_class).to have_received(:note_rspec_examples).with(be(fake_rspec.world.all_examples))
     end
 
     it "marks nothing when no tracker is live" do
@@ -1313,6 +1371,13 @@ RSpec.describe SimpleCov::TestTracker do
 
       it "keeps the base suite run's answer" do
         expect(fake_minitest.run(%w[--seed 1])).to eq([:suite_ran, %w[--seed 1]])
+      end
+
+      it "notes which tests share a site before the suite runs" do
+        allow(described_class).to receive(:note_minitest_tests)
+        fake_minitest.run
+
+        expect(described_class).to have_received(:note_minitest_tests)
       end
 
       it "tells the tracker the suite is starting, so setup before the first test belongs to no test" do

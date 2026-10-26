@@ -11,6 +11,8 @@ module SimpleCov
     @poisoned: bool
 
     self.@rspec_hook_installed: bool?
+    self.@shared_rspec_locations: Hash[String, Integer]?
+    self.@shared_minitest_sites: Hash[String?, Integer]?
 
     class Segment < ::Struct[untyped]
       attr_accessor id: String?
@@ -70,15 +72,25 @@ module SimpleCov
 
     def self.minitest_defined_tests: (?Module root) -> Array[[String, String]]
 
+    def self.note_rspec_examples: (Array[untyped] examples) -> void
+
+    def self.note_minitest_tests: (?Module root) -> void
+
+    def self.repeated: [T] (Array[T] values) -> Hash[T, Integer]
+
+    def self.minitest_tests: (Module root) -> Array[[untyped, Symbol]]
+
     def self.rspec_path: (String path) -> String
 
     def self.minitest_test_id: (untyped test) -> String
 
-    def self.minitest_id: (untyped test_case, String name) -> String
+    def self.minitest_id: (untyped test_case, String | Symbol name) -> String
 
-    def self.minitest_name: (untyped test_case, String name) -> String
+    def self.minitest_name: (untyped test_case, String | Symbol name) -> String
 
-    def self.definition_site: (untyped test_case, String name) -> Array[untyped]?
+    def self.minitest_site: (untyped test_case, String | Symbol name) -> String?
+
+    def self.definition_site: (untyped test_case, String | Symbol name) -> Array[untyped]?
 
     module MinitestRun : ::Minitest::Test
       def run: () -> untyped

@@ -99,6 +99,10 @@ describe('loadingContextIndices', () => {
     expect(loadingContextIndices(['spec/a_spec.rb[10:2:11]', 'spec/a_spec.rb'])).toEqual(new Set([1]));
   });
 
+  test('finds one beside a test id naming the test after its location', () => {
+    expect(loadingContextIndices(['test/a_test.rb:6[ATest#test_b]', 'test/a_test.rb'])).toEqual(new Set([1]));
+  });
+
   test('takes bare file ids recorded alone, at file granularity, for tests', () => {
     expect(loadingContextIndices(['spec/a_spec.rb', 'spec/b_spec.rb'])).toEqual(new Set());
   });

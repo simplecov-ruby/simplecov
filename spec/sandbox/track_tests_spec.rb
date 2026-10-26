@@ -207,6 +207,12 @@ RSpec.describe "track_tests", :sandbox do
         .to eq([%w[spec/square_spec.rb[1:1:1] spec/square_spec.rb[2:1]], %w[spec/square_spec.rb[1:1:2] spec/square_spec.rb[2:2]]])
     end
 
+    it "records each example a loop defined at one location under rspec's own id for it" do
+      looped = File.join(sandbox_dir, "lib/looped.rb")
+      expect([stored_contexts.covering(looped, 3), stored_contexts.covering(looped, 7)])
+        .to eq([["spec/looping_spec.rb[1:1]"], ["spec/looping_spec.rb[1:2]"]])
+    end
+
     it "credits a spec file with what its before(:all) hooks ran, not the spec file before it" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/setup_once.rb"), 3))
         .to eq(["spec/setting_up_spec.rb"])
@@ -245,8 +251,8 @@ RSpec.describe "track_tests", :sandbox do
         run_command_and_expect_success("bundle exec rspec spec/looping_spec.rb[1:1] spec/setting_up_twice_spec.rb:6")
       end
 
-      it "keeps the lines of the examples that share the rerun one's location" do
-        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7)).to eq(["spec/looping_spec.rb:6"])
+      it "keeps the lines of the example the loop defined beside the rerun one" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7)).to eq(["spec/looping_spec.rb[1:2]"])
       end
 
       it "keeps the lines of the before(:all) hooks it did not rerun" do
@@ -282,7 +288,7 @@ RSpec.describe "track_tests", :sandbox do
     end
   end
 
-  describe "a Minitest suite rerunning one of the tests a loop defined" do
+  describe "a Minitest suite with tests a loop defined" do
     before do
       self.bundle_with = "minitest"
       install_dependencies
@@ -309,11 +315,21 @@ RSpec.describe "track_tests", :sandbox do
       RUBY
       configure_simplecov(:minitest, tracking_config)
       run_command_and_expect_success("bundle exec rake minitest")
-      run_command_and_expect_success("bundle exec rake minitest TESTOPTS=--name=test_a")
     end
 
-    it "keeps the lines of the tests that share the rerun one's location" do
-      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7)).to eq(["minitest/looping_test.rb:6"])
+    it "records each test under its location and its name" do
+      looped = File.join(sandbox_dir, "lib/looped.rb")
+      expect([stored_contexts.covering(looped, 3), stored_contexts.covering(looped, 7)])
+        .to eq([["minitest/looping_test.rb:6[LoopingTest#test_a]"], ["minitest/looping_test.rb:6[LoopingTest#test_b]"]])
+    end
+
+    context "when a later run reruns one of them" do
+      before { run_command_and_expect_success("bundle exec rake minitest TESTOPTS=--name=test_a") }
+
+      it "keeps the lines of the other" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7))
+          .to eq(["minitest/looping_test.rb:6[LoopingTest#test_b]"])
+      end
     end
   end
 
