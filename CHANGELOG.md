@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `strict` profile no longer makes JRuby warn that branch and method coverage are not supported. It enabled both on every engine, so `Coverage.start` was asked for criteria JRuby cannot measure. It now enables only the criteria the runtime supports and pins a 100% threshold for each of those.
 - `track_tests` records an RSpec shared example under RSpec's id for it in the spec file that includes its group, such as `spec/user_spec.rb[1:2:1]`. `rspec` takes this id to run the example again. Before, it recorded the file of the shared group, such as `spec/support/shared_examples.rb:2`, which is not a test file. Then `simplecov affected` selected that file, and not the spec files that include the group. With `granularity: :file`, those spec files recorded nothing for their shared examples. A test map recorded before this change keeps the old ids, so record it again from scratch. See [#1319].
 - `track_tests` credits what a spec file's `before(:all)` hooks run to that spec file (`spec/user_spec.rb`), in a nested group too, whatever order the hooks were added in. RSpec runs those hooks once, before the group's first example starts, so their lines went to the spec file that ran before it, or to no test. `simplecov affected` then picked that earlier spec file and skipped the one that needs the hook. See [#1320].
+- A rerun that runs only some of the tests sharing one test id keeps the lines the others ran. Examples defined in a loop share their `path:line`, and a spec file's own id holds every group's `before(:all)` hooks, so rerunning one example with `rspec --only-failures` or `rspec spec/user_spec.rb:12` replaced the id's lines with that example's alone. `simplecov affected` then selected nothing for a change only the others covered, and exited 0. Such a rerun now adds its lines to the earlier ones, and the next run of every test under the id replaces them. Minitest tests defined in a loop with `define_method`, and test files at `granularity: :file`, work the same way. See [#1321].
 
 ## [1.3.2] - 2026-09-30
 
@@ -692,6 +693,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1316]: https://github.com/simplecov-ruby/simplecov/issues/1316
 [#1319]: https://github.com/simplecov-ruby/simplecov/issues/1319
 [#1320]: https://github.com/simplecov-ruby/simplecov/issues/1320
+[#1321]: https://github.com/simplecov-ruby/simplecov/issues/1321
 
 [@adam12]: https://github.com/adam12
 [@alexdeng-mp]: https://github.com/alexdeng-mp

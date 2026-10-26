@@ -30,6 +30,7 @@ module SimpleCov
       @contexts = [] #: Array[String]
       @indices = {} #: Hash[String, Integer]
       @files = {} #: Hash[String, Hash[Integer, Integer]]
+      @partial = Set.new #: Set[String]
     end
 
     # `lines_by_file` maps a source path to the bitmap of lines the context
@@ -71,6 +72,19 @@ module SimpleCov
 
     def include?(context_id)
       @indices.key?(context_id)
+    end
+
+    # Marks a context this recording ran only part of, as a rerun of one of
+    # the tests that share it does. A merge adds such a context's lines to the
+    # earlier recording's instead of replacing them. The mark describes this
+    # recording alone, so no merged map carries it.
+    def mark_partial(context_id)
+      @partial << context_id
+      self
+    end
+
+    def partial?(context_id)
+      @partial.include?(context_id)
     end
 
     # Other's contexts are re-interned, so maps recorded by different processes
@@ -121,7 +135,9 @@ module SimpleCov
       # mutation nothing can observe.
       tables = only ? @files.select { |path, _table| only.include?(path) } : @files # rubocop:disable Style/HashSlice
       serialized = tables.transform_values { |table| serialize_table(table) }
-      {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized}
+      data = {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized} #: Hash[String, untyped]
+      data["partial"] = @partial.sort unless @partial.empty?
+      data
     end
 
     # Index string => hex bitmap, the wire encoding `to_h` writes.
@@ -151,9 +167,11 @@ module SimpleCov
 
         contexts = data["contexts"]
         files = data["files"]
+        partial = data.fetch("partial", [])
         return nil unless contexts.instance_of?(Array) && contexts.all?(String) && files.instance_of?(Hash)
+        return nil unless partial.instance_of?(Array) && partial.all?(String)
 
-        build(contexts, files)
+        build(contexts, files)&.tap { |map| partial.each { |context_id| map.mark_partial(context_id) } }
       end
 
       private

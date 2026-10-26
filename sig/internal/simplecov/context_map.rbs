@@ -5,6 +5,7 @@ module SimpleCov
     @contexts: Array[String]
     @indices: Hash[String, Integer]
     @files: Hash[String, Hash[Integer, Integer]]
+    @partial: Set[String]
 
     def record: (String context_id, Hash[String, Integer] lines_by_file) -> self
 
@@ -15,6 +16,10 @@ module SimpleCov
     def empty?: () -> bool
 
     def include?: (String context_id) -> bool
+
+    def mark_partial: (String context_id) -> self
+
+    def partial?: (String context_id) -> bool
 
     def absorb: (ContextMap other) -> self
 

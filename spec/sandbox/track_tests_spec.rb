@@ -25,6 +25,52 @@ RSpec.describe "track_tests", :sandbox do
 
   describe "an RSpec suite" do
     before do
+      write_file("lib/looped.rb", <<~RUBY)
+        module Looped
+          def self.a
+            :a
+          end
+
+          def self.b
+            :b
+          end
+        end
+      RUBY
+      write_file("spec/looping_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/looped"
+
+        RSpec.describe "Looping" do
+          %i[a b].each do |name|
+            it("calls \#{name}") { expect(Looped.public_send(name)).to eq(name) }
+          end
+        end
+      RUBY
+      write_file("lib/setup_twice.rb", <<~RUBY)
+        module SetupTwice
+          def self.one
+            :one
+          end
+
+          def self.two
+            :two
+          end
+        end
+      RUBY
+      write_file("spec/setting_up_twice_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/setup_twice"
+
+        RSpec.describe "First" do
+          before(:all) { SetupTwice.one }
+          it("runs after the first setup") { expect(1).to eq(1) }
+        end
+
+        RSpec.describe "Second" do
+          before(:all) { SetupTwice.two }
+          it("runs after the second setup") { expect(1).to eq(1) }
+        end
+      RUBY
       write_file("lib/lazy.rb", <<~RUBY)
         class Lazy
           def call
@@ -194,6 +240,21 @@ RSpec.describe "track_tests", :sandbox do
       end
     end
 
+    context "when a later run reruns part of what one test id stands for" do
+      before do
+        run_command_and_expect_success("bundle exec rspec spec/looping_spec.rb[1:1] spec/setting_up_twice_spec.rb:6")
+      end
+
+      it "keeps the lines of the examples that share the rerun one's location" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7)).to eq(["spec/looping_spec.rb:6"])
+      end
+
+      it "keeps the lines of the before(:all) hooks it did not rerun" do
+        expect(stored_contexts.covering(File.join(sandbox_dir, "lib/setup_twice.rb"), 7))
+          .to eq(["spec/setting_up_twice_spec.rb"])
+      end
+    end
+
     context "when a later run reruns one example of a shared group" do
       before { run_command_and_expect_success("bundle exec rspec spec/square_spec.rb[1:1:2]") }
 
@@ -218,6 +279,41 @@ RSpec.describe "track_tests", :sandbox do
 
     it "records each test as a context" do
       expect(stored_contexts.contexts).to include(match(%r{\Aminitest/some_test\.rb:\d+\z}))
+    end
+  end
+
+  describe "a Minitest suite rerunning one of the tests a loop defined" do
+    before do
+      self.bundle_with = "minitest"
+      install_dependencies
+      write_file("lib/looped.rb", <<~RUBY)
+        module Looped
+          def self.a
+            :a
+          end
+
+          def self.b
+            :b
+          end
+        end
+      RUBY
+      write_file("minitest/looping_test.rb", <<~RUBY)
+        require "test_helper"
+        require_relative "../lib/looped"
+
+        class LoopingTest < Minitest::Test
+          %i[a b].each do |name|
+            define_method("test_\#{name}") { assert_equal name, Looped.public_send(name) }
+          end
+        end
+      RUBY
+      configure_simplecov(:minitest, tracking_config)
+      run_command_and_expect_success("bundle exec rake minitest")
+      run_command_and_expect_success("bundle exec rake minitest TESTOPTS=--name=test_a")
+    end
+
+    it "keeps the lines of the tests that share the rerun one's location" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/looped.rb"), 7)).to eq(["minitest/looping_test.rb:6"])
     end
   end
 

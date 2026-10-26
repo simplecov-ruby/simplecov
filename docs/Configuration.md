@@ -444,6 +444,13 @@ rule everywhere: the merged result carries the union of the maps when every merg
 all otherwise. A partial map would present one worker's tests as the whole run's, so mixing tracked and untracked
 results drops the map and says so on stderr. `Result#contexts` is nil in that case.
 
+A later run under the same command name keeps what an earlier run recorded for the tests it did not run, so rerunning
+one spec file, or running `simplecov affected --run`, leaves the rest of the map in place. A test recorded again
+replaces its earlier lines. A rerun that runs only some of the tests sharing one id adds what they ran to the earlier
+lines instead, and the next run of all of them replaces those lines. Examples defined in a loop share their `path:line`
+like that, and so do Minitest tests defined with `define_method` in a loop. A spec file's own id is shared by all its
+groups' `before(:all)` hooks, and at `granularity: :file` every test in the file shares its id.
+
 Recording costs one coverage snapshot per context boundary. The snapshot copies every criterion the run measures
 for every file the process loaded, so its price scales with what you enable: with line coverage alone it is a
 millisecond or two even in a large app, while branch and method coverage make each snapshot an order of magnitude

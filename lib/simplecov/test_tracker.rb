@@ -31,7 +31,10 @@ module SimpleCov
     Segment = Struct.new(:id, :opening, :loading)
     private_constant :Segment
 
-    def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test)
+    # `defined_tests` answers every test the process defined, as pairs of its
+    # id and a name telling it apart from other tests under that id.
+    def initialize(root_regex: UselessResultsRemover.root_regex, granularity: :test,
+      defined_tests: -> { TestTracker.defined_tests })
       unless Configuration::TRACK_TESTS_GRANULARITIES.include?(granularity)
         raise ArgumentError, "unknown granularity #{granularity.inspect}, " \
                              "expected one of #{Configuration::TRACK_TESTS_GRANULARITIES.inspect}"
@@ -44,6 +47,8 @@ module SimpleCov
       # every test is the cost that would make tracking unaffordable.
       @delta = Delta.new(root_regex: root_regex)
       @granularity = granularity
+      @defined_tests = defined_tests
+      @started = {} #: Hash[String, Set[String]]
       @lock = Mutex.new
       @depth = 0
       @poisoned = false
@@ -88,6 +93,12 @@ module SimpleCov
       open_outside_tests(path, loading: false)
     end
 
+    # Notes a test starting, skipped ones included, under `name`, which tells
+    # it apart from other tests sharing its id.
+    def test_started(test_id, name)
+      ids_of(test_id).each { |id| (@started[id] ||= Set.new) << name }
+    end
+
     def poisoned?
       @poisoned
     end
@@ -108,6 +119,7 @@ module SimpleCov
       return nil if poisoned?
 
       flush_segment(closing)
+      mark_partial_contexts
       @map
     end
 
@@ -190,6 +202,25 @@ module SimpleCov
 
       close_segment(closing || Coverage.peek_result)
       @segment = nil
+    end
+
+    # A context some of whose tests never started, in a run filtered down to
+    # some of the tests sharing one id or one test file, holds only what the
+    # started ones ran.
+    def mark_partial_contexts
+      defined = {} #: Hash[String, Set[String]]
+      @defined_tests.call.each do |test_id, name|
+        ids_of(test_id).each { |id| (defined[id] ||= Set.new) << name }
+      end
+      defined.each do |id, names|
+        @map.mark_partial(id) if @map.include?(id) && !names.subset?(@started.fetch(id) { Set.new })
+      end
+    end
+
+    # The test's own id and its file's, which holds the file's loading and
+    # setup, and at file granularity the test too.
+    def ids_of(test_id)
+      [test_id, test_id.sub(TEST_ID_TAIL, "")]
     end
 
     # An id with no tail (an exotic runner's fallback) stays whole.

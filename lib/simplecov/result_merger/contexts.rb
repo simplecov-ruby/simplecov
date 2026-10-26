@@ -45,9 +45,11 @@ module SimpleCov
 
       # A test recorded again replaces its earlier lines rather than adding to
       # them. Replaced by test, not by file, since rerunning one example or only
-      # the failures leaves the file's other tests as they were.
+      # the failures leaves the file's other tests as they were. A context the
+      # later run ran only part of adds to its earlier lines instead, since the
+      # tests sharing it that did not run would otherwise lose theirs.
       def superseded(ours, theirs)
-        ours.without { |context_id| theirs.include?(context_id) }.absorb(theirs)
+        ours.without { |context_id| theirs.include?(context_id) && !theirs.partial?(context_id) }.absorb(theirs)
       end
 
       # A test whose file is gone can never run again. A source file changed

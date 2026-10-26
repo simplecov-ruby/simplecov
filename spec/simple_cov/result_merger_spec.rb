@@ -458,8 +458,9 @@ RSpec.describe SimpleCov::ResultMerger do
 
     def source = File.join(dir, "lib/thing.rb")
 
-    def recorded(tests, timestamp: Time.now.to_f)
+    def recorded(tests, timestamp: Time.now.to_f, partial: [])
       map = tests.reduce(SimpleCov::ContextMap.new) { |built, (id, bitmap)| built.record(id, source => bitmap) }
+      partial.each { |id| map.mark_partial(id) }
       {"timestamp" => timestamp, "contexts" => map.to_h}
     end
 
@@ -488,6 +489,14 @@ RSpec.describe SimpleCov::ResultMerger do
 
       it "replaces the lines the earlier run recorded for it" do
         expect([map.covering(source, 2), map.covering(source, 3)]).to eq([[], ["spec/a_spec.rb:10"]])
+      end
+    end
+
+    context "when this run reran only some of the tests a test id stands for" do
+      let(:incoming) { recorded({"spec/a_spec.rb:10" => 0b100}, partial: ["spec/a_spec.rb:10"]) }
+
+      it "adds what they ran to the lines the earlier run recorded" do
+        expect([map.covering(source, 2), map.covering(source, 3)]).to eq([["spec/a_spec.rb:10"], ["spec/a_spec.rb:10"]])
       end
     end
 

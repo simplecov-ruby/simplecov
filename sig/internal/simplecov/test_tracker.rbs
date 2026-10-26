@@ -2,6 +2,8 @@ module SimpleCov
   class TestTracker
     @delta: Delta
     @granularity: Symbol
+    @defined_tests: ^() -> Array[[String, String]]
+    @started: Hash[String, Set[String]]
     @segment: Segment?
     @lock: Mutex
     @owner: Thread?
@@ -20,7 +22,7 @@ module SimpleCov
 
     attr_reader map: ContextMap
 
-    def initialize: (?root_regex: Regexp, ?granularity: Symbol) -> void
+    def initialize: (?root_regex: Regexp, ?granularity: Symbol, ?defined_tests: ^() -> Array[[String, String]]) -> void
 
     def track: [T] (String test_id) { () -> T } -> T
 
@@ -29,6 +31,8 @@ module SimpleCov
     def suite_starting: () -> void
 
     def test_file_starting: (String path) -> void
+
+    def test_started: (String test_id, String name) -> void
 
     def poisoned?: () -> bool
 
@@ -58,11 +62,23 @@ module SimpleCov
 
     def self.example_group_started: (untyped notification) -> void
 
+    def self.example_started: (untyped notification) -> void
+
+    def self.defined_tests: () -> Array[[String, String]]
+
+    def self.rspec_defined_tests: (?untyped rspec) -> Array[[String, String]]
+
+    def self.minitest_defined_tests: (?Module root) -> Array[[String, String]]
+
     def self.rspec_path: (String path) -> String
 
     def self.minitest_test_id: (untyped test) -> String
 
-    def self.definition_site: (untyped test) -> Array[untyped]?
+    def self.minitest_id: (untyped test_case, String name) -> String
+
+    def self.minitest_name: (untyped test_case, String name) -> String
+
+    def self.definition_site: (untyped test_case, String name) -> Array[untyped]?
 
     module MinitestRun : ::Minitest::Test
       def run: () -> untyped
@@ -103,6 +119,10 @@ module SimpleCov
     def close_segment: (Hash[String, untyped] closing) -> void
 
     def flush_segment: (Hash[String, untyped]? closing) -> void
+
+    def mark_partial_contexts: () -> void
+
+    def ids_of: (String test_id) -> Array[String]
 
     def context_id: (String test_id) -> String
 

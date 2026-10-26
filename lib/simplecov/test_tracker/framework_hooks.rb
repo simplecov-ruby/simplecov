@@ -48,7 +48,7 @@ module SimpleCov
             # hooks, whatever order they were added in. Registered here
             # because asking for the reporter any earlier sets up the default
             # formatter before the suite has chosen its own.
-            config.reporter.register_listener(TestTracker, :example_group_started)
+            config.reporter.register_listener(TestTracker, :example_group_started, :example_started)
           end
         end
       end
@@ -58,6 +58,35 @@ module SimpleCov
       # before them.
       def example_group_started(notification)
         SimpleCov.test_tracker&.test_file_starting(rspec_path(notification.group.metadata.fetch(:rerun_file_path)))
+      end
+
+      # Called by RSpec's reporter as each example starts, skipped ones too,
+      # which never reach the around hook.
+      def example_started(notification)
+        example = notification.example
+        SimpleCov.test_tracker&.test_started(rspec_example_id(example), example.id)
+      end
+
+      # Every test this process defined, run or not, with its id and a name
+      # telling it apart from other tests under that id.
+      def defined_tests
+        rspec_defined_tests + minitest_defined_tests
+      end
+
+      def rspec_defined_tests(rspec = rspec_module)
+        return [] unless rspec
+
+        rspec.world.all_examples.map { |example| [rspec_example_id(example), example.id] }
+      end
+
+      def minitest_defined_tests(root = Object)
+        minitest = loaded_const(root, :Minitest)
+        test_case = minitest && loaded_const(minitest, :Test)
+        return [] unless test_case
+
+        minitest::Runnable.runnables.select { |runnable| runnable <= test_case }.flat_map do |runnable|
+          runnable.runnable_methods.map { |name| [minitest_id(runnable, name), minitest_name(runnable, name)] }
+        end
       end
 
       # The RSpec this process has, if it has one. A Minitest-only suite has
@@ -143,17 +172,25 @@ module SimpleCov
       # defined, relative to `SimpleCov.root`. Falls back to
       # `ClassName#method_name` when the method has no source location.
       def minitest_test_id(test)
-        path, line = definition_site(test)
-        return "#{test.class}##{test.name}" unless path
+        minitest_id(test.class, test.name)
+      end
+
+      def minitest_id(test_case, name)
+        path, line = definition_site(test_case, name)
+        return minitest_name(test_case, name) unless path
 
         "#{path.delete_prefix(File.join(SimpleCov.root, ""))}:#{line}"
+      end
+
+      def minitest_name(test_case, name)
+        "#{test_case}##{name}"
       end
 
       # A method defined in C or through an eval without a filename has no site,
       # and a runner exotic enough to name a method it never defined deserves
       # an id over an exception out of the middle of its run.
-      def definition_site(test)
-        test.method(test.name).source_location
+      def definition_site(test_case, name)
+        test_case.instance_method(name).source_location
       rescue NameError
         nil
       end
@@ -176,7 +213,9 @@ module SimpleCov
     # reaches is still this test's line.
     module MinitestRun
       def run
-        SimpleCov.track_test(TestTracker.minitest_test_id(self)) { super }
+        test_id = TestTracker.minitest_test_id(self)
+        SimpleCov.test_tracker&.test_started(test_id, TestTracker.minitest_name(self.class, name))
+        SimpleCov.track_test(test_id) { super }
       end
     end
   end

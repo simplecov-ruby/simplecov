@@ -693,6 +693,125 @@ RSpec.describe SimpleCov::TestTracker do
     end
   end
 
+  describe ".example_started" do
+    let(:live_tracker) { instance_double(described_class, test_started: nil) }
+    let(:notification) do
+      example = instance_double(RSpec::Core::Example, id: "./spec/b_spec.rb[1:2]",
+        metadata: {location: "./spec/b_spec.rb:7", shared_group_inclusion_backtrace: []})
+      instance_double(RSpec::Core::Notifications::ExampleNotification, example: example)
+    end
+
+    before { allow(SimpleCov).to receive(:test_tracker).and_return(live_tracker) }
+
+    it "starts the example on the live tracker, under its id and rspec's" do
+      described_class.example_started(notification)
+
+      expect(live_tracker).to have_received(:test_started).with("spec/b_spec.rb:7", "./spec/b_spec.rb[1:2]")
+    end
+
+    it "starts nothing when no tracker is live" do
+      allow(SimpleCov).to receive(:test_tracker).and_return(nil)
+
+      expect { described_class.example_started(notification) }.not_to raise_error
+    end
+  end
+
+  describe ".defined_tests" do
+    it "answers RSpec's examples, then Minitest's tests" do
+      allow(described_class).to receive_messages(rspec_defined_tests: [%w[spec/a_spec.rb:1 a]],
+        minitest_defined_tests: [%w[test/b_test.rb:2 B#test_b]])
+
+      expect(described_class.defined_tests).to eq([%w[spec/a_spec.rb:1 a], %w[test/b_test.rb:2 B#test_b]])
+    end
+  end
+
+  describe ".rspec_defined_tests" do
+    let(:examples) do
+      [
+        instance_double(RSpec::Core::Example, id: "./spec/a_spec.rb[1:1]",
+          metadata: {location: "./spec/a_spec.rb:3", shared_group_inclusion_backtrace: []}),
+        instance_double(RSpec::Core::Example, id: "./spec/a_spec.rb[1:2]",
+          metadata: {location: "./spec/a_spec.rb:3", shared_group_inclusion_backtrace: []})
+      ]
+    end
+
+    it "answers every example the world defined, with its id and rspec's" do
+      rspec = class_double(RSpec, world: instance_double(RSpec::Core::World, all_examples: examples))
+
+      expect(described_class.rspec_defined_tests(rspec))
+        .to eq([["spec/a_spec.rb:3", "./spec/a_spec.rb[1:1]"], ["spec/a_spec.rb:3", "./spec/a_spec.rb[1:2]"]])
+    end
+
+    it "answers none without RSpec" do
+      expect(described_class.rspec_defined_tests(nil)).to eq([])
+    end
+
+    it "reads the world of the RSpec this process has when handed none" do
+      allow(RSpec.world).to receive(:all_examples).and_return(examples.take(1))
+
+      expect(described_class.rspec_defined_tests).to eq([["spec/a_spec.rb:3", "./spec/a_spec.rb[1:1]"]])
+    end
+  end
+
+  describe ".minitest_defined_tests" do
+    let(:root) { Module.new }
+    let(:test_case) do
+      Class.new do
+        def self.runnable_methods = ["test_base"]
+
+        def test_base
+        end
+      end
+    end
+    let(:looped_test) do
+      Class.new(test_case) do
+        def self.runnable_methods = %w[test_a test_b]
+
+        %w[a b].each { |name| define_method("test_#{name}") { nil } }
+      end
+    end
+    let(:other_runnable) do
+      Class.new do
+        def self.runnable_methods = ["bench_x"]
+      end
+    end
+
+    before do
+      stub_const("FakeLoopedTest", looped_test)
+      stub_const("FakeTestCase", test_case)
+      minitest = Module.new
+      minitest.const_set(:Test, test_case)
+      runnables = [test_case, looped_test, other_runnable]
+      minitest.const_set(:Runnable, Module.new).define_singleton_method(:runnables) { runnables }
+      root.const_set(:Minitest, minitest)
+    end
+
+    def site_of(test_case, name) = "spec/simple_cov/test_tracker_spec.rb:#{test_case.instance_method(name).source_location.last}"
+
+    it "answers every test method of every test case, the base one's too, with its id and its name" do
+      looped = site_of(looped_test, :test_a)
+      expect(described_class.minitest_defined_tests(root)).to eq(
+        [[site_of(test_case, :test_base), "FakeTestCase#test_base"],
+          [looped, "FakeLoopedTest#test_a"], [looped, "FakeLoopedTest#test_b"]]
+      )
+    end
+
+    it "answers none when Minitest::Test is not loaded" do
+      bare = Module.new
+      bare.const_set(:Minitest, Module.new)
+
+      expect(described_class.minitest_defined_tests(bare)).to eq([])
+    end
+
+    it "answers none without Minitest" do
+      expect(described_class.minitest_defined_tests(Module.new)).to eq([])
+    end
+
+    it "looks in Object when handed nothing" do
+      expect(described_class.minitest_defined_tests).to eq([])
+    end
+  end
+
   describe "file granularity", mutant_expression: ["SimpleCov::TestTracker*",
     "SimpleCov::TestTracker#track"] do
     subject(:tracker) do
@@ -905,6 +1024,73 @@ RSpec.describe SimpleCov::TestTracker do
       end
     end
 
+    shared_context "with tests that did not all start" do
+      subject(:tracker) do
+        described_class.new(root_regex: /\A#{Regexp.escape(project_root + File::SEPARATOR)}/i,
+          granularity: granularity, defined_tests: -> { defined })
+      end
+
+      let(:defined) do
+        [["spec/a_spec.rb:3", "a[1:1]"], ["spec/a_spec.rb:3", "a[1:2]"], ["spec/b_spec.rb:5", "b[1:1]"],
+          ["spec/c_spec.rb:7", "c[1:1]"]]
+      end
+      let(:map) { tracker.recorded_map }
+
+      before do
+        allow(Coverage).to receive(:peek_result).and_return({lib_file => {lines: [0]}}, {lib_file => {lines: [1]}})
+        tracker.test_file_starting("spec/a_spec.rb")
+        run_test("spec/a_spec.rb:3", "a[1:1]")
+        tracker.test_file_starting("spec/b_spec.rb")
+        run_test("spec/b_spec.rb:5", "b[1:1]")
+        tracker.test_file_starting("spec/c_spec.rb")
+      end
+
+      def run_test(test_id, name)
+        tracker.test_started(test_id, name)
+        tracker.track(test_id) { :ran }
+      end
+    end
+
+    context "with tests that did not all start" do
+      let(:granularity) { :test }
+
+      include_context "with tests that did not all start"
+
+      it "marks a test id that another test not started shares" do
+        expect(map.partial?("spec/a_spec.rb:3")).to be(true)
+      end
+
+      it "marks the bare id of a test file whose tests did not all start" do
+        expect(map.partial?("spec/a_spec.rb")).to be(true)
+      end
+
+      it "leaves a test id whose every test started unmarked" do
+        expect(map.partial?("spec/b_spec.rb:5")).to be(false)
+      end
+
+      it "leaves the bare id of a test file whose every test started unmarked" do
+        expect(map.partial?("spec/b_spec.rb")).to be(false)
+      end
+
+      it "marks the bare id of a test file none of whose tests started" do
+        expect(map.partial?("spec/c_spec.rb")).to be(true)
+      end
+
+      it "marks nothing it did not record" do
+        expect(map.to_h.fetch("partial")).to eq(["spec/a_spec.rb", "spec/a_spec.rb:3", "spec/c_spec.rb"])
+      end
+    end
+
+    context "with tests that did not all start, at file granularity" do
+      let(:granularity) { :file }
+
+      include_context "with tests that did not all start"
+
+      it "marks a test file whose tests did not all start" do
+        expect([map.partial?("spec/a_spec.rb"), map.partial?("spec/b_spec.rb")]).to eq([true, false])
+      end
+    end
+
     it "is the map while attribution is trustworthy" do
       allow(Coverage).to receive(:peek_result).and_return({})
 
@@ -1005,11 +1191,12 @@ RSpec.describe SimpleCov::TestTracker do
       expect { prepended_blocks[:suite].first.call }.not_to raise_error
     end
 
-    it "listens for each group starting once the suite starts" do
+    it "listens for each group and each example starting once the suite starts" do
       described_class.install_rspec_hook(fake_rspec)
       prepended_blocks[:suite].first.call
 
-      expect(fake_config.reporter).to have_received(:register_listener).with(described_class, :example_group_started)
+      expect(fake_config.reporter).to have_received(:register_listener)
+        .with(described_class, :example_group_started, :example_started)
     end
 
     context "when installed twice in one process" do
@@ -1089,6 +1276,23 @@ RSpec.describe SimpleCov::TestTracker do
 
         expect(SimpleCov).to have_received(:track_test)
           .with(match(%r{\Aspec/simple_cov/test_tracker_spec\.rb:\d+\z}))
+      end
+    end
+
+    context "with the wrapper prepended and a tracker live" do
+      let(:live_tracker) { instance_double(described_class, test_started: nil) }
+
+      before do
+        described_class.install_minitest_hook(fake_test_case, fake_minitest)
+        allow(SimpleCov).to receive(:track_test).and_yield
+        allow(SimpleCov).to receive(:test_tracker).and_return(live_tracker)
+        stub_const("FakeStartedTest", fake_test_case)
+        fake_test_case.new.run
+      end
+
+      it "starts each run on it under its id and its name" do
+        expect(live_tracker).to have_received(:test_started)
+          .with(match(%r{\Aspec/simple_cov/test_tracker_spec\.rb:\d+\z}), "FakeStartedTest#test_something")
       end
     end
 

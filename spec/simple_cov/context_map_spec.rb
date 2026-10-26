@@ -232,6 +232,18 @@ RSpec.describe SimpleCov::ContextMap do
     end
   end
 
+  describe "#mark_partial" do
+    it "marks only the context it names" do
+      map.mark_partial("spec/a_spec.rb:1")
+
+      expect([map.partial?("spec/a_spec.rb:1"), map.partial?("spec/b_spec.rb:2")]).to eq([true, false])
+    end
+
+    it "answers itself" do
+      expect(map.mark_partial("spec/a_spec.rb:1")).to be(map)
+    end
+  end
+
   describe "#widen" do
     before do
       map.record("spec/a_spec.rb:1", lib_file => 0b11)
@@ -312,7 +324,10 @@ RSpec.describe SimpleCov::ContextMap do
         {"contexts" => ["a", :b], "files" => valid_files},
         {"contexts" => ["a"], "files" => "junk"},
         {"contexts" => ["a"], "files" => {lib_file => "junk"}},
-        {"contexts" => ["a"], "files" => {sym: {"0" => "1"}}}
+        {"contexts" => ["a"], "files" => {sym: {"0" => "1"}}},
+        {"contexts" => ["a"], "files" => valid_files, "partial" => "a"},
+        {"contexts" => ["a"], "files" => valid_files, "partial" => nil},
+        {"contexts" => ["a"], "files" => valid_files, "partial" => [:a]}
       ]
     end
 
@@ -330,7 +345,8 @@ RSpec.describe SimpleCov::ContextMap do
         {"contexts" => ["a"], "files" => {lib_file => {"0" => ""}}},
         {"contexts" => ["a"], "files" => {lib_file => {"0" => "z1"}}},
         {"contexts" => ["a"], "files" => {lib_file => {"0" => "1z"}}},
-        {"contexts" => ["a"], "files" => {lib_file => {"0" => "xyz"}}}
+        {"contexts" => ["a"], "files" => {lib_file => {"0" => "xyz"}}},
+        {"contexts" => ["a"], "files" => {lib_file => {"0" => "xyz"}}, "partial" => ["a"]}
       ]
     end
 
@@ -356,6 +372,21 @@ RSpec.describe SimpleCov::ContextMap do
       map.record("spec/b_spec.rb:2", lib_file => 0xff)
 
       expect(map.to_h).to eq(serialized_form)
+    end
+
+    context "with contexts marked partial" do
+      before do
+        map.record("spec/b_spec.rb:2", lib_file => 0b1)
+        map.mark_partial("spec/b_spec.rb:2").mark_partial("spec/a_spec.rb:1")
+      end
+
+      it "serializes the marked contexts in sorted order" do
+        expect(map.to_h.fetch("partial")).to eq(["spec/a_spec.rb:1", "spec/b_spec.rb:2"])
+      end
+
+      it "round-trips the marks" do
+        expect(described_class.from_hash(map.to_h).partial?("spec/b_spec.rb:2")).to be(true)
+      end
     end
 
     it "treats a format version it does not know as no map at all" do
