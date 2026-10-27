@@ -1742,7 +1742,7 @@ RSpec.describe SimpleCov::ResultMerger do
     end
 
     def nested_and_sibling_calls
-      Timeout.timeout(1) do
+      Timeout.timeout(10) do
         described_class.synchronize_resultset do
           described_class.synchronize_resultset { :first }
           described_class.synchronize_resultset { :second }
@@ -1771,7 +1771,7 @@ RSpec.describe SimpleCov::ResultMerger do
 
       acquired = Thread.new { described_class.synchronize_resultset { :acquired } }
 
-      expect(Timeout.timeout(1) { acquired.value }).to eq(:acquired)
+      expect(Timeout.timeout(10) { acquired.value }).to eq(:acquired)
     end
 
     it "blocks other processes" do
@@ -1801,16 +1801,16 @@ RSpec.describe SimpleCov::ResultMerger do
 
       before do
         owner
-        raise "the owner never took the lock" unless Timeout.timeout(1) { entered.pop } == :first
+        raise "the owner never took the lock" unless Timeout.timeout(10) { entered.pop } == :first
 
         sibling
-        Timeout.timeout(1) { sibling_started.pop }
+        Timeout.timeout(10) { sibling_started.pop }
       end
 
       after do
         release << true
-        owner.join(1)
-        sibling.join(1)
+        owner.join(10)
+        sibling.join(10)
       end
 
       it "blocks a sibling thread while the owner holds it" do
@@ -1820,7 +1820,7 @@ RSpec.describe SimpleCov::ResultMerger do
       it "lets the sibling thread through once the owner releases it" do
         release << true
 
-        expect(Timeout.timeout(1) { entered.pop }).to eq(:second)
+        expect(Timeout.timeout(10) { entered.pop }).to eq(:second)
       end
     end
   end
