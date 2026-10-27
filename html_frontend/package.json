@@ -1,12 +1,12 @@
 {
   "private": true,
   "devDependencies": {
-    "@happy-dom/global-registrator": "^21.0.3",
-    "@stryker-mutator/core": "^10.0.0",
-    "@types/bun": "^1.4.3",
+    "@happy-dom/global-registrator": "^21.0.4",
+    "@stryker-mutator/core": "^10.1.1",
+    "@types/bun": "^1.4.4",
     "esbuild": "^0.28.2",
     "highlight.js": "^11.12.0",
-    "oxlint": "^1.89.0",
+    "oxlint": "^1.90.0",
     "typescript": "^7.0.2"
   },
   "scripts": {
