@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0 # the baseline comes from history, tags included
           persist-credentials: false
       # (And whatever else your tests need set up: packages, services.)
-      - uses: ruby/setup-ruby@v1.332.0
+      - uses: ruby/setup-ruby@v1.334.0
         with:
           ruby-version: "3.4"
           bundler-cache: true
