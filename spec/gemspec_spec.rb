@@ -27,6 +27,6 @@ RSpec.describe "gemspec sanity" do
     spec = Gem::Specification.load(File.expand_path("../simplecov.gemspec", __dir__))
 
     expect(spec.runtime_dependencies.map { |dependency| [dependency.name, dependency.requirement.to_s] })
-      .to eq([["prism", "~> 1.5"]])
+      .to eq([["prism", ">= 1.5, < 3"]])
   end
 end
