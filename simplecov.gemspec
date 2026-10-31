@@ -57,7 +57,7 @@ Gem::Specification.new do |gem|
   # can load only when something in it depends on Prism. It still loads lazily,
   # so a Ruby that cannot load it (JRuby on Windows) only loses the features
   # that need it.
-  gem.add_dependency "prism", "~> 1.5"
+  gem.add_dependency "prism", ">= 1.5", "< 3"
 
   # The changelog is intentionally not packaged — it grows every release and is
   # the gem's largest avoidable payload. The `changelog_uri` metadata above
