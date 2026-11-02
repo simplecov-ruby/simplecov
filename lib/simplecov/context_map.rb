@@ -26,11 +26,13 @@ module SimpleCov
     # treat a future format as absent instead of answering from it wrongly.
     VERSION = 1
 
+    EMPTY_PARTIAL = [] #: Array[String]
+    EMPTY_PARTIAL.freeze
+
     def initialize
       @contexts = [] #: Array[String]
       @indices = {} #: Hash[String, Integer]
       @files = {} #: Hash[String, Hash[Integer, Integer]]
-      @partial = Set.new #: Set[String]
     end
 
     # `lines_by_file` maps a source path to the bitmap of lines the context
@@ -79,12 +81,12 @@ module SimpleCov
     # earlier recording's instead of replacing them. The mark describes this
     # recording alone, so no merged map carries it.
     def mark_partial(context_id)
-      @partial << context_id
+      (@partial ||= Set.new) << context_id
       self
     end
 
     def partial?(context_id)
-      @partial.include?(context_id)
+      !!@partial&.include?(context_id)
     end
 
     # Other's contexts are re-interned, so maps recorded by different processes
@@ -136,7 +138,8 @@ module SimpleCov
       tables = only ? @files.select { |path, _table| only.include?(path) } : @files # rubocop:disable Style/HashSlice
       serialized = tables.transform_values { |table| serialize_table(table) }
       data = {"version" => VERSION, "contexts" => @contexts.dup, "files" => serialized} #: Hash[String, untyped]
-      data["partial"] = @partial.sort unless @partial.empty?
+      partial = @partial
+      data["partial"] = partial.sort if partial
       data
     end
 
@@ -167,7 +170,7 @@ module SimpleCov
 
         contexts = data["contexts"]
         files = data["files"]
-        partial = data.fetch("partial", [])
+        partial = data.fetch("partial", EMPTY_PARTIAL)
         return nil unless contexts.instance_of?(Array) && contexts.all?(String) && files.instance_of?(Hash)
         return nil unless partial.instance_of?(Array) && partial.all?(String)
 

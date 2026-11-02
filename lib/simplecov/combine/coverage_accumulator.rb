@@ -30,11 +30,11 @@ module SimpleCov
       end
 
       def self.hit?(counts)
-        counts&.each_value&.any?(&:positive?)
+        counts&.any? { |_key, count| count.positive? }
       end
 
       def self.arm_hit?(branches)
-        !!branches&.each_value&.any? { |arms| hit?(arms) }
+        !!branches&.any? { |_branch, arms| hit?(arms) }
       end
 
       def self.fold(pairs)

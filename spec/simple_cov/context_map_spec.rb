@@ -244,6 +244,18 @@ RSpec.describe SimpleCov::ContextMap do
     end
   end
 
+  describe "#partial?" do
+    it "is true for a marked context and false for the rest" do
+      map.mark_partial("spec/a_spec.rb:1")
+
+      expect([map.partial?("spec/a_spec.rb:1"), map.partial?("spec/b_spec.rb:2")]).to eq([true, false])
+    end
+
+    it "is false in a map with no context marked" do
+      expect(map.partial?("spec/a_spec.rb:1")).to be(false)
+    end
+  end
+
   describe "#widen" do
     before do
       map.record("spec/a_spec.rb:1", lib_file => 0b11)

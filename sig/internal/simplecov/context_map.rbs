@@ -1,11 +1,12 @@
 module SimpleCov
   class ContextMap
     VERSION: Integer
+    EMPTY_PARTIAL: Array[String]
 
     @contexts: Array[String]
     @indices: Hash[String, Integer]
     @files: Hash[String, Hash[Integer, Integer]]
-    @partial: Set[String]
+    @partial: Set[String]?
 
     def record: (String context_id, Hash[String, Integer] lines_by_file) -> self
 
