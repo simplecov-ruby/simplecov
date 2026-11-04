@@ -10,15 +10,18 @@ module SimpleCov
   class << self
     # @api private
     def final_result_process?
-      adapter = ParallelAdapters.current
       # A subprocess forked while coverage was running is never the final
       # reporter: the process that spawned it merges every slice and produces
       # the report. Without this, fork-based runners that don't set
       # TEST_ENV_NUMBER (Minitest's `parallelize`) have every worker produce
-      # the final report and its warnings (#1171).
-      return !forked_subprocess? unless adapter
+      # the final report and its warnings (#1171). A child forked from
+      # parallel_tests' first worker inherits that worker's environment, so
+      # the adapter alone would make it wait at exit for every sibling while
+      # its parent waits on it (#1334).
+      return false if forked_subprocess?
 
-      adapter.first_worker?
+      adapter = ParallelAdapters.current
+      adapter ? adapter.first_worker? : true
     end
 
     # @api private

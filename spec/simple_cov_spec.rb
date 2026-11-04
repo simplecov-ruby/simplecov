@@ -996,6 +996,14 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         expect(described_class.send(:final_result_process?)).to be true
       end
 
+      it "is false in a subprocess forked from the first worker" do
+        ENV["TEST_ENV_NUMBER"] = ""
+        ENV["PARALLEL_TEST_GROUPS"] = "2"
+        allow(ParallelTests).to receive(:first_process?).and_return(true)
+        allow(described_class).to receive(:forked_subprocess?).and_return(true)
+        expect(described_class.send(:final_result_process?)).to be false
+      end
+
       it "is false for a non-first worker in a multi-group run" do
         ENV["TEST_ENV_NUMBER"] = "2"
         ENV["PARALLEL_TEST_GROUPS"] = "2"
