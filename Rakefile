@@ -176,6 +176,17 @@ namespace :benchmark do
   end
 end
 
+namespace :test_projects do
+  desc "Run bundle update in each test project"
+  task :update do
+    Dir.glob("test_projects/**/Gemfile.lock").each do |lockfile|
+      Dir.chdir(File.dirname(lockfile)) do
+        Bundler.with_unbundled_env { sh "bundle", "update", "--all" }
+      end
+    end
+  end
+end
+
 namespace :frontend do
   desc "Install the frontend dependencies with bun"
   task :install do

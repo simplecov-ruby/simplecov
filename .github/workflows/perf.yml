@@ -183,12 +183,15 @@ jobs:
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$GITHUB_SHA" > /dev/null || blocked
             exit 0
           fi
-          compared=$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$at" --jq .status)
+          compared=$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$at" --jq .status 2>&1) || case "$compared" in
+            # (GitHub can't compare commits with no history in common.)
+            *"No common ancestor"*) compared=unrelated ;;
+          esac
           case "$compared" in
             # (A newer push's run moved it, or this one's did, run again.)
             ahead | identical) ;;
-            # (History rewritten, a force push's, say: moved anyway.)
-            diverged | behind) gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" -f sha="$GITHUB_SHA" -F force=true > /dev/null ;;
+            # (History rewritten, a force push's, say, or replaced: moved anyway.)
+            diverged | behind | unrelated) gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$BRANCH" -f sha="$GITHUB_SHA" -F force=true > /dev/null ;;
             *) echo "::error::Couldn't compare $BRANCH with this push: $compared" && exit 1 ;;
           esac
 
