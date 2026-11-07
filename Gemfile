@@ -53,6 +53,11 @@ group :development do
   gem "stackprof", platforms: :mri
 end
 
+# CI resolves the newest gems, so one stable job sets PRISM_VERSION to keep
+# exercising the oldest prism major version the gemspec still allows.
+prism_version = ENV.fetch("PRISM_VERSION", "")
+gem "prism", prism_version unless prism_version.empty?
+
 group :benchmark do
   gem "benchmark-ips"
 end

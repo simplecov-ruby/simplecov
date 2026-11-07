@@ -16,6 +16,7 @@ jobs:
 
     env:
       BUNDLE_WITHOUT: "benchmark"
+      PRISM_VERSION: ${{ matrix.prism-version }}
     strategy:
       fail-fast: false
 
@@ -45,6 +46,13 @@ jobs:
             ruby-version: jruby-10.1
           - os: windows-latest
             ruby-version: jruby-10.1
+          # Without a lockfile every other entry resolves prism 2, so this one
+          # pins prism 1 to keep the oldest supported major version covered.
+          # Its ruby-version must not match an Ubuntu entry above, or include
+          # would merge the pin into that job instead of adding a new one.
+          - os: ubuntu-latest
+            ruby-version: ruby
+            prism-version: '~> 1.5'
 
     steps:
       - uses: actions/checkout@v7.0.1
