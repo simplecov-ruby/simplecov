@@ -16,8 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- SimpleCov allows `prism` 2. See [#1335].
-- SimpleCov depends on the `prism` gem. Ruby 3.4 and 4.0 ship Prism as a default gem, so nothing new installs there, but Ruby 4.1 ships it as a bundled gem, which a bundle can load only when something in it depends on Prism. Without it, a project's bundle on Ruby 4.1 silently lost what needs Prism: static branch and method coverage for files the suite never loaded, telling a newly loaded file's load-time lines from its method bodies under `track_tests`, and narrowing `simplecov affected` to the changed methods. Prism still loads lazily, so a Ruby that cannot load it (JRuby on Windows) keeps working without those features.
+- SimpleCov depends on the `prism` gem, version 1.5 or later, including 2. Ruby 3.4 and 4.0 ship Prism as a default gem, so nothing new installs there, but Ruby 4.1 ships it as a bundled gem, which a bundle can load only when something in it depends on Prism. Without it, a project's bundle on Ruby 4.1 silently lost what needs Prism: static branch and method coverage for files the suite never loaded, telling a newly loaded file's load-time lines from its method bodies under `track_tests`, and narrowing `simplecov affected` to the changed methods. Prism still loads lazily, so a Ruby that cannot load it (JRuby on Windows) keeps working without those features. See [#1335].
 - The HTML report keeps a test file's own loading apart from its tests. The tests panel lists the files whose loading ran a line under their own note, and a line only loading ran counts as covered outside tests in the source view and the file list, like other load-time code. See [#1316].
 - `coverage.json` advances to schema 1.4. It adds the optional `contexts_dropped` string, saying why a run that tracked tests carries no `contexts`, and documents that a bare test file path in `contexts`, beside ids pointing into the same file, names that file's own loading rather than a test, now that `track_tests` records it. Schema 1.3 stays frozen for pinned consumers. See [#1316].
 - `track_tests` credits a test file with what it runs while it loads, before any of its tests run, under the file's path with no line number (`spec/user_spec.rb`). Code a spec file runs to define its examples, like shared examples or helpers called in `describe` bodies, belonged to no test, so `simplecov affected` fell back to the full suite for a change to it. Files first loaded while a test file loads still belong to no test, and RSpec's `before(:suite)` hooks belong to no test either. `simplecov tests --redundant` never lists a test file's loading as a redundant test, and `simplecov status` does not count it as a recorded test. Watching files load, and parsing each file a test loads first with Prism, cost nothing measurable: on SimpleCov's own suite under Ruby 4.1 (6,172 examples, three runs each), `track_tests` adds 6% to the suite's CPU time, where it added 20% before this release's attribution changes. See [#1316].
@@ -695,7 +694,6 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1308]: https://github.com/simplecov-ruby/simplecov/issues/1308
 [#1310]: https://github.com/simplecov-ruby/simplecov/issues/1310
 [#1312]: https://github.com/simplecov-ruby/simplecov/issues/1312
-[#1335]: https://github.com/simplecov-ruby/simplecov/issues/1335
 [#1316]: https://github.com/simplecov-ruby/simplecov/issues/1316
 [#1318]: https://github.com/simplecov-ruby/simplecov/issues/1318
 [#1319]: https://github.com/simplecov-ruby/simplecov/issues/1319
@@ -704,6 +702,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1322]: https://github.com/simplecov-ruby/simplecov/issues/1322
 [#1328]: https://github.com/simplecov-ruby/simplecov/issues/1328
 [#1334]: https://github.com/simplecov-ruby/simplecov/issues/1334
+[#1335]: https://github.com/simplecov-ruby/simplecov/issues/1335
 
 [@adam12]: https://github.com/adam12
 [@alexdeng-mp]: https://github.com/alexdeng-mp
