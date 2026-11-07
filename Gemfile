@@ -34,15 +34,23 @@ group :development do
     gem "steep", "~> 2.0", require: false
   end
 
-  gem "rubocop"
-  gem "rubocop-minitest"
-  gem "rubocop-performance"
-  gem "rubocop-rake"
-  gem "rubocop-rspec"
+  # PRISM_VERSION runs the suite against another prism, such as "~> 2.0" in
+  # the stable workflow. rubocop-ast holds prism to 1.x, so the linters stay
+  # out of that bundle.
+  prism_version = ENV.fetch("PRISM_VERSION", "")
+  if prism_version.empty?
+    gem "rubocop"
+    gem "rubocop-minitest"
+    gem "rubocop-performance"
+    gem "rubocop-rake"
+    gem "rubocop-rspec"
 
-  gem "standard", ">= 1.35.1"
-  gem "standard-performance"
-  gem "standard-rspec"
+    gem "standard", ">= 1.35.1"
+    gem "standard-performance"
+    gem "standard-rspec"
+  else
+    gem "prism", prism_version
+  end
 
   # Performance regression guards (rake duel): the benchmarks in duel/ run
   # on the main branch and the candidate side by side, and a slowdown fails.
@@ -52,11 +60,6 @@ group :development do
   gem "duel-retained"
   gem "stackprof", platforms: :mri
 end
-
-# CI resolves the newest gems, so one stable job sets PRISM_VERSION to keep
-# exercising the oldest prism major version the gemspec still allows.
-prism_version = ENV.fetch("PRISM_VERSION", "")
-gem "prism", prism_version unless prism_version.empty?
 
 group :benchmark do
   gem "benchmark-ips"
