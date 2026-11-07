@@ -35,11 +35,8 @@ module SandboxProject
     FileUtils.mkdir_p(sandbox_root)
     FileUtils.cp_r(source, sandbox_dir)
     scrub_untracked_coverage_dirs(source)
-
-    return unless gemfile_from
-
-    gemfile_source = File.join(PROJECT_ROOT, "test_projects", gemfile_from)
-    FileUtils.cp(Dir.glob("#{gemfile_source}/Gemfile*"), sandbox_dir)
+    copy_gemfile_from(gemfile_from) if gemfile_from
+    install_dependencies if file_exist?("Gemfile")
   end
 
   def configure_simplecov(framework, body)
@@ -219,6 +216,11 @@ module SandboxProject
       lock.flock(File::LOCK_EX)
       yield
     end
+  end
+
+  def copy_gemfile_from(fixture)
+    gemfile_source = File.join(PROJECT_ROOT, "test_projects", fixture)
+    FileUtils.cp(Dir.glob("#{gemfile_source}/Gemfile*"), sandbox_dir)
   end
 
   def scrub_untracked_coverage_dirs(source)

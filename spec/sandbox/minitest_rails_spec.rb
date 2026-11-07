@@ -7,7 +7,6 @@ RSpec.describe "Rails Minitest integration", :sandbox do
   context "with the fixture as written" do
     before do
       setup_project("rails/minitest_rails")
-      install_dependencies
     end
 
     let!(:result) { run_command_and_expect_success("bin/rails test", timeout: 120) }
@@ -46,7 +45,6 @@ RSpec.describe "Rails Minitest integration", :sandbox do
           parallelize_teardown { SimpleCov.result }
         end
       RUBY
-      install_dependencies
     end
 
     let!(:result) { run_command_and_expect_success("bin/rails test", timeout: 120) }

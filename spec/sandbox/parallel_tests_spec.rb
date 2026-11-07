@@ -7,7 +7,6 @@ RSpec.describe "parallel_tests integration", :sandbox do
   before do
     skip "requires POSIX process forking" unless Process.respond_to?(:fork)
     setup_project("parallel_tests")
-    install_dependencies
   end
 
   def expect_line_results(data)
