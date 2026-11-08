@@ -138,6 +138,16 @@ RSpec.describe SimpleCov::CoverageViolations, mutant_expression: "SimpleCov::Cov
                  filename: "/abs/lib/a.rb", project_filename: "lib/a.rb"}])
     end
 
+    it "exempts a file whose line floor covers a oneshot line per-file minimum" do
+      baseline = SimpleCov::Baseline.new("lib/a.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 50, missed: 20)})
+      expect(described_class.minimum_by_file(result, {oneshot_line: 90}, baseline: baseline)).to eq([])
+    end
+
+    it "exempts a file whose line floor covers a oneshot line per-file missed cap" do
+      baseline = SimpleCov::Baseline.new("lib/a.rb" => {line: SimpleCov::Baseline::Floor.new(percent: 50, missed: 20)})
+      expect(described_class.maximum_missed_by_file(result, {oneshot_line: 5}, baseline: baseline)).to eq([])
+    end
+
     it "carries both filenames and both counts in a per-file missed-cap violation" do
       expect(described_class.maximum_missed_by_file(result, {line: 5}))
         .to eq([{criterion: :line, maximum: 5, actual: 20,

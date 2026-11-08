@@ -26,7 +26,7 @@ module SimpleCov
         result.files.flat_map do |file|
           effective = effective_per_file_thresholds(file, defaults, overrides)
           effective.filter_map do |criterion, expected|
-            next if baseline&.covers?(file.project_filename, criterion)
+            next if baseline&.covers?(file.project_filename, SimpleCov.coverage_statistics_key(criterion))
 
             file_minimum_violation(file, criterion, expected)
           end
@@ -59,7 +59,7 @@ module SimpleCov
         result.files.flat_map do |file|
           effective = effective_per_file_thresholds(file, defaults, overrides)
           effective.filter_map do |criterion, maximum|
-            next if baseline&.covers?(file.project_filename, criterion)
+            next if baseline&.covers?(file.project_filename, SimpleCov.coverage_statistics_key(criterion))
 
             file_missed_cap_violation(file, criterion, maximum)
           end
