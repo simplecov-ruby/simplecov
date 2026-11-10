@@ -98,9 +98,11 @@ module SimpleCov
         return true if static_container_literal?(node)
         return true if ELIMINABLE_READ_TYPES.any? { |type| node.instance_of?(type) }
 
-        node.instance_of?(Prism::ParenthesesNode) &&
-          node.body.instance_of?(Prism::StatementsNode) &&
-          node.body.body.all? { |statement| eliminable_when_discarded?(statement) }
+        return false unless node.instance_of?(Prism::ParenthesesNode)
+
+        body = node.body
+        body.instance_of?(Prism::StatementsNode) &&
+          body.body.all? { |statement| eliminable_when_discarded?(statement) }
       end
 
       def static_container_literal?(node)
