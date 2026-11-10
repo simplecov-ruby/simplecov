@@ -11,6 +11,7 @@ requires:
   - simplecov
   - simplecov/cli
   - simplecov/production
+  - simplecov/static_coverage_extractor/visitor
 environment_variables:
   # The suite's own-coverage dogfooding instruments every mutation fork
   # and enforces 100% line coverage at exit, which would abort mutant's
