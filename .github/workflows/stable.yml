@@ -46,13 +46,13 @@ jobs:
             ruby-version: jruby-10.1
           - os: windows-latest
             ruby-version: jruby-10.1
-          # rubocop-ast holds every other entry to prism 1.x, so this one
-          # resolves prism 2 without the linters (see the Gemfile). It names
-          # `ruby` rather than '4.0', since an include matching an existing
-          # entry would extend that entry instead of adding a job.
+          # Without a lockfile every other entry resolves prism 2, so this one
+          # pins prism 1 to keep the oldest supported major version covered.
+          # Its ruby-version must not match an Ubuntu entry above, or include
+          # would merge the pin into that job instead of adding a new one.
           - os: ubuntu-latest
             ruby-version: ruby
-            prism-version: '~> 2.0'
+            prism-version: '~> 1.5'
 
     steps:
       - uses: actions/checkout@v7.0.1
