@@ -80,7 +80,7 @@ jobs:
           fi
           echo "labels=$labels" >> "$GITHUB_OUTPUT"
       # (And whatever else your tests need set up: packages, services.)
-      - uses: ruby/setup-ruby@v1.336.0
+      - uses: ruby/setup-ruby@v1.338.0
         with:
           ruby-version: "3.4"
           bundler-cache: true
