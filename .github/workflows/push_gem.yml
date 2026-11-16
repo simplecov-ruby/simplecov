@@ -57,7 +57,19 @@ jobs:
       - name: Push gem
         run: gem push pkg/*.gem --attestation pkg/simplecov.gem.sigstore.json
       - name: Wait for release to propagate
-        run: gem exec rubygems-await pkg/*.gem
+        run: |
+          # (Until RubyGems.org has each gem's version, 5 minutes at most.)
+          for gem in pkg/*.gem; do
+            url=$(ruby -rrubygems/package -e 'spec = Gem::Package.new(ARGV[0]).spec; print "https://rubygems.org/api/v2/rubygems/#{spec.name}/versions/#{spec.version}.json?platform=#{spec.platform}"' "$gem")
+            for attempt in $(seq 60); do
+              curl --silent --fail --output /dev/null "$url" && break
+              if [ "$attempt" -eq 60 ]; then
+                echo "::error::$gem isn't on RubyGems.org after 5 minutes"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
 
       # release-gem used to open the GitHub Release; do it explicitly now. Mark
       # it as a pre-release when the gem version is a prerelease (e.g. 1.0.0.rc1)
