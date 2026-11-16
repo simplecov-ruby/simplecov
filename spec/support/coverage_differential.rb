@@ -8,7 +8,8 @@ module CoverageDifferential
   extend self
 
   def runtime_branches(programs)
-    Dir.mktmpdir do |dir|
+    Dir.mktmpdir do |tmpdir|
+      dir = File.realpath(tmpdir)
       programs.each { |name, source| File.write(File.join(dir, "#{name}.rb"), source) }
       runner = File.join(dir, "runner.rb")
       File.write(runner, runner_script(dir, programs.keys))
@@ -33,7 +34,7 @@ module CoverageDifferential
       names.each { |name| load File.join(#{dir.inspect}, "\#{name}.rb") }
       result = Coverage.result
       payload = names.to_h do |name|
-        branches = result.dig(File.join(#{dir.inspect}, "\#{name}.rb"), :branches) || {}
+        branches = result.fetch(File.join(#{dir.inspect}, "\#{name}.rb")).fetch(:branches)
         [name, branches.map { |condition, arms| [condition, arms.keys] }]
       end
       puts JSON.dump(payload)
