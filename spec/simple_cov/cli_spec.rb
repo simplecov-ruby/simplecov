@@ -793,7 +793,13 @@ RSpec.describe SimpleCov::CLI do
       after { FileUtils.remove_entry(dir) }
 
       it "ages each command against the time it recorded" do
-        File.write(path, JSON.dump("RSpec" => {"timestamp" => (Time.now - 300).to_i}))
+        # The clock, pinned partway through a second: the age is truncated
+        # to whole seconds, and a clock left running can tick past the
+        # 300th one before the age is taken.
+        now = 1_790_000_000.75
+        allow(Process).to receive(:clock_gettime).and_call_original
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_REALTIME).and_return(now)
+        File.write(path, JSON.dump("RSpec" => {"timestamp" => (now - 300).to_i}))
         expect(facts.readable_resultset(path)).to eq([{command: "RSpec", age: 300}])
       end
 
