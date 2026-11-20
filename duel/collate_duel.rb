@@ -37,7 +37,7 @@ end
 # first merge sets up its tables, and the merged coverage is turned back
 # into the shape a Result reads. The merge holds one resultset at a time,
 # whatever the run's size, so its memory is guarded too.
-duel "collate: merge two shards of 200 files", peak_memory: true do
+duel "collate: merge two shards of 200 files", judge: %i[timed counted peak_memory] do
   once { @shards = DuelFixtures.shards(200, 2).tap { |shards| SimpleCov::Combine::ResultsCombiner.combine(*shards) } }
   SimpleCov::Combine::ResultsCombiner.combine(*@shards)
 end

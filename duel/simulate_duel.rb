@@ -36,7 +36,7 @@ end
 # The whole of it for one file, as a merge calls it: reading the file, and
 # Ruby's own line stub, which compiles it, are system calls and Ruby's
 # work, so this one is judged on its counts.
-duel "simulate: an unloaded file", only: :count do
+duel "simulate: an unloaded file", judge: :counted do
   once { @path = DuelFixtures.source_path("typical.rb").tap { |path| SimpleCov::SimulateCoverage.call(path) } }
   SimpleCov::SimulateCoverage.call(@path)
 end

@@ -28,7 +28,7 @@ end
 # The merged Result of a collate, which drops a file that's gone, and
 # applies the configured filters. Checking that each file exists is a
 # system call, so this one is judged on its counts.
-duel "result: build the merged Result of 200 files", only: :count do
+duel "result: build the merged Result of 200 files", judge: :counted do
   SimpleCov::ResultMerger.create_result(["RSpec"], @coverage, tracked_files: [])
 end
 
@@ -61,7 +61,7 @@ duel "report: HTML data of 20 files" do |n|
   results.each { |result| DuelFixtures.file_sections(result, include_source: true) }
 end
 
-duel "report: the JSON document of 20 files", only: :count do |n|
+duel "report: the JSON document of 20 files", judge: :counted do |n|
   once { @small = @coverage.first(20).to_h }
   results = untimed { Array.new(n) { DuelFixtures.loaded_result(@small) } }
   results.each { |result| SimpleCov::Formatter::JSONFormatter.build_hash(result, include_source: false) }
