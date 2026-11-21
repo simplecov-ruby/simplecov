@@ -61,7 +61,7 @@ GEM
     parallel (2.3.0)
     parallel_tests (5.9.0)
       parallel
-    parser (3.3.13.0)
+    parser (3.3.14.0)
       ast (~> 2.4.1)
       racc
     power_assert (3.1.0)
@@ -90,7 +90,7 @@ GEM
       prism (>= 1.6.0)
       rbs (>= 4.0.0)
       tsort
-    regexp_parser (2.13.1)
+    regexp_parser (2.13.4)
     reline (0.7.0)
       io-console (~> 0.5)
     rspec (3.13.2)
@@ -117,9 +117,11 @@ GEM
       rubocop-ast (>= 1.49.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
-    rubocop-ast (1.51.0)
+    rubocop-ast (1.53.0)
+      ast (~> 2.4)
       parser (>= 3.3.7.2)
       prism (>= 1.7)
+      racc
     rubocop-capybara (2.23.0)
       lint_roller (~> 1.1)
       rubocop (~> 1.81)
@@ -148,7 +150,7 @@ GEM
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
     simpleidn (0.3.0)
-    sorbet-runtime (0.6.13650)
+    sorbet-runtime (0.6.13715)
     stackprof (0.2.28)
     standard (1.57.0)
       language_server-protocol (~> 3.17.0.2)

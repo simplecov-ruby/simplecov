@@ -2,7 +2,7 @@ PATH
   remote: ../..
   specs:
     simplecov (1.3.2)
-      prism (~> 1.5)
+      prism (>= 1.5, < 3)
 
 GEM
   remote: https://rubygems.org/
@@ -28,16 +28,16 @@ GEM
       cucumber-gherkin (> 36, < 43)
       cucumber-messages (> 31, < 35)
       cucumber-tag-expressions (> 6, < 12)
-    cucumber-cucumber-expressions (20.1.0)
+    cucumber-cucumber-expressions (20.2.0)
       bigdecimal
     cucumber-gherkin (42.0.1)
       cucumber-messages (>= 34, < 35)
-    cucumber-html-formatter (24.2.0)
-      cucumber-messages (> 23, < 35)
+    cucumber-html-formatter (24.4.0)
+      cucumber-messages (> 23, < 36)
     cucumber-messages (34.2.1)
-    cucumber-query (16.2.0)
+    cucumber-query (16.4.0)
       cucumber-messages (>= 34.1, < 36)
-    cucumber-tag-expressions (11.0.1)
+    cucumber-tag-expressions (11.2.0)
     diff-lcs (1.6.2)
     drb (2.2.3)
     ffi (1.17.4)
@@ -59,7 +59,15 @@ GEM
       prism (>= 1.5, < 3)
     multi_test (2.0.0)
     power_assert (3.1.0)
-    prism (1.9.0)
+    prism (2.1.0)
+    prism (2.1.0-aarch64-linux-gnu)
+    prism (2.1.0-aarch64-linux-musl)
+    prism (2.1.0-arm-linux-gnu)
+    prism (2.1.0-arm-linux-musl)
+    prism (2.1.0-arm64-darwin)
+    prism (2.1.0-x86_64-darwin)
+    prism (2.1.0-x86_64-linux-gnu)
+    prism (2.1.0-x86_64-linux-musl)
     rake (13.4.2)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
@@ -109,12 +117,12 @@ CHECKSUMS
   cucumber (12.0.1) sha256=21a2da0763280c97cdd706b2f5be3c1631fe97da5cedc8e0aea40f1b0fa34c8c
   cucumber-ci-environment (13.0.0) sha256=f1c110943e07f72124b43c50c98d96016a77141a4bd45ebee0b8c877d8c264fb
   cucumber-core (20.1.0) sha256=1a2727ae27705f45c7732b8f1f19c0cf068696cf6bac9ccee2d62b575c7cf9d5
-  cucumber-cucumber-expressions (20.1.0) sha256=6cc4b5880ba1c3991292579d0451af0f44814f5a1a13d7823317a09705eb15d4
+  cucumber-cucumber-expressions (20.2.0) sha256=a993cc2976da3442a4f902a691ef91d79a3e985805674dc0c8713425d16014c4
   cucumber-gherkin (42.0.1) sha256=427efa1996770fd91a6e860e3f2e8b644108682256f4189db494fe85f4595e2f
-  cucumber-html-formatter (24.2.0) sha256=6edc50730e459f9bfea0b0dadfaf4f4066d7083094382ac0d703926414c9cce0
+  cucumber-html-formatter (24.4.0) sha256=eba488433694d8707952972848fa25ecac236091515910d4da56624455efba7d
   cucumber-messages (34.2.1) sha256=1de715dfeaa237939b8ab008987d3fbf3118ba32a86d844fd1503396ecc5bf7e
-  cucumber-query (16.2.0) sha256=27813b49913fb6d90bf851853604ecd3fb5c6ea8638d24bd5ceb9e192d8142d9
-  cucumber-tag-expressions (11.0.1) sha256=ead62a1c6bb613de1f5469975a9dd11ba2ced7322a6c8837cdde9db33dcbeac5
+  cucumber-query (16.4.0) sha256=fe71ab0b45c4149dd35508a5c68e3d1bd7c37b4b7e1e65399f26e261ac443628
+  cucumber-tag-expressions (11.2.0) sha256=b010de26fed82662a311e95b8bc97d621902594e4f42df827a9892bcf186b0ae
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   ffi (1.17.4) sha256=bcd1642e06f0d16fc9e09ac6d49c3a7298b9789bcb58127302f934e437d60acf
@@ -134,7 +142,15 @@ CHECKSUMS
   minitest (6.1.0) sha256=ff373595aa8888631e8a5463986a76b3845346ae6d7fa46e139c1633d418076e
   multi_test (2.0.0) sha256=5fe1bf72a3b6f65ebeb0ee5c62c6fbd4cf4e180f06e7213f02ac60847ca094e7
   power_assert (3.1.0) sha256=fefe98ed5d3140628138f3f9f9194d6ece01f1320e69700d3c928adca7518251
-  prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
+  prism (2.1.0) sha256=1c0a7c6dea0e93183390fb123f007564dbe663198e2f86ad87204151147601f3
+  prism (2.1.0-aarch64-linux-gnu) sha256=808dddc72def68e1a0463689414c97e0ba211938eddbab05387a4844aa2b3ec2
+  prism (2.1.0-aarch64-linux-musl) sha256=dd1a0732620c1e575dabb07a297a62911fabd72f8e20ce850b522a866f877930
+  prism (2.1.0-arm-linux-gnu) sha256=96b2426b9dbab05448c4add735619929042be3cd7e871ff186468121b62bcfa8
+  prism (2.1.0-arm-linux-musl) sha256=00ef918e42a3dc98f11a461bf473586a3424b0f78bee8a4e43b5a65a5f5e2cd0
+  prism (2.1.0-arm64-darwin) sha256=2d0c2e3e011cfd89c041940907d3ff3def379d7b0f2ba158d1d42238e8ad8afc
+  prism (2.1.0-x86_64-darwin) sha256=6c645d8e6afc742956c7518220ce5106367727c4d9980ac9ab386d55004ddab4
+  prism (2.1.0-x86_64-linux-gnu) sha256=b2b647afce09551e650b8bb3e2fc91d7d73d392a09534ca307ec0d619c33bfd4
+  prism (2.1.0-x86_64-linux-musl) sha256=249f45981726923e259b927902246219fa25ad10a76f43849c9aee1a3d3ec5b8
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
   rspec-core (3.13.7) sha256=c64ff16d9788119805cbc6a3f4b6d87cc22417c2d25976a3330de136896b5469
