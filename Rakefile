@@ -177,11 +177,24 @@ namespace :benchmark do
 end
 
 namespace :test_projects do
-  desc "Run bundle update in each test project"
-  task :update do
+  # The gems of +given+ that +lockfile+ has, to update: every one (--all)
+  # where none are given, and nil where it has none of them, as Bundler
+  # fails on a gem the bundle doesn't have.
+  gems_to_update = lambda do |lockfile, given|
+    next ["--all"] if given.empty?
+
+    locked = Bundler::LockfileParser.new(File.read(lockfile)).specs.map(&:name)
+    (given & locked).then { |gems| gems unless gems.empty? }
+  end
+
+  # `rake test_projects:update[rack,rails]` updates just those gems, in
+  # each test project that has them.
+  desc "Run bundle update in each test project (all gems, or the ones given)"
+  task :update do |_task, args|
     Dir.glob("test_projects/**/Gemfile.lock").each do |lockfile|
+      gems = gems_to_update.call(lockfile, args.extras) or next
       Dir.chdir(File.dirname(lockfile)) do
-        Bundler.with_unbundled_env { sh "bundle", "update", "--all" }
+        Bundler.with_unbundled_env { sh "bundle", "update", *gems }
       end
     end
   end
