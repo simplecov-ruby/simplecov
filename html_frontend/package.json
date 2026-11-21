@@ -3,10 +3,10 @@
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.4",
     "@stryker-mutator/core": "^10.1.1",
-    "@types/bun": "^1.4.4",
+    "@types/bun": "^1.4.5",
     "esbuild": "^0.28.2",
     "highlight.js": "^11.12.0",
-    "oxlint": "^1.93.0",
+    "oxlint": "^1.94.0",
     "typescript": "^7.0.2"
   },
   "scripts": {
