@@ -80,6 +80,19 @@ RSpec.describe "track_tests", :sandbox do
           def short?(flag) = (flag || call) && true
         end
       RUBY
+      write_file("lib/eager.rb", <<~RUBY)
+        class Eager
+          def presence_only? = true
+        end
+      RUBY
+      write_file("spec/eager_spec.rb", <<~RUBY)
+        require "spec_helper"
+        require_relative "../lib/eager"
+
+        RSpec.describe Eager do
+          it("uses presence only") { expect(Eager.new.presence_only?).to be(true) }
+        end
+      RUBY
       write_file("spec/zz_defining_spec.rb", <<~RUBY)
         require "spec_helper"
 
@@ -199,6 +212,11 @@ RSpec.describe "track_tests", :sandbox do
     it "credits a test with a one-line method it ran in a file it loaded" do
       expect(stored_contexts.covering(File.join(sandbox_dir, "lib/lazy.rb"), 6))
         .to eq(["spec/lazy_spec.rb:4"])
+    end
+
+    it "credits a test with a one-line method loaded before the test began" do
+      expect(stored_contexts.covering(File.join(sandbox_dir, "lib/eager.rb"), 2))
+        .to include("spec/eager_spec.rb:5")
     end
 
     it "credits each shared example to the spec file that includes it, under an id rspec can rerun it by" do

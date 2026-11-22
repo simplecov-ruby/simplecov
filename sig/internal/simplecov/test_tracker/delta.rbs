@@ -19,6 +19,12 @@ module SimpleCov
 
       def called: (Integer mask, Array[Integer?] lines) -> Integer
 
+      def method_delta: (Hash[untyped, Integer]? before_methods, Hash[untyped, Integer]? after_methods) -> Integer
+
+      def one_line_method_counts: (Hash[untyped, Integer]? methods) -> Hash[Integer, Integer]
+
+      def methods_in: (untyped file_coverage) -> Hash[untyped, Integer]?
+
       def lines_in: (untyped file_coverage) -> Array[Integer?]?
 
       def line_delta: (Array[Integer?]? before_lines, Array[Integer?] after_lines) -> Integer

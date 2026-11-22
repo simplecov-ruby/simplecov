@@ -2709,6 +2709,25 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(Coverage).to have_received(:start).with({lines: true, methods: true})
     end
 
+    context "when tracking tests" do
+      before { described_class.track_tests }
+      after { described_class.track_tests false }
+
+      it "starts method counters" do
+        allow(Coverage).to receive(:start)
+        allow(described_class).to receive(:start_test_tracking)
+        described_class.send :start_coverage_measurement
+        expect(Coverage).to have_received(:start).with({lines: true, methods: true})
+      end
+
+      it "leaves unsupported method counters off" do
+        allow(Coverage).to receive(:start)
+        allow(described_class).to receive_messages(start_test_tracking: nil, method_coverage_supported?: false)
+        described_class.send :start_coverage_measurement
+        expect(Coverage).to have_received(:start).with({lines: true})
+      end
+    end
+
     it "passes only the last requested line mode to Coverage.start" do
       allow(Coverage).to receive(:start)
       allow(described_class).to receive(:coverage_criterion_supported?).and_return(true)

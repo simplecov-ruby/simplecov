@@ -8,13 +8,14 @@ module SimpleCov
   # Any other runner can wrap its own units of work with
   # `SimpleCov.track_test`.
   #
-  # The contract is `track(id) { }`: attribute the lines the block executed to
-  # `id`, or abstain (`recorded_map` nil), never guess. How the lines are
-  # obtained is this class's private business, and today's engine is a
-  # peek-diff: sample `Coverage.peek_result` around the block and take the
-  # lines whose execution count grew. If Ruby's Coverage ever grows native
-  # contexts the engine is what gets replaced; the contract, the `ContextMap`,
-  # and everything downstream stay.
+  # The contract is `track(id) { }`: attribute the source lines the block
+  # executed to `id`, or abstain (`recorded_map` nil), never guess. How the
+  # lines are obtained is this class's private business, and today's engine is
+  # a peek-diff: sample `Coverage.peek_result` around the block, take the lines
+  # whose execution count grew, and use method counts for one-line methods
+  # whose line count cannot grow. If Ruby's Coverage ever grows native contexts
+  # the engine is what gets replaced; the contract, the `ContextMap`, and
+  # everything downstream stay.
   #
   # Two limits are the peek-diff engine's, not the contract's. It needs
   # per-line execution counts, which is why `track_tests` refuses to run under

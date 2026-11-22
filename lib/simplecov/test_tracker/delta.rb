@@ -2,9 +2,10 @@
 
 module SimpleCov
   class TestTracker
-    # The peek-diff arithmetic behind the tracker: which in-root lines grew
-    # between two coverage snapshots. This is the part a native
-    # `Coverage.supported?(:contexts)` engine would replace outright.
+    # The peek-diff arithmetic behind the tracker: which in-root lines grew,
+    # or belong to one-line methods called between two coverage snapshots. This
+    # is the part a native `Coverage.supported?(:contexts)` engine would replace
+    # outright.
     class Delta
       ONE_BIT = "1".ord
 
@@ -31,6 +32,7 @@ module SimpleCov
           next unless lines
 
           bitmap = line_delta(lines_in(before[path]), lines)
+          bitmap |= method_delta(methods_in(before[path]), methods_in(file_coverage))
           bitmap = own_lines(path, bitmap, lines) unless before.key?(path)
           changed[path] = bitmap unless bitmap.zero?
         end
@@ -57,6 +59,26 @@ module SimpleCov
           count = lines.fetch(index) #: Integer
           (mask[index].equal?(1) && count > 1) ? 1 << index : 0
         end
+      end
+
+      def method_delta(before_methods, after_methods)
+        before_counts = one_line_method_counts(before_methods)
+        one_line_method_counts(after_methods).sum do |line, count|
+          (count > before_counts.fetch(line, 0)) ? 1 << (line - 1) : 0
+        end
+      end
+
+      def one_line_method_counts(methods)
+        return {} unless methods
+
+        methods.each_with_object(Hash.new(0)) do |(location, count), totals|
+          start_line = location.fetch(2)
+          totals[start_line] += count if start_line.eql?(location.fetch(4))
+        end
+      end
+
+      def methods_in(file_coverage)
+        file_coverage[:methods] if file_coverage.instance_of?(Hash)
       end
 
       # A peek's per-file data is a criteria Hash when Coverage was started with a

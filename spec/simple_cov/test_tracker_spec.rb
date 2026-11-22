@@ -1626,7 +1626,15 @@ RSpec.describe SimpleCov::TestTracker do
 
     let(:walker) { described_class.new(root_regex: /\A#{Regexp.escape("/app")}/) }
 
-    def lines(counts) = {lines: counts}
+    def lines(counts, methods: nil)
+      coverage = {lines: counts}
+      coverage[:methods] = methods if methods
+      coverage
+    end
+
+    def method_at(line, receiver: Object, finish: line)
+      [receiver, :call, line, 2, finish, 20]
+    end
 
     it "sets a bit for each line whose count grew, lowest line as the lowest bit" do
       before = {"/app/a.rb" => lines([1, 0, nil, 2])}
@@ -1635,10 +1643,67 @@ RSpec.describe SimpleCov::TestTracker do
       expect(delta.call(before, after)).to eq("/app/a.rb" => 0b1010)
     end
 
-    it "leaves out a file no line of which grew" do
-      unchanged = {"/app/a.rb" => lines([1, 2, 3])}
+    it "leaves out a file whose line and method counts did not grow" do
+      unchanged = {"/app/a.rb" => lines([1, 2, 3], methods: {method_at(2) => 1})}
 
       expect(delta.call(unchanged, unchanged)).to eq({})
+    end
+
+    it "sets the source line of a called one-line method whose line count stood still" do
+      before = {"/app/a.rb" => lines([1, 1, 1], methods: {method_at(3) => 0})}
+      after = {"/app/a.rb" => lines([1, 1, 1], methods: {method_at(3) => 1})}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b100)
+    end
+
+    it "attributes a one-line method first seen after it was called" do
+      before = {"/app/a.rb" => lines([1, 1])}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b10)
+    end
+
+    it "does not attribute a one-line method first seen but not called" do
+      before = {"/app/a.rb" => lines([1, 1])}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 0})}
+
+      expect(delta.call(before, after)).to eq({})
+    end
+
+    it "keeps a line claimed by both line and method counters" do
+      before = {"/app/a.rb" => lines([1, 0], methods: {method_at(2) => 0})}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b10)
+    end
+
+    it "does not guess which lines of a called multi-line method ran" do
+      before = {"/app/a.rb" => lines([1, 1, 1], methods: {method_at(2, finish: 3) => 0})}
+      after = {"/app/a.rb" => lines([1, 1, 1], methods: {method_at(2, finish: 3) => 1})}
+
+      expect(delta.call(before, after)).to eq({})
+    end
+
+    it "compares method counts by source location when Ruby rebuilds their keys" do
+      before = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2, receiver: String) => 1})}
+
+      expect(delta.call(before, after)).to eq({})
+    end
+
+    it "sums methods that share one source location" do
+      before_methods = {method_at(2) => 1, method_at(2, receiver: String) => 0}
+      after_methods = {method_at(2, receiver: Array) => 2}
+
+      expect(delta.call({"/app/a.rb" => lines([1, 1], methods: before_methods)},
+        {"/app/a.rb" => lines([1, 1], methods: after_methods)})).to eq("/app/a.rb" => 0b10)
+    end
+
+    it "leaves out a one-line method whose call count fell" do
+      before = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 2})}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+
+      expect(delta.call(before, after)).to eq({})
     end
 
     it "claims every executed line of a file the test loaded itself" do
