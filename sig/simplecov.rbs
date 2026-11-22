@@ -95,7 +95,7 @@ module SimpleCov
 
   def self.merge_own_slice: () -> untyped
 
-  def self.build_result: (untyped raw, untyped coverage, not_loaded: untyped, tracked: untyped, report: untyped) -> Result
+  def self.build_result: (untyped coverage, contexts: ContextMap?, not_loaded: untyped, tracked: untyped, report: untyped) -> Result
 
   def self.result?: () -> (Result | false | nil)
 

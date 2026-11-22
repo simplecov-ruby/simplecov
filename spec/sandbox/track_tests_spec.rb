@@ -219,6 +219,12 @@ RSpec.describe "track_tests", :sandbox do
         .to include("spec/eager_spec.rb:5")
     end
 
+    it "leaves internally collected method counters out of the stored coverage" do
+      coverage = resultset_json.values.first.fetch("coverage")
+
+      expect(coverage.values.flat_map(&:keys)).not_to include("methods")
+    end
+
     it "credits each shared example to the spec file that includes it, under an id rspec can rerun it by" do
       square = File.join(sandbox_dir, "lib/square.rb")
       expect([stored_contexts.covering(square, 3), stored_contexts.covering(square, 7)])

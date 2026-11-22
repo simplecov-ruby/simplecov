@@ -168,20 +168,22 @@ module SimpleCov
       # unloaded `.rb` files.
       ViewCoverage.compile_unrendered
       raw = UselessResultsRemover.call(Coverage.result)
+      contexts = test_tracker&.recorded_map(closing: raw)
       adapted = ResultAdapter.call(raw)
+      adapted.each_value { |file| file.delete(:methods) } unless coverage_criterion_enabled?(:method)
       # `Result#to_hash` serializes coverage after filtering, so a file this
       # process loaded and then filtered out would otherwise be recorded as
       # tracked while absent from the stored coverage, and the merge would
       # simulate it back in as never-loaded (#1250).
       tracked = tracked_file_paths - adapted.keys
       result, not_loaded = inject_unloaded ? inject_unloaded_files(adapted, tracked) : [adapted, Set.new]
-      current_run.result = build_result(raw, result, not_loaded: not_loaded, tracked: tracked, report: report)
+      current_run.result = build_result(result, contexts:, not_loaded: not_loaded, tracked: tracked, report: report)
     end
 
-    def build_result(raw, coverage, not_loaded:, tracked:, report:)
+    def build_result(coverage, contexts:, not_loaded:, tracked:, report:)
       Result.new(
         coverage, not_loaded_files: not_loaded, tracked_files: tracked, run_id: run_id,
-        worker_id: worker_id, contexts: test_tracker&.recorded_map(closing: raw),
+        worker_id: worker_id, contexts: contexts,
         contexts_dropped: test_tracker&.dropped_reason, report: report
       )
     end

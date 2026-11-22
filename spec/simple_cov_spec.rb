@@ -610,6 +610,61 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(SimpleCov::ResultAdapter).to have_received(:call).with(raw)
     end
 
+    context "when method counters were collected only to track tests" do
+      let(:method_location) { [Object, :call, 1, 0, 1, 10] }
+      let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
+      let(:tracker) { instance_double(SimpleCov::TestTracker, dropped_reason: nil) }
+      let(:map) { SimpleCov::ContextMap.new }
+      let(:received_methods) { [] }
+
+      before do
+        described_class.track_tests
+        described_class.instance_variable_set(:@test_tracker, tracker)
+        allow(tracker).to receive(:recorded_map) do |closing:|
+          received_methods << closing.fetch(sample).key?(:methods)
+          map
+        end
+      end
+
+      after do
+        described_class.track_tests false
+        described_class.remove_instance_variable(:@test_tracker)
+      end
+
+      it "gives the counters to test tracking" do
+        process_slice
+
+        expect(received_methods).to eq([true])
+      end
+
+      it "leaves the counters out of the result" do
+        process_slice
+
+        expect(described_class.result.original_result.fetch(sample)).not_to have_key(:methods)
+      end
+    end
+
+    context "when method coverage was explicitly enabled with test tracking" do
+      let(:method_location) { [Object, :call, 1, 0, 1, 10] }
+      let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
+
+      before do
+        described_class.track_tests
+        described_class.enable_coverage :method
+      end
+
+      after do
+        described_class.track_tests false
+        described_class.disable_coverage :method
+      end
+
+      it "keeps method counters in the result" do
+        process_slice
+
+        expect(described_class.result.original_result.fetch(sample)).to have_key(:methods)
+      end
+    end
+
     context "when it was asked to inject the tracked files" do
       before do
         described_class.cover "spec/fixtures/*.rb"
