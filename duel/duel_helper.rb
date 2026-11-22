@@ -85,22 +85,82 @@ module DuelFixtures
   # the lock, and find it written.
   def project(files)
     root = File.join(GENERATED, "project-#{files}")
-    FileUtils.mkdir_p(GENERATED)
-    File.open(File.join(GENERATED, ".lock"), File::RDWR | File::CREAT) do |lock|
-      lock.flock(File::LOCK_EX)
-      write_project(root, structure(files)) unless File.exist?(File.join(root, ".complete"))
-    end
+    generate(root) { write_project(root, structure(files)) }
     [root, shards(files, 1, root: root).first]
   end
 
+  def generate(dir)
+    FileUtils.mkdir_p(GENERATED)
+    File.open(File.join(GENERATED, ".lock"), File::RDWR | File::CREAT) do |lock|
+      lock.flock(File::LOCK_EX)
+      next if File.exist?(File.join(dir, ".complete"))
+
+      FileUtils.rm_rf(dir)
+      yield
+      File.write(File.join(dir, ".complete"), "")
+    end
+  end
+
   def write_project(root, entries)
-    FileUtils.rm_rf(root)
     entries.each do |entry|
       path = File.join(root, entry.relative_path)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, source_body(entry.lines))
     end
-    File.write(File.join(root, ".complete"), "")
+  end
+
+  # A project of `files` classes that Ruby can load and a test can call,
+  # beside as many files of gems, outside the project, as `peeks` puts
+  # among its files. Its root, and every file, gems' first.
+  def callable_project(files)
+    dir = File.join(GENERATED, "callable-#{files}")
+    generate(dir) do
+      files.times do |index|
+        write_source(File.join(dir, "gems", "gem_#{index}", "lib", "gem_#{index}.rb"), gem_source(index))
+        write_source(File.join(dir, "project", "app", "models", "model_#{index}.rb"), model_source(index))
+      end
+    end
+    [File.join(dir, "project"), Dir[File.join(dir, "gems", "**", "*.rb")].sort + Dir[File.join(dir, "project", "**", "*.rb")].sort]
+  end
+
+  def write_source(path, source)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, source)
+  end
+
+  def gem_source(index)
+    <<~RUBY
+      module DuelGem#{index}
+        def self.normalize(value) = value.to_s.strip
+        def self.blank?(value) = value.nil? || value.to_s.empty?
+
+        def self.coerce(value)
+          return 0 if blank?(value)
+
+          Integer(value)
+        end
+      end
+    RUBY
+  end
+
+  # Half of a model's methods are one-liners, as in an application that
+  # writes endless methods.
+  def model_source(index)
+    methods = Array.new(6) do |method|
+      <<~RUBY.gsub(/^/, "  ")
+        def label_#{method} = DuelGem#{index}.normalize(@value)
+        def present_#{method}? = !DuelGem#{index}.blank?(@value)
+
+        def total_#{method}(other)
+          if other.positive?
+            DuelGem#{index}.coerce(@value) + other
+          else
+            other
+          end
+        end
+      RUBY
+    end
+    "class DuelModel#{index}\n  def initialize(value)\n    @value = value\n  end\n\n#{methods.join("\n")}end\n"
   end
 
   # Source as long as the coverage says: a statement where Coverage counted

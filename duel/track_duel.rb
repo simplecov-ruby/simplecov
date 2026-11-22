@@ -22,6 +22,13 @@ end
 
 # A suite's map of 250 tests over 200 files, written into the resultset,
 # and read back for a merge, which records each test's lines again.
+# The snapshots themselves, which the benchmark above is handed: a suite
+# whose process SimpleCov started Coverage in, for track_tests. A snapshot
+# copies every loaded file's counts, so what Coverage is asked to count is
+# paid on both sides of every test.
+duel_process "track: run 250 tests over 200 files and their gems",
+  code: %(load #{File.expand_path("track_suite.rb", __dir__).inspect})
+
 duel "contexts: serialize a map of 250 tests" do
   once { @map = SimpleCov::ContextMap.from_hash(DuelFixtures.context_map_hash(200, 250)) }
   @map.to_h
