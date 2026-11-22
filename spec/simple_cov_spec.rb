@@ -615,14 +615,12 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
       let(:tracker) { instance_double(SimpleCov::TestTracker, dropped_reason: nil) }
       let(:map) { SimpleCov::ContextMap.new }
-      let(:received_methods) { [] }
 
       before do
         described_class.track_tests
         described_class.instance_variable_set(:@test_tracker, tracker)
         allow(tracker).to receive(:recorded_map) do |closing:|
-          received_methods << closing.fetch(sample).key?(:methods)
-          map
+          map if closing.fetch(sample).key?(:methods)
         end
       end
 
@@ -631,10 +629,10 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
         described_class.remove_instance_variable(:@test_tracker)
       end
 
-      it "gives the counters to test tracking" do
+      it "records the contexts built from the counters" do
         process_slice
 
-        expect(received_methods).to eq([true])
+        expect(described_class.result.contexts).to be(map)
       end
 
       it "leaves the counters out of the result" do
@@ -644,19 +642,12 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       end
     end
 
-    context "when method coverage was explicitly enabled with test tracking" do
+    context "when method coverage was explicitly enabled" do
       let(:method_location) { [Object, :call, 1, 0, 1, 10] }
       let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
 
-      before do
-        described_class.track_tests
-        described_class.enable_coverage :method
-      end
-
-      after do
-        described_class.track_tests false
-        described_class.disable_coverage :method
-      end
+      before { described_class.enable_coverage :method }
+      after { described_class.disable_coverage :method }
 
       it "keeps method counters in the result" do
         process_slice

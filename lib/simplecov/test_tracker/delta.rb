@@ -2,10 +2,8 @@
 
 module SimpleCov
   class TestTracker
-    # The peek-diff arithmetic behind the tracker: which in-root lines grew,
-    # or belong to one-line methods called between two coverage snapshots. This
-    # is the part a native `Coverage.supported?(:contexts)` engine would replace
-    # outright.
+    # Finds in-root lines whose line or one-line method counts grew between
+    # coverage snapshots. A native contexts engine would replace this class.
     class Delta
       ONE_BIT = "1".ord
 
@@ -73,14 +71,12 @@ module SimpleCov
         end
       end
 
-      # mutant:disable -- unchanged files dominate each snapshot; Hash#== avoids
-      # allocating two aggregate hashes per file and keeps the tracking benchmark flat.
+      # mutant:disable -- Hash#== avoids aggregates for unchanged files.
       def same_methods?(before_methods, after_methods)
         before_methods == after_methods
       end
 
-      # mutant:disable -- Coverage criteria stay fixed while a tracker is alive;
-      # checking their shape once keeps the per-test diff on its benchmark budget.
+      # mutant:disable -- Coverage criteria stay fixed while a tracker lives.
       def method_coverage?(coverage)
         if @method_coverage.nil? && (first = coverage.each_value.first)
           @method_coverage = first.instance_of?(Hash) && first.key?(:methods)

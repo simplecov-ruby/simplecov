@@ -1706,11 +1706,11 @@ RSpec.describe SimpleCov::TestTracker do
     end
 
     it "sums methods that share one source location" do
-      before_methods = {method_at(2) => 1, method_at(2, receiver: String) => 0}
+      before_methods = {method_at(2) => 1, method_at(2, receiver: String) => 1}
       after_methods = {method_at(2, receiver: Array) => 2}
 
       expect(delta.call({"/app/a.rb" => lines([1, 1], methods: before_methods)},
-        {"/app/a.rb" => lines([1, 1], methods: after_methods)})).to eq("/app/a.rb" => 0b10)
+        {"/app/a.rb" => lines([1, 1], methods: after_methods)})).to eq({})
     end
 
     it "leaves out a one-line method whose call count fell" do
