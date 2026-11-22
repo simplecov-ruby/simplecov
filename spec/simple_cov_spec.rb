@@ -2770,7 +2770,7 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
 
       it "starts method counters" do
         allow(Coverage).to receive(:start)
-        allow(described_class).to receive(:start_test_tracking)
+        allow(described_class).to receive_messages(start_test_tracking: nil, method_coverage_supported?: true)
         described_class.send :start_coverage_measurement
         expect(Coverage).to have_received(:start).with({lines: true, methods: true})
       end

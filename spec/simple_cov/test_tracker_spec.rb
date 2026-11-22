@@ -1656,11 +1656,25 @@ RSpec.describe SimpleCov::TestTracker do
       expect(delta.call(before, after)).to eq("/app/a.rb" => 0b100)
     end
 
+    it "detects method coverage after an empty snapshot" do
+      delta.call({}, {})
+      before = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 0})}
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+
+      expect(delta.call(before, after)).to eq("/app/a.rb" => 0b10)
+    end
+
     it "attributes a one-line method first seen after it was called" do
       before = {"/app/a.rb" => lines([1, 1])}
       after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
 
       expect(delta.call(before, after)).to eq("/app/a.rb" => 0b10)
+    end
+
+    it "attributes a one-line method in a file first seen after it was called" do
+      after = {"/app/a.rb" => lines([1, 1], methods: {method_at(2) => 1})}
+
+      expect(delta.call({}, after)).to eq("/app/a.rb" => 0b11)
     end
 
     it "does not attribute a one-line method first seen but not called" do
@@ -1743,6 +1757,15 @@ RSpec.describe SimpleCov::TestTracker do
       walker.call(before, after)
 
       expect(walker).not_to have_received(:grown_bitmap)
+    end
+
+    it "does not aggregate the methods of a file nothing touched" do
+      unchanged = {"/app/a.rb" => lines([1, 2], methods: {method_at(2) => 1})}
+      allow(walker).to receive(:one_line_method_counts).and_call_original
+
+      walker.call(unchanged, unchanged)
+
+      expect(walker).not_to have_received(:one_line_method_counts)
     end
 
     it "walks the lines of a file a test touched" do

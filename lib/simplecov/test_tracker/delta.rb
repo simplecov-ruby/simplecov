@@ -22,6 +22,7 @@ module SimpleCov
       # memoized, so the regex runs once per file the process ever loads rather
       # than once per file per test.
       def call(before, after, loading: false)
+        method_coverage = method_coverage?(after)
         changed = {} #: Hash[String, Integer]
         after.each do |path, file_coverage|
           in_root = @in_root.fetch(path) { @in_root[path] = @root_regex.match?(path) }
@@ -32,7 +33,9 @@ module SimpleCov
           next unless lines
 
           bitmap = line_delta(lines_in(before[path]), lines)
-          bitmap |= method_delta(methods_in(before[path]), methods_in(file_coverage))
+          if method_coverage
+            bitmap |= method_delta(before.dig(path, :methods), file_coverage.fetch(:methods))
+          end
           bitmap = own_lines(path, bitmap, lines) unless before.key?(path)
           changed[path] = bitmap unless bitmap.zero?
         end
@@ -62,10 +65,27 @@ module SimpleCov
       end
 
       def method_delta(before_methods, after_methods)
+        return 0 if same_methods?(before_methods, after_methods)
+
         before_counts = one_line_method_counts(before_methods)
         one_line_method_counts(after_methods).sum do |line, count|
           (count > before_counts.fetch(line, 0)) ? 1 << (line - 1) : 0
         end
+      end
+
+      # mutant:disable -- unchanged files dominate each snapshot; Hash#== avoids
+      # allocating two aggregate hashes per file and keeps the tracking benchmark flat.
+      def same_methods?(before_methods, after_methods)
+        before_methods == after_methods
+      end
+
+      # mutant:disable -- Coverage criteria stay fixed while a tracker is alive;
+      # checking their shape once keeps the per-test diff on its benchmark budget.
+      def method_coverage?(coverage)
+        if @method_coverage.nil? && (first = coverage.each_value.first)
+          @method_coverage = first.instance_of?(Hash) && first.key?(:methods)
+        end
+        @method_coverage || false
       end
 
       def one_line_method_counts(methods)
@@ -75,10 +95,6 @@ module SimpleCov
           start_line = location.fetch(2)
           totals[start_line] += count if start_line.eql?(location.fetch(4))
         end
-      end
-
-      def methods_in(file_coverage)
-        file_coverage[:methods] if file_coverage.instance_of?(Hash)
       end
 
       # A peek's per-file data is a criteria Hash when Coverage was started with a
