@@ -8224,6 +8224,13 @@ RSpec.describe SimpleCov::CLI do
         expect(parse_diff(diff)).to eq("lib/a.rb" => [2, 3, 4])
       end
 
+      it "keys a file under a directory with a space by its whole path" do
+        diff = "diff --git a/lib/my dir/a.rb b/lib/my dir/a.rb\n" \
+          "+++ b/lib/my dir/a.rb\t\n@@ -1 +2 @@\n+b\n"
+
+        expect(parse_diff(diff)).to eq("lib/my dir/a.rb" => [2])
+      end
+
       it "counts nothing for a hunk that only deletes" do
         diff = "diff --git a/lib/a.rb b/lib/a.rb\n+++ b/lib/a.rb\n@@ -1,2 +1,0 @@\n-a\n-b\n"
 
@@ -8408,6 +8415,14 @@ RSpec.describe SimpleCov::CLI do
 
       it "reads a header with nothing after the marker as no path at all" do
         expect(diff_path.call("+++")).to eq("")
+      end
+
+      it "drops the tab git ends a path that contains a space with" do
+        expect(diff_path.call("+++ b/lib/my dir/foo.rb\t\n")).to eq("lib/my dir/foo.rb")
+      end
+
+      it "keeps a tab that belongs to a quoted path" do
+        expect(diff_path.call(%(+++ "b/lib/a\\tb.rb"\n))).to eq("lib/a\tb.rb")
       end
 
       it "unquotes a header path git had to quote" do

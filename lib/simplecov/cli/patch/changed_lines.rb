@@ -118,8 +118,13 @@ module SimpleCov
           (changes[path] ||= []).concat((start...(start + count)).to_a)
         end
 
+        # git ends an unquoted `---`/`+++` path that contains a space with a tab,
+        # so the reader can tell where the name stops. Left on, it is part of the
+        # path we return, and a file under a directory with a space then matches
+        # no report key. The tab is stripped before unquoting because a name that
+        # really ends in one is quoted by git instead.
         def diff_path(line)
-          raw = unquote(line[4..].to_s.chomp)
+          raw = unquote(line[4..].to_s.chomp.delete_suffix("\t"))
           # git's own literal token for an absent side, not this host's null
           # device, so File::NULL (which is "NUL" on Windows) would be wrong.
           return nil if raw.eql?("/dev/null") # rubocop:disable Style/FileNull
