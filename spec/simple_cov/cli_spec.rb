@@ -7864,6 +7864,15 @@ RSpec.describe SimpleCov::CLI do
       expect(stdout.string).to include(file).and include("missing 2")
     end
 
+    it "scores a path with a space, which git ends with a tab" do
+      file = "lib/my dir/foo.rb"
+      build_repo(base: "a\n", head: "a\nb\n", line_hits: [1, 0], file: file)
+
+      ok!(run_in_repo("patch", "--base", "main", "--input", cov))
+
+      expect(stdout.string).to include(file).and include("missing 2")
+    end
+
     context "with an untracked file whose report entry carries no lines" do
       before do
         init_repo
@@ -8412,6 +8421,14 @@ RSpec.describe SimpleCov::CLI do
 
       it "unquotes a header path git had to quote" do
         expect(diff_path.call(%(+++ "b/we\\"ird.rb"\n))).to eq(%(we"ird.rb))
+      end
+
+      it "drops the tab git appends to a path with a space" do
+        expect(diff_path.call("+++ b/lib/my dir/foo.rb\t\n")).to eq("lib/my dir/foo.rb")
+      end
+
+      it "drops the tab after a quoted path with a space" do
+        expect(diff_path.call(%(+++ "b/my \\"dir.rb"\t\n))).to eq(%(my "dir.rb))
       end
     end
 

@@ -118,8 +118,11 @@ module SimpleCov
           (changes[path] ||= []).concat((start...(start + count)).to_a)
         end
 
+        # git ends a header naming a path with a space in a tab, so the end of
+        # the name stays findable. A name that itself ends in a tab is quoted,
+        # with the tab escaped, so the only bare trailing tab is that marker.
         def diff_path(line)
-          raw = unquote(line[4..].to_s.chomp)
+          raw = unquote(line[4..].to_s.chomp.delete_suffix("\t"))
           # git's own literal token for an absent side, not this host's null
           # device, so File::NULL (which is "NUL" on Windows) would be wrong.
           return nil if raw.eql?("/dev/null") # rubocop:disable Style/FileNull

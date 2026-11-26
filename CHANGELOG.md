@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - A file with a baseline entry is exempt from the per-file minimum and the per-file missed cap under `oneshot_line` coverage too. The baseline records line floors under `line`, but the exemption looked them up under `oneshot_line`, found none, and failed the file against the per-file standard it was meant to be exempt from. See [#1339].
+- `simplecov patch` scores a changed file whose path contains a space. git ends such a path in the diff header with a tab, which was read as part of the name, so the file matched no report entry and was left out silently, letting a `--minimum` gate pass without scoring it. See [#1348].
 - `simplecov affected` falls back to the full suite when `test_helper.rb` changes. Its name matched Minitest's `test_*.rb` convention, so it was taken for a test file and selected to run alone, which runs no tests. See [#1316].
 - `simplecov affected` falls back to the full suite when a changed file ran only while no test was being recorded, such as code that runs as the suite loads or in suite-level setup. No recorded test claims such a file, so `affected` selected nothing for it and reported that no test touched the change, even though the code may shape every test. See [#1316].
 - `simplecov affected` falls back to the full suite when a changed statement outside any method ran only outside recorded tests, even if recorded tests ran other lines of the file, and names the changed line. A changed or added constant selected only the tests that ran the file's methods, leaving out tests that read the constant. Blank lines, comments, and added methods do not count, and a change to a heredoc's body counts through the statement that opens it. See [#1316].
@@ -705,6 +706,7 @@ Looking for older changelogs? Please check the [old Changelog](https://github.co
 [#1334]: https://github.com/simplecov-ruby/simplecov/issues/1334
 [#1335]: https://github.com/simplecov-ruby/simplecov/issues/1335
 [#1339]: https://github.com/simplecov-ruby/simplecov/issues/1339
+[#1348]: https://github.com/simplecov-ruby/simplecov/issues/1348
 
 [@adam12]: https://github.com/adam12
 [@alexdeng-mp]: https://github.com/alexdeng-mp
