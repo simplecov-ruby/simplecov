@@ -115,6 +115,7 @@ module SimpleCov
       end
 
       start_arguments[:eval] = true if coverage_for_eval_enabled?
+      start_arguments[:methods] = true if track_tests? && method_coverage_supported?
 
       Coverage.start(**start_arguments) unless Coverage.running?
       start_test_tracking

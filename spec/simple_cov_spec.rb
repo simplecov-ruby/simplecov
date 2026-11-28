@@ -610,6 +610,52 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       expect(SimpleCov::ResultAdapter).to have_received(:call).with(raw)
     end
 
+    context "when method counters were collected only to track tests" do
+      let(:method_location) { [Object, :call, 1, 0, 1, 10] }
+      let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
+      let(:tracker) { instance_double(SimpleCov::TestTracker, dropped_reason: nil) }
+      let(:map) { SimpleCov::ContextMap.new }
+
+      before do
+        described_class.track_tests
+        described_class.instance_variable_set(:@test_tracker, tracker)
+        allow(tracker).to receive(:recorded_map) do |closing:|
+          map if closing.fetch(sample).key?(:methods)
+        end
+      end
+
+      after do
+        described_class.track_tests false
+        described_class.remove_instance_variable(:@test_tracker)
+      end
+
+      it "records the contexts built from the counters" do
+        process_slice
+
+        expect(described_class.result.contexts).to be(map)
+      end
+
+      it "leaves the counters out of the result" do
+        process_slice
+
+        expect(described_class.result.original_result.fetch(sample)).not_to have_key(:methods)
+      end
+    end
+
+    context "when method coverage was explicitly enabled" do
+      let(:method_location) { [Object, :call, 1, 0, 1, 10] }
+      let(:raw) { {sample => {lines: [1, 1], methods: {method_location => 1}}} }
+
+      before { described_class.enable_coverage :method }
+      after { described_class.disable_coverage :method }
+
+      it "keeps method counters in the result" do
+        process_slice
+
+        expect(described_class.result.original_result.fetch(sample)).to have_key(:methods)
+      end
+    end
+
     context "when it was asked to inject the tracked files" do
       before do
         described_class.cover "spec/fixtures/*.rb"
@@ -2707,6 +2753,25 @@ RSpec.describe SimpleCov, mutant_expression: ["SimpleCov*", "SimpleCov::Configur
       described_class.send :start_coverage_measurement
 
       expect(Coverage).to have_received(:start).with({lines: true, methods: true})
+    end
+
+    context "when tracking tests" do
+      before { described_class.track_tests }
+      after { described_class.track_tests false }
+
+      it "starts method counters" do
+        allow(Coverage).to receive(:start)
+        allow(described_class).to receive_messages(start_test_tracking: nil, method_coverage_supported?: true)
+        described_class.send :start_coverage_measurement
+        expect(Coverage).to have_received(:start).with({lines: true, methods: true})
+      end
+
+      it "leaves unsupported method counters off" do
+        allow(Coverage).to receive(:start)
+        allow(described_class).to receive_messages(start_test_tracking: nil, method_coverage_supported?: false)
+        described_class.send :start_coverage_measurement
+        expect(Coverage).to have_received(:start).with({lines: true})
+      end
     end
 
     it "passes only the last requested line mode to Coverage.start" do

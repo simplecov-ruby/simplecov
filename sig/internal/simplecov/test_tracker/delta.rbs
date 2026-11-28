@@ -6,6 +6,7 @@ module SimpleCov
       @root_regex: Regexp
       @in_root: Hash[String, bool]
       @method_masks: Hash[String, [Integer, Integer]]
+      @method_coverage: bool?
 
       def initialize: (root_regex: Regexp) -> void
 
@@ -18,6 +19,14 @@ module SimpleCov
       def method_masks: (String path) -> [Integer, Integer]
 
       def called: (Integer mask, Array[Integer?] lines) -> Integer
+
+      def method_delta: (Hash[untyped, Integer]? before_methods, Hash[untyped, Integer]? after_methods) -> Integer
+
+      def same_methods?: (Hash[untyped, Integer]? before_methods, Hash[untyped, Integer]? after_methods) -> bool
+
+      def method_coverage?: (Hash[String, untyped] coverage) -> bool
+
+      def one_line_method_counts: (Hash[untyped, Integer]? methods) -> Hash[Integer, Integer]
 
       def lines_in: (untyped file_coverage) -> Array[Integer?]?
 

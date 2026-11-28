@@ -2,9 +2,8 @@
 
 module SimpleCov
   class TestTracker
-    # The peek-diff arithmetic behind the tracker: which in-root lines grew
-    # between two coverage snapshots. This is the part a native
-    # `Coverage.supported?(:contexts)` engine would replace outright.
+    # Finds in-root lines whose line or one-line method counts grew between
+    # coverage snapshots. A native contexts engine would replace this class.
     class Delta
       ONE_BIT = "1".ord
 
@@ -21,6 +20,7 @@ module SimpleCov
       # memoized, so the regex runs once per file the process ever loads rather
       # than once per file per test.
       def call(before, after, loading: false)
+        method_coverage = method_coverage?(after)
         changed = {} #: Hash[String, Integer]
         after.each do |path, file_coverage|
           in_root = @in_root.fetch(path) { @in_root[path] = @root_regex.match?(path) }
@@ -31,6 +31,9 @@ module SimpleCov
           next unless lines
 
           bitmap = line_delta(lines_in(before[path]), lines)
+          if method_coverage
+            bitmap |= method_delta(before.dig(path, :methods), file_coverage.fetch(:methods))
+          end
           bitmap = own_lines(path, bitmap, lines) unless before.key?(path)
           changed[path] = bitmap unless bitmap.zero?
         end
@@ -56,6 +59,37 @@ module SimpleCov
         (0...mask.bit_length).sum do |index|
           count = lines.fetch(index) #: Integer
           (mask[index].equal?(1) && count > 1) ? 1 << index : 0
+        end
+      end
+
+      def method_delta(before_methods, after_methods)
+        return 0 if same_methods?(before_methods, after_methods)
+
+        before_counts = one_line_method_counts(before_methods)
+        one_line_method_counts(after_methods).sum do |line, count|
+          (count > before_counts.fetch(line, 0)) ? 1 << (line - 1) : 0
+        end
+      end
+
+      # mutant:disable -- Hash#== avoids aggregates for unchanged files.
+      def same_methods?(before_methods, after_methods)
+        before_methods == after_methods
+      end
+
+      # mutant:disable -- Coverage criteria stay fixed while a tracker lives.
+      def method_coverage?(coverage)
+        if @method_coverage.nil? && (first = coverage.each_value.first)
+          @method_coverage = first.instance_of?(Hash) && first.key?(:methods)
+        end
+        @method_coverage || false
+      end
+
+      def one_line_method_counts(methods)
+        return {} unless methods
+
+        methods.each_with_object(Hash.new(0)) do |(location, count), totals|
+          start_line = location.fetch(2)
+          totals[start_line] += count if start_line.eql?(location.fetch(4))
         end
       end
 
